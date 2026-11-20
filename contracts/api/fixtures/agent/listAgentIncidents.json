@@ -7,6 +7,7 @@
       "event_id": "6f1c2b7e-1d4a-4c8e-9b2f-6a5d4e3c2b13",
       "client_pseudonym": "p1-5f0c2a9e41b7d368",
       "client_net": "203.0.113.0/24",
+      "ip": "203.0.113.57",
       "reason": "942100, 949110 SQL Injection Attack Detected via libinjection",
       "sources": [
         "crs"
@@ -19,6 +20,7 @@
       "event_id": "6f1c2b7e-1d4a-4c8e-9b2f-6a5d4e3c2b15",
       "client_pseudonym": "p1-0011223344556677",
       "client_net": "198.51.100.0/24",
+      "ip": "198.51.100.57",
       "reason": "behaviour login_bruteforce",
       "sources": [
         "behaviour:login_bruteforce"

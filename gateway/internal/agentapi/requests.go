@@ -17,7 +17,8 @@ import (
 // v0.5 (MVP-22, D35): queryRequests, getRequestContext and getBotOverview
 // for agents. Visitor keys are re-keyed as p1- pseudonyms with the
 // gateway-local key; host, path and referrer are untrusted text
-// (Sanitize'd). No bulk export: at most 1 h and 10000 records per call.
+// (Sanitize'd). The client address is the one the ring holds.
+// No bulk export: at most 1 h and 10000 records per call.
 
 // Agent bounds of the ring operations.
 const (
@@ -47,7 +48,7 @@ func (s *Server) agentRequest(x cr.Record) contractapi.Request {
 		PathKind: x.PathKind, Method: x.Method, Status: x.Status, Outcome: x.Outcome, AnomalyScore: x.AnomalyScore, Rules: x.Rules,
 		EventID: x.EventID, Country: x.Country, ASN: x.ASN, NetClass: x.NetClass, Browser: x.Browser, OS: x.OS, Device: x.Device,
 		Bot: x.Bot, BotCategory: x.BotCategory, Verification: x.Verification, Referrer: contractapi.Sanitize(x.Referrer, 253),
-		DurationMS: x.DurationMS, BytesOut: x.BytesOut, PageView: x.PageView, Visitor: contractapi.VisitorPseudonym(s.key, x.Visitor)}
+		DurationMS: x.DurationMS, BytesOut: x.BytesOut, PageView: x.PageView, Visitor: contractapi.VisitorPseudonym(s.key, x.Visitor), IP: address(x.IP)}
 }
 
 func (s *Server) ringOff(w http.ResponseWriter) bool {
@@ -118,6 +119,9 @@ func (s *Server) queryRequests(w http.ResponseWriter, r *http.Request) {
 			invalid(w, "bot_category", "BotCategory")
 			return
 		}
+	}
+	if f.IP, ok = addressParam(w, r); !ok {
+		return
 	}
 	if v := q.Get("verification"); v != "" {
 		i := agentIndex(bots.Verifications, v)

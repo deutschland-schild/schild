@@ -154,7 +154,8 @@ type RepositorySwitched struct {
 
 // AgentBlockSet is the data of schild.block.set.v1 (D42): an agent set a block,
 // or would have (Effect would_block, in a gateway that observes: no incident,
-// no until). The address stays local; the agent never sees it. The event keeps
+// no until). A block is never named by address (D42); the address is in the answers that list
+// events (D99). The event keeps
 // the token name after the token is revoked. D88: or the operator in the
 // dashboard (Actor dashboard, TargetKind address, no token, no evidence).
 type AgentBlockSet struct {

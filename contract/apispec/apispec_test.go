@@ -369,16 +369,16 @@ func TestConventions(t *testing.T) {
 						t.Errorf("%s: SSE without Last-Event-ID", where)
 					}
 				}
-				if name == "lab-dashboard.openapi.yaml" || name == "gateway-agent.openapi.yaml" {
+				if name == "lab-dashboard.openapi.yaml" {
 					for pn := range params {
 						if ipNames[strings.ToLower(pn)] {
-							t.Errorf("%s: takes an IP parameter %s (labs and agents never see visitor IPs)", where, pn)
+							t.Errorf("%s: takes an IP parameter %s (labs never see visitor IPs)", where, pn)
 						}
 					}
 				}
 			}
 		}
-		if name == "lab-dashboard.openapi.yaml" || name == "gateway-agent.openapi.yaml" {
+		if name == "lab-dashboard.openapi.yaml" {
 			walk(d["components"], func(k string, v any) {
 				if k != "properties" {
 					return
@@ -563,9 +563,8 @@ func TestMonitoring(t *testing.T) {
 }
 
 // TestAgentAPI checks the v0.4 (MVP-21, D33) agent API: GET only apart from
-// the writes, every operation tells an agent what it is for (D61), attacker-controlled properties are
-// marked x-untrusted with a length cap, and no fixture carries a full IP
-// address (only /24 and /48 networks).
+// the writes, every operation tells an agent what it is for (D61) and attacker-controlled properties are
+// marked x-untrusted with a length cap. Fixtures carry documentation addresses only (TestFixtures).
 func TestAgentAPI(t *testing.T) {
 	const name = "gateway-agent.openapi.yaml"
 	d := load(t, name)
@@ -621,21 +620,6 @@ func TestAgentAPI(t *testing.T) {
 			}
 		}
 	})
-	files, _ := filepath.Glob(filepath.Join(apiDir, "fixtures", "agent", "*.json"))
-	v6 := regexp.MustCompile(`"([0-9a-fA-F:]*:[0-9a-fA-F:]*)"`)
-	for _, f := range files {
-		b, _ := os.ReadFile(f)
-		for _, m := range regexp.MustCompile(`\b[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}(/[0-9]+)?`).FindAllString(string(b), -1) {
-			if !strings.HasSuffix(m, ".0/24") {
-				t.Errorf("%s: %s is a full IPv4 address", f, m)
-			}
-		}
-		for _, m := range v6.FindAllStringSubmatch(string(b), -1) {
-			if _, err := netip.ParseAddr(m[1]); err == nil {
-				t.Errorf("%s: %s is a full IPv6 address", f, m[1])
-			}
-		}
-	}
 }
 
 // TestAgentBundle: the document the gateway serves (D61) is the bundle of

@@ -237,10 +237,16 @@ func TestAgentAPIReadsWithoutAddresses(t *testing.T) {
 	}
 	now := a.get("/agent/v0/monitoring/now")
 	cat := a.get("/agent/v0/monitoring/catalogue")
-	for _, b := range [][]byte{st, page, detail, inc, one, now, cat} {
+	// Events and incidents name the client address; status and monitoring have none.
+	for _, b := range [][]byte{detail, inc, one} {
+		if !strings.Contains(string(b), `"ip":"`+ip+`"`) {
+			t.Fatalf("no address %s in %s", ip, b)
+		}
+	}
+	for _, b := range [][]byte{st, now, cat} {
 		for _, addr := range []string{ip, "198.51.100.9"} {
 			if strings.Contains(string(b), addr) {
-				t.Fatalf("address %s in an agent answer: %s", addr, b)
+				t.Fatalf("address %s in an answer without clients: %s", addr, b)
 			}
 		}
 	}
@@ -255,7 +261,7 @@ func TestAgentAPIReadsWithoutAddresses(t *testing.T) {
 		t.Errorf("requests 2 h: %d %s", code, b)
 	}
 	code, rb, _ := a.do("GET", "/agent/v0/requests?from="+time.Now().Add(-30*time.Minute).UTC().Format(time.RFC3339)+"&to="+to, a.token, "", nil)
-	if code != 200 || !strings.Contains(string(rb), `"visitor":"p1-`) || strings.Contains(string(rb), `"visitor":"v1-`) || strings.Contains(string(rb), ip) {
+	if code != 200 || !strings.Contains(string(rb), `"visitor":"p1-`) || strings.Contains(string(rb), `"visitor":"v1-`) || !strings.Contains(string(rb), `"ip":"`+ip+`"`) {
 		t.Errorf("requests: %d %s", code, rb)
 	}
 	if code, b, _ := a.do("GET", "/agent/v0/requests/bots", a.token, "", nil); code != 200 || !strings.Contains(string(b), `"catalogue_version"`) {

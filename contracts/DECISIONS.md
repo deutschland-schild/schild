@@ -935,6 +935,15 @@ Two findings before the release. First: the session cookie was `Secure` for ever
 - **One entry per field.** An exception holds at most 16 rules, so a field left out for more rules arrives as several exceptions that differ in their rules only (found in the live test: 91 rules in six parts). The dashboard shows exceptions with the same website, page, field and repository as one entry: the rules together, folded by what they look for above 16, the first reason with the others behind it, one remove button that removes every part. The tab and the overview count entries. The API is unchanged; naming whole rule families in one exception is open.
 - **Not included.** No exception for own rules (409 `not_supported`, as in the agent API): they are changed in their file. No editing: remove and set again (amended by D86: single rules can be taken out).
 
+## D99 The agent API names client addresses (2026-11-20, initiator)
+
+- **Finding (review of the agent API document 2026-11-20).** The document promised "no full IP address in any answer", and `TestConventions` forbade an IP parameter or property. The gateway did not hold it: `getTrafficBreakdown` with `by=ip` and `filter=ip:<address>` answered from the request ring like the dashboard, with full addresses, for every reading token.
+- **Decision (initiator).** The addresses stay, and the rest of the API follows: "ist ja alles lokal und evtl. möchte ich mit dem agent über eine IP sprechen, die komische requests macht". The API listens on loopback, the token is created on the host, and the operator chooses the agent.
+- **APIs.** Agent API: `ip` (`ClientAddress`, the address as stored, absent after `retention.raw_ip_days`) on `AgentEvent`, `AgentIncident` and `AgentRequest`; the query parameter `ip` on `listAgentEvents` and `queryRequests`; `filter` and the dimensions `ip` and `user_agent` on `getTrafficBreakdown` and `queryMetricSeries` are documented. `client_pseudonym`, `client_net` and `visitor` stay. Additive for readers that ignore unknown properties.
+- **Not changed.** `createAgentBlock` names its target by event, incident or pseudonym, never by address (D42): text in a request must not choose a target. The lab API and the signals carry no address.
+- **Docs.** The gateway docs say that an agent with a model in the cloud takes what it reads off the server.
+- **Read as.** "Echte IPs" is read as: wherever an answer names a client. An `ip` target for blocks was not built.
+
 ## D98 The maintenance mode is a switch of its own, next to the access lock (2026-11-19, initiator)
 
 - **Finding (initiator).** The maintenance switch was an access lock of a fixed shape (scope site, own networks, no password; D56, D58), and a website has one access lock. So a website with a lock on single paths could not go into maintenance: "Für diese Website ist schon ein Zugriffsschutz eingerichtet. Heb ihn unten auf, dann kannst du den Wartungsmodus einschalten." Lifting it meant losing its password and paths. "Wartungsmodus sollte global gelten und auch mit granularem Zugriffsschutz aktivierbar sein."
