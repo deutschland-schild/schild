@@ -20,6 +20,26 @@ func (a *App) behaviourConfig(c *config.Site) behaviour.Config {
 		InstalledAt: a.InstalledAt(context.Background())}
 }
 
+// knownSiteHost reports whether h belongs to a configured website. When any
+// website is a catch-all without explicit hosts (proxy mode without
+// site_hosts), every host is accepted; otherwise arbitrary Host headers are
+// ignored so they cannot evict real sites from behaviour's per-site tables.
+func (a *App) knownSiteHost(h string) bool {
+	if a.Sites == nil {
+		return true
+	}
+	v := a.Sites.View()
+	if v == nil {
+		return true
+	}
+	for _, w := range v.Websites() {
+		if len(w.Hosts) == 0 {
+			return true
+		}
+	}
+	return v.OwnHost(h)
+}
+
 // SetInstalledAt moves the first-start date (tests, migrations) and
 // re-applies the behaviour configuration (MVP-18 learning period).
 func (a *App) SetInstalledAt(ctx context.Context, t time.Time) error {

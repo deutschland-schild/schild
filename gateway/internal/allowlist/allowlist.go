@@ -139,6 +139,31 @@ func (l *List) Match(addr netip.Addr, now time.Time) (string, *Entry) {
 	return level, match
 }
 
+// Overlaps reports whether an entry that runs at now shares an address with
+// p. Unlike Match it also finds an entry inside p: an allowlisted address of
+// a blocked IPv6 /64 must keep the whole /64 out of the host's firewall, which
+// would drop it before the allowlist is asked.
+func (l *List) Overlaps(p netip.Prefix, now time.Time) bool {
+	p = netip.PrefixFrom(p.Addr().Unmap(), p.Bits()).Masked()
+	if !p.IsValid() {
+		return false
+	}
+	for _, e := range l.cur.Load().entries {
+		if e.Expired(now) {
+			continue
+		}
+		if e.Prefix.IsValid() && e.Prefix.Overlaps(p) {
+			return true
+		}
+		for _, r := range e.Resolved {
+			if p.Contains(r.Unmap()) {
+				return true
+			}
+		}
+	}
+	return false
+}
+
 // Entries returns the compiled entries.
 func (l *List) Entries() []*Entry { return l.cur.Load().entries }
 

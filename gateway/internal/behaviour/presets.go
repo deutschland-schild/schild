@@ -4,6 +4,7 @@ import (
 	"net/url"
 	"path"
 	"regexp"
+	"slices"
 	"strings"
 
 	"github.com/deutschland-schild/schild/contract/config"
@@ -118,8 +119,11 @@ func matchLogin(enabled map[string]bool, method, p, rawQuery string) *loginRoute
 			continue
 		}
 		if lr.Path == "/wp-login.php" {
-			// lostpassword, register, logout ... are no login attempts.
-			if a := queryValue(rawQuery, "action"); a != "" && a != "login" {
+			// lostpassword, register, logout ... are no login attempts. One
+			// occurrence that says login (or nothing) is enough: PHP takes
+			// the last one, so "?action=lostpassword&action=login" logs in.
+			if actions := FormValues(rawQuery, "action"); len(actions) > 0 &&
+				!slices.Contains(actions, "") && !slices.Contains(actions, "login") {
 				continue
 			}
 		}
@@ -158,17 +162,47 @@ func routeIs(route, p, canon string) bool {
 	return strings.HasSuffix(route, ".php") && len(p) > len(route) && p[len(route)] == '/' && strings.HasPrefix(p, route)
 }
 
+// hasQuery reports whether rawQuery has a parameter that matches kv: "k=v"
+// for that value, "k" for any value that is not empty. Every occurrence of k
+// counts: backends disagree on which of two wins (PHP the last, others the
+// first), so a second "task=" in front of the real one must not hide it.
 func hasQuery(rawQuery, kv string) bool {
-	k, v, _ := strings.Cut(kv, "=")
-	return queryValue(rawQuery, k) == v
+	k, v, hasV := strings.Cut(kv, "=")
+	for _, got := range FormValues(rawQuery, k) {
+		if (hasV && got == v) || (!hasV && got != "") {
+			return true
+		}
+	}
+	return false
 }
 
-func queryValue(rawQuery, k string) string {
-	q, err := url.ParseQuery(rawQuery)
-	if err != nil {
-		return ""
+// FormValues returns every value of the parameter k in a query string or a
+// urlencoded form, in order. Parameters are cut at '&' only, as PHP and the
+// WAF do, and what does not unescape is taken as it stands: url.ParseQuery
+// refuses the whole string for one ';' or one bad escape anywhere in it,
+// which let an unrelated parameter switch the match off.
+func FormValues(raw, k string) []string {
+	var out []string
+	for raw != "" {
+		var part string
+		part, raw, _ = strings.Cut(raw, "&")
+		if part == "" {
+			continue
+		}
+		rk, rv, _ := strings.Cut(part, "=")
+		if unescape(rk) != k {
+			continue
+		}
+		out = append(out, unescape(rv))
 	}
-	return q.Get(k)
+	return out
+}
+
+func unescape(s string) string {
+	if u, err := url.QueryUnescape(s); err == nil {
+		return u
+	}
+	return s
 }
 
 // presetLimit is a rate limit that ships with a preset.

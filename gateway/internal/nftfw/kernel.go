@@ -3,12 +3,16 @@
 package nftfw
 
 import (
+	"bytes"
+	"cmp"
 	"encoding/binary"
 	"errors"
 	"fmt"
 	"net/netip"
+	"slices"
 	"time"
 
+	"github.com/deutschland-schild/schild/contract/firewall"
 	"github.com/google/nftables"
 	"github.com/google/nftables/expr"
 	"golang.org/x/sys/unix"
@@ -130,7 +134,8 @@ func (k Kernel) Replace(els []Element) error {
 	}
 	c.FlushSet(set4)
 	c.FlushSet(set6)
-	var v4, v6 []nftables.SetElement
+	v4Seen := make(map[netip.Addr]time.Duration)
+	var v6Raw []v6Item
 	for _, e := range els {
 		p, err := netip.ParsePrefix(e.Client)
 		if err != nil {
@@ -145,48 +150,40 @@ func (k Kernel) Replace(els []Element) error {
 			continue
 		}
 		if p.Addr().Is4() {
-			v4 = append(v4, nftables.SetElement{Key: p.Addr().AsSlice(), Timeout: timeout})
+			a := p.Addr().Unmap()
+			if timeout > v4Seen[a] {
+				v4Seen[a] = timeout
+			}
 			continue
 		}
-		end, ok := after(p)
-		v6 = append(v6, nftables.SetElement{Key: p.Masked().Addr().AsSlice(), Timeout: timeout})
-		if ok {
-			v6 = append(v6, nftables.SetElement{Key: end.AsSlice(), IntervalEnd: true})
-		}
+		v6Raw = append(v6Raw, v6Item{Prefix: p, Timeout: timeout})
+	}
+	v4 := make([]nftables.SetElement, 0, len(v4Seen))
+	for a, timeout := range v4Seen {
+		v4 = append(v4, nftables.SetElement{Key: a.AsSlice(), Timeout: timeout})
 	}
 	for i := 0; i < len(v4); i += 1000 {
 		if err := c.SetAddElements(set4, v4[i:min(i+1000, len(v4))]); err != nil {
 			return err
 		}
 	}
-	for i := 0; i < len(v6); i += 1000 {
-		if err := c.SetAddElements(set6, v6[i:min(i+1000, len(v6))]); err != nil {
+	for _, batch := range batchV6Ranges(mergeIPv6(v6Raw), 1000) {
+		v6 := make([]nftables.SetElement, 0, len(batch)*2)
+		for _, r := range batch {
+			v6 = append(v6, nftables.SetElement{Key: r.Start.AsSlice(), Timeout: r.Timeout})
+			if r.HasEnd {
+				v6 = append(v6, nftables.SetElement{Key: r.End.AsSlice(), IntervalEnd: true})
+			}
+		}
+		if err := c.SetAddElements(set6, v6); err != nil {
 			return err
 		}
 	}
 	return permission(c.Flush())
 }
 
-// after is the first address after prefix p; ok false at the end of the
-// address space.
-func after(p netip.Prefix) (netip.Addr, bool) {
-	b := p.Masked().Addr().As16()
-	bits := p.Bits()
-	// Add 1 at the last bit of the prefix.
-	for i := bits - 1; i >= 0; i-- {
-		byteI, bit := i/8, byte(1)<<(7-i%8)
-		if b[byteI]&bit == 0 {
-			b[byteI] |= bit
-			for j := i + 1; j < bits; j++ {
-				b[j/8] &^= byte(1) << (7 - j%8)
-			}
-			return netip.AddrFrom16(b), true
-		}
-	}
-	return netip.Addr{}, false
-}
-
-// Held counts the clients the sets hold now (expired ones are gone).
+// Held lists the clients the sets hold now (expired ones are gone). An IPv6
+// interval that Replace merged from several /64 is listed as those /64.
 func (k Kernel) Held() ([]Held, error) {
 	c, err := k.conn()
 	if err != nil {
@@ -203,22 +200,46 @@ func (k Kernel) Held() ([]Held, error) {
 		if err != nil {
 			return nil, permission(err)
 		}
-		for _, e := range els {
-			if e.IntervalEnd {
+		if name == set4Name {
+			for _, e := range els {
+				if a, ok := netip.AddrFromSlice(e.Key); ok {
+					out = append(out, Held{Client: a.Unmap().String(), Expires: e.Expires})
+				}
+			}
+			continue
+		}
+		// Every start is followed by its end (Replace), or by nothing at the
+		// end of the address space. At one address the end of an interval
+		// sorts before the start of the next.
+		slices.SortFunc(els, func(x, y nftables.SetElement) int {
+			if d := bytes.Compare(x.Key, y.Key); d != 0 {
+				return d
+			}
+			return cmp.Compare(b2i(y.IntervalEnd), b2i(x.IntervalEnd))
+		})
+		for i, e := range els {
+			start, ok := netip.AddrFromSlice(e.Key)
+			if e.IntervalEnd || !ok {
 				continue
 			}
-			a, ok := netip.AddrFromSlice(e.Key)
-			if !ok {
-				continue
+			var end netip.Addr
+			hasEnd := false
+			if i+1 < len(els) && els[i+1].IntervalEnd {
+				end, hasEnd = netip.AddrFromSlice(els[i+1].Key)
 			}
-			client := a.Unmap().String()
-			if a.Is6() && !a.Is4In6() {
-				client = netip.PrefixFrom(a, 64).String()
+			for _, p := range clients64(start, end, hasEnd, max(firewall.MaxBlocks-len(out), 0)) {
+				out = append(out, Held{Client: p.String(), Expires: e.Expires})
 			}
-			out = append(out, Held{Client: client, Expires: e.Expires})
 		}
 	}
 	return out, nil
+}
+
+func b2i(b bool) int {
+	if b {
+		return 1
+	}
+	return 0
 }
 
 // Remove deletes the table; without one it does nothing.

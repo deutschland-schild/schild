@@ -72,22 +72,41 @@ func (a *App) newAgentAPI(cfg *config.Site) *agentapi.Server {
 // ownAddress: an agent never blocks the allowlist, this host or a trusted
 // proxy: blocking a proxy would block everyone behind it (D42).
 func (a *App) ownAddress(ip netip.Addr) bool {
-	if lvl, _ := a.Allow.Match(ip, time.Now()); lvl != "" {
-		return true
-	}
-	if a.Gate.Settings().Resolver.Trusted(ip) {
-		return true
-	}
-	addrs, err := net.InterfaceAddrs()
-	if err != nil {
+	ip = ip.Unmap()
+	if !ip.IsValid() {
 		return false
 	}
-	for _, x := range addrs {
-		if p, err := netip.ParsePrefix(x.String()); err == nil && p.Addr().Unmap() == ip.Unmap() {
-			return true
+	return a.ownFilter()(netip.PrefixFrom(ip, ip.BitLen()))
+}
+
+// ownFilter returns the test of ownAddress for client keys: true when the key
+// shares an address with the allowlist, a trusted proxy or this host. A key
+// is an IPv4 address or an IPv6 /64, and one own address inside the /64 is
+// enough. The addresses of this host are read once per filter, so a caller
+// with many keys (the blocks for the firewall, every second while a firewall
+// waits) builds one filter and asks it for each.
+func (a *App) ownFilter() func(netip.Prefix) bool {
+	now := time.Now()
+	res := a.Gate.Settings().Resolver
+	var host []netip.Addr
+	if addrs, err := net.InterfaceAddrs(); err == nil {
+		for _, x := range addrs {
+			if p, err := netip.ParsePrefix(x.String()); err == nil {
+				host = append(host, p.Addr().Unmap())
+			}
 		}
 	}
-	return false
+	return func(key netip.Prefix) bool {
+		if a.Allow.Overlaps(key, now) || (res != nil && res.TrustedOverlaps(key)) {
+			return true
+		}
+		for _, h := range host {
+			if key.Contains(h) {
+				return true
+			}
+		}
+		return false
+	}
 }
 
 // agentIncidentBlock is the block behind an incident for the agent API.

@@ -5,7 +5,6 @@ import (
 	"io"
 	"mime"
 	"net/http"
-	"net/url"
 	"sort"
 	"strings"
 
@@ -15,6 +14,7 @@ import (
 	"github.com/deutschland-schild/schild/contract/msg"
 	"github.com/deutschland-schild/schild/gateway/internal/behaviour"
 	"github.com/deutschland-schild/schild/gateway/internal/blockpage"
+	"github.com/deutschland-schild/schild/gateway/internal/bots"
 	"github.com/deutschland-schild/schild/gateway/internal/decide"
 	"github.com/deutschland-schild/schild/gateway/internal/pathtpl"
 	"github.com/deutschland-schild/schild/gateway/internal/waf"
@@ -23,15 +23,28 @@ import (
 // behaviourRequest builds the MVP-17 view of a request (local only).
 func (g *Gate) behaviourRequest(r *http.Request, ri *reqInfo) *behaviour.Request {
 	ip := ri.client.IP.Unmap()
+	set := g.settings.Load()
+	trustedProxy := ip.IsValid() && set.Resolver != nil && set.Resolver.Trusted(ip)
 	method := strings.ToUpper(r.Method)
 	if !methodRe.MatchString(method) {
 		method = "OTHER"
 	}
+	ua := r.UserAgent()
+	impersonator := false
+	if ip.IsValid() && ua != "" {
+		if g.Monitor != nil {
+			impersonator = g.Monitor.ClassifyBot(ua, ip).Verification == bots.VerMismatch
+		} else if g.Crawlers != nil && g.Crawlers.Engine() != nil {
+			if id, _ := g.Crawlers.Engine().MatchUA(ua); id != 0 {
+				impersonator = g.Crawlers.Engine().Verify(id, ip) == bots.VerMismatch
+			}
+		}
+	}
 	br := &behaviour.Request{
-		Time: ri.start, IP: ip, Allowlisted: ri.allow != "",
+		Time: ri.start, IP: ip, Allowlisted: ri.allow != "", TrustedProxy: trustedProxy, BotImpersonator: impersonator,
 		Client: events.Client{IP: ip.String(), Attribution: ri.client.Attribution, Allowlisted: ri.allow != "",
 			Geo: events.Geo{Country: ri.geo.Country, City: trim(ri.geo.City, 128), ASN: ri.geo.ASN, ASOrg: trim(ri.geo.ASOrg, 256), NetClass: ri.geo.NetClass}},
-		Method: method, Host: r.Host, Path: r.URL.Path, RawQuery: r.URL.RawQuery, UserAgent: r.UserAgent(),
+		Method: method, Host: r.Host, Path: r.URL.Path, RawQuery: r.URL.RawQuery, UserAgent: ua,
 		Except: func(src string) bool { return g.Exceptions.Has(ip, src, ri.start) },
 	}
 	g.fingerprint(r, ri, br)
@@ -178,11 +191,18 @@ func loginUserHash(r *http.Request, tx types.Transaction, fields []string) (uint
 	var get func(string) string
 	switch {
 	case mt == "application/x-www-form-urlencoded":
-		q, err := url.ParseQuery(string(head))
-		if err != nil {
-			return 0, false
+		// Not url.ParseQuery: it refuses the whole form for one ';' or one
+		// bad escape in any field, and the attempt would count for no user.
+		// Of a field sent twice the last value counts, as in PHP, which
+		// every preset with a name runs on (and as json.Unmarshal below does
+		// for a key sent twice): "log=a&log=victim" is an attempt on victim.
+		form := string(head)
+		get = func(k string) string {
+			if vs := behaviour.FormValues(form, k); len(vs) > 0 {
+				return vs[len(vs)-1]
+			}
+			return ""
 		}
-		get = q.Get
 	case mt == "application/json" || strings.HasSuffix(mt, "+json"):
 		var obj map[string]json.RawMessage
 		if json.Unmarshal(head, &obj) != nil {

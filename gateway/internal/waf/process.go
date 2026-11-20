@@ -10,6 +10,7 @@ import (
 	"mime/multipart"
 	"net"
 	"net/http"
+	"regexp"
 	"strconv"
 	"strings"
 	"syscall"
@@ -379,17 +380,14 @@ func ReadBodyInfo(tx types.Transaction, r *http.Request, lim Limits) (io.Reader,
 		}
 		return nil, info, ErrBodyRead
 	}
-	rd, err := tx.RequestBodyReader()
-	if err != nil {
-		return nil, info, ErrBodyRead
-	}
-	info.Args, err = checkStructure(ct, rd, lim)
+	info.Args, err = checkStructureValues(tx, r.Header.Values("Content-Type"), lim)
 	if err != nil {
 		return nil, info, err
 	}
 	info.Files = class == bodylimit.BodyMultipart
 	if info.Files {
-		if rd, err = tx.RequestBodyReader(); err != nil {
+		rd, err := tx.RequestBodyReader()
+		if err != nil {
 			return nil, info, ErrBodyRead
 		}
 		info.Text = multipartText(ct, rd, info.Bytes)
@@ -431,6 +429,71 @@ func multipartText(contentType string, body io.Reader, total int64) int64 {
 	}
 }
 
+// checkStructureValues checks the body for every Content-Type value that can
+// pick a parser, in Coraza or in a backend. The rules that pick Coraza's JSON
+// parser (200001, 200006) read every value, so with only the first one
+// checked a second "Content-Type: application/json" got the JSON past the
+// depth and syntax check. A form is counted for every value too, which is
+// stricter than Coraza. Multipart counts for the first value only, the one
+// Coraza takes (Transaction.AddRequestHeader). It returns the largest number
+// of arguments a value led to.
+func checkStructureValues(tx types.Transaction, values []string, lim Limits) (int, error) {
+	var checkedForm, checkedJSON bool
+	maxArgs := 0
+	run := func(ct string) error {
+		rd, err := tx.RequestBodyReader()
+		if err != nil {
+			return ErrBodyRead
+		}
+		n, err := checkStructure(ct, rd, lim)
+		if err != nil {
+			return err
+		}
+		if n > maxArgs {
+			maxArgs = n
+		}
+		return nil
+	}
+	for i, v := range values {
+		mt, _, _ := mime.ParseMediaType(v)
+		switch {
+		case mt == "application/x-www-form-urlencoded":
+			if checkedForm {
+				continue
+			}
+			checkedForm = true
+			if err := run(v); err != nil {
+				return maxArgs, err
+			}
+		case isJSONMediaType(mt, v):
+			if checkedJSON {
+				continue
+			}
+			checkedJSON = true
+			if err := run(v); err != nil {
+				return maxArgs, err
+			}
+		case i == 0 && corazaMultipart(v):
+			if err := run(v); err != nil {
+				return maxArgs, err
+			}
+		}
+	}
+	return maxArgs, nil
+}
+
+// corazaJSON is what rules 200001 and 200006 match, both prefixes on the
+// lowercased value: "application/json x" and "application/a+json-seq" pick
+// Coraza's JSON parser too, though they are no JSON media type to Go.
+var corazaJSON = regexp.MustCompile(`^application/(?:json|[a-z0-9.-]+[+]json)`)
+
+// isJSONMediaType reports whether a Content-Type value names JSON, to a
+// backend (the parsed media type mt) or to Coraza (the raw value).
+func isJSONMediaType(mt, raw string) bool {
+	return mt == "application/json" || strings.HasSuffix(mt, "+json") ||
+		corazaJSON.MatchString(strings.TrimSpace(strings.ToLower(raw)))
+}
+
 // checkStructure counts arguments, JSON depth and multipart parts without
 // parsing values, so that Coraza never silently drops arguments beyond
 // SecArgumentsLimit (a classic bypass). It returns the number of arguments
@@ -454,7 +517,7 @@ func checkStructure(contentType string, body io.Reader, lim Limits) (int, error)
 			}
 		}
 		return n, nil
-	case mt == "application/json" || strings.HasSuffix(mt, "+json"):
+	case isJSONMediaType(mt, contentType):
 		return scanJSON(br, lim)
 	case corazaMultipart(contentType):
 		// A value Go cannot parse has no parameters. Coraza fails on it too, but

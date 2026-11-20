@@ -18,6 +18,9 @@ import (
 	"io"
 	"log/slog"
 	"net/http"
+	"os"
+	"strings"
+	"syscall"
 	"time"
 
 	"github.com/deutschland-schild/schild/contract/firewall"
@@ -137,17 +140,28 @@ func Run(ctx context.Context, b Backend, cfg Config) error {
 }
 
 // apply puts the blocks into the table; a table that went away (a reload of
-// the firewall) is built again once.
+// the firewall) is built again once. Other Replace errors leave the running
+// table intact rather than wiping it with Ensure.
 func apply(b Backend, ans firewall.SyncResponse, now time.Time) error {
 	els := Elements(ans.Blocks, now)
 	err := b.Replace(els)
 	if err == nil {
 		return nil
 	}
+	if !isTableMissing(err) {
+		return err
+	}
 	if e := b.Ensure(); e != nil {
 		return errors.Join(err, e)
 	}
 	return b.Replace(els)
+}
+
+func isTableMissing(err error) bool {
+	if errors.Is(err, os.ErrNotExist) || errors.Is(err, syscall.ENOENT) {
+		return true
+	}
+	return strings.Contains(strings.ToLower(err.Error()), "no such file or directory")
 }
 
 func call(ctx context.Context, cfg Config, req firewall.SyncRequest) (firewall.SyncResponse, error) {
