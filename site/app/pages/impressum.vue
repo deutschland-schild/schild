@@ -15,8 +15,7 @@ useSeoMeta({ description: 'Impressum von Deutschland-Schild: Anbieter der Websit
       Deutschland
     </p>
     <p>
-      Deutschland-Schild ist eine gemeinnützige Initiative. Bis zur Klärung einer gemeinnützigen
-      Trägerschaft wird diese Website von der PrioPad GmbH betrieben.
+      Die PrioPad GmbH betreibt die Website von Deutschland-Schild, einer gemeinnützigen Open-Source-Initiative.
     </p>
 
     <h2>Vertreten durch</h2>

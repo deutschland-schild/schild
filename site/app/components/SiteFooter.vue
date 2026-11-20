@@ -1,8 +1,5 @@
 <script setup lang="ts">
 import { REPO_URL } from '~/utils/release'
-
-// siteStand: date of the last commit at build time (nuxt.config.ts).
-const { siteStand } = useRuntimeConfig().public
 </script>
 
 <template>
@@ -10,7 +7,8 @@ const { siteStand } = useRuntimeConfig().public
     <div class="mx-auto flex max-w-6xl flex-col gap-6 px-5 py-10 sm:px-8 md:flex-row md:items-start md:justify-between">
       <div class="max-w-md space-y-2">
         <BrandLogo />
-        <p>Gemeinnützig, überparteilich, Code unter MIT-Lizenz. Bis eine gemeinnützige Trägerschaft geklärt ist, betreut die <a href="https://priopad.com" class="text-ink underline underline-offset-2">PrioPad GmbH</a> die Initiative. Stand {{ siteStand }}.</p>
+        <p class="font-medium text-ink">Grundschutz für alle Websites.</p>
+        <p>Gemeinnützig, überparteilich, Open Source. Gebaut in Deutschland.</p>
       </div>
       <nav class="flex flex-wrap gap-x-5 gap-y-1" aria-label="Weitere Seiten">
         <NuxtLink to="/#installieren" class="py-1 hover:text-ink">Installieren</NuxtLink>
