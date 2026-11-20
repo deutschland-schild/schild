@@ -1,6 +1,6 @@
 ---
 short: Installieren
-description: "Schild Gateway installieren: als Caddy-Distribution oder hinter nginx, Apache oder einem Load Balancer, mit Docker, als Binary mit systemd oder mit Docker Compose. Dazu die ersten Schritte bis zum Dashboard und der Weg wieder heraus."
+description: "Schild Gateway installieren: als Caddy-Distribution oder hinter nginx, Apache oder einem Load Balancer, mit Docker, als Paket für Debian und Ubuntu, als Binary mit systemd oder mit Docker Compose. Dazu die ersten Schritte bis zum Dashboard und der Weg wieder heraus."
 ---
 
 # Schild Gateway installieren
@@ -10,7 +10,7 @@ description: "Schild Gateway installieren: als Caddy-Distribution oder hinter ng
 **Kurz:**
 
 - Schild ist eine Caddy-Distribution: Caddy mit eingebautem WAF-Modul. Nutzt du Caddy, wechselst du darauf: gleiches Caddyfile, gleiche Zertifikate, gleiche Ports. Das ist der Standardweg. Hinter nginx, Apache oder einem Load Balancer läuft Schild als Proxy auf Port 8080.
-- Drei Wege für beide Fälle: Docker, Binary mit systemd, Docker Compose. Aktuell ist die Alpha `0.1.0-alpha.3`.
+- Vier Wege für beide Fälle: Docker, Paket für Debian und Ubuntu, Binary mit systemd, Docker Compose. Aktuell ist die Alpha `0.1.0-alpha.3`.
 - Nach der Installation sperrt das Core Rule Set bekannte Angriffe. Die Limits für Login, Passwort vergessen und `xmlrpc.php` begrenzen sofort. Vier der fünf Szenarien sperren nach 14 Tagen Lernzeit. Die übrigen Limits und die Regeln aus dem CrowdSec Hub zählen erst nur mit. Als Caddy-Distribution trägt Schild sofort deinen ganzen Traffic.
 - Das Dashboard hört nur auf dem Server selbst. Du erreichst es über einen SSH-Tunnel.
 - Der Weg zurück dauert eine Minute. An deiner Anwendung und an Caddys Zertifikaten ändert Schild nichts.
@@ -28,12 +28,13 @@ Quellcode und Releases liegen auf GitHub: [github.com/deutschland-schild/schild]
 | Weg | Für wen | Was du bekommst |
 | --- | --- | --- |
 | **Docker** | Server mit Docker, der Standardweg; auch für Kamal | das Image `ghcr.io/deutschland-schild/schild:0.1.0-alpha.3` für amd64 und arm64 und die Start-Konfiguration `schild.yaml` |
-| **Binary mit systemd** | Server ohne Docker | ein Archiv mit dem Binary `schild`, den systemd-Units `schild.service` und `schild-firewall.service`, den Geodaten für die Länderanzeige (`geo/`), einer kurzen `README.txt` und den Lizenztexten (`LICENSE`, `NOTICE`, `THIRD_PARTY_LICENSES`) |
+| **Paket (apt)** | Debian 12 und 13, Ubuntu 22.04 und 24.04, ohne Docker | das Paket `schild` aus dem Repository `pkg.deutschland-schild.de`: dasselbe Binary, die systemd-Units und die Geodaten. Updates kommen über apt |
+| **Binary mit systemd** | andere Linux-Server ohne Docker | ein Archiv mit dem Binary `schild`, den systemd-Units `schild.service` und `schild-firewall.service`, den Geodaten für die Länderanzeige (`geo/`), einer kurzen `README.txt` und den Lizenztexten (`LICENSE`, `NOTICE`, `THIRD_PARTY_LICENSES`) |
 | **Docker Compose** | Entwicklungsrechner und Setups, die schon mit Compose laufen | zwei Dateien aus `gateway/deploy/quickstart/`: `compose.yaml` und `schild.yaml`. Die Fassung für den Wechsel von Caddy liegt in `gateway/deploy/quickstart/caddy/` |
 
-Das Image ist mit cosign signiert und bringt eine Stückliste (SBOM) mit. Für die Archive hängen die Prüfsummen am Release (`checksums.txt`, SHA-256). Zu Image und Archiven gibt es einen signierten Herkunftsnachweis, den `gh attestation verify` prüft. Wie du Signatur und Nachweis prüfst, steht in den Hinweisen zum [Release](https://github.com/deutschland-schild/schild/releases).
+Das Image ist mit cosign signiert und bringt eine Stückliste (SBOM) mit. Für die Archive und Pakete hängen die Prüfsummen am Release (`checksums.txt`, SHA-256). Das apt-Repository ist signiert, apt prüft das bei jedem Abruf. Zu Image, Archiven und Paketen gibt es einen signierten Herkunftsnachweis, den `gh attestation verify` prüft. Wie du Signatur und Nachweis prüfst, steht in den Hinweisen zum [Release](https://github.com/deutschland-schild/schild/releases).
 
-Pakete für apt und dnf gibt es noch nicht, sie sind [geplant](01-funktionen.md#geplant-noch-nicht-gebaut).
+Pakete für dnf gibt es noch nicht, sie sind [geplant](01-funktionen.md#geplant-noch-nicht-gebaut).
 
 ## Installieren
 
@@ -131,6 +132,53 @@ Worauf du achten solltest:
 - Der Container läuft ohne Root-Rechte (Benutzer 65532), mit schreibgeschütztem Dateisystem und ohne Sonderrechte. Die Ports 80 und 443 darf er trotzdem öffnen, weil Docker das in seinen eigenen Netzen jedem Benutzer erlaubt. Mit `--network host` gilt das nicht.
 - Das `127.0.0.1` vor Port 8788 muss bleiben. Ohne es wäre das Dashboard aus dem Internet erreichbar.
 - Port 443 ist nur für TCP veröffentlicht. Schild kündigt HTTP/3 in seinen Antworten weiter an (Header `alt-svc`), der UDP-Port dafür ist aber zu. Browser bleiben deshalb bei HTTP/2.
+
+### Als Paket unter Debian und Ubuntu
+
+Für einen Caddy aus dem Paket deiner Distribution, der als Dienst `caddy` läuft, auf Debian 12 und 13 oder Ubuntu 22.04 und 24.04. Schild hat ein eigenes apt-Repository unter `pkg.deutschland-schild.de`. Solange Schild in der Alpha ist, heißt der Kanal `alpha`. Der Kanal `stable` ist bis zur ersten stabilen Version leer.
+
+Das Installationsskript richtet das Repository ein und installiert das Paket:
+
+```bash
+curl -fsSL https://pkg.deutschland-schild.de/install.sh | sudo sh -s -- alpha
+```
+
+Es macht drei Dinge und sonst nichts. Dieselben Schritte von Hand, wenn du kein Skript als root ausführen willst:
+
+```bash
+sudo install -d -m 0755 /etc/apt/keyrings
+curl -fsSL https://pkg.deutschland-schild.de/key.asc | sudo tee /etc/apt/keyrings/schild.asc > /dev/null
+sudo tee /etc/apt/sources.list.d/schild.sources > /dev/null <<EOF
+Types: deb
+URIs: https://pkg.deutschland-schild.de/apt
+Suites: alpha
+Components: main
+Signed-By: /etc/apt/keyrings/schild.asc
+EOF
+sudo apt update && sudo apt install schild
+```
+
+Der Schlüssel gilt nur für dieses Repository. `gpg --show-keys /etc/apt/keyrings/schild.asc` zeigt seinen Fingerabdruck: `94F1 5614 C344 7110 9681 F548 1F0C 8FE2 5667 5B9E`.
+
+Das Paket legt das Binary nach `/usr/bin/schild`, bringt beide systemd-Units und die Geodaten mit und legt den Benutzer `schild` an. Es startet nichts und ändert nichts an deinem Caddy. Ab hier sind es dieselben Schritte wie [beim Binary](#als-binary-mit-systemd), nur heißt der Befehl überall `schild` statt `/usr/local/bin/schild`:
+
+```bash
+sudo schild init -caddyfile /etc/caddy/Caddyfile
+sudo nano /etc/caddy/Caddyfile
+sudo mkdir -p /var/lib/schild/caddy
+sudo cp -a /var/lib/caddy/.local/share/caddy/. /var/lib/schild/caddy/
+sudo chown -R schild:schild /var/lib/schild/caddy
+sudo -u schild schild ingress validate
+```
+
+Meldet die Prüfung `result: PASS`, wechselst du und lässt dir den Einmal-Code anzeigen:
+
+```bash
+sudo systemctl disable --now caddy && sudo systemctl enable --now schild
+sudo schild dashboard setup-code
+```
+
+Was die einzelnen Schritte tun und worauf du achten solltest, steht im nächsten Abschnitt. Das Paket `caddy` bleibt installiert, es ist dein Weg zurück. Wie du Schild über apt aktualisierst, steht unter [Aktualisieren](02-betrieb.md#aktualisieren).
 
 ### Als Binary mit systemd
 
@@ -277,6 +325,16 @@ Die letzte Zeile zeigt den Einmal-Code für die erste Anmeldung im Dashboard. Er
 
 Das `127.0.0.1` vor beiden Ports muss bleiben. Ohne es wäre das Dashboard aus dem Internet erreichbar, und an Port 8080 könnte jeder an deinem Webserver vorbei eine falsche Absenderadresse behaupten. Dein Webserver auf dem Server erreicht Schild unter `127.0.0.1:8080`.
 
+### Dahinter als Paket unter Debian und Ubuntu
+
+Installiere das Paket wie [oben](#als-paket-unter-debian-und-ubuntu). Dann schreibt `schild init` die Start-Konfiguration. Statt `3000` schreibst du den Port, auf dem deine Anwendung lauscht:
+
+```bash
+sudo schild init -upstream http://127.0.0.1:3000
+sudo systemctl enable --now schild
+sudo schild dashboard setup-code
+```
+
 ### Dahinter als Binary mit systemd
 
 Archiv laden, prüfen und entpacken wie [oben](#als-binary-mit-systemd). Dann schreibt `schild init` eine Start-Konfiguration: Schild vor einer Anwendung. Statt `3000` schreibst du den Port, auf dem deine Anwendung lauscht. Danach startest du den Dienst und lässt dir den Einmal-Code anzeigen:
@@ -356,6 +414,8 @@ Auch „erkennen“ heißt nicht, dass Schild neben deinem Traffic steht. Jede A
 
 - **Schild als Caddy-Distribution:** ein `#` ins Caddyfile, dann zurück zu deinem bisherigen Caddy wechseln. Die Schritte stehen unter [Zurück zu Caddy](#zurück-zu-caddy).
 - **Schild hinter deinem Webserver:** Zeig mit deinem Webserver wieder direkt auf deine Anwendung und stoppe Schild: `docker rm -f schild`, `sudo systemctl disable --now schild` oder `docker compose down`.
+
+Das Paket entfernst du danach mit `sudo apt remove schild`. `/etc/schild` und `/var/lib/schild` bleiben dabei liegen, `sudo apt purge schild` löscht auch sie.
 
 Mehr unter [In einer Minute wieder raus](02-betrieb.md#in-einer-minute-wieder-raus).
 

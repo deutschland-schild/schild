@@ -79,6 +79,7 @@ Die Namen stehen ohne Port, ohne `https://` und ohne Platzhalter (`*`), höchste
 Schild aktualisiert sich nie von allein. Was sich geändert hat, steht bei jedem [Release](https://github.com/deutschland-schild/schild/releases).
 
 - **Docker Compose:** die Versionsnummer des Images in `compose.yaml` ändern, dann `docker compose pull && docker compose up -d`.
+- **Paket:** `sudo apt update && sudo apt install schild`, dann `sudo systemctl restart schild`. apt tauscht nur die Dateien. Den Neustart machst du selbst, bis dahin läuft die alte Version weiter: Als Caddy-Distribution ist Schild dein Webserver, und ein Neustart ist ein kurzer Moment ohne Antwort auf Port 443. Auch `sudo apt upgrade` nimmt Schild mit. Die automatischen Sicherheitsupdates von Debian und Ubuntu (`unattended-upgrades`) fassen in ihrer Standardeinstellung nur Pakete der Distribution an, Schild also nicht.
 - **Binary:** das neue Archiv laden und prüfen wie bei der Installation, dann `sudo install -m 0755 schild /usr/local/bin/schild`, die Geodaten (`sudo install -m 0644 geo/* /usr/share/schild/geo/`) und bei Änderungen die Unit-Dateien (`sudo install -m 0644 schild.service /etc/systemd/system/schild.service` und ggf. `schild-firewall.service`, danach `sudo systemctl daemon-reload`) aktualisieren und `sudo systemctl restart schild` ausführen.
 
 Passwort, freigeschaltete Adressen, Ausnahmen und Einstellungen liegen in `schild.db` im Datenverzeichnis und bleiben bei einem Update erhalten. Deine `schild.yaml` fasst Schild nicht an.
@@ -357,7 +358,7 @@ Die Prüfung von Access-Logs (`schild logcheck`) und alle Flags stehen in [gatew
 ## Bekannte Grenzen
 
 - Schild ist in der Alpha. Befehle, Konfiguration und Dashboard können sich noch ändern.
-- Pakete für apt und dnf gibt es noch nicht. Windows und Shared Hosting ohne Root gehen nicht.
+- Pakete gibt es für Debian und Ubuntu (apt), für dnf noch nicht. Windows und Shared Hosting ohne Root gehen nicht.
 - Eine Browserprüfung (Zwischenseite mit Rechenaufgabe) gibt es noch nicht. Ein altes `mode: challenge` in `schild.yaml` liest Schild als `observe` und warnt beim Start.
 - Sperren bis 24 Stunden liegen im Arbeitsspeicher, auch die von Hand gesetzten. Ein Neustart beendet sie früher, nie später. Sperren über 24 Stunden (7 Tage) überstehen einen Neustart.
 - Antworten deiner Anwendung prüft Schild nicht.

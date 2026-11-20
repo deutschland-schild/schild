@@ -294,6 +294,6 @@ Diese Funktionen sind beschrieben oder angefangen, im Gateway aber noch nicht nu
 - **Einbruch bemerken** (zum Beispiel CPU hoch ohne Besucher, neue PHP-Dateien im Upload-Ordner) und **App-Logs und Fehler** im Dashboard.
 - **Admin-Zugänge „nur über VPN“** per Schalter.
 - **Zentrales Dashboard** für mehrere Gateways.
-- **Pakete für apt und dnf** und ein eigenes Repository für Updates über die Paketverwaltung. Heute gibt es das Docker-Image und ein Binary mit systemd-Unit ([Schild bekommen](00-installieren.md#schild-bekommen)).
+- **Pakete für dnf** (Fedora, RHEL und Verwandte). Heute gibt es das Docker-Image, ein Paket für Debian und Ubuntu mit eigenem apt-Repository und ein Binary mit systemd-Unit ([Schild bekommen](00-installieren.md#schild-bekommen)).
 - **Windows und Shared Hosting ohne Root.**
 - **Regeln aus dem Schild-Netz:** geprüfte Regeln aus einem Netz unabhängiger Labs, später als weiteres Regel-Repository. Die erste Gateway-Version enthält dafür keinen Code. Wie das Netz funktionieren soll, steht unter [Das Schild-Netz](/netz).
