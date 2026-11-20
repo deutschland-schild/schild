@@ -339,14 +339,22 @@ func TestListenerEvictsWaitingAtCap(t *testing.T) {
 	if _, err := busy.Write([]byte("a")); err != nil {
 		t.Fatalf("busy request evicted: %v", err)
 	}
-	g.conns.mu.Lock()
+	// The healthz connection above may still be on its way out: the server
+	// drops it after the client has its answer.
 	var busyLeft int
-	for c := range g.conns.conns {
-		if c.state.Load() == connBusy {
-			busyLeft++
+	for deadline := time.Now().Add(2 * time.Second); ; time.Sleep(10 * time.Millisecond) {
+		busyLeft = 0
+		g.conns.mu.Lock()
+		for c := range g.conns.conns {
+			if c.state.Load() == connBusy {
+				busyLeft++
+			}
+		}
+		g.conns.mu.Unlock()
+		if busyLeft == 1 || time.Now().After(deadline) {
+			break
 		}
 	}
-	g.conns.mu.Unlock()
 	if busyLeft != 1 {
 		t.Fatalf("busy connections %d, want 1", busyLeft)
 	}
