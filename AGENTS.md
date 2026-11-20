@@ -41,4 +41,4 @@ More in [DEVELOPMENT.md](DEVELOPMENT.md). Website: `cd site && npm run dev`.
 
 ## Leak guard
 
-`git config core.hooksPath .githooks` once per clone enables the pre-commit check (`scripts/leak-guard.sh`): gitleaks on the staged changes when it is installed, and a local denylist of terms when you keep one.
+`git config core.hooksPath .githooks` once per clone enables the pre-commit check (`scripts/leak-guard.sh`): gitleaks on the staged changes when it is installed, a local denylist of terms when you keep one, and `scripts/key-guard.sh`, which refuses an OpenPGP secret key in a staged key file. The signing key of the apt repository exists as a secret of the release workflow only; in the tree lies its public part.

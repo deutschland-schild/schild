@@ -31,6 +31,10 @@ jobs:
           tar -xzf gitleaks.tar.gz -C "$RUNNER_TEMP" gitleaks
           rm gitleaks.tar.gz
       - run: '"$RUNNER_TEMP/gitleaks" dir . --no-banner --redact'
+      # gitleaks sees an armored secret key only; this also refuses a binary one and checks that the key of the
+      # apt repository in the tree is a public key.
+      - name: No OpenPGP secret key in the tree
+        run: scripts/key-guard.sh --tracked
 
   workflows:
     name: workflows
