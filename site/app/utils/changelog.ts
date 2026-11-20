@@ -1,8 +1,9 @@
 // Public changelog shown as a timeline on /ueber. Newest first. Only facts that are built, measured or decided –
 // no partners, no amounts, nothing private. Milestones only, one line of detail each.
-import { RELEASE_VERSION } from './release'
+import { RELEASE_URL, RELEASE_VERSION } from './release'
 
-export type ChangelogEntry = { date: string, title: string, items: string[] }
+// link: where the full text of an entry stands, for a release its notes on GitHub (they are CHANGELOG.md, in English).
+export type ChangelogEntry = { date: string, title: string, items: string[], link?: { href: string, label: string } }
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
@@ -11,7 +12,9 @@ export const CHANGELOG: ChangelogEntry[] = [
     items: [
       'Das Schild Gateway ist Open Source unter MIT: Code, Doku und Tests auf GitHub, dazu ein Docker-Image und ein Binary für Linux.',
       'Neu in dieser Version: die Kurze Prüfung im Browser mit Under-Attack-Modus, einstellbare Schwellen für Szenarien und ein eigener Schalter für jedes Limit.',
+      '0.1.0-alpha.2 folgt am selben Tag. Sie härtet die Prüfung von Anfragen, die Erkennung von Anmeldeversuchen und die Übergabe der Sperren an die Firewall.',
     ],
+    link: { href: RELEASE_URL, label: 'Alle Änderungen auf GitHub' },
   },
   {
     date: '2026-11-18',
