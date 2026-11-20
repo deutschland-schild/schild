@@ -3,8 +3,9 @@ Schild Gateway (schild)
 
 Reverse proxy with a web application firewall (Caddy, Coraza, OWASP CRS) and
 a local dashboard. The OWASP CRS and your own rules block known attacks from
-the start; CrowdSec rules, scenarios and limits only record until you switch
-them in the dashboard.
+the start, and the limits for login, password reset and xmlrpc.php limit.
+Four of five scenarios block after 14 days of learning. CrowdSec rules and
+the other limits only record until you switch them in the dashboard.
 
 Docs:    https://deutschland-schild.de/doku
 Source:  https://github.com/deutschland-schild/schild

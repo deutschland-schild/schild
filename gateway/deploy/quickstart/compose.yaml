@@ -8,9 +8,10 @@
 #   5. Open http://127.0.0.1:8788 on the server itself, or from your machine
 #      through a tunnel: ssh -N -L 8788:127.0.0.1:8788 you@your-server
 #
-# The OWASP CRS and your own rules block known attacks from the start;
-# CrowdSec rules, scenarios and limits only record. Switch them in the
-# dashboard under Regeln.
+# The OWASP CRS and your own rules block known attacks from the start, and
+# the limits for login, password reset and xmlrpc.php limit. Four of five
+# scenarios block after 14 days of learning. CrowdSec rules and the other
+# limits only record. Switch them in the dashboard under Regeln.
 # Remove it again with: docker compose down (add -v to delete its data too).
 #
 # Docs: https://deutschland-schild.de/doku

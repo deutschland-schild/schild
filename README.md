@@ -2,82 +2,36 @@
 
 **Schild Gateway ist eine kostenlose, quelloffene Firewall für deine Website.** Es läuft auf deinem eigenen Server vor deiner Anwendung, prüft jede Anfrage und zeigt dir in einem Dashboard, was los ist. Deine Daten bleiben auf deinem Server.
 
-**Stand: Alpha (`0.1.0-alpha.1`).** Das Gateway mit Dashboard läuft für sich allein und ist im Live-Betrieb. Befehle, Konfiguration und Dashboard können sich noch ändern, Fehler sind möglich. Labs und Relays, aus denen später ein Netz werden soll, sind geplant und laufen bisher nur im Testlabor.
+**Stand: Alpha.** Das Gateway mit Dashboard läuft für sich allein und ist im Live-Betrieb. Befehle, Konfiguration und Dashboard können sich noch ändern, Fehler sind möglich. Labs und Relays, aus denen später ein Netz werden soll, sind geplant und laufen bisher nur im Testlabor.
 
 Website und Dokumentation: [deutschland-schild.de](https://deutschland-schild.de) · [Releases](https://github.com/deutschland-schild/schild/releases)
 
 ## Installieren
 
-Es gibt zwei Einbauwege. Such dir den aus, der zu deinem Server passt:
-
-- **Du nutzt nginx, Apache oder einen Load Balancer:** Schild läuft als Proxy auf `127.0.0.1:8080` hinter deinem Webserver. Deine Zertifikate bleiben bei deinem Webserver; erst wenn du `proxy_pass` / `ProxyPass` auf Port 8080 umstellst, fließt Traffic durch Schild.
-- **Du nutzt Caddy:** Schild ist eine Caddy-Distribution (Caddy mit eingebautem WAF-Modul). Es lädt dein Caddyfile, hört auf den Ports 80 und 443 und startet mit einer Kopie von Caddys Zertifikaten.
-
-Beide Wege gibt es für Docker, Docker Compose und als statisches Linux-Binary (amd64, arm64) mit systemd-Unit.
-
-### Hinter nginx, Apache oder einem Load Balancer (Docker)
+Der kürzeste Weg: Schild als Container hinter deinem Webserver (nginx, Apache oder ein Load Balancer), mit Docker Compose.
 
 ```bash
-curl -fsSLO https://raw.githubusercontent.com/deutschland-schild/schild/v0.1.0-alpha.1/gateway/deploy/quickstart/schild.yaml
-# In schild.yaml unter upstream.url die Adresse deiner Anwendung eintragen
-# (auf dem Host: http://host.docker.internal:<port>, im Docker-Netz: http://app:3000).
-
-docker run -d --name schild --restart unless-stopped \
-  --read-only --cap-drop ALL --security-opt no-new-privileges:true \
-  --add-host host.docker.internal:host-gateway \
-  -p 127.0.0.1:8080:8080 -p 127.0.0.1:8788:8788 \
-  -v "$PWD/schild.yaml:/etc/schild/schild.yaml:ro" \
-  -v schild-data:/var/lib/schild \
-  ghcr.io/deutschland-schild/schild:0.1.0-alpha.1
-docker exec schild schild dashboard setup-code
+mkdir schild && cd schild
+curl -fsSLO https://raw.githubusercontent.com/deutschland-schild/schild/main/gateway/deploy/quickstart/compose.yaml
+curl -fsSLO https://raw.githubusercontent.com/deutschland-schild/schild/main/gateway/deploy/quickstart/schild.yaml
+# In schild.yaml unter upstream.url die Adresse deiner Anwendung eintragen, dann:
+docker compose up -d
+docker compose exec schild schild dashboard setup-code
 ```
 
-Danach leitest du deinen Webserver auf `http://127.0.0.1:8080` weiter (nginx: `proxy_pass http://127.0.0.1:8080;` mit `Host`, `X-Forwarded-For` und `X-Forwarded-Proto`; Apache: `ProxyPreserveHost On` und `ProxyPass / http://127.0.0.1:8080/`). Mit der Vorlage [gateway/deploy/nginx-front.conf](gateway/deploy/nginx-front.conf) schickt nginx bei einem Absturz von Schild direkt an die Anwendung weiter.
+Die letzte Zeile zeigt den Einmal-Code für die erste Anmeldung. Das Dashboard hört nur auf dem Server selbst (`http://127.0.0.1:8788`), von außen kommst du per SSH-Tunnel hinein.
 
-### Als Caddy-Distribution (Docker)
+Schild läuft jetzt auf `127.0.0.1:8080`. Traffic fließt erst hindurch, wenn du deinen Webserver dorthin weiterleitest. Deine Zertifikate bleiben beim Webserver. Wieder raus: Den Webserver wieder direkt auf die Anwendung zeigen lassen, dann `docker compose down`.
 
-Im Ordner deines Caddyfiles:
+Ab dem Start sperrt das Core Rule Set bekannte Angriffe, und die Limits für Login, Passwort vergessen und `xmlrpc.php` begrenzen. Vier der fünf Szenarien sperren nach 14 Tagen Lernzeit. Alles Weitere zählt erst nur mit, bis du es im Dashboard umstellst.
 
-```bash
-curl -fsSLo schild.yaml https://raw.githubusercontent.com/deutschland-schild/schild/v0.1.0-alpha.1/gateway/deploy/quickstart/caddy/schild.yaml
+Die anderen Wege stehen in der [Installationsanleitung](docs/gateway/00-installieren.md):
 
-# 1. Caddyfile prüfen. Die Ausgabe nennt die Zeilen, die noch fehlen
-#    (einmal das Snippet "(schild)", dazu "import schild" pro Website mit Backend).
-docker run --rm \
-  -v "$PWD/schild.yaml:/etc/schild/schild.yaml:ro" \
-  -v "$PWD/Caddyfile:/etc/caddy/Caddyfile:ro" \
-  ghcr.io/deutschland-schild/schild:0.1.0-alpha.1 ingress validate -adapt-only
+- **Du nutzt Caddy:** Schild ist eine Caddy-Distribution, lädt dein Caddyfile und ersetzt Caddy als Webserver.
+- **Ohne Docker:** ein statisches Linux-Binary (amd64, arm64) mit systemd-Unit.
+- **Den Webserver weiterleiten:** die Zeilen für nginx und Apache.
 
-# 2. Caddys Zertifikate in ein eigenes Volume kopieren (caddy_data: Caddys Volume unter /data),
-#    dann alles zusammen prüfen: Caddyfile, Datenverzeichnis, Kopie, Dateirechte. Muss mit "result: PASS" enden.
-docker run --rm -v caddy_data:/from:ro -v schild-data:/to caddy:2 sh -c \
-  'mkdir -p /to/caddy && cp -a /from/caddy/. /to/caddy/ && chmod 700 /to/caddy && chown -R 65532:65532 /to'
-docker run --rm --read-only --cap-drop ALL \
-  -v "$PWD/schild.yaml:/etc/schild/schild.yaml:ro" \
-  -v "$PWD/Caddyfile:/etc/caddy/Caddyfile:ro" \
-  -v schild-data:/var/lib/schild \
-  ghcr.io/deutschland-schild/schild:0.1.0-alpha.1 ingress validate
-
-# 3. Caddy anhalten, Schild starten
-docker stop caddy
-docker run -d --name schild --restart unless-stopped \
-  --read-only --cap-drop ALL --security-opt no-new-privileges:true \
-  --add-host host.docker.internal:host-gateway \
-  -p 80:80 -p 443:443 -p 127.0.0.1:8788:8788 \
-  -v "$PWD/schild.yaml:/etc/schild/schild.yaml:ro" \
-  -v "$PWD/Caddyfile:/etc/caddy/Caddyfile:ro" \
-  -v schild-data:/var/lib/schild \
-  ghcr.io/deutschland-schild/schild:0.1.0-alpha.1
-docker exec schild schild dashboard setup-code
-```
-
-Ab dem Start sperrt das Core Rule Set bekannte Angriffe. Die Limits für Login, Passwort vergessen und `xmlrpc.php` begrenzen sofort. Vier der fünf Szenarien sperren nach 14 Tagen Lernzeit. Die übrigen Limits, „Aggressives Abrufen“, die Erkennung von Wellen und der CrowdSec Hub zählen erst nur mit. Für einen vorsichtigen Start stellst du `rules.crs.state: detect` ein. Als Caddy-Distribution ist Schild ab dem Wechsel dein Webserver und trägt deinen ganzen Traffic: Läuft Schild nicht, sind deine Websites nicht erreichbar, bis du Caddy wieder startest.
-
-Das Dashboard hört nur auf dem Server selbst (`http://127.0.0.1:8788`), von außen kommst du per SSH-Tunnel hinein. Die letzte Zeile zeigt den Einmal-Code für die erste Anmeldung.
-
-Wieder raus: Hinter nginx/Apache zeigst du im Webserver wieder direkt auf die Anwendung und stoppst Schild (`docker rm -f schild`). Als Caddy-Distribution setzt du im Caddyfile im Snippet `(schild)` ein `#` vor `schild`, dann `docker rm -f schild && docker start caddy` (`docker ps` zeigt, ob Caddy läuft; Caddys eigene Zertifikate hat Schild nicht angefasst). Der Container `caddy` und das Volume `caddy_data` sind Beispielnamen.
-
-Alle Wege (auch ohne Docker als statisches Binary mit systemd und mit Docker Compose) und die ersten Schritte stehen in [docs/gateway/00-installieren.md](docs/gateway/00-installieren.md), Updates, Backup, Monitoring und Rückbau in [docs/gateway/02-betrieb.md](docs/gateway/02-betrieb.md), alle Funktionen in [docs/gateway/01-funktionen.md](docs/gateway/01-funktionen.md).
+Updates, Backup, Monitoring und Rückbau: [Betrieb](docs/gateway/02-betrieb.md). Alle Funktionen: [Funktionen](docs/gateway/01-funktionen.md).
 
 ## Was in diesem Repository liegt
 
