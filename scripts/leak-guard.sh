@@ -3,6 +3,7 @@
 #   1. no staged path under docs/internal/ (or docs/intern/)
 #   2. no added line containing a term from docs/internal/denylist.txt (one term per line, # comments)
 #   3. gitleaks on the staged changes, if installed
+#   4. no OpenPGP secret key in a staged key file (scripts/key-guard.sh)
 # Bypass only after checking by hand: git commit --no-verify
 set -euo pipefail
 
@@ -34,6 +35,10 @@ if command -v gitleaks >/dev/null 2>&1; then
     echo "leak-guard: gitleaks found a possible secret (run: gitleaks protect --staged -v)" >&2
     fail=1
   fi
+fi
+
+if ! "$root/scripts/key-guard.sh" --staged; then
+  fail=1
 fi
 
 exit "$fail"
