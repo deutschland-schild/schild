@@ -19,9 +19,11 @@
 #   5. Open http://127.0.0.1:8788 on the server itself, or from your machine
 #      through a tunnel: ssh -N -L 8788:127.0.0.1:8788 you@your-server
 #
-# The OWASP CRS and your own rules block known attacks from the start;
-# CrowdSec rules, scenarios and limits only record. schild is your web
-# server now: while it is down, your sites are down.
+# The OWASP CRS and your own rules block known attacks from the start, and
+# the limits for login, password reset and xmlrpc.php limit. Four of five
+# scenarios block after 14 days of learning. CrowdSec rules and the other
+# limits only record. schild is your web server now: while it is down, your
+# sites are down.
 #
 # The way back: docker compose down, put a "#" in front of the line "schild"
 # in the (schild) snippet of the Caddyfile (stock Caddy does not know the
