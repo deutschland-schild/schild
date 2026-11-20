@@ -3,12 +3,16 @@
 package nftfw
 
 import (
+	"bytes"
+	"cmp"
 	"encoding/binary"
 	"errors"
 	"fmt"
 	"net/netip"
+	"slices"
 	"time"
 
+	"github.com/deutschland-schild/schild/contract/firewall"
 	"github.com/google/nftables"
 	"github.com/google/nftables/expr"
 	"golang.org/x/sys/unix"
@@ -178,7 +182,8 @@ func (k Kernel) Replace(els []Element) error {
 	return permission(c.Flush())
 }
 
-// Held counts the clients the sets hold now (expired ones are gone).
+// Held lists the clients the sets hold now (expired ones are gone). An IPv6
+// interval that Replace merged from several /64 is listed as those /64.
 func (k Kernel) Held() ([]Held, error) {
 	c, err := k.conn()
 	if err != nil {
@@ -195,22 +200,46 @@ func (k Kernel) Held() ([]Held, error) {
 		if err != nil {
 			return nil, permission(err)
 		}
-		for _, e := range els {
-			if e.IntervalEnd {
+		if name == set4Name {
+			for _, e := range els {
+				if a, ok := netip.AddrFromSlice(e.Key); ok {
+					out = append(out, Held{Client: a.Unmap().String(), Expires: e.Expires})
+				}
+			}
+			continue
+		}
+		// Every start is followed by its end (Replace), or by nothing at the
+		// end of the address space. At one address the end of an interval
+		// sorts before the start of the next.
+		slices.SortFunc(els, func(x, y nftables.SetElement) int {
+			if d := bytes.Compare(x.Key, y.Key); d != 0 {
+				return d
+			}
+			return cmp.Compare(b2i(y.IntervalEnd), b2i(x.IntervalEnd))
+		})
+		for i, e := range els {
+			start, ok := netip.AddrFromSlice(e.Key)
+			if e.IntervalEnd || !ok {
 				continue
 			}
-			a, ok := netip.AddrFromSlice(e.Key)
-			if !ok {
-				continue
+			var end netip.Addr
+			hasEnd := false
+			if i+1 < len(els) && els[i+1].IntervalEnd {
+				end, hasEnd = netip.AddrFromSlice(els[i+1].Key)
 			}
-			client := a.Unmap().String()
-			if a.Is6() && !a.Is4In6() {
-				client = netip.PrefixFrom(a, 64).String()
+			for _, p := range clients64(start, end, hasEnd, max(firewall.MaxBlocks-len(out), 0)) {
+				out = append(out, Held{Client: p.String(), Expires: e.Expires})
 			}
-			out = append(out, Held{Client: client, Expires: e.Expires})
 		}
 	}
 	return out, nil
+}
+
+func b2i(b bool) int {
+	if b {
+		return 1
+	}
+	return 0
 }
 
 // Remove deletes the table; without one it does nothing.

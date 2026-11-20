@@ -6,7 +6,20 @@ The section of a version becomes the text of its GitHub release, so its heading 
 
 ## Unreleased
 
-Nothing yet.
+### Gateway
+
+- A second `Content-Type` header no longer gets a JSON body past the depth and syntax check: the body is checked for every value that picks a parser, not only for the first. Values the rules read as JSON but Go does not (`application/json x`, `application/a+json-seq`) are checked as JSON too.
+- Bodies of an `application/…+xml` type (`application/atom+xml`, `application/vnd.x+xml`) go through the XML parser like `application/xml`.
+- A `;`, a bad escape or a parameter sent twice no longer hides a login from the scenarios and limits: `/wp-login.php?action=lostpassword&action=login` counts as a login attempt, a preset limit on `task=reset.request` holds with other parameters around it, and of a user name field sent twice the last one counts, as in PHP.
+- A trusted proxy is never blocked or limited itself. When its forwarding header names no client, the request is attributed to the proxy, and a block there would have hit every visitor behind it.
+- `route_wave` and `inconsistency` need at least 3 senders in the window: one client alone can no longer tighten a login route for everyone.
+- A client that names a search engine in its User-Agent but comes from outside that bot's published ranges is treated by `aggressive_crawl` like any other client. Without fresh ranges for the bot nothing changes: counted, not acted on.
+- Requests with a `Host` no website has no longer push the crawl baselines and learned session cookies of real websites out of the tables.
+- `schild firewall run` builds its table again only when the table is gone. Before, any error while writing the blocks rebuilt it, which emptied a table that was intact.
+- The firewall gets no block that shares an address with Eigene IPs, a trusted proxy or the server itself, also when only one address of a blocked IPv6 /64 is yours: the firewall drops before schild could let it through.
+- IPv6 blocks go into the firewall sorted and without overlaps. /64 blocks side by side become one interval, and `schild firewall status` and "Sperren" still list and count each of them.
+- Bot range lists are refused when they redirect to another host, name a private, loopback or link-local range, or a range wider than /16 (IPv4) or /32 (IPv6). The ranges fetched before stay in use.
+- At a full connection limit the search for an idle connection to close looks at 64 connections instead of 16.
 
 ## 0.1.0-alpha.1
 

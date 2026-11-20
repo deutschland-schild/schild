@@ -8,6 +8,7 @@ import (
 	"net/http/httptest"
 	"net/netip"
 	"os"
+	"slices"
 	"sync"
 	"testing"
 	"time"
@@ -204,5 +205,34 @@ func TestMergeIPv6AndBatching(t *testing.T) {
 	batches := batchV6Ranges(merged, 3)
 	if len(batches) != 2 || len(batches[0]) != 1 || len(batches[1]) != 2 {
 		t.Fatalf("unexpected batches: %+v", batches)
+	}
+}
+
+func TestClients64(t *testing.T) {
+	a := netip.MustParseAddr
+	list := func(ps []netip.Prefix) (out []string) {
+		for _, p := range ps {
+			out = append(out, p.String())
+		}
+		return out
+	}
+	for _, tc := range []struct {
+		start, end string
+		limit      int
+		want       []string
+	}{
+		{"2001:db8:0:2::", "2001:db8:0:3::", 10, []string{"2001:db8:0:2::/64"}},
+		{"2001:db8:0:2::", "2001:db8:0:5::", 10, []string{"2001:db8:0:2::/64", "2001:db8:0:3::/64", "2001:db8:0:4::/64"}},
+		{"2001:db8:0:2::", "2001:db8:0:5::", 2, []string{"2001:db8:0:2::/64", "2001:db8:0:3::/64"}},
+		{"ffff:ffff:ffff:fffe::", "", 10, []string{"ffff:ffff:ffff:fffe::/64", "ffff:ffff:ffff:ffff::/64"}},
+		{"::", "", 1, []string{"::/64"}},
+	} {
+		var end netip.Addr
+		if tc.end != "" {
+			end = a(tc.end)
+		}
+		if got := list(clients64(a(tc.start), end, tc.end != "", tc.limit)); !slices.Equal(got, tc.want) {
+			t.Errorf("clients64(%s, %s, %d) = %v, want %v", tc.start, tc.end, tc.limit, got, tc.want)
+		}
 	}
 }

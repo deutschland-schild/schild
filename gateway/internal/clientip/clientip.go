@@ -73,6 +73,22 @@ func (r *Resolver) Trusted(addr netip.Addr) bool {
 	return false
 }
 
+// TrustedOverlaps reports whether p shares an address with a trusted proxy
+// range (a proxy inside a blocked IPv6 /64 counts). Nobody is trusted while
+// the list is too broad.
+func (r *Resolver) TrustedOverlaps(p netip.Prefix) bool {
+	if len(r.broad) > 0 || !p.IsValid() {
+		return false
+	}
+	p = netip.PrefixFrom(p.Addr().Unmap(), p.Bits()).Masked()
+	for _, t := range r.trusted {
+		if t.Overlaps(p) {
+			return true
+		}
+	}
+	return false
+}
+
 // Result of attribution.
 type Result struct {
 	IP          netip.Addr

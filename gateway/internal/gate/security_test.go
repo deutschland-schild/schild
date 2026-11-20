@@ -13,25 +13,31 @@ import (
 	"github.com/deutschland-schild/schild/gateway/internal/decide"
 )
 
-func TestLoginUserHashHandlesSemicolons(t *testing.T) {
+func TestLoginUserHashOfOddForms(t *testing.T) {
 	inst := crsInstance(t)
-	tx, _ := inst.NewTransaction()
-	defer tx.Close()
-
-	body := "a=1;b=2&username=Alice@Example.Org&password=secret"
-	r := httptest.NewRequest("POST", "/login", strings.NewReader(body))
-	r.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-	if _, _, err := tx.ReadRequestBodyFrom(r.Body); err != nil {
-		t.Fatal(err)
-	}
-
-	want := behaviour.HashUser("alice@example.org")
-	got, ok := loginUserHash(r, tx, []string{"username", "log"})
-	if !ok {
-		t.Fatal("loginUserHash failed on form body containing semicolon")
-	}
-	if got != want {
-		t.Fatalf("got %x, want %x", got, want)
+	for _, tc := range []struct{ name, body, user string }{
+		{"semicolon in another field", "a=1;b=2&username=Alice@Example.Org&password=secret", "alice@example.org"},
+		{"bad escape in another field", "a=%zz&username=alice@example.org", "alice@example.org"},
+		// PHP takes the last of two: the attempt is on victim, not on decoy.
+		{"field sent twice", "log=decoy&log=victim&pwd=x", "victim"},
+		{"second field name", "pwd=x&log=victim", "victim"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			tx, _ := inst.NewTransaction()
+			defer tx.Close()
+			r := httptest.NewRequest("POST", "/login", strings.NewReader(tc.body))
+			r.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+			if _, _, err := tx.ReadRequestBodyFrom(r.Body); err != nil {
+				t.Fatal(err)
+			}
+			got, ok := loginUserHash(r, tx, []string{"username", "log"})
+			if !ok {
+				t.Fatal("no user name found")
+			}
+			if want := behaviour.HashUser(tc.user); got != want {
+				t.Fatalf("got %x, want the hash of %q (%x)", got, tc.user, want)
+			}
+		})
 	}
 }
 

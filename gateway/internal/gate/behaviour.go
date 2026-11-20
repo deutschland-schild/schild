@@ -5,7 +5,6 @@ import (
 	"io"
 	"mime"
 	"net/http"
-	"net/url"
 	"sort"
 	"strings"
 
@@ -192,32 +191,15 @@ func loginUserHash(r *http.Request, tx types.Transaction, fields []string) (uint
 	var get func(string) string
 	switch {
 	case mt == "application/x-www-form-urlencoded":
-		// Split on '&' per field rather than url.ParseQuery so a ';' or bad
-		// escape in an unrelated field cannot fail open and skip extraction.
+		// Not url.ParseQuery: it refuses the whole form for one ';' or one
+		// bad escape in any field, and the attempt would count for no user.
+		// Of a field sent twice the last value counts, as in PHP, which
+		// every preset with a name runs on (and as json.Unmarshal below does
+		// for a key sent twice): "log=a&log=victim" is an attempt on victim.
 		form := string(head)
 		get = func(k string) string {
-			rest := form
-			for rest != "" {
-				var part string
-				part, rest, _ = strings.Cut(rest, "&")
-				rk, rv, hasV := strings.Cut(part, "=")
-				if !hasV {
-					continue
-				}
-				dk, err := url.QueryUnescape(rk)
-				if err != nil {
-					dk = rk
-				}
-				if dk != k {
-					continue
-				}
-				dv, err := url.QueryUnescape(rv)
-				if err != nil {
-					dv = rv
-				}
-				if dv != "" {
-					return dv
-				}
+			if vs := behaviour.FormValues(form, k); len(vs) > 0 {
+				return vs[len(vs)-1]
 			}
 			return ""
 		}

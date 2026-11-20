@@ -4,6 +4,7 @@ import (
 	"net/url"
 	"path"
 	"regexp"
+	"slices"
 	"strings"
 
 	"github.com/deutschland-schild/schild/contract/config"
@@ -118,20 +119,12 @@ func matchLogin(enabled map[string]bool, method, p, rawQuery string) *loginRoute
 			continue
 		}
 		if lr.Path == "/wp-login.php" {
-			// lostpassword, register, logout ... are no login attempts.
-			// Check every action occurrence: backends like PHP take the last
-			// value, so "?action=foo&action=login" still logs in.
-			if actions := queryValues(rawQuery, "action"); len(actions) > 0 {
-				isLogin := false
-				for _, a := range actions {
-					if a == "" || a == "login" {
-						isLogin = true
-						break
-					}
-				}
-				if !isLogin {
-					continue
-				}
+			// lostpassword, register, logout ... are no login attempts. One
+			// occurrence that says login (or nothing) is enough: PHP takes
+			// the last one, so "?action=lostpassword&action=login" logs in.
+			if actions := FormValues(rawQuery, "action"); len(actions) > 0 &&
+				!slices.Contains(actions, "") && !slices.Contains(actions, "login") {
+				continue
 			}
 		}
 		return lr
@@ -169,15 +162,13 @@ func routeIs(route, p, canon string) bool {
 	return strings.HasSuffix(route, ".php") && len(p) > len(route) && p[len(route)] == '/' && strings.HasPrefix(p, route)
 }
 
+// hasQuery reports whether rawQuery has a parameter that matches kv: "k=v"
+// for that value, "k" for any value that is not empty. Every occurrence of k
+// counts: backends disagree on which of two wins (PHP the last, others the
+// first), so a second "task=" in front of the real one must not hide it.
 func hasQuery(rawQuery, kv string) bool {
-	return queryMatches(rawQuery, kv)
-}
-
-// queryMatches reports whether rawQuery contains a parameter matching kv ("k"
-// for any non-empty value, or "k=v" for an exact value across any occurrence).
-func queryMatches(rawQuery, kv string) bool {
 	k, v, hasV := strings.Cut(kv, "=")
-	for _, got := range queryValues(rawQuery, k) {
+	for _, got := range FormValues(rawQuery, k) {
 		if (hasV && got == v) || (!hasV && got != "") {
 			return true
 		}
@@ -185,35 +176,33 @@ func queryMatches(rawQuery, kv string) bool {
 	return false
 }
 
-// queryValues returns every value of parameter k in rawQuery without failing
-// open on semicolons or malformed percent-escapes in unrelated parameters (in
-// Go 1.17+ url.ParseQuery rejects the entire query if any ';' is present).
-func queryValues(rawQuery, k string) []string {
-	if rawQuery == "" {
-		return nil
-	}
+// FormValues returns every value of the parameter k in a query string or a
+// urlencoded form, in order. Parameters are cut at '&' only, as PHP and the
+// WAF do, and what does not unescape is taken as it stands: url.ParseQuery
+// refuses the whole string for one ';' or one bad escape anywhere in it,
+// which let an unrelated parameter switch the match off.
+func FormValues(raw, k string) []string {
 	var out []string
-	for rawQuery != "" {
+	for raw != "" {
 		var part string
-		part, rawQuery, _ = strings.Cut(rawQuery, "&")
+		part, raw, _ = strings.Cut(raw, "&")
 		if part == "" {
 			continue
 		}
 		rk, rv, _ := strings.Cut(part, "=")
-		dk, err := url.QueryUnescape(rk)
-		if err != nil {
-			dk = rk
-		}
-		if dk != k {
+		if unescape(rk) != k {
 			continue
 		}
-		dv, err := url.QueryUnescape(rv)
-		if err != nil {
-			dv = rv
-		}
-		out = append(out, dv)
+		out = append(out, unescape(rv))
 	}
 	return out
+}
+
+func unescape(s string) string {
+	if u, err := url.QueryUnescape(s); err == nil {
+		return u
+	}
+	return s
 }
 
 // presetLimit is a rate limit that ships with a preset.
