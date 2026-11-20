@@ -8,8 +8,6 @@ import (
 	"sync"
 	"testing"
 	"time"
-
-	"github.com/deutschland-schild/schild/gateway/internal/stats"
 )
 
 // TestRecheckCountsOnce (D33 amendment 2026-10-29, contract
@@ -107,7 +105,7 @@ http://a.example.test:%[1]s {
 			mu.Lock()
 			outcomes = nil
 			mu.Unlock()
-			e0 := g.Counters.Rolling.Sum(stats.Requests, time.Hour, time.Now())
+			e0 := requestsSettled(t, g, 0)
 			r := fetch(t, c, "http://"+addr+tc.path, "a.example.test:"+p, nil)
 			if r.status != tc.status {
 				t.Fatalf("status %d, want %d (%q)", r.status, tc.status, r.body)
@@ -123,7 +121,7 @@ http://a.example.test:%[1]s {
 				time.Sleep(10 * time.Millisecond)
 			}
 			time.Sleep(50 * time.Millisecond)
-			if n := g.Counters.Rolling.Sum(stats.Requests, time.Hour, time.Now()) - e0; n != 1 {
+			if n := requestsSettled(t, g, e0+1) - e0; n != 1 {
 				t.Fatalf("requests counted %d, want 1", n)
 			}
 			mu.Lock()
