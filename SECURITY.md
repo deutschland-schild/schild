@@ -42,9 +42,9 @@ Images and tarballs are built only by the release workflow of this repository ([
 
 ```sh
 sha256sum -c --ignore-missing checksums.txt
-gh attestation verify schild_0.1.0-alpha.2_linux_amd64.tar.gz --repo deutschland-schild/schild
-gh attestation verify oci://ghcr.io/deutschland-schild/schild:0.1.0-alpha.2 --repo deutschland-schild/schild
-cosign verify ghcr.io/deutschland-schild/schild:0.1.0-alpha.2 \
-  --certificate-identity https://github.com/deutschland-schild/schild/.github/workflows/release.yml@refs/tags/v0.1.0-alpha.2 \
+gh attestation verify schild_0.1.0-alpha.3_linux_amd64.tar.gz --repo deutschland-schild/schild
+gh attestation verify oci://ghcr.io/deutschland-schild/schild:0.1.0-alpha.3 --repo deutschland-schild/schild
+cosign verify ghcr.io/deutschland-schild/schild:0.1.0-alpha.3 \
+  --certificate-identity https://github.com/deutschland-schild/schild/.github/workflows/release.yml@refs/tags/v0.1.0-alpha.3 \
   --certificate-oidc-issuer https://token.actions.githubusercontent.com
 ```
