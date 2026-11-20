@@ -84,6 +84,35 @@ func TestRegexEscapes(t *testing.T) {
 	}
 }
 
+// fuzzParts takes an accepted rule apart again, on its own: the variable
+// names, the operator names and the action names of every line. Text that is
+// only compared or logged (an operator argument, a msg) is not part of it.
+func fuzzParts(text string) (vars, ops, acts []string) {
+	for _, line := range strings.Split(text, "\n") {
+		rest, _ := strings.CutPrefix(line, "SecRule ")
+		v, rest, _ := strings.Cut(rest, " ")
+		for _, name := range strings.Split(v, "|") {
+			name, _, _ = strings.Cut(strings.TrimLeft(name, "!&"), ":")
+			vars = append(vars, name)
+		}
+		q := strings.SplitN(rest, `"`, 5)
+		if len(q) < 4 {
+			continue
+		}
+		op, _, _ := strings.Cut(strings.TrimPrefix(q[1], "!"), " ")
+		ops = append(ops, op)
+		items, err := splitActions(q[3])
+		if err != nil {
+			continue
+		}
+		for _, it := range items {
+			name, _, _ := strings.Cut(it, ":")
+			acts = append(acts, name)
+		}
+	}
+	return vars, ops, acts
+}
+
 func FuzzValidate(f *testing.F) {
 	for _, c := range Cases {
 		f.Add(c.Text)
@@ -97,12 +126,37 @@ func FuzzValidate(f *testing.F) {
 		if r.ID < contract.RemoteRuleIDMin || r.ID > contract.RemoteRuleIDMax {
 			t.Fatalf("accepted id %d", r.ID)
 		}
-		for _, bad := range []string{"ctl:", "REMOTE_ADDR", "@ipMatch", "@geoLookup", "SERVER_NAME", "allow", "skipAfter", "exec:"} {
-			if strings.Contains(s, bad) && !strings.Contains(s, "'") {
-				t.Fatalf("accepted rule containing %q: %s", bad, s)
+		vars, ops, acts := fuzzParts(s)
+		for _, bad := range []string{"REMOTE_ADDR", "SERVER_NAME"} {
+			if slices.Contains(vars, bad) {
+				t.Fatalf("accepted rule with variable %s: %s", bad, s)
+			}
+		}
+		for _, bad := range []string{"@ipMatch", "@geoLookup"} {
+			if slices.Contains(ops, bad) {
+				t.Fatalf("accepted rule with operator %s: %s", bad, s)
+			}
+		}
+		for _, bad := range []string{"ctl", "allow", "skipAfter", "exec"} {
+			if slices.Contains(acts, bad) {
+				t.Fatalf("accepted rule with action %s: %s", bad, s)
 			}
 		}
 	})
+}
+
+// The parts the fuzz invariants look at are the ones the rule is made of.
+func TestFuzzParts(t *testing.T) {
+	vars, ops, acts := fuzzParts(`SecRule REMOTE_ADDR|!ARGS:x "!@ipMatch 198.51.100.0/24" "id:1,msg:'allow, ctl:x',ctl:ruleEngine=Off,chain"` + "\n" + `SecRule &SERVER_NAME "@gt 0" "t:none,exec:/bin/sh"`)
+	if !slices.Equal(vars, []string{"REMOTE_ADDR", "ARGS", "SERVER_NAME"}) {
+		t.Errorf("variables %q", vars)
+	}
+	if !slices.Equal(ops, []string{"@ipMatch", "@gt"}) {
+		t.Errorf("operators %q", ops)
+	}
+	if !slices.Equal(acts, []string{"id", "msg", "ctl", "chain", "t", "exec"}) {
+		t.Errorf("actions %q", acts)
+	}
 }
 
 // Review v0: each bypass is rejected for the intended reason, not by accident.

@@ -1,0 +1,2 @@
+go test fuzz v1
+string("SecRule ARGS \"@streq REMOTE_ADDR\" \"id:7700000,phase:1,deny,severity:CRITICAL,msg:0\"")
