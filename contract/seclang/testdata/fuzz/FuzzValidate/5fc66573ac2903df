@@ -1,0 +1,2 @@
+go test fuzz v1
+string("SecRule REQUEST_URI \"@beginsWith 00\" \"id:7700000,phase:1,pass,severity:NOTICE,msg:ctl:\"")
