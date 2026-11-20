@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/deutschland-schild/schild/contract/access"
+	"github.com/deutschland-schild/schild/gateway/internal/testport"
 )
 
 var quiet = slog.New(slog.NewTextHandler(io.Discard, nil))
@@ -77,9 +78,7 @@ func TestBypassStripsWaitingMarker(t *testing.T) {
 		w.WriteHeader(http.StatusServiceUnavailable)
 	}))
 	defer app.Close()
-	l, _ := net.Listen("tcp", "127.0.0.1:0")
-	down := "http://" + l.Addr().String()
-	l.Close()
+	down := "http://" + testport.Free(t) // nobody listens there
 	f, err := New(down, app.URL, time.Second, quiet)
 	if err != nil {
 		t.Fatal(err)
@@ -113,9 +112,7 @@ func TestBypassStripsWaitingMarker(t *testing.T) {
 }
 
 func TestClassify(t *testing.T) {
-	l, _ := net.Listen("tcp", "127.0.0.1:0")
-	addr := l.Addr().String()
-	l.Close()
+	addr := testport.Free(t) // nobody listens there
 	_, err := net.Dial("tcp", addr)
 	if !IsRefused(err) {
 		t.Fatalf("refused not detected: %v", err)

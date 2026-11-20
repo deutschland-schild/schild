@@ -188,26 +188,15 @@ http://a.example.test:%[1]s {
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			dir := caddyDir(t)
-			// freePort closes its listener before Caddy binds the port, so
-			// another process can take it in between: try another one then.
-			var addr, p string
-			var ing *Ingress
-			for attempt := 0; ; attempt++ {
-				addr = freePort(t)
-				p = port(addr)
-				caddyfile := fmt.Sprintf("{\n\tauto_https off\n\thttp_port %[1]s\n}\n\n(schild) {\n\tschild\n}\n"+tc.sites+"\n", p, baddr, filepath.ToSlash(empty))
-				var err error
-				ing, err = PrepareIngress(IngressOptions{Caddyfile: writeFile(t, dir, "Caddyfile", caddyfile), DefaultStorage: filepath.Join(dir, "caddy")})
-				if ing == nil {
-					t.Fatal(err)
-				}
-				err = Load(ing.JSON)
-				if err == nil {
-					break
-				}
-				if attempt == 4 || !strings.Contains(err.Error(), "address already in use") {
-					t.Fatal(err)
-				}
+			addr := freePort(t)
+			p := port(addr)
+			caddyfile := fmt.Sprintf("{\n\tauto_https off\n\thttp_port %[1]s\n}\n\n(schild) {\n\tschild\n}\n"+tc.sites+"\n", p, baddr, filepath.ToSlash(empty))
+			ing, err := PrepareIngress(IngressOptions{Caddyfile: writeFile(t, dir, "Caddyfile", caddyfile), DefaultStorage: filepath.Join(dir, "caddy")})
+			if ing == nil {
+				t.Fatal(err)
+			}
+			if err := Load(ing.JSON); err != nil {
+				t.Fatal(err)
 			}
 			defer Stop()
 			// A rewrite before schild is refused since the D31 amendment

@@ -5,14 +5,16 @@ package app_test
 import (
 	"bufio"
 	"context"
+	"fmt"
 	"io"
 	"net"
 	"net/http"
-	"os"
 	"path/filepath"
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/caddyserver/caddy/v2"
 
 	"github.com/deutschland-schild/schild/contract/access"
 	"github.com/deutschland-schild/schild/gateway/internal/app"
@@ -111,20 +113,22 @@ func TestStandaloneIngressRun(t *testing.T) {
 	if in, err := h.App.Store.GetIncident(context.Background(), rows[0].Incident); err != nil || in.Site != "shop.example" {
 		t.Fatalf("incident site: %v %+v", err, in)
 	}
+	// ingress.storage is the storage of the running config. Asked from
+	// Caddy, not from the disk: Caddy creates the directory when it cleans
+	// its storage, once per process, so the directory exists only for the
+	// first ingress start of the test binary.
+	if got, want := fmt.Sprint(caddy.ActiveContext().Storage()), "FileStorage:"+filepath.Join(h.Dir, "caddy"); got != want {
+		t.Fatalf("ingress.storage not used: storage %q, want %q", got, want)
+	}
 	if err := h.Stop(); err != nil {
 		t.Fatal(err)
-	}
-	// Caddy cleans its storage (and so creates the directory) once per
-	// process: this test has to be the first ingress start of the package.
-	if _, err := os.Stat(filepath.Join(h.Dir, "caddy")); err != nil {
-		t.Fatalf("ingress.storage not used: %v", err)
 	}
 }
 
 // TestIngressRefusesUnprotectedSite: a site that proxies without schild and
 // is not listed in ingress.unprotected_sites stops `schild run`.
 func TestIngressRefusesUnprotectedSite(t *testing.T) {
-	h := apptest.New(t, apptest.Options{Listeners: true, Caddyfile: "{\n\tauto_https off\n}\nhttp://shop.example:{port} {\n\treverse_proxy {backend}\n}\n"})
+	h := apptest.New(t, apptest.Options{Listeners: true, StartFails: true, Caddyfile: "{\n\tauto_https off\n}\nhttp://shop.example:{port} {\n\treverse_proxy {backend}\n}\n"})
 	err := h.Stop()
 	if err == nil || !strings.Contains(err.Error(), "without schild") {
 		t.Fatalf("run with an unprotected site: %v", err)
