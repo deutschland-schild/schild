@@ -33,8 +33,8 @@ Der kürzeste Weg: Schild als Container hinter deinem Webserver (nginx, Apache o
 
 ```bash
 mkdir schild && cd schild
-curl -fsSLO https://raw.githubusercontent.com/deutschland-schild/schild/main/gateway/deploy/quickstart/compose.yaml
-curl -fsSLO https://raw.githubusercontent.com/deutschland-schild/schild/main/gateway/deploy/quickstart/schild.yaml
+curl -fsSLO https://raw.githubusercontent.com/deutschland-schild/schild/v0.1.0-alpha.2/gateway/deploy/quickstart/compose.yaml
+curl -fsSLO https://raw.githubusercontent.com/deutschland-schild/schild/v0.1.0-alpha.2/gateway/deploy/quickstart/schild.yaml
 # In schild.yaml unter upstream.url die Adresse deiner Anwendung eintragen, dann:
 docker compose up -d
 docker compose exec schild schild dashboard setup-code
