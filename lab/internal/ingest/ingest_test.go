@@ -417,6 +417,12 @@ func fire(url string, bodies [][]byte, rate float64) *burstResult {
 func TestBurstAckLatency(t *testing.T) {
 	clients, seconds := 10000, 15.0
 	if testing.Short() {
+		// Its bounds are latencies and accept rates under load; on a shared CI
+		// runner they failed without a change in the code (2026-11-20). It runs
+		// with make test-full, or in short mode when SCHILD_BENCH_CLIENTS is set.
+		if os.Getenv("SCHILD_BENCH_CLIENTS") == "" {
+			t.Skip("load test: skipped in short mode")
+		}
 		clients, seconds = 1000, 3
 	}
 	if v := os.Getenv("SCHILD_BENCH_CLIENTS"); v != "" {
