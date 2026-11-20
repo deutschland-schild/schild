@@ -223,6 +223,37 @@ func TestMonitorPerWebsite(t *testing.T) {
 	}
 }
 
+// The numbers of a website are over 60 s from its first request on, not
+// over the steps its ring has so far (MonitoringNow: window_s is 60).
+func TestSiteNowInItsFirstMinute(t *testing.T) {
+	now := time.Now().UTC().Truncate(10 * time.Minute).Add(-30 * time.Minute)
+	m, err := New(Config{StoragePath: t.TempDir(), Keep: config.MonitoringKeep{TenSecondsHours: 6, MinuteHours: 48, TenMinuteDays: 14},
+		Sampler: SamplerConfig{Root: fixtureRoot(t), Linux: true, Host: true, Started: now, Version: "test"}, Sites: testSites(t)}, now.Add(-time.Second))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer m.Close()
+	slot := m.view().SlotOf("verein.example")
+	for s := 1; s <= 50; s++ {
+		at := now.Add(time.Duration(s) * time.Second)
+		m.flushWrites()
+		if s == 1 {
+			m.Record(&Req{R: siteReq("verein.example", "/"), Class: Forwarded, Status: 200, Client: netip.MustParseAddr("198.51.100.1"), Country: "DE", NetClass: "residential"})
+		}
+		m.Tick(at)
+		n := m.Site(slot, at)
+		if n.Now == nil {
+			continue // the first step is not written yet
+		}
+		if n.Now.WindowS != 60 || n.Now.RequestsPerS != 1.0/60 {
+			t.Fatalf("after %d s: window %d s, %v requests/s, want 60 and 1/60", s, n.Now.WindowS, n.Now.RequestsPerS)
+		}
+	}
+	if n := m.Site(slot, now.Add(50*time.Second)); n.Now == nil {
+		t.Fatal("no numbers after 50 s")
+	}
+}
+
 func TestSeriesMergesAndMarksPartial(t *testing.T) {
 	end := time.Now().UTC().Truncate(10 * time.Minute)
 	m := newTestMonitor(t, end.Add(-14*24*time.Hour))
