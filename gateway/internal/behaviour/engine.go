@@ -278,7 +278,7 @@ func (l *Limit) matches(method, host, p, canon, rawQuery string) bool {
 	} else if !routeIs(l.Route, p, canon) {
 		return false
 	}
-	if l.Query != "" && !queryMatches(rawQuery, l.Query) {
+	if l.Query != "" && !hasQuery(rawQuery, l.Query) {
 		return false
 	}
 	return true

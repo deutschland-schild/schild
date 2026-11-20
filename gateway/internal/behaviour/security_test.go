@@ -2,20 +2,38 @@ package behaviour
 
 import (
 	"fmt"
+	"slices"
 	"testing"
 	"time"
 
 	"github.com/deutschland-schild/schild/contract/config"
-	"github.com/deutschland-schild/schild/contract/events"
 )
+
+func TestFormValues(t *testing.T) {
+	for _, tc := range []struct {
+		raw, k string
+		want   []string
+	}{
+		{"", "a", nil},
+		{"a=1&b=2&a=3", "a", []string{"1", "3"}},
+		{"a=1;b=2&c=3", "c", []string{"3"}},
+		{"a=1;b=2&c=3", "a", []string{"1;b=2"}}, // ';' cuts nothing, as in PHP
+		{"%61=x&a&&a=%zz&b=%zz", "a", []string{"x", "", "%zz"}},
+		{"user+name=a%20b", "user name", []string{"a b"}},
+	} {
+		if got := FormValues(tc.raw, tc.k); !slices.Equal(got, tc.want) {
+			t.Errorf("FormValues(%q, %q) = %q, want %q", tc.raw, tc.k, got, tc.want)
+		}
+	}
+}
 
 func TestQueryMatchingSemicolonAndHPP(t *testing.T) {
 	// Semicolon in an unrelated parameter must not disable query matching.
-	if !queryMatches("a=1;b=2&task=user.login", "task=user.login") {
+	if !hasQuery("a=1;b=2&task=user.login", "task=user.login") {
 		t.Fatal("queryMatches failed open on semicolon")
 	}
 	// Duplicate query parameter (HTTP parameter pollution): second occurrence still matches.
-	if !queryMatches("task=other&task=user.login", "task=user.login") {
+	if !hasQuery("task=other&task=user.login", "task=user.login") {
 		t.Fatal("queryMatches missed duplicate query parameter")
 	}
 
@@ -89,7 +107,7 @@ func TestTrustedProxyNeverBlockedOrLimited(t *testing.T) {
 
 func TestAggressiveCrawlBlocksSpoofedSearchBot(t *testing.T) {
 	b := modes(map[string]string{config.ScenarioAggressiveCrawl: config.BehaviourBlock})
-	e, r, c := newEngine(b)
+	e, _, c := newEngine(b)
 	const googleUA = "Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)"
 
 	// Verified/non-impersonating search bot is observed with ReasonUnverifiedBot, never blocked.
@@ -122,7 +140,6 @@ func TestAggressiveCrawlBlocksSpoofedSearchBot(t *testing.T) {
 	if !blocked {
 		t.Fatal("spoofed Googlebot (BotImpersonator=true) was not blocked by aggressive_crawl")
 	}
-	_ = r
 }
 
 func TestRouteWaveAndInconsistencyRequireMultipleSenders(t *testing.T) {
@@ -192,5 +209,3 @@ func TestKnownHostGuardsSiteTables(t *testing.T) {
 		t.Fatalf("sites table polluted or evicted: ok=%v len=%d", ok, nSites)
 	}
 }
-
-var _ = events.DistributedDetectedData{}

@@ -10,6 +10,7 @@ import (
 	"mime/multipart"
 	"net"
 	"net/http"
+	"regexp"
 	"strconv"
 	"strings"
 	"syscall"
@@ -428,12 +429,14 @@ func multipartText(contentType string, body io.Reader, total int64) int64 {
 	}
 }
 
-// checkStructureValues checks the body against every Content-Type header that
-// can select a structured parser in Coraza or a backend. Coraza's phase 1 rules
-// (200001, 200006) match every Content-Type value, so inspecting only the first
-// header would let a second "Content-Type: application/json" header bypass the
-// JSON depth and strict syntax check. Multipart is checked on the first header
-// only, matching Coraza's AddRequestHeader selection.
+// checkStructureValues checks the body for every Content-Type value that can
+// pick a parser, in Coraza or in a backend. The rules that pick Coraza's JSON
+// parser (200001, 200006) read every value, so with only the first one
+// checked a second "Content-Type: application/json" got the JSON past the
+// depth and syntax check. A form is counted for every value too, which is
+// stricter than Coraza. Multipart counts for the first value only, the one
+// Coraza takes (Transaction.AddRequestHeader). It returns the largest number
+// of arguments a value led to.
 func checkStructureValues(tx types.Transaction, values []string, lim Limits) (int, error) {
 	var checkedForm, checkedJSON bool
 	maxArgs := 0
@@ -479,12 +482,16 @@ func checkStructureValues(tx types.Transaction, values []string, lim Limits) (in
 	return maxArgs, nil
 }
 
+// corazaJSON is what rules 200001 and 200006 match, both prefixes on the
+// lowercased value: "application/json x" and "application/a+json-seq" pick
+// Coraza's JSON parser too, though they are no JSON media type to Go.
+var corazaJSON = regexp.MustCompile(`^application/(?:json|[a-z0-9.-]+[+]json)`)
+
+// isJSONMediaType reports whether a Content-Type value names JSON, to a
+// backend (the parsed media type mt) or to Coraza (the raw value).
 func isJSONMediaType(mt, raw string) bool {
-	if mt == "application/json" || strings.HasSuffix(mt, "+json") {
-		return true
-	}
-	low := strings.TrimSpace(strings.ToLower(raw))
-	return strings.HasPrefix(low, "application/json")
+	return mt == "application/json" || strings.HasSuffix(mt, "+json") ||
+		corazaJSON.MatchString(strings.TrimSpace(strings.ToLower(raw)))
 }
 
 // checkStructure counts arguments, JSON depth and multipart parts without

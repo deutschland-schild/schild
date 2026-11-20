@@ -21,6 +21,10 @@ func TestMultiContentTypeJSONStructureChecked(t *testing.T) {
 		{"malformed json second header", []string{"text/plain", "application/json"}, `{"a":`, ErrBodyUnparseable},
 		{"valid json second header", []string{"text/plain", "application/json"}, `{"ok":true}`, nil},
 		{"invalid utf8 form second header", []string{"text/plain", "application/x-www-form-urlencoded"}, "a=%ff", nil},
+		// Prefix matches of rules 200001 and 200006 that Go parses as no media type.
+		{"deep json, junk after the subtype", []string{"application/json x"}, deep, ErrJSONTooDeep},
+		{"deep +json, junk after the subtype", []string{"application/vnd.api+json x"}, deep, ErrJSONTooDeep},
+		{"malformed +json, longer subtype", []string{"application/a+json-seq"}, `{"a":`, ErrBodyUnparseable},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			r := parseRequest(tc.values, tc.body)
