@@ -144,10 +144,16 @@ jobs:
         env:
           BASE: ${{ github.event.pull_request.base.sha }}
           HEAD: ${{ github.event.pull_request.head.sha }}
+          PR_AUTHOR: ${{ github.event.pull_request.user.login }}
         run: |
           fail=0
           for c in $(git rev-list --no-merges "$BASE..$HEAD"); do
             author=$(git show -s --format='%an <%ae>' "$c")
+            # Dependabot cannot sign off as its commit author. Its own commits in
+            # its own pull requests are exempt; a commit a person adds is not.
+            if [ "$PR_AUTHOR" = "dependabot[bot]" ] && [ "$(git show -s --format=%an "$c")" = "dependabot[bot]" ]; then
+              continue
+            fi
             if ! git show -s --format=%B "$c" | grep -qiF "Signed-off-by: $author"; then
               echo "::error::Commit $c has no Signed-off-by for its author. Use git commit -s."
               fail=1

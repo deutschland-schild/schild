@@ -1,3 +1,6 @@
+# Minor and patch updates come as one pull request per ecosystem. A major
+# version comes as a pull request of its own, so that one that needs work does
+# not hold back the others.
 version: 2
 updates:
   - package-ecosystem: github-actions
@@ -9,6 +12,7 @@ updates:
     groups:
       actions:
         patterns: ["*"]
+        update-types: ["minor", "patch"]
   - package-ecosystem: gomod
     directories:
       - /tests/adversaries
@@ -24,6 +28,7 @@ updates:
     groups:
       go:
         patterns: ["*"]
+        update-types: ["minor", "patch"]
   - package-ecosystem: npm
     directories:
       - /dashboard
@@ -35,3 +40,4 @@ updates:
     groups:
       npm:
         patterns: ["*"]
+        update-types: ["minor", "patch"]
