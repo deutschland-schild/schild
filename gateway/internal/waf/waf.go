@@ -158,6 +158,7 @@ SecResponseBodyAccess Off
 SecArgumentsLimit %d
 SecAuditEngine Off
 SecRule REQUEST_HEADERS:Content-Type "@rx ^(?:application(?:/soap\+|/)|text/)xml" "id:200000,phase:1,t:none,t:lowercase,pass,nolog,ctl:requestBodyProcessor=XML"
+SecRule REQUEST_HEADERS:Content-Type "@rx ^application/[a-z0-9.-]+[+]xml" "id:200007,phase:1,t:none,t:lowercase,pass,nolog,ctl:requestBodyProcessor=XML"
 SecRule REQUEST_HEADERS:Content-Type "@rx ^application/json" "id:200001,phase:1,t:none,t:lowercase,pass,nolog,ctl:requestBodyProcessor=JSON"
 SecRule REQUEST_HEADERS:Content-Type "@rx ^application/[a-z0-9.-]+[+]json" "id:200006,phase:1,t:none,t:lowercase,pass,nolog,ctl:requestBodyProcessor=JSON"
 SecRule REQBODY_ERROR "!@eq 0" "id:200002,phase:2,t:none,log,deny,status:400,msg:'Failed to parse request body',severity:2"

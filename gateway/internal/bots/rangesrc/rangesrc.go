@@ -128,28 +128,59 @@ func ParseRanges(format string, raw []byte) ([]netip.Prefix, error) {
 	return out, nil
 }
 
+// Minimum prefix lengths accepted from downloaded range lists so a compromised
+// upstream feed cannot whitelist large parts of the internet (e.g. 0.0.0.0/0).
+const (
+	minIPv4PrefixBits = 16
+	minIPv6PrefixBits = 32
+)
+
+var (
+	cgnatRange   = netip.MustParsePrefix("100.64.0.0/10")
+	thisNetRange = netip.MustParsePrefix("0.0.0.0/8")
+)
+
 // parseLoosePrefix accepts a prefix or a single address and masks host
-// bits; IPv4-mapped IPv6 is unmapped.
+// bits; IPv4-mapped IPv6 is unmapped. Non-public or overly broad prefixes are
+// refused.
 func parseLoosePrefix(s string) (netip.Prefix, error) {
+	var p netip.Prefix
 	if !strings.Contains(s, "/") {
 		a, err := netip.ParseAddr(s)
 		if err != nil || a.Zone() != "" {
 			return netip.Prefix{}, fmt.Errorf("range list: %q is no address", s)
 		}
 		a = a.Unmap()
-		return netip.PrefixFrom(a, a.BitLen()), nil
-	}
-	p, err := netip.ParsePrefix(s)
-	if err != nil || p.Addr().Zone() != "" {
-		return netip.Prefix{}, fmt.Errorf("range list: %q is no prefix", s)
-	}
-	if p.Addr().Is4In6() {
-		if p.Bits() < 96 {
-			return netip.Prefix{}, fmt.Errorf("range list: %q mixes IPv4 and IPv6", s)
+		p = netip.PrefixFrom(a, a.BitLen())
+	} else {
+		var err error
+		p, err = netip.ParsePrefix(s)
+		if err != nil || p.Addr().Zone() != "" {
+			return netip.Prefix{}, fmt.Errorf("range list: %q is no prefix", s)
 		}
-		p = netip.PrefixFrom(p.Addr().Unmap(), p.Bits()-96)
+		if p.Addr().Is4In6() {
+			if p.Bits() < 96 {
+				return netip.Prefix{}, fmt.Errorf("range list: %q mixes IPv4 and IPv6", s)
+			}
+			p = netip.PrefixFrom(p.Addr().Unmap(), p.Bits()-96)
+		}
+		p = p.Masked()
 	}
-	return p.Masked(), nil
+	if err := validateRangePrefix(p); err != nil {
+		return netip.Prefix{}, err
+	}
+	return p, nil
+}
+
+func validateRangePrefix(p netip.Prefix) error {
+	a := p.Addr()
+	if (a.Is4() && p.Bits() < minIPv4PrefixBits) || (a.Is6() && p.Bits() < minIPv6PrefixBits) {
+		return fmt.Errorf("range list: prefix %s is too broad", p)
+	}
+	if a.IsLoopback() || a.IsPrivate() || a.IsLinkLocalUnicast() || a.IsLinkLocalMulticast() || a.IsMulticast() || a.IsUnspecified() || cgnatRange.Contains(a) || thisNetRange.Contains(a) {
+		return fmt.Errorf("range list: prefix %s is not a public range", p)
+	}
+	return nil
 }
 
 // CanonicalPrefixes sorts and de-duplicates prefixes (IPv4 first) and
@@ -178,8 +209,8 @@ func CanonicalPrefixes(ps []netip.Prefix) []string {
 	return out
 }
 
-// HTTPClient is the client for range lists: bounded time, https only
-// (also after redirects), at most 5 redirects. It uses the default
+// HTTPClient is the client for range lists: bounded time, https only,
+// same host only on redirects, at most 5 redirects. It uses the default
 // transport, so an HTTPS_PROXY of the environment applies.
 func HTTPClient(timeout time.Duration) *http.Client {
 	return &http.Client{
@@ -190,6 +221,9 @@ func HTTPClient(timeout time.Duration) *http.Client {
 			}
 			if req.URL.Scheme != "https" {
 				return errors.New("redirect to a non-https URL")
+			}
+			if !strings.EqualFold(req.URL.Host, via[0].URL.Host) {
+				return errors.New("redirect to another host")
 			}
 			return nil
 		},

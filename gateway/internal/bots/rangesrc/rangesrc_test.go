@@ -7,6 +7,7 @@ import (
 	"reflect"
 	"strings"
 	"testing"
+	"time"
 )
 
 func TestParseRanges(t *testing.T) {
@@ -63,5 +64,74 @@ func TestFetchSourceCapsAndMerges(t *testing.T) {
 	}
 	if _, err := FetchSource(context.Background(), c, Source{ID: "x", Format: FormatJSON, URLs: []string{"http://example.org/x.json"}}, "test"); err == nil {
 		t.Error("http URL accepted")
+	}
+}
+
+func TestParseRangesRejectsBroadAndNonPublic(t *testing.T) {
+	rejected := []string{
+		"0.0.0.0/0",
+		"1.0.0.0/8",
+		"198.51.0.0/15",
+		"::/0",
+		"2001:db8::/16",
+		"127.0.0.1/32",
+		"10.0.0.0/24",
+		"172.16.0.0/24",
+		"192.168.1.0/24",
+		"169.254.169.254/32",
+		"100.64.0.0/24",
+		"0.1.0.0/24",
+		"224.0.0.0/24",
+		"fc00::/48",
+		"fe80::/64",
+		"::1/128",
+	}
+	for _, p := range rejected {
+		if _, err := ParseRanges(FormatLines, []byte(p+"\n")); err == nil {
+			t.Errorf("prefix %s was accepted, want rejection", p)
+		}
+	}
+	accepted := []string{
+		"9.129.0.0/16",
+		"66.249.64.0/19",
+		"2600:1f28::/32",
+		"2001:4860:4801:10::/64",
+	}
+	for _, p := range accepted {
+		if _, err := ParseRanges(FormatLines, []byte(p+"\n")); err != nil {
+			t.Errorf("valid public prefix %s rejected: %v", p, err)
+		}
+	}
+}
+
+func TestHTTPClientRejectsCrossHostRedirect(t *testing.T) {
+	target := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		_, _ = w.Write([]byte(`{"prefixes":[{"ipv4Prefix":"192.0.2.0/24"}]}`))
+	}))
+	defer target.Close()
+
+	redirector := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/cross":
+			http.Redirect(w, r, target.URL+"/data.json", http.StatusFound)
+		case "/same":
+			http.Redirect(w, r, "/final.json", http.StatusFound)
+		case "/final.json":
+			_, _ = w.Write([]byte(`{"prefixes":[{"ipv4Prefix":"192.0.2.0/24"}]}`))
+		default:
+			http.NotFound(w, r)
+		}
+	}))
+	defer redirector.Close()
+
+	c := HTTPClient(5 * time.Second)
+	c.Transport = redirector.Client().Transport
+
+	if _, err := FetchSource(context.Background(), c, Source{ID: "x", Format: FormatJSON, URLs: []string{redirector.URL + "/cross"}}, "test"); err == nil {
+		t.Fatal("cross-host redirect was followed")
+	}
+	got, err := FetchSource(context.Background(), c, Source{ID: "x", Format: FormatJSON, URLs: []string{redirector.URL + "/same"}}, "test")
+	if err != nil || !reflect.DeepEqual(got, []string{"192.0.2.0/24"}) {
+		t.Fatalf("same-host redirect failed: %v %v", got, err)
 	}
 }

@@ -23,12 +23,13 @@ import (
 
 // Capacities of the distributed tables.
 const (
-	CapacityRoutes   = 1024
-	CapacityAccounts = 65536
-	CapacityFPs      = 16384
-	CapacityShapes   = 16384
-	CapacityWaves    = 256
-	bloomBits        = 1 << 20
+	CapacityRoutes      = 1024
+	CapacityAccounts    = 65536
+	CapacityFPs         = 16384
+	CapacityShapes      = 16384
+	CapacityWaves       = 256
+	bloomBits           = 1 << 20
+	minRouteWaveSenders = 3
 )
 
 // DistributedDefaults per detector (conservative; open question of the spec:
@@ -248,6 +249,9 @@ func (e *Engine) LearnCookies(hostHeader string, names []string) {
 		return
 	}
 	h := host(hostHeader)
+	if e.KnownHost != nil && !e.KnownHost(h) {
+		return
+	}
 	d := e.d
 	d.mu.Lock()
 	defer d.mu.Unlock()
@@ -517,7 +521,9 @@ func (e *Engine) observeDistributed(c *compiled, r *Request, o Outcome, key Key)
 			senders := s.senders.estimate()
 			failShare := s.failures / (s.failures + s.successes)
 			newShare := s.newSenders / max(senders, 1)
-			if s.failures >= thr && (failShare >= 0.7 || newShare >= 0.7) {
+			// Require multiple distinct senders so one client cannot trigger
+			// route_tighten and throttle the whole login route globally.
+			if s.failures >= thr && int(senders+0.5) >= minRouteWaveSenders && (failShare >= 0.7 || newShare >= 0.7) {
 				rw = &trigger2{count: int(s.failures), threshold: int(thr + 0.5), window: rt.WindowS, senders: int(senders + 0.5), baseline: s.baseline, route: route}
 			}
 		}
@@ -530,8 +536,9 @@ func (e *Engine) observeDistributed(c *compiled, r *Request, o Outcome, key Key)
 			if r.Inconsistent {
 				s.incFails++
 			}
-			if s.incFails >= it.Count && s.incFails*2 >= s.incAll {
-				inc = &trigger2{count: s.incFails, threshold: it.Count, window: it.WindowS, senders: int(s.senders.estimate() + 0.5), route: route}
+			senders := int(s.senders.estimate() + 0.5)
+			if s.incFails >= it.Count && s.incFails*2 >= s.incAll && senders >= minRouteWaveSenders {
+				inc = &trigger2{count: s.incFails, threshold: it.Count, window: it.WindowS, senders: senders, route: route}
 			}
 		}
 	})

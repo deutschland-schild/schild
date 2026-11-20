@@ -379,17 +379,14 @@ func ReadBodyInfo(tx types.Transaction, r *http.Request, lim Limits) (io.Reader,
 		}
 		return nil, info, ErrBodyRead
 	}
-	rd, err := tx.RequestBodyReader()
-	if err != nil {
-		return nil, info, ErrBodyRead
-	}
-	info.Args, err = checkStructure(ct, rd, lim)
+	info.Args, err = checkStructureValues(tx, r.Header.Values("Content-Type"), lim)
 	if err != nil {
 		return nil, info, err
 	}
 	info.Files = class == bodylimit.BodyMultipart
 	if info.Files {
-		if rd, err = tx.RequestBodyReader(); err != nil {
+		rd, err := tx.RequestBodyReader()
+		if err != nil {
 			return nil, info, ErrBodyRead
 		}
 		info.Text = multipartText(ct, rd, info.Bytes)
@@ -431,6 +428,65 @@ func multipartText(contentType string, body io.Reader, total int64) int64 {
 	}
 }
 
+// checkStructureValues checks the body against every Content-Type header that
+// can select a structured parser in Coraza or a backend. Coraza's phase 1 rules
+// (200001, 200006) match every Content-Type value, so inspecting only the first
+// header would let a second "Content-Type: application/json" header bypass the
+// JSON depth and strict syntax check. Multipart is checked on the first header
+// only, matching Coraza's AddRequestHeader selection.
+func checkStructureValues(tx types.Transaction, values []string, lim Limits) (int, error) {
+	var checkedForm, checkedJSON bool
+	maxArgs := 0
+	run := func(ct string) error {
+		rd, err := tx.RequestBodyReader()
+		if err != nil {
+			return ErrBodyRead
+		}
+		n, err := checkStructure(ct, rd, lim)
+		if err != nil {
+			return err
+		}
+		if n > maxArgs {
+			maxArgs = n
+		}
+		return nil
+	}
+	for i, v := range values {
+		mt, _, _ := mime.ParseMediaType(v)
+		switch {
+		case mt == "application/x-www-form-urlencoded":
+			if checkedForm {
+				continue
+			}
+			checkedForm = true
+			if err := run(v); err != nil {
+				return maxArgs, err
+			}
+		case isJSONMediaType(mt, v):
+			if checkedJSON {
+				continue
+			}
+			checkedJSON = true
+			if err := run(v); err != nil {
+				return maxArgs, err
+			}
+		case i == 0 && corazaMultipart(v):
+			if err := run(v); err != nil {
+				return maxArgs, err
+			}
+		}
+	}
+	return maxArgs, nil
+}
+
+func isJSONMediaType(mt, raw string) bool {
+	if mt == "application/json" || strings.HasSuffix(mt, "+json") {
+		return true
+	}
+	low := strings.TrimSpace(strings.ToLower(raw))
+	return strings.HasPrefix(low, "application/json")
+}
+
 // checkStructure counts arguments, JSON depth and multipart parts without
 // parsing values, so that Coraza never silently drops arguments beyond
 // SecArgumentsLimit (a classic bypass). It returns the number of arguments
@@ -454,7 +510,7 @@ func checkStructure(contentType string, body io.Reader, lim Limits) (int, error)
 			}
 		}
 		return n, nil
-	case mt == "application/json" || strings.HasSuffix(mt, "+json"):
+	case isJSONMediaType(mt, contentType):
 		return scanJSON(br, lim)
 	case corazaMultipart(contentType):
 		// A value Go cannot parse has no parameters. Coraza fails on it too, but
