@@ -209,7 +209,11 @@ func (m *Monitor) Site(slot int, now time.Time) SiteNumbers {
 	c, n := r.sum(newest - 50)
 	h, u, _ := r.recentSum(newest - 50)
 	last, _ := r.sum(newest)
-	tn := trafficNow(&c, &h, n*10, last[cRequests])
+	// Always over 60 s, as the contract says (TrafficNow.window_s) and as
+	// the server-wide numbers do. A ring has fewer than six steps in the
+	// first minute after its website's first request; dividing by those
+	// alone named a window of 10 to 50 s.
+	tn := trafficNow(&c, &h, 60, last[cRequests])
 	if n > 0 {
 		e := u.estimate()
 		tn.ClientsUnique = &e
