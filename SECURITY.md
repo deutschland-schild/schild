@@ -38,9 +38,12 @@ During the alpha, fixes go into the next release; there are no patch releases fo
 
 ## Verifying a release
 
-Images and tarballs are built only by the release workflow of this repository ([.github/workflows/release.yml](.github/workflows/release.yml)). The version below is an example.
+Images and tarballs are built only by the release workflow of this repository ([.github/workflows/release.yml](.github/workflows/release.yml)). The version below is an example. Releases from 0.1.0-alpha.4 on also carry `checksums.txt.sigstore.json`, the cosign signature of `checksums.txt`; for older releases skip the first command.
 
 ```sh
+cosign verify-blob --bundle checksums.txt.sigstore.json \
+  --certificate-identity https://github.com/deutschland-schild/schild/.github/workflows/release.yml@refs/tags/v0.1.0-alpha.3 \
+  --certificate-oidc-issuer https://token.actions.githubusercontent.com checksums.txt
 sha256sum -c --ignore-missing checksums.txt
 gh attestation verify schild_0.1.0-alpha.3_linux_amd64.tar.gz --repo deutschland-schild/schild
 gh attestation verify oci://ghcr.io/deutschland-schild/schild:0.1.0-alpha.3 --repo deutschland-schild/schild
