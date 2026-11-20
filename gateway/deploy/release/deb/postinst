@@ -1,0 +1,41 @@
+#!/bin/sh
+# schild: after unpacking. Creates the service user and the data directory.
+# It never enables, starts or restarts the service: schild may be the web
+# server of this host, so the admin picks the moment.
+set -e
+
+case "$1" in
+configure)
+	if ! getent group schild >/dev/null; then
+		groupadd --system schild
+	fi
+	if ! getent passwd schild >/dev/null; then
+		useradd --system --gid schild --home-dir /var/lib/schild --no-create-home \
+			--shell /usr/sbin/nologin --comment "Schild Gateway" schild
+	fi
+	# The unit creates it as well (StateDirectory); the copy of Caddy's
+	# certificates is made before the first start and needs it earlier.
+	if [ ! -d /var/lib/schild ]; then
+		install -d -o schild -g schild -m 0750 /var/lib/schild
+	fi
+
+	if [ -d /run/systemd/system ]; then
+		systemctl daemon-reload >/dev/null 2>&1 || true
+	fi
+
+	if [ -n "$2" ]; then
+		# An upgrade: the new binary is on disk, the running one is the old.
+		if [ -d /run/systemd/system ] && systemctl is-active --quiet schild 2>/dev/null; then
+			echo "schild: version $(dpkg-query -W -f='${Version}' schild 2>/dev/null) is installed, the running service still uses the one before."
+			echo "schild: switch when it suits you: sudo systemctl restart schild"
+		fi
+	else
+		echo "schild: installed, not started. Next, one of:"
+		echo "schild:   sudo schild init -caddyfile /etc/caddy/Caddyfile   (schild runs as your Caddy)"
+		echo "schild:   sudo schild init -upstream http://127.0.0.1:3000   (schild behind your web server)"
+		echo "schild: docs: https://deutschland-schild.de/doku"
+	fi
+	;;
+esac
+
+exit 0

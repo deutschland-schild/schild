@@ -4,6 +4,13 @@ Notable changes per release. Contract changes are in [contracts/CHANGELOG.md](co
 
 The section of a version becomes the text of its GitHub release, so its heading stays `## <version>`. The date of a release is the one GitHub shows.
 
+## Unreleased
+
+### Packages
+
+- Debian and Ubuntu packages (MVP-31): every release carries `schild_<version>_linux_amd64.deb` and `schild_<version>_linux_arm64.deb`, listed in `checksums.txt` and covered by the build provenance. One package serves Debian 12 and 13 and Ubuntu 22.04 and 24.04. It installs `/usr/bin/schild`, both systemd units and the geo data, creates the user `schild`, and starts nothing. An upgrade replaces the files and never restarts the service; it names `sudo systemctl restart schild`. `apt purge` deletes `/etc/schild` and `/var/lib/schild`.
+- The release workflow can publish a signed apt repository with the channels `alpha` and `stable` and an installer script. It stays off until the signing key and the domain exist (`docs/ops/release.md`).
+
 ## 0.1.0-alpha.2
 
 ### Gateway

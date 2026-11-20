@@ -3,7 +3,8 @@
 Checklist for maintainers. A tag `v<version>` on `main` starts [.github/workflows/release.yml](../../.github/workflows/release.yml), which publishes:
 
 - `ghcr.io/deutschland-schild/schild:<version>` (linux/amd64, linux/arm64; `latest` only without a pre-release suffix), signed with cosign, with SBOM and provenance
-- a GitHub release with `schild_<version>_linux_amd64.tar.gz`, `schild_<version>_linux_arm64.tar.gz` and `checksums.txt` (marked pre-release for `-alpha.N`, `-beta.N`, `-rc.N`)
+- a GitHub release with `schild_<version>_linux_amd64.tar.gz`, `schild_<version>_linux_arm64.tar.gz`, the Debian packages `schild_<version>_linux_amd64.deb` and `schild_<version>_linux_arm64.deb`, and `checksums.txt` (marked pre-release for `-alpha.N`, `-beta.N`, `-rc.N`)
+- the apt repository on GitHub Pages, once it is set up ([below](#once-for-the-apt-repository)); until then the jobs `repository` and `pages` are skipped
 
 Nothing else publishes: local builds are test images.
 
@@ -22,6 +23,28 @@ After the first release (the package does not exist earlier):
 
 7. `https://github.com/orgs/deutschland-schild/packages/container/schild/settings`: set the visibility to **public** and check that the repository `schild` has write access under "Manage Actions access". Until then `docker pull` needs a login and the quickstart fails for everybody else.
 
+## Once, for the apt repository
+
+The spec is [MVP-31](../../tests/specs/MVP-31-debian-packages.yaml). The repository is rebuilt from the packages of the releases on every release run, so nothing here holds state except the key.
+
+1. **The signing key.** On a machine that is not a server, create a primary key that only certifies and a signing subkey with an expiry of at most two years. The primary key stays offline. Nothing of the secret key ever enters this repository.
+
+   ```sh
+   gpg --quick-gen-key "Deutschland-Schild package signing <info@deutschland-schild.de>" ed25519 cert never
+   gpg --quick-add-key <fingerprint> ed25519 sign 2y
+   gpg --export --armor <fingerprint> > gateway/deploy/release/apt/archive-key.asc     # public, goes into a pull request
+   gpg --export-secret-subkeys --armor <fingerprint>                                   # the secret APT_SIGNING_KEY
+   ```
+
+   The export holds the signing subkey only, still locked with the passphrase of the key. The passphrase is the second secret, `APT_SIGNING_PASSPHRASE`. `gateway/deploy/release/repo.sh` refuses a key whose name says TEST ONLY.
+2. **Environment `packages`:** Settings → Environments → new environment `packages`, required reviewer: the maintainer, deployment tags `v*` only, secrets `APT_SIGNING_KEY` and `APT_SIGNING_PASSPHRASE`.
+3. **GitHub Pages:** Settings → Pages → source "GitHub Actions", custom domain `pkg.deutschland-schild.de`, enforce HTTPS. DNS: a `CNAME` of that name to `deutschland-schild.github.io`. The environment `github-pages` has to allow tags `v*`: the release run deploys from the tag.
+4. **Switch it on:** repository variable `PACKAGES_ENABLED` = `true`. Without it a release publishes the package files on the release only.
+
+The first run after this publishes every package the newest releases carry. Check from a fresh `debian:13` container with the commands of the installation docs.
+
+**Rotating the key:** extend or replace the subkey before it expires, put the new public key into `archive-key.asc` with a pull request, update the secret, then run a release. Servers that installed before the rotation fetch the new `key.asc` by running the installer again; say so in the changelog of that release.
+
 ## Every release
 
 1. `main` is green, including `image` (the quickstart smoke test) and `go-race`.
@@ -29,6 +52,7 @@ After the first release (the package does not exist earlier):
    - `CHANGELOG.md`: heading `## <version>` (the workflow refuses a missing or an empty section; the section becomes the release text), with the Upgrade notes filled in
    - `gateway/deploy/quickstart/compose.yaml` and `gateway/deploy/quickstart/caddy/compose.yaml`: the image tag (the workflow refuses a mismatch)
    - `site/app/utils/release.ts`: `RELEASE_VERSION`
+   - `README.md` and `docs/gateway/00-installieren.md`: the tag in the download addresses
    - `SECURITY.md`: supported versions, if the line changes
 3. Geo data: if `GEO_MONTH` in `gateway/Dockerfile` is older than two months, run `make gateway-geo-pin GEO_MONTH=YYYY-MM` and put the three lines into the Dockerfile. DB-IP removes old months; the build then stops at the download.
 4. Tag the merged commit on `main` and push the tag. Each push needs the maintainer's go:
@@ -39,7 +63,7 @@ After the first release (the package does not exist earlier):
    git push origin v0.1.0-alpha.1
    ```
 
-5. Watch the run: `gh run watch --repo deutschland-schild/schild`. The order is check, test, build (per architecture: build, smoke test, tarball, push by digest), publish (manifest, signature, attestation), release.
+5. Watch the run: `gh run watch --repo deutschland-schild/schild`. The order is check, test, build (per architecture: build, smoke test, tarball, Debian package with its test, push by digest), publish (manifest, signature, attestation), release, then repository and pages when the apt repository is set up. The job `repository` waits for your approval: it holds the signing key.
 6. Check the result from a machine that is not logged in to ghcr.io:
 
    ```sh
@@ -47,7 +71,7 @@ After the first release (the package does not exist earlier):
    gh attestation verify oci://ghcr.io/deutschland-schild/schild:0.1.0-alpha.1 --repo deutschland-schild/schild
    ```
 
-   Then walk through the quickstart on the website once, as written there.
+   Then walk through the quickstart on the website once, as written there. With the apt repository: in a fresh `debian:13` container the installer has to end with this version.
 
 ## When a release run fails
 
@@ -60,4 +84,6 @@ After the first release (the package does not exist earlier):
 make gateway-image TAGS=release GATEWAY_GEO=dbip TAG=0.1.0-alpha.1   # release build, real geo data
 make gateway-smoke TAG=0.1.0-alpha.1                                 # quickstart smoke test (ports 8080, 8788)
 make gateway-tarball VERSION=0.1.0-alpha.1 GATEWAY_GEO=dbip          # tarball of this machine's architecture in bin/
+make gateway-deb VERSION=0.1.0-alpha.1                               # Debian package of that tarball in bin/
+make gateway-pkgtest VERSION=0.1.0-alpha.1                           # package, repository (TEST ONLY key) and installer in four distributions
 ```
