@@ -273,7 +273,8 @@ Ein KI-Agent, der deine Anwendung kennt, kann die Firewall an sie anpassen: Er s
 - Ab Werk ausgeschaltet. Eingeschaltet nur auf dem Server selbst erreichbar (`127.0.0.1:8789`); dein Agent kommt per SSH-Tunnel oder läuft auf dem Server.
 - Zugang mit Tokens (`schild token add`), jeweils mit Berechtigung und Ablaufdatum, nur einmal angezeigt. Wie du sie einschaltest: [Agent-API einschalten](02-betrieb.md#agent-api-einschalten).
 - Die API beschreibt sich selbst: `/agent/v0/openapi.json` reicht dem Agenten als Anleitung. Für Menschen steht dieselbe Beschreibung in der [API-Referenz](/api).
-- Volle IP-Adressen gibt die API nur an den Firewall-Token (`firewall:sync`) heraus, der die gesperrten Adressen für nftables braucht. Jeder Aufruf steht im Protokoll (`schild token log`), jede Änderung mit Begründung.
+- Ereignisse, Vorfälle und Einzelanfragen nennen die IP-Adresse, solange Schild sie aufbewahrt. Du kannst deinen Agenten also fragen, was eine bestimmte Adresse gemacht hat. Läuft er mit einem Modell in der Cloud, verlässt alles, was er liest, deinen Server.
+- Jeder Aufruf steht im Protokoll (`schild token log`), jede Änderung mit Begründung.
 
 Nutzt dein Agent ein Cloud-Modell, verlassen die Daten, die er liest, dein Netz.
 

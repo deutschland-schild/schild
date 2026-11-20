@@ -28,6 +28,7 @@
       "outcome": "blocked",
       "client_pseudonym": "p1-5f0c2a9e41b7d368",
       "client_net": "203.0.113.0/24",
+      "ip": "203.0.113.57",
       "geo": {
         "country": "NL",
         "asn": 64500,

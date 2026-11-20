@@ -47,7 +47,5 @@ export function scalarConfiguration() {
     proxyUrl: '',
     documentDownloadType: 'json' as const,
     defaultOpenFirstTag: true,
-    // The operations have no short summary (see server/routes/api), so the sidebar shows method and path.
-    operationTitleSource: 'path' as const,
   }
 }

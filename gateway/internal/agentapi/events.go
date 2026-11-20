@@ -97,6 +97,32 @@ func (s *Server) client(ip string) (pseudonym, network string) {
 	return "", ""
 }
 
+// address returns a stored client address for an answer: a full address, or
+// the prefix it was cut to after retention.raw_ip_days; anything else is left out.
+func address(ip string) string {
+	if a, err := netip.ParseAddr(ip); err == nil {
+		return a.Unmap().WithZone("").String()
+	}
+	if p, err := netip.ParsePrefix(ip); err == nil {
+		return p.String()
+	}
+	return ""
+}
+
+// addressParam reads the ip filter; ok false: answered with 400.
+func addressParam(w http.ResponseWriter, r *http.Request) (a netip.Addr, ok bool) {
+	v := r.URL.Query().Get("ip")
+	if v == "" {
+		return a, true
+	}
+	a, err := netip.ParseAddr(v)
+	if err != nil {
+		invalid(w, "ip", "an IPv4 or IPv6 address")
+		return a, false
+	}
+	return a.Unmap().WithZone(""), true
+}
+
 type eventBody struct {
 	Data struct {
 		Client struct {
@@ -137,6 +163,7 @@ func (s *Server) event(e *store.EventRow, detail bool) contractapi.Event {
 		out.Outcome = e.Outcome
 	}
 	out.ClientPseudonym, out.ClientNet = s.client(e.IP)
+	out.IP = address(e.IP)
 	if e.Method != "" && len(e.Method) <= 16 && strings.ToUpper(e.Method) == e.Method {
 		out.Method = e.Method
 	}
@@ -236,6 +263,10 @@ func (s *Server) listEvents(w http.ResponseWriter, r *http.Request) {
 		invalid(w, "outcome", "passed, blocked or would_block")
 		return
 	}
+	addr, ok := addressParam(w, r)
+	if !ok {
+		return
+	}
 	bms, bseq, err := parseCursor(q.Get("cursor"))
 	if err != nil {
 		invalid(w, "cursor", "bad cursor")
@@ -255,7 +286,7 @@ func (s *Server) listEvents(w http.ResponseWriter, r *http.Request) {
 		for _, e := range rows {
 			scanned++
 			bms, seq = e.Time.UnixMilli(), e.Seq
-			if (typ == "" || e.Type == typ) && (outcome == "" || e.Outcome == outcome) {
+			if (typ == "" || e.Type == typ) && (outcome == "" || e.Outcome == outcome) && (!addr.IsValid() || address(e.IP) == addr.String()) {
 				page.Items = append(page.Items, s.event(e, false))
 				if full = len(page.Items) == limit; full {
 					break
@@ -304,6 +335,7 @@ func (s *Server) incident(ctx context.Context, in *store.Incident) contractapi.I
 		out.Status = "blocked"
 	}
 	out.ClientPseudonym, out.ClientNet = s.client(in.IP)
+	out.IP = address(in.IP)
 	out.Reason = contractapi.Sanitize(in.Reason, contractapi.MaxReason)
 	for _, src := range in.Sources {
 		if len(out.Sources) < 32 {

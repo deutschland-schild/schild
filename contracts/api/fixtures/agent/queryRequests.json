@@ -25,7 +25,8 @@
       "duration_ms": 93.13,
       "bytes_out": 5120,
       "page_view": false,
-      "visitor": "p1-9c2e71f04ab3d658"
+      "visitor": "p1-9c2e71f04ab3d658",
+      "ip": "203.0.113.57"
     },
     {
       "t": "2026-10-29T10:14:40.007Z",
@@ -48,7 +49,8 @@
       "duration_ms": 37.25,
       "bytes_out": 18400,
       "page_view": true,
-      "visitor": "p1-9c2e71f04ab3d658"
+      "visitor": "p1-9c2e71f04ab3d658",
+      "ip": "203.0.113.57"
     },
     {
       "t": "2026-10-29T10:12:11.530Z",
@@ -73,7 +75,8 @@
       "duration_ms": 18.63,
       "bytes_out": 24100,
       "page_view": false,
-      "visitor": "p1-41d8b06ec9a7f213"
+      "visitor": "p1-41d8b06ec9a7f213",
+      "ip": "203.0.113.57"
     },
     {
       "t": "2026-10-29T10:03:58.902Z",
@@ -100,7 +103,8 @@
       "duration_ms": 2.33,
       "bytes_out": 1830,
       "page_view": false,
-      "visitor": "p1-e07a3c95b18d6f42"
+      "visitor": "p1-e07a3c95b18d6f42",
+      "ip": "203.0.113.57"
     }
   ],
   "next_cursor": "r.1761732238.902",

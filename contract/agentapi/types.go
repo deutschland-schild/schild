@@ -33,23 +33,25 @@ type CrowdsecRule struct {
 
 // Event is an event for agents.
 type Event struct {
-	ID              string   `json:"id"`
-	Time            string   `json:"time"`
-	Type            string   `json:"type"`
-	Outcome         string   `json:"outcome,omitempty"`
-	ClientPseudonym string   `json:"client_pseudonym,omitempty"`
-	ClientNet       string   `json:"client_net,omitempty"`
-	Geo             *Geo     `json:"geo,omitempty"`
-	Method          string   `json:"method,omitempty"`
-	Site            string   `json:"site,omitempty"`       // v0.5 (D36)
-	Host            string   `json:"host,omitempty"`       // untrusted
-	Path            string   `json:"path,omitempty"`       // untrusted
-	UserAgent       string   `json:"user_agent,omitempty"` // untrusted
-	Status          int      `json:"status,omitempty"`
-	Score           int      `json:"score,omitempty"`
-	Rules           []string `json:"rules,omitempty"`
-	Incident        string   `json:"incident,omitempty"`
-	Sampled         bool     `json:"sampled,omitempty"`
+	ID              string `json:"id"`
+	Time            string `json:"time"`
+	Type            string `json:"type"`
+	Outcome         string `json:"outcome,omitempty"`
+	ClientPseudonym string `json:"client_pseudonym,omitempty"`
+	ClientNet       string `json:"client_net,omitempty"`
+	// IP is the client address as stored: gone after retention.raw_ip_days.
+	IP        string   `json:"ip,omitempty"`
+	Geo       *Geo     `json:"geo,omitempty"`
+	Method    string   `json:"method,omitempty"`
+	Site      string   `json:"site,omitempty"`       // v0.5 (D36)
+	Host      string   `json:"host,omitempty"`       // untrusted
+	Path      string   `json:"path,omitempty"`       // untrusted
+	UserAgent string   `json:"user_agent,omitempty"` // untrusted
+	Status    int      `json:"status,omitempty"`
+	Score     int      `json:"score,omitempty"`
+	Rules     []string `json:"rules,omitempty"`
+	Incident  string   `json:"incident,omitempty"`
+	Sampled   bool     `json:"sampled,omitempty"`
 	// WouldBlockReason (v0.5, D36 open items): why a would_block request
 	// was passed.
 	WouldBlockReason string      `json:"would_block_reason,omitempty"`
@@ -74,6 +76,7 @@ type Incident struct {
 	EventID         string   `json:"event_id"`
 	ClientPseudonym string   `json:"client_pseudonym,omitempty"`
 	ClientNet       string   `json:"client_net,omitempty"`
+	IP              string   `json:"ip,omitempty"`
 	Reason          string   `json:"reason,omitempty"` // untrusted
 	Sources         []string `json:"sources"`
 	// v0.5 (D36): the website of the blocked request and the websites the
@@ -125,6 +128,7 @@ type Request struct {
 	BytesOut     uint32   `json:"bytes_out"`
 	PageView     bool     `json:"page_view"`
 	Visitor      string   `json:"visitor"` // VisitorPseudonym
+	IP           string   `json:"ip,omitempty"`
 }
 
 // RequestPage is the answer of queryRequests.
