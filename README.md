@@ -1,6 +1,6 @@
 # Deutschland-Schild
 
-**Schild Gateway ist eine kostenlose, quelloffene Firewall für deine Website.** Es läuft auf deinem eigenen Server vor deiner Anwendung, prüft jede Anfrage und zeigt dir in einem Dashboard, was los ist. Dein Traffic bleibt auf deinem Server.
+**Schild Gateway ist eine kostenlose, quelloffene Firewall für deine Website.** Es läuft auf deinem eigenen Server vor deiner Anwendung, prüft jede Anfrage und zeigt dir in einem Dashboard, was los ist. Deine Daten bleiben auf deinem Server.
 
 **Stand: Alpha (`0.1.0-alpha.1`).** Das Gateway mit Dashboard läuft für sich allein und ist im Live-Betrieb. Befehle, Konfiguration und Dashboard können sich noch ändern, Fehler sind möglich. Labs und Relays, aus denen später ein Netz werden soll, sind geplant und laufen bisher nur im Testlabor.
 
@@ -71,7 +71,7 @@ docker run -d --name schild --restart unless-stopped \
 docker exec schild schild dashboard setup-code
 ```
 
-Ab dem Start sperrt das Core Rule Set bekannte Angriffe. Vier der fünf Szenarien sperren nach 14 Tagen Lernzeit; Limits, „Aggressives Abrufen“ und der CrowdSec Hub zählen erst nur mit (für einen vorsichtigen Start stellst du `rules.crs.state: detect` ein). Als Caddy-Distribution ist Schild ab dem Wechsel dein Webserver und trägt deinen ganzen Traffic: Läuft Schild nicht, sind deine Websites nicht erreichbar, bis du Caddy wieder startest.
+Ab dem Start sperrt das Core Rule Set bekannte Angriffe. Die Limits für Login, Passwort vergessen und `xmlrpc.php` begrenzen sofort. Vier der fünf Szenarien sperren nach 14 Tagen Lernzeit. Die übrigen Limits, „Aggressives Abrufen“, die Erkennung von Wellen und der CrowdSec Hub zählen erst nur mit. Für einen vorsichtigen Start stellst du `rules.crs.state: detect` ein. Als Caddy-Distribution ist Schild ab dem Wechsel dein Webserver und trägt deinen ganzen Traffic: Läuft Schild nicht, sind deine Websites nicht erreichbar, bis du Caddy wieder startest.
 
 Das Dashboard hört nur auf dem Server selbst (`http://127.0.0.1:8788`), von außen kommst du per SSH-Tunnel hinein. Die letzte Zeile zeigt den Einmal-Code für die erste Anmeldung.
 

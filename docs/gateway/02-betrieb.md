@@ -5,7 +5,7 @@ description: "Einbauen als Caddy-Distribution oder hinter nginx, beobachten und 
 
 # Schild Gateway betreiben
 
-**Status:** Alpha · Stand 19.11.2026 · technische Quelle: [gateway/README.md](../../gateway/README.md)
+**Status:** Alpha · Stand 20.11.2026 · technische Quelle: [gateway/README.md](../../gateway/README.md)
 
 **Kurz:**
 
@@ -142,7 +142,7 @@ Was gesperrt wird, entscheiden die Schalter der einzelnen Quellen:
 | CrowdSec Hub (`rules.crowdsec.state`) | aus, erkennen, sperren | erkennen |
 | eigene Regeln (`rules.local.state`) | aus, erkennen, sperren | sperren |
 | Szenarien | aus, beobachten, sperren (erst nach 14 Tagen Lernzeit) | die Empfehlung: sperren, nur „Aggressives Abrufen“ beobachtet |
-| Limits | aus, beobachten, begrenzen | beobachten |
+| Limits | aus, beobachten, begrenzen, je Limit | die Empfehlung: Login, Passwort vergessen und `xmlrpc.php` begrenzen, die übrigen beobachten |
 | Crawler-Regeln je Website | erlauben, sperren | erlauben |
 
 Die [harten Grenzen](01-funktionen.md#harte-grenzen) gelten immer. Sperren, die du im Dashboard setzt oder ein Agent mit seinem Token, wirken auch immer. Das hat ja jemand bewusst entschieden, und mit „Sperre aufheben“ ist es wieder vorbei.
