@@ -21,6 +21,7 @@ The section of a version becomes the text of its GitHub release, so its heading 
 - IPv6 blocks go into the firewall sorted and without overlaps. /64 blocks side by side become one interval, and `schild firewall status` and "Sperren" still list and count each of them.
 - Bot range lists are refused when they redirect to another host, name a private, loopback or link-local range, or a range wider than /16 (IPv4) or /32 (IPv6). The ranges fetched before stay in use.
 - At a full connection limit the search for an idle connection to close looks at 64 connections instead of 16.
+- A start that `schild run` refuses (a Caddyfile it does not accept, a port in use) ends like a run: background work stopped, events written, stores closed. Before, it returned while that work was still writing into the data directory.
 
 ## 0.1.0-alpha.1
 

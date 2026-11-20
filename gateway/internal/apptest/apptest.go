@@ -27,6 +27,7 @@ import (
 	"github.com/deutschland-schild/schild/gateway/internal/app"
 	"github.com/deutschland-schild/schild/gateway/internal/bots"
 	"github.com/deutschland-schild/schild/gateway/internal/geo"
+	"github.com/deutschland-schild/schild/gateway/internal/testport"
 )
 
 // Harness is a running schild with a test backend.
@@ -76,16 +77,16 @@ type Options struct {
 	// nil: a time inside the 30 days of the shipped snapshot, so tests of
 	// verification do not depend on the day they run.
 	BotsNow func() time.Time
+	// StartFails: the test expects Run to refuse the start (Stop returns
+	// its error), so New does not wait for the listeners.
+	StartFails bool
 }
 
-// FreeAddr returns a free 127.0.0.1 port.
+// FreeAddr returns a 127.0.0.1 address for a listener of the app, which
+// binds it later (testport: nobody takes the port in between).
 func FreeAddr(t testing.TB) string {
-	l, err := net.Listen("tcp", "127.0.0.1:0")
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer l.Close()
-	return l.Addr().String()
+	t.Helper()
+	return testport.Free(t)
 }
 
 const password = "korrekt-pferd-batterie"
@@ -165,6 +166,15 @@ func New(t testing.TB, o Options) *Harness {
 	jar, _ := cookiejar.New(nil)
 	h.Client = &http.Client{Jar: jar}
 	t.Cleanup(h.Close)
+	if o.Listeners && !o.StartFails {
+		listening := []string{h.DashAddr, h.MetricsAddr}
+		if o.Caddyfile != "" {
+			listening = append(listening, h.IngressAddr)
+		} else {
+			listening = append(listening, h.ProxyAddr)
+		}
+		h.waitListening(listening)
+	}
 	return h
 }
 
@@ -191,6 +201,34 @@ func (h *Harness) yaml(o Options, dashAddr, metricsAddr string) string {
 	fmt.Fprintf(&b, "waf:\n  eval_timeout_ms: 5000\ngeo:\n  db_path: %s\nstorage:\n  path: %s\nallowlist:\n  - { ip: 192.0.2.10, label: \"Testlab admin\", level: no_block, expires: never }\n%s",
 		filepath.Join(h.Dir, "geo", "geo.mmdb"), filepath.Join(h.Dir, "data"), o.Extra)
 	return b.String()
+}
+
+// waitListening returns once Run accepts connections on every address. A
+// test that sends its first request before that would have to guess how
+// long a start takes on a busy machine; when Run ends instead (a port it
+// cannot bind, a config it refuses), the test fails with Run's error and
+// not with "connection refused" somewhere later.
+func (h *Harness) waitListening(addrs []string) {
+	h.T.Helper()
+	deadline := time.Now().Add(time.Minute)
+	for _, addr := range addrs {
+		for {
+			c, err := net.DialTimeout("tcp", addr, time.Second)
+			if err == nil {
+				_ = c.Close()
+				break
+			}
+			select {
+			case rerr := <-h.done:
+				h.done <- rerr // Stop reads it again
+				h.T.Fatalf("app.Run ended before it listened on %s: %v", addr, rerr)
+			case <-time.After(10 * time.Millisecond):
+			}
+			if time.Now().After(deadline) {
+				h.T.Fatalf("app.Run does not listen on %s after a minute: %v", addr, err)
+			}
+		}
+	}
 }
 
 // Stop ends the app (Run returns in listener mode) and returns Run's error.

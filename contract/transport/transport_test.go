@@ -7,7 +7,6 @@ import (
 	"encoding/json"
 	"errors"
 	"io"
-	"net"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -99,9 +98,10 @@ func TestSubmitRoundTrip(t *testing.T) {
 }
 
 func TestRefusedAndTimeout(t *testing.T) {
-	ln, _ := net.Listen("tcp", "127.0.0.1:0")
-	addr := ln.Addr().String()
-	ln.Close()
+	// Port 1 on loopback: nobody listens there. A port the kernel just
+	// handed out and that was closed again may belong to somebody else by
+	// the time the request goes out.
+	const addr = "127.0.0.1:1"
 	tr := NewHTTPS(time.Second)
 	_, err := tr.Submit(context.Background(), Lab{ID: "x", Endpoint: "http://" + addr}, &msg.Submission{RequestID: msg.NewID()}, "")
 	if !errors.Is(err, ErrRefused) {

@@ -3,11 +3,9 @@ package caddymod
 import (
 	"fmt"
 	"io"
-	"net"
 	"net/http"
 	"net/http/httptest"
 	"strings"
-	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -16,38 +14,17 @@ import (
 	"github.com/deutschland-schild/schild/gateway/internal/clientip"
 	"github.com/deutschland-schild/schild/gateway/internal/decide"
 	"github.com/deutschland-schild/schild/gateway/internal/gate"
+	"github.com/deutschland-schild/schild/gateway/internal/testport"
 	"github.com/deutschland-schild/schild/gateway/internal/waf"
 )
 
-// freePort returns a free TCP address. The UDP port of the same number may be
-// taken, so a test that serves TLS on it sets "protocols h1 h2": HTTP/3 would
-// bind that UDP port and fail now and then.
-// freePort returns a free loopback address whose port no earlier call of this
-// test binary returned: the kernel may hand a just released port out again, and
-// a config with http_port equal to https_port is refused by Caddy.
+// freePort returns a loopback address for a server that binds it later
+// (testport: not a port the kernel hands out by itself, so nobody takes it
+// in between). The UDP port of the same number is free as well.
 func freePort(t testing.TB) string {
-	portsMu.Lock()
-	defer portsMu.Unlock()
-	for range 100 {
-		l, err := net.Listen("tcp", "127.0.0.1:0")
-		if err != nil {
-			t.Fatal(err)
-		}
-		addr := l.Addr().String()
-		l.Close()
-		if !portsGiven[addr] {
-			portsGiven[addr] = true
-			return addr
-		}
-	}
-	t.Fatal("no unused free port")
-	return ""
+	t.Helper()
+	return testport.Free(t)
 }
-
-var (
-	portsMu    sync.Mutex
-	portsGiven = map[string]bool{}
-)
 
 // The proxy listener speaks HTTP/1 only: no h2c (security review 2.2).
 func TestProxyListenerHasNoH2C(t *testing.T) {

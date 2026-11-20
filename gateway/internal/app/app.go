@@ -687,6 +687,7 @@ func (a *App) Run(ctx context.Context) error {
 	}
 	WarnDashboardExposed(a.log, cfg)
 	var servers []*http.Server
+	var startErr error
 	errc := make(chan error, 3)
 	if !a.opts.NoListeners {
 		metricsMux := http.NewServeMux()
@@ -708,24 +709,27 @@ func (a *App) Run(ctx context.Context) error {
 		}
 		a.startAgentListener(&servers)
 		a.startAgentAPI(inner, &servers)
+		// A start that is refused here (another gate bound, a Caddyfile
+		// schild does not accept, a port in use) ends like a run: loops
+		// stopped, events flushed, stores closed. Returning at once left
+		// the loops writing into the data directory behind Run's back.
 		release, err := caddymod.Bind(a.Gate)
 		if err != nil {
-			shutdown(servers)
-			return err
-		}
-		defer release()
-		defer caddymod.BindConns(a.Conns)()
-		if err := a.startCaddy(cfg); err != nil {
-			shutdown(servers)
-			return err
+			startErr = err
+		} else {
+			defer release()
+			defer caddymod.BindConns(a.Conns)()
+			startErr = a.startCaddy(cfg)
 		}
 	}
-	var runErr error
-	select {
-	case <-ctx.Done():
-	case runErr = <-errc:
+	runErr := startErr
+	if startErr == nil {
+		select {
+		case <-ctx.Done():
+		case runErr = <-errc:
+		}
+		a.log.Info("schild stopping")
 	}
-	a.log.Info("schild stopping")
 	if !a.opts.NoListeners {
 		_ = caddymod.Stop()
 	}
@@ -757,14 +761,6 @@ func (a *App) Run(ctx context.Context) error {
 	}
 	_ = a.Store.Close()
 	return runErr
-}
-
-func shutdown(servers []*http.Server) {
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-	for _, s := range servers {
-		_ = s.Shutdown(ctx)
-	}
 }
 
 // startCaddy loads the embedded Caddy: the operator's Caddyfile in ingress

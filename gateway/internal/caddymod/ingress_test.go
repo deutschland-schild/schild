@@ -610,14 +610,28 @@ func TestSharedGateAcrossLoads(t *testing.T) {
 	}
 	defer Stop()
 	c := &http.Client{}
-	if r := fetch(t, c, "http://"+addr+"/x", "a.example.test:"+p, nil); r.status != 200 {
+	if r := fetch(t, c, "http://"+addr+"/x", "a.example.test:"+p, nil); r.status != 200 || r.body != "ok" {
 		t.Fatalf("first load: %+v", r)
 	}
 	if err := Load(conf("a.example.test", "b.example.test")); err != nil {
 		t.Fatal(err)
 	}
-	if r := fetch(t, c, "http://"+addr+"/x", "b.example.test:"+p, nil); r.status != 200 {
-		t.Fatalf("second load: %+v", r)
+	// Load returns when the old servers have begun to shut down, not when
+	// they are gone: a connection the first request left open may still
+	// reach the old config, which has no site b and answers an empty 200
+	// past schild. So ask on a new connection until the new config answers;
+	// what the old one answered never came to the gate and is not counted.
+	deadline := time.Now().Add(10 * time.Second)
+	for {
+		c.CloseIdleConnections()
+		r := fetch(t, c, "http://"+addr+"/x", "b.example.test:"+p, nil)
+		if r.status == 200 && r.body == "ok" {
+			break
+		}
+		if time.Now().After(deadline) {
+			t.Fatalf("second load: %+v", r)
+		}
+		time.Sleep(10 * time.Millisecond)
 	}
 	if r := fetch(t, c, "http://"+addr+"/?q=%3Cscript%3Ealert(1)%3C%2Fscript%3E", "a.example.test:"+p, nil); r.status != 403 {
 		t.Fatalf("second load blocks: %+v", r)
