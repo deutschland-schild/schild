@@ -23,6 +23,19 @@ After the first release (the package does not exist earlier):
 
 7. `https://github.com/orgs/deutschland-schild/packages/container/schild/settings`: set the visibility to **public** and check that the repository `schild` has write access under "Manage Actions access". Until then `docker pull` needs a login and the quickstart fails for everybody else.
 
+## Once per maintainer: signing tags
+
+A release tag is signed by the maintainer who sets it (`git tag -s`). With an SSH key:
+
+```sh
+git config gpg.format ssh
+git config user.signingkey ~/.ssh/<key>.pub
+```
+
+Add the same public key on GitHub under Settings → SSH and GPG keys → New SSH key, key type **Signing key**; only then GitHub shows the tag as verified. `git tag -v <tag>` checks a signature locally once `gpg.ssh.allowedSignersFile` names the key.
+
+The tags `v0.1.0-alpha.1` to `v0.1.0-alpha.3` are annotated and not signed, and stay so: a tag cannot be moved (ruleset). What a user verifies is not the tag: the image signature, the build provenance and the signature of the apt repository come from the release run.
+
 ## Once, for the apt repository
 
 The spec is [MVP-31](../../tests/specs/MVP-31-debian-packages.yaml). The repository is rebuilt from the packages of the releases on every release run, so nothing here holds state except the key.
@@ -55,7 +68,7 @@ The first run after this publishes every package the newest releases carry. Chec
    - `README.md` and `docs/gateway/00-installieren.md`: the tag in the download addresses
    - `SECURITY.md`: supported versions, if the line changes
 3. Geo data: if `GEO_MONTH` in `gateway/Dockerfile` is older than two months, run `make gateway-geo-pin GEO_MONTH=YYYY-MM` and put the three lines into the Dockerfile. DB-IP removes old months; the build then stops at the download.
-4. Tag the merged commit on `main` and push the tag. Each push needs the maintainer's go:
+4. Tag the merged commit on `main` with a signed tag ([above](#once-per-maintainer-signing-tags)) and push the tag. Each push needs the maintainer's go:
 
    ```sh
    git switch main && git pull --ff-only
