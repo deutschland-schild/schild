@@ -174,6 +174,38 @@ func wafRuleIDs(ri *reqInfo) []int {
 	return out
 }
 
+// formHead is how much of a body the gate reads for its form fields.
+const formHead = 64 << 10
+
+// loginForm is the body as the form PHP makes of it, for a login route
+// whose meaning hangs on a body field (behaviour.Form). Only two bodies are
+// clear: none, and one urlencoded form that fits formHead under a single,
+// well-formed Content-Type. Everything else is opaque, also a type PHP
+// would not parse: which parser the backend picks for an odd header is not
+// ours to guess.
+func loginForm(r *http.Request, tx types.Transaction) behaviour.Form {
+	if !waf.HasBody(r) {
+		return behaviour.Form{}
+	}
+	opaque := behaviour.Form{Opaque: true}
+	cts := r.Header.Values("Content-Type")
+	if len(cts) != 1 {
+		return opaque
+	}
+	if mt, _, err := mime.ParseMediaType(cts[0]); err != nil || mt != "application/x-www-form-urlencoded" {
+		return opaque
+	}
+	rd, err := tx.RequestBodyReader()
+	if err != nil || rd == nil {
+		return opaque
+	}
+	head, err := io.ReadAll(io.LimitReader(rd, formHead+1))
+	if err != nil || len(head) > formHead {
+		return opaque
+	}
+	return behaviour.Form{Fields: string(head)}
+}
+
 // loginUserHash reads the user name of a login attempt from the body the
 // WAF already buffered and returns its keyed hash. Only the named fields
 // are looked at (never the password field); the name is dropped right away
@@ -183,7 +215,7 @@ func loginUserHash(r *http.Request, tx types.Transaction, fields []string) (uint
 	if err != nil || rd == nil {
 		return 0, false
 	}
-	head, _ := io.ReadAll(io.LimitReader(rd, 64<<10))
+	head, _ := io.ReadAll(io.LimitReader(rd, formHead))
 	if len(head) == 0 {
 		return 0, false
 	}

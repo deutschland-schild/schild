@@ -166,6 +166,11 @@ type Request struct {
 	// Except reports whether the operator excepted this IP from a source
 	// ("behaviour", "behaviour:<scenario>", "ratelimit", "ratelimit:<id>").
 	Except func(source string) bool
+
+	// login is the login route of the request as ResolveLogin found it with
+	// the body at hand; resolved tells that it ran.
+	login    *loginRoute
+	resolved bool
 }
 
 func (r *Request) except(src string) bool { return r.Except != nil && r.Except(src) }
@@ -523,18 +528,28 @@ func (c *compiled) effective(mode string) string {
 // Thresholds returns the effective thresholds of a scenario.
 func (e *Engine) Thresholds(id string) config.Thresholds { return e.cfg.Load().thr[id] }
 
-// LoginUserFields returns the body fields that carry the user name when
-// method/path/query is a known login of an enabled preset (nil otherwise).
-// The gate uses it to hash the user name of login attempts.
-func (e *Engine) LoginUserFields(method, p, rawQuery string) []string {
+// ResolveLogin decides, once the body is buffered, whether r is a login
+// attempt of an enabled preset, and keeps the answer on r for Observe. form
+// is called at most once, and only for a route whose meaning hangs on a
+// body field (wp-login.php). It returns the body fields that carry the user
+// name, for the gate to hash it (nil for no login attempt and with
+// credential_stuffing off).
+func (e *Engine) ResolveLogin(r *Request, form func() Form) []string {
 	c := e.cfg.Load()
-	if c.mode[config.ScenarioCredentialStuffing] == config.BehaviourOff {
+	r.login, r.resolved = matchLogin(c.presets, r.Method, r.Path, r.RawQuery, form), true
+	if r.login == nil || c.mode[config.ScenarioCredentialStuffing] == config.BehaviourOff {
 		return nil
 	}
-	if lr := matchLogin(c.presets, method, p, rawQuery); lr != nil {
-		return lr.UserFields
+	return r.login.UserFields
+}
+
+// loginOf is the login route of r: what ResolveLogin found, else what the
+// request line alone says (a body nobody read counts as unclear).
+func loginOf(c *compiled, r *Request) *loginRoute {
+	if r.resolved {
+		return r.login
 	}
-	return nil
+	return matchLogin(c.presets, r.Method, r.Path, r.RawQuery, nil)
 }
 
 // HashUser turns a user name into the value fed into the sketches. The
@@ -861,7 +876,7 @@ func (e *Engine) Observe(r *Request, o Outcome) {
 	h := host(r.Host)
 	var lr *loginRoute
 	if o.Forwarded {
-		lr = matchLogin(c.presets, r.Method, r.Path, r.RawQuery)
+		lr = loginOf(c, r)
 	}
 	loginFailed := lr != nil && lr.Failed(o.Response)
 	probing := o.Forwarded && (o.Response.Status == 404 || o.Response.Status == 403) && !IsStatic(r.Path)

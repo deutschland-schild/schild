@@ -587,7 +587,8 @@ func (g *Gate) serve(w http.ResponseWriter, r *http.Request, next http.Handler, 
 				return
 			}
 		}
-		if fields := g.Behaviour.LoginUserFields(ri.breq.Method, ri.breq.Path, ri.breq.RawQuery); len(fields) > 0 {
+		form := func() behaviour.Form { return loginForm(r, tx) }
+		if fields := g.Behaviour.ResolveLogin(ri.breq, form); len(fields) > 0 {
 			ri.userHash, ri.hasUser = loginUserHash(r, tx, fields)
 			if ri.hasUser && ri.allow == "" {
 				// MVP-18 account_slowdown: an attacked account waits, never locks.

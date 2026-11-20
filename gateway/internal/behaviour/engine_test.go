@@ -985,7 +985,7 @@ func TestPresetsAndPaths(t *testing.T) {
 		{"POST", "/login", "", Response{Status: 200}, "generic", false},
 		{"GET", "/wp-login.php", "", Response{Status: 200}, "", false},
 	} {
-		lr := matchLogin(on, c.method, c.path, c.query)
+		lr := matchLogin(on, c.method, c.path, c.query, noBody)
 		preset, failed := "", false
 		if lr != nil {
 			preset, failed = lr.Preset, lr.Failed(c.resp)

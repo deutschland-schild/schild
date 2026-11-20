@@ -31,7 +31,7 @@ func TestRouteVariantsMatch(t *testing.T) {
 		"/wp-login.php/../about": "",
 	} {
 		got := ""
-		if lr := matchLogin(on, "POST", p, ""); lr != nil {
+		if lr := matchLogin(on, "POST", p, "", noBody); lr != nil {
 			got = lr.Preset
 		}
 		if got != want {
