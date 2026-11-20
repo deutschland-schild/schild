@@ -19,7 +19,7 @@ RUN --mount=type=cache,target=/go/pkg/mod --mount=type=cache,target=/root/.cache
     cd tests/testlab && go build -trimpath -o /out/bin/ ./cmd/... \
  && mkdir -p /out/var/lib/testlab /out/results/runs /out/export
 
-FROM gcr.io/distroless/static-debian13:nonroot
+FROM gcr.io/distroless/static-debian13:nonroot@sha256:aafe993665bf6200db38a02c11a9351e782a84b6a45e7f33b6695638c88e3931
 COPY --from=build /out/bin/ /usr/local/bin/
 # Mount points of named volumes, owned by the runtime user: a fresh volume
 # copies this ownership, so the nonroot (65532) services can write to it.

@@ -9,7 +9,7 @@ GEOBIN=$G MODE=observe STATE=off MON=false HUBURL=http://127.0.0.1:9/none HUBAUT
 /tmp/m26/bin/floodtool slots -target http://127.0.0.1:34590 -attack "$3" -victim 2001:db8:b -workers "$4" -duration 15s -kib "$5" &
 F=$!
 python3 -c 'import time;time.sleep(8)'
-curl -s -b /tmp/m26/i/sl/cj http://127.0.0.1:34588/api/v0/overview | python3 -c 'import json,sys;d=json.load(sys.stdin);print({k:v for k,v in d.items() if "eval" in k.lower() or "waf" in k.lower()})' | cut -c1-400
+python3 -c 'import json,sys;d=json.load(sys.stdin);print({k:v for k,v in d.items() if "eval" in k.lower() or "waf" in k.lower()})' <<<"$(curl -s -b /tmp/m26/i/sl/cj http://127.0.0.1:34588/api/v0/overview)" | cut -c1-400
 wait $F
 curl -s http://127.0.0.1:34511/metrics | grep -E '^schild_(hard_limit|requests_total|eval|waf_(busy|client|cancel))' | cut -c1-120
 bash "$M/inst.sh" stop sl

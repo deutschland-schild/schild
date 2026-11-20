@@ -15,6 +15,6 @@ ENV CGO_ENABLED=0 GOTOOLCHAIN=local
 RUN --mount=type=cache,target=/go/pkg/mod --mount=type=cache,target=/root/.cache/go-build \
     cd tests/testlab/traffic && go build -trimpath -o /out/traffic ./cmd/traffic
 
-FROM gcr.io/distroless/static-debian13:nonroot
+FROM gcr.io/distroless/static-debian13:nonroot@sha256:aafe993665bf6200db38a02c11a9351e782a84b6a45e7f33b6695638c88e3931
 COPY --from=build /out/traffic /usr/local/bin/traffic
 ENTRYPOINT ["/usr/local/bin/traffic"]
