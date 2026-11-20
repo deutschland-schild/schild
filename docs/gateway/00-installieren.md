@@ -5,13 +5,13 @@ description: "Schild Gateway installieren: als Caddy-Distribution oder hinter ng
 
 # Schild Gateway installieren
 
-**Status:** Alpha · Stand 19.11.2026 · technische Quelle: [gateway/README.md](../../gateway/README.md)
+**Status:** Alpha · Stand 20.11.2026 · technische Quelle: [gateway/README.md](../../gateway/README.md)
 
 **Kurz:**
 
 - Schild ist eine Caddy-Distribution: Caddy mit eingebautem WAF-Modul. Nutzt du Caddy, wechselst du darauf: gleiches Caddyfile, gleiche Zertifikate, gleiche Ports. Das ist der Standardweg. Hinter nginx, Apache oder einem Load Balancer läuft Schild als Proxy auf Port 8080.
 - Drei Wege für beide Fälle: Docker, Binary mit systemd, Docker Compose. Aktuell ist die Alpha `0.1.0-alpha.1`.
-- Nach der Installation sperrt das Core Rule Set bekannte Angriffe. Vier der fünf Szenarien sperren nach 14 Tagen Lernzeit. Limits und die Regeln aus dem CrowdSec Hub zählen erst nur mit. Als Caddy-Distribution trägt Schild sofort deinen ganzen Traffic.
+- Nach der Installation sperrt das Core Rule Set bekannte Angriffe. Die Limits für Login, Passwort vergessen und `xmlrpc.php` begrenzen sofort. Vier der fünf Szenarien sperren nach 14 Tagen Lernzeit. Die übrigen Limits und die Regeln aus dem CrowdSec Hub zählen erst nur mit. Als Caddy-Distribution trägt Schild sofort deinen ganzen Traffic.
 - Das Dashboard hört nur auf dem Server selbst. Du erreichst es über einen SSH-Tunnel.
 - Der Weg zurück dauert eine Minute. An deiner Anwendung und an Caddys Zertifikaten ändert Schild nichts.
 
@@ -344,11 +344,11 @@ Schild prüft nur, was über Schild kommt. Deine Anwendung darf deshalb von auß
 3. **Eigene Adresse freischalten:** in einer SSH-Sitzung auf dem Server mit `sudo schild allow "${SSH_CONNECTION%% *}"`. Die Variable enthält die Adresse, von der deine SSH-Verbindung kommt. Bist du direkt als root angemeldet, reicht `schild allow --mine`. Hinter `sudo` findet `--mine` die Adresse nicht, weil `sudo` die Variable nicht weitergibt. Mit Docker: `docker exec schild schild allow <deine-adresse>`, denn im Container kennt Schild deine SSH-Verbindung nicht.
 4. **Nachsehen, ob Traffic ankommt.** Als Caddy-Distribution zeigt das Dashboard sofort Anfragen. Hinter nginx, Apache oder einem Load Balancer erst, wenn dein Webserver [an Port 8080 weitergibt](#traffic-über-schild-leiten).
 5. **Hinschauen.** Unter „Ereignisse“ siehst du, was gestoppt und was nur erkannt wurde, unter „Sperren“, welche Adressen gerade gesperrt sind. Fehlalarme löst du mit einer [Ausnahme](01-funktionen.md#ausnahmen). Bei einer empfindlichen Anwendung stellst du das Core Rule Set vorher für ein paar Tage auf „erkennen“, unter „Regeln“ oder mit `rules.crs.state: detect`.
-6. **Mehr sperren.** Limits und den CrowdSec Hub stellst du einzeln auf „sperren“, siehe [Was sperrt](02-betrieb.md#was-sperrt). Die Szenarien stehen ab Werk auf der Empfehlung: Vier sperren, „Aggressives Abrufen“ beobachtet. Sie sperren erst nach 14 Tagen Lernzeit ab dem ersten Start.
+6. **Mehr sperren.** Den CrowdSec Hub und die Limits, die ab Werk nur mitzählen, stellst du einzeln um, siehe [Was sperrt](02-betrieb.md#was-sperrt). Die Szenarien stehen ab Werk auf der Empfehlung: Vier sperren, „Aggressives Abrufen“ beobachtet. Sie sperren erst nach 14 Tagen Lernzeit ab dem ersten Start.
 
 ### Was Schild mit deinem Traffic macht
 
-Schild reicht jede Anfrage an deine Anwendung durch, die keine Regel auf „sperren“ trifft. Was nur erkennt, ab Werk Limits, die Regeln aus dem CrowdSec Hub und das Szenario „Aggressives Abrufen“, zählt mit, was es gesperrt hätte. Abgelehnt werden außerdem Anfragen, die sich gar nicht prüfen lassen, etwa ein viel zu großer Body. Das sind die [harten Grenzen](01-funktionen.md#harte-grenzen).
+Schild reicht jede Anfrage an deine Anwendung durch, die keine Regel auf „sperren“ trifft. Was nur erkennt, zählt mit, was es gesperrt hätte. Ab Werk sind das die Limits für Suche, Kontaktformulare und schreibende API-Aufrufe, die Regeln aus dem CrowdSec Hub und das Szenario „Aggressives Abrufen“. Abgelehnt werden außerdem Anfragen, die sich gar nicht prüfen lassen, etwa ein viel zu großer Body. Das sind die [harten Grenzen](01-funktionen.md#harte-grenzen).
 
 Auch „erkennen“ heißt nicht, dass Schild neben deinem Traffic steht. Jede Anfrage läuft durch Schild. Nutzt du es als Caddy-Distribution, hängt die Erreichbarkeit deiner Websites an Schild.
 
