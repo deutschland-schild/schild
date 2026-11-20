@@ -27,6 +27,26 @@ import (
 	"github.com/deutschland-schild/schild/gateway/internal/waf"
 )
 
+// requestsSettled returns the request counter of the last hour once it has
+// reached atLeast and stands still. schild counts a request after its response
+// is written, so a client can be ahead of the counter.
+func requestsSettled(t testing.TB, g *gate.Gate, atLeast int64) int64 {
+	t.Helper()
+	deadline := time.Now().Add(5 * time.Second)
+	last := int64(-1)
+	for {
+		n := g.Counters.Rolling.Sum(stats.Requests, time.Hour, time.Now())
+		if n >= atLeast && n == last {
+			return n
+		}
+		if time.Now().After(deadline) {
+			t.Fatalf("request counter at %d, want at least %d", n, atLeast)
+		}
+		last = n
+		time.Sleep(25 * time.Millisecond)
+	}
+}
+
 func testGate(t testing.TB) *gate.Gate {
 	t.Helper()
 	inst, err := waf.Build(waf.Config{CRS: true, ParanoiaLevel: 1, AnomalyThreshold: 5})
@@ -504,7 +524,7 @@ http://static.example.test:%[1]s {
 		t.Fatalf("backend hits app %d api %d", appHits.Load(), apiHits.Load())
 	}
 	// Everything of app and api passed the one gate (static has no schild).
-	if n := g.Counters.Rolling.Sum(stats.Requests, time.Hour, time.Now()); n != 9 {
+	if n := requestsSettled(t, g, 9); n != 9 {
 		t.Fatalf("gate requests %d, want 9", n)
 	}
 	// The JSON access log is Caddy's, with the status schild answered.
@@ -602,11 +622,10 @@ func TestSharedGateAcrossLoads(t *testing.T) {
 	if r := fetch(t, c, "http://"+addr+"/?q=%3Cscript%3Ealert(1)%3C%2Fscript%3E", "a.example.test:"+p, nil); r.status != 403 {
 		t.Fatalf("second load blocks: %+v", r)
 	}
-	now := time.Now()
-	if n := g.Counters.Rolling.Sum(stats.Requests, time.Hour, now); n != 3 {
+	if n := requestsSettled(t, g, 3); n != 3 {
 		t.Fatalf("one gate across loads: requests %d, want 3", n)
 	}
-	if n := g.Counters.Rolling.Sum(stats.Blocked, time.Hour, now); n != 1 {
+	if n := g.Counters.Rolling.Sum(stats.Blocked, time.Hour, time.Now()); n != 1 {
 		t.Fatalf("blocked %d", n)
 	}
 	if Bound() != g {
@@ -780,7 +799,7 @@ secure.example.test {
 	if second := serial(); second != first {
 		t.Fatalf("certificate reissued on restart: %s then %s", first, second)
 	}
-	if n := g.Counters.Rolling.Sum(stats.Requests, time.Hour, time.Now()); n != 2 {
+	if n := requestsSettled(t, g, 2); n != 2 {
 		t.Fatalf("TLS requests through the gate: %d", n)
 	}
 }
@@ -860,12 +879,12 @@ http://b.example.test:%[1]s {
 	if r := fetch(t, c, base+"/missing", bhost, nil); r.status != 200 || r.body != "backend /missing" {
 		t.Fatalf("clean error route: %+v", r)
 	}
-	before := g.Counters.Rolling.Sum(stats.Requests, time.Hour, time.Now())
+	before := requestsSettled(t, g, 0)
 	// The guarded site's own error: one evaluation (the site's), not two.
 	if r := fetch(t, c, base+"/boom", "a.example.test:"+p, nil); r.status != 200 || r.body != "backend /boom" {
 		t.Fatalf("own error: %+v", r)
 	}
-	if n := g.Counters.Rolling.Sum(stats.Requests, time.Hour, time.Now()) - before; n != 1 {
+	if n := requestsSettled(t, g, before+1) - before; n != 1 {
 		t.Fatalf("evaluations for one request: %d, want 1", n)
 	}
 	if hits.Load() != 2 {

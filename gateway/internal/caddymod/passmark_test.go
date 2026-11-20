@@ -8,10 +8,8 @@ import (
 	"strings"
 	"sync/atomic"
 	"testing"
-	"time"
 
 	"github.com/deutschland-schild/schild/contract/ingress"
-	"github.com/deutschland-schild/schild/gateway/internal/stats"
 )
 
 // TestIngressPassMarkBoundToURI (MVP-19 fix round 3, measurement 3 finding
@@ -226,7 +224,7 @@ http://a.example.test:%[1]s {
 			c := &http.Client{}
 			for _, pr := range tc.probes {
 				h0 := hits.Load()
-				e0 := g.Counters.Rolling.Sum(stats.Requests, time.Hour, time.Now())
+				e0 := requestsSettled(t, g, 0)
 				r := fetch(t, c, "http://"+addr+pr.path, pr.host+".example.test:"+p, pr.hdr)
 				if r.status != pr.status {
 					t.Fatalf("%s %s: status %d, want %d (%q)", pr.host, pr.path, r.status, pr.status, r.body)
@@ -238,7 +236,7 @@ http://a.example.test:%[1]s {
 					t.Fatalf("attack reached the backend: %v", lastURI.Load())
 				}
 				if pr.evals > 0 {
-					if n := g.Counters.Rolling.Sum(stats.Requests, time.Hour, time.Now()) - e0; n != pr.evals {
+					if n := requestsSettled(t, g, e0+pr.evals) - e0; n != pr.evals {
 						t.Fatalf("%s %s: evaluations %d, want %d", pr.host, pr.path, n, pr.evals)
 					}
 				}
