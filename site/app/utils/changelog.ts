@@ -13,6 +13,7 @@ export const CHANGELOG: ChangelogEntry[] = [
       'Das Schild Gateway ist Open Source unter MIT: Code, Doku und Tests auf GitHub, dazu ein Docker-Image und ein Binary für Linux.',
       'Neu in dieser Version: die Kurze Prüfung im Browser mit Under-Attack-Modus, einstellbare Schwellen für Szenarien und ein eigener Schalter für jedes Limit.',
       '0.1.0-alpha.2 folgt am selben Tag. Sie härtet die Prüfung von Anfragen, die Erkennung von Anmeldeversuchen und die Übergabe der Sperren an die Firewall.',
+      '0.1.0-alpha.3 bringt Pakete für Debian und Ubuntu: Jedes Release enthält jetzt eine .deb-Datei für amd64 und arm64.',
     ],
     link: { href: RELEASE_URL, label: 'Alle Änderungen auf GitHub' },
   },
