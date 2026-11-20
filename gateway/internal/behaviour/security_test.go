@@ -3,6 +3,7 @@ package behaviour
 import (
 	"fmt"
 	"slices"
+	"strings"
 	"testing"
 	"time"
 
@@ -20,10 +21,94 @@ func TestFormValues(t *testing.T) {
 		{"a=1;b=2&c=3", "a", []string{"1;b=2"}}, // ';' cuts nothing, as in PHP
 		{"%61=x&a&&a=%zz&b=%zz", "a", []string{"x", "", "%zz"}},
 		{"user+name=a%20b", "user name", []string{"a b"}},
+		{"%61=a%20b%zz%4", "a", []string{"a b%zz%4"}}, // a bad escape stays, the good ones count
 	} {
 		if got := FormValues(tc.raw, tc.k); !slices.Equal(got, tc.want) {
 			t.Errorf("FormValues(%q, %q) = %q, want %q", tc.raw, tc.k, got, tc.want)
 		}
+	}
+}
+
+// noBody is the form of a request without body.
+func noBody() Form { return Form{} }
+
+// A POST to wp-login.php is no login attempt only in the form WordPress
+// itself sends. wp-login.php reads the action from the query overlaid by
+// the body and falls back to "login" for whatever it does not know.
+func TestWPLoginAction(t *testing.T) {
+	on := map[string]bool{"wordpress": true}
+	body := func(s string) func() Form { return func() Form { return Form{Fields: s} } }
+	opaque := func() Form { return Form{Opaque: true} }
+	many := strings.Repeat("x&", wpQueryVars)
+	for _, tc := range []struct {
+		name, query string
+		form        func() Form
+		login       bool
+	}{
+		{"plain login", "", body("log=a&pwd=b"), true},
+		{"lost password", "action=lostpassword", body("user_login=a&redirect_to=&wp-submit=x"), false},
+		{"register", "action=register", body("user_login=a&user_email=a%40b.example"), false},
+		{"lost password without body", "action=lostpassword", noBody, false},
+		{"same action in the body", "action=lostpassword", body("action=lostpassword&user_login=a"), false},
+		{"two other actions", "action=register&action=lostpassword", noBody, false},
+
+		{"unknown action is a login", "action=nothing", body("log=a&pwd=b"), true},
+		{"empty action is a login", "action=", noBody, true},
+		{"body overrides the query", "action=lostpassword", body("log=a&pwd=b&action=login"), true},
+		{"unknown action in the body", "action=lostpassword", body("action=x&log=a&pwd=b"), true},
+		{"action only in the body", "", body("action=lostpassword&user_login=a"), true},
+		{"array in the query", "action=lostpassword&action[]=x", noBody, true},
+		{"array in the body", "action=lostpassword", body("action%5B%5D=x&log=a"), true},
+		{"escaped name", "action=lostpassword", body("%61ction=login&log=a"), true},
+		{"escaped name next to a bad escape", "action=lostpassword", body("x=%zz&%61ction=login%zz"), true},
+		{"leading space of the name", "action=lostpassword", body("+action=login&log=a"), true},
+		{"name cut at a NUL byte", "action=lostpassword", body("action%00x=login&log=a"), true},
+		{"behind a semicolon", "action=lostpassword", body("x=1;action=login&log=a"), true},
+		{"semicolon in the value", "action=lostpassword;action=login", noBody, true},
+		{"behind more parameters than PHP reads", many + "action=lostpassword", noBody, true},
+		{"multipart or unread body", "action=lostpassword", opaque, true},
+		{"nobody read the body", "action=lostpassword", nil, true},
+	} {
+		got := matchLogin(on, "POST", "/wp-login.php", tc.query, tc.form) != nil
+		if got != tc.login {
+			t.Errorf("%s: login attempt %v, want %v", tc.name, got, tc.login)
+		}
+	}
+	// The body is not asked for when the query already says login.
+	asked := false
+	matchLogin(on, "POST", "/wp-login.php", "", func() Form { asked = true; return Form{} })
+	if asked {
+		t.Error("form read without need")
+	}
+}
+
+// ResolveLogin keeps what the gate found with the body for Observe: the
+// hidden attempts count for login_bruteforce.
+func TestResolvedLoginCounts(t *testing.T) {
+	b := modes(nil)
+	b.Presets = []string{"wordpress"}
+	b.Scenarios.Get(config.ScenarioLoginBruteforce).Mode = config.BehaviourBlock
+	e, _, c := newEngine(b)
+	thr := e.Thresholds(config.ScenarioLoginBruteforce)
+	for i := 0; i < thr.Count+1; i++ {
+		rq := req(c, "203.0.113.20", "hosting", "POST", "/wp-login.php")
+		rq.RawQuery = "action=lostpassword"
+		e.ResolveLogin(rq, func() Form { return Form{Fields: "log=admin&pwd=x&action=login"} })
+		e.Observe(rq, Outcome{Forwarded: true, Response: Response{Status: 200}})
+	}
+	if len(e.RunningBlocks()) != 1 {
+		t.Fatalf("attempts behind ?action=lostpassword not counted: %d blocks", len(e.RunningBlocks()))
+	}
+	// A real lost-password form stays no login attempt.
+	e, _, c = newEngine(b)
+	for i := 0; i < thr.Count+1; i++ {
+		rq := req(c, "203.0.113.21", "hosting", "POST", "/wp-login.php")
+		rq.RawQuery = "action=lostpassword"
+		e.ResolveLogin(rq, func() Form { return Form{Fields: "user_login=a&redirect_to=&wp-submit=x"} })
+		e.Observe(rq, Outcome{Forwarded: true, Response: Response{Status: 200}})
+	}
+	if n := len(e.RunningBlocks()); n != 0 {
+		t.Fatalf("lost-password forms counted as login attempts: %d blocks", n)
 	}
 }
 
@@ -51,11 +136,11 @@ func TestQueryMatchingSemicolonAndHPP(t *testing.T) {
 		"action=lostpassword&action=login",
 		"foo=1;bar=2&action=login",
 	} {
-		if matchLogin(cfg.presets, "POST", "/wp-login.php", q) == nil {
+		if matchLogin(cfg.presets, "POST", "/wp-login.php", q, noBody) == nil {
 			t.Errorf("wp login missed query %q", q)
 		}
 	}
-	if matchLogin(cfg.presets, "POST", "/wp-login.php", "action=lostpassword") != nil {
+	if matchLogin(cfg.presets, "POST", "/wp-login.php", "action=lostpassword", noBody) != nil {
 		t.Error("wp lostpassword alone should not match login")
 	}
 

@@ -472,7 +472,7 @@ func (e *Engine) observeDistributed(c *compiled, r *Request, o Outcome, key Key)
 	}
 	var failed bool
 	if isLogin {
-		lr := matchLogin(c.presets, r.Method, r.Path, r.RawQuery)
+		lr := loginOf(c, r)
 		if lr == nil {
 			return
 		}

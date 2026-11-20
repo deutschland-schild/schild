@@ -4,7 +4,6 @@ import (
 	"net/url"
 	"path"
 	"regexp"
-	"slices"
 	"strings"
 
 	"github.com/deutschland-schild/schild/contract/config"
@@ -103,9 +102,20 @@ var loginRoutes = []loginRoute{
 	{Preset: "generic", Path: "/auth/login", UserFields: []string{"username", "user", "email", "login"}, Failed: loginFailedGeneric},
 }
 
+// Form is what the gate knows of the form fields in a request body, once
+// the body is buffered.
+type Form struct {
+	// Fields are the urlencoded fields ("" for a request without body).
+	Fields string
+	// Opaque: the body may carry fields that Fields does not show (multipart,
+	// another or an unclear content type, more than the gate reads).
+	Opaque bool
+}
+
 // matchLogin returns the login route for a POST to path with rawQuery among
-// the enabled presets (first match wins).
-func matchLogin(enabled map[string]bool, method, p, rawQuery string) *loginRoute {
+// the enabled presets (first match wins). form is asked only for a route
+// whose meaning hangs on a body field; nil stands for a body nobody read.
+func matchLogin(enabled map[string]bool, method, p, rawQuery string, form func() Form) *loginRoute {
 	if method != "POST" {
 		return nil
 	}
@@ -118,18 +128,92 @@ func matchLogin(enabled map[string]bool, method, p, rawQuery string) *loginRoute
 		if lr.Query != "" && !hasQuery(rawQuery, lr.Query) {
 			continue
 		}
-		if lr.Path == "/wp-login.php" {
-			// lostpassword, register, logout ... are no login attempts. One
-			// occurrence that says login (or nothing) is enough: PHP takes
-			// the last one, so "?action=lostpassword&action=login" logs in.
-			if actions := FormValues(rawQuery, "action"); len(actions) > 0 &&
-				!slices.Contains(actions, "") && !slices.Contains(actions, "login") {
-				continue
-			}
+		if lr.Path == "/wp-login.php" && !wpLogin(rawQuery, form) {
+			continue
 		}
 		return lr
 	}
 	return nil
+}
+
+// wpOtherActions are the actions of wp-login.php that are no login attempt:
+// its $default_actions without "login". Every other value, a plugin's own
+// action included, counts as a login, which is what wp-login.php does with
+// a value it does not know.
+var wpOtherActions = map[string]bool{
+	"confirm_admin_email": true, "postpass": true, "logout": true, "lostpassword": true,
+	"retrievepassword": true, "resetpass": true, "rp": true, "register": true,
+	"checkemail": true, "confirmaction": true, "entered_recovery_mode": true,
+}
+
+// wpQueryVars: a query with more parameters than this never says "no login".
+// PHP reads max_input_vars of them (1000 ab Werk) and drops the rest, so an
+// action behind that many would be ours alone. WordPress sends a handful.
+const wpQueryVars = 32
+
+// wpLogin reports whether a POST to wp-login.php is a login attempt.
+// WordPress takes the action from $_REQUEST, which it builds as the query
+// overlaid by the body; an action it does not know and one that is no
+// string ("action[]=x") fall back to "login". So the request is no login
+// only in the form WordPress itself sends: the query names an action of
+// wpOtherActions, and neither query nor body carry anything PHP could read
+// as another one. Whatever is unclear counts as a login attempt: that costs
+// an odd request a count, the other side would hide attempts from
+// login_bruteforce, credential_stuffing and account_wave.
+func wpLogin(rawQuery string, form func() Form) bool {
+	other, odd := wpActions(rawQuery, wpQueryVars)
+	if odd || other == 0 {
+		return true
+	}
+	if form == nil {
+		return true
+	}
+	f := form()
+	if f.Opaque {
+		return true
+	}
+	_, odd = wpActions(f.Fields, 0)
+	return odd
+}
+
+// wpActions reads the action parameters of a query or a urlencoded body:
+// other counts those that name an action of wpOtherActions, odd tells that
+// PHP may read an action that is none of them. PHP drops leading spaces of
+// a name, makes "action[...]" an array and may end a name at a NUL byte,
+// so a name that only starts with "action" is odd; so is one behind a ';',
+// which separates parameters where arg_separator.input says so. With
+// limit > 0, more than limit parameters are odd as well.
+func wpActions(raw string, limit int) (other int, odd bool) {
+	isAction := func(k string) (bool, bool) {
+		k = strings.TrimLeft(unescape(k), " ")
+		return strings.HasPrefix(k, "action"), k == "action"
+	}
+	n := 0
+	for raw != "" {
+		var part string
+		part, raw, _ = strings.Cut(raw, "&")
+		if part == "" {
+			continue
+		}
+		if n++; limit > 0 && n > limit {
+			return other, true
+		}
+		k, v, _ := strings.Cut(part, "=")
+		if is, exact := isAction(k); is {
+			if !exact || !wpOtherActions[unescape(v)] {
+				return other, true
+			}
+			other++
+			continue
+		}
+		for _, piece := range strings.Split(part, ";")[1:] {
+			k, _, _ := strings.Cut(piece, "=")
+			if is, _ := isAction(k); is {
+				return other, true
+			}
+		}
+	}
+	return other, false
 }
 
 // canonPath is the path a backend serves for the request path p when that
@@ -178,9 +262,9 @@ func hasQuery(rawQuery, kv string) bool {
 
 // FormValues returns every value of the parameter k in a query string or a
 // urlencoded form, in order. Parameters are cut at '&' only, as PHP and the
-// WAF do, and what does not unescape is taken as it stands: url.ParseQuery
-// refuses the whole string for one ';' or one bad escape anywhere in it,
-// which let an unrelated parameter switch the match off.
+// WAF do, and a bad escape stays as it stands: url.ParseQuery refuses the
+// whole string for one ';' or one bad escape anywhere in it, which let an
+// unrelated parameter switch the match off.
 func FormValues(raw, k string) []string {
 	var out []string
 	for raw != "" {
@@ -198,11 +282,38 @@ func FormValues(raw, k string) []string {
 	return out
 }
 
+// unescape decodes as PHP does: '+' is a space, "%XX" a byte, and a '%'
+// without two hex digits stays as it stands (url.QueryUnescape refuses the
+// whole string for it, and "%61ction=x%zz" would be no action).
 func unescape(s string) string {
-	if u, err := url.QueryUnescape(s); err == nil {
-		return u
+	if !strings.ContainsAny(s, "%+") {
+		return s
 	}
-	return s
+	b := make([]byte, 0, len(s))
+	for i := 0; i < len(s); i++ {
+		c := s[i]
+		switch {
+		case c == '+':
+			c = ' '
+		case c == '%' && i+2 < len(s) && unhex(s[i+1]) >= 0 && unhex(s[i+2]) >= 0:
+			c = byte(unhex(s[i+1])<<4 | unhex(s[i+2]))
+			i += 2
+		}
+		b = append(b, c)
+	}
+	return string(b)
+}
+
+func unhex(c byte) int {
+	switch {
+	case c >= '0' && c <= '9':
+		return int(c - '0')
+	case c >= 'a' && c <= 'f':
+		return int(c-'a') + 10
+	case c >= 'A' && c <= 'F':
+		return int(c-'A') + 10
+	}
+	return -1
 }
 
 // presetLimit is a rate limit that ships with a preset.
