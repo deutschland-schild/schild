@@ -142,11 +142,19 @@ type Request struct {
 	Client      events.Client // full IP and geo (local only)
 	IP          netip.Addr
 	Allowlisted bool
-	Method      string
-	Host        string
-	Path        string
-	RawQuery    string
-	UserAgent   string
+	// TrustedProxy marks a client address that is itself a configured trusted
+	// proxy (e.g. after attribution fell back to the TCP peer): never blocked
+	// or rate-limited, so a malformed forwarding header cannot lock out every
+	// visitor behind the proxy.
+	TrustedProxy bool
+	// BotImpersonator reports that bot verification proved the client's IP
+	// does not belong to the bot named in User-Agent (bots.VerMismatch).
+	BotImpersonator bool
+	Method          string
+	Host            string
+	Path            string
+	RawQuery        string
+	UserAgent       string
 	// MVP-18: client stack fingerprint (local id), whether it is a strong
 	// one (JA4 from a trusted terminator), stage-0 inconsistency and the
 	// names (never values) of the cookies the request sends.
@@ -270,12 +278,8 @@ func (l *Limit) matches(method, host, p, canon, rawQuery string) bool {
 	} else if !routeIs(l.Route, p, canon) {
 		return false
 	}
-	if l.Query != "" {
-		k, v, hasV := strings.Cut(l.Query, "=")
-		q := queryValue(rawQuery, k)
-		if (hasV && q != v) || (!hasV && q == "") {
-			return false
-		}
+	if l.Query != "" && !queryMatches(rawQuery, l.Query) {
+		return false
 	}
 	return true
 }
@@ -293,6 +297,10 @@ type compiled struct {
 type Engine struct {
 	Sink Sink
 	Now  func() time.Time
+	// KnownHost, when set, restricts per-site state (crawl baselines, site
+	// credential-stuffing sketches, learned session cookies) to configured
+	// website hosts so arbitrary Host headers cannot evict real sites.
+	KnownHost func(host string) bool
 
 	cfg      atomic.Pointer[compiled]
 	clients  *table[Key, clientState]
@@ -567,10 +575,11 @@ type blockState struct {
 }
 
 // Check runs before the WAF: an active block of the client key, then the
-// rate limits of the route. It never blocks allowlisted senders.
+// rate limits of the route. It never blocks allowlisted senders or trusted
+// proxies.
 func (e *Engine) Check(r *Request) Verdict {
 	key, bits := KeyOf(r.IP)
-	if !key.IsValid() || r.Allowlisted {
+	if !key.IsValid() || r.Allowlisted || r.TrustedProxy {
 		return Verdict{WouldRateLimit: e.observeLimits(r, key, bits, false).WouldRateLimit}
 	}
 	now := r.Time.UnixNano()
@@ -672,7 +681,7 @@ func (e *Engine) observeLimits(r *Request, key Key, bits int, enforce bool) Verd
 		e.stats.addDistinct("rlc:"+l.ID, r.Time, hashKey(key))
 		exempt := ""
 		switch {
-		case r.Allowlisted:
+		case r.Allowlisted || r.TrustedProxy:
 			exempt = ReasonAllowlisted
 		case r.except("ratelimit") || r.except("ratelimit:"+l.ID):
 			exempt = ReasonReleased
@@ -928,7 +937,7 @@ func (e *Engine) Observe(r *Request, o Outcome) {
 			thr := max(float64(t.Count), t.BaselineFactor*baseline)
 			if n >= thr {
 				tg := trigger{count: int(n + 0.5), threshold: int(thr + 0.5), window: t.WindowS, route: redact.Path(r.Path), baseline: baseline}
-				if ClaimsSearchBot(r.UserAgent) {
+				if ClaimsSearchBot(r.UserAgent) && !r.BotImpersonator {
 					tg.exempt = ReasonUnverifiedBot
 				}
 				hit(config.ScenarioAggressiveCrawl, tg)
@@ -969,6 +978,9 @@ func (u *userSketch) add(now, size int64, x uint64) int {
 }
 
 func (e *Engine) site(h string) *siteState {
+	if e.KnownHost != nil && !e.KnownHost(h) {
+		return nil
+	}
 	e.sitesMu.Lock()
 	defer e.sitesMu.Unlock()
 	s := e.sites[h]
@@ -1046,7 +1058,7 @@ func (e *Engine) fire(r *Request, c *compiled, key Key, bits int, t trigger) {
 	}
 	exempt := t.exempt
 	switch {
-	case r.Allowlisted:
+	case r.Allowlisted || r.TrustedProxy:
 		exempt = ReasonAllowlisted
 	case r.except("behaviour") || r.except("behaviour:"+t.scenario):
 		exempt = ReasonReleased

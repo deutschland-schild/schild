@@ -377,6 +377,7 @@ func New(ctx context.Context, opts Options) (*App, error) {
 	a.Gate.SetWaitingPage(cfg.WaitingPage.On()) // D37
 	// MVP-17: behaviour across requests and rate limits, local only.
 	a.Behaviour = behaviour.New(a.behaviourConfig(cfg))
+	a.Behaviour.KnownHost = a.knownSiteHost
 	a.Behaviour.Sink = behaviour.Sink{
 		Emit: func(id, typ string, t time.Time, data any, idx eventlog.Index) {
 			a.Events.EmitWithID(id, typ, t, data, idx)

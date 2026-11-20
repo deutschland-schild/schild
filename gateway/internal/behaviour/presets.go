@@ -119,8 +119,19 @@ func matchLogin(enabled map[string]bool, method, p, rawQuery string) *loginRoute
 		}
 		if lr.Path == "/wp-login.php" {
 			// lostpassword, register, logout ... are no login attempts.
-			if a := queryValue(rawQuery, "action"); a != "" && a != "login" {
-				continue
+			// Check every action occurrence: backends like PHP take the last
+			// value, so "?action=foo&action=login" still logs in.
+			if actions := queryValues(rawQuery, "action"); len(actions) > 0 {
+				isLogin := false
+				for _, a := range actions {
+					if a == "" || a == "login" {
+						isLogin = true
+						break
+					}
+				}
+				if !isLogin {
+					continue
+				}
 			}
 		}
 		return lr
@@ -159,16 +170,50 @@ func routeIs(route, p, canon string) bool {
 }
 
 func hasQuery(rawQuery, kv string) bool {
-	k, v, _ := strings.Cut(kv, "=")
-	return queryValue(rawQuery, k) == v
+	return queryMatches(rawQuery, kv)
 }
 
-func queryValue(rawQuery, k string) string {
-	q, err := url.ParseQuery(rawQuery)
-	if err != nil {
-		return ""
+// queryMatches reports whether rawQuery contains a parameter matching kv ("k"
+// for any non-empty value, or "k=v" for an exact value across any occurrence).
+func queryMatches(rawQuery, kv string) bool {
+	k, v, hasV := strings.Cut(kv, "=")
+	for _, got := range queryValues(rawQuery, k) {
+		if (hasV && got == v) || (!hasV && got != "") {
+			return true
+		}
 	}
-	return q.Get(k)
+	return false
+}
+
+// queryValues returns every value of parameter k in rawQuery without failing
+// open on semicolons or malformed percent-escapes in unrelated parameters (in
+// Go 1.17+ url.ParseQuery rejects the entire query if any ';' is present).
+func queryValues(rawQuery, k string) []string {
+	if rawQuery == "" {
+		return nil
+	}
+	var out []string
+	for rawQuery != "" {
+		var part string
+		part, rawQuery, _ = strings.Cut(rawQuery, "&")
+		if part == "" {
+			continue
+		}
+		rk, rv, _ := strings.Cut(part, "=")
+		dk, err := url.QueryUnescape(rk)
+		if err != nil {
+			dk = rk
+		}
+		if dk != k {
+			continue
+		}
+		dv, err := url.QueryUnescape(rv)
+		if err != nil {
+			dv = rv
+		}
+		out = append(out, dv)
+	}
+	return out
 }
 
 // presetLimit is a rate limit that ships with a preset.

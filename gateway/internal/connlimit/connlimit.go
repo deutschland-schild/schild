@@ -50,7 +50,7 @@ type Options struct {
 
 // evictTries bounds the scan for an idle connection at a full scope. What was not
 // idle goes to the end of the list, so the next try starts further on.
-const evictTries = 16
+const evictTries = 64
 
 // Limiter counts the connections of every listener it wraps: the gateway limit
 // covers ports 80 and 443 together.

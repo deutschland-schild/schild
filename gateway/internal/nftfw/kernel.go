@@ -130,7 +130,8 @@ func (k Kernel) Replace(els []Element) error {
 	}
 	c.FlushSet(set4)
 	c.FlushSet(set6)
-	var v4, v6 []nftables.SetElement
+	v4Seen := make(map[netip.Addr]time.Duration)
+	var v6Raw []v6Item
 	for _, e := range els {
 		p, err := netip.ParsePrefix(e.Client)
 		if err != nil {
@@ -145,45 +146,36 @@ func (k Kernel) Replace(els []Element) error {
 			continue
 		}
 		if p.Addr().Is4() {
-			v4 = append(v4, nftables.SetElement{Key: p.Addr().AsSlice(), Timeout: timeout})
+			a := p.Addr().Unmap()
+			if timeout > v4Seen[a] {
+				v4Seen[a] = timeout
+			}
 			continue
 		}
-		end, ok := after(p)
-		v6 = append(v6, nftables.SetElement{Key: p.Masked().Addr().AsSlice(), Timeout: timeout})
-		if ok {
-			v6 = append(v6, nftables.SetElement{Key: end.AsSlice(), IntervalEnd: true})
-		}
+		v6Raw = append(v6Raw, v6Item{Prefix: p, Timeout: timeout})
+	}
+	v4 := make([]nftables.SetElement, 0, len(v4Seen))
+	for a, timeout := range v4Seen {
+		v4 = append(v4, nftables.SetElement{Key: a.AsSlice(), Timeout: timeout})
 	}
 	for i := 0; i < len(v4); i += 1000 {
 		if err := c.SetAddElements(set4, v4[i:min(i+1000, len(v4))]); err != nil {
 			return err
 		}
 	}
-	for i := 0; i < len(v6); i += 1000 {
-		if err := c.SetAddElements(set6, v6[i:min(i+1000, len(v6))]); err != nil {
+	for _, batch := range batchV6Ranges(mergeIPv6(v6Raw), 1000) {
+		v6 := make([]nftables.SetElement, 0, len(batch)*2)
+		for _, r := range batch {
+			v6 = append(v6, nftables.SetElement{Key: r.Start.AsSlice(), Timeout: r.Timeout})
+			if r.HasEnd {
+				v6 = append(v6, nftables.SetElement{Key: r.End.AsSlice(), IntervalEnd: true})
+			}
+		}
+		if err := c.SetAddElements(set6, v6); err != nil {
 			return err
 		}
 	}
 	return permission(c.Flush())
-}
-
-// after is the first address after prefix p; ok false at the end of the
-// address space.
-func after(p netip.Prefix) (netip.Addr, bool) {
-	b := p.Masked().Addr().As16()
-	bits := p.Bits()
-	// Add 1 at the last bit of the prefix.
-	for i := bits - 1; i >= 0; i-- {
-		byteI, bit := i/8, byte(1)<<(7-i%8)
-		if b[byteI]&bit == 0 {
-			b[byteI] |= bit
-			for j := i + 1; j < bits; j++ {
-				b[j/8] &^= byte(1) << (7 - j%8)
-			}
-			return netip.AddrFrom16(b), true
-		}
-	}
-	return netip.Addr{}, false
 }
 
 // Held counts the clients the sets hold now (expired ones are gone).
