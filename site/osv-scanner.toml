@@ -1,0 +1,32 @@
+# Vulnerabilities osv-scanner (and OpenSSF Scorecard) reports for site/package-lock.json that are reviewed and
+# accepted for a time. Every entry has a reason and an end date; after it the finding counts again.
+
+# Nuxt 4.6.4 is the fixed version of all four advisories. Their OSV records also carry a Nuxt 3 range with
+# no end ("introduced 3.0.0"), which matches every later version, 4.6.4 included.
+[[IgnoredVulns]]
+id = "GHSA-96x6-fvhx-49hg"
+ignoreUntil = 2027-02-20T00:00:00Z
+reason = "Fixed in nuxt 4.6.4 (used); the open Nuxt 3 range of the OSV record matches it anyway."
+
+[[IgnoredVulns]]
+id = "GHSA-f3x9-2chm-73c8"
+ignoreUntil = 2027-02-20T00:00:00Z
+reason = "Fixed in nuxt 4.6.4 (used); the open Nuxt 3 range of the OSV record matches it anyway."
+
+[[IgnoredVulns]]
+id = "GHSA-hf59-9xwc-2g4p"
+ignoreUntil = 2027-02-20T00:00:00Z
+reason = "Fixed in nuxt 4.6.4 (used); the open Nuxt 3 range of the OSV record matches it anyway."
+
+[[IgnoredVulns]]
+id = "GHSA-vjh5-4x84-xrqp"
+ignoreUntil = 2027-02-20T00:00:00Z
+reason = "Fixed in nuxt 4.6.4 (used); the open Nuxt 3 range of the OSV record matches it anyway."
+
+# zod 3 has no fixed release; @nuxt/content 3.17 requires zod ^3.25.76. The site is static (no server): zod 3
+# validates the site's own content at build time and, through the AI SDK of the Scalar API reference, at most
+# data in the visitor's own browser tab. Drop the entry once @nuxt/content allows zod 4.
+[[IgnoredVulns]]
+id = "GHSA-mrhx-c7xc-m3w5"
+ignoreUntil = 2027-02-20T00:00:00Z
+reason = "zod 3 (no fix) via @nuxt/content; static site, no server-side validation of visitor input."

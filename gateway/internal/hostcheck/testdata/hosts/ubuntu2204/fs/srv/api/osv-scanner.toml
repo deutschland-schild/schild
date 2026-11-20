@@ -1,0 +1,67 @@
+# composer.lock next to this file is a test fixture: the host check has to find a Laravel app with its
+# version on a simulated Ubuntu 22.04 host. It is never installed or run, so its known vulnerabilities
+# do not affect schild. Read by osv-scanner and by OpenSSF Scorecard.
+
+[[IgnoredVulns]]
+id = "GHSA-94pj-82f3-465w"
+reason = "Test fixture of the host check, never installed or run."
+
+[[IgnoredVulns]]
+id = "GHSA-cwxw-98qj-8qjx"
+reason = "Test fixture of the host check, never installed or run."
+
+[[IgnoredVulns]]
+id = "GHSA-f283-ghqc-fg79"
+reason = "Test fixture of the host check, never installed or run."
+
+[[IgnoredVulns]]
+id = "GHSA-f7vp-7xgx-4w4r"
+reason = "Test fixture of the host check, never installed or run."
+
+[[IgnoredVulns]]
+id = "GHSA-g446-98w2-8p5w"
+reason = "Test fixture of the host check, never installed or run."
+
+[[IgnoredVulns]]
+id = "GHSA-h95v-h523-3mw8"
+reason = "Test fixture of the host check, never installed or run."
+
+[[IgnoredVulns]]
+id = "GHSA-v5mv-p594-2x33"
+reason = "Test fixture of the host check, never installed or run."
+
+[[IgnoredVulns]]
+id = "GHSA-wm3w-8rrp-j577"
+reason = "Test fixture of the host check, never installed or run."
+
+[[IgnoredVulns]]
+id = "GHSA-wpwq-4j6v-78m3"
+reason = "Test fixture of the host check, never installed or run."
+
+[[IgnoredVulns]]
+id = "GHSA-5vg9-5847-vvmq"
+reason = "Test fixture of the host check, never installed or run."
+
+[[IgnoredVulns]]
+id = "GHSA-63hm-g96r-2m2q"
+reason = "Test fixture of the host check, never installed or run."
+
+[[IgnoredVulns]]
+id = "GHSA-78fx-h6xr-vch4"
+reason = "Test fixture of the host check, never installed or run."
+
+[[IgnoredVulns]]
+id = "GHSA-crmm-hgp2-wgrp"
+reason = "Test fixture of the host check, never installed or run."
+
+[[IgnoredVulns]]
+id = "GHSA-f9x3-7vq9-cph6"
+reason = "Test fixture of the host check, never installed or run."
+
+[[IgnoredVulns]]
+id = "GHSA-gv7v-rgg6-548h"
+reason = "Test fixture of the host check, never installed or run."
+
+[[IgnoredVulns]]
+id = "GHSA-jh5r-qr3c-85q8"
+reason = "Test fixture of the host check, never installed or run."

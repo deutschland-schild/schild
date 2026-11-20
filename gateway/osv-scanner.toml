@@ -1,0 +1,22 @@
+# Vulnerabilities osv-scanner (and OpenSSF Scorecard) reports for gateway/go.mod that are reviewed and accepted
+# for a time. Every entry has a reason and an end date; after it the finding counts again.
+
+# go-jose v3 has no fixed release (last affected: 3.0.5). It comes in through Caddy's PKI modules
+# (smallstep/certificates -> go.step.sm/crypto v0.91). go.step.sm/crypto v0.92 moves to go-jose v4, but
+# smallstep/certificates v0.30.2 does not build with it. The code is reached only when an operator's
+# Caddyfile (ingress.caddyfile) enables acme_server; the default ingress does not. Drop these entries
+# with the Caddy update that brings smallstep/certificates on go-jose v4.
+[[IgnoredVulns]]
+id = "GHSA-4w3g-jfj2-cw2q"
+ignoreUntil = 2027-02-20T00:00:00Z
+reason = "go-jose v3 via Caddy PKI, no fixed v3; only with acme_server in an operator Caddyfile."
+
+[[IgnoredVulns]]
+id = "GHSA-mgcc-cww5-fp2q"
+ignoreUntil = 2027-02-20T00:00:00Z
+reason = "go-jose v3 via Caddy PKI, no fixed v3; only with acme_server in an operator Caddyfile."
+
+[[IgnoredVulns]]
+id = "GHSA-vvm8-gf78-28g4"
+ignoreUntil = 2027-02-20T00:00:00Z
+reason = "go-jose v3 via Caddy PKI, no fixed v3; only with acme_server in an operator Caddyfile."
