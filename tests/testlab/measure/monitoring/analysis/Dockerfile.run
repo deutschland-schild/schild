@@ -1,0 +1,4 @@
+# TEST ONLY: MVP-21 measurement, local arm64 test image (not for production)
+FROM spec21-measure:local
+COPY schild-linux spec21-linux geo.mmdb Caddyfile Caddyfile-host schild-on.yaml schild-off.yaml schild-host.yaml /m/
+RUN mkdir -p /m/data-on /m/data-off /m/data-host

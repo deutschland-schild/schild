@@ -1,0 +1,19 @@
+{
+  "contract": "rule-effect",
+  "description": "Off is off.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"mode\":\"autoblock\",\"op\":\"repository\",\"state\":\"off\"}",
+  "input_decoded": {
+    "mode": "autoblock",
+    "op": "repository",
+    "state": "off"
+  },
+  "expect": {
+    "valid": true,
+    "result": {
+      "effect": "off"
+    }
+  }
+}

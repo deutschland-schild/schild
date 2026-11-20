@@ -1,0 +1,76 @@
+id: MVP-29
+# Decided by the initiator 2026-11-02 (answer "GO", DECISIONS D57): operators decide per website which crawlers may
+# fetch it, like Cloudflare's AI Crawl Control, without pay-per-crawl. MVP-22 listed "blocking or charging AI crawlers,
+# robots.txt enforcement (separate decision)" as out of scope; D57 is that decision for blocking. Charging and
+# robots.txt enforcement stay out.
+# Checked against the code of 2026-11-02:
+# - built: bot catalogue (307 entries, 11 categories), UA match and verification without allocation, robots.txt
+#   observation, bot overview in the dashboard and the agent API (MVP-22, D35); agent writes with their own scope (D54).
+# - a request of a crawler is classified once more at record time (monitoring UA cache), so the gate can reuse it.
+title: "KI-Crawler steuern: per website allow or block crawlers by category and by name, and block impersonators; in the gateway, the dashboard and the agent API"
+ships: false                        # draft; built per D57, not measured
+status: ENTWURF
+image: schild                       # same binary
+hypotheses: [D1, D3]
+refs: [MVP-21, MVP-22, MVP-28, DECISIONS-D35, DECISIONS-D54, DECISIONS-D56, DECISIONS-D57]
+depends_on: [MVP-22]
+why: >-
+  Small operators see AI crawlers in the bot overview (MVP-22) but can only watch. robots.txt is a request, not a rule,
+  and many crawlers ignore it. Most crawlers name themselves in the User-Agent, so the gateway can answer them at the
+  door, per website, without a rule file: "KI-Training blocken" in one click, single crawlers back in, and requests that
+  only pretend to be Googlebot out.
+
+policy:                             # contracts/crawler-policy.schema.json, contract/crawlers
+  - 'per website: categories {<catalogue category>: allow|block}, bots {<bot id>: allow|block}, impersonators allow|block; absent keys allow, so an existing website behaves exactly as before'
+  - 'a rule for a crawler overrides its category; impersonators block wins over everything (an allow is for the real crawler)'
+  - 'a block applies to every request whose User-Agent names that crawler, verified or not: it identified itself'
+  - 'impersonator: the User-Agent names a crawler whose operator publishes address ranges and the address is outside fresh ranges (verification mismatch); stale ranges (unknown_stale) and crawlers without ranges (claimed) are never impersonators'
+  - 'likely_automated and likely_browser are no crawlers: never blocked by this feature'
+  - 'preset block_ai_training: block ai_training, allow every other category, drop bot rules, keep impersonators; one action in dashboard and agent API'
+  - 'unknown categories and bot ids are refused (schema and catalogue check); a stored rule for a bot a later catalogue drops is dropped when the policy is loaded, with a log line, so the policy stays changeable (inherit for that id passes); new rules for unknown ids stay refused'
+
+gateway:
+  - 'the check runs in the gate after the access lock (D56) and before behaviour, admission and the WAF; a blocked crawler costs no WAF evaluation'
+  - 'per website a precomputed table (one byte per catalogue bot id plus the impersonator switch), built when the policy changes and swapped atomically; the request path reads one pointer, one map entry, one byte; no lock, no allocation'
+  - 'websites without a blocking policy skip the check after the map lookup'
+  - 'mode as for every protection: observe records would_block (reason gateway_observe), review and autoblock answer 403 with a short plain body; an allowlisted address is never blocked, it is recorded as would_block (reason allowlist)'
+  - 'outcome blocked_crawler in contract/requests, TrafficCounters.blocked_crawler (part of stopped), traffic.blocked_crawler, schild_http_requests_total{class="blocked_crawler"}, the request ring (marking records the crawler policy alone decided) and the dashboard; schild_requests_total keeps the decision outcomes, a blocked crawler counts there as outcome="blocked", a crawler would_block as "would_block" (measurement 1, finding 3)'
+  - 'no incident per blocked crawler request and its event is sampled like a rate limit; counts per website, bot id and outcome in memory, schild_crawler_requests_total{bot,outcome} in Prometheus'
+  - 'a crawler would_block is no WAF detection: detections and the pinned context stay as before'
+  - 'robots.txt is not changed, generated or enforced'
+  - 'state in schild.db (row crawler_policies_v1), like D54 and D56; declarative policy in schild.yaml is open'
+
+dashboard:                          # German, du-form, calm; labels name the mechanism
+  - 'a page "KI-Crawler" per website: categories with a switch Erlauben/Blocken, each expandable to its crawlers with an own rule or "wie Kategorie"'
+  - 'one button "KI-Training blocken" (preset), a switch for impersonators ("Falsche Crawler blocken")'
+  - 'per crawler in the window: requests, blocked or "hätte blockiert", robots.txt kept (ja / nein / unklar), from the bot overview'
+  - 'says that only crawlers that name themselves are covered, and that observe mode only records'
+  - 'no extra password prompt'
+
+agent_api:                          # MVP-28 pattern
+  - 'schild_crawlers (getAgentCrawlers, agent:read): policy per website and per crawler blocked and would_block since the start'
+  - 'schild_crawlers_set (setAgentCrawlers, scope crawlers:write): one change per call (category, bot with allow|block|inherit, impersonators or preset) with a reason; in force before the answer; call log and schild.crawler.policy_set.v1 with token and reason'
+  - 'reason stays x-untrusted'
+
+must:
+  - 'a gateway without a policy, or with one that only allows, behaves exactly as before (same outcome, same counters, same events)'
+  - 'the request path adds no allocation and no lock; at most about 50 ns per request of a website with a policy'
+  - 'a policy change is in force for the next request and survives a restart'
+  - 'only crawlers that name themselves can be blocked; a browser or an unknown user agent never is'
+measure:                            # by an independent agent, not the builder
+  - 'replay with ground truth (AI training crawlers, search engines, spoofed Googlebot from foreign addresses, browsers): with block_ai_training every ai_training request of the replay is blocked, no browser request and no search engine request is'
+  - 'impersonators block: every spoofed Googlebot request from outside the ranges is blocked, no request from inside them'
+  - 'observe mode: the same replay blocks nothing and records the same requests as would_block'
+  - 'CPU and p99 latency at 500 and 5000 rps with and without a policy: no measurable difference beyond about 50 ns per request'
+  - 'usability: "KI-Training für diese Website blocken" in the dashboard in 30 s; an agent sets the same with one tool call and a reason'
+kill_if: "proposal for the initiator: a request whose User-Agent names no catalogue crawler is blocked by this feature OR a website without a policy behaves differently OR the request path allocates"
+done: "make contracts-test && make test && (cd ui && pnpm check)"
+open:                               # measurement 1 (2026-11-02), for the initiator
+  - 'impersonator check and the shipped ranges: without bots.ranges_fetch the shipped range snapshot turns unknown_stale 30 days after it was fetched, and from then on no request is an impersonator, so "Falsche Crawler blocken" stops working silently until the next release. The KI-Crawler page now says "Adressbereiche veraltet" (from the stale flag of the bot overview) and that the check is off with bots.verify.ranges false. Open: switch ranges_fetch on by default, or ship snapshots more often Decided in D67: bots.ranges_fetch is on by default, so the ranges stay fresh without a release'
+  - 'longest token wins (D35): a user agent "GPTBot/1.2; YandexBot/3.0" is YandexBot, a search engine without published ranges, so a block of ai_training and impersonators block both let it pass. Same for any appended longer token of an allowed crawler without ranges. Accepted with "names itself" for now; open whether a block should apply when any token of a blocked crawler appears'
+  - 'write volume: a crawlers:write token may change the policy as often as agent_api.requests_per_minute allows (default 120 per token, the measurement ran with 600), each change one schild.crawler.policy_set.v1 event; agent_api.max_concurrent (default 2) applies too. No separate write budget (dropped in D55). Open whether policy changes need their own cap or a coalesced event'
+out_of_scope:
+  - 'charging crawlers (pay per crawl, HTTP 402)'
+  - 'enforcing or writing robots.txt'
+  - 'crawlers that do not name themselves (that is MVP-12 and the behaviour engine)'
+  - 'policy in schild.yaml (open)'

@@ -1,0 +1,8 @@
+# unprotected: []
+# expect: refuse
+http://a.example.test:18080 {
+	forward_auth 127.0.0.1:18081 {
+		uri /auth
+	}
+	respond "ok" 200
+}

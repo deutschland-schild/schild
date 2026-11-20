@@ -1,0 +1,75 @@
+id: MVP-25
+# Initiator idea (2026-10-30), recorded as a draft only: legacy applications often raise or disable their whole timeout
+# because of ONE synchronous export request and so endanger the whole website. "Besser wäre 10sec timeout global und dann
+# pfade für längeres timeout im shield dashboard/config whitelisten können."
+# The coordinator's addition: the proxy timeout alone protects little, because the app keeps working after the gateway
+# stops waiting. A cap on parallel requests per path belongs with it.
+# Not on the critical path for level 1 live. Shares its per-path configuration with the upload handling proposal
+# (tests/results/upload-handling-2026-10-30.md, in progress when this draft was written).
+title: "Path policies: a short global upstream timeout, per-path exceptions with a timeout and a cap on parallel requests, suggested from measured response times and shown as open risks"
+ships: false                        # draft, recorded only
+status: ENTWURF
+image: schild                       # same binary
+hypotheses: [M2, D1]
+refs: [MVP-19, MVP-21, MVP-22, MVP-23, DECISIONS-D36]
+depends_on: [MVP-21, MVP-22]
+why: >-
+  One slow synchronous endpoint (export, report, import) leads operators to set the timeout of the whole site to minutes
+  or switch it off. Then every hanging request holds workers for that long. A few parallel calls of the slow path occupy
+  all app workers, by accident or on purpose, and the whole website stops answering.
+
+current_state:                      # checked in the code on 2026-10-30
+  - 'Caddy sets response_header_timeout per reverse_proxy, so a matcher plus a second reverse_proxy already gives a per-path timeout in an ingress Caddyfile'
+  - 'an ingress Caddyfile without a transport block has no upstream response timeout at all'
+  - 'gateway mode without a Caddyfile generates one upstream with response_header_timeout (default 30 s) and no path exceptions'
+  - 'read_timeout, write_timeout and idle_timeout of a server apply per listener, not per path'
+
+policy:
+  global: 'a default upstream response timeout per website; the default value comes from the measurement below, not from a guess (the initiator proposes 10 s; legacy applications may need more)'
+  per_path:
+    - 'path pattern, optional methods'
+    - 'timeout'
+    - 'max_parallel: cap on parallel requests on this path, for the gateway and per client (net-class aware like the block durations)'
+    - 'beyond the cap: 503 with Retry-After, the D37 waiting page for documents, never queued without a bound'
+    - 'optional: only for logged-in sessions, by a session cookie name (no cookie value is stored or logged)'
+  configuration: 'configuration as code in schild.yaml; the dashboard shows and suggests; whether it may write is an open question'
+  shape: 'one per-path configuration shared with the upload handling (data rate, body limit), not two lists'
+
+suggestions:
+  - 'from observed response times per path (MVP-21 and MVP-22): "99,9 % deiner Anfragen brauchen unter 3 s. Nur /export braucht bis zu 90 s. Vorschlag: global 15 s, /export 120 s, höchstens 2 gleichzeitig."'
+  - 'only after enough traffic and time; a path with few samples gets no suggestion'
+  - 'shows what the suggestion would have cut in the last days (like the Probelauf)'
+
+visibility:
+  - 'a path with a long timeout is a listed open risk with a calm hint that a background job is the real fix; schild only bridges the time until then'
+  - 'per path: running requests, timeouts, requests refused by the cap; a chart annotation when the cap was reached'
+  - 'host check hint when the app timeouts (PHP max_execution_time, FPM request_terminate_timeout) are longer than the gateway timeout: the app keeps working after the gateway stopped waiting'
+
+contracts:
+  new:                              # contracts agent, contracts first
+    - 'schild.yaml path policies per website, shared with the upload handling; validator rules (overlaps, order, ingress mode)'
+    - 'counters per path with bounded cardinality; dashboard and agent API read operations for policies and suggestions'
+  version: 'to be decided'
+  open: 'how policies reach an operator-written Caddyfile: schild enforces them in its own handler, or the validator only compares them with the Caddyfile'
+
+must:
+  - 'never pass a request unchecked because of a path policy'
+  - 'a path policy never extends WAF evaluation limits; it concerns the time waiting for the app'
+  - 'bounded memory and cardinality; a path pattern never stores query strings'
+  - 'no silent changes: a suggestion takes effect only after the operator accepted it in configuration'
+measure:                            # by an independent agent
+  - 'a slow path under parallel calls with and without max_parallel: the rest of the website stays within noise of the baseline'
+  - 'timeouts: the configured value holds per path, the global one for everything else, in both modes'
+  - 'suggestions on recorded traffic: no legitimate request in the replay would have been cut'
+  - 'cost per request within the noise of the MVP-21 measurement'
+  - 'usability: 5 operators of legacy applications understand a suggestion and the risk hint'
+kill_if: "a path policy lets a request pass unchecked OR a suggestion would cut legitimate requests in the replay OR the cost per request rises measurably"
+out_of_scope:
+  - 'moving work into background jobs (that stays in the application)'
+  - 'stopping the running work in the app; schild can only stop waiting and close the connection'
+  - 'load balancing and retries'
+open_questions:
+  - 'default global timeout: 10 s, 15 s or 30 s; decide after measuring real sites'
+  - 'should the dashboard write path policies, or only produce the schild.yaml snippet?'
+  - 'does a timeout close the connection to the app so that it can notice the abort? What does PHP actually do on each stack?'
+  - 'status for a request cut by the timeout: 504 with a calm page for documents?'

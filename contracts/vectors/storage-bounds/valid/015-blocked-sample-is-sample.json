@@ -1,0 +1,45 @@
+{
+  "contract": "storage-bounds",
+  "description": "D38: a request stopped by a running block is recorded as a sample and goes with the samples, before a would_block request.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"base_bytes\":0,\"floor_rows\":0,\"max_size_mb\":10,\"op\":\"cap_pass\",\"rows\":[{\"bytes\":6291456,\"id\":\"would\",\"kind\":\"event\",\"outcome\":\"would_block\",\"t\":1793016000000,\"type\":\"schild.request.evaluated.v1\"},{\"bytes\":6291456,\"id\":\"stopped\",\"kind\":\"event\",\"outcome\":\"blocked\",\"sampled\":true,\"t\":1793016000001,\"type\":\"schild.request.blocked.v1\"}],\"wal_bytes\":0}",
+  "input_decoded": {
+    "base_bytes": 0,
+    "floor_rows": 0,
+    "max_size_mb": 10,
+    "op": "cap_pass",
+    "rows": [
+      {
+        "bytes": 6291456,
+        "id": "would",
+        "kind": "event",
+        "outcome": "would_block",
+        "t": 1793016000000,
+        "type": "schild.request.evaluated.v1"
+      },
+      {
+        "bytes": 6291456,
+        "id": "stopped",
+        "kind": "event",
+        "outcome": "blocked",
+        "sampled": true,
+        "t": 1793016000001,
+        "type": "schild.request.blocked.v1"
+      }
+    ],
+    "wal_bytes": 0
+  },
+  "expect": {
+    "valid": true,
+    "result": {
+      "used_before": 12582912,
+      "deleted": [
+        "stopped"
+      ],
+      "used_after": 6291456,
+      "unreachable": false
+    }
+  }
+}

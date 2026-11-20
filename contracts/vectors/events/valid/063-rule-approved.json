@@ -1,0 +1,26 @@
+{
+  "contract": "events",
+  "description": "D73: a person approved one version of a crowdsec update: it acts at once.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"data\":{\"actor\":\"dashboard\",\"name\":\"crowdsecurity/vpatch-CVE-2026-1207\",\"repository\":\"crowdsec\",\"rule\":\"62846312\",\"version\":\"0.2\"},\"datacontenttype\":\"application/json\",\"id\":\"7f8ddd4d-871d-47fe-8f8b-ff8a88cd3a32\",\"source\":\"schild://web-1\",\"specversion\":\"1.0\",\"time\":\"2026-10-26T11:59:58.123Z\",\"type\":\"schild.rule.approved.v1\"}",
+  "input_decoded": {
+    "data": {
+      "actor": "dashboard",
+      "name": "crowdsecurity/vpatch-CVE-2026-1207",
+      "repository": "crowdsec",
+      "rule": "62846312",
+      "version": "0.2"
+    },
+    "datacontenttype": "application/json",
+    "id": "7f8ddd4d-871d-47fe-8f8b-ff8a88cd3a32",
+    "source": "schild://web-1",
+    "specversion": "1.0",
+    "time": "2026-10-26T11:59:58.123Z",
+    "type": "schild.rule.approved.v1"
+  },
+  "expect": {
+    "valid": true
+  }
+}

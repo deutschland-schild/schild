@@ -1,0 +1,45 @@
+# schild.yaml for site "api" with the MVP-11 server check and agent listener
+# (compose overlay docker-compose.t1.agents.yaml). Identical to ../api/schild.yaml
+# plus host_check (compose/agents_test.go keeps them in sync). TEST ONLY: public
+# test keys (contracts/testkeys); release builds refuse them and the test profile.
+# Profile test: nothing is blocked (D89). Local only: no labs, relays or signals (D72).
+config_version: 0
+profile: test
+node_name: site-api
+listen:
+  proxy: "0.0.0.0:8080"
+  dashboard: "0.0.0.0:8788"   # inside the container; published only via the gateway on 127.0.0.1
+  metrics: "0.0.0.0:9101"
+upstream:
+  url: "http://site-api:8080"
+  timeout_ms: 30000
+ingress:
+  # The label stripper in front of this site (10.66.17.5/32, fixed address) and the
+  # test-lab load generators (10.66.20.0/28 on inet, fixed addresses) act like a CDN:
+  # their X-Forwarded-For carries the simulated visitor address (documentation ranges).
+  trusted_proxies: ["10.66.17.5/32", "10.66.20.0/28"]
+  client_ip_headers: [X-Forwarded-For]
+rules:
+  crs: { state: block, paranoia_level: 1, inbound_anomaly_threshold: 5 }
+waf:
+  request_body_limit_bytes: 13107200
+  eval_timeout_ms: 1000
+geo: { db_path: /usr/share/schild/geo-fixture/geo.mmdb }   # schild geo-fixture (TEST ONLY)
+storage: { path: /var/lib/schild }
+retention:
+  raw_ip_days: 7
+  events_days: 14
+host_check:
+  report_dir: /var/lib/schild/host-check     # volume hostcheck-api, read-only here; written by gw-host-check
+  keep_reports: 30
+  agents:
+    enabled: true
+    listen: "0.0.0.0:8790"
+    tls_cert: /run/schild/agent-tls/cert.pem  # testlab/scripts/gen-agent-secrets.sh; agents pin it
+    tls_key: /run/schild/agent-tls/key.pem
+    interval_minutes: 5                       # minimum; "meldet sich nicht" after 10 minutes
+    enrolment_code_minutes: 30
+    keys:
+      # Used only by the smoke driver (forged deliveries), never by a container.
+      - { keyid: test-agent-a, public_key: "ed25519:k4Jo2i0t1jM/ypQ8qdG7m7mjuj/vAt6SWtdc0tTr3RM=", hostname: smoke-agent-a }
+      - { keyid: test-agent-c, public_key: "ed25519:w1LqGJnMxNQO7Ndxepv5elItYscixqBb6AkGZ1qeRtM=", hostname: old-app, revoked: true }

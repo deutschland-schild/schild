@@ -1,0 +1,28 @@
+# Local dev server: docker compose up → http://localhost:3000
+services:
+  site:
+    image: node:26-bookworm-slim
+    working_dir: /app/site
+    # Default bridge instead of a project network: no address pool is taken for one container.
+    network_mode: bridge
+    command: sh -c "npm ci && npx nuxt dev --host 0.0.0.0 --port 3000"
+    ports:
+      - "127.0.0.1:3000:3000"
+    environment:
+      # Inline editor (site/modules/inline-edit): requests arrive from the Docker gateway, not loopback.
+      # Safe here because the port is published on 127.0.0.1 only.
+      INLINE_EDIT_ALLOW_REMOTE: "1"
+    env_file:
+      - path: site/.env
+        required: false
+    volumes:
+      - .:/app
+      # Linux-specific node_modules and caches stay inside the container, separate from the macOS host.
+      - node_modules:/app/site/node_modules
+      - nuxt:/app/site/.nuxt
+      - data:/app/site/.data
+
+volumes:
+  node_modules:
+  nuxt:
+  data:

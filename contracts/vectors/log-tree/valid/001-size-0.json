@@ -1,0 +1,11 @@
+{
+  "contract": "log-tree",
+  "description": "RFC 6962 tree hash over 0 leaves matches the signed head.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"entries\":[],\"head\":{\"root\":\"sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855\",\"size\":0}}",
+  "expect": {
+    "valid": true
+  }
+}

@@ -1,0 +1,60 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://contracts.schild.invalid/v0/access-gate.schema.json",
+  "title": "Access lock decision input (v0.5, D56 and D58, MVP-14 step 1)",
+  "description": "Input of the access-gate vectors: the protection of one website (without the password hash) and one request as the gate sees it. The result is {answer, reason, status, login_form, canonical_path} (contract/access.Decide). D58: every condition set must hold, the client address (addresses or own networks, either is enough) and a valid session (password); a protection has no end. The protection must also pass the shape check (contract/access.CheckShape): scope site has no paths, scope paths has paths and no except paths, /* is no path of scope paths, except paths are plain (no empty, '.' or '..' segment, no segment ending in a dot), every address is an IP or a network with zero host bits (IPv4 /16 or longer, IPv6 /32 or longer, no IPv4 in IPv6), and there is a way in (password, an address or own networks); else the vector is invalid with code schema. Never sent anywhere.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["protection", "path", "allowlisted", "session"],
+  "properties": {
+    "protection": { "$ref": "#/$defs/protection" },
+    "path": {
+      "description": "The request path as received, in its escaped form, without the query.",
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 2048,
+      "pattern": "^/[!-~]*$"
+    },
+    "client_ip": {
+      "description": "The client address as the gate resolved it; absent = unknown.",
+      "type": "string",
+      "maxLength": 45,
+      "pattern": "^[0-9A-Fa-f:.]{2,45}$"
+    },
+    "allowlisted": { "type": "boolean" },
+    "session": { "type": "string", "enum": ["none", "valid", "invalid"] }
+  },
+  "$defs": {
+    "protection": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["website", "scope", "password", "own_networks"],
+      "properties": {
+        "website": {
+          "type": "string",
+          "maxLength": 253,
+          "pattern": "^(_any|(_|[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?)(\\.(_|[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?))*)$"
+        },
+        "scope": { "type": "string", "enum": ["site", "paths"] },
+        "paths": {
+          "type": "array",
+          "maxItems": 32,
+          "items": { "type": "string", "maxLength": 255, "pattern": "^/[A-Za-z0-9._~!$&'()+,;=:@/-]*(/\\*)?$" }
+        },
+        "except": {
+          "type": "array",
+          "maxItems": 16,
+          "items": { "type": "string", "maxLength": 255, "pattern": "^/[A-Za-z0-9._~!$&'()+,=:@/-]*(/\\*)?$" }
+        },
+        "password": { "type": "boolean" },
+        "addresses": {
+          "type": "array",
+          "maxItems": 64,
+          "items": { "type": "string", "maxLength": 64, "pattern": "^[0-9A-Fa-f:.]+(/[0-9]{1,3})?$" }
+        },
+        "own_networks": { "type": "boolean" },
+        "message": { "type": "string", "maxLength": 500, "pattern": "^[^\u0000-\u0009\u000b-\u001f\u007f]*$" }
+      }
+    }
+  }
+}

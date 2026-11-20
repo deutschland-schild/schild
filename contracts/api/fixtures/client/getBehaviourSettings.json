@@ -1,0 +1,120 @@
+{
+  "scenarios": [
+    {
+      "id": "login_bruteforce",
+      "mode": "block",
+      "effective_mode": "block",
+      "recommended": "block",
+      "thresholds": {
+        "count": 5,
+        "window_s": 60,
+        "slow_count": 30,
+        "slow_window_s": 3600
+      },
+      "defaults": {
+        "count": 5,
+        "window_s": 60,
+        "slow_count": 30,
+        "slow_window_s": 3600
+      },
+      "hits_24h": 4,
+      "would_block_24h": 0,
+      "blocks_active": 1
+    },
+    {
+      "id": "credential_stuffing",
+      "mode": "observe",
+      "effective_mode": "observe",
+      "recommended": "block",
+      "thresholds": {
+        "count": 10,
+        "window_s": 600
+      },
+      "defaults": {
+        "count": 10,
+        "window_s": 600
+      },
+      "hits_24h": 1,
+      "would_block_24h": 0,
+      "blocks_active": 0
+    },
+    {
+      "id": "path_probing",
+      "mode": "observe",
+      "effective_mode": "observe",
+      "recommended": "block",
+      "thresholds": {
+        "count": 20,
+        "window_s": 60
+      },
+      "defaults": {
+        "count": 20,
+        "window_s": 60
+      },
+      "hits_24h": 6,
+      "would_block_24h": 6,
+      "blocks_active": 0
+    },
+    {
+      "id": "aggressive_crawl",
+      "mode": "observe",
+      "effective_mode": "observe",
+      "recommended": "observe",
+      "thresholds": {
+        "count": 120,
+        "window_s": 60,
+        "baseline_factor": 10
+      },
+      "defaults": {
+        "count": 120,
+        "window_s": 60,
+        "baseline_factor": 10
+      },
+      "hits_24h": 0,
+      "would_block_24h": 0,
+      "blocks_active": 0
+    },
+    {
+      "id": "waf_repeat",
+      "mode": "block",
+      "effective_mode": "block",
+      "recommended": "block",
+      "thresholds": {
+        "count": 2,
+        "window_s": 60
+      },
+      "defaults": {
+        "count": 2,
+        "window_s": 60
+      },
+      "hits_24h": 2,
+      "would_block_24h": 0,
+      "blocks_active": 0
+    }
+  ],
+  "presets": [
+    "wordpress",
+    "joomla",
+    "drupal",
+    "nextcloud",
+    "typo3",
+    "laravel",
+    "generic"
+  ],
+  "block_steps_s": [
+    900,
+    3600,
+    14400,
+    86400
+  ],
+  "block_cap_s": 86400,
+  "hosting_block_steps_s": [
+    900,
+    3600,
+    86400,
+    604800
+  ],
+  "hosting_block_cap_s": 604800,
+  "installed_at": "2026-09-30T10:00:00Z",
+  "learning_until": "2026-10-14T10:00:00Z"
+}

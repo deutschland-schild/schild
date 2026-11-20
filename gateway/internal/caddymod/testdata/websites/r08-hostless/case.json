@@ -1,0 +1,23 @@
+{
+ "resolve": [
+  "anything.example",
+  "named.example.org",
+  "127.0.0.1:19190"
+ ],
+ "blocks": [
+  {
+   "Addresses": [
+    ":19190"
+   ],
+   "Schild": true,
+   "Proxies": true
+  },
+  {
+   "Addresses": [
+    "named.example.org"
+   ],
+   "Schild": true,
+   "Proxies": true
+  }
+ ]
+}

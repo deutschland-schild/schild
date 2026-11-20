@@ -1,0 +1,59 @@
+id: MVP-10
+# D72 (2026-11-06): the first schild gateway version sends no signals or feedback and follows no relay; "client"
+# below means the planned consumer that comes back with the network (lab later). This spec stays for the lab side.
+title: "Lab dashboard: patterns, proposals, bundles and the emergency stop"
+ships: true
+image: schild-lab                   # embedded via go:embed, served on the lab dashboard port
+hypotheses: [M3, M5, M6]
+refs: [concept-18-G2, concept-18-G3, concept-18-G4, concept-18-G7, concept-18-G8, concept-21-§5.0, concept-21-§7, concept-23-§5, SEC-02, T06, T07, T08, B10, B13]
+depends_on: [MVP-01, MVP-03]
+contracts:
+  in:  [contracts/api/lab-dashboard.openapi.yaml, contracts/api/fixtures/lab/]
+  out: [ui/apps/lab-dashboard (Vue 3 + TypeScript + Vite + Tailwind v4 + shadcn-vue), lab/internal/webui (embed), lab API handlers]
+build:
+  frontend: pnpm workspace in ui/, built with `make ui`, copied to lab/internal/webui/dist
+  backend: lab/ implements the API on 127.0.0.1:8789 by default
+screens:                            # German navigation labels
+  - 'Zustand: ingest rate, ack p50/p99 (target < 50 ms), queue depth by priority, workers, feed'
+  - 'Muster: signals grouped by action_sig, counted by issuer, countries, ASNs, first/last seen'
+  - 'Vorschläge: proposals with evidence, reproductions, SecLang check, allowed max action, human approval or rejection'
+  - 'Bündel: published and collecting bundles with signatures of other operators'
+  - 'Rückzüge und Not-Aus: withdrawals, emergency stop with typed confirmation, co-signing'
+  - 'Netz: relays and peers, independence of operators'
+  - 'Öffentliches Log: append-only log viewer with head size and root'
+  - 'Bürgen und Clients: issuers and site keys with quota, usage, revoke'
+  - 'Einstellungen: scoring thresholds (min issuers >= 3, max issuer share <= 0.34), publishing, ingest, retention'
+must:
+  - never shows or accepts visitor IPs (labs have none); counts patterns by issuer, never by client key alone
+  - a proposal's max action can never exceed what its evidence allows (G2); the UI explains the missing evidence in plain words
+  - every approval names a person and an organisation; nothing is published without a human (require_human_approval is fixed)
+  - emergency stop needs the typed word NOT-AUS plus the password and shows how many co-signatures are still missing
+  - the dashboard and its API never slow the ingest path (separate resources, M6)
+  - 'same security baseline as MVP-09: localhost or login, CSRF, strict CSP, no third-party requests'
+  - German UI copy, du-form, calm; "pseudonym", never "anonym"; no alarmism
+  - WCAG 2.2 AA
+usability:                          # acceptance, measured with 3-5 people who would operate a lab (security staff, hoster admins)
+  tasks:
+    - id: L1
+      task: "Läuft der Eingang gesund? Wie hoch ist die Ack-Latenz p99?"
+      target: "correct answer within 10 s"
+    - id: L2
+      task: "Welches neue Muster hat die meisten Bürgen? Trägt ein einzelner Bürge mehr als ein Drittel?"
+      target: "within 1 min"
+    - id: L3
+      task: "Mach aus dem Muster sqli/rest-api einen Vorschlag, hänge die Reproduktion an und erkläre, warum noch kein Block möglich ist."
+      target: "within 5 min"
+    - id: L4
+      task: "Löse den Not-Aus aus und sieh nach, wie viele Mitzeichnungen noch fehlen."
+      target: "within 1 min, no accidental trigger in the other tasks"
+    - id: L5
+      task: "Sperre den Bürgen issuer-test-evil."
+      target: "within 1 min"
+  pass: "each task solved by all but at most one person within its target; SUS >= 70; zero accidental emergency stops"
+measure:
+  - task success, time on task, SUS (by the evaluator)
+  - ack p99 at burst x20 unchanged while the dashboard is used heavily (B13)
+  - time from emergency stop click to signed withdrawal on the lab feed
+kill_if: "the dashboard allows publishing without human approval OR above the evidence level OR an emergency stop without typed confirmation OR dashboard use raises ack p99 above 50 ms"
+done: "make ui && make testlab-up PROFILE=t1 && make eval SPEC=MVP-10"
+out_of_scope: [federation management beyond viewing peers, AI workers, research range UI, multi-tenant labs, English UI]

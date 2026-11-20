@@ -1,0 +1,50 @@
+{
+  "contract": "signal",
+  "description": "32-bit ASN and three rule ids in ascending order.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z",
+    "trust": [
+      "site-a",
+      "site-b",
+      "site-c",
+      "lab-a",
+      "lab-a2",
+      "lab-b",
+      "lab-c",
+      "lab-d"
+    ]
+  },
+  "input_raw": "{\"payloadType\":\"application/vnd.schild.signal.v0+json\",\"payload\":\"eyJhY3Rpb25fc2lnIjoibG9naW4tYnVyc3Qvd3AtYWRtaW4iLCJhZ2VudCI6eyJib3QiOmZhbHNlLCJmYW1pbHkiOiJweXRob24tcmVxdWVzdHMiLCJtYWpvciI6Mn0sImNhdGVnb3J5Ijoid29yZHByZXNzLWxvZ2luLWJydXRlZm9yY2UiLCJpZCI6ImJiMmI0Yzk5LWEyMDEtNDkzMC1iNjA5LTBiNDQ4OTQ1M2FjZCIsImtpbmQiOiJ0aXAiLCJvcmlnaW4iOnsiYXNuIjoyMTMyMzAsImF0dHJpYnV0aW9uIjoidGNwX3BlZXIiLCJjb3VudHJ5IjoiREUiLCJuZXRfY2xhc3MiOiJyZXNpZGVudGlhbCIsInByb3RlY3RlZCI6ZmFsc2V9LCJyZXF1ZXN0X3NpZyI6InNoYTI1NjphMDcxODdmMWM3ZDFjNTY0M2IwMmNlNzMwYmVmM2Q3YmM1NzAwYTViZWUwYjM4MzNkMTNmMjgxOWYxZTJiZTgxIiwic2NoZW1hIjoic2NoaWxkLnNpZ25hbC8wLjMiLCJzY29yZSI6NzIsInRpbWVfYnVja2V0IjoiMjAyNi0xMC0yNlQxMTo1NTowMFoiLCJ3YWZfcnVsZXMiOls5MjAzNTAsOTMwMTIwLDk0OTExMF19\",\"signatures\":[{\"keyid\":\"test-site-b\",\"sig\":\"I1SHUTdvUROWsRBW2Qpt5Ex+J7oluXeWnTK6drPVmfZOTSG/k5psgbjuvayM9YlL6wfs4hoH2oYGEdxQPkYdBQ==\"}]}",
+  "input_decoded": {
+    "payload": {
+      "action_sig": "login-burst/wp-admin",
+      "agent": {
+        "bot": false,
+        "family": "python-requests",
+        "major": 2
+      },
+      "category": "wordpress-login-bruteforce",
+      "id": "bb2b4c99-a201-4930-b609-0b4489453acd",
+      "kind": "tip",
+      "origin": {
+        "asn": 213230,
+        "attribution": "tcp_peer",
+        "country": "DE",
+        "net_class": "residential",
+        "protected": false
+      },
+      "request_sig": "sha256:a07187f1c7d1c5643b02ce730bef3d7bc5700a5bee0b3833d13f2819f1e2be81",
+      "schema": "schild.signal/0.3",
+      "score": 72,
+      "time_bucket": "2026-10-26T11:55:00Z",
+      "waf_rules": [
+        920350,
+        930120,
+        949110
+      ]
+    }
+  },
+  "expect": {
+    "valid": true
+  }
+}

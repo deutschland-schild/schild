@@ -1,0 +1,27 @@
+{
+  "contract": "config/schild",
+  "description": "v0.4 MVP-21: no host files (e.g. a container without /proc of the host), shortest rings in order.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"config_version\":0,\"mode\":\"observe\",\"monitoring\":{\"host\":false,\"keep\":{\"minute_hours\":24,\"ten_minute_days\":1,\"ten_seconds_hours\":1}},\"node_name\":\"web-1\",\"upstream\":{\"url\":\"http://app:80\"}}",
+  "input_decoded": {
+    "config_version": 0,
+    "mode": "observe",
+    "monitoring": {
+      "host": false,
+      "keep": {
+        "minute_hours": 24,
+        "ten_minute_days": 1,
+        "ten_seconds_hours": 1
+      }
+    },
+    "node_name": "web-1",
+    "upstream": {
+      "url": "http://app:80"
+    }
+  },
+  "expect": {
+    "valid": true
+  }
+}

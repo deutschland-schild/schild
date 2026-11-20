@@ -1,0 +1,59 @@
+{
+  "contract": "agent-report",
+  "description": "An agent report without findings or inventory.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z",
+    "trust": [
+      "agent-a",
+      "agent-b",
+      "agent-c",
+      "site-a",
+      "lab-a"
+    ],
+    "seen_ids": [
+      "6c10930e06dcc77eec868b5acd286173"
+    ],
+    "revoked": [
+      "agent-c"
+    ],
+    "gateway": "gw-1"
+  },
+  "input_raw": "{\"payloadType\":\"application/vnd.schild.agent-report.v0+json\",\"payload\":\"eyJnYXRld2F5IjoiZ3ctMSIsImlzc3VlZF9hdCI6IjIwMjYtMTAtMjZUMTI6MDA6MDBaIiwibm9uY2UiOiI4NjdmNzhmZTMxMDJjZTNiN2E4YTEyNTdkZDZkMjBjOCIsInJlcG9ydCI6eyJmaW5kaW5ncyI6W10sImhvc3QiOnsiYWdlbnRfa2V5X2lkIjoidGVzdC1hZ2VudC1iIiwiaG9zdG5hbWUiOiJib3giLCJvcyI6eyJhcmNoIjoiYWFyY2g2NCIsImVvbCI6IjIwMjYtMDQtMDEiLCJpZCI6ImFscGluZSIsImtlcm5lbCI6IjYuNi40OS0wLWx0cyIsIm5hbWUiOiJBbHBpbmUgTGludXggdjMuMjAiLCJ2ZXJzaW9uX2lkIjoiMy4yMC4zIn0sInJvbGUiOiJhZ2VudCJ9LCJpbnZlbnRvcnkiOltdLCJyZXBvcnRfaWQiOiIyODVkNWEwOC01OWY4LTRjMDUtYWVmOS01NDc1YzVhOGQxMzgiLCJydW4iOnsiYXNfcm9vdCI6ZmFsc2UsImR1cmF0aW9uX21zIjo0MjEwLCJlb2xfdGFibGUiOiIyMDI2LTEwLTAxIiwic2NoaWxkX3ZlcnNpb24iOiIwLjMuMCIsInN0YXJ0ZWRfYXQiOiIyMDI2LTEwLTI2VDExOjU3OjAwWiJ9LCJzY2hlbWEiOiJzY2hpbGQuaG9zdF9yZXBvcnQvMC4xIn0sInNjaGVtYSI6InNjaGlsZC5hZ2VudF9yZXBvcnQvMC4xIn0=\",\"signatures\":[{\"keyid\":\"test-agent-b\",\"sig\":\"Ly1o8x+AtP4Yx8bGr/oUaaQFTwWw8vAtfdhqTBpir8FJvFhAViqqshf6m43r6jppIF3pN7s3clwrVlh3ewDTAg==\"}]}",
+  "input_decoded": {
+    "payload": {
+      "gateway": "gw-1",
+      "issued_at": "2026-10-26T12:00:00Z",
+      "nonce": "867f78fe3102ce3b7a8a1257dd6d20c8",
+      "report": {
+        "findings": [],
+        "host": {
+          "agent_key_id": "test-agent-b",
+          "hostname": "box",
+          "os": {
+            "arch": "aarch64",
+            "eol": "2026-04-01",
+            "id": "alpine",
+            "kernel": "6.6.49-0-lts",
+            "name": "Alpine Linux v3.20",
+            "version_id": "3.20.3"
+          },
+          "role": "agent"
+        },
+        "inventory": [],
+        "report_id": "285d5a08-59f8-4c05-aef9-5475c5a8d138",
+        "run": {
+          "as_root": false,
+          "duration_ms": 4210,
+          "eol_table": "2026-10-01",
+          "schild_version": "0.3.0",
+          "started_at": "2026-10-26T11:57:00Z"
+        },
+        "schema": "schild.host_report/0.1"
+      },
+      "schema": "schild.agent_report/0.1"
+    }
+  },
+  "expect": {
+    "valid": true
+  }
+}

@@ -1,0 +1,21 @@
+{
+  "contract": "crowdsec-hub",
+  "description": "Update refused set_empty: nothing would load.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"index\":\"{\\\"appsec-rules\\\":{\\\"crowdsecurity/vpatch-CVE-2024-27956\\\":{\\\"author\\\":\\\"crowdsecurity\\\",\\\"content\\\":\\\"bmFtZTogY3Jvd2RzZWN1cml0eS92cGF0Y2gtQ1ZFLTIwMjQtMjc5NTYKZGVzY3JpcHRpb246ICdSZXdyaXR0ZW4gdGVzdCBydWxlLicKcnVsZXM6CiAgLSBhbmQ6CiAgICAgIC0gem9uZXM6CiAgICAgICAgICAtIFVSSQogICAgICAgIHRyYW5zZm9ybToKICAgICAgICAgIC0gbG93ZXJjYXNlCiAgICAgICAgbWF0Y2g6CiAgICAgICAgICB0eXBlOiBjb250YWlucwogICAgICAgICAgdmFsdWU6IC93cC1qc29uL2V4YW1wbGUvdjEvCiAgICAgIC0gem9uZXM6CiAgICAgICAgICAtIEJPRFlfQVJHUwogICAgICAgIHZhcmlhYmxlczoKICAgICAgICAgIC0gJ2F1dGgnCiAgICAgICAgbWF0Y2g6CiAgICAgICAgICB0eXBlOiBjb250YWlucwogICAgICAgICAgdmFsdWU6ICJceDAwIgpsYWJlbHM6CiAgdHlwZTogZXhwbG9pdAogIGNvbmZpZGVuY2U6IDMKICBzcG9vZmFibGU6IDAKICBsYWJlbDogRXhhbXBsZSAtIFJDRQogIGNsYXNzaWZpY2F0aW9uOgogICAgLSBjdmUuQ1ZFLTIwMjYtMTIwNwogICAgLSBhdHRhY2suVDExOTAKICAgIC0gY3dlLkNXRS04OQo=\\\",\\\"path\\\":\\\"appsec-rules/crowdsecurity/vpatch-CVE-2024-27956.yaml\\\",\\\"version\\\":\\\"0.2\\\",\\\"versions\\\":{\\\"0.1\\\":{\\\"deprecated\\\":false,\\\"digest\\\":\\\"0000000000000000000000000000000000000000000000000000000000000000\\\"},\\\"0.2\\\":{\\\"deprecated\\\":false,\\\"digest\\\":\\\"59d522c46e545ce00068744a1c35fa5c027a25b35733e91996e30da34083c2c8\\\"}}}},\\\"collections\\\":{\\\"crowdsecurity/appsec-virtual-patching\\\":{\\\"appsec-rules\\\":[\\\"crowdsecurity/vpatch-CVE-2024-27956\\\"]}},\\\"scenarios\\\":{\\\"crowdsecurity/http-probing\\\":{\\\"path\\\":\\\"scenarios/x.yaml\\\"}}}\",\"now\":\"2026-10-26T12:00:00Z\",\"op\":\"update\"}",
+  "input_decoded": {
+    "index": "{\"appsec-rules\":{\"crowdsecurity/vpatch-CVE-2024-27956\":{\"author\":\"crowdsecurity\",\"content\":\"bmFtZTogY3Jvd2RzZWN1cml0eS92cGF0Y2gtQ1ZFLTIwMjQtMjc5NTYKZGVzY3JpcHRpb246ICdSZXdyaXR0ZW4gdGVzdCBydWxlLicKcnVsZXM6CiAgLSBhbmQ6CiAgICAgIC0gem9uZXM6CiAgICAgICAgICAtIFVSSQogICAgICAgIHRyYW5zZm9ybToKICAgICAgICAgIC0gbG93ZXJjYXNlCiAgICAgICAgbWF0Y2g6CiAgICAgICAgICB0eXBlOiBjb250YWlucwogICAgICAgICAgdmFsdWU6IC93cC1qc29uL2V4YW1wbGUvdjEvCiAgICAgIC0gem9uZXM6CiAgICAgICAgICAtIEJPRFlfQVJHUwogICAgICAgIHZhcmlhYmxlczoKICAgICAgICAgIC0gJ2F1dGgnCiAgICAgICAgbWF0Y2g6CiAgICAgICAgICB0eXBlOiBjb250YWlucwogICAgICAgICAgdmFsdWU6ICJceDAwIgpsYWJlbHM6CiAgdHlwZTogZXhwbG9pdAogIGNvbmZpZGVuY2U6IDMKICBzcG9vZmFibGU6IDAKICBsYWJlbDogRXhhbXBsZSAtIFJDRQogIGNsYXNzaWZpY2F0aW9uOgogICAgLSBjdmUuQ1ZFLTIwMjYtMTIwNwogICAgLSBhdHRhY2suVDExOTAKICAgIC0gY3dlLkNXRS04OQo=\",\"path\":\"appsec-rules/crowdsecurity/vpatch-CVE-2024-27956.yaml\",\"version\":\"0.2\",\"versions\":{\"0.1\":{\"deprecated\":false,\"digest\":\"0000000000000000000000000000000000000000000000000000000000000000\"},\"0.2\":{\"deprecated\":false,\"digest\":\"59d522c46e545ce00068744a1c35fa5c027a25b35733e91996e30da34083c2c8\"}}}},\"collections\":{\"crowdsecurity/appsec-virtual-patching\":{\"appsec-rules\":[\"crowdsecurity/vpatch-CVE-2024-27956\"]}},\"scenarios\":{\"crowdsecurity/http-probing\":{\"path\":\"scenarios/x.yaml\"}}}",
+    "now": "2026-10-26T12:00:00Z",
+    "op": "update"
+  },
+  "expect": {
+    "valid": true,
+    "result": {
+      "outcome": "refused",
+      "code": "set_empty",
+      "not_selected": 0
+    }
+  }
+}

@@ -1,0 +1,14 @@
+# unprotected: [b.example.test]
+# expect: pass
+# b is listed unprotected and proxies in handle_errors without schild; a is guarded and raises errors after schild.
+http://a.example.test:18080 {
+	import schild
+	error /x* "boom" 500
+	reverse_proxy 127.0.0.1:18081
+}
+http://b.example.test:18080 {
+	reverse_proxy 127.0.0.1:18081
+	handle_errors {
+		reverse_proxy 127.0.0.1:18081
+	}
+}

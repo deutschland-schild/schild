@@ -1,0 +1,22 @@
+id: MVP-07
+# D72 (2026-11-06): the first schild gateway version sends no signals or feedback and follows no relay; "client"
+# below means the planned consumer that comes back with the network (lab later). This spec stays for the lab side.
+title: "Adversaries: malicious lab, Sybil clients, poisoned rules, SecLang fuzzer, red team"
+ships: false
+hypotheses: [M3, M4, M5]
+refs: [K5, K6, K7, T07, T08, T10, T11, T24, concept-18]
+depends_on: [MVP-01, MVP-05, running MVP-02/03/04 images]
+builder_rule: "red team agent gets running containers and contracts only, not the builders' notes"
+must:
+  - malicious lab modes: poison (block legit login signature), silent, lie to single clients, equivocate
+  - Sybil: 500 fresh client keys reporting a harmless signature; PoW-solving bots trying to trigger false-positive feedback (K6)
+  - poisoned rule bundles: too few signatures, stolen single key, rollback, expired, frozen stream
+  - SecLang fuzzer generating rules with ctl:, setvar, logdata/msg with headers/cookies, catch-all deny, ReDoS patterns
+  - red-team report: every finding with reproduction command
+measure:
+  - blocks of legit traffic caused by adversaries
+  - remote rules accepted that disable protection, exfiltrate data, or break the site
+  - invalid bundles accepted
+kill_if: "any of the measures > 0"
+done: "make testlab-up PROFILE=t1 && make eval SPEC=MVP-07"
+out_of_scope: [attacks on the host, targets outside the test lab]

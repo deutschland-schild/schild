@@ -1,0 +1,130 @@
+{
+  "results_version": 0,
+  "spec": "MVP-02",
+  "run_id": "stage3-T19-t0-b18f9b2",
+  "started_at": "2026-10-26T23:02:59Z",
+  "finished_at": "2026-10-26T23:05:10Z",
+  "seed": 42,
+  "profile": "t0",
+  "git_rev": "b18f9b21ef924a22a45b254d16a5b7307bb48a03",
+  "host": {
+    "os": "darwin",
+    "arch": "arm64",
+    "cpus": 12,
+    "mem_mb": 65536
+  },
+  "images": [
+    {
+      "name": "schild:mvp",
+      "digest": "sha256:18af479c587178ba35322ad447d1267d0b53c87bb4e25cea7a679397fd7a9de6"
+    },
+    {
+      "name": "schild-lab:mvp",
+      "digest": "sha256:be7fad6d1f41b0a17172d81f014ecdd8c9c96683b88f75e89b75cf37ade4c866"
+    },
+    {
+      "name": "schild-relay:mvp",
+      "digest": "sha256:acee0669843d56cbd176234e93593375df732bafbf3319d208e6ba0f81176c47"
+    },
+    {
+      "name": "schild-testlab:mvp",
+      "digest": "sha256:0e690e7d2561e564b814930f5207192059a48fd653fb04d93105d03157b4fdae"
+    }
+  ],
+  "scenarios": [
+    "T19"
+  ],
+  "hypotheses": [
+    "M2"
+  ],
+  "metrics": [
+    {
+      "name": "egress_signals_checked",
+      "value": 213,
+      "unit": "count"
+    },
+    {
+      "name": "egress_canary_findings",
+      "value": 0,
+      "unit": "count"
+    },
+    {
+      "name": "egress_ip_findings",
+      "value": 0,
+      "unit": "count"
+    },
+    {
+      "name": "egress_field_findings",
+      "value": 0,
+      "unit": "count"
+    },
+    {
+      "name": "t19_requests_sent",
+      "value": 120,
+      "unit": "count"
+    },
+    {
+      "name": "lab_received_signals",
+      "value": 71,
+      "unit": "count",
+      "labels": {
+        "lab": "lab-a"
+      }
+    },
+    {
+      "name": "lab_scan_findings",
+      "value": 0,
+      "unit": "count",
+      "labels": {
+        "lab": "lab-a"
+      }
+    },
+    {
+      "name": "lab_received_signals",
+      "value": 71,
+      "unit": "count",
+      "labels": {
+        "lab": "lab-b"
+      }
+    },
+    {
+      "name": "lab_scan_findings",
+      "value": 0,
+      "unit": "count",
+      "labels": {
+        "lab": "lab-b"
+      }
+    },
+    {
+      "name": "lab_received_signals",
+      "value": 71,
+      "unit": "count",
+      "labels": {
+        "lab": "lab-c"
+      }
+    },
+    {
+      "name": "lab_scan_findings",
+      "value": 0,
+      "unit": "count",
+      "labels": {
+        "lab": "lab-c"
+      }
+    }
+  ],
+  "kill_criteria": [
+    {
+      "expr": "one canary value, one cleartext IP or one field outside the positive list in the capture",
+      "hit": false,
+      "observed": "120 canary requests (60 from an untrusted source address: XFF ignored, visitor IP 10.66.6.3; 60 repeated from 10.66.4.11 so the canary IPs were attributed, but same request shapes -> no new signals); egress-check over 213 sent signals: 0/0/0; 3 labs x 71 received signals: 0 findings"
+    }
+  ],
+  "verdict": "pass",
+  "notes": "Capture = the client's transparency log (every schild.signal.sent.v1, testlab egress-check with its own positive list) plus, independently, every signal each lab received via the lab dashboard API, validated against contracts/signal.schema.json (additionalProperties:false) and scanned for canaries and any IPv4/IPv6 literal (labscan.py, outside the repo). Harness defect found: measurements.md runs measure egress without --ip, from an address outside trusted_proxies, so the canary source IPs were never attributed (also in stage 2). The t1 run fixes this with --ip.",
+  "artifacts": [
+    "raw/t19/t0-egress-check.json",
+    "raw/t19/t0-lab-scan.json",
+    "raw/t19/t0-egress-traffic-trusted-source.json",
+    "raw/t19/t0-egress-traffic-untrusted-source.json"
+  ]
+}

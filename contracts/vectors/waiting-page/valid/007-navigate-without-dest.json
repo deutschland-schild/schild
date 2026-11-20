@@ -1,0 +1,34 @@
+{
+  "contract": "waiting-page",
+  "description": "D37: Sec-Fetch-Mode navigate without Sec-Fetch-Dest falls back to Accept.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"enabled\":true,\"fail_closed\":\"waf_busy\",\"headers\":{\"accept\":\"text/html\",\"sec_fetch_mode\":\"navigate\"},\"host\":\"musterverein.example\",\"jitter_draw\":0,\"method\":\"GET\",\"website\":\"musterverein.example\"}",
+  "input_decoded": {
+    "enabled": true,
+    "fail_closed": "waf_busy",
+    "headers": {
+      "accept": "text/html",
+      "sec_fetch_mode": "navigate"
+    },
+    "host": "musterverein.example",
+    "jitter_draw": 0,
+    "method": "GET",
+    "website": "musterverein.example"
+  },
+  "expect": {
+    "valid": true,
+    "result": {
+      "answer": "waiting_page",
+      "body": true,
+      "language": "de",
+      "marker": true,
+      "problem_code": null,
+      "refresh": 5,
+      "retry_after": 5,
+      "site_name": "musterverein.example",
+      "variant": "reload"
+    }
+  }
+}

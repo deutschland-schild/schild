@@ -1,0 +1,22 @@
+{
+  "contract": "rule-effect",
+  "description": "Nothing set: local blocks by default.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"op\":\"switch\",\"repository\":\"local\"}",
+  "input_decoded": {
+    "op": "switch",
+    "repository": "local"
+  },
+  "expect": {
+    "valid": true,
+    "result": {
+      "state": "block",
+      "source": "default",
+      "changed": false,
+      "rebuild": false,
+      "differs": false
+    }
+  }
+}

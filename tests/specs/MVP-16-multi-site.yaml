@@ -1,0 +1,63 @@
+id: MVP-16
+# Decision (initiator, 2026-10-28):
+# - One gateway protects and monitors several websites; each website has a primary domain and any number of alias
+#   domains. The dashboard shows every website on its own and all of them together.
+title: "Several websites per gateway: sites with primary and alias domains, routing by Host, per-site settings, dashboard per site"
+ships: false                        # draft
+status: ENTWURF
+image: schild                       # same binary; no new component
+hypotheses: [D3]
+refs: [concept-13-mehrere-websites, concept-13-multi-server, concept-24, stories-02-agentur, stories-03-hoster-admin, MVP-02, MVP-09, MVP-13, MVP-14]
+depends_on: [MVP-02, MVP-09]
+use_cases:
+  - 'Agency (persona Selin): one VPS with a dozen client sites behind one reverse proxy; one schild.yaml in the repo for all of them'
+  - 'Club or practice: example.de with www.example.de, example.com and an old domain as aliases; all count as one website'
+  - 'Hoster (persona Katrin): one gateway in front of many customer VMs (concept 13, "Mehrere Server hinter einem Gateway"); many gateways in one dashboard is MVP-13, not this spec'
+model:
+  site: 'id (stable, used in events and the API), label (German, shown in the dashboard), domains.primary, domains.aliases[], upstream, optional per-site settings'
+  domain_matching:
+    - 'normalise before matching: lower case, strip port and one trailing dot, IDN to punycode (A-label)'
+    - 'exact names and one-label wildcards (*.example.de matches a.example.de, not a.b.example.de and not example.de)'
+    - 'exact beats wildcard; a name may belong to exactly one site (the validator rejects duplicates and overlapping wildcards)'
+  unknown_host: 'unknown_host: reject (default; 421 Misdirected Request, no upstream contact) | default_site (named site gets the request)'
+  aliases: 'served like the primary domain; optional redirect_aliases: true answers 308 to the primary domain with path and query kept (off by default, it can break apps)'
+  compatibility: 'a schild.yaml without sites keeps working: the top-level upstream becomes one implicit site "default" that takes every Host (today''s behaviour)'
+per_site_settings:                  # optional; unset values come from the gateway level
+  - 'mode (observe, review, autoblock): gateway default, overridable per site'
+  - 'waf: CRS paranoia level and anomaly threshold, presets (WordPress, Laravel, …), local exceptions (path, method, parameter, rule id, reason) – exceptions never leak to another site'
+  - 'protect / lock from MVP-14 (password protection of paths or the whole site) per site'
+  - 'upstream timeout'
+  - 'not per site: allowlist, network blocking (MVP-15 acts per host, for all sites)'
+contracts:
+  new:                              # proposal for contracts v0.4; the contracts agent owns the schemas, Go types and vectors
+    - 'schild.yaml: optional sites[] {id, label, domains {primary, aliases[]}, upstream {url, timeout_ms}, mode?, waf?, protect?, lock?}; top-level unknown_host (reject | default_site), default_site, redirect_aliases; validator rejects duplicate or overlapping names, an empty primary, more than 500 sites or 100 aliases per site; vectors valid/invalid incl. IDN, wildcards, overlaps, legacy config without sites'
+    - 'local events: new required field site (site id, "default" for legacy configs) next to host; host stays the normalised Host the request used (alias visible); new event schild.host.unknown.v1 (normalised host, count, first/last seen; local only)'
+    - 'client dashboard API: GET /sites (id, label, domains, mode, 24 h counts); optional query parameter site on list operations (events, incidents, rules, exceptions); Overview gets per-site cards; PATCH per-site settings with the same reauth as other settings'
+must:
+  - 'a request is routed to exactly one site or rejected; Host and, where schild terminates TLS (schild front), SNI must agree, else 421'
+  - 'request forms that bypass Host-based routing are handled explicitly: absolute-form request target (GET http://other/), HTTP/1.0 without Host, duplicate Host headers, Host with userinfo or odd characters – each routed by the documented rule or rejected, never sent to an arbitrary upstream'
+  - 'no cross-site effects: exceptions, protections and per-site mode of site A never apply to site B'
+  - 'certificates: wherever TLS ends (nginx, Caddy, schild front), every primary and alias domain needs one; the server check (MVP-11) reports domains without a valid certificate'
+  - 'unknown hosts seen in traffic show up in the dashboard as "Neue Domain gesehen – zuordnen?"; host names stay local'
+  - 'German UI copy, du-form, calm'
+dashboard:
+  - 'switcher at the top: "Alle Websites" (default) or one website; the choice stays in the URL so links work'
+  - 'Overview "Alle Websites": one card per website with label, primary domain, alias chips, mode, 24 h checked / blocked / would have blocked'
+  - 'Events, incidents, rules and exceptions filter by website; the event detail shows website and the domain actually used (alias)'
+  - 'Settings: "Websites" module to add a website, edit domains and aliases, set the upstream and per-site overrides; a new domain from "Neue Domain gesehen" is added in two clicks'
+  - 'one website only (the common case): no switcher, no extra step; the dashboard looks like today'
+measure:
+  - 'testlab: three sites (WordPress, API, static) with two aliases each and one wildcard; every combination of Host spelling (case, trailing dot, port, punycode/Unicode, absolute-form, missing Host, duplicate Host) reaches the right upstream or is rejected as specified'
+  - 'an exception and a lock on site A: attack traffic and anonymous requests to site B behave as without them'
+  - 'unknown host with unknown_host reject: 0 requests reach any upstream'
+  - 'M1: added latency within the existing budget with 500 sites configured'
+kill_if: "a request for site A reaches the upstream of site B OR a local exception or lock of one site affects another OR an unknown host reaches an upstream while unknown_host is reject"
+done: "make contracts-test && make test && make testlab-up PROFILE=t1 && make smoke PROFILE=t1 (incl. multi-site steps)"
+out_of_scope:
+  - many gateways in one dashboard (MVP-13)
+  - ACME inside schild (TLS stays with the front or the existing web server)
+  - per-site labs or relays
+  - per-site signal keys
+  - DNS checks beyond the certificate check
+  - "D72: lab later: approvals (Freigaben) of network rules per site, signals and feedback without site, host or domain field (E4) and one sender identity per gateway, remote rules staying site-agnostic (concept 18), the sniffer check of signals, the open questions on approvals and signal keys"
+  - 'unknown_host default: reject (proposed, safest) or default_site (closer to today, fewer surprises on migration)?'

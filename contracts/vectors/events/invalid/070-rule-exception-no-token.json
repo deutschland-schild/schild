@@ -1,0 +1,32 @@
+{
+  "contract": "events",
+  "description": "D54: every write names its token.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"data\":{\"id\":1900000,\"path\":\"/livewire/update\",\"reason\":\"math text is blocked\",\"repository\":\"crs\",\"rules\":[\"933180\"],\"target\":\"ARGS:json.components.*.updates.body\",\"token_label\":\"Local agent\",\"website\":\"app.example.org\"},\"datacontenttype\":\"application/json\",\"id\":\"d6afd699-6cd2-4c19-b4ab-2e195186d2db\",\"source\":\"schild://web-1\",\"specversion\":\"1.0\",\"time\":\"2026-10-26T11:59:58.123Z\",\"type\":\"schild.rule.exception_removed.v1\"}",
+  "input_decoded": {
+    "data": {
+      "id": 1900000,
+      "path": "/livewire/update",
+      "reason": "math text is blocked",
+      "repository": "crs",
+      "rules": [
+        "933180"
+      ],
+      "target": "ARGS:json.components.*.updates.body",
+      "token_label": "Local agent",
+      "website": "app.example.org"
+    },
+    "datacontenttype": "application/json",
+    "id": "d6afd699-6cd2-4c19-b4ab-2e195186d2db",
+    "source": "schild://web-1",
+    "specversion": "1.0",
+    "time": "2026-10-26T11:59:58.123Z",
+    "type": "schild.rule.exception_removed.v1"
+  },
+  "expect": {
+    "valid": false,
+    "error": "schema"
+  }
+}

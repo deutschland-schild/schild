@@ -1,0 +1,70 @@
+# schild-agent (Schild Agent): the same read-only checks on an app VM, delivered
+# signed to the Schild Gateway (MVP-11, contracts/host-check.md sections 3 and 5).
+# The app VM gets only the schild-agent binary (no proxy, no WAF, no dashboard).
+# Install on the app VM after `sudo schild-agent enrol ...` (runbook section 17.3).
+#
+# A long-running service, not a timer: the agent schedules its runs itself
+# (host_check.agents.interval_minutes at the gateway, default daily) and keeps
+# its retry state (backoff 30 s doubling, capped at 1 h and the next regular
+# run) between attempts; a timer would lose it. It never listens on a port and
+# accepts no commands; the gateway only answers with an ack.
+#
+# Key (0600) and agent.json live in /etc/schild-agent (`--dir`, default),
+# written once by `schild-agent enrol` (one-time code) or `schild-agent init`
+# (public key in the gateway's schild.yaml); the running agent only reads them.
+# Keep --interval equal to host_check.agents.interval_minutes of the gateway.
+# --app PATH (repeatable): the document root of one application (WordPress,
+# TYPO3, Laravel, Nextcloud); only these paths are looked at. Replace /var/www/shop.
+[Unit]
+Description=Schild Agent (read-only host findings for the Schild Gateway)
+Documentation=https://deutschland-schild.de/doku
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=simple
+ExecStart=/usr/local/bin/schild-agent run --interval 24h --app /var/www/shop
+Restart=on-failure
+RestartSec=60s
+UMask=0077
+Nice=10
+IOSchedulingClass=idle
+
+# --- rights: only reading (see schild-check.service) ------------------------------
+# CAP_SETUID/SETGID only to run package database queries and version probes as nobody.
+CapabilityBoundingSet=CAP_DAC_READ_SEARCH CAP_NET_ADMIN CAP_SYS_PTRACE CAP_SETUID CAP_SETGID
+AmbientCapabilities=
+NoNewPrivileges=yes
+
+ProtectSystem=strict
+ProtectHome=read-only
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectKernelLogs=yes
+ProtectControlGroups=yes
+ProtectClock=yes
+ProtectHostname=yes
+
+# --- network: only the gateway's agent listener ----------------------------------
+# Replace 192.0.2.10 with your gateway's address (the one in --gateway). Every
+# other outgoing connection is refused by the kernel. DNS to an
+# outside resolver is refused too: give --gateway as an address or put the
+# name in /etc/hosts (a local resolver on 127.0.0.53 works).
+RestrictAddressFamilies=AF_UNIX AF_NETLINK AF_INET AF_INET6
+IPAddressDeny=any
+IPAddressAllow=localhost 192.0.2.10/32
+
+RestrictNamespaces=yes
+RestrictRealtime=yes
+RestrictSUIDSGID=yes
+LockPersonality=yes
+# Java's version comes from <java home>/release, so no JVM has to start here.
+MemoryDenyWriteExecute=yes
+SystemCallArchitectures=native
+SystemCallFilter=@system-service
+SystemCallFilter=~@mount @swap @reboot @module @raw-io @clock @cpu-emulation @obsolete
+
+[Install]
+WantedBy=multi-user.target

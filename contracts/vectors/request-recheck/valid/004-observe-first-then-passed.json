@@ -1,0 +1,46 @@
+{
+  "contract": "request-recheck",
+  "description": "D33 amendment 2026-10-29: a would_block of the first evaluation (observe) stays would_block when the re-check passes: the overlay is counted once.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"evaluations\":[{\"detection\":true,\"outcome\":\"would_block\",\"path\":\"/x\",\"rules\":[\"941100\"],\"score\":8},{\"detection\":false,\"outcome\":\"passed\",\"path\":\"/app/x\",\"rules\":[],\"score\":0}]}",
+  "input_decoded": {
+    "evaluations": [
+      {
+        "detection": true,
+        "outcome": "would_block",
+        "path": "/x",
+        "rules": [
+          "941100"
+        ],
+        "score": 8
+      },
+      {
+        "detection": false,
+        "outcome": "passed",
+        "path": "/app/x",
+        "rules": [],
+        "score": 0
+      }
+    ]
+  },
+  "expect": {
+    "valid": true,
+    "result": {
+      "requests": 1,
+      "rechecked": true,
+      "outcome": "would_block",
+      "detection": true,
+      "path": "/app/x",
+      "checked_paths": [
+        "/x",
+        "/app/x"
+      ],
+      "rules": [
+        "941100"
+      ],
+      "score": 8
+    }
+  }
+}

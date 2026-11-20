@@ -1,0 +1,19 @@
+{
+  "items": [
+    {
+      "id": 1900000,
+      "website": "verein.example",
+      "hosts": ["verein.example", "www.verein.example"],
+      "path": "/livewire/update",
+      "target": "ARGS:json.components.*.updates.body",
+      "repository": "crs",
+      "rules": ["932160", "933160"],
+      "reason": "Text field of the editor: code samples in normal text were blocked.",
+      "set_by": "agent",
+      "token_id": "tok_000000000001",
+      "token_label": "maintenance-agent",
+      "created": "2026-10-28T08:40:00Z"
+    }
+  ],
+  "max": 256
+}

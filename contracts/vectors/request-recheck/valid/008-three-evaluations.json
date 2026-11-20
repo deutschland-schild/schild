@@ -1,0 +1,50 @@
+{
+  "contract": "request-recheck",
+  "description": "D33 amendment 2026-10-29: a rewrite after schild and a second schild, then handle_errors: three paths in order.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"evaluations\":[{\"detection\":false,\"outcome\":\"passed\",\"path\":\"/a\",\"rules\":[],\"score\":0},{\"detection\":false,\"outcome\":\"passed\",\"path\":\"/b\",\"rules\":[],\"score\":0},{\"detection\":false,\"outcome\":\"passed\",\"path\":\"/c\",\"rules\":[],\"score\":0}]}",
+  "input_decoded": {
+    "evaluations": [
+      {
+        "detection": false,
+        "outcome": "passed",
+        "path": "/a",
+        "rules": [],
+        "score": 0
+      },
+      {
+        "detection": false,
+        "outcome": "passed",
+        "path": "/b",
+        "rules": [],
+        "score": 0
+      },
+      {
+        "detection": false,
+        "outcome": "passed",
+        "path": "/c",
+        "rules": [],
+        "score": 0
+      }
+    ]
+  },
+  "expect": {
+    "valid": true,
+    "result": {
+      "requests": 1,
+      "rechecked": true,
+      "outcome": "passed",
+      "detection": false,
+      "path": "/c",
+      "checked_paths": [
+        "/a",
+        "/b",
+        "/c"
+      ],
+      "rules": [],
+      "score": 0
+    }
+  }
+}

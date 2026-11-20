@@ -1,0 +1,32 @@
+# What a compose file of the gateway gains for the server check and the
+# agents (agents are not part of the first version, D60b). Merge it into
+# /etc/schild-prod/<site>/compose.yaml of the gateway, or pass it as a second
+# file: docker compose -p schild-shop -f compose.yaml -f host-check-compose.yaml up -d
+#
+# - The report dir written by `schild check` on the host (schild-check.service)
+#   is mounted read-only: the container can read the reports, never change them.
+#   The container runs as 65532:65532; the dir is root:65532, mode 2750
+#   (schild-host-check.tmpfiles.conf), the reports 0640.
+# - With host_check.agents.enabled, schild listens for agent reports (TLS) on
+#   host_check.agents.listen, which has no default: set the gateway's address
+#   in the app VMs' private network (e.g. 192.0.2.10:8790), never 0.0.0.0 on a
+#   public host. network_mode is host (section 9.3), so that address is the
+#   host's: still let only the app VMs reach it (firewall, runbook 17.4).
+# - The agent listener's certificate and key are read-only too; agents pin the
+#   certificate (sha256 of the DER bytes), so a self-signed one is fine.
+# - "Jetzt prüfen" (optional): schild writes /run/schild-check/request, the
+#   host's schild-check.path starts the check (systemd/schild-check.path). The
+#   dir is root:65532 0770 (tmpfiles); without it the dashboard answers that
+#   the daily timer runs (503 check_unavailable).
+# - SCHILD_AGENT_URL: the URL the app VMs reach this gateway's agent listener
+#   at, shown in the enrolment command (default: the dashboard's host name
+#   with port 8790).
+services:
+  schild:
+    volumes:
+      - /var/lib/schild/host-check:/var/lib/schild/host-check:ro
+      - /etc/schild-prod/shop/agent-tls:/etc/schild/agent-tls:ro
+      - /run/schild-check:/run/schild-check
+    environment:
+      SCHILD_HOST_CHECK_TRIGGER: /run/schild-check/request
+      SCHILD_AGENT_URL: https://192.0.2.10:8790

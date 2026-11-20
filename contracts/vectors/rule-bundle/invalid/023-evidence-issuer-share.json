@@ -1,0 +1,55 @@
+{
+  "contract": "rule-bundle",
+  "description": "One issuer carries half of the tips (Sybil).",
+  "context": {
+    "now": "2026-10-26T12:00:00Z",
+    "trust": [
+      "site-a",
+      "site-b",
+      "site-c",
+      "lab-a",
+      "lab-a2",
+      "lab-b",
+      "lab-c",
+      "lab-d"
+    ],
+    "threshold": 2,
+    "channel": "schild-main"
+  },
+  "input_raw": "{\"payloadType\":\"application/vnd.schild.rule-bundle.v0+json\",\"payload\":\"eyJidW5kbGVfaWQiOiJzY2hpbGQtbWFpbiIsImV4cGlyZXMiOiIyMDI2LTExLTA5VDEyOjAwOjAwWiIsImlzc3VlZF9hdCI6IjIwMjYtMTAtMjZUMTE6MDA6MDBaIiwicnVsZXMiOlt7ImNsYXNzIjoiYmVoYXZpb3JhbCIsImV2aWRlbmNlIjp7Imh1bWFuX2FwcHJvdmFsX29yZ3MiOjAsIm1heF9pc3N1ZXJfc2hhcmUiOjAuNSwicmVwcm9kdWNlZF9vcGVyYXRvcnMiOjAsInNlbnNvcl9vcGVyYXRvcnMiOjAsInRpcF9pc3N1ZXJzIjozfSwiZmVlZGJhY2tfcG9saWN5IjoiYXV0b19kb3duZ3JhZGUiLCJtYXhfYWN0aW9uIjoib2JzZXJ2ZSIsIm1heF9tYXRjaF9zaGFyZSI6MC4wMDEsInJ1bGVfaWQiOiJzY2hpbGQtMjAyNi0wNDI1Iiwic2VjbGFuZyI6IlNlY1J1bGUgUkVRVUVTVF9IRUFERVJTOlVzZXItQWdlbnQgXCJAcG0gc3FsbWFwIG5pa3RvIG51Y2xlaVwiIFwiaWQ6NzcwMDAwMyxwaGFzZToxLHBhc3MsbG9nLHNldmVyaXR5Ok5PVElDRSxtc2c6J3NjYW5uZXIgdXNlciBhZ2VudCdcIiIsInN0YWdlIjoic2hhZG93IiwidGFyZ2V0Ijp7InNvZnR3YXJlIjoid29yZHByZXNzIiwidmVyc2lvbnMiOiIqIn19XSwic2NoZW1hIjoic2NoaWxkLnJ1bGUtYnVuZGxlLzAuMSIsInZlcnNpb24iOjQyfQ==\",\"signatures\":[{\"keyid\":\"test-lab-a\",\"sig\":\"QFJ14raINt833Xod0OdP1R3FHLJsONuLggTTe95Ty9DENGXEtDJKfGxD3atfJy4PAmUp8+kVM+ZVXTB3/LR5Aw==\"},{\"keyid\":\"test-lab-b\",\"sig\":\"ZfbCd9IFRetbCg1TgTQGlI+cdUnetJ8JGzjqedVbYVzJfvAZX2ZQG8ITwmWuSoXyMAcLBWz8+VqcsjeE6IWcCQ==\"}]}",
+  "input_decoded": {
+    "payload": {
+      "bundle_id": "schild-main",
+      "expires": "2026-11-09T12:00:00Z",
+      "issued_at": "2026-10-26T11:00:00Z",
+      "rules": [
+        {
+          "class": "behavioral",
+          "evidence": {
+            "human_approval_orgs": 0,
+            "max_issuer_share": 0.5,
+            "reproduced_operators": 0,
+            "sensor_operators": 0,
+            "tip_issuers": 3
+          },
+          "feedback_policy": "auto_downgrade",
+          "max_action": "observe",
+          "max_match_share": 0.001,
+          "rule_id": "schild-2026-0425",
+          "seclang": "SecRule REQUEST_HEADERS:User-Agent \"@pm sqlmap nikto nuclei\" \"id:7700003,phase:1,pass,log,severity:NOTICE,msg:'scanner user agent'\"",
+          "stage": "shadow",
+          "target": {
+            "software": "wordpress",
+            "versions": "*"
+          }
+        }
+      ],
+      "schema": "schild.rule-bundle/0.1",
+      "version": 42
+    }
+  },
+  "expect": {
+    "valid": false,
+    "error": "evidence"
+  }
+}

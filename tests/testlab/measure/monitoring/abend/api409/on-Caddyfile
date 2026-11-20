@@ -1,0 +1,31 @@
+# TEST ONLY: abend api409 measurement, monitoring on instance (native macOS, ports 22600-22999)
+{
+	admin off
+	http_port 22610
+	https_port 22613
+	auto_https off
+}
+
+(schild) {
+	schild
+}
+
+http://shop.test:22610, http://www.shop.test:22610 {
+	import schild
+	reverse_proxy 127.0.0.1:22699
+}
+
+http://blog.test:22610 {
+	import schild
+	reverse_proxy 127.0.0.1:22699
+}
+
+http://api.test:22610 {
+	import schild
+	reverse_proxy 127.0.0.1:22699
+}
+
+http://status.test:22610 {
+	import schild
+	reverse_proxy 127.0.0.1:22699
+}

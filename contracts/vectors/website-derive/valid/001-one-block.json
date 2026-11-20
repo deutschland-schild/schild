@@ -1,0 +1,38 @@
+{
+  "contract": "website-derive",
+  "description": "D36: one site block with two names is one website; the id is the first host.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"blocks\":[{\"addresses\":[\"example.org\",\"www.example.org\"],\"proxies\":true,\"schild\":true}],\"mode\":\"ingress\"}",
+  "input_decoded": {
+    "blocks": [
+      {
+        "addresses": [
+          "example.org",
+          "www.example.org"
+        ],
+        "proxies": true,
+        "schild": true
+      }
+    ],
+    "mode": "ingress"
+  },
+  "expect": {
+    "valid": true,
+    "result": {
+      "websites": [
+        {
+          "hosts": [
+            "example.org",
+            "www.example.org"
+          ],
+          "id": "example.org",
+          "label": "example.org",
+          "protection": "protected",
+          "tracked": true
+        }
+      ]
+    }
+  }
+}

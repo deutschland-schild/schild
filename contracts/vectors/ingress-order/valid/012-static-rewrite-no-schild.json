@@ -1,0 +1,77 @@
+{
+  "contract": "ingress-order",
+  "description": "D31 amendment 2026-10-29: No finding: a rewrite with no schild after it (a static site; file_server without schild is the validator's warning, not this rule).",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"caddyfile\":\"http://static.example.test {\\n\\trewrite /old /new\\n\\troot * /srv/www\\n\\tfile_server\\n}\\n\",\"servers\":{\"srv0\":{\"listen\":[\":80\"],\"routes\":[{\"handle\":[{\"handler\":\"subroute\",\"routes\":[{\"handle\":[{\"handler\":\"vars\",\"root\":\"/srv/www\"}]},{\"group\":\"group0\",\"handle\":[{\"handler\":\"rewrite\",\"uri\":\"/new\"}],\"match\":[{\"path\":[\"/old\"]}]},{\"handle\":[{\"handler\":\"file_server\",\"hide\":[\"/tmp/ingcases/in/p12-static-rewrite-no-schild.caddy\"]}]}]}],\"match\":[{\"host\":[\"static.example.test\"]}],\"terminal\":true}]}}}",
+  "input_decoded": {
+    "caddyfile": "http://static.example.test {\n\trewrite /old /new\n\troot * /srv/www\n\tfile_server\n}\n",
+    "servers": {
+      "srv0": {
+        "listen": [
+          ":80"
+        ],
+        "routes": [
+          {
+            "handle": [
+              {
+                "handler": "subroute",
+                "routes": [
+                  {
+                    "handle": [
+                      {
+                        "handler": "vars",
+                        "root": "/srv/www"
+                      }
+                    ]
+                  },
+                  {
+                    "group": "group0",
+                    "handle": [
+                      {
+                        "handler": "rewrite",
+                        "uri": "/new"
+                      }
+                    ],
+                    "match": [
+                      {
+                        "path": [
+                          "/old"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "handle": [
+                      {
+                        "handler": "file_server",
+                        "hide": [
+                          "/tmp/ingcases/in/p12-static-rewrite-no-schild.caddy"
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ],
+            "match": [
+              {
+                "host": [
+                  "static.example.test"
+                ]
+              }
+            ],
+            "terminal": true
+          }
+        ]
+      }
+    }
+  },
+  "expect": {
+    "valid": true,
+    "result": {
+      "findings": []
+    }
+  }
+}

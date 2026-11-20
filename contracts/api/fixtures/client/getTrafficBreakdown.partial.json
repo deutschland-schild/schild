@@ -1,0 +1,18 @@
+{
+  "by": "path",
+  "from": "2026-10-29T00:00:00Z",
+  "to": "2026-10-29T12:00:00Z",
+  "resolution": "10m",
+  "site": "verein.example",
+  "exact": false,
+  "partial": true,
+  "source": "rings",
+  "total": { "requests": 22300, "stopped": 140, "would_block": 5 },
+  "items": [
+    { "key": "/", "requests": 8100, "stopped": 2, "would_block": 0, "error": 0 },
+    { "key": "/kontakt/", "requests": 1210, "stopped": 31, "would_block": 1, "detections": 33, "error": 12 },
+    { "key": "/termine/{id}", "requests": 940, "stopped": 0, "would_block": 0, "error": 12 },
+    { "key": "/downloads/satzung-und-beitragsordnung-des-vereins-in-der-fassung-der-mitgliederversammlung-vom-zwoelften-maerz-zweitausendse…", "requests": 85, "stopped": 0, "would_block": 0, "error": 12 }
+  ],
+  "other": { "requests": 11965, "stopped": 107, "would_block": 4 }
+}

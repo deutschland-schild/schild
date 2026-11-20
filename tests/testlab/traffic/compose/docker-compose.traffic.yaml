@@ -1,0 +1,88 @@
+# Traffic overlay (MVP-06). Merge it onto a test-lab profile so it shares the
+# same networks, e.g.:
+#
+#   docker compose -p schild-testlab-t0 \
+#     -f testlab/compose/docker-compose.t0.yaml \
+#     -f testlab/traffic/compose/docker-compose.traffic.yaml \
+#     --profile attack up
+#
+# The `inet` network is defined by the base file; services here join it. Every
+# generator attaches the secret ground-truth label header. The Go runner signs
+# a fresh label per request; external tools carry one precomputed signed header
+# (LABEL_HEADER), produced by `make traffic-labels`. All targets are the test
+# lab's own strippers on internal networks; no external host is ever touched.
+services:
+  # Mock reverse DNS for good-bot verification (small image).
+  coredns:
+    image: coredns/coredns:1.15.0
+    command: ["-conf", "/etc/coredns/Corefile"]
+    volumes:
+      - ../traffic/compose/coredns:/etc/coredns:ro
+    networks: [inet]
+    profiles: ["attack", "legit"]
+    restart: unless-stopped
+
+  # Deterministic Go generator: legit sessions, botnet, credential stuffing,
+  # K3 corpus. SCENARIO and SEED come from the environment.
+  traffic-runner:
+    image: schild-traffic:dev
+    command: ["-scenario", "${SCENARIO:-T01}", "-seed", "${SEED:-42}", "-profile", "t0",
+              "-targets", "/etc/traffic/targets.json",
+              "-canary-out", "/results/runs/canaries.txt"]
+    environment:
+      SCHILD_LABEL_SECRET: ${SCHILD_LABEL_SECRET:?set SCHILD_LABEL_SECRET}
+    volumes:
+      - ../traffic/compose/targets:/etc/traffic:ro
+      - ../../results/runs:/results/runs   # tests/results/runs (paths relative to testlab/compose)
+    networks: [inet]
+    profiles: ["legit", "attack"]
+
+  # ---- external attack suites (large images; opt in with --profile attack) -
+  # Each carries a precomputed signed label header so the stripper records it.
+  attack-nuclei:
+    image: projectdiscovery/nuclei:latest
+    # interactsh disabled (-no-interactsh): no external callbacks.
+    command: ["-u", "http://stripper-api:8080", "-no-interactsh", "-silent",
+              "-H", "${LABEL_HEADER_NUCLEI:-X-Schild-Label: unset}"]
+    networks: [inet]
+    profiles: ["attack"]
+
+  attack-sqlmap:
+    image: parrotsec/sqlmap:latest
+    command: ["-u", "http://stripper-api:8080/search?q=1", "--batch",
+              "--tamper=space2comment", "--headers=${LABEL_HEADER_SQLMAP:-X-Schild-Label: unset}"]
+    networks: [inet]
+    profiles: ["attack"]
+
+  attack-gotestwaf:
+    image: wallarm/gotestwaf:latest
+    command: ["--url", "http://stripper-api:8080", "--noEmailReport",
+              "--addHeader", "${LABEL_HEADER_GOTESTWAF:-X-Schild-Label: unset}"]
+    volumes:
+      - ../../results/runs:/results/runs   # tests/results/runs (paths relative to testlab/compose)
+    networks: [inet]
+    profiles: ["attack"]
+
+  attack-ftw:
+    # CRS regression subset (go-ftw 2.6.2, pinned by digest): the lab's own
+    # corpus in traffic/compose/ftw/tests against the autoblock shop's stripper
+    # (t1), cloud mode (status codes only). make traffic-ftw writes the report.
+    image: ghcr.io/coreruleset/go-ftw@sha256:fc74998fccfa4a7c674b94242c6421c71fcc13862701ed734ec262857554134b
+    command: ["run", "--cloud", "--config", "/corpus/ftw.yaml", "--dir", "/corpus/tests", "--read-timeout", "10s", "-o", "json"]
+    volumes:
+      - ${FTW_CORPUS:-../traffic/compose/ftw}:/corpus:ro   # make traffic-ftw mounts a copy with signed labels
+    networks: [inet]
+    profiles: ["attack"]
+
+  attack-nikto:
+    image: alpine/nikto:latest
+    command: ["-h", "http://stripper-api:8080", "-Tuning", "1234", "-maxtime", "120s"]
+    networks: [inet]
+    profiles: ["attack"]
+
+  attack-ffuf:
+    image: ghcr.io/ffuf/ffuf:latest
+    command: ["-u", "http://stripper-api:8080/FUZZ", "-w", "/wordlist.txt",
+              "-H", "${LABEL_HEADER_FFUF:-X-Schild-Label: unset}", "-maxtime", "60"]
+    networks: [inet]
+    profiles: ["attack"]

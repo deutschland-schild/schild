@@ -1,0 +1,28 @@
+{
+  "contract": "events",
+  "description": "D73: an agent switched local off.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"data\":{\"actor\":\"agent\",\"from\":\"block\",\"repository\":\"local\",\"state_source\":\"agent\",\"to\":\"off\",\"token_id\":\"tok_000000000001\",\"token_label\":\"Local agent\"},\"datacontenttype\":\"application/json\",\"id\":\"a8b77aa5-2a2d-4a9a-a068-750d61a7166d\",\"source\":\"schild://web-1\",\"specversion\":\"1.0\",\"time\":\"2026-10-26T11:59:58.123Z\",\"type\":\"schild.rule.repository_switched.v1\"}",
+  "input_decoded": {
+    "data": {
+      "actor": "agent",
+      "from": "block",
+      "repository": "local",
+      "state_source": "agent",
+      "to": "off",
+      "token_id": "tok_000000000001",
+      "token_label": "Local agent"
+    },
+    "datacontenttype": "application/json",
+    "id": "a8b77aa5-2a2d-4a9a-a068-750d61a7166d",
+    "source": "schild://web-1",
+    "specversion": "1.0",
+    "time": "2026-10-26T11:59:58.123Z",
+    "type": "schild.rule.repository_switched.v1"
+  },
+  "expect": {
+    "valid": true
+  }
+}

@@ -1,0 +1,13 @@
+{
+	admin off
+}
+
+example.org {
+	redir https://www.example.org{uri}
+}
+
+www.example.org {
+	schild
+	reverse_proxy 127.0.0.1:19101
+}
+

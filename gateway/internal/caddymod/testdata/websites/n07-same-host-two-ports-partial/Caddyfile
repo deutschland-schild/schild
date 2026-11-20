@@ -1,0 +1,13 @@
+{
+	admin off
+}
+
+app.example.org {
+	schild
+	reverse_proxy 127.0.0.1:19101
+}
+
+app.example.org:8443 {
+	reverse_proxy 127.0.0.1:19101
+}
+

@@ -1,0 +1,95 @@
+{
+  "contract": "config/lab",
+  "description": "Every section set explicitly.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"channel\":\"schild-main\",\"clients\":[{\"issuer\":\"issuer-test-1\",\"keyid\":\"test-site-a\",\"public_key\":\"ed25519:4HDXCYuKTC7or+jY5cfx0frqJsA5bTxnc1Ftu0gjb5w=\"},{\"issuer\":\"issuer-test-2\",\"keyid\":\"test-site-c\",\"public_key\":\"ed25519:kvgubTf561NxFRt6siZ7/yZx/rl/ZOv2gRyRTlfCybs=\",\"quota_per_day\":1000}],\"config_version\":0,\"dashboard\":{\"enabled\":true,\"session_ttl_minutes\":480},\"identity\":{\"lab\":\"lab-a\",\"operator\":\"op-test-a\"},\"ingest\":{\"max_body_bytes\":262144,\"max_clock_skew_s\":120,\"max_envelopes\":64,\"max_signal_age_s\":86400,\"queue_max_depth\":1000000,\"rate_per_client_per_min\":600,\"replay_window_s\":86400,\"retry_after_ms\":5000},\"issuers\":[{\"id\":\"issuer-test-1\"},{\"id\":\"issuer-test-2\"}],\"keys\":[{\"keyid\":\"test-lab-a\",\"private_key_file\":\"/etc/schild-lab/keys/lab.key\",\"purposes\":[\"ack\",\"rules\",\"checkpoint\"]}],\"listen\":{\"dashboard\":\"127.0.0.1:8789\",\"feed\":\"0.0.0.0:7444\",\"ingest\":\"0.0.0.0:7443\",\"metrics\":\"127.0.0.1:9102\"},\"profile\":\"production\",\"publish\":{\"bundle_validity_hours\":168,\"checkpoint_interval_s\":60,\"checkpoint_ttl_s\":180,\"require_human_approval\":true},\"retention\":{\"aggregates_days\":365,\"signals_days\":30},\"scoring\":{\"max_issuer_share\":0.34,\"min_issuers\":3,\"min_score\":40,\"window_minutes\":1440},\"storage\":{\"path\":\"/var/lib/schild-lab\"},\"tls\":{\"cert_file\":\"/etc/schild-lab/tls/cert.pem\",\"key_file\":\"/etc/schild-lab/tls/key.pem\"}}",
+  "input_decoded": {
+    "channel": "schild-main",
+    "clients": [
+      {
+        "issuer": "issuer-test-1",
+        "keyid": "test-site-a",
+        "public_key": "ed25519:4HDXCYuKTC7or+jY5cfx0frqJsA5bTxnc1Ftu0gjb5w="
+      },
+      {
+        "issuer": "issuer-test-2",
+        "keyid": "test-site-c",
+        "public_key": "ed25519:kvgubTf561NxFRt6siZ7/yZx/rl/ZOv2gRyRTlfCybs=",
+        "quota_per_day": 1000
+      }
+    ],
+    "config_version": 0,
+    "dashboard": {
+      "enabled": true,
+      "session_ttl_minutes": 480
+    },
+    "identity": {
+      "lab": "lab-a",
+      "operator": "op-test-a"
+    },
+    "ingest": {
+      "max_body_bytes": 262144,
+      "max_clock_skew_s": 120,
+      "max_envelopes": 64,
+      "max_signal_age_s": 86400,
+      "queue_max_depth": 1000000,
+      "rate_per_client_per_min": 600,
+      "replay_window_s": 86400,
+      "retry_after_ms": 5000
+    },
+    "issuers": [
+      {
+        "id": "issuer-test-1"
+      },
+      {
+        "id": "issuer-test-2"
+      }
+    ],
+    "keys": [
+      {
+        "keyid": "test-lab-a",
+        "private_key_file": "/etc/schild-lab/keys/lab.key",
+        "purposes": [
+          "ack",
+          "rules",
+          "checkpoint"
+        ]
+      }
+    ],
+    "listen": {
+      "dashboard": "127.0.0.1:8789",
+      "feed": "0.0.0.0:7444",
+      "ingest": "0.0.0.0:7443",
+      "metrics": "127.0.0.1:9102"
+    },
+    "profile": "production",
+    "publish": {
+      "bundle_validity_hours": 168,
+      "checkpoint_interval_s": 60,
+      "checkpoint_ttl_s": 180,
+      "require_human_approval": true
+    },
+    "retention": {
+      "aggregates_days": 365,
+      "signals_days": 30
+    },
+    "scoring": {
+      "max_issuer_share": 0.34,
+      "min_issuers": 3,
+      "min_score": 40,
+      "window_minutes": 1440
+    },
+    "storage": {
+      "path": "/var/lib/schild-lab"
+    },
+    "tls": {
+      "cert_file": "/etc/schild-lab/tls/cert.pem",
+      "key_file": "/etc/schild-lab/tls/key.pem"
+    }
+  },
+  "expect": {
+    "valid": true
+  }
+}

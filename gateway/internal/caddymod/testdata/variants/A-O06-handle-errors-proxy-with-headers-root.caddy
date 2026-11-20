@@ -1,0 +1,16 @@
+# unprotected: []
+# expect: pass
+# Guarded site with header, root and request_body before schild (directive order) and handle_errors proxy.
+http://a.example.test:18080 {
+	import schild
+	header X-Frame-Options DENY
+	request_body {
+		max_size 10MB
+	}
+	root * /srv
+	reverse_proxy 127.0.0.1:18081
+	handle_errors {
+		import schild
+		reverse_proxy 127.0.0.1:18081
+	}
+}

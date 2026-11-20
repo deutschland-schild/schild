@@ -1,0 +1,19 @@
+{
+  "contract": "body-limits",
+  "description": "D41: the client left: no incident.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"end\":\"client_left\",\"op\":\"read_end\"}",
+  "input_decoded": {
+    "end": "client_left",
+    "op": "read_end"
+  },
+  "expect": {
+    "valid": true,
+    "result": {
+      "code": "client_gone",
+      "incident": false
+    }
+  }
+}

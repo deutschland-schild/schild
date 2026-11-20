@@ -1,0 +1,42 @@
+{
+ "resolve": [
+  "a.example.org",
+  "www.a.example.org",
+  "b.example.org",
+  "c.example.org"
+ ],
+ "blocks": [
+  {
+   "Addresses": [
+    "http://a.example.org",
+    "http://www.a.example.org",
+    "http://b.example.org",
+    "http://c.example.org"
+   ],
+   "Schild": false,
+   "Proxies": false
+  },
+  {
+   "Addresses": [
+    "a.example.org",
+    "www.a.example.org"
+   ],
+   "Schild": true,
+   "Proxies": true
+  },
+  {
+   "Addresses": [
+    "b.example.org"
+   ],
+   "Schild": true,
+   "Proxies": true
+  },
+  {
+   "Addresses": [
+    "c.example.org"
+   ],
+   "Schild": true,
+   "Proxies": false
+  }
+ ]
+}

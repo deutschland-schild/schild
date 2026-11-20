@@ -1,0 +1,21 @@
+{
+  "contract": "crowdsec-hub",
+  "description": "Update refused index_malformed: truncated download.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"index\":\"{\\\"appsec-rules\\\":{\\\"crowdsecurity/base-config\\\":{\\\"author\\\":\\\"crowdsecurity\\\",\\\"content\\\":\\\"bmFtZTogY3Jvd2RzZWN1cml0eS9iYXNlLWNvbmZpZwpzZWNsYW5nX3J1bGVzOiBbXQo=\\\",\\\"path\\\":\\\"appsec-rules/crowdsecurity/base-config.y\",\"now\":\"2026-10-26T12:00:00Z\",\"op\":\"update\"}",
+  "input_decoded": {
+    "index": "{\"appsec-rules\":{\"crowdsecurity/base-config\":{\"author\":\"crowdsecurity\",\"content\":\"bmFtZTogY3Jvd2RzZWN1cml0eS9iYXNlLWNvbmZpZwpzZWNsYW5nX3J1bGVzOiBbXQo=\",\"path\":\"appsec-rules/crowdsecurity/base-config.y",
+    "now": "2026-10-26T12:00:00Z",
+    "op": "update"
+  },
+  "expect": {
+    "valid": true,
+    "result": {
+      "outcome": "refused",
+      "code": "index_malformed",
+      "not_selected": 0
+    }
+  }
+}

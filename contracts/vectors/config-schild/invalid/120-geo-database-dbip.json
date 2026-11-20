@@ -1,0 +1,26 @@
+{
+  "contract": "config/schild",
+  "description": "v0.5 MVP-22: the bundled database is not chosen by name.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"config_version\":0,\"geo\":{\"database\":[\"dbip-city-lite\"],\"provider\":\"dbip\"},\"mode\":\"observe\",\"node_name\":\"web-1\",\"upstream\":{\"url\":\"http://app:80\"}}",
+  "input_decoded": {
+    "config_version": 0,
+    "geo": {
+      "database": [
+        "dbip-city-lite"
+      ],
+      "provider": "dbip"
+    },
+    "mode": "observe",
+    "node_name": "web-1",
+    "upstream": {
+      "url": "http://app:80"
+    }
+  },
+  "expect": {
+    "valid": false,
+    "error": "schema"
+  }
+}

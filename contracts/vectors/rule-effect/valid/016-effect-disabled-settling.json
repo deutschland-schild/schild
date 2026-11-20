@@ -1,0 +1,26 @@
+{
+  "contract": "rule-effect",
+  "description": "A disabled update is disabled, not settling.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"disabled\":true,\"disabled_by\":\"agent\",\"mode\":\"autoblock\",\"now\":1000000,\"op\":\"effect\",\"origin\":\"update\",\"settling_until\":1086400,\"state\":\"block\"}",
+  "input_decoded": {
+    "disabled": true,
+    "disabled_by": "agent",
+    "mode": "autoblock",
+    "now": 1000000,
+    "op": "effect",
+    "origin": "update",
+    "settling_until": 1086400,
+    "state": "block"
+  },
+  "expect": {
+    "valid": true,
+    "result": {
+      "status": "disabled",
+      "effect": "off",
+      "disabled_by": "agent"
+    }
+  }
+}

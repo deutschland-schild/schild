@@ -1,0 +1,43 @@
+{
+  "contract": "website-status",
+  "description": "D36: 15 errors and 5 timeouts of 100 forwarded (20 %) and 20 of 100 answers 5xx: disrupted with both reasons.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"monitoring\":true,\"protection\":\"protected\",\"servers\":[{\"baseline_protection\":\"active\",\"hints\":[],\"node\":\"web-1\",\"state\":\"ok\"}],\"tracked\":true,\"traffic\":{\"fail_closed\":0,\"forwarded\":100,\"requests\":100,\"status_5xx\":20,\"upstream_errors\":15,\"upstream_timeouts\":5}}",
+  "input_decoded": {
+    "monitoring": true,
+    "protection": "protected",
+    "servers": [
+      {
+        "baseline_protection": "active",
+        "hints": [],
+        "node": "web-1",
+        "state": "ok"
+      }
+    ],
+    "tracked": true,
+    "traffic": {
+      "fail_closed": 0,
+      "forwarded": 100,
+      "requests": 100,
+      "status_5xx": 20,
+      "upstream_errors": 15,
+      "upstream_timeouts": 5
+    }
+  },
+  "expect": {
+    "valid": true,
+    "result": {
+      "reasons": [
+        {
+          "code": "upstream_unreachable"
+        },
+        {
+          "code": "errors_5xx"
+        }
+      ],
+      "status": "disrupted"
+    }
+  }
+}

@@ -1,0 +1,564 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://contracts.schild.invalid/v0/config/schild.schema.json",
+  "title": "schild.yaml (client configuration) v0",
+  "description": "Loaded as YAML 1.2 (gopkg.in/yaml.v3), converted to JSON, validated against this schema, then decoded strictly (unknown keys are errors). Default path /etc/schild/schild.yaml, env SCHILD_CONFIG.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["config_version", "node_name"],
+  "properties": {
+    "config_version": { "const": 0 },
+    "profile": {
+      "description": "test = local test labs and the live test on own projects: nothing is blocked, every source only records what it would block (D89). Release builds refuse it.",
+      "type": "string",
+      "enum": ["production", "test"],
+      "default": "production"
+    },
+    "mode": {
+      "description": "Deprecated (D89): there is no protection mode; every rule repository, scenario and limit has its own switch. Still accepted so older files load: the gateway ignores autoblock and review with a warning, and observe sets the repositories that rules does not set to detect.",
+      "$ref": "../common.schema.json#/$defs/mode"
+    },
+    "node_name": { "$ref": "../common.schema.json#/$defs/id" },
+    "listen": {
+      "description": "listen.proxy is the plain HTTP proxy port of `schild run` in front of `upstream`. With ingress.caddyfile the Caddyfile decides the listeners and listen.proxy must be absent.",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "proxy": { "$ref": "#/$defs/hostport", "default": "0.0.0.0:8080" },
+        "dashboard": { "$ref": "#/$defs/hostport", "default": "127.0.0.1:8788" },
+        "metrics": { "$ref": "#/$defs/hostport", "default": "127.0.0.1:9101" }
+      }
+    },
+    "upstream": {
+      "description": "Required unless ingress.caddyfile is set; with ingress.caddyfile it must be absent (the Caddyfile names the backends).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["url"],
+      "properties": {
+        "url": { "type": "string", "pattern": "^https?://[A-Za-z0-9.:\\[\\]-]{1,255}(/[ -~]*)?$" },
+        "timeout_ms": { "type": "integer", "minimum": 100, "maximum": 300000, "default": 30000 },
+        "site_hosts": {
+          "description": "v0.5 (D36): public host names of the one website behind this proxy (the first names it in the dashboards; its id is derived from that host as in ingress mode, so the MVP-20 central dashboard can merge it with the same website on other gateways). Every request still goes to upstream.url, whatever its Host. Without it the website is called default (local to this gateway).",
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 100,
+          "uniqueItems": true,
+          "items": { "$ref": "#/$defs/siteHost" }
+        }
+      }
+    },
+    "ingress": {
+      "description": "Client address handling, and since v0.4 (MVP-19, D31) optionally the operator's Caddyfile: with ingress.caddyfile `schild run` loads that Caddyfile into the embedded Caddy (TLS and ACME by Caddy, the `schild` directive per site) instead of proxying listen.proxy to upstream. ingress.storage and ingress.unprotected_sites need ingress.caddyfile.",
+      "type": "object",
+      "additionalProperties": false,
+      "dependentRequired": { "storage": ["caddyfile"], "unprotected_sites": ["caddyfile"] },
+      "properties": {
+        "caddyfile": { "description": "v0.4 (MVP-19): absolute path of the operator's Caddyfile, adapted with the stock Caddyfile adapter of the embedded Caddy version.", "$ref": "#/$defs/path" },
+        "storage": { "description": "v0.4 (MVP-19): Caddy storage root for certificates and ACME state; may point at an existing Caddy data directory so certificates are reused. Default: Caddy's default storage below storage.path.", "$ref": "#/$defs/path" },
+        "unprotected_sites": {
+          "description": "v0.4 (MVP-19): site host names of the Caddyfile that may proxy to a backend without the `schild` directive (explicit opt-out; any other such site is refused).",
+          "type": "array",
+          "maxItems": 256,
+          "uniqueItems": true,
+          "items": { "$ref": "#/$defs/siteHost" }
+        },
+        "trusted_proxies": { "type": "array", "maxItems": 64, "items": { "$ref": "#/$defs/cidr" }, "default": ["127.0.0.1/32", "::1/128"] },
+        "client_ip_headers": { "type": "array", "maxItems": 4, "items": { "type": "string", "enum": ["X-Forwarded-For", "X-Real-IP", "Forwarded", "CF-Connecting-IP"] } },
+        "expose_server_headers": { "description": "v0.5 (D47): keep the response headers Server and Via. Default false: both are removed on every server of the Caddyfile, the backend's Server included.", "type": "boolean", "default": false }
+      }
+    },
+    "waf": {
+      "description": "Fixed behaviour, not a setting: a body over the limit is rejected, never processed partially; an evaluation over its budget answers 503 and never passes the request. Removed in v0.6 because their only legal value was the default: request_body_limit_action, on_timeout, fail_open (and ingress.quic_0rtt, ingress.xff_selftest).",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "request_body_limit_bytes": { "type": "integer", "minimum": 1024, "maximum": 134217728, "default": 13107200 },
+        "eval_timeout_ms": { "type": "integer", "minimum": 5, "maximum": 10000, "default": 1000 },
+        "max_concurrent_evals": { "description": "v0.4 addendum (2026-10-28, bounded WAF evaluation; text corrected 2026-10-29 to the cost classes of MVP-19 fix round 2): WAF evaluations running at once. Each evaluation phase is classified by its estimated cost: expensive means more than 64 arguments (query, body and cookies together), a query string over 4 KiB, or more than 32 KiB of a body the rules read as text (urlencoded form, JSON, XML, plain text, the text fields of a multipart form; the file parts of a multipart upload do not count). Expensive evaluations share at most min(max(1, floor(n/2)), n - min(2, n - 1)) of the n slots; the rest, at least min(2, n - 1) slots (1 on 2 slots, 2 on 3 slots, half from 4 slots on), is reserved: never used by an expensive evaluation, also not through an environment override, so cheap ordinary requests keep slots of their own during a flood of expensive requests (initiator 2026-10-29, contract/config.ExpensiveEvalSlots and ReservedEvalSlots; cheap evaluations may use every slot); one client holds at most max(2, a third of the expensive slots) expensive evaluations at once (2 up to 17 slots), clients on cgnat or mobile addresses four times as many (8 up to 17 slots), never more than the expensive slots; together they also stay within an estimated memory budget derived from the memory limit. Absent: GOMAXPROCS, at least 2. The environment variable SCHILD_WAF_MAX_EVALS overrides it (test lab).", "type": "integer", "minimum": 2, "maximum": 1024 },
+        "queue_wait_ms": { "description": "v0.4 addendum (2026-10-28): longest wait for a free evaluation slot; then 503 + Retry-After (hard limit waf_busy), never a pass. The environment variable SCHILD_WAF_QUEUE_WAIT_MS overrides it (test lab).", "type": "integer", "minimum": 1, "maximum": 10000, "default": 100 },
+        "body": {
+          "description": "v0.5 (D41, body-limits.md): resource limits of request bodies being read, checked before any WAF work. They protect the ingress and act in every mode, observe included. Semantic checks (code config): max_per_client <= max_per_network <= max_in_flight when set; max_in_flight_bytes >= 2 x request_body_limit_bytes; max_waiting_bytes_per_client <= max_waiting_bytes_per_network <= max_waiting_bytes when set.",
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "max_per_client": { "description": "Bodies being read per client key (IPv4 address, IPv6 /64). Counts requests, not connections. Four times this for net classes cgnat and mobile. Over it: 429 body_client_share, for cgnat, mobile and tor 503 with the waiting page.", "type": "integer", "minimum": 1, "maximum": 4096, "default": 8 },
+            "max_per_network": { "description": "Bodies being read per IPv4 /24 and IPv6 /48, with the same factor and answer.", "type": "integer", "minimum": 1, "maximum": 65536, "default": 32 },
+            "max_in_flight": { "description": "Bodies being read on the gateway. Over it: 503 body_busy with the waiting page. Absent: 512 per GiB of memory, between 64 and 65536, 1024 when the memory is unknown.", "type": "integer", "minimum": 1, "maximum": 1048576 },
+            "max_in_flight_bytes": { "description": "Read bytes held by the gateway until each request ended, a multipart body counted twice while Coraza holds it; bounds the temp space and counts in the disk budget of D38. Over it: 503 body_busy.", "type": "integer", "minimum": 1048576, "maximum": 1099511627776, "default": 4294967296 },
+            "max_waiting_bytes_per_client": { "description": "v0.5 (D44): memory one client key may hold in checked bodies waiting for the backend, counted as body-limits.md section 2 says, until the request ended. Four times this for net classes cgnat and mobile. At it new bodies get 429 body_waiting_share, for cgnat, mobile and tor 503 with the waiting page.", "type": "integer", "minimum": 1048576, "maximum": 1099511627776, "default": 67108864 },
+            "max_waiting_bytes_per_network": { "description": "v0.5 (D44): the same per IPv4 /24 and IPv6 /48, with the same factor and answer.", "type": "integer", "minimum": 1048576, "maximum": 1099511627776, "default": 268435456 },
+            "max_waiting_bytes": { "description": "v0.5 (D44): the same for the whole gateway. At it: 503 body_busy with the waiting page. Absent: a quarter of the memory, between 32 MiB and 16 GiB, 256 MiB when the memory is unknown.", "type": "integer", "minimum": 1048576, "maximum": 1099511627776 },
+            "max_large_in_flight": { "description": "v0.5 (D45): large bodies being read on the gateway, declared over 128 KiB or of unknown length. They cost far more while they are read than small ones. Over it: 503 body_busy with the waiting page. Absent: 128 per GiB of memory, between 16 and 16384, 256 when the memory is unknown.", "type": "integer", "minimum": 1, "maximum": 1048576 }
+          }
+        },
+        "requests": {
+          "description": "v0.5 (D45, body-limits.md section 2a): requests waiting for the backend, with or without a body, from the admission until they ended. They protect the ingress and act in every mode, observe included, and also for the allowlist. Semantic checks (code config): max_waiting_per_client <= max_waiting_per_network <= max_waiting when set.",
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "max_waiting_per_client": { "description": "Requests per client key (IPv4 address, IPv6 /64). Counts requests, not connections: one HTTP/2 connection carries many. Four times this for net classes cgnat and mobile. At it: 429 request_waiting_share, for cgnat, mobile and tor 503 with the waiting page.", "type": "integer", "minimum": 1, "maximum": 1048576, "default": 1024 },
+            "max_waiting_per_network": { "description": "Requests per IPv4 /24 and IPv6 /48, with the same factor and answer.", "type": "integer", "minimum": 1, "maximum": 4194304, "default": 4096 },
+            "max_waiting": { "description": "Requests on the gateway. At it: 503 request_busy with the waiting page. Absent: half of the memory at 128 KiB each, so 8192 at 2 GiB, between 256 and 1048576, 8192 when the memory is unknown.", "type": "integer", "minimum": 1, "maximum": 4194304 }
+          }
+        },
+        "connections": {
+          "description": "v0.5 (D46, body-limits.md section 2c): open connections, counted at the listener before TLS. They protect the ingress and act in every mode. A trusted proxy (ingress.trusted_proxies) and a server with proxy_protocol meet only max_open, because the peer is not the client. A full scope first takes the place of its oldest connection idle for 5 s; with none, the new connection is closed at once, without an answer. No incident. Semantic checks (code config): max_per_client <= max_per_network <= max_open when set.",
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "max_per_client": { "description": "Open connections per client key (IPv4 address, IPv6 /64). Four times this for net classes cgnat and mobile. Keep it at or above waf.requests.max_waiting_per_client: on HTTP/1.1 every running request holds a connection.", "type": "integer", "minimum": 1, "maximum": 1048576, "default": 2048 },
+            "max_per_network": { "description": "Open connections per IPv4 /24 and IPv6 /48, with the same factor.", "type": "integer", "minimum": 1, "maximum": 4194304, "default": 8192 },
+            "max_open": { "description": "Open connections of the gateway, all ports together. Absent: half of the memory at 64 KiB each, so 16384 at 2 GiB, between 1024 and 1048576, 16384 when the memory is unknown.", "type": "integer", "minimum": 1, "maximum": 4194304 }
+          }
+        },
+        "raw_body_limit_bytes": { "description": "v0.5 (D41): size limit of a raw body, one that is neither text nor multipart (body-limits.md section 3), in every mode: 413 raw_body_too_large. No media type exempts a body from inspection, ever. request_body_limit_bytes still applies when it is lower. Raise it only for an application that takes raw uploads, after checking its access logs; declared upload routes come later.", "type": "integer", "minimum": 1024, "maximum": 134217728, "default": 131072 }
+      }
+    },
+    "geo": {
+      "description": "Country and ASN of client addresses, always looked up locally. v0.5 (MVP-22, D35): with provider ipinfo or maxmind the gateway downloads that provider's database with the operator's own token (bring your own key) from the provider's fixed download host, checks size, format and sample lookups, swaps it in atomically and keeps the last good database on any failure. No visitor address is ever sent to a provider; the database is not redistributed by the project. The token comes from token_file or the environment variable SCHILD_GEO_TOKEN (for maxmind \"<account id>:<licence key>\"), never from this file; it is never logged and never returned by any API. The download is the only outbound connection of this section, off unless a provider other than dbip is set, and works with network.enabled false.",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "db_path": { "description": "The bundled DB-IP Lite database (provider dbip).", "$ref": "#/$defs/path", "default": "/var/lib/schild/geo/geo.mmdb" },
+        "provider": { "description": "dbip: the bundled DB-IP Lite country and ASN database (default, no download). ipinfo: IPinfo database with the operator's token. maxmind: MaxMind GeoLite2 or a paid GeoIP2 licence of the operator. Paid-tier fields (VPN, proxy, Tor, hosting, mobile carrier) are used only when the database provides them.", "type": "string", "enum": ["dbip", "ipinfo", "maxmind"], "default": "dbip" },
+        "token_file": { "description": "File with the token (one line; mode 0600 recommended, preflight warns otherwise). Only with ipinfo or maxmind.", "$ref": "#/$defs/path" },
+        "database": { "description": "Databases of the provider to download and merge (the first that has a field wins). Defaults: ipinfo [ipinfo_lite]; maxmind [GeoLite2-Country, GeoLite2-ASN]. Paid examples: ipinfo_plus; GeoIP2-Country, GeoIP2-ISP, GeoIP2-Anonymous-IP, GeoIP2-Connection-Type. Only with ipinfo or maxmind.", "type": "array", "minItems": 1, "maxItems": 4, "uniqueItems": true, "items": { "type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9_.-]{0,63}$" } },
+        "refresh_hours": { "description": "Download interval. Only with ipinfo or maxmind.", "type": "integer", "minimum": 1, "maximum": 168, "default": 24 }
+      },
+      "if": { "properties": { "provider": { "enum": ["ipinfo", "maxmind"] } }, "required": ["provider"] },
+      "else": { "not": { "anyOf": [{ "required": ["token_file"] }, { "required": ["database"] }, { "required": ["refresh_hours"] }] } }
+    },
+    "storage": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "path": { "$ref": "#/$defs/path", "default": "/var/lib/schild" }
+      }
+    },
+    "retention": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "raw_ip_days": { "description": "Default 14 since D51: the full address lasts as long as its event.", "type": "integer", "minimum": 1, "maximum": 30, "default": 14 },
+        "events_days": { "type": "integer", "minimum": 1, "maximum": 90, "default": 14 },
+        "max_size_mb": { "type": "integer", "minimum": 10, "maximum": 100000, "default": 100 },
+        "summaries_days": { "type": "integer", "minimum": 1, "maximum": 730, "default": 90 }
+      }
+    },
+    "dashboard": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "enabled": { "type": "boolean", "default": true },
+        "session_ttl_minutes": { "type": "integer", "minimum": 5, "maximum": 1440, "default": 720 },
+        "allowed_hosts": {
+          "description": "D76: further host names under which the dashboard is opened (a VPN or internal DNS name, the name behind your own reverse proxy), without scheme, port or path. The dashboard answers a request for any other host name with 403, which stops DNS rebinding. localhost, IP addresses and the host of listen.dashboard need no entry. Read at start.",
+          "type": "array",
+          "maxItems": 32,
+          "uniqueItems": true,
+          "items": { "type": "string", "maxLength": 253, "pattern": "^[A-Za-z0-9]([A-Za-z0-9-]{0,62})?(\\.[A-Za-z0-9]([A-Za-z0-9-]{0,62})?)*$" }
+        }
+      }
+    },
+    "allowlist": {
+      "description": "Local only, never sent or distributed.",
+      "type": "array",
+      "maxItems": 1024,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["label", "level", "expires"],
+        "properties": {
+          "ip": { "type": "string", "maxLength": 45, "pattern": "^[0-9A-Fa-f.:]{2,45}$" },
+          "cidr": { "$ref": "#/$defs/cidr" },
+          "host": { "type": "string", "pattern": "^[A-Za-z0-9]([A-Za-z0-9-]{0,62}\\.)+[A-Za-z]{2,63}$" },
+          "label": { "type": "string", "minLength": 1, "maxLength": 64 },
+          "level": { "type": "string", "enum": ["no_block", "bypass_waf"] },
+          "expires": {
+            "anyOf": [ { "const": "never" }, { "$ref": "../common.schema.json#/$defs/timestamp" } ]
+          }
+        },
+        "oneOf": [ { "required": ["ip"] }, { "required": ["cidr"] }, { "required": ["host"] } ]
+      }
+    },
+    "host_check": {
+      "description": "v0.3 (MVP-11, host-check.md): server check on the gateway and agents on app VMs. Optional; without it the dashboard shows no Server section. Host reports never leave the operator network.",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "report_dir": { "description": "Directory `schild check` writes to (mounted read-only into the container).", "$ref": "#/$defs/path", "default": "/var/lib/schild/host-check" },
+        "keep_reports": { "description": "Reports kept per host.", "type": "integer", "minimum": 1, "maximum": 365, "default": 30 },
+        "agents": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "enabled": { "type": "boolean", "default": false },
+            "listen": { "description": "TLS listener for POST /v0/agent/report and /v0/agent/enrol. No default: without it the listener does not start. Bind it to the interface the app VMs reach (e.g. 10.0.0.1:8790) and firewall it from everything else.", "$ref": "#/$defs/hostport" },
+            "tls_cert": { "$ref": "#/$defs/path" },
+            "tls_key": { "$ref": "#/$defs/path" },
+            "interval_minutes": { "description": "Expected report interval; an agent silent for twice this long shows as not reporting.", "type": "integer", "minimum": 5, "maximum": 10080, "default": 1440 },
+            "enrolment_code_minutes": { "description": "Lifetime of a one-time enrolment code.", "type": "integer", "minimum": 5, "maximum": 1440, "default": 30 },
+            "keys": {
+              "description": "Agents enrolled by explicit public key (instead of a one-time code). revoked: true keeps the key to answer `revoked`.",
+              "type": "array",
+              "maxItems": 256,
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["keyid", "public_key"],
+                "properties": {
+                  "keyid": { "$ref": "../common.schema.json#/$defs/keyid" },
+                  "public_key": { "$ref": "../common.schema.json#/$defs/publicKey" },
+                  "hostname": { "$ref": "../host-report.schema.json#/$defs/hostname" },
+                  "revoked": { "type": "boolean", "default": false }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "behaviour": {
+      "description": "v0.4 (MVP-17): behaviour across requests and rate limits, decided locally at HTTP level. Counters, user-name sketches, blocks and hits never leave the server. Without this section every scenario observes and the preset limits observe.",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "presets": { "description": "Stacks behind this gateway whose login routes and rate limits apply (login failure detected from status codes and redirects only). Default: all.", "type": "array", "minItems": 1, "maxItems": 7, "uniqueItems": true, "items": { "$ref": "#/$defs/behaviourPreset" } },
+        "preset_limits": { "description": "One mode for every rate limit that ships with the presets (login, password reset, xmlrpc, search, contact forms, API writes) that has no entry in preset_limit_modes. Left open, every preset limit takes its recommended mode (D95): block for login, password reset and xmlrpc, observe for search, contact forms and API writes.", "type": "string", "enum": ["off", "observe", "block"] },
+        "preset_limit_modes": { "description": "D95: mode per preset limit, by its id (e.g. preset-wordpress-login). Wins over preset_limits. An id this version does not ship is ignored.", "type": "object", "maxProperties": 128, "propertyNames": { "pattern": "^preset-[a-z0-9-]{1,56}$" }, "additionalProperties": { "type": "string", "enum": ["off", "observe", "block"] } },
+        "scenarios": {
+          "description": "Fixed scenarios in Go (no DSL). A scenario schild.yaml leaves open takes its recommended mode (D92): block for login_bruteforce, credential_stuffing, path_probing and waf_repeat, observe for aggressive_crawl. During the learning period of a fresh installation every scenario only counts.",
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "login_bruteforce": { "$ref": "#/$defs/scenario" },
+            "credential_stuffing": { "$ref": "#/$defs/scenario" },
+            "path_probing": { "$ref": "#/$defs/scenario" },
+            "aggressive_crawl": { "$ref": "#/$defs/crawlScenario" },
+            "waf_repeat": { "$ref": "#/$defs/scenario" }
+          }
+        },
+        "rate_limits": { "description": "Own token-bucket limits per route and client key (IPv4 address, IPv6 /64).", "type": "array", "maxItems": 256, "items": { "$ref": "#/$defs/rateLimit" } },
+        "distributed": { "$ref": "#/$defs/distributed" }
+      }
+    },
+    "agent_api": {
+      "description": "v0.4 (MVP-21, D33): API for agents (e.g. Claude Code), described by the OpenAPI document it serves (D61), on its own loopback listener, read only except the CrowdSec Hub switch for tokens with scope crowdsec:write (D39 amendment) and single blocks for tokens with scope blocks:write (D42), reached through an SSH tunnel; the same read surface the MVP-20 export joins. Bearer tokens are created, listed and revoked only on the host (`schild token add --scope agent:read --expires 90d`), stored hashed, never in this file. IPs leave it only as keyed pseudonyms and /24 or /48 networks. Off by default.",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "enabled": { "type": "boolean", "default": false },
+        "listen": { "description": "Loopback only (127.0.0.0/8, [::1] or localhost) and different from listen.dashboard and listen.metrics (semantic check, code config).", "type": "string", "pattern": "^(127\\.[0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}|\\[::1\\]|localhost):[0-9]{1,5}$", "default": "127.0.0.1:8789" },
+        "requests_per_minute": { "description": "Per token; above it 429 with Retry-After.", "type": "integer", "minimum": 1, "maximum": 600, "default": 120 },
+        "max_concurrent": { "description": "Requests in flight per token; above it 429.", "type": "integer", "minimum": 1, "maximum": 8, "default": 2 },
+        "log_days": { "description": "How long the local call log (token id, time, operation, status, rows, bytes) is kept.", "type": "integer", "minimum": 1, "maximum": 90, "default": 30 },
+        "block_writes_per_hour": { "description": "v0.5 (D42): createAgentBlock and liftAgentBlock calls that change something, per token and rolling hour; above it 429 block_budget.", "type": "integer", "minimum": 1, "maximum": 36000, "default": 600 },
+        "max_agent_blocks": { "description": "v0.5 (D42): blocks set by agents that may run at once on this gateway, over all tokens; above it 429 block_cap.", "type": "integer", "minimum": 1, "maximum": 4096, "default": 2000 }
+      }
+    },
+    "monitoring": {
+      "description": "v0.4 (MVP-21, D33): traffic and server monitoring for the built-in dashboard (and the MVP-20 export). Counters of every request that reaches the schild handler plus host samples from /proc and /sys every 10 s, kept in fixed-size ring tables of <storage.path>/metrics.db with three fixed resolutions (10 s, 1 min, 10 min). Aggregates only: no IP address or value derived from one is ever written. Without this section monitoring is on with the defaults.",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "enabled": { "description": "false: no counters, no sampler, no metrics.db; the monitoring operations answer 409 monitoring_off.", "type": "boolean", "default": true },
+        "host": { "description": "false: sample traffic and the schild process only, never /proc or /sys host files (CPU, memory, disks, network, TCP, conntrack).", "type": "boolean", "default": true },
+        "mounts": {
+          "description": "Mount points whose usage and I/O are shown. Default: every mounted block-device file system (ext2/3/4, xfs, btrfs, zfs, f2fs, vfat), one entry per device, at most 16, plus the storage path.",
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 16,
+          "uniqueItems": true,
+          "items": { "$ref": "#/$defs/path" }
+        },
+        "interfaces": {
+          "description": "Network interfaces that are shown. Default: every interface except lo and virtual container interfaces (veth*, docker*, br-*, cni*, flannel*, cali*), at most 16.",
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 16,
+          "uniqueItems": true,
+          "items": { "type": "string", "pattern": "^[A-Za-z0-9_.:@-]{1,15}$" }
+        },
+        "keep": {
+          "description": "How long each resolution is kept (ring size). Must not shrink from fine to coarse: ten_seconds_hours <= minute_hours <= ten_minute_days * 24 (semantic check, code config).",
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "ten_seconds_hours": { "type": "integer", "minimum": 1, "maximum": 24, "default": 6 },
+            "minute_hours": { "type": "integer", "minimum": 6, "maximum": 168, "default": 48 },
+            "ten_minute_days": { "type": "integer", "minimum": 1, "maximum": 90, "default": 14 }
+          }
+        },
+        "requests": {
+          "description": "v0.5 (MVP-22, D35): the request ring - every request of the last hours as a small record (time, site, the real path, redacted (D63), method, status, country, ASN, browser/OS/device class, bot and verification state, referrer domain, duration, bytes, security outcome, anomaly score, up to 3 rule ids, event id, a visitor key valid for one day, the IP address (D49) and the User-Agent (D50)) in append-only 10 min segment files under <storage.path>/requests/, never in schild.db or metrics.db. Never stored: query string, cookies, full referrer, city or region, Accept-Language, client hints, header-order or TLS fingerprints, a key valid longer than a day (the daily key of the visitor key lives in memory only). Purpose: operational statistics for security and monitoring only. Numbers on the dashboard come from the monitoring counters; the ring serves drill-down, filters and the context around incidents. Without this section the ring runs with the defaults while monitoring runs.",
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "enabled": { "description": "Default: on when monitoring.enabled is on. true while monitoring.enabled is false is a config error (semantic check, code config): the counters the dashboard shows come from monitoring.", "type": "boolean" },
+            "keep_hours": { "description": "Whole 10 min segments older than this are deleted. D66: the ring keeps min(keep_hours, retention.raw_ip_days x 24) hours, so by default as long as retention.raw_ip_days (14 days); at most 720 (30 days, the maximum of raw_ip_days). D51: pinned context segments stay min(retention.events_days, retention.raw_ip_days) days instead; they still count against max_size_mb.", "type": "integer", "minimum": 1, "maximum": 720, "default": 720 },
+            "max_size_mb": { "description": "Size cap of all segment files. D66: above the cap the oldest segments go first. A single 10 min segment may use max_size_mb / 288 (48 h of segments); above that share, during a wave, the next segment keeps a consistent sample by visitor key (every request of a sampled visitor, none of the others), so a wave cannot push the history out at once. The sample rate is stored per segment and the dashboard shows \"Näherungswert\".", "type": "integer", "minimum": 16, "maximum": 4096, "default": 512 }
+          }
+        }
+      }
+    },
+    "bots": {
+      "description": "v0.5 (MVP-22, D35): bot catalogue and verification. The catalogue and the published address ranges of Google, Bing, OpenAI, Perplexity, Apple and other operators ship with every release and the signed rule bundle (contracts/bot-catalogue.schema.json) and work fully offline. Observation only: nothing is blocked because of a bot class, and robots.txt is not enforced.",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "verify": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "ranges": { "description": "Check the client address of a request that claims a bot against the shipped range snapshot of its operator (local, no lookup). false: every matched bot is claimed.", "type": "boolean", "default": true },
+            "fcrdns": { "description": "Forward-confirmed reverse DNS for bots whose operator documents it. Off by default: it sends client addresses to the configured resolver. Shared with MVP-12.", "type": "boolean", "default": false }
+          }
+        },
+        "ranges_fetch": { "description": "Fetch the published ranges directly from the operators' URLs in the catalogue (daily, outbound HTTPS to them, no client data) instead of waiting for the next release. On by default (D67): the shipped snapshot turns unknown_stale after 30 days. A list that fails keeps the last good one. false: ranges only with a release.", "type": "boolean", "default": true }
+      }
+    },
+    "waiting_page": {
+      "description": "v0.5 (D37, MVP-23 step 1): the calm waiting page for schild's own overload answers. A document navigation (Sec-Fetch-Dest document, or without Fetch Metadata an Accept preferring text/html; GET, HEAD and POST) answered 503 with fail-closed reason waf_busy or waf_timeout gets the waiting page (503, jittered Retry-After 5-8 s, meta refresh, German or English, the website name, no incident number); every other request with those reasons gets 503 + problem details. Never a pass: fail closed stays fail closed. Rules in contracts/waiting-page.md. Per-website text and image overrides are not part of this version.",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "enabled": { "description": "false: the fail-closed answers as before (block page or problem details, Retry-After 5). Default true (decided by the initiator 2026-10-29, D37).", "type": "boolean", "default": true }
+      }
+    },
+    "rules": {
+      "description": "v0.6 (D73): the rule repositories: crs (OWASP CRS, built into the binary), crowdsec (CrowdSec Hub virtual patches: an image snapshot plus updates from the public hub) and local (the operator's files). Each has one state: off (no rules, nothing fetched), detect (rules match and show as would_block, \"Erkannt\", never block; D90), block. A state set in the dashboard or through the agent API is kept in the settings overlay and wins over this file until reset_state; it takes effect without a restart. Rules a repository receives while the gateway runs (CrowdSec updates) only detect for settling_s and then act on their own (D89); what ships with the image and what the operator writes acts at once.",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "crs": {
+          "description": "OWASP CRS, embedded in the binary. Blocks by anomaly score.",
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "state": { "$ref": "#/$defs/ruleState", "default": "block" },
+            "paranoia_level": { "type": "integer", "minimum": 1, "maximum": 4, "default": 1 },
+            "inbound_anomaly_threshold": { "type": "integer", "minimum": 1, "maximum": 100, "default": 5 },
+            "livewire_exception": { "type": "boolean", "default": true, "description": "The signed Livewire snapshot is not inspected. Updates and calls keep every rule, text fields get an exception per domain." },
+            "disabled_rules": {
+              "description": "CRS rule ids to leave out (SecRuleRemoveById at build). A rule disabled here cannot be enabled in the dashboard or through the agent API. An id that does not run is not an error.",
+              "type": "array",
+              "maxItems": 1000,
+              "uniqueItems": true,
+              "items": { "type": "string", "pattern": "^9[0-9]{5}$" },
+              "default": []
+            }
+          }
+        },
+        "crowdsec": {
+          "description": "The public CrowdSec Hub virtual patches. No account, no Central API, no IP lists, nothing is sent to CrowdSec, the CrowdSec engine does not run; a plain HTTPS GET of the public index, and a pinned snapshot ships in the image. The hub URL is not configurable. Rules in contracts/crowdsec-hub.md.",
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "state": { "$ref": "#/$defs/ruleState", "default": "detect" },
+            "auto_update": {
+              "description": "Check the hub for new rules. false: the stored last good set or the image snapshot stays; no outgoing request.",
+              "type": "boolean",
+              "default": true
+            },
+            "interval_s": {
+              "description": "Seconds between two checks, with +-10 % jitter; a check is one GET with ETag.",
+              "type": "integer",
+              "minimum": 300,
+              "maximum": 604800,
+              "default": 3600
+            },
+            "pin": {
+              "description": "A hub git commit (40 hex digits). The gateway fetches the index of that commit once and no other; auto_update has no effect. Absent: follow the master branch.",
+              "type": "string",
+              "pattern": "^[0-9a-f]{40}$"
+            },
+            "settling_s": {
+              "description": "Seconds a rule received from the hub (not in the image snapshot) only detects before it acts on its own (D89: no approval).",
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 2592000,
+              "default": 86400
+            },
+            "disabled_rules": {
+              "description": "Hub rule names to leave out, e.g. crowdsecurity/vpatch-CVE-2026-1207. A rule disabled here cannot be enabled in the dashboard or through the agent API. An unknown name is not an error: the rule may have left the hub.",
+              "type": "array",
+              "maxItems": 1000,
+              "uniqueItems": true,
+              "items": { "type": "string", "pattern": "^crowdsecurity/vpatch-[A-Za-z0-9._-]{1,128}$" },
+              "default": []
+            }
+          }
+        },
+        "local": {
+          "description": "The operator's own SecLang files (*.conf of dir, read in name order). Ids outside the ranges of the other repositories (crs 900000 to 999999 and 200000 to 200099, crowdsec 60000000 to 99999999, agent exceptions 1900000 to 1999999, 7700000 to 7799999 reserved). A sync (schild rules sync local, SIGHUP, the API) loads the directory again without a restart.",
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "state": { "$ref": "#/$defs/ruleState", "default": "block" },
+            "dir": { "$ref": "#/$defs/path", "default": "/etc/schild/rules.d" },
+            "disabled_rules": {
+              "description": "Local rule ids to leave out (SecRuleRemoveById at build). A rule disabled here cannot be enabled in the dashboard or through the agent API.",
+              "type": "array",
+              "maxItems": 1000,
+              "uniqueItems": true,
+              "items": { "type": "string", "pattern": "^[1-9][0-9]{0,8}$" },
+              "default": []
+            }
+          }
+        }
+      }
+    }
+  },
+  "allOf": [
+    {
+      "description": "v0.4 (MVP-19, D31): ingress.caddyfile and the plain proxy (listen.proxy, upstream) exclude each other; without ingress.caddyfile upstream is required.",
+      "if": { "properties": { "ingress": { "required": ["caddyfile"] } }, "required": ["ingress"] },
+      "then": {
+        "not": { "required": ["upstream"] },
+        "properties": { "listen": { "not": { "required": ["proxy"] } } }
+      },
+      "else": { "required": ["upstream"] }
+    }
+  ],
+  "$defs": {
+    "hostport": { "type": "string", "pattern": "^([A-Za-z0-9.-]{1,253}|\\[[0-9A-Fa-f:.]{2,45}\\])?:[0-9]{1,5}$" },
+    "cidr": { "type": "string", "pattern": "^[0-9A-Fa-f.:]{2,45}/[0-9]{1,3}$" },
+    "path": { "type": "string", "pattern": "^/[A-Za-z0-9._/-]{0,511}$" },
+    "ruleState": { "description": "off: no rules, nothing fetched. detect: rules match and are logged, never block. block.", "type": "string", "enum": ["off", "detect", "block"] },
+    "siteHost": { "description": "Host name of a Caddyfile site address, optionally with one leading wildcard label.", "type": "string", "maxLength": 253, "pattern": "^(\\*\\.)?([A-Za-z0-9]([A-Za-z0-9-]{0,61}[A-Za-z0-9])?\\.)+[A-Za-z]{2,63}$" },
+    "behaviourPreset": { "type": "string", "enum": ["wordpress", "joomla", "drupal", "nextcloud", "typo3", "laravel", "generic"] },
+    "behaviourMode": {
+      "description": "off: not evaluated; observe: count only (\"hätte gesperrt\"); block: temporary HTTP-level block with escalating duration (cap 24 h). net_class cgnat, mobile and tor are never blocked. challenge is deprecated (D92): there is no browser check; an old value is read as observe with a warning.",
+      "type": "string",
+      "enum": ["off", "observe", "challenge", "block"]
+    },
+    "thresholds": {
+      "description": "Sliding window: at least `count` events within `window_s` trigger; at least `slow_count` within `slow_window_s` is the slow variant (login_bruteforce). Meaning of an event per scenario: failed login, distinct user name, distinct 404/403 path, distinct WAF rule.",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "count": { "type": "integer", "minimum": 2, "maximum": 100000 },
+        "window_s": { "type": "integer", "minimum": 1, "maximum": 86400 },
+        "slow_count": { "type": "integer", "minimum": 2, "maximum": 100000 },
+        "slow_window_s": { "type": "integer", "minimum": 60, "maximum": 86400 }
+      }
+    },
+    "scenario": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "mode": { "$ref": "#/$defs/behaviourMode", "description": "Default: the recommended mode of the scenario (D92)." },
+        "thresholds": { "$ref": "#/$defs/thresholds" }
+      }
+    },
+    "crawlScenario": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "mode": { "$ref": "#/$defs/behaviourMode", "default": "observe", "description": "Default observe, also recommended (D92): search tools, monitoring and offices behind one address crawl fast too." },
+        "thresholds": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "count": { "description": "Minimum non-static requests of one client within window_s.", "type": "integer", "minimum": 10, "maximum": 100000 },
+            "window_s": { "type": "integer", "minimum": 10, "maximum": 3600 },
+            "baseline_factor": { "description": "Trigger only above this multiple of the site's own per-client baseline.", "type": "number", "minimum": 2, "maximum": 1000 }
+          }
+        }
+      }
+    },
+    "distributedMode": {
+      "description": "off: not evaluated; observe: detect and show \"hätte reagiert\"; respond: answer per route or account (never per address), only after the learning period and never in the test profile.",
+      "type": "string",
+      "enum": ["off", "observe", "respond"]
+    },
+    "distributedDetector": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "mode": { "$ref": "#/$defs/distributedMode", "default": "observe" },
+        "thresholds": {
+          "description": "count: minimum events (failures, senders) in window_s; factor: multiple of the route's own baseline (route_wave).",
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "count": { "type": "integer", "minimum": 3, "maximum": 100000 },
+            "window_s": { "type": "integer", "minimum": 30, "maximum": 3600 },
+            "factor": { "type": "number", "minimum": 2, "maximum": 1000 }
+          }
+        }
+      }
+    },
+    "distributed": {
+      "description": "v0.4 (MVP-18, D30): distributed attacks through residential proxies, counted by target, fingerprint and request shape and answered per route or per account, never by address. Local only; baselines stay on the server.",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "learning_days": { "description": "A fresh installation observes at least this long before any detector can respond.", "type": "integer", "minimum": 14, "maximum": 365, "default": 14 },
+        "routes": { "description": "Routes the operator marks in addition to the login routes of the presets (same pattern syntax as rate limits).", "type": "array", "maxItems": 64, "uniqueItems": true, "items": { "type": "string", "pattern": "^/[A-Za-z0-9._~!&'()+,;=:@%/*-]{0,255}$" } },
+        "detectors": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "route_wave": { "$ref": "#/$defs/distributedDetector" },
+            "account_wave": { "$ref": "#/$defs/distributedDetector" },
+            "shape_wave": { "$ref": "#/$defs/distributedDetector" },
+            "fingerprint_cluster": { "$ref": "#/$defs/distributedDetector" },
+            "inconsistency": { "$ref": "#/$defs/distributedDetector" }
+          }
+        },
+        "responses": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "route_tighten": {
+              "description": "Time-boxed strict limit on the attacked route for requests that match the cluster or carry no session cookie (until the MVP-12 browser check exists).",
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "minutes": { "type": "integer", "minimum": 1, "maximum": 120, "default": 20 },
+                "max_minutes": { "type": "integer", "minimum": 1, "maximum": 120, "default": 120 },
+                "limit_per_minute": { "type": "integer", "minimum": 1, "maximum": 10000, "default": 10 }
+              }
+            },
+            "account_slowdown": {
+              "description": "Wait before the next attempt on an attacked account, doubling from start_s up to max_s (hard cap 300 s); never a lockout.",
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "start_s": { "type": "integer", "minimum": 1, "maximum": 60, "default": 5 },
+                "max_s": { "type": "integer", "minimum": 5, "maximum": 300, "default": 60 }
+              }
+            }
+          }
+        },
+        "fingerprint": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "ja4_header": { "description": "Header with the JA4 fingerprint (JA4 only, BSD licence; no JA4+) set by a trusted TLS terminator; read only from trusted proxies, ignored otherwise. Without it schild uses a low-entropy header set.", "type": "string", "pattern": "^[A-Za-z0-9-]{1,64}$" }
+          }
+        }
+      }
+    },
+    "rateLimit": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["route", "limit", "per"],
+      "properties": {
+        "id": { "description": "Stable id for the dashboard and events; generated when missing.", "$ref": "../common.schema.json#/$defs/id" },
+        "label": { "type": "string", "minLength": 1, "maxLength": 64 },
+        "route": { "description": "Path pattern: `*` matches within one segment, `**` across segments. A route of wildcards only applies to the whole site and needs confirm_site_wide.", "type": "string", "pattern": "^/[A-Za-z0-9._~!&'()+,;=:@%/*-]{0,255}$" },
+        "methods": { "type": "array", "minItems": 1, "maxItems": 7, "uniqueItems": true, "items": { "type": "string", "enum": ["GET", "HEAD", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"] } },
+        "limit": { "description": "Requests per `per` (token refill rate).", "type": "integer", "minimum": 1, "maximum": 100000 },
+        "per": { "description": "Refill period: 1s to 59s, 1m to 59m or 1h to 24h.", "type": "string", "pattern": "^(([1-9]|[1-5][0-9])[sm]|([1-9]|1[0-9]|2[0-4])h)$" },
+        "burst": { "description": "Bucket size; default limit.", "type": "integer", "minimum": 1, "maximum": 100000 },
+        "mode": { "type": "string", "enum": ["off", "observe", "block"], "default": "observe" },
+        "site": { "description": "Host name of the site (MVP-16); without it the limit applies to every host.", "type": "string", "maxLength": 253, "pattern": "^[A-Za-z0-9]([A-Za-z0-9-]{0,62}\\.)*[A-Za-z0-9-]{1,63}$" },
+        "confirm_site_wide": { "type": "boolean" }
+      },
+      "if": { "properties": { "route": { "pattern": "^/*[*][/*]*$" } } },
+      "then": { "required": ["confirm_site_wide"], "properties": { "confirm_site_wide": { "const": true } } }
+    }
+  }
+}

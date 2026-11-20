@@ -1,0 +1,29 @@
+{
+ "resolve": [
+  "app.example.org",
+  "status.example"
+ ],
+ "blocks": [
+  {
+   "Addresses": [
+    "http://app.example.org"
+   ],
+   "Schild": false,
+   "Proxies": false
+  },
+  {
+   "Addresses": [
+    "app.example.org"
+   ],
+   "Schild": true,
+   "Proxies": true
+  },
+  {
+   "Addresses": [
+    ":8081"
+   ],
+   "Schild": false,
+   "Proxies": false
+  }
+ ]
+}

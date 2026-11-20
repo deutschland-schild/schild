@@ -1,0 +1,180 @@
+@import "tailwindcss";
+@plugin "@tailwindcss/typography";
+
+/* Brand tokens live in docs/brand (company as code) – this file only applies them. */
+@import "../../../../docs/brand/tokens.css";
+
+/* Only the header (4 rem) sticks. */
+html { scroll-behavior: smooth; scroll-padding-top: 4.5rem; }
+body { @apply bg-white text-ink antialiased; font-feature-settings: 'cv11', 'ss01'; }
+::selection { @apply bg-signal text-on-signal; }
+
+/* Focus: double ring (ink inside, light green outside) – visible on paper, photo, green and ink.
+   In the base layer so a component can replace it with utilities (e.g. the search field in DokuSearch). */
+@layer base {
+  :focus-visible {
+    outline: 3px solid var(--color-signal-soft);
+    outline-offset: 2px;
+    box-shadow: 0 0 0 2px var(--color-ink);
+  }
+}
+
+@utility btn {
+  @apply inline-flex items-center justify-center gap-2 rounded-button px-6 py-3.5 text-base font-bold transition active:translate-y-px disabled:cursor-not-allowed disabled:opacity-50 disabled:active:translate-y-0;
+}
+
+/* Type scale (creative brief, section 5): exactly one display headline per section. */
+@utility h-xl { font-size: clamp(3rem, 13.5vw, 6.6rem); }
+@utility h-l { font-size: clamp(2.6rem, 6.4vw, 5.75rem); }
+@utility h-m { font-size: clamp(1.6rem, 3.4vw, 2.9rem); }
+
+@layer components {
+  /* Display type: the "Nike moment" – heavy, condensed, uppercase. */
+  .display {
+    font-family: var(--font-display);
+    font-weight: 900;
+    font-stretch: 78%;
+    text-transform: uppercase;
+    letter-spacing: -0.01em;
+    line-height: 0.88;
+  }
+  /* Highlighter-style accent for single words on light surfaces (green text alone is < 3:1 there). */
+  .mark { @apply mt-[0.1em] inline-block bg-signal px-[0.12em] pt-[0.06em] pb-[0.02em] text-on-signal; }
+  .eyebrow { @apply font-mono text-xs font-semibold uppercase tracking-[0.18em]; }
+  /* Coordinates and credit line under every photo. */
+  .geo { @apply font-mono text-xs uppercase tracking-[0.12em]; }
+
+  .btn-primary { @apply btn bg-ink text-white hover:bg-ink-800; }
+  /* Green only for rare, deliberate emphasis – the default action is black. */
+  .btn-signal { @apply btn bg-signal text-on-signal hover:bg-signal-hover; }
+  .btn-ghost { @apply btn border-2 border-current hover:bg-ink/5; }
+  .btn-ghost-light { @apply btn border-2 border-white/50 text-white hover:border-white hover:bg-white/10; }
+
+  .card { @apply rounded-card border border-line bg-white; }
+
+
+  /* Landing page v3: plain sentence-case headings, small labels, light code blocks. */
+  .h2 { @apply text-3xl font-bold tracking-tight text-balance sm:text-4xl; }
+  .kicker { @apply text-sm font-semibold text-signal-deep; }
+  .step-nr { @apply inline-flex size-7 items-center justify-center rounded-full border border-mist-line bg-white font-mono text-sm text-slate; }
+  .code { @apply rounded bg-mist px-1.5 py-0.5 font-mono text-[0.85em] text-ink; }
+  /* Stable spec IDs (SEC-01, ARC-03 …): never renumber or reuse, see docs/concept/19-spezifikation.md. */
+  .spec-id { @apply inline-block shrink-0 self-start rounded border border-line px-1 py-px font-mono text-[11px] leading-4 font-medium whitespace-nowrap text-slate; }
+  .codeblock { @apply overflow-hidden rounded-xl border border-line bg-paper; }
+  .codeblock pre { @apply overflow-x-auto p-4 font-mono text-[13px] leading-relaxed text-ink; font-variant-ligatures: none; }
+  .codeblock-title { @apply border-b border-line px-4 py-2 font-mono text-xs text-slate; }
+
+  .field { @apply grid gap-1.5 text-sm font-semibold; }
+  .field input, .field select, .field textarea {
+    @apply w-full rounded-button border-2 border-slate/80 bg-white px-3.5 py-2.5 font-normal text-ink transition focus:border-ink;
+  }
+
+  .skip-link {
+    @apply sr-only rounded-button bg-signal px-4 py-3 font-bold text-on-signal focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-[60];
+  }
+
+  /* Film grain over photos (3–4 %) against the stock-photo look. Static, no scroll cost. */
+  .grain::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    opacity: 0.07;
+    mix-blend-mode: overlay;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+}
+
+/* Photos: one slow zoom 1.06 → 1 while scrolling in (only where the browser supports scroll timelines). */
+@keyframes photo-zoom { from { transform: scale(1.06); } to { transform: scale(1); } }
+@supports (animation-timeline: view()) {
+  .photo-zoom { animation: photo-zoom linear both; animation-timeline: view(); animation-range: entry 0% cover 45%; }
+}
+
+/* Cards fade in once while scrolling into view (only with scroll timelines; otherwise simply visible). */
+@keyframes reveal { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+@supports (animation-timeline: view()) {
+  .reveal { animation: reveal linear both; animation-timeline: view(); animation-range: entry 0% entry 70%; }
+}
+
+/* Persona speech bubbles pop in from the left while scrolling into view and fade out again as they leave at the top. */
+@keyframes bubble {
+  0% { opacity: 0; transform: translateX(-28px) scale(0.96); }
+  22%, 82% { opacity: 1; transform: none; }
+  100% { opacity: 0; transform: translateY(-16px); }
+}
+@supports (animation-timeline: view()) {
+  .bubble { animation: bubble linear both; animation-timeline: view(); animation-range: entry 10% exit 90%; transform-origin: 10% 100%; }
+}
+
+/* Ask band: a light pulse runs once from left to right – the "wave" signature. */
+@keyframes wave { from { transform: translateX(-100%); } to { transform: translateX(100vw); } }
+.wave-once::before {
+  content: '';
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 40%;
+  background: linear-gradient(90deg, transparent, rgb(255 255 255 / 0.35), transparent);
+  animation: wave 1.6s 0.6s ease-out both;
+  pointer-events: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
+  .wave-once::before { display: none; }
+}
+
+/* Heading anchors in rendered docs look like headings, not links. */
+.prose :is(h1, h2, h3, h4) a { font-weight: inherit; color: inherit; text-decoration: none; }
+
+/* ── Documentation (/doku) ─────────────────────────────────────────────────
+ * Dense reading: base prose size, text limited to ~75ch, tables and code blocks use the full column. */
+.doku-prose {
+  font-size: 0.95rem; line-height: 1.7;
+  --tw-prose-body: var(--color-ink);
+  --tw-prose-headings: var(--color-ink);
+  --tw-prose-bold: var(--color-ink);
+  --tw-prose-links: var(--color-link);
+  --tw-prose-bullets: var(--color-signal-deep);
+  --tw-prose-counters: var(--color-slate);
+  --tw-prose-quote-borders: var(--color-signal);
+  --tw-prose-hr: var(--color-line);
+}
+.doku-prose > :is(p, ul, ol, h1, h2, h3, h4, h5, blockquote, dl) { max-width: 75ch; }
+.doku-prose :is(h1, h2, h3, h4) { scroll-margin-top: 4.5rem; letter-spacing: -0.01em; }
+.doku-prose h1 { @apply mt-0 mb-6 text-3xl font-bold text-balance sm:text-4xl; }
+.doku-prose h2 { @apply mt-14 border-t border-line pt-8 text-2xl font-bold; }
+.doku-prose .doku-work { @apply mt-14 max-w-[75ch] rounded-lg border border-line bg-paper px-5 py-3 text-sm text-slate; }
+.doku-prose .doku-work > summary { @apply cursor-pointer font-semibold text-ink; }
+.doku-prose .doku-work[open] > summary { @apply mb-2; }
+.doku-prose .doku-work ul:has(> li > input) { @apply list-none pl-0; }
+.doku-prose .doku-work li:has(> input) { @apply pl-0; }
+.doku-prose .doku-work li > input { @apply mr-2; }
+.doku-prose h3 { @apply mt-8 text-lg font-semibold; }
+.doku-prose a { @apply underline-offset-2; }
+.doku-prose code { @apply rounded bg-mist px-1 py-0.5 text-[0.85em] font-normal text-ink; }
+.doku-prose code::before, .doku-prose code::after { content: none; }
+.doku-prose blockquote { @apply font-normal not-italic; }
+.doku-prose blockquote p::before, .doku-prose blockquote p::after { content: none; }
+.doku-prose img { @apply my-4 inline-block max-h-40 w-auto; }
+
+/* Tables (ProseTable.vue): own styles because the wrapper is not-prose. */
+.doku-table {
+  scrollbar-width: thin;
+  /* Scroll shadows: show that a wide table continues left/right. */
+  background:
+    linear-gradient(to right, white 30%, transparent) left / 2rem 100% no-repeat local,
+    linear-gradient(to left, white 30%, transparent) right / 2rem 100% no-repeat local,
+    radial-gradient(farthest-side at 0 50%, rgb(10 26 51 / 0.16), transparent) left / 0.75rem 100% no-repeat scroll,
+    radial-gradient(farthest-side at 100% 50%, rgb(10 26 51 / 0.16), transparent) right / 0.75rem 100% no-repeat scroll;
+}
+.doku-table:focus-visible { outline-offset: 2px; }
+.doku-table table { @apply w-full border-collapse text-left text-sm leading-snug text-ink; }
+.doku-table th { @apply border-b border-line bg-paper px-3 py-2 align-bottom font-semibold whitespace-nowrap; }
+.doku-table td { @apply border-t border-line px-3 py-2 align-top; min-width: 7rem; }
+.doku-table tr:first-child td { border-top: 0; }
+.doku-table td:first-child { min-width: 9rem; }
+.doku-table a { @apply text-link underline underline-offset-2; }
+.doku-table strong { @apply font-semibold; }
+.doku-table code { @apply rounded bg-mist px-1 py-0.5 font-mono text-[0.85em]; }
+.doku-table img { @apply my-0 mr-1 inline-block h-8 w-auto align-middle; }

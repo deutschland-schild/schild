@@ -1,0 +1,114 @@
+id: MVP-11
+title: "Server check and agent: read-only host findings for the gateway and every app VM behind it"
+ships: true
+image: schild                       # `schild check` (gateway host) runs on the host, not in the container. D60b (initiator 2026-11-02): schild-agent is not part of the first gateway version; the gateway refuses host_check.agents unless SCHILD_HOST_AGENTS=1 (TEST ONLY), the image carries it only with --build-arg AGENT=1
+hypotheses: [D3]
+refs: [concept-13-server-check, concept-13-multi-server, concept-13-one-binary, concept-24, DECISIONS-D25]
+depends_on: [MVP-01, MVP-02, MVP-09]
+contracts:
+  new:
+    - contracts/schemas/host-report (schild.host_report/0.1): one report per host and run
+    - contracts/schemas/agent-envelope: signed delivery of a host report from an agent to the gateway
+    - vectors for both (valid/invalid, signed with fixed test keys), Go and Python must agree (make contracts-test)
+    - gateway dashboard API additions (contracts/api/client-dashboard.openapi.yaml): hosts list, host detail with findings, agent enrolment
+  version: contracts v0.3 (backwards compatible addendum)
+roles:
+  check: "`schild check` runs on any Linux host, reads only, writes a host report (JSON, 0640) to a directory; daily via systemd timer and on demand"
+  agent: "`schild-agent` (Schild Agent, own binary since 2026-10-27, built from the same module: host check and agent only, no Caddy, Coraza, WAF, dashboard or listener; go list -deps proves it) runs on an app VM, runs the same checks and pushes the signed report to the Schild Gateway; never talks to labs; accepts no commands. Install only schild-agent on internal VMs, schild on the reverse proxy"
+  gateway: "schild (Schild Gateway) on the reverse proxy reads its own local report (directory mounted read-only into the container) and accepts agent reports from enrolled agents; the dashboard shows all hosts"
+checks:                             # each finding: id, severity, German title + plain explanation, copyable fix command, evidence; unknown when it cannot read safely
+  - 'Distribution and kernel: /etc/os-release, uname, EOL from a bundled dated EOL table (offline, no lookup at runtime), extended support hint'
+  - 'Updates: pending updates and pending security updates (apt: simulated upgrade / apt list --upgradable without network refresh; dnf/yum: check-update cache only), unattended-upgrades / dnf-automatic on or off, reboot required (/var/run/reboot-required, needs-restarting), running kernel older than installed'
+  - 'Listening ports: services on non-loopback addresses (ss or /proc/net), flag databases, caches, Docker API and admin panels on public interfaces'
+  - 'Firewall: active or not, default incoming policy, Docker rules that bypass ufw/firewalld (nftables/iptables read only)'
+  - 'SSH: PasswordAuthentication, PermitRootLogin, port (sshd -T where permitted, else sshd_config parsing), failed logins in the last 24 h as a count only'
+  - 'TLS: certificate expiry for configured sites (gateway only, from local cert storage or a TLS handshake to localhost)'
+  - 'Software inventory: installed packages and runtimes relevant for advisories (PHP, Node, Python, Java/Tomcat, nginx, Apache, databases) with versions and EOL; detected apps (WordPress core and plugins, TYPO3, Laravel, Nextcloud) from configured paths only'
+must:
+  - read only; never changes the system, never installs, never refreshes package indexes (no apt update), never scans other hosts
+  - runs without root where possible; document the exact capabilities/groups needed per check (e.g. CAP_NET_ADMIN only for nft list, adm/systemd-journal for logs); a check that lacks rights reports "nicht lesbar" with the reason instead of failing
+  - no outgoing network access except the agent's delivery to the configured gateway URL
+  - agent delivery is authenticated: per-agent Ed25519 key, enrolled at the gateway (one-time enrolment code or explicit public key in config); signed envelope with domain separation, replay window, gateway rejects unknown or revoked keys; TLS to the gateway
+  - the gateway never sends instructions back; the response is only an ack
+  - host reports stay in the operator network; they are no signals and never go to labs (M2 egress check must cover this)
+  - reports contain no secrets (no config file contents, no environment variables, no private keys); hostnames and local IPs are allowed locally
+  - an agent that has not reported within 2x its interval shows as "meldet sich nicht" in the dashboard; it never affects request handling or the Grundschutz state
+  - retention: keep the last 30 reports per host (configurable)
+  - 'German UI copy, du-form, calm; severity wording without fear; each finding: what it means, why it matters, the command to fix it'
+dashboard:
+  - 'New section "Server" in the gateway dashboard (client-dashboard), built in the website preview style (see MVP-09 redesign): host list on the left (gateway first, then agents) with status and counts, detail on the right grouped by area, each finding with explanation and copy button, last check time, "Jetzt prüfen" for the local host only'
+  - 'Overview gets a compact "Server" card: hosts, open findings by severity, agents not reporting'
+  - 'Agent enrolment flow: create enrolment code, show the one-line command for the app VM, confirm the new agent'
+deploy:
+  - systemd units and timer for `schild check` and `schild-agent` (examples in docs/ops/), docker compose snippet mounting the report directory read-only into the schild container
+  - runbook section (the runbooks of the prototype are not part of this repository; the units are in docs/ops/systemd)
+measure:
+  - unit tests per check with fixture files (os-release, apt/dnf outputs, ss output, nft ruleset, sshd -T) for Debian 11/12, Ubuntu 22.04/24.04, Rocky/Alma 9 and one EOL system
+  - testlab: an app VM container with the agent delivering to the gateway schild; enrolment, delivery, replay, unknown key, revoked key, gateway down (agent retries with backoff, no effect on traffic)
+  - egress check: host report contents never appear in anything sent to labs
+kill_if: "the check changes system state OR a report leaks a secret OR an unenrolled agent's report is accepted OR agent/check failures affect request handling"
+done: "make contracts-test && make test && make testlab-up PROFILE=t1 && make smoke PROFILE=t1 (incl. agent step)"
+out_of_scope: [metrics and anomaly detection (CPU, egress, new executables; next step), app log events, external port scan by a lab, fixing findings automatically, Windows/BSD, the advisory matching itself (uses the inventory later)]
+
+# Addendum "Log-Hygiene" (initiator, 2026-10-29; DECISIONS D38; contracts v0.5, backwards compatible). Source: the
+# read-only audit tests/results/storage-bounds-audit-2026-10-29.md, Part 2. Read only, like every other check.
+addendum_log_hygiene:
+  contracts:
+    - 'host-report.schema.json: area logs; finding ids below; evidence size_bytes (from st_blocks), growth_bytes_per_day (against the previous kept report), fs_percent, mount; sources docker_daemon, docker_container, journald_conf, logrotate_conf, logrotate_status, stat, caddyfile'
+    - 'typed fix_config {path, content} next to fix_command: rendered only from gateway-side templates (hostcheck.FixTemplates) whose variable parts are checked paths, slugs and numbers; any other fix_config is rejected (schema), also in agent reports. Templates and variable rules in contracts/host-check.md section 2; vectors host-report valid 007-009, invalid 028-041'
+    - 'MVP-21 hint disk_fill_projection: contracts/storage-bounds.md section 7, vectors storage-bounds (op disk_projection)'
+  checks:
+    logs.docker_unbounded:
+      detect: '/etc/docker/daemon.json log-driver and log-opts; per container /var/lib/docker/containers/*/hostconfig.json LogConfig and the size of *-json.log by st_blocks'
+      rights: 'daemon.json is world-readable; containers need root (else unreadable, needs root)'
+      false_positives: 'local and journald drivers are bounded; Kamal may set max-size per container, so check the containers, not only daemon.json; rootless Docker and Podman use other paths (not_supported)'
+      severity: 'medium when a log is over 1 GiB or a running container has no limit, else low'
+      text: '„Die Logs von {n} Containern haben keine Obergrenze. Das größte ist {größe} groß ({name}). Mit einer Grenze behält Docker nur die letzten Dateien.“'
+      fix: 'fix_config /etc/docker/daemon.json {"log-driver": "local", "log-opts": {"max-size": "10m", "max-file": "5"}}, only when daemon.json is missing or holds nothing but log keys (else the explanation names the two keys to add); for Kamal the explanation names `logging: {options: {max-size: 10m, max-file: "5"}}` for the app and each accessory in deploy.yml. The limit applies to new containers, so the text says to redeploy'
+    logs.journald_size:
+      detect: 'journald.conf and journald.conf.d/*.conf (Storage, SystemMaxUse, SystemKeepFree); size of /var/log/journal by stat'
+      rights: 'stat only (directories 2755)'
+      false_positives: 'the defaults already cap at 10 % of the file system and 4 GiB: report only when the journal is over 4 GiB or over 10 % of the file system, or SystemMaxUse is raised or infinite'
+      severity: low
+      text: '„Das Journal belegt {größe} ({prozent} % von {mount}). Eine feste Obergrenze hält es kleiner.“'
+      fix: 'fix_config /etc/systemd/journald.conf.d/50-schild-size.conf ([Journal] SystemMaxUse=1024M, SystemKeepFree=2048M, MaxRetentionSec=1month), then fix_command sudo systemctl restart systemd-journald'
+    logs.logrotate_missing:
+      detect: '/usr/sbin/logrotate exists; logrotate.timer link in timers.target.wants or /etc/cron.daily/logrotate (same link logic as updates.automatic)'
+      rights: none
+      false_positives: 'journald-only hosts: when no plain file under /var/log is over 100 MiB the finding is info only'
+      severity: 'medium with large files, else info'
+      text: '„logrotate ist nicht installiert oder läuft nicht regelmäßig. Logdateien unter /var/log werden dann nicht gekürzt.“'
+      fix: 'fix_command sudo apt install logrotate (dnf: sudo dnf install logrotate) or sudo systemctl enable --now logrotate.timer'
+    logs.logrotate_stale:
+      detect: 'mtime of /var/lib/logrotate/status (RHEL: logrotate.status) older than 48 h while the timer is on; optionally the one new fixed argv systemctl show logrotate.service -p Result -p ExecMainStatus -p ExecMainExitTimestamp'
+      rights: none
+      false_positives: 'host was off (the timer has Persistent=true and catches up), fresh install (no status file yet: ok)'
+      severity: 'low; medium together with logs.large_file'
+      text: '„logrotate ist zuletzt am {datum} gelaufen. Normal ist einmal am Tag. `sudo logrotate -d /etc/logrotate.conf` zeigt, woran es hängt.“'
+      fix: 'fix_command sudo logrotate -d /etc/logrotate.conf (debug mode, rotates nothing)'
+    logs.logrotate_config:
+      detect: 'parse /etc/logrotate.conf and logrotate.d/*: group- or world-writable or non-root-owned file (logrotate skips it), duplicate log paths, taboo extensions (.dpkg-old, ~), writable log directory without su; cross-check with schild''s own Caddyfile: every output file with roll_disabled needs a rule with copytruncate, and a rule on a file Caddy rolls itself is double rotation'
+      rights: 'world-readable configs, stat'
+      false_positives: 'globs that match nothing are fine; vendor duplicates on purpose are rare (low)'
+      severity: 'low; medium for the Caddy case'
+      text: '„logrotate überspringt {datei}, weil andere sie beschreiben dürfen. Die Regeln darin wirken nicht.“ / „Caddy schreibt {pfad} selbst und öffnet die Datei nach dem Umbenennen nicht neu. Ohne copytruncate landet das Log weiter in der alten Datei.“'
+      fix: 'fix_command sudo chmod 0644 {datei}; for Caddy fix_config /etc/logrotate.d/schild-caddy-access ({pfad} daily, rotate 14, maxsize 200M, missingok, notifempty, compress, delaycompress, copytruncate)'
+    logs.large_file:
+      detect: 'walk /var/log (depth 4, at most 5000 entries, 200 ms) by stat, size from st_blocks (sparse lastlog); growth against the previous kept report; is the file covered by a logrotate rule'
+      rights: 'stat; root-only directories are reported as nicht lesbar (needs root)'
+      false_positives: 'wtmp and btmp, journal files (logs.journald_size), one-off dumps (no growth)'
+      severity: 'medium when over 5 % of the file system or the growth fills it in under 14 days; low when over 1 GiB'
+      text: '„{pfad} ist {größe} groß und wächst um etwa {rate} pro Tag. Keine logrotate-Regel erfasst die Datei.“'
+      fix: 'fix_config /etc/logrotate.d/schild-{slug} ({pfad} daily, rotate 7, maxsize 500M, missingok, notifempty, compress, delaycompress, copytruncate)'
+  spec21_hint:
+    disk_fill_projection: 'daily minima of server.disk_used per mount over the last 7 complete UTC days from the 10 min ring (no new sampling), robust Theil-Sen slope, steady growth required; notice under 14 days left, warning under 3; links to the logs findings. Text: „{mount} ist in etwa {tage} Tagen voll, wenn es so weitergeht wie in den letzten 7 Tagen (+{rate} pro Tag). Unter „Server“ siehst du große Logdateien.“'
+  must:
+    - 'read only: stat and read only the listed config files and the logrotate status file; never run logrotate, docker or the Docker socket; at most one new fixed argv (systemctl show logrotate.service -p …)'
+    - 'the walk is bounded (depth 4, 5000 entries, 200 ms); evidence is path, size, growth and booleans only, never file content'
+    - 'fix snippets come only from the gateway-side templates with validated variable parts (fix_config); a missing right is reported as nicht lesbar with the group or capability needed (root for Docker containers)'
+    - 'disk_fill_projection is computed from the existing 10 min ring only; no new sampling'
+  measure:
+    - 'testlab fixtures for Debian 12, Ubuntu 24.04 and Alma 9 (default installs); seeded faults: Docker without limits, a Kamal container with and without logging, oversized journal, logrotate missing, stale, bad mode and duplicate, Caddy roll_disabled with and without copytruncate'
+    - 'each seeded fault is found; 0 findings above info on the default installs; the read-only proof finds no writes; the check adds at most 1 s with 10 000 files in /var/log'
+    - 'disk_fill_projection on replayed series (steady growth, sawtooth, one-off copy, restart gaps): projection within ±30 % for steady growth, no hint for sawtooth or one-off copy'
+  kill_if: "the check writes to the host, runs logrotate or docker, or reads log contents OR more than one false positive above info on a default install OR a suggested snippet, applied as is, breaks fail2ban or log shipping in the testlab OR disk_fill_projection fires on the sawtooth or one-off fixtures OR it costs a measurable share of the sampler budget"

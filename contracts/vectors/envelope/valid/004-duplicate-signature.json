@@ -1,0 +1,41 @@
+{
+  "contract": "envelope",
+  "description": "The same signature twice counts once and is harmless (ack).",
+  "context": {
+    "now": "2026-10-26T12:00:00Z",
+    "kind": "ack",
+    "trust": [
+      "site-a",
+      "site-b",
+      "site-c",
+      "lab-a",
+      "lab-a2",
+      "lab-b",
+      "lab-c",
+      "lab-d"
+    ]
+  },
+  "input_raw": "{\"payloadType\":\"application/vnd.schild.ack.v0+json\",\"payload\":\"eyJzY2hlbWEiOiJzY2hpbGQuYWNrLzAuMSIsImxhYiI6ImxhYi1hIiwiaXNzdWVkX2F0IjoiMjAyNi0xMC0yNlQxMTo1OTo1OFoiLCJpbl9yZXBseV90byI6IjczYWM5OTI1LWIzODAtNDI3Ny1iOGY3LTJlN2IyM2E1ODA5NCIsImFjY2VwdGVkIjpbIjYzZjJmYTU4LWM2ODQtNDczMi05MTFkLWMzZDJhODM3YjUxZSIsIjIxMGVjMjlmLTQ2MDctNDBmZS1hOTcxLWUwN2UwMTcxMDVlZCJdLCJkdXBsaWNhdGUiOltdLCJyZWplY3RlZCI6W10sImNvbnRyb2wiOnsicmV0cnlfYWZ0ZXJfbXMiOjAsIm1heF9iYXRjaCI6NjQsInJlYXNvbiI6Im9rIn19\",\"signatures\":[{\"keyid\":\"test-lab-a\",\"sig\":\"CAWlf7fuB48SHCORlXdcKkkNUkhNqwuYECbplhciFn8UWXKdftsb5mr2oz4SXM9Xpa6cd6Bfn9qLqWOZ2K2tAg==\"},{\"keyid\":\"test-lab-a\",\"sig\":\"CAWlf7fuB48SHCORlXdcKkkNUkhNqwuYECbplhciFn8UWXKdftsb5mr2oz4SXM9Xpa6cd6Bfn9qLqWOZ2K2tAg==\"}]}",
+  "input_decoded": {
+    "payload": {
+      "accepted": [
+        "63f2fa58-c684-4732-911d-c3d2a837b51e",
+        "210ec29f-4607-40fe-a971-e07e017105ed"
+      ],
+      "control": {
+        "max_batch": 64,
+        "reason": "ok",
+        "retry_after_ms": 0
+      },
+      "duplicate": [],
+      "in_reply_to": "73ac9925-b380-4277-b8f7-2e7b23a58094",
+      "issued_at": "2026-10-26T11:59:58Z",
+      "lab": "lab-a",
+      "rejected": [],
+      "schema": "schild.ack/0.1"
+    }
+  },
+  "expect": {
+    "valid": true
+  }
+}

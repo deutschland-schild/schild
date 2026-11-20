@@ -1,0 +1,24 @@
+{
+  "contract": "crowdsec-hub",
+  "description": "D43: one nanosecond more is refused.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"baseline_ns\":20000,\"candidate_ns\":300001,\"op\":\"set_cost\",\"reference_ns\":90000,\"rounds\":16}",
+  "input_decoded": {
+    "baseline_ns": 20000,
+    "candidate_ns": 300001,
+    "op": "set_cost",
+    "reference_ns": 90000,
+    "rounds": 16
+  },
+  "expect": {
+    "valid": true,
+    "result": {
+      "outcome": "refused",
+      "code": "set_too_costly",
+      "added_ns": 280001,
+      "allowed_ns": 280000
+    }
+  }
+}

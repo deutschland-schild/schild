@@ -1,0 +1,111 @@
+{
+  "contract": "ingress-order",
+  "description": "D40: Accepted: the handle branches exclude each other, the strip never runs before that schild.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"caddyfile\":\"http://a.example.test {\\n\\thandle /a/* {\\n\\t\\trequest_header -Cookie\\n\\t\\trespond 204\\n\\t}\\n\\thandle {\\n\\t\\tschild\\n\\t\\trequest_header Cookie {vars.c}\\n\\t\\treverse_proxy 127.0.0.1:18082\\n\\t}\\n}\\n\",\"servers\":{\"srv0\":{\"listen\":[\":80\"],\"routes\":[{\"handle\":[{\"handler\":\"subroute\",\"routes\":[{\"group\":\"group2\",\"handle\":[{\"handler\":\"subroute\",\"routes\":[{\"handle\":[{\"handler\":\"headers\",\"request\":{\"delete\":[\"Cookie\"]}},{\"handler\":\"static_response\",\"status_code\":204}]}]}],\"match\":[{\"path\":[\"/a/*\"]}]},{\"group\":\"group2\",\"handle\":[{\"handler\":\"subroute\",\"routes\":[{\"handle\":[{\"handler\":\"schild\"},{\"handler\":\"headers\",\"request\":{\"set\":{\"Cookie\":[\"{http.vars.c}\"]}}},{\"handler\":\"reverse_proxy\",\"upstreams\":[{\"dial\":\"127.0.0.1:18082\"}]}]}]}]}]}],\"match\":[{\"host\":[\"a.example.test\"]}],\"terminal\":true}]}}}",
+  "input_decoded": {
+    "caddyfile": "http://a.example.test {\n\thandle /a/* {\n\t\trequest_header -Cookie\n\t\trespond 204\n\t}\n\thandle {\n\t\tschild\n\t\trequest_header Cookie {vars.c}\n\t\treverse_proxy 127.0.0.1:18082\n\t}\n}\n",
+    "servers": {
+      "srv0": {
+        "listen": [
+          ":80"
+        ],
+        "routes": [
+          {
+            "handle": [
+              {
+                "handler": "subroute",
+                "routes": [
+                  {
+                    "group": "group2",
+                    "handle": [
+                      {
+                        "handler": "subroute",
+                        "routes": [
+                          {
+                            "handle": [
+                              {
+                                "handler": "headers",
+                                "request": {
+                                  "delete": [
+                                    "Cookie"
+                                  ]
+                                }
+                              },
+                              {
+                                "handler": "static_response",
+                                "status_code": 204
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ],
+                    "match": [
+                      {
+                        "path": [
+                          "/a/*"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "group": "group2",
+                    "handle": [
+                      {
+                        "handler": "subroute",
+                        "routes": [
+                          {
+                            "handle": [
+                              {
+                                "handler": "schild"
+                              },
+                              {
+                                "handler": "headers",
+                                "request": {
+                                  "set": {
+                                    "Cookie": [
+                                      "{http.vars.c}"
+                                    ]
+                                  }
+                                }
+                              },
+                              {
+                                "handler": "reverse_proxy",
+                                "upstreams": [
+                                  {
+                                    "dial": "127.0.0.1:18082"
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ],
+            "match": [
+              {
+                "host": [
+                  "a.example.test"
+                ]
+              }
+            ],
+            "terminal": true
+          }
+        ]
+      }
+    }
+  },
+  "expect": {
+    "valid": true,
+    "result": {
+      "findings": []
+    }
+  }
+}

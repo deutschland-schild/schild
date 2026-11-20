@@ -1,0 +1,12 @@
+# unprotected: []
+# expect: pass
+http://a.example.test:26080 {
+	handle /assets/* {
+		uri strip_prefix /assets
+		file_server
+	}
+	handle {
+		import schild
+		reverse_proxy 127.0.0.1:26082
+	}
+}

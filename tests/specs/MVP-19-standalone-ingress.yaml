@@ -1,0 +1,220 @@
+id: MVP-19
+# Decision (initiator, 2026-10-28; DECISIONS D31):
+# - The first own server runs schild without the network (no labs, relays or signals) and with autoblock for local
+#   rules after the learning period. Dashboard reached only through an SSH tunnel.
+# - schild becomes the ingress: `schild run` loads the operator's Caddyfile (TLS and ACME by Caddy), each site block
+#   gets the Caddyfile directive `schild`. Deployed like a stock Caddy (e.g. as a Kamal accessory), same image swap.
+# - Approach A: schild keeps its own main and embeds Caddy. Approach B (schild as an xcaddy plugin with a Caddy app
+#   module) is out of scope and stays possible later because the gate does not depend on Caddy.
+# Implemented 2026-10-28 (contracts v0.4, D31; still ENTWURF, ships false) with these deviations and details:
+# - Directive `schild` is ordered before `redir` (Caddy's first directive that answers or changes a request), so it runs
+#   after tracing/map/vars/fs/root/log_*/header/request_body, which serve nothing. `schild` with a matcher is accepted
+#   but does not count as protecting the site. Backends in handle_errors count as reached through their site; named
+#   routes (invoke) are followed.
+# - Storage root: ingress.storage, else the Caddyfile's file_system `storage`, else <data dir>/caddy; another storage
+#   module in the Caddyfile is kept when ingress.storage is unset.
+# - In ingress mode errors of later handlers go back to Caddy (handle_errors works as in stock Caddy); proxy mode keeps
+#   writing them itself. A recovered panic answers 503 + Retry-After only if the response has not started, otherwise
+#   the connection is aborted (http.ErrAbortHandler).
+# - `schild ingress validate` provisions with a throwaway storage; `-adapt-only` skips provisioning for CI machines
+#   without the server's paths. `schild preflight` adds data dir, geo database, listen address and Caddyfile checks.
+# - D38 (2026-10-29): `schild ingress validate` warns (code log_roll_disabled, message key
+#   ingress.warn.log_roll_disabled) for every Caddyfile log `output file` with roll_disabled: the embedded Caddy does
+#   not reopen the file, so the host's logrotate rule needs copytruncate. `schild preflight` refuses a storage budget
+#   (retention.max_size_mb + 10 % + WAL limits + metrics.db bound + request ring) larger than the file system of
+#   storage.path (contracts/storage-bounds.md section 2).
+# - `schild allow --mine` takes the address of the SSH session (SSH_CONNECTION / SSH_CLIENT); the dashboard's "Meine
+#   IP" sees 127.0.0.1 through the SSH tunnel.
+# - Dashboard without the network: Freigaben and Signale leave the navigation (explained when opened directly); Regeln
+#   stays for CRS and local rules; lab, signal and network-rule settings are replaced by the explanation.
+# D72 (2026-11-06): the network is removed from the gateway, not switched off: no network.enabled, the network keys
+#   are refused as unknown, Freigaben, Signale and Verbund are gone, and with them the "Ohne Netz" wording.
+# - The image runs as uid 65532; with network host it cannot bind 80/443 and cannot read a stock Caddy's root-owned
+#   certificates. The runbook uses user 0:0 like the stock Caddy image; a capability in the image is open (pipeline).
+# - Tests use Caddy's internal issuer (`tls internal`) instead of Pebble; the testlab steps with Pebble in `done` and
+#   all of `measure` are left to the independent test lab. No CI pipeline and no image were built.
+# Fixed after measurement 2026-10-28 (results/MVP-19-messung-2026-10-28.md; not re-measured yet, the independent agent
+# re-measures):
+# - finding 1 (ingress and proxy mode): WAF evaluation slots (default GOMAXPROCS, at least 2; bodies over 128 KiB at most
+#   half), short bounded queue wait, then 503 + Retry-After (hard limit waf_busy); an evaluation over its budget is
+#   cancelled at the next rule or argument and keeps its slot until it stopped. Env SCHILD_WAF_MAX_EVALS and
+#   SCHILD_WAF_QUEUE_WAIT_MS, since schild.yaml is a fixed contract. Body limit enforced while streaming, before phase 2.
+# - finding 2: the validator refuses when unsure: nested routes everywhere (handle_response), handle groups as
+#   mutually exclusive, handle_errors proxying only when schild guards the whole site with nothing error-capable before
+#   it (or schild runs inside handle_errors), unknown handlers refused. The 29 measurement variants are test data.
+# - finding 3a: scenarios set to challenge or block act only after learning_days (same rule as distributed
+#   detectors); before, observe with would_action. The event reason stays empty: behaviourReason has no "learning"
+#   (contract change, open). Rate limits set to block still act from day 0 (open for the initiator).
+# - finding 3b: local exceptions (ctl:, allow or nolog without deny) are no WAF hits for waf_repeat or request shapes.
+# - findings 4, 5, 7: runbook (shared NAT addresses, fail2ban 403|404 in autoblock, measured false positives).
+# - finding 6: behaviour tests hash under a fixed key (random seed made HyperLogLog estimates flaky at thresholds).
+# Fix round 2 after re-measurement 2026-10-28 (results/MVP-19-nachmessung-2026-10-28.md; not re-measured yet, the
+# independent agent re-measures):
+# - finding 1: handle_errors belongs to the server (listener), so it also handles errors of other sites on it; a
+#   handle_errors that reaches a backend is accepted only with schild inside it, whatever site it is written in. A request
+#   the site's schild already passed is not evaluated again there (unforgeable request marker). invoke of a named route
+#   that starts with schild guards what follows (N07 accepted). `schild /*` stays refused with an explanation (OPTIONS *
+#   does not match /*, N13); N19 is refused for its handle_errors proxy (abort itself raises no error). Variants 24 and 29
+#   of the first measurement are refused now. The 8 new variants are test data.
+# - finding 2: Go memory limit by default (80 % of the cgroup limit or of RAM, GOMEMLIMIT wins, logged at start);
+#   request-shape hard limits before any rule (query 32 KiB, 100 headers, 64 KiB of headers, 150 cookies; 400); a memory
+#   budget (half the limit) over the estimated memory of expensive evaluations; the transaction is closed before
+#   forwarding so Coraza's cache of transformed values does not live while the backend answers.
+# - finding 3: slot classes by estimated cost (arguments, query length, text body size and type), not body > 128 KiB;
+#   expensive phases use at most half of the slots, one client at most 2 at once (cgnat and mobile 4x). The schema text of
+#   waf.max_concurrent_evals still says "request bodies over 128 KiB use at most half of the slots" (contract text, open).
+# - finding 4: cause is the fixed 1 s budget against CRS cost of about 3 ms per KiB of text; text bodies now get 4 ms per
+#   KiB on top of eval_timeout_ms, at most 10 s (extends the meaning of eval_timeout_ms without a schema change; open for
+#   the initiator). Beyond that 503 waf_timeout as before.
+# - findings 5 and 7: runbook says rate limits set to block act from day 0 (D29 addendum), explains expensive requests and
+#   the memory limit; nolog no longer makes a local detection an exception (only ctl:, allow, SecAction or setvar of
+#   non-score variables without deny/block/drop). Behaviour reason `learning` is emitted (v0.4 addendum);
+#   waf.max_concurrent_evals and waf.queue_wait_ms are read from schild.yaml, the environment variables win.
+# Fix round 3 after measurement 3 (2026-10-29, results/MVP-19-messung-3-2026-10-29.md; decided by the initiator on that
+# measurement; not re-measured yet, the independent agent re-measures):
+# - finding 1: the "already checked" marker is bound to what schild inspected (method, request URI, path and query,
+#   host, remote address). Caddy runs handle_errors with the original method and URI, so after a route rewrote the URI
+#   before the site's schild (M24, M25) schild in handle_errors inspects the original again; the same request (an
+#   error of the same URI) is still evaluated once. M24 and M25 stay accepted by the validator. The marker stays
+#   unforgeable (vars, map, headers, query). The measurement's variants M01-M26, O01-O18 and A-* are test data.
+# - finding 2: Go memory limit min(80 %, total - 256 MiB) of the container or machine memory, at least half of a tiny
+#   total; GOMEMLIMIT wins; the start log names total, rule and headroom.
+# - finding 3: runbook 1.1 describes the flood behaviour (legitimate expensive requests may get 503 during a flood of
+#   expensive requests from many addresses), the per-client and CGNAT/mobile shares, what operators can do and the
+#   memory rule. A share of its own for legitimate expensive requests is not built.
+# - finding 4: a body over Caddy's request_body max_size is answered 413 (body_too_large) as by stock Caddy, no longer
+#   400 body_read_error; the 413 comes from schild's block page, not from the Caddyfile's handle_errors.
+# Addendum (initiator, 2026-10-29; DECISIONS D37, MVP-23 step 1; contracts v0.5, contracts/waiting-page.md; gateway not
+# built): the waiting page. A document navigation (GET, HEAD, POST; Sec-Fetch-Dest document, or without Fetch Metadata
+# an Accept preferring text/html) answered 503 waf_busy or waf_timeout gets a calm waiting page (illustration A "Kurz
+# Platz nehmen, bitte.", 503, Retry-After 5-8 s jittered, meta refresh, CSS countdown, de/en, website name, no incident
+# number); every other request with these reasons gets 503 + problem details. Never a pass. schild.yaml
+# waiting_page.enabled (default true, decided 2026-10-29); counter traffic.waiting_page_shown. Before level 1 goes
+# live. The schema text of waf.max_concurrent_evals (open in fix round 2) was aligned with the cost classes on
+# 2026-10-29; closed.
+# Decisions after the evening measurement (initiator, 2026-10-29; results/messung-2026-10-29-abend.md; DECISIONS
+# "Amendments after the evening measurement"; contracts v0.5 written, gateway not built):
+# - order rule: the validator refuses a rewrite handler (Caddyfile rewrite, uri, method, try_files) that can run
+#   before the schild handler that first inspects the request: in a route, a nested route, handle or handle_path
+#   inside a route, a named route via invoke, a site whose schild sits only in its handle branches, and in
+#   handle_errors (walked unguarded). Error rewrite_before_schild, message key ingress.err.rewrite_before_schild.
+#   handle_path's own prefix strip and mutually exclusive handle branches are exempt; everything after an
+#   unconditional schild may rewrite. contracts/ingress-order.md, contract/ingress, vectors ingress-order (P20, P21,
+#   M24 refused; P08, P24 accepted). M18, M24, M25 and 17 P variants change to refused.
+# - D40 (security review 2026-10-30): the validator also refuses header_hidden_from_schild, a request header hidden
+#   before schild and written back behind it, also through header_up or in handle_errors (ingress-order.md 1a).
+# - a request schild evaluates more than once (e.g. again in handle_errors after handle_path, P08) counts once
+#   everywhere and writes one event with checked_paths; the event path is what schild inspected
+#   (contract/monitoring.Recheck, TrafficCounters.rechecked, vectors request-recheck).
+# - waiting page and its problem variant carry the header Schild-Waiting: 1; the problem code is waiting (not
+#   timeout); a Schild-Waiting header from a backend is removed (contracts/waiting-page.md section 4).
+# - evaluation slots: expensive evaluations use at most min(max(1, floor(n/2)), n - min(2, n - 1)) of n slots, the
+#   rest (at least min(2, n - 1), 1 on 2 slots) is never used by them, also not through an environment override
+#   (contract/config.ExpensiveEvalSlots, ReservedEvalSlots).
+# - deployment note: the arm64 test image for the first own server is pushed to a private registry of the
+#   maintainer (only with the maintainer's go); production amd64 images still come from the CI pipeline.
+# - disk budget reserve max(1 GiB, min(5 %, 20 GiB)) for the preflight hint storage_budget (storage.Reserve).
+# D41 (initiator, 2026-10-30; contracts/body-limits.md; contracts v0.5 written, gateway not built): limits for request
+# bodies, a condition for the first live test (E3). Admission per client, per network and gateway-wide (waf.body), held
+# bytes, waf.raw_body_limit_bytes, the Prometheus metrics, the Caddyfile settings of the first server (runbook 3.1), the
+# temp space under storage.path, client_gone, and the measure-only rate. Four fixes without a contract: body-limits.md
+# section 9. The measurement uses the paths of the private paper upload-handling-2026-10-30; it stays out of this
+# repository until these items are in (E13).
+title: "Standalone ingress: schild without the network, with autoblock for local rules, loading the operator's Caddyfile (TLS/ACME by Caddy, directive `schild`)"
+ships: false                        # draft
+status: ENTWURF
+image: schild                       # same binary and image; no new component
+hypotheses: [D1, D3]
+refs: [concept-09, concept-13, concept-23, MVP-02, MVP-09, MVP-11, MVP-16, MVP-17, MVP-18, DECISIONS-D29, DECISIONS-D30, DECISIONS-D31]
+depends_on: [MVP-02, MVP-09, MVP-17, MVP-18]
+use_case: >-
+  One server with several web apps behind kamal-proxy (Laravel with Livewire, one JSON API). Today a stock Caddy runs as
+  a Kamal accessory on ports 80/443, terminates TLS with ACME for five domains, serves a storage folder, blocks probe
+  paths and writes a JSON access log that fail2ban reads. Goal: swap the Caddy image for the schild image, keep the
+  Caddyfile, add one line per site, observe 14 days, then autoblock.
+standalone:                         # without labs (D72: the only way the gateway runs)
+  - 'schild.yaml has no network keys: network, labs, relays, channel, site_key, min_independent_operators, test_profile, remote_rules and signals are refused as unknown keys (D72)'
+  - 'nothing is sent to and nothing is fetched from labs or relays: no signals, no feedback, no remote rules, no heartbeat (D72: the code is gone)'
+  - 'profile production is valid without keys; preflight checks the rest (storage, geo db, listen addresses, Caddyfile) and still refuses every TEST ONLY key anywhere in the config'
+  - 'mode autoblock acts only through local decisions: CRS with local paranoia level and threshold, local rules and exceptions, behaviour scenarios and rate limits (MVP-17), distributed-attack responses (MVP-18); all with their existing ladders, exemptions (cgnat, mobile, tor, allowlist) and caps'
+  - 'learning period unchanged: a fresh installation observes at least learning_days (>= 14) before behaviour and distributed detectors may act (D29, D30); CRS blocking in autoblock follows the existing mode rules'
+ingress:
+  config:
+    - 'schild.yaml: ingress {caddyfile: <path>, storage: <path>}; mutually exclusive with listen.proxy and upstream (validator); without ingress everything works as today'
+    - 'ingress.storage is the Caddy storage root for certificates and ACME state; it can point at the existing Caddy data directory so that existing certificates are reused and nothing is reissued (ACME rate limits)'
+  caddyfile:
+    - 'schild run adapts the Caddyfile with the stock Caddyfile adapter and loads it into the embedded Caddy; TLS, automatic HTTPS, ACME issuers, the log directive, file_server, encode, handle_errors, reverse_proxy and the other standard directives work as in stock Caddy of the same version'
+    - 'Caddy directive `schild` (UnmarshalCaddyfile on http.handlers.schild); ordered so that it runs before every directive that serves content (handle, route, redir, reverse_proxy, php_fastcgi, file_server); inside an explicit route block the operator decides the position'
+    - 'the validator refuses a Caddyfile in which a site block proxies to a backend (reverse_proxy, php_fastcgi) without `schild`, unless the site is listed in ingress.unprotected_sites; file_server-only sites give a warning'
+    - 'Caddy admin API stays disabled; changes need a restart (as `kamal accessory reboot` does today); `schild ingress validate -config <schild.yaml>` checks schild.yaml and Caddyfile without starting (for CI before a deploy)'
+    - 'rollback pattern documented in the runbook: sites use `import schild` and the snippet `(schild) { schild }`; the stock-Caddy rollback Caddyfile defines the snippet empty, so going back is the image tag plus one line'
+  gate:
+    - 'all site blocks of one Caddyfile share one gate (one learning state, one dashboard, one event store); a Caddy config load must never create a second gate or reset counters; no reliance on a process-wide singleton that a reload could replace'
+    - 'events carry the normalised host as today; per-site settings and the dashboard site switcher remain MVP-16 (with this spec a Caddyfile site block is the natural MVP-16 site)'
+    - 'client address: the TCP peer address, since schild terminates the connection; trusted_proxies only when a CDN or load balancer sits in front'
+  lifecycle:
+    - 'a panic in the schild handler is recovered and answers this one request with 503; it never stops the server'
+    - 'gate timeouts stay fail-closed (503 + Retry-After); there is no fail-open in this setup because schild is the ingress (accepted in D31; rollback replaces it)'
+    - 'schild version prints the embedded Caddy version; CI rebuilds and publishes the image on every Caddy security release'
+deployment:                         # runbook "Erster Server mit Kamal", German
+  - 'image from the CI pipeline for the server architecture (check `uname -m`; the first server is likely arm64), pinned by digest'
+  - 'Kamal accessory with network host: ports 80/443 bound directly, dashboard stays on 127.0.0.1:8788, real client addresses; fail2ban jails that targeted the DOCKER-USER chain move to INPUT (the runbook says how)'
+  - 'dashboard only through `ssh -L 8788:localhost:8788 <server>`; dashboard password set in preflight'
+  - 'access log via the Caddyfile log directive unchanged, so existing fail2ban filters and logrotate keep working'
+  - 'own addresses on the allowlist (`schild allow --mine`) before autoblock'
+  - 'privacy text for the privacy policy of every domain behind the ingress'
+  - 'order: install in observe; 14 days; review "hätte gesperrt" and add local exceptions (Livewire, JSON API); switch to autoblock; rollback rehearsed once before the switch'
+contracts:
+  new:                              # proposal; the contracts agent owns schemas, Go types and vectors (v0.4 if still unreleased, else v0.5)
+    - 'schild.yaml: network {enabled: bool, default true} (built in v0.4; D72 removed it again together with every network key)'
+    - 'schild.yaml: ingress {caddyfile, storage, unprotected_sites[]}; mutually exclusive with listen.proxy and upstream'
+    - 'client dashboard API: status gains network: "off" | "connected" | "degraded" (D72: gone with the network operations)'
+    - 'vectors: standalone valid/invalid (network keys present: refused as unknown since D72, test keys with production, autoblock with test profile), ingress valid/invalid (both ingress and upstream, missing caddyfile)'
+must:
+  - 'an egress capture shows no connection to any lab or relay address and no signal or feedback payload'
+  - 'no request reaches a backend through a site block without schild unless the operator listed the site as unprotected'
+  - 'a stock Caddyfile of the same Caddy version plus `schild` lines behaves like stock Caddy for everything schild does not decide (TLS, ACME, headers, file serving, logging, error handling)'
+  - 'existing certificates in ingress.storage are used; no reissue at first start'
+  - 'dashboard shows "Grundschutz aktiv"; no labs, relays, network rules or "Ohne Netz" texts anywhere (D72)'
+  - 'German UI copy, du-form, calm'
+  - 'D41: admission before NewTransaction with the limits, order and answers of contracts/body-limits.md; every limit acts in observe; a refused body causes no WAF work and no incident'
+  - 'D41, D44: held bytes count bytes read, never declared lengths, until the request ended; temp files under <storage.path>/tmp, removed at start; the budget counts max_in_flight_bytes'
+  - 'D44: a checked body leaves its transaction at every size; waiting bytes count every request with a body until it ended, per client, per network and for the gateway, checked at admission; the gauges show them'
+  - 'D44: only multipart/form-data on a single header is the class multipart; the class never promises a parser Coraza does not run'
+  - 'D45: every request counts from its admission until it ended, per client, per network and for the gateway, in every mode and for the allowlist; schild_requests_waiting shows them'
+  - 'D45: memory pressure from memory.stat refuses bodies at 70 %, requests at 85 % of the container limit; a stalled body counts as client_gone'
+  - 'D47: Server and Via are removed from every answer unless ingress.expose_server_headers is true'
+  - 'D46: open connections count per client, per network and for the gateway at the listener before TLS, on every server; a full scope gives the place of its oldest idle connection, where bytes without a request count as idle, else the new one is closed at once; a trusted proxy meets the gateway limit only'
+  - 'D46: held memory counts the slab and kernel memory, not clean page cache; the brake runs beside GOMEMLIMIT and the gauge shows -1 when none can run'
+  - 'D46: rules.d reloads on SIGHUP and schild rules reload without a dropped request; a set that does not build leaves the running one in place'
+  - 'D41: the waiting page decision handles reason body_busy; 429 body_client_share never reaches cgnat, mobile or tor'
+  - 'D41: raw_body_too_large from Precheck and while streaming; no media type lowers an inspection'
+  - 'D41: client_gone writes no incident and no event; the rate is measured with fixed windows, also on open bodies, and enforces nothing'
+  - 'D41: the fixes of body-limits.md section 9, each with a test'
+measure:                            # by an independent agent, not the builder
+  - 'D44: no OOM kill and no 137 at 2 GiB and 2 CPUs with backends of 1, 3, 10 and 30 s, for one address, one network and many networks, at every body size up to the class limit; schild_body_waiting_bytes shows the amount; offices and slow apps stay inside their share'
+  - 'D41: the paths of the private paper upload-handling-2026-10-30 (section 3.2), first on the arm64 test image, again on amd64: memory stays bounded, normal GETs keep their p95, a legitimate slow upload passes'
+  - 'D41: every limit in observe mode; the real network limits and factors with more than two client addresses, IPv6 included'
+  - 'D41: 7 days of schild_body_rate_bytes_per_second in the live test before anyone proposes enforcing the minimum rate'
+  - 'testlab with a local ACME server (Pebble): certificates issued, renewed and reused from storage'
+  - 'the anonymised Caddyfile of the use case (five sites, storage folder, probe block, JSON access log) loads unchanged apart from the `schild` lines; fail2ban-regex matches the new access log like the old one'
+  - 'M1: added latency against stock Caddy of the same version on the same host within the existing budget; under load with a hanging gate every request gets an answer (503), none hangs'
+  - 'reload/restart: learning state, allowlist and exceptions survive; a second config load in one process keeps one gate'
+  - 'egress capture: zero connections to labs or relays'
+  - 'rollback to the stock Caddy image with the empty snippet in under 60 s, sites reachable, certificates unchanged'
+  - 'replay of Livewire and JSON API traffic: false positive rate in autoblock after exceptions below 0.1 % of sessions; CGNAT simulation from MVP-17 unchanged (0 blocks)'
+kill_if: "a request reaches a backend through a site without schild that is not listed as unprotected OR the gateway sends anything to a lab or relay OR existing certificates are lost or reissued at first start OR the ingress stops answering because of the schild handler (hang or crash) OR autoblock acts during the learning period"
+done: "make contracts-test && make test && make testlab-up PROFILE=t1 && make smoke PROFILE=t1 (incl. standalone-ingress steps with Pebble)"
+out_of_scope:
+  - schild as an xcaddy plugin with a Caddy app module (approach B)
+  - Caddy admin API and hot reload
+  - per-site settings and the site switcher (MVP-16)
+  - JA4 from the TLS handshake (follow-up to MVP-18 now that schild terminates TLS)
+  - nginx as ingress (stays with schild front)
+  - network blocking for all ports (MVP-15)
+  - "D72: lab later: switching the network on (it comes back later through a new interface, D73)"
+open_questions:
+  - 'concept 09 and 23 plan stage 3 as observe-only; D31 allows autoblock with local rules on the initiator''s own servers after the learning period. Wording in concepts 09 and 23 to be adjusted by the initiator.'
+  - 'JA4 from the ClientHello now that schild terminates TLS: separate spec or extension of MVP-18?'
+  - 'bridge networking instead of network host: allow the dashboard to bind 0.0.0.0 inside the container when the host publishes it only on 127.0.0.1 (schild cannot verify that), or keep network host as the only documented way?'
+  - 'Caddy version: follow the latest Caddy patch release automatically in CI, or pin per schild release?'

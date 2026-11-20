@@ -1,0 +1,10 @@
+# unprotected: []
+# expect: refuse
+http://a.example.test:18080 {
+	file_server {
+		root /nonexistent
+	}
+	handle_errors {
+		reverse_proxy 127.0.0.1:18081
+	}
+}

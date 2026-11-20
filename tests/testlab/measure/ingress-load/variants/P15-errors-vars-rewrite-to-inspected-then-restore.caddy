@@ -1,0 +1,19 @@
+# unprotected: []
+# expect: refuse
+# Site hides the query from schild and fails; handle_errors saves the original URI, rewrites to the inspected URI (marker matches), restores and proxies.
+http://a.example.test:18080 {
+	route {
+		rewrite * /hidden?
+		schild
+		error "boom" 500
+	}
+	handle_errors {
+		route {
+			vars saved {uri}
+			rewrite * /hidden?
+			schild
+			rewrite * {vars.saved}
+			reverse_proxy 127.0.0.1:18082
+		}
+	}
+}

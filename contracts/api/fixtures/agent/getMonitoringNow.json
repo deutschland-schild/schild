@@ -1,0 +1,47 @@
+{
+  "generated_at": "2026-10-28T12:00:00Z",
+  "started_at": "2026-10-28T08:00:00Z",
+  "traffic": {
+    "window_s": 60,
+    "requests_per_s": 42.5,
+    "requests_per_s_10s": 40.1,
+    "stopped_share": 0.008,
+    "would_block_share": 0,
+    "fail_closed": 0,
+    "upstream_error_share": 0.001,
+    "latency_total_p50_ms": 18.6,
+    "latency_total_p95_ms": 91.3,
+    "latency_overhead_p95_ms": 1.2,
+    "latency_upstream_p95_ms": 89.9,
+    "bytes_in_per_s": 3100,
+    "bytes_out_per_s": 2400000,
+    "clients_unique": 180
+  },
+  "server": {
+    "sampled_at": "2026-10-28T11:59:58Z",
+    "scope": "host",
+    "cpu_usage": 0.23,
+    "cores": 4,
+    "load1": 0.9,
+    "memory_used_ratio": 0.61,
+    "memory_available_bytes": 3221225472,
+    "swap_used_bytes": 0,
+    "disk": {
+      "mount": "/",
+      "used_ratio": 0.72
+    },
+    "net_rx_bytes_per_s": 180000,
+    "net_tx_bytes_per_s": 2600000,
+    "uptime_s": 864000
+  },
+  "hints": [
+    {
+      "code": "disk_full_soon",
+      "level": "notice",
+      "since": "2026-10-28T09:00:00Z",
+      "value": 0.91,
+      "threshold": 0.9,
+      "object": "/var/lib/docker"
+    }
+  ]
+}

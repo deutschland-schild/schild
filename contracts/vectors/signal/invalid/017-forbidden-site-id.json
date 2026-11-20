@@ -1,0 +1,51 @@
+{
+  "contract": "signal",
+  "description": "Site identifier.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z",
+    "trust": [
+      "site-a",
+      "site-b",
+      "site-c",
+      "lab-a",
+      "lab-a2",
+      "lab-b",
+      "lab-c",
+      "lab-d"
+    ]
+  },
+  "input_raw": "{\"payloadType\":\"application/vnd.schild.signal.v0+json\",\"payload\":\"eyJhY3Rpb25fc2lnIjoibG9naW4tYnVyc3Qvd3AtYWRtaW4iLCJhZ2VudCI6eyJib3QiOmZhbHNlLCJmYW1pbHkiOiJweXRob24tcmVxdWVzdHMiLCJtYWpvciI6Mn0sImNhdGVnb3J5Ijoid29yZHByZXNzLWxvZ2luLWJydXRlZm9yY2UiLCJpZCI6IjRmNTM1NDU1LWVhNzktNGQzZC1hODA3LWIxMjlmMWVkYWVhZSIsImtpbmQiOiJ0aXAiLCJvcmlnaW4iOnsiYXNuIjoxNDA2MSwiYXR0cmlidXRpb24iOiJ0Y3BfcGVlciIsImNvdW50cnkiOiJOTCIsIm5ldF9jbGFzcyI6Imhvc3RpbmciLCJwcm90ZWN0ZWQiOmZhbHNlfSwicmVxdWVzdF9zaWciOiJzaGEyNTY6YTA3MTg3ZjFjN2QxYzU2NDNiMDJjZTczMGJlZjNkN2JjNTcwMGE1YmVlMGIzODMzZDEzZjI4MTlmMWUyYmU4MSIsInNjaGVtYSI6InNjaGlsZC5zaWduYWwvMC4zIiwic2NvcmUiOjcyLCJzaXRlX2lkIjoic2l0ZS0xMjMiLCJ0aW1lX2J1Y2tldCI6IjIwMjYtMTAtMjZUMTE6NTU6MDBaIiwid2FmX3J1bGVzIjpbOTMwMTIwLDk0OTExMF19\",\"signatures\":[{\"keyid\":\"test-site-a\",\"sig\":\"okD9KOguY3+LOB+g5s3kOjn2OWUC/FJLzuDMcH8CySwKlyUspXZW05RvcWfBs4QPiZQ+3TYPUbUT8K0YH7YiAw==\"}]}",
+  "input_decoded": {
+    "payload": {
+      "action_sig": "login-burst/wp-admin",
+      "agent": {
+        "bot": false,
+        "family": "python-requests",
+        "major": 2
+      },
+      "category": "wordpress-login-bruteforce",
+      "id": "4f535455-ea79-4d3d-a807-b129f1edaeae",
+      "kind": "tip",
+      "origin": {
+        "asn": 14061,
+        "attribution": "tcp_peer",
+        "country": "NL",
+        "net_class": "hosting",
+        "protected": false
+      },
+      "request_sig": "sha256:a07187f1c7d1c5643b02ce730bef3d7bc5700a5bee0b3833d13f2819f1e2be81",
+      "schema": "schild.signal/0.3",
+      "score": 72,
+      "site_id": "site-123",
+      "time_bucket": "2026-10-26T11:55:00Z",
+      "waf_rules": [
+        930120,
+        949110
+      ]
+    }
+  },
+  "expect": {
+    "valid": false,
+    "error": "forbidden_field"
+  }
+}

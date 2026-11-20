@@ -1,0 +1,7 @@
+# unprotected: []
+# expect: pass
+# Control: the recommended shape.
+http://a.example.test:26080 {
+	import schild
+	reverse_proxy 127.0.0.1:26082
+}

@@ -1,0 +1,17 @@
+# unprotected: []
+# expect: pass
+http://a.example.test:26080 {
+	handle_path /app/* {
+		import schild
+		error "boom" 500
+	}
+	handle {
+		import schild
+		reverse_proxy 127.0.0.1:26082
+	}
+	handle_errors {
+		import schild
+		uri replace /app /api
+		reverse_proxy 127.0.0.1:26082
+	}
+}

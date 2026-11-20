@@ -1,0 +1,32 @@
+{
+  "contract": "agent-block",
+  "description": "D42: at most 300 characters.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"budget\":{\"max_blocks\":500,\"oldest_write_age_s\":1000,\"running\":0,\"writes_per_hour\":30,\"writes_used\":0},\"duration_s\":60,\"mode\":\"autoblock\",\"op\":\"create\",\"reason\":\"xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\",\"scope\":\"blocks:write\",\"target\":{\"address\":\"203.0.113.7\",\"attribution\":\"tcp_peer\",\"exists\":true,\"net_class\":\"residential\"}}",
+  "input_decoded": {
+    "budget": {
+      "max_blocks": 500,
+      "oldest_write_age_s": 1000,
+      "running": 0,
+      "writes_per_hour": 30,
+      "writes_used": 0
+    },
+    "duration_s": 60,
+    "mode": "autoblock",
+    "op": "create",
+    "reason": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+    "scope": "blocks:write",
+    "target": {
+      "address": "203.0.113.7",
+      "attribution": "tcp_peer",
+      "exists": true,
+      "net_class": "residential"
+    }
+  },
+  "expect": {
+    "valid": false,
+    "error": "schema"
+  }
+}

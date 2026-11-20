@@ -1,0 +1,28 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://contracts.schild.invalid/v0/request-recheck.schema.json",
+  "title": "Re-checked request input (v0.5, D33 amendment 2026-10-29)",
+  "description": "Input of the request-recheck vectors: the evaluations schild ran for one HTTP request, in order (e.g. the site block's schild, then schild in handle_errors after the URI changed). The result is {requests, rechecked, outcome, detection, path, checked_paths, rules, score} (contract/monitoring.Recheck): the request counts once; outcome is the last evaluation's when it stopped the request, else would_block when any evaluation was would_block, else passed; only the last evaluation may stop the request (a stop ends it), anything else is `schema`. Never sent anywhere.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["evaluations"],
+  "properties": {
+    "evaluations": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 16,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["path", "outcome", "detection", "rules", "score"],
+        "properties": {
+          "path": { "description": "The path this evaluation inspected (redacted as the event path, no query).", "type": "string", "minLength": 1, "maxLength": 2048, "pattern": "^/[^\\x00-\\x1F\\x7F]*$" },
+          "outcome": { "type": "string", "enum": ["passed", "would_block", "blocked_waf", "blocked_behaviour", "rate_limited", "rejected_limit", "fail_closed", "blocked_crawler"] },
+          "detection": { "description": "The WAF reached its blocking decision (enforced or observed).", "type": "boolean" },
+          "rules": { "type": "array", "maxItems": 128, "items": { "type": "string", "pattern": "^[0-9]{1,9}$|^schild-20[0-9]{2}-[0-9]{4,6}$" } },
+          "score": { "type": "integer", "minimum": 0, "maximum": 100 }
+        }
+      }
+    }
+  }
+}

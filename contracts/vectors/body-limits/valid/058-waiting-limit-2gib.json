@@ -1,0 +1,18 @@
+{
+  "contract": "body-limits",
+  "description": "D44: a quarter of the memory: 512 MiB at 2 GiB.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"memory_bytes\":2147483648,\"op\":\"waiting_limit\"}",
+  "input_decoded": {
+    "memory_bytes": 2147483648,
+    "op": "waiting_limit"
+  },
+  "expect": {
+    "valid": true,
+    "result": {
+      "max_waiting_bytes": 536870912
+    }
+  }
+}

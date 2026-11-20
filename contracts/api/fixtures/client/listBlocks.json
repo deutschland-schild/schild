@@ -1,0 +1,38 @@
+{
+  "generated_at": "2026-11-18T10:00:00Z",
+  "items": [
+    {
+      "client": "203.0.113.7",
+      "source": "scenario",
+      "scenario": "waf_repeat",
+      "since": "2026-11-18T09:55:00Z",
+      "until": "2026-11-18T10:10:00Z",
+      "duration_s": 900,
+      "level": 1,
+      "net_class": "hosting",
+      "incident": "P9VZ-3J6K",
+      "kept": false,
+      "firewall": "banned"
+    },
+    {
+      "client": "2001:db8:1:2::/64",
+      "source": "agent",
+      "token_id": "tok_000000000001",
+      "since": "2026-11-18T08:00:00Z",
+      "until": "2026-11-20T08:00:00Z",
+      "duration_s": 172800,
+      "level": 1,
+      "net_class": "hosting",
+      "incident": "K7TQ-2M9P",
+      "kept": true,
+      "firewall": "pending"
+    }
+  ],
+  "total": 2,
+  "firewall": {
+    "state": "ok",
+    "table": "inet schild",
+    "synced_at": "2026-11-18T09:59:30Z",
+    "banned": 1
+  }
+}

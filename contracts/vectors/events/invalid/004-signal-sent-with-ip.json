@@ -1,0 +1,53 @@
+{
+  "contract": "events",
+  "description": "D72: the gateway sends no signals; schild.signal.sent.v1 is an unknown type.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"data\":{\"envelope_sha256\":\"sha256:0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f\",\"kind\":\"signal\",\"lab\":\"lab-a\",\"payload\":{\"action_sig\":\"login-burst/wp-admin\",\"agent\":{\"bot\":false,\"family\":\"python-requests\",\"major\":2},\"category\":\"wordpress-login-bruteforce\",\"id\":\"df86c32b-3f3d-4370-9817-8435d2966733\",\"ip\":\"203.0.113.42\",\"kind\":\"tip\",\"origin\":{\"asn\":14061,\"attribution\":\"tcp_peer\",\"country\":\"NL\",\"net_class\":\"hosting\",\"protected\":false},\"request_sig\":\"sha256:a07187f1c7d1c5643b02ce730bef3d7bc5700a5bee0b3833d13f2819f1e2be81\",\"schema\":\"schild.signal/0.3\",\"score\":72,\"time_bucket\":\"2026-10-26T11:55:00Z\",\"waf_rules\":[930120,949110]},\"result\":\"accepted\"},\"datacontenttype\":\"application/json\",\"id\":\"04fd14e2-be2a-4a21-bbe7-a6dd2618845b\",\"source\":\"schild://web-1\",\"specversion\":\"1.0\",\"time\":\"2026-10-26T11:59:58.123Z\",\"type\":\"schild.signal.sent.v1\"}",
+  "input_decoded": {
+    "data": {
+      "envelope_sha256": "sha256:0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f",
+      "kind": "signal",
+      "lab": "lab-a",
+      "payload": {
+        "action_sig": "login-burst/wp-admin",
+        "agent": {
+          "bot": false,
+          "family": "python-requests",
+          "major": 2
+        },
+        "category": "wordpress-login-bruteforce",
+        "id": "df86c32b-3f3d-4370-9817-8435d2966733",
+        "ip": "203.0.113.42",
+        "kind": "tip",
+        "origin": {
+          "asn": 14061,
+          "attribution": "tcp_peer",
+          "country": "NL",
+          "net_class": "hosting",
+          "protected": false
+        },
+        "request_sig": "sha256:a07187f1c7d1c5643b02ce730bef3d7bc5700a5bee0b3833d13f2819f1e2be81",
+        "schema": "schild.signal/0.3",
+        "score": 72,
+        "time_bucket": "2026-10-26T11:55:00Z",
+        "waf_rules": [
+          930120,
+          949110
+        ]
+      },
+      "result": "accepted"
+    },
+    "datacontenttype": "application/json",
+    "id": "04fd14e2-be2a-4a21-bbe7-a6dd2618845b",
+    "source": "schild://web-1",
+    "specversion": "1.0",
+    "time": "2026-10-26T11:59:58.123Z",
+    "type": "schild.signal.sent.v1"
+  },
+  "expect": {
+    "valid": false,
+    "error": "schema"
+  }
+}

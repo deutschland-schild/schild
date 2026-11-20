@@ -1,0 +1,289 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://contracts.schild.invalid/v0/body-limits.schema.json",
+  "title": "Body limits decision input (v0.5, D41, D44, D45, D46)",
+  "description": "Input of the body-limits vectors: one decision of the request body limits (contract/bodylimit, rules in body-limits.md). op admit: is a body admitted, and which answer does it get; op in_flight: the effective max_in_flight; op size: class, size limit and held bytes of one body; op rate: the measure-only rate of one body; op waiting: what a checked body counts while it waits for the backend; op waiting_limit: the effective max_waiting_bytes; op large_in_flight: the effective max_large_in_flight; op request_admit: is a request admitted to wait for the backend; op request_limit: the effective max_waiting; op pressure: the level of the memory pressure; op read_end: what a failed read of a body counts as; op read_outcome: its outcome in the request counters; op conn_admit: is a connection admitted; op conn_limit: the effective max_open; op held: what of memory.stat counts as held. Never sent anywhere.",
+  "oneOf": [
+    { "$ref": "#/$defs/admit" },
+    { "$ref": "#/$defs/inFlight" },
+    { "$ref": "#/$defs/size" },
+    { "$ref": "#/$defs/rate" },
+    { "$ref": "#/$defs/waiting" },
+    { "$ref": "#/$defs/waitingLimit" },
+    { "$ref": "#/$defs/largeInFlight" },
+    { "$ref": "#/$defs/requestAdmit" },
+    { "$ref": "#/$defs/requestLimit" },
+    { "$ref": "#/$defs/pressure" },
+    { "$ref": "#/$defs/readEnd" },
+    { "$ref": "#/$defs/readOutcome" },
+    { "$ref": "#/$defs/connAdmit" },
+    { "$ref": "#/$defs/connLimit" },
+    { "$ref": "#/$defs/held" }
+  ],
+  "$defs": {
+    "count": { "type": "integer", "minimum": 0, "maximum": 1048576 },
+    "bytes": { "type": "integer", "minimum": 0, "maximum": 9007199254740991 },
+    "pressureLevel": { "type": "integer", "enum": [0, 1, 2] },
+    "admit": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["op", "limits", "state", "net_class", "client_known", "jitter_draw"],
+      "properties": {
+        "op": { "const": "admit" },
+        "limits": {
+          "description": "Effective limits; max_in_flight is what op in_flight returns.",
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["max_per_client", "max_per_network", "max_in_flight", "max_in_flight_bytes"],
+          "properties": {
+            "max_per_client": { "type": "integer", "minimum": 1, "maximum": 4096 },
+            "max_per_network": { "type": "integer", "minimum": 1, "maximum": 65536 },
+            "max_in_flight": { "type": "integer", "minimum": 1, "maximum": 1048576 },
+            "max_in_flight_bytes": { "type": "integer", "minimum": 1, "maximum": 1099511627776 },
+            "max_waiting_bytes_per_client": { "description": "D44; absent: no limit.", "type": "integer", "minimum": 1, "maximum": 1099511627776 },
+            "max_waiting_bytes_per_network": { "description": "D44; absent: no limit.", "type": "integer", "minimum": 1, "maximum": 1099511627776 },
+            "max_waiting_bytes": { "description": "D44; absent: no limit.", "type": "integer", "minimum": 1, "maximum": 1099511627776 },
+            "max_large_in_flight": { "description": "D45; absent: no limit.", "type": "integer", "minimum": 1, "maximum": 1048576 }
+          }
+        },
+        "state": {
+          "description": "What runs now, without this request: bodies being read of the client key, of its network and of the gateway, and the held bytes of the gateway.",
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["client", "network", "in_flight", "in_flight_bytes"],
+          "properties": {
+            "client": { "$ref": "#/$defs/count" },
+            "network": { "$ref": "#/$defs/count" },
+            "in_flight": { "$ref": "#/$defs/count" },
+            "in_flight_bytes": { "$ref": "#/$defs/bytes" },
+            "client_waiting_bytes": { "description": "D44: waiting bytes of the client key.", "$ref": "#/$defs/bytes" },
+            "network_waiting_bytes": { "description": "D44: waiting bytes of its network.", "$ref": "#/$defs/bytes" },
+            "waiting_bytes": { "description": "D44: waiting bytes of the gateway.", "$ref": "#/$defs/bytes" },
+            "pressure": { "description": "D45: the level of op pressure.", "$ref": "#/$defs/pressureLevel" },
+            "large_in_flight": { "description": "D45: large bodies being read on the gateway.", "$ref": "#/$defs/count" },
+            "large": { "description": "D45: this body is large: declared over 128 KiB, or of unknown length.", "type": "boolean" }
+          }
+        },
+        "net_class": { "$ref": "common.schema.json#/$defs/netClass" },
+        "client_known": { "description": "false: no valid client address, only the gateway-wide limits apply.", "type": "boolean" },
+        "jitter_draw": { "description": "Uniform random 32-bit value drawn per response.", "type": "integer", "minimum": 0, "maximum": 4294967295 }
+      }
+    },
+    "inFlight": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["op", "memory_bytes"],
+      "properties": {
+        "op": { "const": "in_flight" },
+        "configured": { "description": "waf.body.max_in_flight; absent: derived.", "type": "integer", "minimum": 1, "maximum": 1048576 },
+        "memory_bytes": { "description": "Memory of the container or machine, GOMEMLIMIT when the operator set it; 0: unknown.", "$ref": "#/$defs/bytes" }
+      }
+    },
+    "size": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["op", "bytes", "raw_limit_bytes", "body_limit_bytes"],
+      "properties": {
+        "op": { "const": "size" },
+        "content_type": { "description": "The Content-Type header value; absent: none sent.", "type": "string", "maxLength": 256 },
+        "content_types": { "description": "D44: every Content-Type value of a request that sent the header more than once. Wins over content_type.", "type": "array", "minItems": 2, "maxItems": 8, "items": { "type": "string", "maxLength": 256 } },
+        "bytes": { "description": "The declared length, or what was read so far.", "$ref": "#/$defs/bytes" },
+        "raw_limit_bytes": { "description": "waf.raw_body_limit_bytes.", "type": "integer", "minimum": 1024, "maximum": 134217728 },
+        "body_limit_bytes": { "description": "waf.request_body_limit_bytes.", "type": "integer", "minimum": 1024, "maximum": 134217728 }
+      }
+    },
+    "waiting": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["op", "bytes"],
+      "properties": {
+        "op": { "const": "waiting" },
+        "bytes": { "description": "Size of the checked body.", "$ref": "#/$defs/bytes" }
+      }
+    },
+    "waitingLimit": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["op", "memory_bytes"],
+      "properties": {
+        "op": { "const": "waiting_limit" },
+        "configured_bytes": { "description": "waf.body.max_waiting_bytes; absent: derived.", "type": "integer", "minimum": 1048576, "maximum": 1099511627776 },
+        "memory_bytes": { "description": "Memory of the container or machine, GOMEMLIMIT when the operator set it; 0: unknown.", "$ref": "#/$defs/bytes" }
+      }
+    },
+    "largeInFlight": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["op", "memory_bytes"],
+      "properties": {
+        "op": { "const": "large_in_flight" },
+        "configured": { "description": "waf.body.max_large_in_flight; absent: derived.", "type": "integer", "minimum": 1, "maximum": 1048576 },
+        "memory_bytes": { "description": "Memory of the container or machine, GOMEMLIMIT when the operator set it; 0: unknown.", "$ref": "#/$defs/bytes" }
+      }
+    },
+    "requestAdmit": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["op", "request_limits", "request_state", "net_class", "client_known", "jitter_draw"],
+      "properties": {
+        "op": { "const": "request_admit" },
+        "request_limits": {
+          "description": "Effective limits; max_waiting is what op request_limit returns.",
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["max_waiting_per_client", "max_waiting_per_network", "max_waiting"],
+          "properties": {
+            "max_waiting_per_client": { "type": "integer", "minimum": 1, "maximum": 1048576 },
+            "max_waiting_per_network": { "type": "integer", "minimum": 1, "maximum": 4194304 },
+            "max_waiting": { "type": "integer", "minimum": 1, "maximum": 4194304 }
+          }
+        },
+        "request_state": {
+          "description": "What runs now, without this request.",
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["client_waiting", "network_waiting", "waiting"],
+          "properties": {
+            "client_waiting": { "type": "integer", "minimum": 0, "maximum": 4194304 },
+            "network_waiting": { "type": "integer", "minimum": 0, "maximum": 4194304 },
+            "waiting": { "type": "integer", "minimum": 0, "maximum": 4194304 },
+            "pressure": { "description": "The level of op pressure.", "$ref": "#/$defs/pressureLevel" }
+          }
+        },
+        "net_class": { "$ref": "common.schema.json#/$defs/netClass" },
+        "client_known": { "description": "false: no valid client address, only the gateway-wide limit applies.", "type": "boolean" },
+        "jitter_draw": { "description": "Uniform random 32-bit value drawn per response.", "type": "integer", "minimum": 0, "maximum": 4294967295 }
+      }
+    },
+    "requestLimit": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["op", "memory_bytes"],
+      "properties": {
+        "op": { "const": "request_limit" },
+        "configured": { "description": "waf.requests.max_waiting; absent: derived.", "type": "integer", "minimum": 1, "maximum": 4194304 },
+        "memory_bytes": { "description": "Memory of the container or machine, GOMEMLIMIT when the operator set it; 0: unknown.", "$ref": "#/$defs/bytes" }
+      }
+    },
+    "pressure": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["op", "memory_bytes", "held_bytes"],
+      "properties": {
+        "op": { "const": "pressure" },
+        "memory_bytes": { "description": "The memory limit of the container; 0: none known.", "$ref": "#/$defs/bytes" },
+        "held_bytes": { "description": "What op held returns.", "$ref": "#/$defs/bytes" }
+      }
+    },
+    "readOutcome": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["op", "end"],
+      "properties": {
+        "op": { "const": "read_outcome" },
+        "end": { "description": "How the read failed.", "enum": ["client_left", "timeout", "error"] }
+      }
+    },
+    "connAdmit": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["op", "conn_limits", "conn_state", "net_class", "peer_known", "proxy"],
+      "properties": {
+        "op": { "const": "conn_admit" },
+        "conn_limits": {
+          "description": "Effective limits; max_open is what op conn_limit returns.",
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["max_per_client", "max_per_network", "max_open"],
+          "properties": {
+            "max_per_client": { "type": "integer", "minimum": 1, "maximum": 1048576 },
+            "max_per_network": { "type": "integer", "minimum": 1, "maximum": 4194304 },
+            "max_open": { "type": "integer", "minimum": 1, "maximum": 4194304 }
+          }
+        },
+        "conn_state": {
+          "description": "What is open now, without this connection, and whether an idle connection of the scope can give way.",
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["client", "network", "open"],
+          "properties": {
+            "client": { "$ref": "#/$defs/count" },
+            "network": { "$ref": "#/$defs/count" },
+            "open": { "$ref": "#/$defs/count" },
+            "client_idle": { "type": "boolean" },
+            "network_idle": { "type": "boolean" },
+            "open_idle": { "type": "boolean" }
+          }
+        },
+        "net_class": { "$ref": "common.schema.json#/$defs/netClass" },
+        "peer_known": { "description": "false without a usable peer address: only the gateway limit applies.", "type": "boolean" },
+        "proxy": { "description": "The peer is a trusted proxy: its address is not the client, only the gateway limit applies.", "type": "boolean" }
+      }
+    },
+    "connLimit": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["op", "memory_bytes"],
+      "properties": {
+        "op": { "const": "conn_limit" },
+        "configured": { "description": "waf.connections.max_open; absent: derived.", "type": "integer", "minimum": 1, "maximum": 4194304 },
+        "memory_bytes": { "description": "Memory of the container or machine, GOMEMLIMIT when the operator set it; 0: unknown.", "$ref": "#/$defs/bytes" }
+      }
+    },
+    "held": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["op", "stat"],
+      "properties": {
+        "op": { "const": "held" },
+        "stat": {
+          "description": "Lines of memory.stat; slab is slab_reclaimable + slab_unreclaimable.",
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "anon": { "$ref": "#/$defs/bytes" },
+            "sock": { "$ref": "#/$defs/bytes" },
+            "slab": { "$ref": "#/$defs/bytes" },
+            "kernel_stack": { "$ref": "#/$defs/bytes" },
+            "pagetables": { "$ref": "#/$defs/bytes" },
+            "shmem": { "$ref": "#/$defs/bytes" },
+            "file_dirty": { "$ref": "#/$defs/bytes" },
+            "file_writeback": { "$ref": "#/$defs/bytes" }
+          }
+        }
+      }
+    },
+    "readEnd": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["op", "end"],
+      "properties": {
+        "op": { "const": "read_end" },
+        "end": { "description": "How the read failed: the client left, a read timeout of the server ended it, or anything else.", "enum": ["client_left", "timeout", "error"] }
+      }
+    },
+    "rate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["op", "arrivals", "end_ms"],
+      "properties": {
+        "op": { "const": "rate" },
+        "arrivals": {
+          "description": "The reads of one body, in order.",
+          "type": "array",
+          "maxItems": 256,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["t_ms", "bytes"],
+            "properties": {
+              "t_ms": { "description": "Milliseconds after the start of the body.", "type": "integer", "minimum": 0, "maximum": 86400000 },
+              "bytes": { "$ref": "#/$defs/bytes" }
+            }
+          }
+        },
+        "end_ms": { "description": "The end of the body, or now while it is open.", "type": "integer", "minimum": 0, "maximum": 86400000 }
+      }
+    }
+  }
+}

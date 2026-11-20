@@ -1,0 +1,86 @@
+{
+  "contract": "ingress-order",
+  "description": "D43: Accepted (D43): a request id made by the server.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"caddyfile\":\"http://a.example.test {\\n\\troute {\\n\\t\\trequest_header X-Request-Id {http.request.uuid}\\n\\t\\tschild\\n\\t\\treverse_proxy 127.0.0.1:18082 {\\n\\t\\t\\theader_up X-Request-Id {http.request.uuid}\\n\\t\\t}\\n\\t}\\n}\\n\",\"servers\":{\"srv0\":{\"listen\":[\":80\"],\"routes\":[{\"handle\":[{\"handler\":\"subroute\",\"routes\":[{\"handle\":[{\"handler\":\"subroute\",\"routes\":[{\"handle\":[{\"handler\":\"headers\",\"request\":{\"set\":{\"X-Request-Id\":[\"{http.request.uuid}\"]}}},{\"handler\":\"schild\"},{\"handler\":\"reverse_proxy\",\"headers\":{\"request\":{\"set\":{\"X-Request-Id\":[\"{http.request.uuid}\"]}}},\"upstreams\":[{\"dial\":\"127.0.0.1:18082\"}]}]}]}]}]}],\"match\":[{\"host\":[\"a.example.test\"]}],\"terminal\":true}]}}}",
+  "input_decoded": {
+    "caddyfile": "http://a.example.test {\n\troute {\n\t\trequest_header X-Request-Id {http.request.uuid}\n\t\tschild\n\t\treverse_proxy 127.0.0.1:18082 {\n\t\t\theader_up X-Request-Id {http.request.uuid}\n\t\t}\n\t}\n}\n",
+    "servers": {
+      "srv0": {
+        "listen": [
+          ":80"
+        ],
+        "routes": [
+          {
+            "handle": [
+              {
+                "handler": "subroute",
+                "routes": [
+                  {
+                    "handle": [
+                      {
+                        "handler": "subroute",
+                        "routes": [
+                          {
+                            "handle": [
+                              {
+                                "handler": "headers",
+                                "request": {
+                                  "set": {
+                                    "X-Request-Id": [
+                                      "{http.request.uuid}"
+                                    ]
+                                  }
+                                }
+                              },
+                              {
+                                "handler": "schild"
+                              },
+                              {
+                                "handler": "reverse_proxy",
+                                "headers": {
+                                  "request": {
+                                    "set": {
+                                      "X-Request-Id": [
+                                        "{http.request.uuid}"
+                                      ]
+                                    }
+                                  }
+                                },
+                                "upstreams": [
+                                  {
+                                    "dial": "127.0.0.1:18082"
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ],
+            "match": [
+              {
+                "host": [
+                  "a.example.test"
+                ]
+              }
+            ],
+            "terminal": true
+          }
+        ]
+      }
+    }
+  },
+  "expect": {
+    "valid": true,
+    "result": {
+      "findings": []
+    }
+  }
+}

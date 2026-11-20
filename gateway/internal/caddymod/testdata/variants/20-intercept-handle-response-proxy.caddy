@@ -1,0 +1,11 @@
+# unprotected: []
+# expect: refuse
+http://a.example.test:18080 {
+	intercept {
+		@any status 2xx
+		handle_response @any {
+			reverse_proxy 127.0.0.1:18081
+		}
+	}
+	respond "x" 200
+}

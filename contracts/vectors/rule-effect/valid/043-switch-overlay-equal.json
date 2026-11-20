@@ -1,0 +1,24 @@
+{
+  "contract": "rule-effect",
+  "description": "The same value in both: nothing to show.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"config\":\"block\",\"op\":\"switch\",\"overlay\":\"block\",\"repository\":\"crowdsec\"}",
+  "input_decoded": {
+    "config": "block",
+    "op": "switch",
+    "overlay": "block",
+    "repository": "crowdsec"
+  },
+  "expect": {
+    "valid": true,
+    "result": {
+      "state": "block",
+      "source": "dashboard",
+      "changed": false,
+      "rebuild": false,
+      "differs": false
+    }
+  }
+}

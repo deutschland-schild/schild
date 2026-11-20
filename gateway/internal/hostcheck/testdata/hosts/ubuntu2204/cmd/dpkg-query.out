@@ -1,0 +1,11 @@
+nodejs	18.20.4-1nodesource1	ii 
+python3	3.10.6-1~22.04.1	ii 
+python3.10	3.10.12-1~22.04.6	ii 
+postgresql-14	14.13-0ubuntu0.22.04.1	ii 
+php8.1-cli	8.1.2-1ubuntu2.19	ii 
+openssl	3.0.2-0ubuntu1.18	ii 
+libssl3:amd64	3.0.2-0ubuntu1.18	ii 
+openssh-server	1:8.9p1-3ubuntu0.10	ii 
+docker.io	24.0.7-0ubuntu2~22.04.1	ii 
+libexpat1:amd64	2.4.7-1ubuntu0.3	ii 
+snapd	2.63+22.04ubuntu0.1	ii 

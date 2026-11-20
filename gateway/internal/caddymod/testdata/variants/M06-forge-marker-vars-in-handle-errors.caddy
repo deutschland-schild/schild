@@ -1,0 +1,15 @@
+# unprotected: []
+# expect: pass
+# vars schild.passed set inside handle_errors itself (vars runs before schild by directive order).
+http://:18080 {
+	import schild
+	reverse_proxy 127.0.0.1:18081
+	handle_errors {
+		vars schild.passed 1
+		import schild
+		reverse_proxy 127.0.0.1:18081
+	}
+}
+http://b.example.test:18080 {
+	error "boom" 500
+}

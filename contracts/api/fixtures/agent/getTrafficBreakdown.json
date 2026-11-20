@@ -1,0 +1,40 @@
+{
+  "by": "path",
+  "from": "2026-10-28T11:00:00Z",
+  "to": "2026-10-28T12:00:00Z",
+  "resolution": "1m",
+  "exact": false,
+  "total": {
+    "requests": 150000,
+    "stopped": 1200,
+    "would_block": 30
+  },
+  "items": [
+    {
+      "key": "/",
+      "requests": 40000,
+      "stopped": 2,
+      "would_block": 0,
+      "error": 0
+    },
+    {
+      "key": "/wp-login.php",
+      "requests": 9000,
+      "stopped": 800,
+      "would_block": 10,
+      "error": 12
+    },
+    {
+      "key": "/blog/{slug}/",
+      "requests": 8000,
+      "stopped": 0,
+      "would_block": 0,
+      "error": 12
+    }
+  ],
+  "other": {
+    "requests": 93000,
+    "stopped": 398,
+    "would_block": 20
+  }
+}

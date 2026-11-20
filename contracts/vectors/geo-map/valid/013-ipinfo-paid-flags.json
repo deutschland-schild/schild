@@ -1,0 +1,30 @@
+{
+  "contract": "geo-map",
+  "description": "v0.5 MVP-22: paid-tier flags; hosting gives net_class hosting.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"provider\":\"ipinfo\",\"record\":{\"asn\":\"AS64511\",\"country_code\":\"US\",\"is_anycast\":true,\"is_hosting\":true,\"is_mobile\":false,\"is_vpn\":false}}",
+  "input_decoded": {
+    "provider": "ipinfo",
+    "record": {
+      "asn": "AS64511",
+      "country_code": "US",
+      "is_anycast": true,
+      "is_hosting": true,
+      "is_mobile": false,
+      "is_vpn": false
+    }
+  },
+  "expect": {
+    "valid": true,
+    "result": {
+      "asn": 64511,
+      "country": "US",
+      "is_hosting": true,
+      "is_mobile": false,
+      "is_vpn": false,
+      "net_class": "hosting"
+    }
+  }
+}

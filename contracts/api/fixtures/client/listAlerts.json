@@ -1,0 +1,42 @@
+{
+  "site": "verein.example",
+  "items": [
+    {
+      "t": "2026-10-29T11:59:58Z",
+      "event_id": "f2064730-835b-4d96-b173-d92534ccd620",
+      "kind": "waf",
+      "outcome": "blocked",
+      "category": "lfi",
+      "rules": ["930120"],
+      "path": "/wp-login.php",
+      "country": "NL",
+      "net_class": "hosting",
+      "client_pseudonym": "p1-0011223344556677",
+      "incident": "K7QM-4XWD"
+    },
+    {
+      "t": "2026-10-29T11:59:10Z",
+      "event_id": "5b7e2c94-3d1a-4f86-a0c2-9e4d6b8f1a37",
+      "kind": "waf",
+      "outcome": "would_block",
+      "category": "xss",
+      "rules": ["941100"],
+      "path": "/kontakt/",
+      "country": "DE",
+      "net_class": "residential",
+      "client_pseudonym": "p1-8899aabbccddeeff",
+      "possible_false_positive": true
+    },
+    {
+      "t": "2026-10-29T11:58:00Z",
+      "event_id": "0c1a5c6e-8f0b-4e6a-9d55-2f6d7c1e4b11",
+      "kind": "behaviour",
+      "outcome": "would_block",
+      "category": "behaviour",
+      "scenario": "login_bruteforce",
+      "path": "/wp-login.php",
+      "country": "DE",
+      "net_class": "residential"
+    }
+  ]
+}

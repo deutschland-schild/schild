@@ -1,0 +1,38 @@
+{
+  "contract": "feedback",
+  "description": "Feedback without local change.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z",
+    "trust": [
+      "site-a",
+      "site-b",
+      "site-c",
+      "lab-a",
+      "lab-a2",
+      "lab-b",
+      "lab-c",
+      "lab-d"
+    ]
+  },
+  "input_raw": "{\"payloadType\":\"application/vnd.schild.feedback.v0+json\",\"payload\":\"eyJidW5kbGVfdmVyc2lvbiI6NDIsImRlY2lkZWRfYnkiOiJvcGVyYXRvciIsImlkIjoiNTM0MjU3YmMtZWQ5MC00MGIzLWIwOTItZTMzMjFjZWMzNmU3IiwibG9jYWxfYWN0aW9uIjoidW5jaGFuZ2VkIiwibWF0Y2hfc2hhcGUiOnsiY29udGVudF90eXBlIjoibm9uZSIsImxlbl9idWNrZXQiOiI2NC0yNTYiLCJsb2NhdGlvbiI6IlJFUVVFU1RfSEVBREVSUzpSZWZlcmVyIn0sInJ1bGVfaWQiOiJzY2hpbGQtMjAyNi0wNDEyIiwic2NoZW1hIjoic2NoaWxkLmZlZWRiYWNrLzAuMiIsInRpbWVfYnVja2V0IjoiMjAyNi0xMC0yNlQxMTo1MDowMFoiLCJ2ZXJkaWN0IjoiZmFsc2VfcG9zaXRpdmUifQ==\",\"signatures\":[{\"keyid\":\"test-site-c\",\"sig\":\"2VBhPE4QrOjHRaEUNhxC0hRrzziWZYMuBVqSckz5OPC0l53SFLu/YZaqOkOeULgjR26Rl+sYstZ7r30W0/OFCg==\"}]}",
+  "input_decoded": {
+    "payload": {
+      "bundle_version": 42,
+      "decided_by": "operator",
+      "id": "534257bc-ed90-40b3-b092-e3321cec36e7",
+      "local_action": "unchanged",
+      "match_shape": {
+        "content_type": "none",
+        "len_bucket": "64-256",
+        "location": "REQUEST_HEADERS:Referer"
+      },
+      "rule_id": "schild-2026-0412",
+      "schema": "schild.feedback/0.2",
+      "time_bucket": "2026-10-26T11:50:00Z",
+      "verdict": "false_positive"
+    }
+  },
+  "expect": {
+    "valid": true
+  }
+}

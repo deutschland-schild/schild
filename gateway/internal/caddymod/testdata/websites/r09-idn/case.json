@@ -1,0 +1,31 @@
+{
+ "resolve": [
+  "xn--bcher-kva.example",
+  "b\u00fccher.example",
+  "xn--mller-kva.de"
+ ],
+ "blocks": [
+  {
+   "Addresses": [
+    "b\u00fccher.example"
+   ],
+   "Schild": true,
+   "Proxies": true
+  },
+  {
+   "Addresses": [
+    "xn--bcher-kva.example:8443"
+   ],
+   "Schild": true,
+   "Proxies": true
+  },
+  {
+   "Addresses": [
+    "m\u00fcller.de",
+    "www.m\u00fcller.de"
+   ],
+   "Schild": true,
+   "Proxies": true
+  }
+ ]
+}

@@ -1,0 +1,11 @@
+# unprotected: []
+# expect: refuse
+# No error path: route hides the query from schild, then restores the original URI from the placeholder and proxies.
+http://a.example.test:18080 {
+	route {
+		rewrite * /hidden?
+		schild
+		rewrite * {http.request.orig_uri}
+		reverse_proxy 127.0.0.1:18082
+	}
+}

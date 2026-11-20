@@ -1,0 +1,24 @@
+{
+  "contract": "rule-effect",
+  "description": "Detect to block needs no rebuild: the next request decides differently.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"config\":\"detect\",\"op\":\"switch\",\"repository\":\"crowdsec\",\"requested\":\"block\"}",
+  "input_decoded": {
+    "config": "detect",
+    "op": "switch",
+    "repository": "crowdsec",
+    "requested": "block"
+  },
+  "expect": {
+    "valid": true,
+    "result": {
+      "state": "block",
+      "source": "dashboard",
+      "changed": true,
+      "rebuild": false,
+      "differs": true
+    }
+  }
+}

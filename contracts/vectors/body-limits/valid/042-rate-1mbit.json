@@ -1,0 +1,38 @@
+{
+  "contract": "body-limits",
+  "description": "D41, E2: 12 MB at 1 Mbit/s stays far above the minimum.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"arrivals\":[{\"bytes\":3750000,\"t_ms\":1000},{\"bytes\":3750000,\"t_ms\":31000},{\"bytes\":3750000,\"t_ms\":61000}],\"end_ms\":90000,\"op\":\"rate\"}",
+  "input_decoded": {
+    "arrivals": [
+      {
+        "bytes": 3750000,
+        "t_ms": 1000
+      },
+      {
+        "bytes": 3750000,
+        "t_ms": 31000
+      },
+      {
+        "bytes": 3750000,
+        "t_ms": 61000
+      }
+    ],
+    "end_ms": 90000,
+    "op": "rate"
+  },
+  "expect": {
+    "valid": true,
+    "result": {
+      "below_min": false,
+      "first_below": null,
+      "windows": [
+        125000,
+        125000,
+        125000
+      ]
+    }
+  }
+}

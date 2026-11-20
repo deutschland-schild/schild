@@ -1,0 +1,20 @@
+{
+  "contract": "rule-effect",
+  "description": "Test profile: the repository would block.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"mode\":\"observe\",\"op\":\"repository\",\"state\":\"block\"}",
+  "input_decoded": {
+    "mode": "observe",
+    "op": "repository",
+    "state": "block"
+  },
+  "expect": {
+    "valid": true,
+    "result": {
+      "effect": "would_block",
+      "limited_by": "gateway_observe"
+    }
+  }
+}

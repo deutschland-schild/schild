@@ -1,0 +1,39 @@
+{
+  "contract": "website-status",
+  "description": "D36: untracked, but its server has a hint: attention.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"monitoring\":true,\"protection\":\"protected\",\"servers\":[{\"baseline_protection\":\"active\",\"hints\":[{\"code\":\"memory_low\",\"level\":\"warning\"}],\"node\":\"web-1\",\"state\":\"ok\"}],\"tracked\":false}",
+  "input_decoded": {
+    "monitoring": true,
+    "protection": "protected",
+    "servers": [
+      {
+        "baseline_protection": "active",
+        "hints": [
+          {
+            "code": "memory_low",
+            "level": "warning"
+          }
+        ],
+        "node": "web-1",
+        "state": "ok"
+      }
+    ],
+    "tracked": false
+  },
+  "expect": {
+    "valid": true,
+    "result": {
+      "reasons": [
+        {
+          "code": "server_hint",
+          "hint": "memory_low",
+          "node": "web-1"
+        }
+      ],
+      "status": "attention"
+    }
+  }
+}

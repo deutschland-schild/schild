@@ -1,0 +1,10 @@
+# unprotected: []
+# expect: pass
+# schild in a named route, invoked first; reverse_proxy after it (guarded at runtime). Refusal = over-rejection.
+&(guard) {
+	schild
+}
+http://a.example.test:18080 {
+	invoke guard
+	reverse_proxy 127.0.0.1:18081
+}

@@ -1,0 +1,36 @@
+{
+  "contract": "body-limits",
+  "description": "D45: the gateway at max_waiting: 503 request_busy for a client within its share.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"client_known\":true,\"jitter_draw\":0,\"net_class\":\"residential\",\"op\":\"request_admit\",\"request_limits\":{\"max_waiting\":8192,\"max_waiting_per_client\":1024,\"max_waiting_per_network\":4096},\"request_state\":{\"client_waiting\":0,\"network_waiting\":0,\"waiting\":8192}}",
+  "input_decoded": {
+    "client_known": true,
+    "jitter_draw": 0,
+    "net_class": "residential",
+    "op": "request_admit",
+    "request_limits": {
+      "max_waiting": 8192,
+      "max_waiting_per_client": 1024,
+      "max_waiting_per_network": 4096
+    },
+    "request_state": {
+      "client_waiting": 0,
+      "network_waiting": 0,
+      "waiting": 8192
+    }
+  },
+  "expect": {
+    "valid": true,
+    "result": {
+      "admitted": false,
+      "class": "fail_closed",
+      "code": "request_busy",
+      "fail_closed": "body_busy",
+      "retry_after": null,
+      "scope": "gateway",
+      "status": 503
+    }
+  }
+}

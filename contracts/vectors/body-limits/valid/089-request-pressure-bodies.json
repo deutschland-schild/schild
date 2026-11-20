@@ -1,0 +1,37 @@
+{
+  "contract": "body-limits",
+  "description": "D45: the first level of pressure stops bodies, requests go on.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"client_known\":true,\"jitter_draw\":0,\"net_class\":\"residential\",\"op\":\"request_admit\",\"request_limits\":{\"max_waiting\":8192,\"max_waiting_per_client\":1024,\"max_waiting_per_network\":4096},\"request_state\":{\"client_waiting\":0,\"network_waiting\":0,\"pressure\":1,\"waiting\":0}}",
+  "input_decoded": {
+    "client_known": true,
+    "jitter_draw": 0,
+    "net_class": "residential",
+    "op": "request_admit",
+    "request_limits": {
+      "max_waiting": 8192,
+      "max_waiting_per_client": 1024,
+      "max_waiting_per_network": 4096
+    },
+    "request_state": {
+      "client_waiting": 0,
+      "network_waiting": 0,
+      "pressure": 1,
+      "waiting": 0
+    }
+  },
+  "expect": {
+    "valid": true,
+    "result": {
+      "admitted": true,
+      "class": null,
+      "code": null,
+      "fail_closed": null,
+      "retry_after": null,
+      "scope": null,
+      "status": null
+    }
+  }
+}

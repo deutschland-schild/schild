@@ -1,0 +1,45 @@
+id: MVP-08
+title: "Open geo dataset: country, ASN and net class per prefix (CC0)"
+ships: false                        # not built in the prototype; the prototype ships DB-IP Lite (E7) and compares in stage 3
+status: planned
+hypotheses: [M2, D2]
+refs: [E4, E7, concept-24, concept-18-G1, concept-18-G5, concept-18-G6, concept-13, concept-22]
+depends_on: [MVP-01, stage 3 live data for the comparison]
+why: >
+  Signals carry country, ASN and net class instead of an IP (E4), so every gateway needs a local,
+  bundled, signed lookup table. Commercial-free lite databases (DB-IP Lite CC BY 4.0, IPinfo Lite
+  CC BY-SA 4.0) work for the prototype but bind us to one vendor's methods and licence terms. An open,
+  reproducible dataset from primary sources makes the derivation auditable and CC0.
+contracts:
+  in:  [public source snapshots listed below, pinned by sha256]
+  out:
+    - geo.mmdb                      # MaxMind DB format, readable with pure-Go readers; prefix -> {country, asn, as_org, net_class}
+    - geo manifest                  # DSSE-signed like a rule bundle (k-of-n), new payload type application/vnd.schild.geo-db.v0+json (contract change, v1 of the contracts)
+    - 'build report                  # per source: version, sha256, row counts, conflicts resolved'
+sources:
+  country:
+    - RIR extended delegation stats (AFRINIC, APNIC, ARIN, LACNIC, RIPE NCC)
+    - RFC 8805 geofeeds, discovered via RFC 9632 inetnum/NetRange geofeed attributes
+  asn:
+    - RIPE RIS and RouteViews MRT RIB dumps (origin AS per prefix, majority over collectors)
+  net_class:
+    - published cloud and hosting ranges (AWS ip-ranges.json, Google Cloud, Microsoft Azure service tags, Oracle Cloud, Cloudflare, other providers with official lists) -> hosting
+    - PeeringDB network info_type per ASN (NSP, Content, Cable/DSL/ISP, Enterprise, Educational/Research, Non-Profit, Government) -> residential, business, education, government, hosting
+    - Tor Project exit list -> tor
+    - 'mobile and CGNAT hints: PeeringDB and geofeeds where available, otherwise unknown (never guessed)'
+must:
+  - reproducible: pinned snapshots, deterministic build (same inputs -> byte-identical output), one command
+  - output licence CC0-1.0; every source licence and attribution requirement checked and documented before use (ZU PRÜFEN)
+  - only prefix -> country, ASN, AS name, net class; no city, no coordinates, no IP reputation
+  - signed manifest with the same k-of-n rule as bundles; shipped with rule updates via relays (by reference), verified before swap
+  - gateways look up locally only; never a per-request query to a third party
+  - update at most weekly; gateways keep the last verified database when an update fails
+  - size below 30 MB, lookup p99 below 5 microseconds in Go
+  - 'precedence documented and tested: geofeed > RIR for country; RIS/RouteViews majority origin for ASN; Tor > cloud range > PeeringDB > unknown for net class'
+measure:
+  - 'stage 3, offline and local on the initiator''s servers: agreement with DB-IP Lite (and IPinfo Lite if licensed) on country and ASN, weighted by real request counts'
+  - share of requests with net class unknown
+  - build time and size
+kill_if: "country agreement with DB-IP Lite < 95 % of requests OR ASN agreement < 98 % OR any source licence incompatible with CC0 redistribution -> keep DB-IP Lite"
+done: "make geo-build && make eval SPEC=MVP-08"   # not wired yet
+out_of_scope: [city level, IP reputation lists, distribution of anything per IP beyond prefix attributes, building it during the prototype]

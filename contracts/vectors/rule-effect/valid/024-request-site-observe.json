@@ -1,0 +1,25 @@
+{
+  "contract": "rule-effect",
+  "description": "A website in observe: would_block, site_observe.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"mode\":\"autoblock\",\"now\":1000000,\"op\":\"request\",\"origin\":\"release\",\"site_mode\":\"observe\",\"state\":\"block\"}",
+  "input_decoded": {
+    "mode": "autoblock",
+    "now": 1000000,
+    "op": "request",
+    "origin": "release",
+    "site_mode": "observe",
+    "state": "block"
+  },
+  "expect": {
+    "valid": true,
+    "result": {
+      "action": "would_block",
+      "outcome": "would_block",
+      "would_block_reason": "site_observe",
+      "counts_as_hit": false
+    }
+  }
+}

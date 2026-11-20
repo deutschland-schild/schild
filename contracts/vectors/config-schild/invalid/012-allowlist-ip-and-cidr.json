@@ -1,0 +1,29 @@
+{
+  "contract": "config/schild",
+  "description": "Exactly one of ip, cidr, host.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"allowlist\":[{\"cidr\":\"203.0.113.0/24\",\"expires\":\"never\",\"ip\":\"203.0.113.42\",\"label\":\"x\",\"level\":\"no_block\"}],\"config_version\":0,\"mode\":\"observe\",\"node_name\":\"web-1\",\"upstream\":{\"url\":\"http://app:80\"}}",
+  "input_decoded": {
+    "allowlist": [
+      {
+        "cidr": "203.0.113.0/24",
+        "expires": "never",
+        "ip": "203.0.113.42",
+        "label": "x",
+        "level": "no_block"
+      }
+    ],
+    "config_version": 0,
+    "mode": "observe",
+    "node_name": "web-1",
+    "upstream": {
+      "url": "http://app:80"
+    }
+  },
+  "expect": {
+    "valid": false,
+    "error": "schema"
+  }
+}

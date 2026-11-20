@@ -1,0 +1,94 @@
+{
+  "contract": "ingress-order",
+  "description": "D31 amendment 2026-10-29: Refused: the walk follows invoke into the named route; its rewrite runs before the schild after the invoke.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"caddyfile\":\"&(hide) {\\n\\trewrite * /hidden?\\n}\\nhttp://a.example.test {\\n\\troute {\\n\\t\\tinvoke hide\\n\\t\\tschild\\n\\t\\treverse_proxy 127.0.0.1:18082\\n\\t}\\n}\\n\",\"servers\":{\"srv0\":{\"listen\":[\":80\"],\"named_routes\":{\"hide\":{\"handle\":[{\"handler\":\"rewrite\",\"uri\":\"/hidden?\"}]}},\"routes\":[{\"handle\":[{\"handler\":\"subroute\",\"routes\":[{\"handle\":[{\"handler\":\"subroute\",\"routes\":[{\"handle\":[{\"handler\":\"invoke\",\"name\":\"hide\"},{\"handler\":\"schild\"},{\"handler\":\"reverse_proxy\",\"upstreams\":[{\"dial\":\"127.0.0.1:18082\"}]}]}]}]}]}],\"match\":[{\"host\":[\"a.example.test\"]}],\"terminal\":true}]}}}",
+  "input_decoded": {
+    "caddyfile": "&(hide) {\n\trewrite * /hidden?\n}\nhttp://a.example.test {\n\troute {\n\t\tinvoke hide\n\t\tschild\n\t\treverse_proxy 127.0.0.1:18082\n\t}\n}\n",
+    "servers": {
+      "srv0": {
+        "listen": [
+          ":80"
+        ],
+        "named_routes": {
+          "hide": {
+            "handle": [
+              {
+                "handler": "rewrite",
+                "uri": "/hidden?"
+              }
+            ]
+          }
+        },
+        "routes": [
+          {
+            "handle": [
+              {
+                "handler": "subroute",
+                "routes": [
+                  {
+                    "handle": [
+                      {
+                        "handler": "subroute",
+                        "routes": [
+                          {
+                            "handle": [
+                              {
+                                "handler": "invoke",
+                                "name": "hide"
+                              },
+                              {
+                                "handler": "schild"
+                              },
+                              {
+                                "handler": "reverse_proxy",
+                                "upstreams": [
+                                  {
+                                    "dial": "127.0.0.1:18082"
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ],
+            "match": [
+              {
+                "host": [
+                  "a.example.test"
+                ]
+              }
+            ],
+            "terminal": true
+          }
+        ]
+      }
+    }
+  },
+  "expect": {
+    "valid": true,
+    "result": {
+      "findings": [
+        {
+          "code": "rewrite_before_schild",
+          "msg_key": "ingress.err.rewrite_before_schild",
+          "server": "srv0",
+          "route": "/routes/0",
+          "hosts": [
+            "a.example.test"
+          ],
+          "directive": "rewrite",
+          "rewrite": "/named_routes/hide/handle/0",
+          "schild": "/routes/0/handle/0/routes/0/handle/0/routes/0/handle/1"
+        }
+      ]
+    }
+  }
+}

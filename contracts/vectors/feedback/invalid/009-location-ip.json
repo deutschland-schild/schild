@@ -1,0 +1,39 @@
+{
+  "contract": "feedback",
+  "description": "Address-like parameter name in the match location.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z",
+    "trust": [
+      "site-a",
+      "site-b",
+      "site-c",
+      "lab-a",
+      "lab-a2",
+      "lab-b",
+      "lab-c",
+      "lab-d"
+    ]
+  },
+  "input_raw": "{\"payloadType\":\"application/vnd.schild.feedback.v0+json\",\"payload\":\"eyJidW5kbGVfdmVyc2lvbiI6NDIsImRlY2lkZWRfYnkiOiJvcGVyYXRvciIsImlkIjoiNjdmNWI5MzYtNGRhOS00NDkxLWI2ZDktMDViY2E1Mjg1YWU1IiwibG9jYWxfYWN0aW9uIjoic3VzcGVuZGVkIiwibWF0Y2hfc2hhcGUiOnsiY29udGVudF90eXBlIjoiYXBwbGljYXRpb24vanNvbiIsImxlbl9idWNrZXQiOiIyNTYtMWsiLCJsb2NhdGlvbiI6IkFSR1M6MjAzLjAuMTEzLjcifSwicnVsZV9pZCI6InNjaGlsZC0yMDI2LTA0MTIiLCJzY2hlbWEiOiJzY2hpbGQuZmVlZGJhY2svMC4yIiwidGltZV9idWNrZXQiOiIyMDI2LTEwLTI2VDExOjUwOjAwWiIsInZlcmRpY3QiOiJmYWxzZV9wb3NpdGl2ZSJ9\",\"signatures\":[{\"keyid\":\"test-site-a\",\"sig\":\"iXxU0bU71WMqkaUEc2Cp1d0KxhIzcEVsi0nF7FfCMhH4/woyw3yGs5UqGwRlCxCX1Cc2zSkqr7D6t+c9KRKRBA==\"}]}",
+  "input_decoded": {
+    "payload": {
+      "bundle_version": 42,
+      "decided_by": "operator",
+      "id": "67f5b936-4da9-4491-b6d9-05bca5285ae5",
+      "local_action": "suspended",
+      "match_shape": {
+        "content_type": "application/json",
+        "len_bucket": "256-1k",
+        "location": "ARGS:203.0.113.7"
+      },
+      "rule_id": "schild-2026-0412",
+      "schema": "schild.feedback/0.2",
+      "time_bucket": "2026-10-26T11:50:00Z",
+      "verdict": "false_positive"
+    }
+  },
+  "expect": {
+    "valid": false,
+    "error": "schema"
+  }
+}

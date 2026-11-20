@@ -1,0 +1,13 @@
+{
+  "contract": "seclang",
+  "description": "SecLang subset case origin-targets-site (max_action block).",
+  "context": {
+    "now": "2026-10-26T12:00:00Z",
+    "max_action": "block"
+  },
+  "input_raw": "SecRule REQUEST_HEADERS:Origin \"@endsWith .shop.example\" \"id:7700127,phase:1,deny,severity:CRITICAL,msg:'x'\"",
+  "expect": {
+    "valid": false,
+    "error": "seclang"
+  }
+}

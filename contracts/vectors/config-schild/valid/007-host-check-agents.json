@@ -1,0 +1,47 @@
+{
+  "contract": "config/schild",
+  "description": "v0.3: agents enrolled by explicit public key, one revoked.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"config_version\":0,\"host_check\":{\"agents\":{\"enabled\":true,\"enrolment_code_minutes\":30,\"interval_minutes\":1440,\"keys\":[{\"keyid\":\"test-agent-a\",\"public_key\":\"ed25519:k4Jo2i0t1jM/ypQ8qdG7m7mjuj/vAt6SWtdc0tTr3RM=\"},{\"keyid\":\"test-agent-b\",\"public_key\":\"ed25519:hEBeFUCSqQRT/IHGXW9ZVUjE8//n6/zILijAmGwdNdE=\"},{\"hostname\":\"old-app.example\",\"keyid\":\"test-agent-c\",\"public_key\":\"ed25519:w1LqGJnMxNQO7Ndxepv5elItYscixqBb6AkGZ1qeRtM=\",\"revoked\":true}],\"listen\":\"0.0.0.0:8790\",\"tls_cert\":\"/etc/schild/tls/agents.crt\",\"tls_key\":\"/etc/schild/tls/agents.key\"},\"keep_reports\":30,\"report_dir\":\"/var/lib/schild/host-check\"},\"mode\":\"observe\",\"node_name\":\"web-1\",\"upstream\":{\"url\":\"http://app:80\"}}",
+  "input_decoded": {
+    "config_version": 0,
+    "host_check": {
+      "agents": {
+        "enabled": true,
+        "enrolment_code_minutes": 30,
+        "interval_minutes": 1440,
+        "keys": [
+          {
+            "keyid": "test-agent-a",
+            "public_key": "ed25519:k4Jo2i0t1jM/ypQ8qdG7m7mjuj/vAt6SWtdc0tTr3RM="
+          },
+          {
+            "keyid": "test-agent-b",
+            "public_key": "ed25519:hEBeFUCSqQRT/IHGXW9ZVUjE8//n6/zILijAmGwdNdE="
+          },
+          {
+            "hostname": "old-app.example",
+            "keyid": "test-agent-c",
+            "public_key": "ed25519:w1LqGJnMxNQO7Ndxepv5elItYscixqBb6AkGZ1qeRtM=",
+            "revoked": true
+          }
+        ],
+        "listen": "0.0.0.0:8790",
+        "tls_cert": "/etc/schild/tls/agents.crt",
+        "tls_key": "/etc/schild/tls/agents.key"
+      },
+      "keep_reports": 30,
+      "report_dir": "/var/lib/schild/host-check"
+    },
+    "mode": "observe",
+    "node_name": "web-1",
+    "upstream": {
+      "url": "http://app:80"
+    }
+  },
+  "expect": {
+    "valid": true
+  }
+}

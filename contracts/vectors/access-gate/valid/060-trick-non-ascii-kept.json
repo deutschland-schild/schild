@@ -1,0 +1,33 @@
+{
+  "contract": "access-gate",
+  "description": "D56: bytes outside ASCII are written as upper-case escapes in the canonical form and do not match.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"allowlisted\":false,\"path\":\"/wp-adm%C3%AFn/\",\"protection\":{\"own_networks\":false,\"password\":true,\"paths\":[\"/wp-admin/*\",\"/wp-login.php\"],\"scope\":\"paths\",\"website\":\"musterverein.example\"},\"session\":\"none\"}",
+  "input_decoded": {
+    "allowlisted": false,
+    "path": "/wp-adm%C3%AFn/",
+    "protection": {
+      "own_networks": false,
+      "password": true,
+      "paths": [
+        "/wp-admin/*",
+        "/wp-login.php"
+      ],
+      "scope": "paths",
+      "website": "musterverein.example"
+    },
+    "session": "none"
+  },
+  "expect": {
+    "valid": true,
+    "result": {
+      "answer": "pass",
+      "canonical_path": "/wp-adm%C3%AFn",
+      "login_form": false,
+      "reason": "not_protected",
+      "status": 0
+    }
+  }
+}

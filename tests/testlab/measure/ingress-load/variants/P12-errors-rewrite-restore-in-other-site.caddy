@@ -1,0 +1,22 @@
+# unprotected: []
+# expect: refuse
+# Like P01 but the restoring handle_errors is written in another site.
+http://a.example.test:18080 {
+	route {
+		rewrite * /hidden?
+		schild
+		error "boom" 500
+	}
+}
+http://b.example.test:18080 {
+	import schild
+	respond "b"
+	handle_errors {
+		route {
+			rewrite * /hidden?
+			schild
+			rewrite * {http.request.orig_uri}
+			reverse_proxy 127.0.0.1:18082
+		}
+	}
+}

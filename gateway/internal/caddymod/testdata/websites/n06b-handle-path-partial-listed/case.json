@@ -1,0 +1,25 @@
+{
+ "unprotected_sites": [
+  "part.example.org"
+ ],
+ "resolve": [
+  "part.example.org",
+  "ok.example.org"
+ ],
+ "blocks": [
+  {
+   "Addresses": [
+    "part.example.org"
+   ],
+   "Schild": false,
+   "Proxies": true
+  },
+  {
+   "Addresses": [
+    "ok.example.org"
+   ],
+   "Schild": true,
+   "Proxies": true
+  }
+ ]
+}

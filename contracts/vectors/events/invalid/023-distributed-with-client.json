@@ -1,0 +1,49 @@
+{
+  "contract": "events",
+  "description": "v0.4 MVP-18: wave events are address-free.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"data\":{\"action\":\"respond\",\"client\":{\"attribution\":\"tcp_peer\",\"geo\":{\"as_org\":\"Example Hosting B.V.\",\"asn\":64500,\"city\":\"Amsterdam\",\"country\":\"NL\",\"net_class\":\"hosting\"},\"ip\":\"203.0.113.42\",\"port\":51234},\"count\":380,\"detector\":\"fingerprint_cluster\",\"fingerprint\":\"3f9a0c11b2d4\",\"fingerprint_kind\":\"headers\",\"host\":\"verein.example\",\"mode\":\"respond\",\"response\":\"route_tighten\",\"route\":\"/wp-login.php\",\"senders\":380,\"threshold\":20,\"until\":\"2026-10-26T12:20:00Z\",\"user_agents\":41,\"wave_id\":\"c83ff94c-538e-4e32-a122-9866586e0868\",\"window_s\":300},\"datacontenttype\":\"application/json\",\"id\":\"36883e6b-9ad0-45a2-9a82-db4b76a4fa53\",\"source\":\"schild://web-1\",\"specversion\":\"1.0\",\"time\":\"2026-10-26T11:59:58.123Z\",\"type\":\"schild.distributed.detected.v1\"}",
+  "input_decoded": {
+    "data": {
+      "action": "respond",
+      "client": {
+        "attribution": "tcp_peer",
+        "geo": {
+          "as_org": "Example Hosting B.V.",
+          "asn": 64500,
+          "city": "Amsterdam",
+          "country": "NL",
+          "net_class": "hosting"
+        },
+        "ip": "203.0.113.42",
+        "port": 51234
+      },
+      "count": 380,
+      "detector": "fingerprint_cluster",
+      "fingerprint": "3f9a0c11b2d4",
+      "fingerprint_kind": "headers",
+      "host": "verein.example",
+      "mode": "respond",
+      "response": "route_tighten",
+      "route": "/wp-login.php",
+      "senders": 380,
+      "threshold": 20,
+      "until": "2026-10-26T12:20:00Z",
+      "user_agents": 41,
+      "wave_id": "c83ff94c-538e-4e32-a122-9866586e0868",
+      "window_s": 300
+    },
+    "datacontenttype": "application/json",
+    "id": "36883e6b-9ad0-45a2-9a82-db4b76a4fa53",
+    "source": "schild://web-1",
+    "specversion": "1.0",
+    "time": "2026-10-26T11:59:58.123Z",
+    "type": "schild.distributed.detected.v1"
+  },
+  "expect": {
+    "valid": false,
+    "error": "schema"
+  }
+}

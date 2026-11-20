@@ -1,0 +1,112 @@
+{
+  "contract": "ingress-order",
+  "description": "D43: Refused (D43): a server-side value in the hider changes nothing: the hider hides, and the writer brings the client value back.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"caddyfile\":\"http://a.example.test {\\n\\troute {\\n\\t\\trequest_header X-Saved {http.request.header.Referer}\\n\\t\\trequest_header Referer {http.request.scheme}\\n\\t\\tschild\\n\\t\\trequest_header Referer {http.request.header.X-Saved}\\n\\t\\treverse_proxy 127.0.0.1:18082\\n\\t}\\n}\\n\",\"servers\":{\"srv0\":{\"listen\":[\":80\"],\"routes\":[{\"handle\":[{\"handler\":\"subroute\",\"routes\":[{\"handle\":[{\"handler\":\"subroute\",\"routes\":[{\"handle\":[{\"handler\":\"headers\",\"request\":{\"set\":{\"X-Saved\":[\"{http.request.header.Referer}\"]}}},{\"handler\":\"headers\",\"request\":{\"set\":{\"Referer\":[\"{http.request.scheme}\"]}}},{\"handler\":\"schild\"},{\"handler\":\"headers\",\"request\":{\"set\":{\"Referer\":[\"{http.request.header.X-Saved}\"]}}},{\"handler\":\"reverse_proxy\",\"upstreams\":[{\"dial\":\"127.0.0.1:18082\"}]}]}]}]}]}],\"match\":[{\"host\":[\"a.example.test\"]}],\"terminal\":true}]}}}",
+  "input_decoded": {
+    "caddyfile": "http://a.example.test {\n\troute {\n\t\trequest_header X-Saved {http.request.header.Referer}\n\t\trequest_header Referer {http.request.scheme}\n\t\tschild\n\t\trequest_header Referer {http.request.header.X-Saved}\n\t\treverse_proxy 127.0.0.1:18082\n\t}\n}\n",
+    "servers": {
+      "srv0": {
+        "listen": [
+          ":80"
+        ],
+        "routes": [
+          {
+            "handle": [
+              {
+                "handler": "subroute",
+                "routes": [
+                  {
+                    "handle": [
+                      {
+                        "handler": "subroute",
+                        "routes": [
+                          {
+                            "handle": [
+                              {
+                                "handler": "headers",
+                                "request": {
+                                  "set": {
+                                    "X-Saved": [
+                                      "{http.request.header.Referer}"
+                                    ]
+                                  }
+                                }
+                              },
+                              {
+                                "handler": "headers",
+                                "request": {
+                                  "set": {
+                                    "Referer": [
+                                      "{http.request.scheme}"
+                                    ]
+                                  }
+                                }
+                              },
+                              {
+                                "handler": "schild"
+                              },
+                              {
+                                "handler": "headers",
+                                "request": {
+                                  "set": {
+                                    "Referer": [
+                                      "{http.request.header.X-Saved}"
+                                    ]
+                                  }
+                                }
+                              },
+                              {
+                                "handler": "reverse_proxy",
+                                "upstreams": [
+                                  {
+                                    "dial": "127.0.0.1:18082"
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ],
+            "match": [
+              {
+                "host": [
+                  "a.example.test"
+                ]
+              }
+            ],
+            "terminal": true
+          }
+        ]
+      }
+    }
+  },
+  "expect": {
+    "valid": true,
+    "result": {
+      "findings": [
+        {
+          "code": "header_hidden_from_schild",
+          "msg_key": "ingress.err.header_hidden_from_schild",
+          "server": "srv0",
+          "route": "/routes/0",
+          "hosts": [
+            "a.example.test"
+          ],
+          "directive": "request_header",
+          "hide": "/routes/0/handle/0/routes/0/handle/0/routes/0/handle/1",
+          "schild": "/routes/0/handle/0/routes/0/handle/0/routes/0/handle/2",
+          "restore": "/routes/0/handle/0/routes/0/handle/0/routes/0/handle/3",
+          "header": "referer"
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,66 @@
+{
+  "from": "2026-10-28T11:00:00Z",
+  "to": "2026-10-29T11:00:00Z",
+  "catalogue_version": "2026-10-29.1",
+  "verification": { "ranges": true, "fcrdns": false, "ranges_fetch": false },
+  "ranges": [
+    { "id": "googlebot", "operator": "Google", "fetched_at": "2026-10-27T00:00:00Z", "stale": false, "source": "release" },
+    { "id": "gptbot", "operator": "OpenAI", "fetched_at": "2026-10-27T00:00:00Z", "stale": false, "source": "release" },
+    { "id": "applebot", "operator": "Apple", "fetched_at": "2026-09-20T00:00:00Z", "stale": true, "source": "release" }
+  ],
+  "categories": [
+    { "category": "likely_browser", "requests": 18420, "bytes_out": 512000000, "bots": 0 },
+    { "category": "search_engine", "requests": 2210, "bytes_out": 61000000, "bots": 2 },
+    { "category": "ai_training", "requests": 940, "bytes_out": 43000000, "bots": 3 },
+    { "category": "ai_assistant", "requests": 35, "bytes_out": 900000, "bots": 1 },
+    { "category": "likely_automated", "requests": 610, "bytes_out": 3100000, "bots": 0 }
+  ],
+  "bots": [
+    {
+      "id": "googlebot",
+      "name": "Googlebot",
+      "operator": "Google",
+      "category": "search_engine",
+      "requests": 2150,
+      "bytes_out": 60000000,
+      "last_seen": "2026-10-29T10:58:12Z",
+      "verification": { "verified": 2112, "claimed": 0, "mismatch": 38, "unknown_stale": 0 },
+      "robots": { "token": "Googlebot", "read_at": "2026-10-29T06:01:00Z", "disallowed_requests": 0, "respects": "yes" }
+    },
+    {
+      "id": "gptbot",
+      "name": "GPTBot",
+      "operator": "OpenAI",
+      "category": "ai_training",
+      "requests": 620,
+      "bytes_out": 30000000,
+      "last_seen": "2026-10-29T10:12:11Z",
+      "verification": { "verified": 620, "claimed": 0, "mismatch": 0, "unknown_stale": 0 },
+      "blocked": 620,
+      "robots": { "token": "GPTBot", "read_at": "2026-10-29T02:30:00Z", "disallowed_requests": 0, "respects": "yes" }
+    },
+    {
+      "id": "examplecrawler",
+      "name": "ExampleCrawler",
+      "operator": "Example AI",
+      "category": "ai_training",
+      "requests": 280,
+      "bytes_out": 12000000,
+      "last_seen": "2026-10-29T09:40:00Z",
+      "verification": { "verified": 0, "claimed": 280, "mismatch": 0, "unknown_stale": 0 },
+      "robots": { "token": "ExampleCrawler", "read_at": null, "disallowed_requests": 41, "respects": "no" }
+    },
+    {
+      "id": "chatgpt-user",
+      "name": "ChatGPT-User",
+      "operator": "OpenAI",
+      "category": "ai_assistant",
+      "requests": 35,
+      "bytes_out": 900000,
+      "last_seen": "2026-10-29T10:44:03Z",
+      "verification": { "verified": 35, "claimed": 0, "mismatch": 0, "unknown_stale": 0 },
+      "robots": { "token": "ChatGPT-User", "read_at": null, "disallowed_requests": 0, "respects": "unclear" }
+    }
+  ],
+  "sample_rate": 1
+}

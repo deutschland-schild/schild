@@ -1,0 +1,52 @@
+{
+  "contract": "storage-bounds",
+  "description": "D38 (MVP-21): fewer than four counted days: no hint.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"days\":[{\"min_used_bytes\":75161927680,\"samples\":144},{\"min_used_bytes\":80530636800,\"samples\":35},{\"min_used_bytes\":85899345920,\"samples\":144},{\"min_used_bytes\":91268055040,\"samples\":20},{\"min_used_bytes\":96636764160,\"samples\":0},{\"min_used_bytes\":102005473280,\"samples\":0},{\"min_used_bytes\":105226698752,\"samples\":144}],\"op\":\"disk_projection\",\"total_bytes\":107374182400,\"used_bytes\":106300440576}",
+  "input_decoded": {
+    "days": [
+      {
+        "min_used_bytes": 75161927680,
+        "samples": 144
+      },
+      {
+        "min_used_bytes": 80530636800,
+        "samples": 35
+      },
+      {
+        "min_used_bytes": 85899345920,
+        "samples": 144
+      },
+      {
+        "min_used_bytes": 91268055040,
+        "samples": 20
+      },
+      {
+        "min_used_bytes": 96636764160,
+        "samples": 0
+      },
+      {
+        "min_used_bytes": 102005473280,
+        "samples": 0
+      },
+      {
+        "min_used_bytes": 105226698752,
+        "samples": 144
+      }
+    ],
+    "op": "disk_projection",
+    "total_bytes": 107374182400,
+    "used_bytes": 106300440576
+  },
+  "expect": {
+    "valid": true,
+    "result": {
+      "hint": false,
+      "level": null,
+      "days_left": null,
+      "rate_bytes_per_day": null
+    }
+  }
+}

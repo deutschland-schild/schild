@@ -1,0 +1,5 @@
+State      Recv-Q Send-Q Local Address:Port               Peer Address:Port
+LISTEN     0      128          *:22                       *:*                   users:(("sshd",pid=511,fd=3))
+LISTEN     0      80           *:3306                     *:*                   users:(("mysqld",pid=700,fd=21))
+LISTEN     0      128          *:10000                    *:*                   users:(("miniserv.pl",pid=800,fd=5))
+LISTEN     0      128         :::80                      :::*                   users:(("apache2",pid=600,fd=4))

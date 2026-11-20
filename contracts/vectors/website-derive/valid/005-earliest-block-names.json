@@ -1,0 +1,45 @@
+{
+  "contract": "website-derive",
+  "description": "D36: the first host of the earliest block is the id, even when a later block lists another host first.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"blocks\":[{\"addresses\":[\"www.example.org\"],\"proxies\":true,\"schild\":true},{\"addresses\":[\"example.org\",\"www.example.org\"],\"proxies\":true,\"schild\":true}],\"mode\":\"ingress\"}",
+  "input_decoded": {
+    "blocks": [
+      {
+        "addresses": [
+          "www.example.org"
+        ],
+        "proxies": true,
+        "schild": true
+      },
+      {
+        "addresses": [
+          "example.org",
+          "www.example.org"
+        ],
+        "proxies": true,
+        "schild": true
+      }
+    ],
+    "mode": "ingress"
+  },
+  "expect": {
+    "valid": true,
+    "result": {
+      "websites": [
+        {
+          "hosts": [
+            "www.example.org",
+            "example.org"
+          ],
+          "id": "www.example.org",
+          "label": "www.example.org",
+          "protection": "protected",
+          "tracked": true
+        }
+      ]
+    }
+  }
+}

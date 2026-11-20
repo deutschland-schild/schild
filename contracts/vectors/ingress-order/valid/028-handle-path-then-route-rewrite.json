@@ -1,0 +1,113 @@
+{
+  "contract": "ingress-order",
+  "description": "D31 amendment 2026-10-29: Refused: handle_path's own prefix strip is exempt, but the operator's uri replace inside the route before schild is not.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"caddyfile\":\"http://a.example.test {\\n\\thandle_path /app/* {\\n\\t\\troute {\\n\\t\\t\\turi replace /a /b\\n\\t\\t\\tschild\\n\\t\\t\\treverse_proxy 127.0.0.1:18082\\n\\t\\t}\\n\\t}\\n}\\n\",\"servers\":{\"srv0\":{\"listen\":[\":80\"],\"routes\":[{\"handle\":[{\"handler\":\"subroute\",\"routes\":[{\"handle\":[{\"handler\":\"subroute\",\"routes\":[{\"handle\":[{\"handler\":\"rewrite\",\"strip_path_prefix\":\"/app\"}]},{\"handle\":[{\"handler\":\"subroute\",\"routes\":[{\"handle\":[{\"handler\":\"rewrite\",\"uri_substring\":[{\"find\":\"/a\",\"replace\":\"/b\"}]},{\"handler\":\"schild\"},{\"handler\":\"reverse_proxy\",\"upstreams\":[{\"dial\":\"127.0.0.1:18082\"}]}]}]}]}]}],\"match\":[{\"path\":[\"/app/*\"]}]}]}],\"match\":[{\"host\":[\"a.example.test\"]}],\"terminal\":true}]}}}",
+  "input_decoded": {
+    "caddyfile": "http://a.example.test {\n\thandle_path /app/* {\n\t\troute {\n\t\t\turi replace /a /b\n\t\t\tschild\n\t\t\treverse_proxy 127.0.0.1:18082\n\t\t}\n\t}\n}\n",
+    "servers": {
+      "srv0": {
+        "listen": [
+          ":80"
+        ],
+        "routes": [
+          {
+            "handle": [
+              {
+                "handler": "subroute",
+                "routes": [
+                  {
+                    "handle": [
+                      {
+                        "handler": "subroute",
+                        "routes": [
+                          {
+                            "handle": [
+                              {
+                                "handler": "rewrite",
+                                "strip_path_prefix": "/app"
+                              }
+                            ]
+                          },
+                          {
+                            "handle": [
+                              {
+                                "handler": "subroute",
+                                "routes": [
+                                  {
+                                    "handle": [
+                                      {
+                                        "handler": "rewrite",
+                                        "uri_substring": [
+                                          {
+                                            "find": "/a",
+                                            "replace": "/b"
+                                          }
+                                        ]
+                                      },
+                                      {
+                                        "handler": "schild"
+                                      },
+                                      {
+                                        "handler": "reverse_proxy",
+                                        "upstreams": [
+                                          {
+                                            "dial": "127.0.0.1:18082"
+                                          }
+                                        ]
+                                      }
+                                    ]
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ],
+                    "match": [
+                      {
+                        "path": [
+                          "/app/*"
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ],
+            "match": [
+              {
+                "host": [
+                  "a.example.test"
+                ]
+              }
+            ],
+            "terminal": true
+          }
+        ]
+      }
+    }
+  },
+  "expect": {
+    "valid": true,
+    "result": {
+      "findings": [
+        {
+          "code": "rewrite_before_schild",
+          "msg_key": "ingress.err.rewrite_before_schild",
+          "server": "srv0",
+          "route": "/routes/0",
+          "hosts": [
+            "a.example.test"
+          ],
+          "directive": "uri",
+          "rewrite": "/routes/0/handle/0/routes/0/handle/0/routes/1/handle/0/routes/0/handle/0",
+          "schild": "/routes/0/handle/0/routes/0/handle/0/routes/1/handle/0/routes/0/handle/1"
+        }
+      ]
+    }
+  }
+}

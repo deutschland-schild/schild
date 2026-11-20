@@ -1,0 +1,24 @@
+{
+  "contract": "rule-effect",
+  "description": "Detect to off unloads the rules: a rebuild.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"config\":\"detect\",\"op\":\"switch\",\"repository\":\"local\",\"requested\":\"off\"}",
+  "input_decoded": {
+    "config": "detect",
+    "op": "switch",
+    "repository": "local",
+    "requested": "off"
+  },
+  "expect": {
+    "valid": true,
+    "result": {
+      "state": "off",
+      "source": "dashboard",
+      "changed": true,
+      "rebuild": true,
+      "differs": true
+    }
+  }
+}

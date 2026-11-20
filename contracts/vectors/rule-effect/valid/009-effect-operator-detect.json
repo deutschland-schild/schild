@@ -1,0 +1,23 @@
+{
+  "contract": "rule-effect",
+  "description": "The operator's rules in a repository set to detect.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"mode\":\"autoblock\",\"now\":1000000,\"op\":\"effect\",\"origin\":\"operator\",\"state\":\"detect\"}",
+  "input_decoded": {
+    "mode": "autoblock",
+    "now": 1000000,
+    "op": "effect",
+    "origin": "operator",
+    "state": "detect"
+  },
+  "expect": {
+    "valid": true,
+    "result": {
+      "status": "active",
+      "effect": "detect",
+      "limited_by": "repository_detect"
+    }
+  }
+}

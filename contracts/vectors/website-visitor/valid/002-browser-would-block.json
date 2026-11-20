@@ -1,0 +1,20 @@
+{
+  "contract": "website-visitor",
+  "description": "D36 amendment: forwarded in observe mode (hätte gesperrt) still counts: the request reached the website.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"bot_category\":\"likely_browser\",\"outcome\":\"would_block\",\"ua_class\":\"browser\"}",
+  "input_decoded": {
+    "bot_category": "likely_browser",
+    "outcome": "would_block",
+    "ua_class": "browser"
+  },
+  "expect": {
+    "valid": true,
+    "result": {
+      "bot_client": false,
+      "visitor": true
+    }
+  }
+}

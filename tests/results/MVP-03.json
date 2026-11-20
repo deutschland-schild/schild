@@ -1,0 +1,141 @@
+{
+  "results_version": 0,
+  "spec": "MVP-03",
+  "run_id": "MVP-03-m6-b13-20261026",
+  "started_at": "2026-10-26T19:38:48Z",
+  "finished_at": "2026-10-26T19:38:48Z",
+  "seed": 42,
+  "profile": "t0",
+  "git_rev": "1af9fe8-dirty",
+  "host": {
+    "os": "darwin",
+    "arch": "arm64",
+    "cpus": 12,
+    "mem_mb": 65536
+  },
+  "images": [
+    {
+      "name": "schild-lab:mvp",
+      "digest": "sha256:93406b68826f65fdc7eb5bfcd9872ed5484ad10315507cf7e213e9cac8f74ad5"
+    },
+    {
+      "name": "schild-testlab:mvp",
+      "digest": "sha256:a82cbc64ebaa1db0ce7109b51ca8de7a1b3d85b72b805899999839db3e06fb20"
+    }
+  ],
+  "scenarios": [
+    "B13"
+  ],
+  "hypotheses": [
+    "M6"
+  ],
+  "metrics": [
+    {
+      "name": "ack_p99_ms",
+      "value": 5.944,
+      "unit": "ms",
+      "labels": {
+        "source": "container_burst_client_observed",
+        "rate": "3000"
+      },
+      "samples": 45000
+    },
+    {
+      "name": "ack_p50_ms",
+      "value": 0.913,
+      "unit": "ms",
+      "labels": {
+        "source": "container_burst_client_observed"
+      },
+      "samples": 45000
+    },
+    {
+      "name": "ack_p99_ms",
+      "value": 3.668,
+      "unit": "ms",
+      "labels": {
+        "source": "lab_metric_schild_lab_ack_p99"
+      }
+    },
+    {
+      "name": "timeouts",
+      "value": 0.0,
+      "unit": "count",
+      "labels": {
+        "source": "container_burst"
+      }
+    },
+    {
+      "name": "responses_without_ack",
+      "value": 0.0,
+      "unit": "count",
+      "labels": {
+        "source": "container_burst"
+      }
+    },
+    {
+      "name": "retry_after_responses",
+      "value": 44551.0,
+      "unit": "count",
+      "labels": {
+        "source": "container_burst",
+        "reason": "rate_limited"
+      }
+    },
+    {
+      "name": "ack_p99_ms",
+      "value": 5.66,
+      "unit": "ms",
+      "labels": {
+        "source": "lab_b13_burst",
+        "clients": "10000"
+      }
+    },
+    {
+      "name": "ack_p99_ms",
+      "value": 1.04,
+      "unit": "ms",
+      "labels": {
+        "source": "lab_b13_queue_full"
+      }
+    },
+    {
+      "name": "ack_p99_ms",
+      "value": 30.64,
+      "unit": "ms",
+      "labels": {
+        "source": "lab_b13_saturation"
+      }
+    },
+    {
+      "name": "timeouts",
+      "value": 0.0,
+      "unit": "count",
+      "labels": {
+        "source": "lab_b13"
+      }
+    }
+  ],
+  "kill_criteria": [
+    {
+      "expr": "ack_p99_ms > 50",
+      "hit": false,
+      "observed": "container burst (3000/s, 45k submissions, 3 keys): client-observed ack p99=5.94 ms, lab metric p99=3.67 ms. Lab B13 harness (10k clients): burst p99=5.66, queue-full p99=1.04, saturation p99=30.64 ms - all < 50 ms."
+    },
+    {
+      "expr": "timeouts > 0",
+      "hit": false,
+      "observed": "0 connection errors/timeouts in the container burst; every response carried a signed ack (0 responses_without_ack); 44,551 overload answers were signed 429/503 with retry_after. Lab B13 queue-full: 49,989 x 503 queue_full with retry_after, 0 timeouts."
+    },
+    {
+      "expr": "proposals_from_single_operator > 0",
+      "hit": false,
+      "observed": "not evaluated in this run (M3, not an owned hypothesis); the t0 smoke confirmed four-eyes approval and >=3 distinct operators before publication."
+    }
+  ],
+  "verdict": "pass",
+  "notes": "M6/B13 lab ingest under burst. Two complementary measurements: (1) independent container burst - the measure tool fires presigned submissions open-loop at 3000/s for 15 s against the real lab-a:7443 over TLS (only the three configured test site keys exist in t0, so most answers are a signed 429 rate_limited; this stresses the signed-ack-under-overload path): client-observed ack p99=5.94 ms, lab-side schild_lab_ack_p99=3.67 ms, 0 timeouts, every response a signed ack. (2) the lab's own B13 harness (lab/internal/ingest TestBurstAckLatency) with 10,000 simulated clients and the scoring queue filled - burst p99=5.66 ms, queue-full p99=1.04 ms (49,989 x 503 queue_full + retry_after), saturation p99=30.64 ms, all < 50 ms, 0 failures. This second one is the component's own in-process harness, cited here because 10,000 distinct client keys and a forced-full scoring queue cannot be produced from outside the container.",
+  "artifacts": [
+    "results/measurements.md"
+  ]
+}

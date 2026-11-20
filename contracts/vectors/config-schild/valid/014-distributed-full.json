@@ -1,0 +1,72 @@
+{
+  "contract": "config/schild",
+  "description": "v0.4 MVP-18: detectors, responses, marked routes and a JA4 header of a trusted TLS terminator.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"behaviour\":{\"distributed\":{\"detectors\":{\"account_wave\":{\"mode\":\"respond\",\"thresholds\":{\"count\":10,\"window_s\":600}},\"fingerprint_cluster\":{\"mode\":\"respond\",\"thresholds\":{\"count\":20,\"window_s\":300}},\"inconsistency\":{\"mode\":\"off\"},\"route_wave\":{\"mode\":\"respond\",\"thresholds\":{\"count\":30,\"factor\":5,\"window_s\":60}},\"shape_wave\":{\"mode\":\"observe\"}},\"fingerprint\":{\"ja4_header\":\"X-JA4\"},\"learning_days\":30,\"responses\":{\"account_slowdown\":{\"max_s\":300,\"start_s\":5},\"route_tighten\":{\"limit_per_minute\":10,\"max_minutes\":60,\"minutes\":20}},\"routes\":[\"/checkout/**\",\"/api/login\"]}},\"config_version\":0,\"mode\":\"observe\",\"node_name\":\"web-1\",\"upstream\":{\"url\":\"http://app:80\"}}",
+  "input_decoded": {
+    "behaviour": {
+      "distributed": {
+        "detectors": {
+          "account_wave": {
+            "mode": "respond",
+            "thresholds": {
+              "count": 10,
+              "window_s": 600
+            }
+          },
+          "fingerprint_cluster": {
+            "mode": "respond",
+            "thresholds": {
+              "count": 20,
+              "window_s": 300
+            }
+          },
+          "inconsistency": {
+            "mode": "off"
+          },
+          "route_wave": {
+            "mode": "respond",
+            "thresholds": {
+              "count": 30,
+              "factor": 5,
+              "window_s": 60
+            }
+          },
+          "shape_wave": {
+            "mode": "observe"
+          }
+        },
+        "fingerprint": {
+          "ja4_header": "X-JA4"
+        },
+        "learning_days": 30,
+        "responses": {
+          "account_slowdown": {
+            "max_s": 300,
+            "start_s": 5
+          },
+          "route_tighten": {
+            "limit_per_minute": 10,
+            "max_minutes": 60,
+            "minutes": 20
+          }
+        },
+        "routes": [
+          "/checkout/**",
+          "/api/login"
+        ]
+      }
+    },
+    "config_version": 0,
+    "mode": "observe",
+    "node_name": "web-1",
+    "upstream": {
+      "url": "http://app:80"
+    }
+  },
+  "expect": {
+    "valid": true
+  }
+}

@@ -1,0 +1,14 @@
+# unprotected: []
+# expect: pass
+# The only schild of the server runs inside handle_errors; site b raises errors on every path, site c serves files.
+http://b.example.test:18080 {
+	error "boom" 500
+	handle_errors {
+		import schild
+		reverse_proxy 127.0.0.1:18081
+	}
+}
+http://c.example.test:18080 {
+	root * /tmp/m19m3-empty
+	file_server
+}

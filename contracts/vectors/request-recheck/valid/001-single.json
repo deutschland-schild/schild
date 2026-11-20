@@ -1,0 +1,32 @@
+{
+  "contract": "request-recheck",
+  "description": "D33 amendment 2026-10-29: one evaluation: counted once, no checked_paths.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"evaluations\":[{\"detection\":false,\"outcome\":\"passed\",\"path\":\"/login\",\"rules\":[],\"score\":0}]}",
+  "input_decoded": {
+    "evaluations": [
+      {
+        "detection": false,
+        "outcome": "passed",
+        "path": "/login",
+        "rules": [],
+        "score": 0
+      }
+    ]
+  },
+  "expect": {
+    "valid": true,
+    "result": {
+      "requests": 1,
+      "rechecked": false,
+      "outcome": "passed",
+      "detection": false,
+      "path": "/login",
+      "checked_paths": null,
+      "rules": [],
+      "score": 0
+    }
+  }
+}

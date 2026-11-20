@@ -1,0 +1,24 @@
+{
+  "contract": "config/schild",
+  "description": "v0.5 MVP-22: the token never lives in schild.yaml (token_file or SCHILD_GEO_TOKEN).",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"config_version\":0,\"geo\":{\"provider\":\"ipinfo\",\"token\":\"TEST-ONLY-NOT-A-TOKEN\"},\"mode\":\"observe\",\"node_name\":\"web-1\",\"upstream\":{\"url\":\"http://app:80\"}}",
+  "input_decoded": {
+    "config_version": 0,
+    "geo": {
+      "provider": "ipinfo",
+      "token": "TEST-ONLY-NOT-A-TOKEN"
+    },
+    "mode": "observe",
+    "node_name": "web-1",
+    "upstream": {
+      "url": "http://app:80"
+    }
+  },
+  "expect": {
+    "valid": false,
+    "error": "schema"
+  }
+}

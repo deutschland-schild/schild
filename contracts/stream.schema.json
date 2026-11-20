@@ -1,0 +1,58 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://contracts.schild.invalid/v0/stream.schema.json",
+  "title": "Relay stream event (SSE data line)",
+  "description": "One SSE event of GET /v0/stream. The SSE `id:` equals `id`, the SSE `event:` equals `type`. Relays are untrusted: everything that matters is inside signed envelopes. See stream.md.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["type", "id"],
+  "properties": {
+    "type": { "type": "string", "enum": ["schild.dist.checkpoint.v1", "schild.dist.bundle.v1", "schild.dist.withdrawal.v1", "schild.dist.heartbeat.v1"] },
+    "id": {
+      "description": "<relay stream epoch>-<seq>; used as SSE id and Last-Event-ID.",
+      "type": "string",
+      "pattern": "^[a-z0-9]{1,16}-[0-9]{1,19}$"
+    },
+    "envelope": { "$ref": "envelope.schema.json" },
+    "ref": {
+      "description": "Bundle by reference when the envelope exceeds the 32 KiB inline limit.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["bundle_id", "version", "url_path", "sha256", "size"],
+      "properties": {
+        "bundle_id": { "$ref": "common.schema.json#/$defs/id" },
+        "version": { "type": "integer", "minimum": 1, "maximum": 9007199254740991 },
+        "url_path": { "type": "string", "pattern": "^/v0/bundles/[a-z0-9][a-z0-9-]{0,62}/[0-9]{1,16}\\.json$" },
+        "sha256": { "description": "sha256 of the envelope bytes served at url_path.", "$ref": "common.schema.json#/$defs/sha256" },
+        "size": { "type": "integer", "minimum": 1, "maximum": 1048576 }
+      }
+    },
+    "relay": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "time"],
+      "properties": {
+        "id": { "$ref": "common.schema.json#/$defs/id" },
+        "time": { "description": "Relay clock, informational only.", "$ref": "common.schema.json#/$defs/timestamp" }
+      }
+    },
+    "checkpoint": { "$ref": "envelope.schema.json" }
+  },
+  "allOf": [
+    {
+      "if": { "properties": { "type": { "enum": ["schild.dist.checkpoint.v1", "schild.dist.withdrawal.v1"] } } },
+      "then": { "required": ["envelope"], "not": { "anyOf": [ { "required": ["ref"] }, { "required": ["relay"] }, { "required": ["checkpoint"] } ] } }
+    },
+    {
+      "if": { "properties": { "type": { "const": "schild.dist.bundle.v1" } } },
+      "then": {
+        "oneOf": [ { "required": ["envelope"] }, { "required": ["ref"] } ],
+        "not": { "anyOf": [ { "required": ["relay"] }, { "required": ["checkpoint"] } ] }
+      }
+    },
+    {
+      "if": { "properties": { "type": { "const": "schild.dist.heartbeat.v1" } } },
+      "then": { "required": ["relay", "checkpoint"], "not": { "anyOf": [ { "required": ["envelope"] }, { "required": ["ref"] } ] } }
+    }
+  ]
+}

@@ -1,0 +1,17 @@
+# unprotected: []
+# expect: pass
+# handle_path strips /app before schild; error; handle_errors with schild sees /app/... again (re-inspection, event count).
+http://a.example.test:18080 {
+	handle_path /app/* {
+		import schild
+		error "boom" 500
+	}
+	handle {
+		import schild
+		reverse_proxy 127.0.0.1:18082
+	}
+	handle_errors {
+		import schild
+		reverse_proxy 127.0.0.1:18082
+	}
+}

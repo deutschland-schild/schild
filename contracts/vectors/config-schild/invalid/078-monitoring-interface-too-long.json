@@ -1,0 +1,25 @@
+{
+  "contract": "config/schild",
+  "description": "v0.4 MVP-21: interface names have at most 15 characters (IFNAMSIZ).",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"config_version\":0,\"mode\":\"observe\",\"monitoring\":{\"interfaces\":[\"enp0s31f6-very-long\"]},\"node_name\":\"web-1\",\"upstream\":{\"url\":\"http://app:80\"}}",
+  "input_decoded": {
+    "config_version": 0,
+    "mode": "observe",
+    "monitoring": {
+      "interfaces": [
+        "enp0s31f6-very-long"
+      ]
+    },
+    "node_name": "web-1",
+    "upstream": {
+      "url": "http://app:80"
+    }
+  },
+  "expect": {
+    "valid": false,
+    "error": "schema"
+  }
+}

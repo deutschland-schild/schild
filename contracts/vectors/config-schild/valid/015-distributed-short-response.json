@@ -1,0 +1,28 @@
+{
+  "contract": "config/schild",
+  "description": "v0.4 MVP-18: a 1 minute response within the default maximum.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"behaviour\":{\"distributed\":{\"responses\":{\"route_tighten\":{\"minutes\":1}}}},\"config_version\":0,\"mode\":\"observe\",\"node_name\":\"web-1\",\"upstream\":{\"url\":\"http://app:80\"}}",
+  "input_decoded": {
+    "behaviour": {
+      "distributed": {
+        "responses": {
+          "route_tighten": {
+            "minutes": 1
+          }
+        }
+      }
+    },
+    "config_version": 0,
+    "mode": "observe",
+    "node_name": "web-1",
+    "upstream": {
+      "url": "http://app:80"
+    }
+  },
+  "expect": {
+    "valid": true
+  }
+}

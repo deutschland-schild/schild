@@ -1,0 +1,567 @@
+{
+  "contract": "website-derive",
+  "description": "D36: the first 32 websites schild sees are tracked (own series); later ones are summed as _other; an unprotected website does not use a place.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"blocks\":[{\"addresses\":[\"s01.example.org\"],\"proxies\":true,\"schild\":true},{\"addresses\":[\"s02.example.org\"],\"proxies\":true,\"schild\":true},{\"addresses\":[\"s03.example.org\"],\"proxies\":true,\"schild\":true},{\"addresses\":[\"s04.example.org\"],\"proxies\":true,\"schild\":true},{\"addresses\":[\"s05.example.org\"],\"proxies\":true,\"schild\":false},{\"addresses\":[\"s06.example.org\"],\"proxies\":true,\"schild\":true},{\"addresses\":[\"s07.example.org\"],\"proxies\":true,\"schild\":true},{\"addresses\":[\"s08.example.org\"],\"proxies\":true,\"schild\":true},{\"addresses\":[\"s09.example.org\"],\"proxies\":true,\"schild\":true},{\"addresses\":[\"s10.example.org\"],\"proxies\":true,\"schild\":true},{\"addresses\":[\"s11.example.org\"],\"proxies\":true,\"schild\":true},{\"addresses\":[\"s12.example.org\"],\"proxies\":true,\"schild\":true},{\"addresses\":[\"s13.example.org\"],\"proxies\":true,\"schild\":true},{\"addresses\":[\"s14.example.org\"],\"proxies\":true,\"schild\":true},{\"addresses\":[\"s15.example.org\"],\"proxies\":true,\"schild\":true},{\"addresses\":[\"s16.example.org\"],\"proxies\":true,\"schild\":true},{\"addresses\":[\"s17.example.org\"],\"proxies\":true,\"schild\":true},{\"addresses\":[\"s18.example.org\"],\"proxies\":true,\"schild\":true},{\"addresses\":[\"s19.example.org\"],\"proxies\":true,\"schild\":true},{\"addresses\":[\"s20.example.org\"],\"proxies\":true,\"schild\":true},{\"addresses\":[\"s21.example.org\"],\"proxies\":true,\"schild\":true},{\"addresses\":[\"s22.example.org\"],\"proxies\":true,\"schild\":true},{\"addresses\":[\"s23.example.org\"],\"proxies\":true,\"schild\":true},{\"addresses\":[\"s24.example.org\"],\"proxies\":true,\"schild\":true},{\"addresses\":[\"s25.example.org\"],\"proxies\":true,\"schild\":true},{\"addresses\":[\"s26.example.org\"],\"proxies\":true,\"schild\":true},{\"addresses\":[\"s27.example.org\"],\"proxies\":true,\"schild\":true},{\"addresses\":[\"s28.example.org\"],\"proxies\":true,\"schild\":true},{\"addresses\":[\"s29.example.org\"],\"proxies\":true,\"schild\":true},{\"addresses\":[\"s30.example.org\"],\"proxies\":true,\"schild\":true},{\"addresses\":[\"s31.example.org\"],\"proxies\":true,\"schild\":true},{\"addresses\":[\"s32.example.org\"],\"proxies\":true,\"schild\":true},{\"addresses\":[\"s33.example.org\"],\"proxies\":true,\"schild\":true},{\"addresses\":[\"s34.example.org\"],\"proxies\":true,\"schild\":true}],\"mode\":\"ingress\",\"unprotected_sites\":[\"s05.example.org\"]}",
+  "input_decoded": {
+    "blocks": [
+      {
+        "addresses": [
+          "s01.example.org"
+        ],
+        "proxies": true,
+        "schild": true
+      },
+      {
+        "addresses": [
+          "s02.example.org"
+        ],
+        "proxies": true,
+        "schild": true
+      },
+      {
+        "addresses": [
+          "s03.example.org"
+        ],
+        "proxies": true,
+        "schild": true
+      },
+      {
+        "addresses": [
+          "s04.example.org"
+        ],
+        "proxies": true,
+        "schild": true
+      },
+      {
+        "addresses": [
+          "s05.example.org"
+        ],
+        "proxies": true,
+        "schild": false
+      },
+      {
+        "addresses": [
+          "s06.example.org"
+        ],
+        "proxies": true,
+        "schild": true
+      },
+      {
+        "addresses": [
+          "s07.example.org"
+        ],
+        "proxies": true,
+        "schild": true
+      },
+      {
+        "addresses": [
+          "s08.example.org"
+        ],
+        "proxies": true,
+        "schild": true
+      },
+      {
+        "addresses": [
+          "s09.example.org"
+        ],
+        "proxies": true,
+        "schild": true
+      },
+      {
+        "addresses": [
+          "s10.example.org"
+        ],
+        "proxies": true,
+        "schild": true
+      },
+      {
+        "addresses": [
+          "s11.example.org"
+        ],
+        "proxies": true,
+        "schild": true
+      },
+      {
+        "addresses": [
+          "s12.example.org"
+        ],
+        "proxies": true,
+        "schild": true
+      },
+      {
+        "addresses": [
+          "s13.example.org"
+        ],
+        "proxies": true,
+        "schild": true
+      },
+      {
+        "addresses": [
+          "s14.example.org"
+        ],
+        "proxies": true,
+        "schild": true
+      },
+      {
+        "addresses": [
+          "s15.example.org"
+        ],
+        "proxies": true,
+        "schild": true
+      },
+      {
+        "addresses": [
+          "s16.example.org"
+        ],
+        "proxies": true,
+        "schild": true
+      },
+      {
+        "addresses": [
+          "s17.example.org"
+        ],
+        "proxies": true,
+        "schild": true
+      },
+      {
+        "addresses": [
+          "s18.example.org"
+        ],
+        "proxies": true,
+        "schild": true
+      },
+      {
+        "addresses": [
+          "s19.example.org"
+        ],
+        "proxies": true,
+        "schild": true
+      },
+      {
+        "addresses": [
+          "s20.example.org"
+        ],
+        "proxies": true,
+        "schild": true
+      },
+      {
+        "addresses": [
+          "s21.example.org"
+        ],
+        "proxies": true,
+        "schild": true
+      },
+      {
+        "addresses": [
+          "s22.example.org"
+        ],
+        "proxies": true,
+        "schild": true
+      },
+      {
+        "addresses": [
+          "s23.example.org"
+        ],
+        "proxies": true,
+        "schild": true
+      },
+      {
+        "addresses": [
+          "s24.example.org"
+        ],
+        "proxies": true,
+        "schild": true
+      },
+      {
+        "addresses": [
+          "s25.example.org"
+        ],
+        "proxies": true,
+        "schild": true
+      },
+      {
+        "addresses": [
+          "s26.example.org"
+        ],
+        "proxies": true,
+        "schild": true
+      },
+      {
+        "addresses": [
+          "s27.example.org"
+        ],
+        "proxies": true,
+        "schild": true
+      },
+      {
+        "addresses": [
+          "s28.example.org"
+        ],
+        "proxies": true,
+        "schild": true
+      },
+      {
+        "addresses": [
+          "s29.example.org"
+        ],
+        "proxies": true,
+        "schild": true
+      },
+      {
+        "addresses": [
+          "s30.example.org"
+        ],
+        "proxies": true,
+        "schild": true
+      },
+      {
+        "addresses": [
+          "s31.example.org"
+        ],
+        "proxies": true,
+        "schild": true
+      },
+      {
+        "addresses": [
+          "s32.example.org"
+        ],
+        "proxies": true,
+        "schild": true
+      },
+      {
+        "addresses": [
+          "s33.example.org"
+        ],
+        "proxies": true,
+        "schild": true
+      },
+      {
+        "addresses": [
+          "s34.example.org"
+        ],
+        "proxies": true,
+        "schild": true
+      }
+    ],
+    "mode": "ingress",
+    "unprotected_sites": [
+      "s05.example.org"
+    ]
+  },
+  "expect": {
+    "valid": true,
+    "result": {
+      "websites": [
+        {
+          "hosts": [
+            "s01.example.org"
+          ],
+          "id": "s01.example.org",
+          "label": "s01.example.org",
+          "protection": "protected",
+          "tracked": true
+        },
+        {
+          "hosts": [
+            "s02.example.org"
+          ],
+          "id": "s02.example.org",
+          "label": "s02.example.org",
+          "protection": "protected",
+          "tracked": true
+        },
+        {
+          "hosts": [
+            "s03.example.org"
+          ],
+          "id": "s03.example.org",
+          "label": "s03.example.org",
+          "protection": "protected",
+          "tracked": true
+        },
+        {
+          "hosts": [
+            "s04.example.org"
+          ],
+          "id": "s04.example.org",
+          "label": "s04.example.org",
+          "protection": "protected",
+          "tracked": true
+        },
+        {
+          "hosts": [
+            "s05.example.org"
+          ],
+          "id": "s05.example.org",
+          "label": "s05.example.org",
+          "protection": "unprotected",
+          "tracked": false
+        },
+        {
+          "hosts": [
+            "s06.example.org"
+          ],
+          "id": "s06.example.org",
+          "label": "s06.example.org",
+          "protection": "protected",
+          "tracked": true
+        },
+        {
+          "hosts": [
+            "s07.example.org"
+          ],
+          "id": "s07.example.org",
+          "label": "s07.example.org",
+          "protection": "protected",
+          "tracked": true
+        },
+        {
+          "hosts": [
+            "s08.example.org"
+          ],
+          "id": "s08.example.org",
+          "label": "s08.example.org",
+          "protection": "protected",
+          "tracked": true
+        },
+        {
+          "hosts": [
+            "s09.example.org"
+          ],
+          "id": "s09.example.org",
+          "label": "s09.example.org",
+          "protection": "protected",
+          "tracked": true
+        },
+        {
+          "hosts": [
+            "s10.example.org"
+          ],
+          "id": "s10.example.org",
+          "label": "s10.example.org",
+          "protection": "protected",
+          "tracked": true
+        },
+        {
+          "hosts": [
+            "s11.example.org"
+          ],
+          "id": "s11.example.org",
+          "label": "s11.example.org",
+          "protection": "protected",
+          "tracked": true
+        },
+        {
+          "hosts": [
+            "s12.example.org"
+          ],
+          "id": "s12.example.org",
+          "label": "s12.example.org",
+          "protection": "protected",
+          "tracked": true
+        },
+        {
+          "hosts": [
+            "s13.example.org"
+          ],
+          "id": "s13.example.org",
+          "label": "s13.example.org",
+          "protection": "protected",
+          "tracked": true
+        },
+        {
+          "hosts": [
+            "s14.example.org"
+          ],
+          "id": "s14.example.org",
+          "label": "s14.example.org",
+          "protection": "protected",
+          "tracked": true
+        },
+        {
+          "hosts": [
+            "s15.example.org"
+          ],
+          "id": "s15.example.org",
+          "label": "s15.example.org",
+          "protection": "protected",
+          "tracked": true
+        },
+        {
+          "hosts": [
+            "s16.example.org"
+          ],
+          "id": "s16.example.org",
+          "label": "s16.example.org",
+          "protection": "protected",
+          "tracked": true
+        },
+        {
+          "hosts": [
+            "s17.example.org"
+          ],
+          "id": "s17.example.org",
+          "label": "s17.example.org",
+          "protection": "protected",
+          "tracked": true
+        },
+        {
+          "hosts": [
+            "s18.example.org"
+          ],
+          "id": "s18.example.org",
+          "label": "s18.example.org",
+          "protection": "protected",
+          "tracked": true
+        },
+        {
+          "hosts": [
+            "s19.example.org"
+          ],
+          "id": "s19.example.org",
+          "label": "s19.example.org",
+          "protection": "protected",
+          "tracked": true
+        },
+        {
+          "hosts": [
+            "s20.example.org"
+          ],
+          "id": "s20.example.org",
+          "label": "s20.example.org",
+          "protection": "protected",
+          "tracked": true
+        },
+        {
+          "hosts": [
+            "s21.example.org"
+          ],
+          "id": "s21.example.org",
+          "label": "s21.example.org",
+          "protection": "protected",
+          "tracked": true
+        },
+        {
+          "hosts": [
+            "s22.example.org"
+          ],
+          "id": "s22.example.org",
+          "label": "s22.example.org",
+          "protection": "protected",
+          "tracked": true
+        },
+        {
+          "hosts": [
+            "s23.example.org"
+          ],
+          "id": "s23.example.org",
+          "label": "s23.example.org",
+          "protection": "protected",
+          "tracked": true
+        },
+        {
+          "hosts": [
+            "s24.example.org"
+          ],
+          "id": "s24.example.org",
+          "label": "s24.example.org",
+          "protection": "protected",
+          "tracked": true
+        },
+        {
+          "hosts": [
+            "s25.example.org"
+          ],
+          "id": "s25.example.org",
+          "label": "s25.example.org",
+          "protection": "protected",
+          "tracked": true
+        },
+        {
+          "hosts": [
+            "s26.example.org"
+          ],
+          "id": "s26.example.org",
+          "label": "s26.example.org",
+          "protection": "protected",
+          "tracked": true
+        },
+        {
+          "hosts": [
+            "s27.example.org"
+          ],
+          "id": "s27.example.org",
+          "label": "s27.example.org",
+          "protection": "protected",
+          "tracked": true
+        },
+        {
+          "hosts": [
+            "s28.example.org"
+          ],
+          "id": "s28.example.org",
+          "label": "s28.example.org",
+          "protection": "protected",
+          "tracked": true
+        },
+        {
+          "hosts": [
+            "s29.example.org"
+          ],
+          "id": "s29.example.org",
+          "label": "s29.example.org",
+          "protection": "protected",
+          "tracked": true
+        },
+        {
+          "hosts": [
+            "s30.example.org"
+          ],
+          "id": "s30.example.org",
+          "label": "s30.example.org",
+          "protection": "protected",
+          "tracked": true
+        },
+        {
+          "hosts": [
+            "s31.example.org"
+          ],
+          "id": "s31.example.org",
+          "label": "s31.example.org",
+          "protection": "protected",
+          "tracked": true
+        },
+        {
+          "hosts": [
+            "s32.example.org"
+          ],
+          "id": "s32.example.org",
+          "label": "s32.example.org",
+          "protection": "protected",
+          "tracked": true
+        },
+        {
+          "hosts": [
+            "s33.example.org"
+          ],
+          "id": "s33.example.org",
+          "label": "s33.example.org",
+          "protection": "protected",
+          "tracked": true
+        },
+        {
+          "hosts": [
+            "s34.example.org"
+          ],
+          "id": "s34.example.org",
+          "label": "s34.example.org",
+          "protection": "protected",
+          "tracked": false
+        }
+      ]
+    }
+  }
+}

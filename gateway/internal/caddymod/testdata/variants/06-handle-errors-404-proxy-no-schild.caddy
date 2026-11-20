@@ -1,0 +1,8 @@
+# unprotected: []
+# expect: refuse
+http://a.example.test:18080 {
+	error 404
+	handle_errors 404 {
+		reverse_proxy 127.0.0.1:18081
+	}
+}

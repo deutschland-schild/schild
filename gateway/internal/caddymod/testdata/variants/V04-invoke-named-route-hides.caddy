@@ -1,0 +1,15 @@
+# unprotected: []
+# expect: refuse
+# The hiding rewrite sits in a named route reached through invoke before schild.
+&(hide) {
+	rewrite * /hidden?
+}
+http://a.example.test:26080 {
+	route {
+		vars saved {query}
+		invoke hide
+		schild
+		uri replace /hidden /hidden?{vars.saved}
+		reverse_proxy 127.0.0.1:26082
+	}
+}

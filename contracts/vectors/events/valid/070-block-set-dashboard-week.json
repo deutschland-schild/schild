@@ -1,0 +1,40 @@
+{
+  "contract": "events",
+  "description": "D88: 7 days, kept in schild.db.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"data\":{\"actor\":\"dashboard\",\"client\":{\"allowlisted\":false,\"attribution\":\"tcp_peer\",\"geo\":{\"asn\":64496,\"country\":\"DE\",\"net_class\":\"hosting\"},\"ip\":\"203.0.113.7\"},\"duration_s\":604800,\"effect\":\"block\",\"incident\":\"K7QM-4XWD\",\"key_bits\":32,\"persisted\":true,\"reason\":\"scanner from the access log\",\"target_kind\":\"address\",\"until\":\"2026-11-19T10:00:00Z\"},\"datacontenttype\":\"application/json\",\"id\":\"210ecc15-ab15-4e50-9211-a3407918f94d\",\"source\":\"schild://web-1\",\"specversion\":\"1.0\",\"time\":\"2026-10-26T11:59:58.123Z\",\"type\":\"schild.block.set.v1\"}",
+  "input_decoded": {
+    "data": {
+      "actor": "dashboard",
+      "client": {
+        "allowlisted": false,
+        "attribution": "tcp_peer",
+        "geo": {
+          "asn": 64496,
+          "country": "DE",
+          "net_class": "hosting"
+        },
+        "ip": "203.0.113.7"
+      },
+      "duration_s": 604800,
+      "effect": "block",
+      "incident": "K7QM-4XWD",
+      "key_bits": 32,
+      "persisted": true,
+      "reason": "scanner from the access log",
+      "target_kind": "address",
+      "until": "2026-11-19T10:00:00Z"
+    },
+    "datacontenttype": "application/json",
+    "id": "210ecc15-ab15-4e50-9211-a3407918f94d",
+    "source": "schild://web-1",
+    "specversion": "1.0",
+    "time": "2026-10-26T11:59:58.123Z",
+    "type": "schild.block.set.v1"
+  },
+  "expect": {
+    "valid": true
+  }
+}

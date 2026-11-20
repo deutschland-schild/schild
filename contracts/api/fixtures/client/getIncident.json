@@ -1,0 +1,31 @@
+{
+  "incident": "K7QM-4XWD",
+  "status": "blocked",
+  "time": "2026-10-26T11:59:58Z",
+  "request": {
+    "id": "f2064730-835b-4d96-b173-d92534ccd620",
+    "time": "2026-10-26T11:59:58Z",
+    "type": "schild.request.blocked.v1",
+    "outcome": "blocked",
+    "ip": "2001:db8::17",
+    "geo": {
+      "country": "NL",
+      "city": "Amsterdam",
+      "asn": 64500,
+      "as_org": "Example Hosting B.V.",
+      "net_class": "hosting"
+    },
+    "method": "POST",
+    "host": "shop.example",
+    "path": "/wp-login.php",
+    "status": 403,
+    "score": 72,
+    "rules": [
+      "930120"
+    ],
+    "incident": "K7QM-4XWD"
+  },
+  "reason": "930120 OS File Access Attempt",
+  "unblocked_at": null,
+  "allowlist_entry": null
+}

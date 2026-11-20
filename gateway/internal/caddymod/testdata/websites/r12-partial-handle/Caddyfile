@@ -1,0 +1,16 @@
+{
+	admin off
+	http_port 19190
+	https_port 19143
+}
+
+part.example.org {
+	handle /api/* {
+		schild
+		reverse_proxy 127.0.0.1:19101
+	}
+	handle {
+		reverse_proxy 127.0.0.1:19101
+	}
+}
+

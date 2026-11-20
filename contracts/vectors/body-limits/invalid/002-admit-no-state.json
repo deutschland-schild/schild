@@ -1,0 +1,24 @@
+{
+  "contract": "body-limits",
+  "description": "D41: state is required.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"client_known\":true,\"jitter_draw\":0,\"limits\":{\"max_in_flight\":1024,\"max_in_flight_bytes\":4294967296,\"max_per_client\":8,\"max_per_network\":32},\"net_class\":\"residential\",\"op\":\"admit\"}",
+  "input_decoded": {
+    "client_known": true,
+    "jitter_draw": 0,
+    "limits": {
+      "max_in_flight": 1024,
+      "max_in_flight_bytes": 4294967296,
+      "max_per_client": 8,
+      "max_per_network": 32
+    },
+    "net_class": "residential",
+    "op": "admit"
+  },
+  "expect": {
+    "valid": false,
+    "error": "schema"
+  }
+}

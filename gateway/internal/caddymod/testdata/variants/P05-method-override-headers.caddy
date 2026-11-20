@@ -1,0 +1,7 @@
+# unprotected: []
+# expect: pass
+# Guarded app; requests carry X-HTTP-Method-Override / _method (Laravel); body attacks must still be inspected.
+http://a.example.test:18080 {
+	import schild
+	reverse_proxy 127.0.0.1:18082
+}

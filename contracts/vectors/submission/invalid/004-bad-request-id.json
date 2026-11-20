@@ -1,0 +1,27 @@
+{
+  "contract": "submission",
+  "description": "request_id must be a UUID v4.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"envelopes\":[{\"payload\":\"eyJzY2hlbWEiOiJzY2hpbGQuc2lnbmFsLzAuMyIsImlkIjoiOTIzMDY2ZDMtYjA1MC00OGU3LTg5ZWQtN2E0Y2VlOWFkYTUyIiwia2luZCI6InRpcCIsInRpbWVfYnVja2V0IjoiMjAyNi0xMC0yNlQxMTo1NTowMFoiLCJhY3Rpb25fc2lnIjoibG9naW4tYnVyc3Qvd3AtYWRtaW4iLCJyZXF1ZXN0X3NpZyI6InNoYTI1NjphMDcxODdmMWM3ZDFjNTY0M2IwMmNlNzMwYmVmM2Q3YmM1NzAwYTViZWUwYjM4MzNkMTNmMjgxOWYxZTJiZTgxIiwid2FmX3J1bGVzIjpbOTMwMTIwLDk0OTExMF0sInNjb3JlIjo3MiwiY2F0ZWdvcnkiOiJ3b3JkcHJlc3MtbG9naW4tYnJ1dGVmb3JjZSIsIm9yaWdpbiI6eyJjb3VudHJ5IjoiTkwiLCJhc24iOjE0MDYxLCJuZXRfY2xhc3MiOiJob3N0aW5nIiwiYXR0cmlidXRpb24iOiJ0Y3BfcGVlciIsInByb3RlY3RlZCI6ZmFsc2V9LCJhZ2VudCI6eyJmYW1pbHkiOiJweXRob24tcmVxdWVzdHMiLCJtYWpvciI6MiwiYm90IjpmYWxzZX19\",\"payloadType\":\"application/vnd.schild.signal.v0+json\",\"signatures\":[{\"keyid\":\"test-site-a\",\"sig\":\"/FB3V2M5iz06abHTh4gwDGOqVugDfsJbCRUY6k3rYPue1aY1LhDRLZjrSbr6zCvo16mjojytSLdsyLcHl+KTCg==\"}]}],\"request_id\":\"req-1\"}",
+  "input_decoded": {
+    "envelopes": [
+      {
+        "payload": "eyJzY2hlbWEiOiJzY2hpbGQuc2lnbmFsLzAuMyIsImlkIjoiOTIzMDY2ZDMtYjA1MC00OGU3LTg5ZWQtN2E0Y2VlOWFkYTUyIiwia2luZCI6InRpcCIsInRpbWVfYnVja2V0IjoiMjAyNi0xMC0yNlQxMTo1NTowMFoiLCJhY3Rpb25fc2lnIjoibG9naW4tYnVyc3Qvd3AtYWRtaW4iLCJyZXF1ZXN0X3NpZyI6InNoYTI1NjphMDcxODdmMWM3ZDFjNTY0M2IwMmNlNzMwYmVmM2Q3YmM1NzAwYTViZWUwYjM4MzNkMTNmMjgxOWYxZTJiZTgxIiwid2FmX3J1bGVzIjpbOTMwMTIwLDk0OTExMF0sInNjb3JlIjo3MiwiY2F0ZWdvcnkiOiJ3b3JkcHJlc3MtbG9naW4tYnJ1dGVmb3JjZSIsIm9yaWdpbiI6eyJjb3VudHJ5IjoiTkwiLCJhc24iOjE0MDYxLCJuZXRfY2xhc3MiOiJob3N0aW5nIiwiYXR0cmlidXRpb24iOiJ0Y3BfcGVlciIsInByb3RlY3RlZCI6ZmFsc2V9LCJhZ2VudCI6eyJmYW1pbHkiOiJweXRob24tcmVxdWVzdHMiLCJtYWpvciI6MiwiYm90IjpmYWxzZX19",
+        "payloadType": "application/vnd.schild.signal.v0+json",
+        "signatures": [
+          {
+            "keyid": "test-site-a",
+            "sig": "/FB3V2M5iz06abHTh4gwDGOqVugDfsJbCRUY6k3rYPue1aY1LhDRLZjrSbr6zCvo16mjojytSLdsyLcHl+KTCg=="
+          }
+        ]
+      }
+    ],
+    "request_id": "req-1"
+  },
+  "expect": {
+    "valid": false,
+    "error": "schema"
+  }
+}

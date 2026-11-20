@@ -1,0 +1,27 @@
+{
+  "contract": "storage-bounds",
+  "description": "D38: a block has rules or a limit code, not both.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"max_open\":1,\"op\":\"incident_aggregate\",\"requests\":[{\"client\":\"c1\",\"draw\":\"K7QM-4XWD\",\"limit\":\"body_size\",\"rules\":[\"942100\"],\"t\":1793016000000}]}",
+  "input_decoded": {
+    "max_open": 1,
+    "op": "incident_aggregate",
+    "requests": [
+      {
+        "client": "c1",
+        "draw": "K7QM-4XWD",
+        "limit": "body_size",
+        "rules": [
+          "942100"
+        ],
+        "t": 1793016000000
+      }
+    ]
+  },
+  "expect": {
+    "valid": false,
+    "error": "schema"
+  }
+}

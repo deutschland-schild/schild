@@ -1,0 +1,21 @@
+{
+  "contract": "crowdsec-hub",
+  "description": "Update refused index_malformed: without the collection nothing says which rules belong to the source.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"index\":\"{\\\"appsec-rules\\\":{},\\\"collections\\\":{}}\",\"now\":\"2026-10-26T12:00:00Z\",\"op\":\"update\"}",
+  "input_decoded": {
+    "index": "{\"appsec-rules\":{},\"collections\":{}}",
+    "now": "2026-10-26T12:00:00Z",
+    "op": "update"
+  },
+  "expect": {
+    "valid": true,
+    "result": {
+      "outcome": "refused",
+      "code": "index_malformed",
+      "not_selected": 0
+    }
+  }
+}

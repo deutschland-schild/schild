@@ -1,0 +1,7 @@
+{
+  "type": "about:blank",
+  "title": "Conflict",
+  "status": 409,
+  "code": "not_supported",
+  "detail": "Nur die CrowdSec-Regeln lassen sich auf das Image zurücksetzen."
+}

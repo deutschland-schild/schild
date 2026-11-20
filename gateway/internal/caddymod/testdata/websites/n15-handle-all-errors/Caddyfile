@@ -1,0 +1,19 @@
+{
+	admin off
+}
+
+app.example.org {
+	redir /old /new
+	handle /api/* {
+		schild
+		reverse_proxy 127.0.0.1:19101
+	}
+	handle {
+		schild
+		reverse_proxy 127.0.0.1:19101
+	}
+	handle_errors {
+		respond 500
+	}
+}
+

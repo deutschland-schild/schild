@@ -1,0 +1,19 @@
+{
+  "contract": "body-limits",
+  "description": "D45: read_body or read_body_idle ended the read: like a client that left, in every mode (E10).",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"end\":\"timeout\",\"op\":\"read_end\"}",
+  "input_decoded": {
+    "end": "timeout",
+    "op": "read_end"
+  },
+  "expect": {
+    "valid": true,
+    "result": {
+      "code": "client_gone",
+      "incident": false
+    }
+  }
+}

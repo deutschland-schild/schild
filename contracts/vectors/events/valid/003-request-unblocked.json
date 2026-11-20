@@ -1,0 +1,26 @@
+{
+  "contract": "events",
+  "description": "Operator unblocked an incident and marked it as false positive.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"data\":{\"allowlist_entry\":\"Office\",\"by\":\"operator\",\"false_positive\":true,\"incident\":\"K7QM-4XWD\",\"request_id\":\"req-7f3a9c22\"},\"datacontenttype\":\"application/json\",\"id\":\"6794c045-d72d-4923-9810-a68d2ff0151e\",\"source\":\"schild://web-1\",\"specversion\":\"1.0\",\"time\":\"2026-10-26T11:59:58.123Z\",\"type\":\"schild.request.unblocked.v1\"}",
+  "input_decoded": {
+    "data": {
+      "allowlist_entry": "Office",
+      "by": "operator",
+      "false_positive": true,
+      "incident": "K7QM-4XWD",
+      "request_id": "req-7f3a9c22"
+    },
+    "datacontenttype": "application/json",
+    "id": "6794c045-d72d-4923-9810-a68d2ff0151e",
+    "source": "schild://web-1",
+    "specversion": "1.0",
+    "time": "2026-10-26T11:59:58.123Z",
+    "type": "schild.request.unblocked.v1"
+  },
+  "expect": {
+    "valid": true
+  }
+}

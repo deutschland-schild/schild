@@ -1,0 +1,29 @@
+{
+ "resolve": [
+  "app.example.org",
+  "app.example.org:8443"
+ ],
+ "blocks": [
+  {
+   "Addresses": [
+    "app.example.org"
+   ],
+   "Schild": true,
+   "Proxies": true
+  },
+  {
+   "Addresses": [
+    "app.example.org:8443"
+   ],
+   "Schild": true,
+   "Proxies": true
+  },
+  {
+   "Addresses": [
+    "http://app.example.org:8080"
+   ],
+   "Schild": true,
+   "Proxies": true
+  }
+ ]
+}

@@ -1,0 +1,40 @@
+{
+  "contract": "website-status",
+  "description": "D36: monitoring off: counters are ignored, unknown.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"monitoring\":false,\"protection\":\"protected\",\"servers\":[{\"baseline_protection\":\"active\",\"hints\":[],\"node\":\"web-1\",\"state\":\"ok\"}],\"tracked\":true,\"traffic\":{\"fail_closed\":0,\"forwarded\":11900,\"requests\":12000,\"status_5xx\":4,\"upstream_errors\":3,\"upstream_timeouts\":0}}",
+  "input_decoded": {
+    "monitoring": false,
+    "protection": "protected",
+    "servers": [
+      {
+        "baseline_protection": "active",
+        "hints": [],
+        "node": "web-1",
+        "state": "ok"
+      }
+    ],
+    "tracked": true,
+    "traffic": {
+      "fail_closed": 0,
+      "forwarded": 11900,
+      "requests": 12000,
+      "status_5xx": 4,
+      "upstream_errors": 3,
+      "upstream_timeouts": 0
+    }
+  },
+  "expect": {
+    "valid": true,
+    "result": {
+      "reasons": [
+        {
+          "code": "monitoring_off"
+        }
+      ],
+      "status": "unknown"
+    }
+  }
+}

@@ -1,0 +1,15 @@
+allowlist:
+  - cidr: 192.0.2.0/24
+    label: no-block test clients
+    level: no_block
+    expires: never
+behaviour:
+  presets: [generic]
+  preset_limits: "off"
+  rate_limits:
+    - id: limited
+      route: /api/limited
+      limit: 2
+      per: 1m
+      burst: 2
+      mode: block

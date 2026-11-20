@@ -1,0 +1,13 @@
+{
+  "contract": "seclang",
+  "description": "D39: t:uppercase is hub profile only.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z",
+    "max_action": "observe"
+  },
+  "input_raw": "SecRule REQUEST_FILENAME \"@contains /wp-json/example/v1/\" \"id:7700001,phase:2,pass,t:none,severity:CRITICAL,msg:'x',chain\"\nSecRule ARGS_GET:a \"@contains x\" \"t:none,t:uppercase\"",
+  "expect": {
+    "valid": false,
+    "error": "seclang"
+  }
+}

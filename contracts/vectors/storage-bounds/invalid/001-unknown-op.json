@@ -1,0 +1,16 @@
+{
+  "contract": "storage-bounds",
+  "description": "D38: op is one of check_due, cap_pass, disk_budget, incident_aggregate, disk_projection.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"max_size_mb\":100,\"op\":\"vacuum\"}",
+  "input_decoded": {
+    "max_size_mb": 100,
+    "op": "vacuum"
+  },
+  "expect": {
+    "valid": false,
+    "error": "schema"
+  }
+}

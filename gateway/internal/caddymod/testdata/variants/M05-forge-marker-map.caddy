@@ -1,0 +1,17 @@
+# unprotected: []
+# expect: pass
+# Try to forge the passed marker with map (output variable schild.passed).
+http://:18080 {
+	import schild
+	reverse_proxy 127.0.0.1:18081
+	handle_errors {
+		import schild
+		reverse_proxy 127.0.0.1:18081
+	}
+}
+http://b.example.test:18080 {
+	map {host} {schild.passed} {
+		default 1
+	}
+	error "boom" 500
+}

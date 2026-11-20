@@ -1,0 +1,27 @@
+id: MVP-03
+# D72 (2026-11-06): the first schild gateway version sends no signals or feedback and follows no relay; "client"
+# below means the planned consumer that comes back with the network (lab later). This spec stays for the lab side.
+title: "Lab core: fast ingest, queue, scoring, signed feed"
+ships: true
+image: schild-lab
+hypotheses: [M3, M6]
+refs: [concept-21-§5.0, concept-21-§7, concept-18, K5, K6, T05-T08, B13]
+depends_on: [MVP-01]
+contracts:
+  in:  [contracts/signal.schema.json, contracts/feedback.schema.json, contracts/config/lab.schema.json]
+  out: [contracts/ack.schema.json, contracts/rule-bundle.schema.json (proposals), public append-only log]
+must:
+  - ingest does only cheap, bounded work: verify signature/token, size and rate limits, dedupe, durable enqueue, ack
+  - full queue answers immediately with retry_after_ms, never times out
+  - priorities: new patterns before repeats, sampled baseline last
+  - scoring v0 is rules + statistics over action signatures, no AI; rejects any signal carrying an IP-like field
+  - counts by client issuer (guarantor), not by client key (Sybil)
+  - a rule proposal needs evidence (reproducing request + target container version)
+  - every published proposal and bundle is in the lab's public log; the log never contains client data
+  - separate processes/resources for ingest and scoring
+measure:
+  - EventAck p99 at burst x20 from 10,000 simulated clients with scoring queue full (B13)
+  - proposals created from Sybil-only or single-operator signals (T06, T08)
+kill_if: "ack_p99_ms > 50 OR timeouts > 0 OR proposals_from_single_operator > 0"
+done: "make testlab-up PROFILE=t1 && make eval SPEC=MVP-03"
+out_of_scope: [AI workers, research range, OHTTP gateway (v1), scoring subscription, federation across operators]

@@ -1,0 +1,39 @@
+{
+  "contract": "events",
+  "description": "D88: a reason is required.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"data\":{\"actor\":\"dashboard\",\"client\":{\"allowlisted\":false,\"attribution\":\"tcp_peer\",\"geo\":{\"asn\":64496,\"country\":\"DE\",\"net_class\":\"hosting\"},\"ip\":\"203.0.113.7\"},\"duration_s\":86400,\"effect\":\"block\",\"incident\":\"K7QM-4XWD\",\"key_bits\":32,\"target_kind\":\"address\",\"until\":\"2026-11-19T10:00:00Z\"},\"datacontenttype\":\"application/json\",\"id\":\"bdab7859-b972-44e6-be36-4278e5f23fd0\",\"source\":\"schild://web-1\",\"specversion\":\"1.0\",\"time\":\"2026-10-26T11:59:58.123Z\",\"type\":\"schild.block.set.v1\"}",
+  "input_decoded": {
+    "data": {
+      "actor": "dashboard",
+      "client": {
+        "allowlisted": false,
+        "attribution": "tcp_peer",
+        "geo": {
+          "asn": 64496,
+          "country": "DE",
+          "net_class": "hosting"
+        },
+        "ip": "203.0.113.7"
+      },
+      "duration_s": 86400,
+      "effect": "block",
+      "incident": "K7QM-4XWD",
+      "key_bits": 32,
+      "target_kind": "address",
+      "until": "2026-11-19T10:00:00Z"
+    },
+    "datacontenttype": "application/json",
+    "id": "bdab7859-b972-44e6-be36-4278e5f23fd0",
+    "source": "schild://web-1",
+    "specversion": "1.0",
+    "time": "2026-10-26T11:59:58.123Z",
+    "type": "schild.block.set.v1"
+  },
+  "expect": {
+    "valid": false,
+    "error": "schema"
+  }
+}

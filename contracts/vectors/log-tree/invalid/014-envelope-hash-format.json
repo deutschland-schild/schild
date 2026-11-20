@@ -1,0 +1,12 @@
+{
+  "contract": "log-tree",
+  "description": "Envelope hash must be sha256 hex or null.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"entries\":[{\"digest\":\"sha256:079d41d13a22c06edcc9a4ac274c3d6462645c4ab5e1e5eaef694fff3c49e2e5\",\"envelope_sha256\":\"sha256:abc\",\"index\":0,\"kind\":\"proposal\",\"ref\":\"prop-0001\",\"summary\":\"proposal prop-0001 approved: rule schild-2026-0001 virtual_patch, max challenge, approvals from 2 organisations\",\"time\":\"2026-10-26T11:55:00Z\"}],\"head\":{\"root\":\"sha256:d78f02de3ef01495050b0b0d2b7021a9d67c5c4985f323f11b87cc09631cca0e\",\"size\":1}}",
+  "expect": {
+    "valid": false,
+    "error": "schema"
+  }
+}

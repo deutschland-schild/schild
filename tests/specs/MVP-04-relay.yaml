@@ -1,0 +1,26 @@
+id: MVP-04
+# D72 (2026-11-06): the first schild gateway version sends no signals or feedback and follows no relay; "client"
+# below means the planned consumer that comes back with the network (lab later). This spec stays for the lab side.
+title: "Relay: public SSE stream with checkpoints, rule bundles and withdrawals"
+ships: true
+image: schild-relay
+hypotheses: [M5, M7]
+refs: [concept-20, SEC-02, SEC-03, H3, T09-T11, B05, B06, B10, B12]
+depends_on: [MVP-01]
+contracts:
+  in:  [rule bundles and withdrawals signed by labs]
+  out: [contracts/stream.md]
+must:
+  - relay is untrusted: clients verify everything, the relay can only delay or withhold
+  - heartbeat with signed checkpoint; clients detect a frozen relay and switch
+  - resume via Last-Event-ID without gaps
+  - several relays interchangeable; client config lists at least 2
+measure:
+  - fan-out latency to 10,000 (local) / 100,000 (if host allows) clients (B05)
+  - reconnect storm after relay restart (B06)
+  - emergency-stop propagation time (B10)
+  - frozen relay detection time (B12)
+  - acceptance of under-signed, rolled-back or expired bundles (T10, T11)
+kill_if: "accepted_invalid_bundles > 0 OR emergency_stop_p95_s > 60 OR freeze_detect_s > 180"
+done: "make testlab-up PROFILE=t1 && make eval SPEC=MVP-04"
+out_of_scope: [transparency-log witnesses, GossipSub, OHTTP]

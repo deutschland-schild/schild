@@ -1,0 +1,19 @@
+{
+  "contract": "body-limits",
+  "description": "D45: a configured value wins.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"configured\":500,\"memory_bytes\":2147483648,\"op\":\"request_limit\"}",
+  "input_decoded": {
+    "configured": 500,
+    "memory_bytes": 2147483648,
+    "op": "request_limit"
+  },
+  "expect": {
+    "valid": true,
+    "result": {
+      "max_waiting": 500
+    }
+  }
+}

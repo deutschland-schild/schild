@@ -1,0 +1,23 @@
+{
+  "contract": "rule-effect",
+  "description": "The CRS can be switched off too: a rebuild.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"op\":\"switch\",\"repository\":\"crs\",\"requested\":\"off\"}",
+  "input_decoded": {
+    "op": "switch",
+    "repository": "crs",
+    "requested": "off"
+  },
+  "expect": {
+    "valid": true,
+    "result": {
+      "state": "off",
+      "source": "dashboard",
+      "changed": true,
+      "rebuild": true,
+      "differs": true
+    }
+  }
+}

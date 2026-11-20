@@ -1,0 +1,17 @@
+{
+  "id": "contact-form",
+  "label": "Kontaktformular",
+  "route": "/wp-json/contact-form-7/v1/contact-forms/*/feedback",
+  "methods": [
+    "POST"
+  ],
+  "limit": 3,
+  "per": "10m",
+  "burst": 3,
+  "mode": "observe",
+  "site": "verein.example",
+  "source": "dashboard",
+  "matched_24h": 0,
+  "exceeded_24h": 0,
+  "clients_24h": 0
+}

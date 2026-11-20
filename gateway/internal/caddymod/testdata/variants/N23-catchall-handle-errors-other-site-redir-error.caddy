@@ -1,0 +1,16 @@
+# unprotected: []
+# expect: refuse
+# Catch-all guarded with handle_errors; other site with basic_auth (401 is an error) and nothing else.
+http://:18080 {
+	import schild
+	reverse_proxy 127.0.0.1:18081
+	handle_errors {
+		reverse_proxy 127.0.0.1:18081
+	}
+}
+http://b.example.test:18080 {
+	basic_auth {
+		admin $2a$14$Zkx19XLiW6VYouLHR5NmfOFU0z2GTNmpkT/5qqR7hx4IjWJPDhjvG
+	}
+	respond "ok"
+}

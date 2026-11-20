@@ -1,0 +1,19 @@
+{
+  "contract": "rule-effect",
+  "description": "Three states only; enabled does not exist.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"mode\":\"autoblock\",\"now\":1000000,\"op\":\"effect\",\"origin\":\"release\",\"state\":\"enabled\"}",
+  "input_decoded": {
+    "mode": "autoblock",
+    "now": 1000000,
+    "op": "effect",
+    "origin": "release",
+    "state": "enabled"
+  },
+  "expect": {
+    "valid": false,
+    "error": "schema"
+  }
+}

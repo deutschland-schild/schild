@@ -1,0 +1,8 @@
+<?php
+/**
+ * WordPress Version
+ */
+$wp_version = '6.6.2';
+$wp_db_version = 57155;
+$tinymce_version = '49110-20201110';
+$required_php_version = '7.2.24';

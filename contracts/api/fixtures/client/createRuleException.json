@@ -1,0 +1,14 @@
+{
+  "id": 1900001,
+  "website": "verein.example",
+  "hosts": ["verein.example", "www.verein.example"],
+  "path": "/kontakt",
+  "target": "ARGS:message",
+  "repository": "crs",
+  "rules": ["942100"],
+  "reason": "The contact form takes SQL examples from members of the database course.",
+  "set_by": "dashboard",
+  "token_id": "",
+  "token_label": "",
+  "created": "2026-11-12T19:30:00Z"
+}

@@ -1,0 +1,38 @@
+{
+  "contract": "body-limits",
+  "description": "D41, E5: the ninth body of a client: 429, Retry-After 5 + draw mod 4.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"client_known\":true,\"jitter_draw\":2,\"limits\":{\"max_in_flight\":1024,\"max_in_flight_bytes\":4294967296,\"max_per_client\":8,\"max_per_network\":32},\"net_class\":\"residential\",\"op\":\"admit\",\"state\":{\"client\":8,\"in_flight\":8,\"in_flight_bytes\":0,\"network\":8}}",
+  "input_decoded": {
+    "client_known": true,
+    "jitter_draw": 2,
+    "limits": {
+      "max_in_flight": 1024,
+      "max_in_flight_bytes": 4294967296,
+      "max_per_client": 8,
+      "max_per_network": 32
+    },
+    "net_class": "residential",
+    "op": "admit",
+    "state": {
+      "client": 8,
+      "in_flight": 8,
+      "in_flight_bytes": 0,
+      "network": 8
+    }
+  },
+  "expect": {
+    "valid": true,
+    "result": {
+      "admitted": false,
+      "class": "rejected_limit",
+      "code": "body_client_share",
+      "fail_closed": null,
+      "retry_after": 7,
+      "scope": "client",
+      "status": 429
+    }
+  }
+}

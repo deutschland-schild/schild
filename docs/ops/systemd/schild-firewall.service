@@ -1,0 +1,49 @@
+# schild firewall run: puts schild's address blocks into the host's firewall (D87).
+# Install: /etc/systemd/system/schild-firewall.service, the token into
+# /etc/schild/firewall.env (SCHILD_FIREWALL_TOKEN=sat1_..., mode 0600), then
+# systemctl enable --now schild-firewall (docs/gateway/02-betrieb.md,
+# "Sperren in der Firewall"). With Docker, run the image as a second container
+# instead (same document).
+#
+# Asks the agent API of schild (127.0.0.1:8789, agent_api.enabled) for the
+# blocks that run and keeps the nftables table "inet schild" holding them,
+# each with its remaining time as the kernel timeout: their traffic to the
+# ports 80 and 443 is dropped. A stop removes the table; blocks also end in
+# the kernel by themselves.
+[Unit]
+Description=Schild firewall: address blocks into nftables
+Documentation=https://deutschland-schild.de/doku
+After=network-online.target schild.service
+Wants=network-online.target
+
+[Service]
+ExecStart=/usr/local/bin/schild firewall run
+EnvironmentFile=/etc/schild/firewall.env
+Restart=always
+RestartSec=5s
+
+# --- rights: CAP_NET_ADMIN for its own nftables table, nothing else -------------
+# A user of its own; the one capability is handed to it. It runs in the host's
+# network namespace: the table must filter the host's traffic.
+DynamicUser=yes
+CapabilityBoundingSet=CAP_NET_ADMIN
+AmbientCapabilities=CAP_NET_ADMIN
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectKernelLogs=yes
+ProtectControlGroups=yes
+ProtectClock=yes
+ProtectHostname=yes
+RestrictAddressFamilies=AF_NETLINK AF_INET AF_INET6
+RestrictNamespaces=yes
+LockPersonality=yes
+MemoryDenyWriteExecute=yes
+SystemCallArchitectures=native
+
+[Install]
+WantedBy=multi-user.target

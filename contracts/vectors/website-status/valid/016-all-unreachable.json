@@ -1,0 +1,43 @@
+{
+  "contract": "website-status",
+  "description": "D36 (MVP-20): no gateway of the website answers the central dashboard: disrupted.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"monitoring\":true,\"protection\":\"protected\",\"servers\":[{\"baseline_protection\":\"active\",\"hints\":[],\"node\":\"web-1\",\"state\":\"unreachable\"},{\"baseline_protection\":\"active\",\"hints\":[],\"node\":\"web-2\",\"state\":\"unreachable\"}],\"tracked\":true}",
+  "input_decoded": {
+    "monitoring": true,
+    "protection": "protected",
+    "servers": [
+      {
+        "baseline_protection": "active",
+        "hints": [],
+        "node": "web-1",
+        "state": "unreachable"
+      },
+      {
+        "baseline_protection": "active",
+        "hints": [],
+        "node": "web-2",
+        "state": "unreachable"
+      }
+    ],
+    "tracked": true
+  },
+  "expect": {
+    "valid": true,
+    "result": {
+      "reasons": [
+        {
+          "code": "unreachable",
+          "node": "web-1"
+        },
+        {
+          "code": "unreachable",
+          "node": "web-2"
+        }
+      ],
+      "status": "disrupted"
+    }
+  }
+}

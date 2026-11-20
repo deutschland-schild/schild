@@ -1,0 +1,13 @@
+{
+  "contract": "seclang",
+  "description": "SecLang subset case even-backslashes (max_action block).",
+  "context": {
+    "now": "2026-10-26T12:00:00Z",
+    "max_action": "block"
+  },
+  "input_raw": "SecRule ARGS \"@rx a\\\\\" \"id:7700132,phase:2,deny,severity:CRITICAL,msg:'x'\"",
+  "expect": {
+    "valid": false,
+    "error": "seclang"
+  }
+}

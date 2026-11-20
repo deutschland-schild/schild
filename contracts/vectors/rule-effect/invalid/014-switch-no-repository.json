@@ -1,0 +1,16 @@
+{
+  "contract": "rule-effect",
+  "description": "The switch names its repository.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"op\":\"switch\",\"requested\":\"off\"}",
+  "input_decoded": {
+    "op": "switch",
+    "requested": "off"
+  },
+  "expect": {
+    "valid": false,
+    "error": "schema"
+  }
+}

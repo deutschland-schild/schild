@@ -1,0 +1,21 @@
+# unprotected: []
+# expect: refuse
+# P15 with nested restore: site hides the query and fails; handle_errors rewrites to the inspected URI (marker matches), restores the saved original in a nested route and proxies.
+http://a.example.test:18080 {
+	route {
+		rewrite * /hidden?
+		schild
+		error "boom" 500
+	}
+	handle_errors {
+		route {
+			vars saved {uri}
+			rewrite * /hidden?
+			schild
+			route {
+				rewrite * {vars.saved}
+			}
+			reverse_proxy 127.0.0.1:18082
+		}
+	}
+}

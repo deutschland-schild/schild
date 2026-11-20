@@ -1,0 +1,39 @@
+{
+  "items": [
+    {
+      "index": 2,
+      "time": "2026-10-26T12:00:00Z",
+      "kind": "checkpoint",
+      "ref": "10",
+      "digest": "sha256:5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a",
+      "summary": "checkpoint 10: bundle 42, withdrawal 3",
+      "envelope": null,
+      "envelope_sha256": "sha256:80a2fbeb883fbfa40819bfe89d206b317e597e3c4de23f284ed9525cdcc30567"
+    },
+    {
+      "index": 1,
+      "time": "2026-10-26T11:00:03Z",
+      "kind": "bundle",
+      "ref": "42",
+      "digest": "sha256:4b4b4b4b4b4b4b4b4b4b4b4b4b4b4b4b4b4b4b4b4b4b4b4b4b4b4b4b4b4b4b4b",
+      "summary": "bundle 42 published (2 rules, 2 operators)",
+      "envelope": null,
+      "envelope_sha256": "sha256:a5346231ca85bb15cb2c09ba6e81c4c3d8c9df470a0a8288b1f6fb6b66a4ae2b"
+    },
+    {
+      "index": 0,
+      "time": "2026-10-26T09:40:00Z",
+      "kind": "proposal",
+      "ref": "prop-0007",
+      "digest": "sha256:6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c",
+      "summary": "proposal schild-2026-0412 (virtual_patch, wp-plugin/gallery <2.4.1)",
+      "envelope": null,
+      "envelope_sha256": null
+    }
+  ],
+  "next_cursor": null,
+  "head": {
+    "size": 3,
+    "root": "sha256:293fc253b705e5018ef9ae16b7d46a2106c507136226497a180adef91ae8633a"
+  }
+}

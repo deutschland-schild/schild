@@ -1,0 +1,106 @@
+{
+  "contract": "ingress-order",
+  "description": "D31 amendment 2026-10-29: Refused: no explicit route needed. Without schild at the top of the site block, Caddy's directive order runs the site's rewrite before the handle block whose schild comes first inside it; uri replace inside the handle restores the query.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"caddyfile\":\"http://a.example.test {\\n\\tvars saved {query}\\n\\trewrite * /hidden?\\n\\thandle {\\n\\t\\tschild\\n\\t\\turi replace /hidden /hidden?{vars.saved}\\n\\t\\treverse_proxy 127.0.0.1:18082\\n\\t}\\n}\\n\",\"servers\":{\"srv0\":{\"listen\":[\":80\"],\"routes\":[{\"handle\":[{\"handler\":\"subroute\",\"routes\":[{\"handle\":[{\"handler\":\"vars\",\"saved\":\"{http.request.uri.query}\"}]},{\"group\":\"group1\",\"handle\":[{\"handler\":\"rewrite\",\"uri\":\"/hidden?\"}]},{\"handle\":[{\"handler\":\"subroute\",\"routes\":[{\"handle\":[{\"handler\":\"schild\"},{\"handler\":\"rewrite\",\"uri_substring\":[{\"find\":\"/hidden\",\"replace\":\"/hidden?{http.vars.saved}\"}]},{\"handler\":\"reverse_proxy\",\"upstreams\":[{\"dial\":\"127.0.0.1:18082\"}]}]}]}]}]}],\"match\":[{\"host\":[\"a.example.test\"]}],\"terminal\":true}]}}}",
+  "input_decoded": {
+    "caddyfile": "http://a.example.test {\n\tvars saved {query}\n\trewrite * /hidden?\n\thandle {\n\t\tschild\n\t\turi replace /hidden /hidden?{vars.saved}\n\t\treverse_proxy 127.0.0.1:18082\n\t}\n}\n",
+    "servers": {
+      "srv0": {
+        "listen": [
+          ":80"
+        ],
+        "routes": [
+          {
+            "handle": [
+              {
+                "handler": "subroute",
+                "routes": [
+                  {
+                    "handle": [
+                      {
+                        "handler": "vars",
+                        "saved": "{http.request.uri.query}"
+                      }
+                    ]
+                  },
+                  {
+                    "group": "group1",
+                    "handle": [
+                      {
+                        "handler": "rewrite",
+                        "uri": "/hidden?"
+                      }
+                    ]
+                  },
+                  {
+                    "handle": [
+                      {
+                        "handler": "subroute",
+                        "routes": [
+                          {
+                            "handle": [
+                              {
+                                "handler": "schild"
+                              },
+                              {
+                                "handler": "rewrite",
+                                "uri_substring": [
+                                  {
+                                    "find": "/hidden",
+                                    "replace": "/hidden?{http.vars.saved}"
+                                  }
+                                ]
+                              },
+                              {
+                                "handler": "reverse_proxy",
+                                "upstreams": [
+                                  {
+                                    "dial": "127.0.0.1:18082"
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ],
+            "match": [
+              {
+                "host": [
+                  "a.example.test"
+                ]
+              }
+            ],
+            "terminal": true
+          }
+        ]
+      }
+    }
+  },
+  "expect": {
+    "valid": true,
+    "result": {
+      "findings": [
+        {
+          "code": "rewrite_before_schild",
+          "msg_key": "ingress.err.rewrite_before_schild",
+          "server": "srv0",
+          "route": "/routes/0",
+          "hosts": [
+            "a.example.test"
+          ],
+          "directive": "rewrite",
+          "rewrite": "/routes/0/handle/0/routes/1/handle/0",
+          "schild": "/routes/0/handle/0/routes/2/handle/0/routes/0/handle/0"
+        }
+      ]
+    }
+  }
+}

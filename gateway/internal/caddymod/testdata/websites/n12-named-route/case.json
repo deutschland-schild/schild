@@ -1,0 +1,30 @@
+{
+ "resolve": [
+  "a.example.org",
+  "b.example.org"
+ ],
+ "blocks": [
+  {
+   "Addresses": [
+    "http://a.example.org"
+   ],
+   "Schild": false,
+   "Proxies": false
+  },
+  {
+   "Addresses": [
+    "a.example.org"
+   ],
+   "Schild": true,
+   "Proxies": false
+  },
+  {
+   "Addresses": [
+    "b.example.org"
+   ],
+   "Schild": true,
+   "Proxies": false
+  }
+ ],
+ "note": "Caddy 2.11 adapts a named route of one unmatched route to its first handler only (httptype.go, 'we can simplify'), so &(app) runs schild and no reverse_proxy: the invoking blocks reach no backend."
+}

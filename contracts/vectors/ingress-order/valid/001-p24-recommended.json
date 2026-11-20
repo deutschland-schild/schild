@@ -1,0 +1,161 @@
+{
+  "contract": "ingress-order",
+  "description": "D31 amendment 2026-10-29: Accepted (P24, the runbook's form): schild at the top of the site block runs before every rewrite Caddy orders after it (handle_path strip, rewrite, uri, try_files); handle_errors runs schild first.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"caddyfile\":\"http://a.example.test:18080 {\\n\\tschild\\n\\thandle_path /assets/* {\\n\\t\\troot * /srv/empty\\n\\t\\tfile_server\\n\\t}\\n\\thandle {\\n\\t\\treverse_proxy 127.0.0.1:18082\\n\\t}\\n\\thandle_errors {\\n\\t\\tschild\\n\\t\\treverse_proxy 127.0.0.1:18082\\n\\t}\\n}\\n\",\"servers\":{\"srv0\":{\"automatic_https\":{\"skip\":[\"a.example.test\"]},\"errors\":{\"routes\":[{\"handle\":[{\"handler\":\"subroute\",\"routes\":[{\"handle\":[{\"handler\":\"subroute\",\"routes\":[{\"handle\":[{\"handler\":\"schild\"},{\"handler\":\"reverse_proxy\",\"upstreams\":[{\"dial\":\"127.0.0.1:18082\"}]}]}]}]}]}],\"match\":[{\"host\":[\"a.example.test\"]}],\"terminal\":true}]},\"listen\":[\":18080\"],\"routes\":[{\"handle\":[{\"handler\":\"subroute\",\"routes\":[{\"handle\":[{\"handler\":\"schild\"}]},{\"group\":\"group3\",\"handle\":[{\"handler\":\"subroute\",\"routes\":[{\"handle\":[{\"handler\":\"rewrite\",\"strip_path_prefix\":\"/assets\"}]},{\"handle\":[{\"handler\":\"vars\",\"root\":\"/srv/empty\"},{\"handler\":\"file_server\",\"hide\":[\"/tmp/ingcases/in/p01-p24-recommended.caddy\"]}]}]}],\"match\":[{\"path\":[\"/assets/*\"]}]},{\"group\":\"group3\",\"handle\":[{\"handler\":\"subroute\",\"routes\":[{\"handle\":[{\"handler\":\"reverse_proxy\",\"upstreams\":[{\"dial\":\"127.0.0.1:18082\"}]}]}]}]}]}],\"match\":[{\"host\":[\"a.example.test\"]}],\"terminal\":true}]}}}",
+  "input_decoded": {
+    "caddyfile": "http://a.example.test:18080 {\n\tschild\n\thandle_path /assets/* {\n\t\troot * /srv/empty\n\t\tfile_server\n\t}\n\thandle {\n\t\treverse_proxy 127.0.0.1:18082\n\t}\n\thandle_errors {\n\t\tschild\n\t\treverse_proxy 127.0.0.1:18082\n\t}\n}\n",
+    "servers": {
+      "srv0": {
+        "automatic_https": {
+          "skip": [
+            "a.example.test"
+          ]
+        },
+        "errors": {
+          "routes": [
+            {
+              "handle": [
+                {
+                  "handler": "subroute",
+                  "routes": [
+                    {
+                      "handle": [
+                        {
+                          "handler": "subroute",
+                          "routes": [
+                            {
+                              "handle": [
+                                {
+                                  "handler": "schild"
+                                },
+                                {
+                                  "handler": "reverse_proxy",
+                                  "upstreams": [
+                                    {
+                                      "dial": "127.0.0.1:18082"
+                                    }
+                                  ]
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ],
+              "match": [
+                {
+                  "host": [
+                    "a.example.test"
+                  ]
+                }
+              ],
+              "terminal": true
+            }
+          ]
+        },
+        "listen": [
+          ":18080"
+        ],
+        "routes": [
+          {
+            "handle": [
+              {
+                "handler": "subroute",
+                "routes": [
+                  {
+                    "handle": [
+                      {
+                        "handler": "schild"
+                      }
+                    ]
+                  },
+                  {
+                    "group": "group3",
+                    "handle": [
+                      {
+                        "handler": "subroute",
+                        "routes": [
+                          {
+                            "handle": [
+                              {
+                                "handler": "rewrite",
+                                "strip_path_prefix": "/assets"
+                              }
+                            ]
+                          },
+                          {
+                            "handle": [
+                              {
+                                "handler": "vars",
+                                "root": "/srv/empty"
+                              },
+                              {
+                                "handler": "file_server",
+                                "hide": [
+                                  "/tmp/ingcases/in/p01-p24-recommended.caddy"
+                                ]
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ],
+                    "match": [
+                      {
+                        "path": [
+                          "/assets/*"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "group": "group3",
+                    "handle": [
+                      {
+                        "handler": "subroute",
+                        "routes": [
+                          {
+                            "handle": [
+                              {
+                                "handler": "reverse_proxy",
+                                "upstreams": [
+                                  {
+                                    "dial": "127.0.0.1:18082"
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ],
+            "match": [
+              {
+                "host": [
+                  "a.example.test"
+                ]
+              }
+            ],
+            "terminal": true
+          }
+        ]
+      }
+    }
+  },
+  "expect": {
+    "valid": true,
+    "result": {
+      "findings": []
+    }
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "name": "deutschland-schild",
+  "dockerComposeFile": "../compose.yaml",
+  "service": "site",
+  "workspaceFolder": "/app",
+  "forwardPorts": [3000],
+  "customizations": {
+    "vscode": {
+      "extensions": ["Vue.volar", "bradlc.vscode-tailwindcss", "nuxtr.nuxt-vscode-extentions"]
+    }
+  }
+}

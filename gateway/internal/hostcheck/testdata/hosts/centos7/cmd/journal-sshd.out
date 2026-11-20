@@ -1,0 +1,8 @@
+2026-10-27T00:00:11+0000 host sshd[2000]: Invalid user admin0 from 203.0.113.1 port 5000
+2026-10-27T00:00:12+0000 host sshd[2000]: Failed password for invalid user admin0 from 203.0.113.1 port 5000 ssh2
+2026-10-27T01:01:11+0000 host sshd[2001]: Invalid user admin1 from 203.0.113.2 port 5001
+2026-10-27T01:01:12+0000 host sshd[2001]: Failed password for invalid user admin1 from 203.0.113.2 port 5001 ssh2
+2026-10-27T02:02:11+0000 host sshd[2002]: Invalid user admin2 from 203.0.113.3 port 5002
+2026-10-27T02:02:12+0000 host sshd[2002]: Failed password for invalid user admin2 from 203.0.113.3 port 5002 ssh2
+2026-10-27T10:00:01+0000 host sshd[3000]: Failed password for root from 192.0.2.1 port 6000 ssh2
+2026-10-27T11:00:00+0000 host sshd[999]: Accepted publickey for deploy from 192.0.2.10 port 50000 ssh2: ED25519 SHA256:abc

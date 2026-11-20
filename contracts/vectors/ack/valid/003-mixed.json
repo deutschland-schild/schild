@@ -1,0 +1,51 @@
+{
+  "contract": "ack",
+  "description": "Accepted, duplicate and rejected ids.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z",
+    "trust": [
+      "site-a",
+      "site-b",
+      "site-c",
+      "lab-a",
+      "lab-a2",
+      "lab-b",
+      "lab-c",
+      "lab-d"
+    ]
+  },
+  "input_raw": "{\"payloadType\":\"application/vnd.schild.ack.v0+json\",\"payload\":\"eyJhY2NlcHRlZCI6WyI2M2YyZmE1OC1jNjg0LTQ3MzItOTExZC1jM2QyYTgzN2I1MWUiLCIyMTBlYzI5Zi00NjA3LTQwZmUtYTk3MS1lMDdlMDE3MTA1ZWQiXSwiY29udHJvbCI6eyJtYXhfYmF0Y2giOjY0LCJyZWFzb24iOiJvayIsInJldHJ5X2FmdGVyX21zIjowfSwiZHVwbGljYXRlIjpbIjZmYTgzZGM0LTllYWQtNDI2MC04OTg5LWU4ZTg0ZTM4NDViZCJdLCJpbl9yZXBseV90byI6ImNkNzFkNTJmLWM3MTctNGJlNy1iYTVhLWEzMTdjNjJlN2ZmNyIsImlzc3VlZF9hdCI6IjIwMjYtMTAtMjZUMTE6NTk6NThaIiwibGFiIjoibGFiLWMiLCJyZWplY3RlZCI6W3siaWQiOiIxMzIyZWU4Ni1mNTAxLTQ1OGEtODRhOC1mM2I1NjAwODY5ZWUiLCJyZWFzb24iOiJzY2hlbWEifSx7ImlkIjoiMDAwMDAwMDAtMDAwMC00MDAwLTgwMDAtMDAwMDAwMDAwMDAwIiwicmVhc29uIjoibWFsZm9ybWVkIn1dLCJzY2hlbWEiOiJzY2hpbGQuYWNrLzAuMSJ9\",\"signatures\":[{\"keyid\":\"test-lab-c\",\"sig\":\"ohMXF51Zs6B+w+ruu7qm8Ja3iFqT4pVBNYLAoHpsU1/SMUaDGLPESRaIL1muBj3tALMnBUbXYGkKLCvGrecAAQ==\"}]}",
+  "input_decoded": {
+    "payload": {
+      "accepted": [
+        "63f2fa58-c684-4732-911d-c3d2a837b51e",
+        "210ec29f-4607-40fe-a971-e07e017105ed"
+      ],
+      "control": {
+        "max_batch": 64,
+        "reason": "ok",
+        "retry_after_ms": 0
+      },
+      "duplicate": [
+        "6fa83dc4-9ead-4260-8989-e8e84e3845bd"
+      ],
+      "in_reply_to": "cd71d52f-c717-4be7-ba5a-a317c62e7ff7",
+      "issued_at": "2026-10-26T11:59:58Z",
+      "lab": "lab-c",
+      "rejected": [
+        {
+          "id": "1322ee86-f501-458a-84a8-f3b5600869ee",
+          "reason": "schema"
+        },
+        {
+          "id": "00000000-0000-4000-8000-000000000000",
+          "reason": "malformed"
+        }
+      ],
+      "schema": "schild.ack/0.1"
+    }
+  },
+  "expect": {
+    "valid": true
+  }
+}

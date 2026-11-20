@@ -1,0 +1,9 @@
+# unprotected: []
+# expect: pass
+http://a.example.test:18080 {
+	import schild
+	basic_auth /admin/* {
+		admin $2a$14$Zkx19XLiW6VYouLHR5NmfOFU0z2GTNmpkT/5qqR7hx4IjWJPDhjvG
+	}
+	reverse_proxy 127.0.0.1:18081
+}

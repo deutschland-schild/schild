@@ -1,0 +1,24 @@
+{
+  "contract": "checkpoint",
+  "description": "Checkpoint signed as withdrawal.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z",
+    "trust": [
+      "site-a",
+      "site-b",
+      "site-c",
+      "lab-a",
+      "lab-a2",
+      "lab-b",
+      "lab-c",
+      "lab-d"
+    ],
+    "threshold": 2,
+    "channel": "schild-main"
+  },
+  "input_raw": "{\"payloadType\":\"application/vnd.schild.withdrawal.v0+json\",\"payload\":\"eyJidW5kbGUiOnsiYnVuZGxlX2lkIjoic2NoaWxkLW1haW4iLCJkaWdlc3QiOiJzaGEyNTY6ZjdjYjFlMjRjMjA0NjkyZDYzNzk5ZjM2NTViZmEyNmVlOTllODRiMTAyZDcxNWI2NzkzYzBhMjgxZjVkYjk3ZCIsInZlcnNpb24iOjQyfSwiZXhwaXJlcyI6IjIwMjYtMTAtMjZUMTI6MDI6MzBaIiwiaXNzdWVkX2F0IjoiMjAyNi0xMC0yNlQxMTo1OTozMFoiLCJsYWIiOiJsYWItYSIsInNjaGVtYSI6InNjaGlsZC5jaGVja3BvaW50LzAuMSIsInNlcSI6NSwid2l0aGRyYXdhbF9zZXEiOjN9\",\"signatures\":[{\"keyid\":\"test-lab-a\",\"sig\":\"56GP3izU0KTETSy95looMKqX2Suc3hxvqEHloJbBaKoUTE9vhA2VfWg4fv505dyEXQe+ITxqazznT5atsQ1tAg==\"}]}",
+  "expect": {
+    "valid": false,
+    "error": "payload_type"
+  }
+}

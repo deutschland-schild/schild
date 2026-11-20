@@ -1,0 +1,47 @@
+{
+  "contract": "storage-bounds",
+  "description": "D38 (MVP-21): a day has at most 144 ten-minute points.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"days\":[{\"min_used_bytes\":1,\"samples\":145},{\"min_used_bytes\":2,\"samples\":144},{\"min_used_bytes\":3,\"samples\":144},{\"min_used_bytes\":4,\"samples\":144},{\"min_used_bytes\":5,\"samples\":144},{\"min_used_bytes\":6,\"samples\":144},{\"min_used_bytes\":7,\"samples\":144}],\"op\":\"disk_projection\",\"total_bytes\":107374182400,\"used_bytes\":85899345920}",
+  "input_decoded": {
+    "days": [
+      {
+        "min_used_bytes": 1,
+        "samples": 145
+      },
+      {
+        "min_used_bytes": 2,
+        "samples": 144
+      },
+      {
+        "min_used_bytes": 3,
+        "samples": 144
+      },
+      {
+        "min_used_bytes": 4,
+        "samples": 144
+      },
+      {
+        "min_used_bytes": 5,
+        "samples": 144
+      },
+      {
+        "min_used_bytes": 6,
+        "samples": 144
+      },
+      {
+        "min_used_bytes": 7,
+        "samples": 144
+      }
+    ],
+    "op": "disk_projection",
+    "total_bytes": 107374182400,
+    "used_bytes": 85899345920
+  },
+  "expect": {
+    "valid": false,
+    "error": "schema"
+  }
+}

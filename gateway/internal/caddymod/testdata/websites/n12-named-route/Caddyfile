@@ -1,0 +1,21 @@
+{
+	admin off
+}
+
+&(app) {
+	schild
+	reverse_proxy 127.0.0.1:19101
+}
+
+http://a.example.org {
+	redir https://{host}{uri} permanent
+}
+
+a.example.org {
+	invoke app
+}
+
+b.example.org {
+	invoke app
+}
+

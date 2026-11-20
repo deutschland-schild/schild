@@ -1,0 +1,23 @@
+{
+  "context": {
+    "now": "2026-11-19T12:00:00Z"
+  },
+  "contract": "human-check",
+  "description": "unknown policy mode",
+  "expect": {
+    "error": "schema",
+    "valid": false
+  },
+  "input_decoded": {
+    "allowlisted": false,
+    "clearance": "none",
+    "good_bot": false,
+    "method": "GET",
+    "path": "/",
+    "policy": {
+      "mode": "challenge",
+      "website": "example.org"
+    }
+  },
+  "input_raw": "{\"allowlisted\":false,\"clearance\":\"none\",\"good_bot\":false,\"method\":\"GET\",\"path\":\"/\",\"policy\":{\"mode\":\"challenge\",\"website\":\"example.org\"}}"
+}

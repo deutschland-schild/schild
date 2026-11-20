@@ -1,0 +1,6 @@
+php8.3-fpm	8.3.6-0ubuntu0.24.04.2	ii 
+nginx	1.24.0-2ubuntu7.1	ii 
+openssl	3.0.13-0ubuntu3.1	ii 
+libssl3t64:arm64	3.0.13-0ubuntu3.1	ii 
+openssh-server	1:9.6p1-3ubuntu13.5	ii 
+docker-ce	5:27.3.1-1~ubuntu.24.04~noble	ii 

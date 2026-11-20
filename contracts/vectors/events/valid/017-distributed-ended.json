@@ -1,0 +1,28 @@
+{
+  "contract": "events",
+  "description": "v0.4 MVP-18: the operator ended a response early.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"data\":{\"detector\":\"fingerprint_cluster\",\"duration_s\":540,\"host\":\"verein.example\",\"reason\":\"operator\",\"route\":\"/wp-login.php\",\"stopped\":1830,\"wave_id\":\"c83ff94c-538e-4e32-a122-9866586e0868\"},\"datacontenttype\":\"application/json\",\"id\":\"992912b2-fdc6-466f-842d-2f158ff98424\",\"source\":\"schild://web-1\",\"specversion\":\"1.0\",\"time\":\"2026-10-26T11:59:58.123Z\",\"type\":\"schild.distributed.ended.v1\"}",
+  "input_decoded": {
+    "data": {
+      "detector": "fingerprint_cluster",
+      "duration_s": 540,
+      "host": "verein.example",
+      "reason": "operator",
+      "route": "/wp-login.php",
+      "stopped": 1830,
+      "wave_id": "c83ff94c-538e-4e32-a122-9866586e0868"
+    },
+    "datacontenttype": "application/json",
+    "id": "992912b2-fdc6-466f-842d-2f158ff98424",
+    "source": "schild://web-1",
+    "specversion": "1.0",
+    "time": "2026-10-26T11:59:58.123Z",
+    "type": "schild.distributed.ended.v1"
+  },
+  "expect": {
+    "valid": true
+  }
+}

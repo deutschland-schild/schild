@@ -1,0 +1,19 @@
+{
+  "contract": "body-limits",
+  "description": "D44: 128 KiB still wait in memory.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"bytes\":131072,\"op\":\"waiting\"}",
+  "input_decoded": {
+    "bytes": 131072,
+    "op": "waiting"
+  },
+  "expect": {
+    "valid": true,
+    "result": {
+      "in_memory": true,
+      "waiting_bytes": 262144
+    }
+  }
+}

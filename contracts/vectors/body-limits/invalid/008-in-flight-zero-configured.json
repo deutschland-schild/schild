@@ -1,0 +1,17 @@
+{
+  "contract": "body-limits",
+  "description": "D41: a configured value is at least 1.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"configured\":0,\"memory_bytes\":1073741824,\"op\":\"in_flight\"}",
+  "input_decoded": {
+    "configured": 0,
+    "memory_bytes": 1073741824,
+    "op": "in_flight"
+  },
+  "expect": {
+    "valid": false,
+    "error": "schema"
+  }
+}

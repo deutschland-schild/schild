@@ -1,0 +1,167 @@
+# TEST ONLY: evening measurement C, HTTP latency on the worst-case W=32 metrics.db (ports 22200-22299)
+{
+	admin off
+	http_port 22290
+	https_port 22293
+	auto_https off
+}
+
+http://app0.example.org:22290 {
+	schild
+	reverse_proxy 127.0.0.1:22299
+}
+
+http://app1.example.org:22290 {
+	schild
+	reverse_proxy 127.0.0.1:22299
+}
+
+http://app2.example.org:22290 {
+	schild
+	reverse_proxy 127.0.0.1:22299
+}
+
+http://app3.example.org:22290 {
+	schild
+	reverse_proxy 127.0.0.1:22299
+}
+
+http://app4.example.org:22290 {
+	schild
+	reverse_proxy 127.0.0.1:22299
+}
+
+http://app5.example.org:22290 {
+	schild
+	reverse_proxy 127.0.0.1:22299
+}
+
+http://app6.example.org:22290 {
+	schild
+	reverse_proxy 127.0.0.1:22299
+}
+
+http://app7.example.org:22290 {
+	schild
+	reverse_proxy 127.0.0.1:22299
+}
+
+http://app8.example.org:22290 {
+	schild
+	reverse_proxy 127.0.0.1:22299
+}
+
+http://app9.example.org:22290 {
+	schild
+	reverse_proxy 127.0.0.1:22299
+}
+
+http://app10.example.org:22290 {
+	schild
+	reverse_proxy 127.0.0.1:22299
+}
+
+http://app11.example.org:22290 {
+	schild
+	reverse_proxy 127.0.0.1:22299
+}
+
+http://app12.example.org:22290 {
+	schild
+	reverse_proxy 127.0.0.1:22299
+}
+
+http://app13.example.org:22290 {
+	schild
+	reverse_proxy 127.0.0.1:22299
+}
+
+http://app14.example.org:22290 {
+	schild
+	reverse_proxy 127.0.0.1:22299
+}
+
+http://app15.example.org:22290 {
+	schild
+	reverse_proxy 127.0.0.1:22299
+}
+
+http://app16.example.org:22290 {
+	schild
+	reverse_proxy 127.0.0.1:22299
+}
+
+http://app17.example.org:22290 {
+	schild
+	reverse_proxy 127.0.0.1:22299
+}
+
+http://app18.example.org:22290 {
+	schild
+	reverse_proxy 127.0.0.1:22299
+}
+
+http://app19.example.org:22290 {
+	schild
+	reverse_proxy 127.0.0.1:22299
+}
+
+http://app20.example.org:22290 {
+	schild
+	reverse_proxy 127.0.0.1:22299
+}
+
+http://app21.example.org:22290 {
+	schild
+	reverse_proxy 127.0.0.1:22299
+}
+
+http://app22.example.org:22290 {
+	schild
+	reverse_proxy 127.0.0.1:22299
+}
+
+http://app23.example.org:22290 {
+	schild
+	reverse_proxy 127.0.0.1:22299
+}
+
+http://app24.example.org:22290 {
+	schild
+	reverse_proxy 127.0.0.1:22299
+}
+
+http://app25.example.org:22290 {
+	schild
+	reverse_proxy 127.0.0.1:22299
+}
+
+http://app26.example.org:22290 {
+	schild
+	reverse_proxy 127.0.0.1:22299
+}
+
+http://app27.example.org:22290 {
+	schild
+	reverse_proxy 127.0.0.1:22299
+}
+
+http://app28.example.org:22290 {
+	schild
+	reverse_proxy 127.0.0.1:22299
+}
+
+http://app29.example.org:22290 {
+	schild
+	reverse_proxy 127.0.0.1:22299
+}
+
+http://app30.example.org:22290 {
+	schild
+	reverse_proxy 127.0.0.1:22299
+}
+
+http://app31.example.org:22290 {
+	schild
+	reverse_proxy 127.0.0.1:22299
+}

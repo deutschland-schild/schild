@@ -1,0 +1,74 @@
+id: MVP-23
+# Initiator idea (2026-10-29): instead of a bare 503 under load, people see a calm waiting page, later a real waiting
+# room with a queue, like Cloudflare Waiting Room. "Mit einer witzigen Grafik. Ne Wartebank oder sowas."
+# Step 1 (small, before level 1 goes live, as an MVP-19 addendum): a calm waiting page with automatic reload for
+# schild's own overload answers (waf_busy, memory budget, evaluation time). Step 2 (this prototype): the queue.
+# Illustration chosen (initiator, 2026-10-29): variant A, park bench (tests/results/waiting-page-2026-10-29/variant-a.html,
+# headline "Kurz Platz nehmen, bitte."); variant B (queue) is kept for step 2.
+# Step 1 contracts written 2026-10-29 (DECISIONS D37, contracts v0.5, contracts/waiting-page.md, contract/waitingpage,
+# vectors waiting-page): reasons waf_busy and waf_timeout only (the memory budget is waf_busy; not_ready and panic keep
+# their answer); POST navigations get a form variant without meta refresh; Retry-After 5 + 0..3 s; the countdown is
+# CSS-only (the block page's CSP allows no script), replacing "a small countdown with JavaScript"; the step 1 switch
+# default is true, decided by the initiator on 2026-10-29 (D37 amendment).
+# Availability under load is part of protection, so this stays within Schild's scope (security and monitoring).
+title: "Warteraum: a calm waiting page under load (step 1) and a fair queue per website with signed tickets, admission cookies, adaptive or fixed admission rate and a planned mode for known rushes (step 2)"
+ships: false                        # draft
+status: ENTWURF
+image: schild                       # same binary; no external resources
+hypotheses: [M2, D1]
+refs: [MVP-12, MVP-17, MVP-19, MVP-21, MVP-22, DECISIONS-D29, DECISIONS-D36, concept-24]
+depends_on: [MVP-19, MVP-21]
+why: >-
+  Under overload schild answers 503 rather than passing requests unchecked (fail closed). For a person that is a bare
+  error page; during a known rush (e.g. registration opening of an event) everyone hammers reload and makes it worse.
+  A waiting page explains, reloads by itself and spreads the load; a queue makes waiting fair.
+
+step1_waiting_page:                 # MVP-19 addendum, before level 1 goes live
+  - 'shown instead of the bare 503 when schild itself is overloaded (waf_busy, memory budget, evaluation timeout), only to browsers asking for a document (Accept text/html or Sec-Fetch-Dest document); APIs, XHR, bots and webhooks keep 503 with Retry-After and the JSON problem code'
+  - 'status 503 with Retry-After (a few seconds, jittered so reloads do not arrive in waves); automatic reload via meta refresh without JavaScript, a small countdown with JavaScript if available'
+  - 'calm German copy (du-form, humanizer), English by Accept-Language; no fear wording; the website name; no incident number (this is not a block)'
+  - 'illustration: a friendly inline SVG (a waiting bench, a small shield figure waiting with a thermos, a clock), light and dark, no external resources, a few KB; the same visual language as the block page'
+  - 'served from memory without WAF evaluation; bounded cost so serving it never adds to the overload; counted as fail_closed in MVP-21 with a new overlay "waiting page shown"'
+  - 'operators can disable it (schild.yaml) and replace text and image per website later (not in step 1)'
+
+step2_queue:
+  ticket:
+    - 'a client arriving while the website is full gets a signed ticket cookie (HMAC, key in memory or in schild.db; content: website, issue time, position seed; no IP, no user id); strictly necessary to deliver the requested service under load (TDDDG section 25 exemption, legal review required)'
+    - 'IP or /64 only as abuse protection: at most a few open tickets per address, more for cgnat and mobile net classes; a bot cannot take many positions'
+  admission:
+    - 'admitted clients get an admission cookie valid for a sliding window (default 15 min after the last request), so nobody is thrown out in a checkout or a registration form'
+    - 'rate: adaptive from schild''s own load signals (busy evaluation slots, app latency p95, app 5xx and upstream errors; increase slowly, back off fast) or a fixed per-website maximum of active visitors'
+    - 'order: first come, first served; in planned mode all clients arriving before the start time get a random position (no advantage for pressing reload)'
+  planned_mode: 'per website in schild.yaml (configuration as code): start time, optional end, max active visitors; the waiting page shows the start time beforehand'
+  who_waits: 'people (browser documents); APIs, webhooks and assets of admitted clients are not queued; verified search bots can be let through or queued (operator choice); everything else gets 503 with Retry-After'
+  page: 'position and estimated wait, refreshed by itself, same illustration as step 1 with a queue variant'
+  dashboard: 'per website: queue length, active visitors, admitted per minute, mean and p95 wait, leavers; a chart annotation "Warteraum aktiv"; agent API read-only tools for the same numbers'
+  privacy: 'no visitor data stored beyond counters; ticket and admission cookies carry no identifier that links days; disclosure text for the operator''s privacy notice'
+
+contracts:
+  new:                              # contracts agent, contracts first
+    - 'step 1: fail-closed response for documents (503, Retry-After range, content negotiation rules, no incident number); counter overlay waiting_page_shown; schild.yaml switch'
+    - 'step 2: schild.yaml waiting_room per website (mode off|auto|fixed|planned, max_active, start, end, admission_minutes, bots), ticket and admission cookie formats with vectors (valid, expired, forged, wrong website), dashboard and agent API read operations'
+  version: 'step 1 in contracts v0.5 (unreleased); step 2 v0.6'
+
+must:
+  - 'never pass a request unchecked because of the waiting room; fail closed stays fail closed'
+  - 'serving the waiting page or the queue never makes the overload worse (bounded cost, no WAF evaluation, no database write per request)'
+  - 'admitted visitors are not thrown out while they are active'
+  - 'no external resources; works without JavaScript'
+measure:                            # by an independent agent
+  - 'flood of expensive requests: browsers see the waiting page, APIs see 503 with Retry-After; p99 of normal admitted requests within noise of the MVP-19 measurement'
+  - 'queue: 10,000 simulated people against max_active 300; fairness (position order kept within a small tolerance), no admitted visitor dropped while active, forged or reused tickets refused, ticket flood from one address capped'
+  - 'planned mode: random order for early arrivals, no advantage for reload storms'
+  - 'privacy: no IP or identifier in cookies; nothing stored per visitor'
+  - 'usability: 5 people understand the page and wait instead of leaving or reloading by hand'
+kill_if: "a request passes unchecked because of the waiting room OR serving it measurably worsens the overload OR an admitted active visitor is thrown out OR a forged ticket is admitted OR the cookies carry an identifier"
+done: "make contracts-test && make test && (cd ui && pnpm check) && make testlab-up PROFILE=t1 && make smoke PROFILE=t1 (incl. waiting room steps)"
+out_of_scope:
+  - 'payment or priority passes'
+  - 'queues across several gateways (central dashboard, later)'
+  - 'CAPTCHAs (MVP-12 browser check stays separate)'
+open_questions:
+  - 'let verified search bots through during a waiting room or queue them?'
+  - 'default admission window 15 min: right for checkouts and registrations?'
+  - 'step 1 switch default on? (contract default true as recommended, D37; open)'

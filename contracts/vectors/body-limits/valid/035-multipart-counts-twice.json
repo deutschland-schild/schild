@@ -1,0 +1,25 @@
+{
+  "contract": "body-limits",
+  "description": "D41: a multipart body counts twice against max_in_flight_bytes.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"body_limit_bytes\":13107200,\"bytes\":12582912,\"content_type\":\"multipart/form-data; boundary=x\",\"op\":\"size\",\"raw_limit_bytes\":131072}",
+  "input_decoded": {
+    "body_limit_bytes": 13107200,
+    "bytes": 12582912,
+    "content_type": "multipart/form-data; boundary=x",
+    "op": "size",
+    "raw_limit_bytes": 131072
+  },
+  "expect": {
+    "valid": true,
+    "result": {
+      "class": "multipart",
+      "code": null,
+      "held_bytes": 25165824,
+      "limit_bytes": 13107200,
+      "status": null
+    }
+  }
+}

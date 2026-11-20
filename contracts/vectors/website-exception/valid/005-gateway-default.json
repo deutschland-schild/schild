@@ -1,0 +1,25 @@
+{
+  "contract": "website-exception",
+  "description": "D36: the proxy-mode website default has no hosts: the snippet applies to the whole gateway and says so (scope gateway).",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"id\":1000001,\"path\":\"/kontakt/\",\"rule_id\":\"942100\",\"target\":\"ARGS:nachricht\",\"website\":{\"hosts\":[],\"id\":\"default\"}}",
+  "input_decoded": {
+    "id": 1000001,
+    "path": "/kontakt/",
+    "rule_id": "942100",
+    "target": "ARGS:nachricht",
+    "website": {
+      "hosts": [],
+      "id": "default"
+    }
+  },
+  "expect": {
+    "valid": true,
+    "result": {
+      "scope": "gateway",
+      "snippet": "# schild: exception for rule 942100 on /kontakt/, every website of this gateway\nSecRule REQUEST_FILENAME \"@streq /kontakt/\" \"id:1000001,phase:1,pass,nolog,t:none,ctl:ruleRemoveTargetById=942100;ARGS:nachricht\"\n"
+    }
+  }
+}

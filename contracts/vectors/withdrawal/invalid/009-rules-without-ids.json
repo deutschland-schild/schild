@@ -1,0 +1,35 @@
+{
+  "contract": "withdrawal",
+  "description": "scope rules needs rule_ids.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z",
+    "trust": [
+      "site-a",
+      "site-b",
+      "site-c",
+      "lab-a",
+      "lab-a2",
+      "lab-b",
+      "lab-c",
+      "lab-d"
+    ],
+    "threshold": 2,
+    "channel": "schild-main"
+  },
+  "input_raw": "{\"payloadType\":\"application/vnd.schild.withdrawal.v0+json\",\"payload\":\"eyJidW5kbGVfaWQiOiJzY2hpbGQtbWFpbiIsImlzc3VlZF9hdCI6IjIwMjYtMTAtMjZUMTE6NTk6MDBaIiwicmVhc29uIjoiZW1lcmdlbmN5X3N0b3AiLCJzY2hlbWEiOiJzY2hpbGQud2l0aGRyYXdhbC8wLjEiLCJzY29wZSI6InJ1bGVzIiwic2VxIjo0LCJ1cF90b192ZXJzaW9uIjo0Mn0=\",\"signatures\":[{\"keyid\":\"test-lab-a\",\"sig\":\"l3u6WCUkJrxZQ/6f5ZHmSJLvQspKZ4OxJQlIwimC4RAVu82L2qGuqJpjvc+qSPxhDFP+HPY7tZhGx+WW4dwdCA==\"},{\"keyid\":\"test-lab-b\",\"sig\":\"q1DUsHSm8kzzPemiVTN3deo5EXS6K6huqz+HaNplR2Ww0xiTn5WFFtUIg7OhXBz/wLhDerctiDMGYNskKtOjAw==\"}]}",
+  "input_decoded": {
+    "payload": {
+      "bundle_id": "schild-main",
+      "issued_at": "2026-10-26T11:59:00Z",
+      "reason": "emergency_stop",
+      "schema": "schild.withdrawal/0.1",
+      "scope": "rules",
+      "seq": 4,
+      "up_to_version": 42
+    }
+  },
+  "expect": {
+    "valid": false,
+    "error": "schema"
+  }
+}

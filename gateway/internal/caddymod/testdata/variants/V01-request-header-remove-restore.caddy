@@ -1,0 +1,15 @@
+# unprotected: []
+# expect: refuse
+# Hide Referer and Cookie from schild with request_header, put them back after schild.
+http://a.example.test:26080 {
+	route {
+		vars savedref {http.request.header.Referer}
+		vars savedck {http.request.header.Cookie}
+		request_header -Referer
+		request_header -Cookie
+		schild
+		request_header Referer {vars.savedref}
+		request_header Cookie {vars.savedck}
+		reverse_proxy 127.0.0.1:26082
+	}
+}

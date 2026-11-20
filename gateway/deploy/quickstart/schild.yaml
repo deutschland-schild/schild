@@ -1,0 +1,44 @@
+# Starter configuration of the Schild Gateway for the Docker quickstart
+# (compose.yaml next to this file, or docker run). schild listens on port 8080
+# and passes every request on to your application.
+#
+# All keys: https://deutschland-schild.de/doku
+config_version: 0
+
+# Every rule repository has its own switch: off, detect (record only) or
+# block. By default the OWASP CRS and your own rules block, CrowdSec rules
+# only detect. For a careful start with a sensitive application, let the
+# CRS only detect for a few days and switch it to block in the dashboard:
+#
+# rules:
+#   crs:
+#     state: detect
+
+# The name of this gateway in the dashboard and in the logs.
+node_name: quickstart
+
+upstream:
+  # Your application, as schild reaches it from inside the container.
+  # host.docker.internal is the Docker host (compose.yaml sets that name up):
+  # use it for an application that listens on the host. For an application in
+  # the same compose file or Docker network, use its service name instead,
+  # for example http://app:3000.
+  url: "http://host.docker.internal:3000"
+
+ingress:
+  # Who may tell schild the real address of a visitor (X-Forwarded-For).
+  # Your web server on the Docker host reaches the container through Docker's
+  # network, so schild sees an address of the Docker networks, not 127.0.0.1.
+  # compose.yaml publishes port 8080 on 127.0.0.1 only, so nobody else gets
+  # here from those networks. Without these lines every visitor would count
+  # as your web server, and no scenario could block anyone. Behind a load
+  # balancer or Cloudflare, add their addresses (and for Cloudflare
+  # client_ip_headers: ["CF-Connecting-IP"]); see the docs, "Echte Adresse".
+  trusted_proxies: ["127.0.0.1/32", "::1/128", "172.16.0.0/12", "192.168.0.0/16"]
+
+listen:
+  # Inside a container the dashboard has to listen on all interfaces of the
+  # container, otherwise the published port reaches nothing. compose.yaml
+  # publishes it on the host's 127.0.0.1 only. Keep it that way: never
+  # publish port 8788 on a public address.
+  dashboard: "0.0.0.0:8788"

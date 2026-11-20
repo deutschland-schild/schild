@@ -1,0 +1,19 @@
+{
+	admin off
+}
+
+http://*.example.org {
+	redir https://{host}{uri} permanent
+}
+
+*.example.org {
+	tls internal
+	schild
+	reverse_proxy 127.0.0.1:19101
+}
+
+api.example.org {
+	schild
+	reverse_proxy 127.0.0.1:19101
+}
+

@@ -1,0 +1,16 @@
+{
+	admin off
+	http_port 19190
+	https_port 19143
+}
+
+http://Shop.Example.ORG. {
+	schild
+	reverse_proxy 127.0.0.1:19101
+}
+
+http://shop.example.org:8080 {
+	schild
+	reverse_proxy 127.0.0.1:19101
+}
+

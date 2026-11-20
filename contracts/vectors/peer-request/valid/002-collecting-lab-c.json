@@ -1,0 +1,19 @@
+{
+  "contract": "peer-request",
+  "description": "lab-c asks lab-a.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z",
+    "trust": [
+      "lab-a",
+      "lab-a2",
+      "lab-b",
+      "lab-c",
+      "lab-d",
+      "site-a"
+    ]
+  },
+  "input_raw": "{\"authorization\":\"v1 lab=lab-c keyid=test-lab-c ts=2026-10-26T11:59:30Z sig=P5bY/aSqf9Ntf2TqTXyU3TAmnROIEBS74Z6LVGz/pepXGB3uXQELJGpBYJlWHwM7xDxfPf7NwtUopR/oTs02DA==\",\"body_sha256\":\"sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855\",\"method\":\"GET\",\"path\":\"/v0/collecting\",\"target\":\"lab-a\"}",
+  "expect": {
+    "valid": true
+  }
+}

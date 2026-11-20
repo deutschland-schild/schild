@@ -1,0 +1,50 @@
+{
+ "unprotected_sites": [
+  "legacy.example.org",
+  "mixed.example.org",
+  "*.legacy.example.org"
+ ],
+ "resolve": [
+  "legacy.example.org",
+  "mixed.example.org",
+  "old.legacy.example.org",
+  "new.example.org"
+ ],
+ "blocks": [
+  {
+   "Addresses": [
+    "legacy.example.org"
+   ],
+   "Schild": false,
+   "Proxies": true
+  },
+  {
+   "Addresses": [
+    "mixed.example.org"
+   ],
+   "Schild": true,
+   "Proxies": true
+  },
+  {
+   "Addresses": [
+    "http://mixed.example.org"
+   ],
+   "Schild": false,
+   "Proxies": true
+  },
+  {
+   "Addresses": [
+    "old.legacy.example.org"
+   ],
+   "Schild": false,
+   "Proxies": true
+  },
+  {
+   "Addresses": [
+    "new.example.org"
+   ],
+   "Schild": true,
+   "Proxies": true
+  }
+ ]
+}

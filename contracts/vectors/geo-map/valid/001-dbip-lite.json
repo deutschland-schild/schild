@@ -1,0 +1,29 @@
+{
+  "contract": "geo-map",
+  "description": "v0.5 MVP-22: bundled DB-IP Lite country and ASN.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"provider\":\"dbip\",\"record\":{\"autonomous_system_number\":64496,\"autonomous_system_organization\":\"Example Telekom\",\"country\":{\"iso_code\":\"DE\",\"names\":{\"de\":\"Deutschland\"}}}}",
+  "input_decoded": {
+    "provider": "dbip",
+    "record": {
+      "autonomous_system_number": 64496,
+      "autonomous_system_organization": "Example Telekom",
+      "country": {
+        "iso_code": "DE",
+        "names": {
+          "de": "Deutschland"
+        }
+      }
+    }
+  },
+  "expect": {
+    "valid": true,
+    "result": {
+      "as_name": "Example Telekom",
+      "asn": 64496,
+      "country": "DE"
+    }
+  }
+}

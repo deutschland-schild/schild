@@ -1,0 +1,19 @@
+{
+  "contract": "body-limits",
+  "description": "D44: a small body waits in memory and counts on top.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"bytes\":1000,\"op\":\"waiting\"}",
+  "input_decoded": {
+    "bytes": 1000,
+    "op": "waiting"
+  },
+  "expect": {
+    "valid": true,
+    "result": {
+      "in_memory": true,
+      "waiting_bytes": 132072
+    }
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "type": "about:blank",
+  "title": "Fingerabdruck stimmt nicht",
+  "status": 409,
+  "code": "fingerprint_mismatch",
+  "detail": "The confirmed fingerprint differs from the agent key.",
+  "errors": [
+    {
+      "pointer": "/fingerprint",
+      "detail": "differs"
+    }
+  ]
+}

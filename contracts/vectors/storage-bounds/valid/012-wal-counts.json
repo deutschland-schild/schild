@@ -1,0 +1,56 @@
+{
+  "contract": "storage-bounds",
+  "description": "D38: the WAL left after the starting checkpoint counts against the cap (journal_size_limit bounds it at 64 MiB).",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"base_bytes\":6291456,\"floor_rows\":0,\"max_size_mb\":10,\"op\":\"cap_pass\",\"rows\":[{\"bytes\":1048576,\"id\":\"s-1\",\"kind\":\"event\",\"outcome\":\"passed\",\"sampled\":true,\"t\":1793016000000,\"type\":\"schild.request.evaluated.v1\"},{\"bytes\":1048576,\"id\":\"s-2\",\"kind\":\"event\",\"outcome\":\"passed\",\"sampled\":true,\"t\":1793016000001,\"type\":\"schild.request.evaluated.v1\"},{\"bytes\":1048576,\"id\":\"l-1\",\"kind\":\"event\",\"outcome\":\"logged\",\"t\":1793016000002,\"type\":\"schild.request.evaluated.v1\"}],\"wal_bytes\":3145728}",
+  "input_decoded": {
+    "base_bytes": 6291456,
+    "floor_rows": 0,
+    "max_size_mb": 10,
+    "op": "cap_pass",
+    "rows": [
+      {
+        "bytes": 1048576,
+        "id": "s-1",
+        "kind": "event",
+        "outcome": "passed",
+        "sampled": true,
+        "t": 1793016000000,
+        "type": "schild.request.evaluated.v1"
+      },
+      {
+        "bytes": 1048576,
+        "id": "s-2",
+        "kind": "event",
+        "outcome": "passed",
+        "sampled": true,
+        "t": 1793016000001,
+        "type": "schild.request.evaluated.v1"
+      },
+      {
+        "bytes": 1048576,
+        "id": "l-1",
+        "kind": "event",
+        "outcome": "logged",
+        "t": 1793016000002,
+        "type": "schild.request.evaluated.v1"
+      }
+    ],
+    "wal_bytes": 3145728
+  },
+  "expect": {
+    "valid": true,
+    "result": {
+      "used_before": 12582912,
+      "deleted": [
+        "s-1",
+        "s-2",
+        "l-1"
+      ],
+      "used_after": 9437184,
+      "unreachable": false
+    }
+  }
+}

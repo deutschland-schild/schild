@@ -1,0 +1,20 @@
+{
+  "contract": "website-visitor",
+  "description": "D36 amendment: a generic bot token without catalogue entry (likely_automated) is a bot client.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"bot_category\":\"likely_automated\",\"outcome\":\"would_block\",\"ua_class\":\"bot_unverified\"}",
+  "input_decoded": {
+    "bot_category": "likely_automated",
+    "outcome": "would_block",
+    "ua_class": "bot_unverified"
+  },
+  "expect": {
+    "valid": true,
+    "result": {
+      "bot_client": true,
+      "visitor": false
+    }
+  }
+}

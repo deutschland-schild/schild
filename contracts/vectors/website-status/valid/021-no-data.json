@@ -1,0 +1,32 @@
+{
+  "contract": "website-status",
+  "description": "D36: monitoring on, tracked, but no counters yet (first seconds after start): unknown.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"monitoring\":true,\"protection\":\"protected\",\"servers\":[{\"baseline_protection\":\"active\",\"hints\":[],\"node\":\"web-1\",\"state\":\"ok\"}],\"tracked\":true}",
+  "input_decoded": {
+    "monitoring": true,
+    "protection": "protected",
+    "servers": [
+      {
+        "baseline_protection": "active",
+        "hints": [],
+        "node": "web-1",
+        "state": "ok"
+      }
+    ],
+    "tracked": true
+  },
+  "expect": {
+    "valid": true,
+    "result": {
+      "reasons": [
+        {
+          "code": "no_data"
+        }
+      ],
+      "status": "unknown"
+    }
+  }
+}

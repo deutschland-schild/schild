@@ -1,0 +1,26 @@
+{
+  "contract": "config/schild",
+  "description": "v0.5 MVP-22: the ring needs the monitoring counters (semantic check).",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"config_version\":0,\"mode\":\"observe\",\"monitoring\":{\"enabled\":false,\"requests\":{\"enabled\":true}},\"node_name\":\"web-1\",\"upstream\":{\"url\":\"http://app:80\"}}",
+  "input_decoded": {
+    "config_version": 0,
+    "mode": "observe",
+    "monitoring": {
+      "enabled": false,
+      "requests": {
+        "enabled": true
+      }
+    },
+    "node_name": "web-1",
+    "upstream": {
+      "url": "http://app:80"
+    }
+  },
+  "expect": {
+    "valid": false,
+    "error": "config"
+  }
+}

@@ -1,0 +1,28 @@
+{
+  "enabled": true,
+  "log_days": 30,
+  "tokens": [
+    {
+      "id": "tok_000000000001",
+      "scope": "agent:read",
+      "label": "Claude Code Laptop",
+      "created_at": "2026-10-28T10:00:00Z",
+      "expires_at": "2027-01-26T10:00:00Z",
+      "revoked_at": null,
+      "last_used_at": "2026-10-29T11:58:12Z"
+    },
+    {
+      "id": "tok_000000000002",
+      "scope": "export:read",
+      "created_at": "2026-10-20T08:00:00Z",
+      "expires_at": "2027-10-20T08:00:00Z",
+      "revoked_at": "2026-10-27T16:30:00Z",
+      "last_used_at": null
+    }
+  ],
+  "items": [
+    { "token_id": "tok_000000000001", "time": "2026-10-29T11:58:12Z", "op": "schild_websites", "status": 200, "rows": 4, "bytes": 5120 },
+    { "token_id": "tok_000000000001", "time": "2026-10-29T11:57:40Z", "op": "listAgentEvents", "status": 429, "rows": 0, "bytes": 180 }
+  ],
+  "next_cursor": null
+}

@@ -1,0 +1,16 @@
+# unprotected: []
+# expect: refuse
+# handle_errors: try_files before schild, restore after it.
+http://a.example.test:26080 {
+	import schild
+	error "boom" 500
+	handle_errors {
+		route {
+			vars saved {query}
+			try_files /hidden?
+			schild
+			uri replace /hidden /hidden?{vars.saved}
+			reverse_proxy 127.0.0.1:26082
+		}
+	}
+}

@@ -1,0 +1,31 @@
+{
+  "contract": "crowdsec-hub",
+  "description": "Start: a stored set that fails to load falls back to the image snapshot, also an older one.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"image\":{\"commit\":\"2222222222222222222222222222222222222222\",\"present\":true,\"time\":\"2026-10-20T00:00:00Z\",\"valid\":true},\"now\":\"2026-10-26T12:00:00Z\",\"op\":\"select\",\"state\":\"detect\",\"stored\":{\"present\":true,\"time\":\"2026-10-25T00:00:00Z\",\"valid\":false}}",
+  "input_decoded": {
+    "image": {
+      "commit": "2222222222222222222222222222222222222222",
+      "present": true,
+      "time": "2026-10-20T00:00:00Z",
+      "valid": true
+    },
+    "now": "2026-10-26T12:00:00Z",
+    "op": "select",
+    "state": "detect",
+    "stored": {
+      "present": true,
+      "time": "2026-10-25T00:00:00Z",
+      "valid": false
+    }
+  },
+  "expect": {
+    "valid": true,
+    "result": {
+      "set": "image",
+      "pin_pending": false
+    }
+  }
+}

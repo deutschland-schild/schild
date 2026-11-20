@@ -1,0 +1,41 @@
+{
+  "contract": "crowdsec-hub",
+  "description": "Mapping: b64decode is t:base64Decode, before lowercase; order is kept.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"content\":\"name: crowdsecurity/vpatch-CVE-2026-1207\\ndescription: 'Rewritten test rule.'\\nrules:\\n  - and:\\n      - zones:\\n          - URI\\n        transform:\\n          - lowercase\\n        match:\\n          type: contains\\n          value: /wp-json/example/v1/\\n      - zones:\\n          - BODY_ARGS\\n        variables:\\n          - 'SAMLRequest'\\n        transform:\\n          - b64decode\\n          - lowercase\\n        match:\\n          type: contains\\n          value: <!ENTITY\\nlabels:\\n  type: exploit\\n  confidence: 3\\n  spoofable: 0\\n  label: Example - RCE\\n  classification:\\n    - cve.CVE-2026-1207\\n    - attack.T1190\\n    - cwe.CWE-89\\n\",\"name\":\"crowdsecurity/vpatch-CVE-2026-1207\",\"op\":\"convert\",\"version\":\"0.2\"}",
+  "input_decoded": {
+    "content": "name: crowdsecurity/vpatch-CVE-2026-1207\ndescription: 'Rewritten test rule.'\nrules:\n  - and:\n      - zones:\n          - URI\n        transform:\n          - lowercase\n        match:\n          type: contains\n          value: /wp-json/example/v1/\n      - zones:\n          - BODY_ARGS\n        variables:\n          - 'SAMLRequest'\n        transform:\n          - b64decode\n          - lowercase\n        match:\n          type: contains\n          value: <!ENTITY\nlabels:\n  type: exploit\n  confidence: 3\n  spoofable: 0\n  label: Example - RCE\n  classification:\n    - cve.CVE-2026-1207\n    - attack.T1190\n    - cwe.CWE-89\n",
+    "name": "crowdsecurity/vpatch-CVE-2026-1207",
+    "op": "convert",
+    "version": "0.2"
+  },
+  "expect": {
+    "valid": true,
+    "result": {
+      "outcome": "converted",
+      "rule": {
+        "name": "crowdsecurity/vpatch-CVE-2026-1207",
+        "version": "0.2",
+        "digest": "7e104cf2257ee81577a887d3b2aae4a158aa4d834ab700a92c7e9189ccd175cf",
+        "base_id": 62846312,
+        "seclang": [
+          "SecRule REQUEST_FILENAME \"@contains /wp-json/example/v1/\" \"id:62846312,phase:2,pass,t:none,t:lowercase,severity:CRITICAL,msg:'crowdsec hub crowdsecurity/vpatch-CVE-2026-1207',tag:crowdsec_hub,chain\"\nSecRule ARGS_POST:SAMLRequest \"@contains <!ENTITY\" \"t:none,t:base64Decode,t:lowercase\""
+        ],
+        "label": "Example - RCE",
+        "description": "Rewritten test rule.",
+        "cves": [
+          "CVE-2026-1207"
+        ],
+        "cwes": [
+          "CWE-89"
+        ],
+        "attack": [
+          "T1190"
+        ],
+        "notes": []
+      }
+    }
+  }
+}

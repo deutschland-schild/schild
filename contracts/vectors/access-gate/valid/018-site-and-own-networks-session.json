@@ -1,0 +1,29 @@
+{
+  "contract": "access-gate",
+  "description": "D58: password and own networks: an allowlisted client with a valid session passes.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"allowlisted\":true,\"path\":\"/\",\"protection\":{\"own_networks\":true,\"password\":true,\"scope\":\"site\",\"website\":\"musterverein.example\"},\"session\":\"valid\"}",
+  "input_decoded": {
+    "allowlisted": true,
+    "path": "/",
+    "protection": {
+      "own_networks": true,
+      "password": true,
+      "scope": "site",
+      "website": "musterverein.example"
+    },
+    "session": "valid"
+  },
+  "expect": {
+    "valid": true,
+    "result": {
+      "answer": "pass",
+      "canonical_path": "/",
+      "login_form": false,
+      "reason": "session",
+      "status": 0
+    }
+  }
+}

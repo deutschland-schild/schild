@@ -1,0 +1,20 @@
+{
+  "contract": "storage-bounds",
+  "description": "D38: nothing written, but 10 minutes passed: the timer runs the pass (age retention and the WAL checkpoint).",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"elapsed_s\":600,\"max_size_mb\":100,\"op\":\"check_due\",\"written_bytes\":0}",
+  "input_decoded": {
+    "elapsed_s": 600,
+    "max_size_mb": 100,
+    "op": "check_due",
+    "written_bytes": 0
+  },
+  "expect": {
+    "valid": true,
+    "result": {
+      "due": true
+    }
+  }
+}

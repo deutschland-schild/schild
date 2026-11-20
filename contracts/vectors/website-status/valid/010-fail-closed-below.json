@@ -1,0 +1,36 @@
+{
+  "contract": "website-status",
+  "description": "D36: 10 of 201 (below 5 %): not disrupted by this rule.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"monitoring\":true,\"protection\":\"protected\",\"servers\":[{\"baseline_protection\":\"active\",\"hints\":[],\"node\":\"web-1\",\"state\":\"ok\"}],\"tracked\":true,\"traffic\":{\"fail_closed\":10,\"forwarded\":191,\"requests\":201,\"status_5xx\":10,\"upstream_errors\":0,\"upstream_timeouts\":0}}",
+  "input_decoded": {
+    "monitoring": true,
+    "protection": "protected",
+    "servers": [
+      {
+        "baseline_protection": "active",
+        "hints": [],
+        "node": "web-1",
+        "state": "ok"
+      }
+    ],
+    "tracked": true,
+    "traffic": {
+      "fail_closed": 10,
+      "forwarded": 191,
+      "requests": 201,
+      "status_5xx": 10,
+      "upstream_errors": 0,
+      "upstream_timeouts": 0
+    }
+  },
+  "expect": {
+    "valid": true,
+    "result": {
+      "reasons": [],
+      "status": "ok"
+    }
+  }
+}

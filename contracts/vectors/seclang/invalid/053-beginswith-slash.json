@@ -1,0 +1,13 @@
+{
+  "contract": "seclang",
+  "description": "SecLang subset case beginswith-slash (max_action block).",
+  "context": {
+    "now": "2026-10-26T12:00:00Z",
+    "max_action": "block"
+  },
+  "input_raw": "SecRule REQUEST_URI \"@beginsWith /\" \"id:7700119,phase:1,deny,severity:CRITICAL,msg:'x'\"",
+  "expect": {
+    "valid": false,
+    "error": "seclang"
+  }
+}

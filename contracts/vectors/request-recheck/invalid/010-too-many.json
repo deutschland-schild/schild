@@ -1,0 +1,135 @@
+{
+  "contract": "request-recheck",
+  "description": "D33 amendment 2026-10-29: at most 16 evaluations per request.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"evaluations\":[{\"detection\":false,\"outcome\":\"passed\",\"path\":\"/x\",\"rules\":[],\"score\":0},{\"detection\":false,\"outcome\":\"passed\",\"path\":\"/x\",\"rules\":[],\"score\":0},{\"detection\":false,\"outcome\":\"passed\",\"path\":\"/x\",\"rules\":[],\"score\":0},{\"detection\":false,\"outcome\":\"passed\",\"path\":\"/x\",\"rules\":[],\"score\":0},{\"detection\":false,\"outcome\":\"passed\",\"path\":\"/x\",\"rules\":[],\"score\":0},{\"detection\":false,\"outcome\":\"passed\",\"path\":\"/x\",\"rules\":[],\"score\":0},{\"detection\":false,\"outcome\":\"passed\",\"path\":\"/x\",\"rules\":[],\"score\":0},{\"detection\":false,\"outcome\":\"passed\",\"path\":\"/x\",\"rules\":[],\"score\":0},{\"detection\":false,\"outcome\":\"passed\",\"path\":\"/x\",\"rules\":[],\"score\":0},{\"detection\":false,\"outcome\":\"passed\",\"path\":\"/x\",\"rules\":[],\"score\":0},{\"detection\":false,\"outcome\":\"passed\",\"path\":\"/x\",\"rules\":[],\"score\":0},{\"detection\":false,\"outcome\":\"passed\",\"path\":\"/x\",\"rules\":[],\"score\":0},{\"detection\":false,\"outcome\":\"passed\",\"path\":\"/x\",\"rules\":[],\"score\":0},{\"detection\":false,\"outcome\":\"passed\",\"path\":\"/x\",\"rules\":[],\"score\":0},{\"detection\":false,\"outcome\":\"passed\",\"path\":\"/x\",\"rules\":[],\"score\":0},{\"detection\":false,\"outcome\":\"passed\",\"path\":\"/x\",\"rules\":[],\"score\":0},{\"detection\":false,\"outcome\":\"passed\",\"path\":\"/x\",\"rules\":[],\"score\":0}]}",
+  "input_decoded": {
+    "evaluations": [
+      {
+        "detection": false,
+        "outcome": "passed",
+        "path": "/x",
+        "rules": [],
+        "score": 0
+      },
+      {
+        "detection": false,
+        "outcome": "passed",
+        "path": "/x",
+        "rules": [],
+        "score": 0
+      },
+      {
+        "detection": false,
+        "outcome": "passed",
+        "path": "/x",
+        "rules": [],
+        "score": 0
+      },
+      {
+        "detection": false,
+        "outcome": "passed",
+        "path": "/x",
+        "rules": [],
+        "score": 0
+      },
+      {
+        "detection": false,
+        "outcome": "passed",
+        "path": "/x",
+        "rules": [],
+        "score": 0
+      },
+      {
+        "detection": false,
+        "outcome": "passed",
+        "path": "/x",
+        "rules": [],
+        "score": 0
+      },
+      {
+        "detection": false,
+        "outcome": "passed",
+        "path": "/x",
+        "rules": [],
+        "score": 0
+      },
+      {
+        "detection": false,
+        "outcome": "passed",
+        "path": "/x",
+        "rules": [],
+        "score": 0
+      },
+      {
+        "detection": false,
+        "outcome": "passed",
+        "path": "/x",
+        "rules": [],
+        "score": 0
+      },
+      {
+        "detection": false,
+        "outcome": "passed",
+        "path": "/x",
+        "rules": [],
+        "score": 0
+      },
+      {
+        "detection": false,
+        "outcome": "passed",
+        "path": "/x",
+        "rules": [],
+        "score": 0
+      },
+      {
+        "detection": false,
+        "outcome": "passed",
+        "path": "/x",
+        "rules": [],
+        "score": 0
+      },
+      {
+        "detection": false,
+        "outcome": "passed",
+        "path": "/x",
+        "rules": [],
+        "score": 0
+      },
+      {
+        "detection": false,
+        "outcome": "passed",
+        "path": "/x",
+        "rules": [],
+        "score": 0
+      },
+      {
+        "detection": false,
+        "outcome": "passed",
+        "path": "/x",
+        "rules": [],
+        "score": 0
+      },
+      {
+        "detection": false,
+        "outcome": "passed",
+        "path": "/x",
+        "rules": [],
+        "score": 0
+      },
+      {
+        "detection": false,
+        "outcome": "passed",
+        "path": "/x",
+        "rules": [],
+        "score": 0
+      }
+    ]
+  },
+  "expect": {
+    "valid": false,
+    "error": "schema"
+  }
+}

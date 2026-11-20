@@ -1,0 +1,86 @@
+{
+  "contract": "storage-bounds",
+  "description": "D38: when the rows above the floor are gone and used is still over the cap, the pass stops (unreachable: hint store_cap_unreachable, one rate-limited warning) instead of deleting everything.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"base_bytes\":0,\"floor_rows\":5,\"max_size_mb\":10,\"op\":\"cap_pass\",\"rows\":[{\"bytes\":2621440,\"id\":\"rule-0\",\"kind\":\"event\",\"t\":1793016000000,\"type\":\"schild.rule.repository_updated.v1\"},{\"bytes\":2621440,\"id\":\"rule-1\",\"kind\":\"event\",\"t\":1793016000001,\"type\":\"schild.rule.repository_updated.v1\"},{\"bytes\":2621440,\"id\":\"rule-2\",\"kind\":\"event\",\"t\":1793016000002,\"type\":\"schild.rule.repository_updated.v1\"},{\"bytes\":2621440,\"id\":\"rule-3\",\"kind\":\"event\",\"t\":1793016000003,\"type\":\"schild.rule.repository_updated.v1\"},{\"bytes\":2621440,\"id\":\"rule-4\",\"kind\":\"event\",\"t\":1793016000004,\"type\":\"schild.rule.repository_updated.v1\"},{\"bytes\":2621440,\"id\":\"rule-5\",\"kind\":\"event\",\"t\":1793016000005,\"type\":\"schild.rule.repository_updated.v1\"},{\"bytes\":2621440,\"id\":\"rule-6\",\"kind\":\"event\",\"t\":1793016000006,\"type\":\"schild.rule.repository_updated.v1\"},{\"bytes\":2621440,\"id\":\"rule-7\",\"kind\":\"event\",\"t\":1793016000007,\"type\":\"schild.rule.repository_updated.v1\"}],\"wal_bytes\":0}",
+  "input_decoded": {
+    "base_bytes": 0,
+    "floor_rows": 5,
+    "max_size_mb": 10,
+    "op": "cap_pass",
+    "rows": [
+      {
+        "bytes": 2621440,
+        "id": "rule-0",
+        "kind": "event",
+        "t": 1793016000000,
+        "type": "schild.rule.repository_updated.v1"
+      },
+      {
+        "bytes": 2621440,
+        "id": "rule-1",
+        "kind": "event",
+        "t": 1793016000001,
+        "type": "schild.rule.repository_updated.v1"
+      },
+      {
+        "bytes": 2621440,
+        "id": "rule-2",
+        "kind": "event",
+        "t": 1793016000002,
+        "type": "schild.rule.repository_updated.v1"
+      },
+      {
+        "bytes": 2621440,
+        "id": "rule-3",
+        "kind": "event",
+        "t": 1793016000003,
+        "type": "schild.rule.repository_updated.v1"
+      },
+      {
+        "bytes": 2621440,
+        "id": "rule-4",
+        "kind": "event",
+        "t": 1793016000004,
+        "type": "schild.rule.repository_updated.v1"
+      },
+      {
+        "bytes": 2621440,
+        "id": "rule-5",
+        "kind": "event",
+        "t": 1793016000005,
+        "type": "schild.rule.repository_updated.v1"
+      },
+      {
+        "bytes": 2621440,
+        "id": "rule-6",
+        "kind": "event",
+        "t": 1793016000006,
+        "type": "schild.rule.repository_updated.v1"
+      },
+      {
+        "bytes": 2621440,
+        "id": "rule-7",
+        "kind": "event",
+        "t": 1793016000007,
+        "type": "schild.rule.repository_updated.v1"
+      }
+    ],
+    "wal_bytes": 0
+  },
+  "expect": {
+    "valid": true,
+    "result": {
+      "used_before": 20971520,
+      "deleted": [
+        "rule-0",
+        "rule-1",
+        "rule-2"
+      ],
+      "used_after": 13107200,
+      "unreachable": true
+    }
+  }
+}

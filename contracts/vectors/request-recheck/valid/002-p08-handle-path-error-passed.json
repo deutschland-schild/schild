@@ -1,0 +1,42 @@
+{
+  "contract": "request-recheck",
+  "description": "D33 amendment 2026-10-29: measurement P08: handle_path stripped /app before the site's schild, the error route's schild checks /app/x again; one request (not two in schild_requests_total), one event naming both paths.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"evaluations\":[{\"detection\":false,\"outcome\":\"passed\",\"path\":\"/x\",\"rules\":[],\"score\":0},{\"detection\":false,\"outcome\":\"passed\",\"path\":\"/app/x\",\"rules\":[],\"score\":0}]}",
+  "input_decoded": {
+    "evaluations": [
+      {
+        "detection": false,
+        "outcome": "passed",
+        "path": "/x",
+        "rules": [],
+        "score": 0
+      },
+      {
+        "detection": false,
+        "outcome": "passed",
+        "path": "/app/x",
+        "rules": [],
+        "score": 0
+      }
+    ]
+  },
+  "expect": {
+    "valid": true,
+    "result": {
+      "requests": 1,
+      "rechecked": true,
+      "outcome": "passed",
+      "detection": false,
+      "path": "/app/x",
+      "checked_paths": [
+        "/x",
+        "/app/x"
+      ],
+      "rules": [],
+      "score": 0
+    }
+  }
+}

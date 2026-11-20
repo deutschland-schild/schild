@@ -1,0 +1,9 @@
+php-cli	0:5.4.16-48.el7
+python	0:2.7.5-94.el7_9
+python2.7	0:2.7.5-94.el7_9
+tomcat	0:7.0.76-16.el7_9
+openssl	1:1.0.2k-25.el7_9
+openssh-server	0:7.4p1-23.el7_9
+bash	0:4.2.46-34.el7
+kernel	0:3.10.0-1160.el7
+kernel	0:3.10.0-1160.119.1.el7

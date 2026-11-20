@@ -1,0 +1,12 @@
+{
+  "contract": "agent-ack",
+  "description": "Backoff at most one day.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"error\":null,\"nonce\":\"9b843833996f92f59ce47492edca89bf\",\"received_at\":\"2026-10-26T12:00:00Z\",\"retry_after_s\":86401,\"schema\":\"schild.agent_ack/0.1\",\"status\":\"retry\"}",
+  "expect": {
+    "valid": false,
+    "error": "schema"
+  }
+}

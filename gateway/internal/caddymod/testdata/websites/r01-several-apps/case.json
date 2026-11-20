@@ -1,0 +1,57 @@
+{
+ "unprotected_sites": [
+  "legacy.test"
+ ],
+ "resolve": [
+  "shop.test",
+  "www.shop.test:19190",
+  "static.test",
+  "legacy.test",
+  "nope.test"
+ ],
+ "blocks": [
+  {
+   "Addresses": [
+    "http://shop.test:19190",
+    "http://www.shop.test:19190"
+   ],
+   "Schild": true,
+   "Proxies": true
+  },
+  {
+   "Addresses": [
+    "http://blog.test:19190"
+   ],
+   "Schild": true,
+   "Proxies": true
+  },
+  {
+   "Addresses": [
+    "http://app.test:19190"
+   ],
+   "Schild": true,
+   "Proxies": true
+  },
+  {
+   "Addresses": [
+    "http://down.test:19190"
+   ],
+   "Schild": true,
+   "Proxies": true
+  },
+  {
+   "Addresses": [
+    "http://static.test:19190"
+   ],
+   "Schild": false,
+   "Proxies": false
+  },
+  {
+   "Addresses": [
+    "http://legacy.test:19190"
+   ],
+   "Schild": false,
+   "Proxies": true
+  }
+ ]
+}

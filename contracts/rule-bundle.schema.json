@@ -1,0 +1,84 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://contracts.schild.invalid/v0/rule-bundle.schema.json",
+  "title": "Rule bundle schild.rule-bundle/0.1 (labs -> clients via relays)",
+  "description": "Full state of all network rules of one channel (not a delta). Signed in one DSSE envelope by k labs of k different operators (k = client min_independent_operators, floor 2). Version is strictly monotonic (rollback protection), expires bounds freshness. Every seclang text must pass the SecLang subset (seclang-subset.md). DSSE payloadType application/vnd.schild.rule-bundle.v0+json.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "bundle_id", "version", "issued_at", "expires", "rules"],
+  "properties": {
+    "schema": { "const": "schild.rule-bundle/0.1" },
+    "bundle_id": { "description": "Channel, e.g. schild-main.", "$ref": "common.schema.json#/$defs/id" },
+    "version": { "type": "integer", "minimum": 1, "maximum": 9007199254740991 },
+    "issued_at": { "$ref": "common.schema.json#/$defs/timestamp" },
+    "expires": { "$ref": "common.schema.json#/$defs/timestamp" },
+    "rules": {
+      "type": "array",
+      "maxItems": 500,
+      "items": { "$ref": "#/$defs/rule" }
+    }
+  },
+  "$defs": {
+    "rule": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["rule_id", "class", "stage", "max_action", "max_match_share", "target", "evidence", "feedback_policy", "seclang"],
+      "properties": {
+        "rule_id": { "$ref": "common.schema.json#/$defs/ruleId" },
+        "class": { "$ref": "common.schema.json#/$defs/ruleClass" },
+        "stage": { "type": "string", "enum": ["shadow", "canary", "general"] },
+        "max_action": { "$ref": "common.schema.json#/$defs/maxAction" },
+        "max_action_until": { "$ref": "common.schema.json#/$defs/timestamp" },
+        "max_match_share": {
+          "description": "Local brake: above this share of a site's own traffic the client suspends the rule locally and reports it.",
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 0.05
+        },
+        "target": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["software", "versions"],
+          "properties": {
+            "software": { "$ref": "common.schema.json#/$defs/safeToken" },
+            "versions": { "type": "string", "pattern": "^[<>=!~^*0-9A-Za-z., -]{1,64}$" },
+            "cve": { "type": "array", "maxItems": 8, "uniqueItems": true, "items": { "type": "string", "pattern": "^CVE-[0-9]{4}-[0-9]{4,7}$" } }
+          }
+        },
+        "evidence": {
+          "description": "G2: what the max_action may be depends on this evidence (seclang-subset.md, section Evidence).",
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["reproduced_operators", "sensor_operators", "tip_issuers", "max_issuer_share", "human_approval_orgs"],
+          "properties": {
+            "reproduced_operators": { "type": "integer", "minimum": 0, "maximum": 64 },
+            "sensor_operators": { "type": "integer", "minimum": 0, "maximum": 64 },
+            "tip_issuers": { "type": "integer", "minimum": 0, "maximum": 1000000 },
+            "max_issuer_share": { "type": "number", "minimum": 0, "maximum": 1 },
+            "human_approval_orgs": { "type": "integer", "minimum": 0, "maximum": 64 },
+            "reproduced_by": { "type": "array", "maxItems": 64, "uniqueItems": true, "items": { "$ref": "common.schema.json#/$defs/id" } },
+            "negative_corpus": { "type": "string", "pattern": "^[a-z0-9][a-z0-9.-]{0,63}$" }
+          }
+        },
+        "feedback_policy": { "type": "string", "enum": ["narrow_only", "auto_downgrade"] },
+        "seclang": {
+          "description": "Exactly one SecRule, optionally chained (one SecRule per line). Printable ASCII and LF only.",
+          "type": "string",
+          "minLength": 10,
+          "maxLength": 8192,
+          "pattern": "^SecRule [ -~\\n]+$"
+        }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "max_action": { "enum": ["challenge", "block"] } } },
+          "then": { "required": ["max_action_until"] }
+        },
+        {
+          "if": { "properties": { "class": { "const": "virtual_patch" } } },
+          "then": { "properties": { "feedback_policy": { "const": "narrow_only" } } }
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,28 @@
+{
+  "context": {
+    "now": "2026-11-19T12:00:00Z"
+  },
+  "contract": "human-check",
+  "description": "mode off passes a normal navigation",
+  "expect": {
+    "result": {
+      "answer": "pass",
+      "reason": "off",
+      "status": 0
+    },
+    "valid": true
+  },
+  "input_decoded": {
+    "accept": "text/html",
+    "allowlisted": false,
+    "clearance": "none",
+    "good_bot": false,
+    "method": "GET",
+    "path": "/",
+    "policy": {
+      "mode": "off",
+      "website": "example.org"
+    }
+  },
+  "input_raw": "{\"accept\":\"text/html\",\"allowlisted\":false,\"clearance\":\"none\",\"good_bot\":false,\"method\":\"GET\",\"path\":\"/\",\"policy\":{\"mode\":\"off\",\"website\":\"example.org\"}}"
+}

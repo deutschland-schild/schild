@@ -1,0 +1,24 @@
+{
+  "contract": "body-limits",
+  "description": "D41: no Content-Type counts as raw.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"body_limit_bytes\":13107200,\"bytes\":131073,\"op\":\"size\",\"raw_limit_bytes\":131072}",
+  "input_decoded": {
+    "body_limit_bytes": 13107200,
+    "bytes": 131073,
+    "op": "size",
+    "raw_limit_bytes": 131072
+  },
+  "expect": {
+    "valid": true,
+    "result": {
+      "class": "raw",
+      "code": "raw_body_too_large",
+      "held_bytes": 131073,
+      "limit_bytes": 131072,
+      "status": 413
+    }
+  }
+}

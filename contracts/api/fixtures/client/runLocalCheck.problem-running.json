@@ -1,0 +1,6 @@
+{
+  "type": "about:blank",
+  "title": "Prüfung läuft bereits",
+  "status": 409,
+  "code": "check_running"
+}

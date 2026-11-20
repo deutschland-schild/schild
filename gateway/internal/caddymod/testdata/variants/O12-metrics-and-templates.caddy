@@ -1,0 +1,9 @@
+# unprotected: []
+# expect: pass
+http://a.example.test:18080 {
+	import schild
+	metrics /metrics
+	templates
+	root * /srv
+	file_server
+}

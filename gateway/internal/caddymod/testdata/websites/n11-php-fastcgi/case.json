@@ -1,0 +1,32 @@
+{
+ "unprotected_sites": [
+  "old.example.org"
+ ],
+ "resolve": [
+  "wp.example.org",
+  "old.example.org"
+ ],
+ "blocks": [
+  {
+   "Addresses": [
+    "http://wp.example.org"
+   ],
+   "Schild": false,
+   "Proxies": false
+  },
+  {
+   "Addresses": [
+    "wp.example.org"
+   ],
+   "Schild": true,
+   "Proxies": true
+  },
+  {
+   "Addresses": [
+    "old.example.org"
+   ],
+   "Schild": false,
+   "Proxies": true
+  }
+ ]
+}

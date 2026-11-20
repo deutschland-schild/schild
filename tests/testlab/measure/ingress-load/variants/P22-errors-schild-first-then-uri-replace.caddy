@@ -1,0 +1,19 @@
+# unprotected: []
+# expect: pass
+# Control for P21: handle_errors runs schild first (original URI, marker does not match), then the same uri replace.
+http://a.example.test:18080 {
+	route {
+		rewrite * /hidden?
+		schild
+		error "boom" 500
+	}
+	handle_errors {
+		route {
+			vars saved {query}
+			schild
+			rewrite * /hidden?
+			uri replace /hidden /hidden?{vars.saved}
+			reverse_proxy 127.0.0.1:18082
+		}
+	}
+}

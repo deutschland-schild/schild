@@ -1,0 +1,50 @@
+{
+  "contract": "signal",
+  "description": "IP-like value hidden in action_sig.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z",
+    "trust": [
+      "site-a",
+      "site-b",
+      "site-c",
+      "lab-a",
+      "lab-a2",
+      "lab-b",
+      "lab-c",
+      "lab-d"
+    ]
+  },
+  "input_raw": "{\"payloadType\":\"application/vnd.schild.signal.v0+json\",\"payload\":\"eyJhY3Rpb25fc2lnIjoicHJvYmUvMjAzLjAuMTEzLjciLCJhZ2VudCI6eyJib3QiOmZhbHNlLCJmYW1pbHkiOiJweXRob24tcmVxdWVzdHMiLCJtYWpvciI6Mn0sImNhdGVnb3J5Ijoid29yZHByZXNzLWxvZ2luLWJydXRlZm9yY2UiLCJpZCI6IjM3ZjY2MjVjLWI4MjAtNDJhNi1iMTM5LWI1ZTE1YjYyZTJjNSIsImtpbmQiOiJ0aXAiLCJvcmlnaW4iOnsiYXNuIjoxNDA2MSwiYXR0cmlidXRpb24iOiJ0Y3BfcGVlciIsImNvdW50cnkiOiJOTCIsIm5ldF9jbGFzcyI6Imhvc3RpbmciLCJwcm90ZWN0ZWQiOmZhbHNlfSwicmVxdWVzdF9zaWciOiJzaGEyNTY6YTA3MTg3ZjFjN2QxYzU2NDNiMDJjZTczMGJlZjNkN2JjNTcwMGE1YmVlMGIzODMzZDEzZjI4MTlmMWUyYmU4MSIsInNjaGVtYSI6InNjaGlsZC5zaWduYWwvMC4zIiwic2NvcmUiOjcyLCJ0aW1lX2J1Y2tldCI6IjIwMjYtMTAtMjZUMTE6NTU6MDBaIiwid2FmX3J1bGVzIjpbOTMwMTIwLDk0OTExMF19\",\"signatures\":[{\"keyid\":\"test-site-a\",\"sig\":\"yJPLWTkoRnpN/t/zRVuIIs0pBoEw/dsHvmvh+x0Q4dfJlA9Xqn6+Wvzp5cNn/tXf/Tobl2Fn0lfNjEo8UDzLAg==\"}]}",
+  "input_decoded": {
+    "payload": {
+      "action_sig": "probe/203.0.113.7",
+      "agent": {
+        "bot": false,
+        "family": "python-requests",
+        "major": 2
+      },
+      "category": "wordpress-login-bruteforce",
+      "id": "37f6625c-b820-42a6-b139-b5e15b62e2c5",
+      "kind": "tip",
+      "origin": {
+        "asn": 14061,
+        "attribution": "tcp_peer",
+        "country": "NL",
+        "net_class": "hosting",
+        "protected": false
+      },
+      "request_sig": "sha256:a07187f1c7d1c5643b02ce730bef3d7bc5700a5bee0b3833d13f2819f1e2be81",
+      "schema": "schild.signal/0.3",
+      "score": 72,
+      "time_bucket": "2026-10-26T11:55:00Z",
+      "waf_rules": [
+        930120,
+        949110
+      ]
+    }
+  },
+  "expect": {
+    "valid": false,
+    "error": "schema"
+  }
+}

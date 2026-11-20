@@ -1,0 +1,33 @@
+{
+  "contract": "events",
+  "description": "D84: an agent names itself as actor, with its token.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"data\":{\"actor\":\"agent\",\"id\":1900000,\"path\":\"/livewire/update\",\"reason\":\"math text is blocked\",\"repository\":\"crs\",\"rules\":[\"933180\"],\"target\":\"ARGS:json.components.*.updates.body\",\"token_id\":\"tok_000000000001\",\"token_label\":\"Local agent\",\"website\":\"app.example.org\"},\"datacontenttype\":\"application/json\",\"id\":\"37050e04-749e-43e1-9a22-ef1538146d52\",\"source\":\"schild://web-1\",\"specversion\":\"1.0\",\"time\":\"2026-10-26T11:59:58.123Z\",\"type\":\"schild.rule.exception_set.v1\"}",
+  "input_decoded": {
+    "data": {
+      "actor": "agent",
+      "id": 1900000,
+      "path": "/livewire/update",
+      "reason": "math text is blocked",
+      "repository": "crs",
+      "rules": [
+        "933180"
+      ],
+      "target": "ARGS:json.components.*.updates.body",
+      "token_id": "tok_000000000001",
+      "token_label": "Local agent",
+      "website": "app.example.org"
+    },
+    "datacontenttype": "application/json",
+    "id": "37050e04-749e-43e1-9a22-ef1538146d52",
+    "source": "schild://web-1",
+    "specversion": "1.0",
+    "time": "2026-10-26T11:59:58.123Z",
+    "type": "schild.rule.exception_set.v1"
+  },
+  "expect": {
+    "valid": true
+  }
+}

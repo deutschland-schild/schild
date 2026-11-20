@@ -1,0 +1,10 @@
+# unprotected: []
+# expect: pass
+http://a.example.test:18080, http://b.example.test:18080 {
+	import schild
+	map {host} {backend} {
+		a.example.test 127.0.0.1:18081
+		default 127.0.0.1:18082
+	}
+	reverse_proxy {backend}
+}

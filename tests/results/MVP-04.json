@@ -1,0 +1,91 @@
+{
+  "results_version": 0,
+  "spec": "MVP-04",
+  "run_id": "MVP-04-m7-20261026",
+  "started_at": "2026-10-26T19:38:48Z",
+  "finished_at": "2026-10-26T19:38:48Z",
+  "seed": 42,
+  "profile": "t0",
+  "git_rev": "1af9fe8-dirty",
+  "host": {
+    "os": "darwin",
+    "arch": "arm64",
+    "cpus": 12,
+    "mem_mb": 65536
+  },
+  "images": [
+    {
+      "name": "schild-relay:mvp",
+      "digest": "sha256:88317f59f0715aedd526d62ad9cc6ec971a68b3865adb60360d8bb26a0f7f180"
+    },
+    {
+      "name": "schild:mvp",
+      "digest": "sha256:2981cbdbc644ff27aaf93994fc36bed1f84a3d64dde204ee84112ba32b43937e"
+    },
+    {
+      "name": "schild-lab:mvp",
+      "digest": "sha256:93406b68826f65fdc7eb5bfcd9872ed5484ad10315507cf7e213e9cac8f74ad5"
+    },
+    {
+      "name": "schild-testlab:mvp",
+      "digest": "sha256:a82cbc64ebaa1db0ce7109b51ca8de7a1b3d85b72b805899999839db3e06fb20"
+    }
+  ],
+  "scenarios": [
+    "B10",
+    "B12",
+    "T09"
+  ],
+  "hypotheses": [
+    "M7"
+  ],
+  "metrics": [
+    {
+      "name": "emergency_stop_s",
+      "value": 0.1,
+      "unit": "s",
+      "labels": {
+        "profile": "t0",
+        "source": "smoke_poll"
+      }
+    },
+    {
+      "name": "request_errors_relays_down",
+      "value": 0.0,
+      "unit": "count"
+    },
+    {
+      "name": "latency_p99_relays_down_ms",
+      "value": 17.876,
+      "unit": "ms",
+      "samples": 10000
+    },
+    {
+      "name": "accepted_invalid_bundles",
+      "value": 0.0,
+      "unit": "count"
+    }
+  ],
+  "kill_criteria": [
+    {
+      "expr": "accepted_invalid_bundles > 0",
+      "hit": false,
+      "observed": "not re-measured live in this run; covered by the relay/client verify suite (make relay-test / client rules tests: forged, under-signed, rolled-back and expired bundles rejected). The t0 smoke verified a valid bundle requires >=3 distinct operators."
+    },
+    {
+      "expr": "emergency_stop_p95_s > 60",
+      "hit": false,
+      "observed": "t0 smoke: a co-signed emergency stop (scope all) was effective and applied on the client ~0.1 s after it took effect (polling resolution ~0.25 s), far under the 60 s kill criterion. Not a B10 fan-out measurement."
+    },
+    {
+      "expr": "freeze_detect_s > 180",
+      "hit": false,
+      "observed": "not re-measured live (needs a relay that withholds checkpoints while staying up); covered by the relay B12 unit test (frozen relay detected within 180 s + one heartbeat) and the client freeze_after_s=180 config. In this run, with all labs+relays stopped the client kept protecting with the last verified rules and 0 request errors (M7)."
+    }
+  ],
+  "verdict": "pass",
+  "notes": "M7 from the relay/distribution side. Emergency-stop propagation measured by the t0 smoke (~0.1 s, polling resolution; not the B10 fan-out benchmark). With all relays stopped the client's request path was unaffected (p99=17.9 ms, 0 errors) - the relay is never in the request path. accepted_invalid_bundles and freeze detection (B12) were not independently re-measured live here; they are covered by the relay/client verify and freeze unit tests and noted as open for a dedicated live B10/B12 run.",
+  "artifacts": [
+    "results/runs/smoke-t0/smoke.json"
+  ]
+}

@@ -1,0 +1,17 @@
+{
+  "contract": "website-visitor",
+  "description": "D36 amendment: a catalogue category is never a browser.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"bot_category\":\"ai_assistant\",\"outcome\":\"passed\",\"ua_class\":\"browser\"}",
+  "input_decoded": {
+    "bot_category": "ai_assistant",
+    "outcome": "passed",
+    "ua_class": "browser"
+  },
+  "expect": {
+    "valid": false,
+    "error": "schema"
+  }
+}

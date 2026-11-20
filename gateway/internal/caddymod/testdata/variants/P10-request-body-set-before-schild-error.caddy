@@ -1,0 +1,16 @@
+# unprotected: []
+# expect: pass
+# request_body set replaces the body before schild; error; handle_errors with schild and proxy (does the backend get the original body?).
+http://a.example.test:18080 {
+	route {
+		request_body {
+			set "clean=1"
+		}
+		schild
+		error "boom" 500
+	}
+	handle_errors {
+		import schild
+		reverse_proxy 127.0.0.1:18082
+	}
+}

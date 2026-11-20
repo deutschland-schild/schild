@@ -1,0 +1,13 @@
+# unprotected: []
+# expect: pass
+# intercept after schild turns backend 5xx into a proxied error page; site-level schild guards it.
+http://a.example.test:18080 {
+	import schild
+	intercept {
+		@e status 5xx
+		handle_response @e {
+			reverse_proxy 127.0.0.1:18081
+		}
+	}
+	reverse_proxy 127.0.0.1:18081
+}

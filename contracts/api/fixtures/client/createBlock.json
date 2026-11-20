@@ -1,0 +1,12 @@
+{
+  "client": "203.0.113.7",
+  "source": "dashboard",
+  "since": "2026-11-18T10:00:00Z",
+  "until": "2026-11-19T10:00:00Z",
+  "duration_s": 86400,
+  "level": 1,
+  "net_class": "hosting",
+  "incident": "K7QM-4XWD",
+  "kept": false,
+  "firewall": "pending"
+}

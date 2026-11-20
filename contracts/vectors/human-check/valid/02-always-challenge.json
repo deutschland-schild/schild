@@ -1,0 +1,28 @@
+{
+  "context": {
+    "now": "2026-11-19T12:00:00Z"
+  },
+  "contract": "human-check",
+  "description": "mode always challenges a browser navigation without clearance",
+  "expect": {
+    "result": {
+      "answer": "challenge",
+      "reason": "always",
+      "status": 403
+    },
+    "valid": true
+  },
+  "input_decoded": {
+    "allowlisted": false,
+    "clearance": "none",
+    "good_bot": false,
+    "method": "GET",
+    "path": "/articles",
+    "policy": {
+      "mode": "always",
+      "website": "example.org"
+    },
+    "sec_fetch_mode": "navigate"
+  },
+  "input_raw": "{\"allowlisted\":false,\"clearance\":\"none\",\"good_bot\":false,\"method\":\"GET\",\"path\":\"/articles\",\"policy\":{\"mode\":\"always\",\"website\":\"example.org\"},\"sec_fetch_mode\":\"navigate\"}"
+}

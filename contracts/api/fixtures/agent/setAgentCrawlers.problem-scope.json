@@ -1,0 +1,7 @@
+{
+  "type": "https://schild.invalid/problems/scope_required",
+  "title": "Scope required",
+  "status": 403,
+  "code": "scope_required",
+  "detail": "This token may not change the crawler policy. Create one on the host: schild token add --scope crawlers:write --expires 90d --label NAME"
+}

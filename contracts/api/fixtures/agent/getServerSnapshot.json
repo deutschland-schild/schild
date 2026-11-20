@@ -1,0 +1,135 @@
+{
+  "generated_at": "2026-10-28T12:00:00Z",
+  "sampled_at": "2026-10-28T11:59:58Z",
+  "interval_s": 10,
+  "environment": {
+    "os_family": "linux",
+    "container": true,
+    "cgroup": "v2",
+    "net_namespace": "host",
+    "lxcfs": false
+  },
+  "os": {
+    "source": "host_report",
+    "name": "Debian GNU/Linux 12 (bookworm)",
+    "kernel": "6.1.0-26-amd64",
+    "arch": "x86_64",
+    "eol": "2026-06-10",
+    "report_at": "2026-10-28T03:00:00Z"
+  },
+  "uptime_s": 864000,
+  "cpu": {
+    "scope": "host",
+    "cores": 4,
+    "usage": 0.23,
+    "user": 0.15,
+    "system": 0.06,
+    "iowait": 0.01,
+    "steal": 0.01,
+    "per_core": [
+      0.3,
+      0.2,
+      0.2,
+      0.22
+    ],
+    "load1": 0.9,
+    "load5": 0.8,
+    "load15": 0.7
+  },
+  "memory": {
+    "scope": "host",
+    "total_bytes": 8589934592,
+    "available_bytes": 3221225472,
+    "used_bytes": 5368709120,
+    "cached_bytes": 2147483648,
+    "swap_total_bytes": 0,
+    "swap_used_bytes": 0,
+    "oom_kills_24h": 0
+  },
+  "container": {
+    "cpu_limit_cores": null,
+    "cpu_usage": 0.05,
+    "cpu_throttled": 0,
+    "memory_used_bytes": 95000000,
+    "memory_limit_bytes": null,
+    "oom_kills": 0
+  },
+  "mounts": [
+    {
+      "mount": "/",
+      "device": "sda1",
+      "fs_type": "ext4",
+      "size_bytes": 80000000000,
+      "used_bytes": 57600000000,
+      "avail_bytes": 22400000000,
+      "used_ratio": 0.72,
+      "inodes_total": 5000000,
+      "inodes_used": 900000,
+      "read_bytes_per_s": 12000,
+      "write_bytes_per_s": 340000,
+      "reads_per_s": 2,
+      "writes_per_s": 30,
+      "busy": 0.03
+    }
+  ],
+  "interfaces": [
+    {
+      "name": "eth0",
+      "rx_bytes_per_s": 180000,
+      "tx_bytes_per_s": 2600000,
+      "rx_packets_per_s": 900,
+      "tx_packets_per_s": 1900,
+      "errors_per_s": 0,
+      "drops_per_s": 0
+    }
+  ],
+  "tcp": {
+    "source": "netlink",
+    "established": 212,
+    "syn_sent": 0,
+    "syn_recv": 1,
+    "fin_wait": 3,
+    "time_wait": 480,
+    "close_wait": 0,
+    "last_ack": 0,
+    "closing": 0,
+    "listen": 9,
+    "inuse": 230,
+    "orphan": 0,
+    "listen_drops_per_s": 0,
+    "retransmits_per_s": 0.2
+  },
+  "conntrack": {
+    "count": 1200,
+    "max": 262144
+  },
+  "files": {
+    "open": 3200,
+    "max": 9223372036854775807
+  },
+  "process": {
+    "started_at": "2026-10-28T08:00:00Z",
+    "version": "0.4.0",
+    "cpu_usage": 0.02,
+    "rss_bytes": 91000000,
+    "heap_bytes": 40000000,
+    "goroutines": 180,
+    "threads": 14,
+    "gc_pause_p99_ms": 0.4,
+    "open_files": 96,
+    "open_files_limit": 1048576
+  },
+  "schild": {
+    "event_queue_used": 0,
+    "event_queue_capacity": 8192,
+    "events_dropped_1h": 0,
+    "eval_slots_used": 1,
+    "eval_slots_max": 4,
+    "store_bytes": 52428800,
+    "store_max_bytes": 104857600,
+    "metrics_store_bytes": 16777216,
+    "sampler_ms": 2.1,
+    "sampler_budget_ms": 50
+  },
+  "unavailable": []
+}

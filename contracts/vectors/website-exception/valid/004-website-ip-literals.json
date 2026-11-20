@@ -1,0 +1,27 @@
+{
+  "contract": "website-exception",
+  "description": "D36: IPv4 and bracketed IPv6 hosts.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"id\":1000001,\"path\":\"/status\",\"rule_id\":\"920350\",\"website\":{\"hosts\":[\"192.0.2.10\",\"2001:db8::1\"],\"id\":\"192.0.2.10\"}}",
+  "input_decoded": {
+    "id": 1000001,
+    "path": "/status",
+    "rule_id": "920350",
+    "website": {
+      "hosts": [
+        "192.0.2.10",
+        "2001:db8::1"
+      ],
+      "id": "192.0.2.10"
+    }
+  },
+  "expect": {
+    "valid": true,
+    "result": {
+      "scope": "website",
+      "snippet": "# schild: exception for rule 920350 on /status, website 192.0.2.10 only\nSecRule REQUEST_HEADERS:Host \"@rx ^(?:192\\.0\\.2\\.10|\\[2001:db8::1\\])(?::[0-9]{1,5})?$\" \"id:1000001,phase:1,pass,nolog,t:none,t:lowercase,chain\"\n    SecRule REQUEST_FILENAME \"@streq /status\" \"t:none,ctl:ruleRemoveById=920350\"\n"
+    }
+  }
+}

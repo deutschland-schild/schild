@@ -1,0 +1,26 @@
+{
+  "contract": "rule-effect",
+  "description": "The same the other way round.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"actor\":\"agent\",\"op\":\"switch\",\"overlay\":\"off\",\"overlay_by\":\"dashboard\",\"repository\":\"crs\",\"requested\":\"off\"}",
+  "input_decoded": {
+    "actor": "agent",
+    "op": "switch",
+    "overlay": "off",
+    "overlay_by": "dashboard",
+    "repository": "crs",
+    "requested": "off"
+  },
+  "expect": {
+    "valid": true,
+    "result": {
+      "state": "off",
+      "source": "agent",
+      "changed": false,
+      "rebuild": false,
+      "differs": true
+    }
+  }
+}

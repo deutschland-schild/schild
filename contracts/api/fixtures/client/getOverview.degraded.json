@@ -1,0 +1,27 @@
+{
+  "generated_at": "2026-10-26T12:00:00Z",
+  "profile": "production",
+  "baseline": {
+    "state": "degraded",
+    "reasons": [
+      {
+        "code": "geo_db_old",
+        "since": "2026-10-26T11:52:00Z"
+      },
+      {
+        "code": "disk_full",
+        "since": "2026-10-26T11:40:00Z"
+      }
+    ]
+  },
+  "counters_24h": {
+    "requests": 9120,
+    "evaluated": 9120,
+    "blocked": 37,
+    "would_block": 0,
+    "incidents": 37
+  },
+  "rules": {
+    "crs_version": "4.8.0"
+  }
+}

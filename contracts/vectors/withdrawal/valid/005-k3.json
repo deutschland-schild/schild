@@ -1,0 +1,34 @@
+{
+  "contract": "withdrawal",
+  "description": "Three operators with k=3.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z",
+    "trust": [
+      "site-a",
+      "site-b",
+      "site-c",
+      "lab-a",
+      "lab-a2",
+      "lab-b",
+      "lab-c",
+      "lab-d"
+    ],
+    "threshold": 3,
+    "channel": "schild-main"
+  },
+  "input_raw": "{\"payloadType\":\"application/vnd.schild.withdrawal.v0+json\",\"payload\":\"eyJidW5kbGVfaWQiOiJzY2hpbGQtbWFpbiIsImlzc3VlZF9hdCI6IjIwMjYtMTAtMjZUMTE6NTk6MDBaIiwicmVhc29uIjoiY29tcHJvbWlzZWRfa2V5Iiwic2NoZW1hIjoic2NoaWxkLndpdGhkcmF3YWwvMC4xIiwic2NvcGUiOiJhbGwiLCJzZXEiOjYsInVwX3RvX3ZlcnNpb24iOjQyfQ==\",\"signatures\":[{\"keyid\":\"test-lab-a\",\"sig\":\"qbqGev6Ji4Q3m1UpCzfYPP70RLt2awml3jE+OSnIdMxvl2PvtdfQsmQ7cjMfhRrcj3JSGqCWJRYEWC2X4Wj2Ag==\"},{\"keyid\":\"test-lab-b\",\"sig\":\"qPLyQ7c7LPFcSRoKrZCCt9cOb2zrOD0rY3FF9kcraL82xstUZCK7KfFdITcE/O1K6JslORGusukaGr5QjsagAw==\"},{\"keyid\":\"test-lab-c\",\"sig\":\"an3/0i5ByZ/ZBPh9PxaRg40NSud9BnkyW5hNo3bsIrEbyJgQ561MRpSMkRn4ybyUwJVvImtlWCLzsQar/5OuBQ==\"}]}",
+  "input_decoded": {
+    "payload": {
+      "bundle_id": "schild-main",
+      "issued_at": "2026-10-26T11:59:00Z",
+      "reason": "compromised_key",
+      "schema": "schild.withdrawal/0.1",
+      "scope": "all",
+      "seq": 6,
+      "up_to_version": 42
+    }
+  },
+  "expect": {
+    "valid": true
+  }
+}

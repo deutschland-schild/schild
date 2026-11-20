@@ -1,0 +1,50 @@
+# Schild Gateway quickstart: one container in front of your application.
+#
+#   1. Put this file and schild.yaml into one folder.
+#   2. Set upstream.url in schild.yaml to your application.
+#   3. docker compose up -d
+#   4. docker compose exec schild schild dashboard setup-code
+#      (one-time code for the first login; the log has it too: setup_code)
+#   5. Open http://127.0.0.1:8788 on the server itself, or from your machine
+#      through a tunnel: ssh -N -L 8788:127.0.0.1:8788 you@your-server
+#
+# The OWASP CRS and your own rules block known attacks from the start;
+# CrowdSec rules, scenarios and limits only record. Switch them in the
+# dashboard under Regeln.
+# Remove it again with: docker compose down (add -v to delete its data too).
+#
+# Docs: https://deutschland-schild.de/doku
+name: schild
+services:
+  schild:
+    # A fixed version, never "latest": you decide when to update.
+    image: ${SCHILD_IMAGE:-ghcr.io/deutschland-schild/schild:0.1.0-alpha.1}
+    restart: unless-stopped
+    # Locked down: read-only root file system, no capabilities, no new
+    # privileges. schild runs as an unprivileged user (65532) and writes only
+    # to the volume below.
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    ports:
+      # Requests from visitors, from your web server on this host (nginx,
+      # Apache) only. schild trusts its X-Forwarded-For through the Docker
+      # networks listed in schild.yaml (ingress.trusted_proxies). Keep
+      # 127.0.0.1: published on every address, anyone could send that header.
+      # A load balancer on another machine: see ingress.trusted_proxies.
+      - "127.0.0.1:8080:8080"
+      # The dashboard, on this host's loopback only. Do not remove 127.0.0.1.
+      - "127.0.0.1:8788:8788"
+    extra_hosts:
+      # Lets schild reach an application that listens on the Docker host.
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - ./schild.yaml:/etc/schild/schild.yaml:ro
+      - schild-data:/var/lib/schild
+    # Container logs stay bounded: at most 5 files of 10 MB.
+    logging:
+      options:
+        max-size: 10m
+        max-file: "5"
+volumes:
+  schild-data: {}

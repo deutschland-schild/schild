@@ -1,0 +1,141 @@
+{
+  "contract": "ingress-order",
+  "description": "D31 amendment 2026-10-29: Accepted: php_fastcgi's index rewrite runs after schild at the top of the site.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"caddyfile\":\"http://a.example.test {\\n\\tschild\\n\\troot * /srv/app/public\\n\\tphp_fastcgi 127.0.0.1:9000\\n\\tfile_server\\n}\\n\",\"servers\":{\"srv0\":{\"listen\":[\":80\"],\"routes\":[{\"handle\":[{\"handler\":\"subroute\",\"routes\":[{\"handle\":[{\"handler\":\"vars\",\"root\":\"/srv/app/public\"},{\"handler\":\"schild\"}]},{\"handle\":[{\"handler\":\"static_response\",\"headers\":{\"Location\":[\"./{http.request.orig_uri.path.file_escaped}/{http.request.orig_uri.prefixed_query}\"]},\"status_code\":308}],\"match\":[{\"file\":{\"try_files\":[\"{http.request.uri.path}/index.php\"]},\"not\":[{\"path\":[\"*/\"]}]}]},{\"handle\":[{\"handler\":\"rewrite\",\"uri\":\"{http.matchers.file.relative}\"}],\"match\":[{\"file\":{\"split_path\":[\".php\"],\"try_files\":[\"{http.request.uri.path}\",\"{http.request.uri.path}/index.php\",\"index.php\"],\"try_policy\":\"first_exist_fallback\"}}]},{\"handle\":[{\"handler\":\"reverse_proxy\",\"transport\":{\"protocol\":\"fastcgi\",\"split_path\":[\".php\"]},\"upstreams\":[{\"dial\":\"127.0.0.1:9000\"}]}],\"match\":[{\"path\":[\"*.php\"]}]},{\"handle\":[{\"handler\":\"file_server\",\"hide\":[\"/tmp/ingcases/in/p07-php-fastcgi.caddy\"]}]}]}],\"match\":[{\"host\":[\"a.example.test\"]}],\"terminal\":true}]}}}",
+  "input_decoded": {
+    "caddyfile": "http://a.example.test {\n\tschild\n\troot * /srv/app/public\n\tphp_fastcgi 127.0.0.1:9000\n\tfile_server\n}\n",
+    "servers": {
+      "srv0": {
+        "listen": [
+          ":80"
+        ],
+        "routes": [
+          {
+            "handle": [
+              {
+                "handler": "subroute",
+                "routes": [
+                  {
+                    "handle": [
+                      {
+                        "handler": "vars",
+                        "root": "/srv/app/public"
+                      },
+                      {
+                        "handler": "schild"
+                      }
+                    ]
+                  },
+                  {
+                    "handle": [
+                      {
+                        "handler": "static_response",
+                        "headers": {
+                          "Location": [
+                            "./{http.request.orig_uri.path.file_escaped}/{http.request.orig_uri.prefixed_query}"
+                          ]
+                        },
+                        "status_code": 308
+                      }
+                    ],
+                    "match": [
+                      {
+                        "file": {
+                          "try_files": [
+                            "{http.request.uri.path}/index.php"
+                          ]
+                        },
+                        "not": [
+                          {
+                            "path": [
+                              "*/"
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "handle": [
+                      {
+                        "handler": "rewrite",
+                        "uri": "{http.matchers.file.relative}"
+                      }
+                    ],
+                    "match": [
+                      {
+                        "file": {
+                          "split_path": [
+                            ".php"
+                          ],
+                          "try_files": [
+                            "{http.request.uri.path}",
+                            "{http.request.uri.path}/index.php",
+                            "index.php"
+                          ],
+                          "try_policy": "first_exist_fallback"
+                        }
+                      }
+                    ]
+                  },
+                  {
+                    "handle": [
+                      {
+                        "handler": "reverse_proxy",
+                        "transport": {
+                          "protocol": "fastcgi",
+                          "split_path": [
+                            ".php"
+                          ]
+                        },
+                        "upstreams": [
+                          {
+                            "dial": "127.0.0.1:9000"
+                          }
+                        ]
+                      }
+                    ],
+                    "match": [
+                      {
+                        "path": [
+                          "*.php"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "handle": [
+                      {
+                        "handler": "file_server",
+                        "hide": [
+                          "/tmp/ingcases/in/p07-php-fastcgi.caddy"
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ],
+            "match": [
+              {
+                "host": [
+                  "a.example.test"
+                ]
+              }
+            ],
+            "terminal": true
+          }
+        ]
+      }
+    }
+  },
+  "expect": {
+    "valid": true,
+    "result": {
+      "findings": []
+    }
+  }
+}

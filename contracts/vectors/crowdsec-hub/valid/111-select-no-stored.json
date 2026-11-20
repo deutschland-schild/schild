@@ -1,0 +1,29 @@
+{
+  "contract": "crowdsec-hub",
+  "description": "Start: the first start with no stored set uses the image snapshot, also without network.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"image\":{\"commit\":\"2222222222222222222222222222222222222222\",\"present\":true,\"valid\":true},\"now\":\"2026-10-26T12:00:00Z\",\"op\":\"select\",\"state\":\"detect\",\"stored\":{\"present\":false,\"valid\":false}}",
+  "input_decoded": {
+    "image": {
+      "commit": "2222222222222222222222222222222222222222",
+      "present": true,
+      "valid": true
+    },
+    "now": "2026-10-26T12:00:00Z",
+    "op": "select",
+    "state": "detect",
+    "stored": {
+      "present": false,
+      "valid": false
+    }
+  },
+  "expect": {
+    "valid": true,
+    "result": {
+      "set": "image",
+      "pin_pending": false
+    }
+  }
+}

@@ -1,0 +1,46 @@
+{
+  "contract": "events",
+  "description": "v0.4: mobile address, IPv6 /64 key: at most challenge, here observed.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"data\":{\"action\":\"observe\",\"client\":{\"attribution\":\"tcp_peer\",\"geo\":{\"as_org\":\"Example Hosting B.V.\",\"asn\":64500,\"city\":\"Amsterdam\",\"country\":\"NL\",\"net_class\":\"mobile\"},\"ip\":\"2001:db8:1:2::17\",\"port\":51234},\"count\":6,\"host\":\"verein.example\",\"key_bits\":64,\"mode\":\"observe\",\"preset\":\"wordpress\",\"reason\":\"net_class\",\"route\":\"/wp-login.php\",\"scenario\":\"login_bruteforce\",\"scope\":\"client\",\"threshold\":5,\"window_s\":60,\"would_action\":\"challenge\"},\"datacontenttype\":\"application/json\",\"id\":\"51e8c88d-b3c3-435d-be62-eb7091fac673\",\"source\":\"schild://web-1\",\"specversion\":\"1.0\",\"time\":\"2026-10-26T11:59:58.123Z\",\"type\":\"schild.behaviour.triggered.v1\"}",
+  "input_decoded": {
+    "data": {
+      "action": "observe",
+      "client": {
+        "attribution": "tcp_peer",
+        "geo": {
+          "as_org": "Example Hosting B.V.",
+          "asn": 64500,
+          "city": "Amsterdam",
+          "country": "NL",
+          "net_class": "mobile"
+        },
+        "ip": "2001:db8:1:2::17",
+        "port": 51234
+      },
+      "count": 6,
+      "host": "verein.example",
+      "key_bits": 64,
+      "mode": "observe",
+      "preset": "wordpress",
+      "reason": "net_class",
+      "route": "/wp-login.php",
+      "scenario": "login_bruteforce",
+      "scope": "client",
+      "threshold": 5,
+      "window_s": 60,
+      "would_action": "challenge"
+    },
+    "datacontenttype": "application/json",
+    "id": "51e8c88d-b3c3-435d-be62-eb7091fac673",
+    "source": "schild://web-1",
+    "specversion": "1.0",
+    "time": "2026-10-26T11:59:58.123Z",
+    "type": "schild.behaviour.triggered.v1"
+  },
+  "expect": {
+    "valid": true
+  }
+}

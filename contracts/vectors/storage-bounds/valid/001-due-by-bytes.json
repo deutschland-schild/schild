@@ -1,0 +1,20 @@
+{
+  "contract": "storage-bounds",
+  "description": "D38: a pass runs as soon as the writers wrote a tenth of the cap (10 MiB of 100 MB), long before the 10-minute timer.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"elapsed_s\":30,\"max_size_mb\":100,\"op\":\"check_due\",\"written_bytes\":10485760}",
+  "input_decoded": {
+    "elapsed_s": 30,
+    "max_size_mb": 100,
+    "op": "check_due",
+    "written_bytes": 10485760
+  },
+  "expect": {
+    "valid": true,
+    "result": {
+      "due": true
+    }
+  }
+}

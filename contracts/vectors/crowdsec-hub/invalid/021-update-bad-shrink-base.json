@@ -1,0 +1,18 @@
+{
+  "contract": "crowdsec-hub",
+  "description": "D43: -1 is the only value below zero.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"index\":\"{}\",\"now\":\"2026-10-26T12:00:00Z\",\"op\":\"update\",\"shrink_base\":-2}",
+  "input_decoded": {
+    "index": "{}",
+    "now": "2026-10-26T12:00:00Z",
+    "op": "update",
+    "shrink_base": -2
+  },
+  "expect": {
+    "valid": false,
+    "error": "schema"
+  }
+}

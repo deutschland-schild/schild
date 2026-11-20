@@ -1,0 +1,60 @@
+id: MVP-18
+# Decision (initiator, 2026-10-28): attacks through residential proxies (rotating IPs and user agents) are detected by
+# target, fingerprint and request shape instead of by address, and answered per route and per account, never by
+# blocking addresses. Builds on MVP-17 (behaviour package).
+# Implemented 2026-10-28 (contracts v0.4, D30) with these deviations:
+# - wave_hint not built: schild.signal/0.3 needs a WAF match and one origin/agent/score per request; waves have none.
+#   A dedicated IP-free wave message needs its own contract version (open question).
+# D72 (2026-11-06): the gateway has no network side; the config key behaviour.distributed.wave_hint is gone and
+#   refused as unknown. Wave hints to labs are lab later (out_of_scope).
+# - JA4 only from a header set by a trusted TLS terminator (schild does not terminate TLS in the prototype); the ClientHello
+#   parser is ready for a later TLS listener. The fallback fingerprint is a low-entropy header set without header order.
+# - A header-set fingerprint never overrides a session cookie; only a JA4 from the cluster does.
+# - shape_wave tracks WAF-matched shapes only; learning period counts per installation, baselines per route.
+title: "Distributed attacks: count by target, fingerprint and request shape; respond per route and per account"
+ships: false                        # draft
+status: ENTWURF
+image: schild
+hypotheses: [D1, D3]
+refs: [concept-18-G1, concept-18-G10, concept-24-section-10, concept-13, MVP-02, MVP-09, MVP-12, MVP-14, MVP-17]
+depends_on: [MVP-17]
+detectors:                          # all local, in memory, bounded; part of the MVP-17 behaviour package
+  - 'route_wave: per site and route (login and other preset routes, plus routes the operator marks), failures per minute, failure/success ratio and share of first-seen senders against the route''s own baseline (rolling, learned during observe); triggers on a sharp deviation even when no single sender repeats'
+  - 'account_wave: failures for one user name across many senders (user name keyed with a per-process random key, in memory only, minutes; same privacy rule as MVP-17 credential_stuffing)'
+  - 'shape_wave: the same request_sig from many distinct senders within a window (shape = method, path template, parameter names, content type, rule ids – as in the signal)'
+  - 'fingerprint_cluster: many senders sharing one client fingerprint while rotating IP and user agent; fingerprint = JA4 (BSD licence; no JA4+) and HTTP/2 settings when schild terminates TLS (schild front), else header order and a low-entropy header set; never stored beyond the window'
+  - 'inconsistency: user agent contradicts TLS/HTTP2 fingerprint, client hints, Sec-Fetch-* or Accept-Language (human_score stage 0, concept 24 section 10); a login POST without a prior form GET and without a session cookie'
+responses:                          # time-boxed, explained, never an address ban
+  - 'route_tighten: for N minutes (default 20, max 2 h) the attacked route requires the MVP-12 challenge for requests that match the cluster or carry no session cookie; until MVP-12 exists: a strict route-wide rate limit for those requests (429 + Retry-After + problem details), legitimate users with a session cookie pass'
+  - 'account_slowdown: per attacked account a short wait before the next attempt (429 with Retry-After, growing 5 s → 60 s, max 5 min), never a lockout; successful login with a session cookie resets it'
+  - 'shape_block: when the shape matches a WAF rule or a virtual patch, a local temporary rule blocks that shape for any sender; otherwise only route_tighten'
+  - 'net_class cgnat, mobile and tor: never blocked by these responses either; route_tighten and account_slowdown are not address bans and apply to them like to everyone in the cluster'
+  - 'gateway in mode observe: detectors run and the dashboard shows "hätte reagiert", no response is enforced (same as MVP-17)'
+contracts:
+  new:                              # proposal for the next contracts version (v0.5 or merged into v0.4 if not yet released)
+    - 'schild.yaml: behaviour.distributed {detectors: {<id>: {mode, thresholds?}}, responses: {route_tighten: {minutes, max_minutes}, account_slowdown: {start_s, max_s}}}'
+    - 'local events: schild.distributed.detected.v1 (detector, site, route, sender count, fingerprint id local, response, until) and schild.distributed.ended.v1'
+    - 'client dashboard API: list/detail of waves, per-detector settings, end a response early (reauth)'
+must:
+  - 'no address-based action from these detectors; addresses appear only in the local event detail like any other event'
+  - 'bounded memory: sketches (count-min, HyperLogLog) and fixed tables; a flood of distinct senders and fingerprints must not exhaust memory'
+  - 'baselines are learned locally per route and stay on the server; a fresh install starts in observe for at least 14 days before any detector can enforce'
+  - 'dashboard explains each wave in plain German ("Verteilter Login-Angriff: 380 Adressen, gleicher Fingerabdruck. Login 20 Minuten nur mit Rechenaufgabe."), shows the cluster, lets the operator end it early, and suggests passkeys/two-factor for the attacked app when relevant'
+  - 'no residential-proxy IP lists, no third-party lookups'
+  - 'German UI copy, du-form, calm'
+measure:
+  - 'testlab: credential stuffing from 1000 rotating addresses (residential pool simulation) with rotating user agents but one client stack: route_wave/fingerprint_cluster detect within 2 min; route_tighten engages; logged-in legitimate users keep working'
+  - 'same attack with a real browser stack and human-like timing: report what is detected; no false bans of legitimate users (expected: account_slowdown only)'
+  - 'account lockout abuse: an attacker hammers a real user''s account; the real user can still log in within the max wait'
+  - 'legitimate traffic replay per preset: detectors in enforce mode cause < 0.1 % affected sessions'
+kill_if: "a legitimate user is locked out of their account by account_slowdown beyond the max wait OR any address-based block results from these detectors OR memory grows without bound under rotating senders"
+done: "make contracts-test && make test && make testlab-up PROFILE=t1 && make smoke PROFILE=t1 (incl. distributed-attack steps)"
+out_of_scope:
+  - residential proxy IP lists
+  - browser fingerprinting with JavaScript beyond MVP-12
+  - JA4+ (licence)
+  - lab-side wave correlation (labs ingest the hints like other signals)
+  - automatic passkey/2FA enforcement in the app
+  - "D72: lab later: IP-free wave hints to labs (one signal per wave and window, rate-limited, opt-in \"Wellen melden\"), their egress capture and the question whether they default to on"
+open_questions:
+  - 'default thresholds for route_wave and fingerprint_cluster: start conservative, tune in the testlab'

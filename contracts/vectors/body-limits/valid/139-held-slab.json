@@ -1,0 +1,22 @@
+{
+  "contract": "body-limits",
+  "description": "D46: the slab counts, reclaimable part included: open sockets pin it.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"op\":\"held\",\"stat\":{\"anon\":1887436800,\"slab\":167772160}}",
+  "input_decoded": {
+    "op": "held",
+    "stat": {
+      "anon": 1887436800,
+      "slab": 167772160
+    }
+  },
+  "expect": {
+    "valid": true,
+    "result": {
+      "held_bytes": 2055208960,
+      "outside_bytes": 167772160
+    }
+  }
+}

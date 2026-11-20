@@ -1,0 +1,59 @@
+{
+  "contract": "events",
+  "description": "Invalid IPv4 address.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"data\":{\"client\":{\"attribution\":\"tcp_peer\",\"geo\":{\"as_org\":\"Example Hosting B.V.\",\"asn\":64500,\"city\":\"Amsterdam\",\"country\":\"NL\",\"net_class\":\"hosting\"},\"ip\":\"999.0.113.1\",\"port\":51234},\"duration_ms\":3.2,\"host\":\"shop.example\",\"method\":\"POST\",\"mode\":\"observe\",\"outcome\":\"would_block\",\"path\":\"/wp-login.php\",\"protocol\":\"h2\",\"request_id\":\"req-3\",\"rules\":[{\"id\":930120,\"match_shape\":{\"content_type\":\"application/x-www-form-urlencoded\",\"len_bucket\":\"16-64\",\"location\":\"ARGS:log\"},\"msg\":\"OS File Access Attempt\",\"repository\":\"crs\",\"severity\":\"critical\"}],\"score\":72,\"status\":200,\"user_agent\":\"python-requests/2.31.0\",\"waf_ms\":0.8},\"datacontenttype\":\"application/json\",\"id\":\"3250af4b-22e1-4dfb-9074-d07d38000914\",\"source\":\"schild://web-1\",\"specversion\":\"1.0\",\"time\":\"2026-10-26T11:59:58.123Z\",\"type\":\"schild.request.evaluated.v1\"}",
+  "input_decoded": {
+    "data": {
+      "client": {
+        "attribution": "tcp_peer",
+        "geo": {
+          "as_org": "Example Hosting B.V.",
+          "asn": 64500,
+          "city": "Amsterdam",
+          "country": "NL",
+          "net_class": "hosting"
+        },
+        "ip": "999.0.113.1",
+        "port": 51234
+      },
+      "duration_ms": 3.2,
+      "host": "shop.example",
+      "method": "POST",
+      "mode": "observe",
+      "outcome": "would_block",
+      "path": "/wp-login.php",
+      "protocol": "h2",
+      "request_id": "req-3",
+      "rules": [
+        {
+          "id": 930120,
+          "match_shape": {
+            "content_type": "application/x-www-form-urlencoded",
+            "len_bucket": "16-64",
+            "location": "ARGS:log"
+          },
+          "msg": "OS File Access Attempt",
+          "repository": "crs",
+          "severity": "critical"
+        }
+      ],
+      "score": 72,
+      "status": 200,
+      "user_agent": "python-requests/2.31.0",
+      "waf_ms": 0.8
+    },
+    "datacontenttype": "application/json",
+    "id": "3250af4b-22e1-4dfb-9074-d07d38000914",
+    "source": "schild://web-1",
+    "specversion": "1.0",
+    "time": "2026-10-26T11:59:58.123Z",
+    "type": "schild.request.evaluated.v1"
+  },
+  "expect": {
+    "valid": false,
+    "error": "schema"
+  }
+}

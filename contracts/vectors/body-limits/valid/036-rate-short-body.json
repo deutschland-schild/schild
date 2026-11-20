@@ -1,0 +1,26 @@
+{
+  "contract": "body-limits",
+  "description": "D41, E2: a body under one window gives no sample.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"arrivals\":[{\"bytes\":1048576,\"t_ms\":0}],\"end_ms\":29999,\"op\":\"rate\"}",
+  "input_decoded": {
+    "arrivals": [
+      {
+        "bytes": 1048576,
+        "t_ms": 0
+      }
+    ],
+    "end_ms": 29999,
+    "op": "rate"
+  },
+  "expect": {
+    "valid": true,
+    "result": {
+      "below_min": false,
+      "first_below": null,
+      "windows": []
+    }
+  }
+}

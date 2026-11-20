@@ -1,0 +1,27 @@
+{
+  "context": {
+    "now": "2026-11-19T12:00:00Z"
+  },
+  "contract": "human-check",
+  "description": "under_attack scope off must not carry until",
+  "expect": {
+    "error": "schema",
+    "valid": false
+  },
+  "input_decoded": {
+    "allowlisted": false,
+    "clearance": "none",
+    "good_bot": false,
+    "method": "GET",
+    "path": "/",
+    "policy": {
+      "mode": "off",
+      "under_attack": {
+        "scope": "off",
+        "until": "2026-11-19T14:00:00Z"
+      },
+      "website": "example.org"
+    }
+  },
+  "input_raw": "{\"allowlisted\":false,\"clearance\":\"none\",\"good_bot\":false,\"method\":\"GET\",\"path\":\"/\",\"policy\":{\"mode\":\"off\",\"under_attack\":{\"scope\":\"off\",\"until\":\"2026-11-19T14:00:00Z\"},\"website\":\"example.org\"}}"
+}

@@ -1,0 +1,25 @@
+{
+  "contract": "config/schild",
+  "description": "v0.4 MVP-19: unprotected_sites are host names, not URLs.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"config_version\":0,\"ingress\":{\"caddyfile\":\"/etc/caddy/Caddyfile\",\"storage\":\"/data/caddy\",\"unprotected_sites\":[\"https://static.verein.example\"]},\"mode\":\"autoblock\",\"node_name\":\"web-1\",\"profile\":\"production\"}",
+  "input_decoded": {
+    "config_version": 0,
+    "ingress": {
+      "caddyfile": "/etc/caddy/Caddyfile",
+      "storage": "/data/caddy",
+      "unprotected_sites": [
+        "https://static.verein.example"
+      ]
+    },
+    "mode": "autoblock",
+    "node_name": "web-1",
+    "profile": "production"
+  },
+  "expect": {
+    "valid": false,
+    "error": "schema"
+  }
+}

@@ -1,0 +1,98 @@
+{
+  "items": [
+    {
+      "id": "local",
+      "hostname": "gw-1.example",
+      "role": "gateway",
+      "agent_id": null,
+      "status": "findings",
+      "silent": false,
+      "last_report_at": "2026-10-26T11:57:00Z",
+      "received_at": "2026-10-26T11:57:05Z",
+      "interval_minutes": 1440,
+      "duration_ms": 4210,
+      "counts": {
+        "critical": 0,
+        "high": 3,
+        "medium": 2,
+        "low": 1,
+        "info": 1
+      },
+      "unreadable": 0,
+      "os": {
+        "name": "Debian GNU/Linux 12 (bookworm)",
+        "eol": "2026-06-10"
+      }
+    },
+    {
+      "id": "app-1",
+      "hostname": "app-1.example",
+      "role": "agent",
+      "agent_id": "app-1",
+      "status": "findings",
+      "silent": false,
+      "last_report_at": "2026-10-26T11:57:00Z",
+      "received_at": "2026-10-26T11:57:40Z",
+      "interval_minutes": 1440,
+      "duration_ms": 4210,
+      "counts": {
+        "critical": 0,
+        "high": 1,
+        "medium": 2,
+        "low": 1,
+        "info": 0
+      },
+      "unreadable": 2,
+      "os": {
+        "name": "Ubuntu 24.04.1 LTS",
+        "eol": "2029-05-31"
+      }
+    },
+    {
+      "id": "app-2",
+      "hostname": "app-2.example",
+      "role": "agent",
+      "agent_id": "app-2",
+      "status": "silent",
+      "silent": true,
+      "last_report_at": "2026-10-24T03:12:00Z",
+      "received_at": "2026-10-24T03:12:09Z",
+      "interval_minutes": 1440,
+      "duration_ms": 4210,
+      "counts": {
+        "critical": 0,
+        "high": 1,
+        "medium": 1,
+        "low": 1,
+        "info": 0
+      },
+      "unreadable": 0,
+      "os": {
+        "name": "Rocky Linux 9.4 (Blue Onyx)",
+        "eol": "2032-05-31"
+      }
+    },
+    {
+      "id": "app-3",
+      "hostname": "app-3.example",
+      "role": "agent",
+      "agent_id": "app-3",
+      "status": "waiting",
+      "silent": false,
+      "last_report_at": null,
+      "received_at": null,
+      "interval_minutes": 1440,
+      "duration_ms": null,
+      "counts": {
+        "critical": 0,
+        "high": 0,
+        "medium": 0,
+        "low": 0,
+        "info": 0
+      },
+      "unreadable": 0,
+      "os": null
+    }
+  ],
+  "next_cursor": null
+}

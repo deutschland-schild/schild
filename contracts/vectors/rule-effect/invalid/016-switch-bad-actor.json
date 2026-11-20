@@ -1,0 +1,18 @@
+{
+  "contract": "rule-effect",
+  "description": "The dashboard or an agent.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"actor\":\"cron\",\"op\":\"switch\",\"repository\":\"crs\",\"requested\":\"off\"}",
+  "input_decoded": {
+    "actor": "cron",
+    "op": "switch",
+    "repository": "crs",
+    "requested": "off"
+  },
+  "expect": {
+    "valid": false,
+    "error": "schema"
+  }
+}

@@ -1,0 +1,14 @@
+{
+ "resolve": [
+  "[2001:db8::1]"
+ ],
+ "blocks": [
+  {
+   "Addresses": [
+    "[2001:db8::1]:8443"
+   ],
+   "Schild": true,
+   "Proxies": true
+  }
+ ]
+}

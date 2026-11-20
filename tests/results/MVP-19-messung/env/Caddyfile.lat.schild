@@ -1,0 +1,81 @@
+# Anonymised use case of MVP-19 (TEST ONLY, example names): stock Caddy as the
+# ingress in front of kamal-proxy (here: hostrouter), five site blocks (four
+# app domains, one JSON API), storage folder, probe block, JSON access log
+# for fail2ban, encode, handle_errors. This is the "before" file.
+{
+	email ops@example.de
+	acme_ca https://pebble:14000/dir
+	acme_ca_root /etc/pebble/pebble.minica.pem
+	admin off
+}
+
+(schild) {
+	schild
+}
+
+(probes) {
+	@probes path_regexp probes (?i)(^/\.env|^/\.git(/|$)|/composer\.(json|lock)$|^/wp-(login|admin)|^/xmlrpc\.php|^/phpmyadmin|^/\.aws/|^/vendor/phpunit|\.(bak|sql|swp)$)
+	respond @probes 404
+}
+
+(access_log) {
+	log {
+		output file /var/log/caddy/access.log {
+			roll_size 50MiB
+			roll_keep 10
+			roll_keep_for 720h
+		}
+		format json
+	}
+}
+
+(app) {
+	import probes
+	import access_log
+	encode zstd gzip
+	handle_path /storage/* {
+		root * /srv/storage
+		file_server
+	}
+	reverse_proxy hostrouter:8080
+	handle_errors {
+		respond "{err.status_code} {err.status_text}" {err.status_code}
+	}
+}
+
+shop.example.de, www.shop.example.de {
+	import schild
+	import app
+}
+
+portal.example.de {
+	import schild
+	import app
+}
+
+booking.example.de {
+	import schild
+	import app
+}
+
+academy.example.de {
+	import schild
+	import app
+}
+
+api.example.de {
+	import schild
+	import probes
+	import access_log
+	encode zstd gzip
+	reverse_proxy hostrouter:8080
+	handle_errors {
+		respond "{err.status_code} {err.status_text}" {err.status_code}
+	}
+}
+
+# latency test only: plain HTTP site
+http://plain.example.de {
+	import schild
+	reverse_proxy hostrouter:8080
+}

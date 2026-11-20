@@ -1,0 +1,12 @@
+{
+  "ip": "203.0.113.42",
+  "events": 214,
+  "sessions": 3,
+  "incidents": [
+    "K7QM-4XWD"
+  ],
+  "first_seen": "2026-10-24T07:12:00Z",
+  "last_seen": "2026-10-26T11:59:51Z",
+  "ip_truncated_after": "2026-11-02T11:59:51Z",
+  "allowlisted": false
+}

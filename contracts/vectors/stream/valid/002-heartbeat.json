@@ -1,0 +1,41 @@
+{
+  "contract": "stream",
+  "description": "Heartbeat carries the newest lab-signed checkpoint.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z",
+    "trust": [
+      "site-a",
+      "site-b",
+      "site-c",
+      "lab-a",
+      "lab-a2",
+      "lab-b",
+      "lab-c",
+      "lab-d"
+    ],
+    "threshold": 2,
+    "channel": "schild-main"
+  },
+  "input_raw": "{\"checkpoint\":{\"payload\":\"eyJidW5kbGUiOnsiYnVuZGxlX2lkIjoic2NoaWxkLW1haW4iLCJkaWdlc3QiOiJzaGEyNTY6ZjdjYjFlMjRjMjA0NjkyZDYzNzk5ZjM2NTViZmEyNmVlOTllODRiMTAyZDcxNWI2NzkzYzBhMjgxZjVkYjk3ZCIsInZlcnNpb24iOjQyfSwiZXhwaXJlcyI6IjIwMjYtMTAtMjZUMTI6MDI6MzBaIiwiaXNzdWVkX2F0IjoiMjAyNi0xMC0yNlQxMTo1OTozMFoiLCJsYWIiOiJsYWItYiIsInNjaGVtYSI6InNjaGlsZC5jaGVja3BvaW50LzAuMSIsInNlcSI6Nywid2l0aGRyYXdhbF9zZXEiOjN9\",\"payloadType\":\"application/vnd.schild.checkpoint.v0+json\",\"signatures\":[{\"keyid\":\"test-lab-b\",\"sig\":\"hk7ieu4eTRK8pccF02uH4J1gAG4MlFUg2s2Wf+jzsB55kuak7WkeYLND8qeSpDa0XPKWLf6mNvBA9zZBJZIiBw==\"}]},\"id\":\"r1a-101\",\"relay\":{\"id\":\"relay-1\",\"time\":\"2026-10-26T12:00:00Z\"},\"type\":\"schild.dist.heartbeat.v1\"}",
+  "input_decoded": {
+    "checkpoint": {
+      "payload": "eyJidW5kbGUiOnsiYnVuZGxlX2lkIjoic2NoaWxkLW1haW4iLCJkaWdlc3QiOiJzaGEyNTY6ZjdjYjFlMjRjMjA0NjkyZDYzNzk5ZjM2NTViZmEyNmVlOTllODRiMTAyZDcxNWI2NzkzYzBhMjgxZjVkYjk3ZCIsInZlcnNpb24iOjQyfSwiZXhwaXJlcyI6IjIwMjYtMTAtMjZUMTI6MDI6MzBaIiwiaXNzdWVkX2F0IjoiMjAyNi0xMC0yNlQxMTo1OTozMFoiLCJsYWIiOiJsYWItYiIsInNjaGVtYSI6InNjaGlsZC5jaGVja3BvaW50LzAuMSIsInNlcSI6Nywid2l0aGRyYXdhbF9zZXEiOjN9",
+      "payloadType": "application/vnd.schild.checkpoint.v0+json",
+      "signatures": [
+        {
+          "keyid": "test-lab-b",
+          "sig": "hk7ieu4eTRK8pccF02uH4J1gAG4MlFUg2s2Wf+jzsB55kuak7WkeYLND8qeSpDa0XPKWLf6mNvBA9zZBJZIiBw=="
+        }
+      ]
+    },
+    "id": "r1a-101",
+    "relay": {
+      "id": "relay-1",
+      "time": "2026-10-26T12:00:00Z"
+    },
+    "type": "schild.dist.heartbeat.v1"
+  },
+  "expect": {
+    "valid": true
+  }
+}

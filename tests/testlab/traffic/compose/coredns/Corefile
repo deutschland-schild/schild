@@ -1,0 +1,14 @@
+# Mock reverse DNS for the test lab. Good-bot source IPs resolve to plausible
+# crawler hostnames so a schild client can verify them (forward-confirmed
+# rDNS). Internal only; never queried from outside the lab.
+. {
+    hosts {
+        10.66.20.10 crawl-66-20-10.googlebot.test
+        10.66.20.11 crawl-66-20-11.googlebot.test
+        10.66.20.12 msnbot-66-20-12.search.msn.test
+        fallthrough
+    }
+    forward . 10.66.20.1
+    log
+    errors
+}

@@ -1,0 +1,29 @@
+{
+  "contract": "geo-map",
+  "description": "v0.5 MVP-22: privacy database names (vpn, tor); tor wins for net_class.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"provider\":\"ipinfo\",\"record\":{\"proxy\":false,\"relay\":true,\"service\":\"Example VPN\",\"tor\":true,\"vpn\":true}}",
+  "input_decoded": {
+    "provider": "ipinfo",
+    "record": {
+      "proxy": false,
+      "relay": true,
+      "service": "Example VPN",
+      "tor": true,
+      "vpn": true
+    }
+  },
+  "expect": {
+    "valid": true,
+    "result": {
+      "asn": null,
+      "country": "ZZ",
+      "is_proxy": false,
+      "is_tor": true,
+      "is_vpn": true,
+      "net_class": "tor"
+    }
+  }
+}

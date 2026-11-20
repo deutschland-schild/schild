@@ -1,0 +1,23 @@
+{
+  "contract": "rule-effect",
+  "description": "Repository detect in the test profile: detect, not would_block.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"mode\":\"observe\",\"now\":1000000,\"op\":\"effect\",\"origin\":\"release\",\"state\":\"detect\"}",
+  "input_decoded": {
+    "mode": "observe",
+    "now": 1000000,
+    "op": "effect",
+    "origin": "release",
+    "state": "detect"
+  },
+  "expect": {
+    "valid": true,
+    "result": {
+      "status": "active",
+      "effect": "detect",
+      "limited_by": "repository_detect"
+    }
+  }
+}

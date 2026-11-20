@@ -1,0 +1,148 @@
+{
+  "contract": "storage-bounds",
+  "description": "D38: incidents count against the cap. A flood of incidents never leaves 0 events: the newest floor_rows events of a class stay; the oldest incidents go once the cheaper classes are at their floor. A passed request that is not a sample is logged class.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"base_bytes\":0,\"floor_rows\":2,\"max_size_mb\":10,\"op\":\"cap_pass\",\"rows\":[{\"bytes\":102400,\"id\":\"logged-a\",\"kind\":\"event\",\"outcome\":\"logged\",\"t\":1793016000000,\"type\":\"schild.request.evaluated.v1\"},{\"bytes\":102400,\"id\":\"logged-b\",\"kind\":\"event\",\"outcome\":\"passed\",\"t\":1793016000001,\"type\":\"schild.request.evaluated.v1\"},{\"bytes\":102400,\"id\":\"logged-c\",\"kind\":\"event\",\"outcome\":\"logged\",\"t\":1793016000002,\"type\":\"schild.request.evaluated.v1\"},{\"bytes\":1048576,\"id\":\"incident-00\",\"kind\":\"incident\",\"t\":1793016000010},{\"bytes\":1048576,\"id\":\"incident-01\",\"kind\":\"incident\",\"t\":1793016000011},{\"bytes\":1048576,\"id\":\"incident-02\",\"kind\":\"incident\",\"t\":1793016000012},{\"bytes\":1048576,\"id\":\"incident-03\",\"kind\":\"incident\",\"t\":1793016000013},{\"bytes\":1048576,\"id\":\"incident-04\",\"kind\":\"incident\",\"t\":1793016000014},{\"bytes\":1048576,\"id\":\"incident-05\",\"kind\":\"incident\",\"t\":1793016000015},{\"bytes\":1048576,\"id\":\"incident-06\",\"kind\":\"incident\",\"t\":1793016000016},{\"bytes\":1048576,\"id\":\"incident-07\",\"kind\":\"incident\",\"t\":1793016000017},{\"bytes\":1048576,\"id\":\"incident-08\",\"kind\":\"incident\",\"t\":1793016000018},{\"bytes\":1048576,\"id\":\"incident-09\",\"kind\":\"incident\",\"t\":1793016000019},{\"bytes\":1048576,\"id\":\"incident-10\",\"kind\":\"incident\",\"t\":1793016000020},{\"bytes\":1048576,\"id\":\"incident-11\",\"kind\":\"incident\",\"t\":1793016000021},{\"bytes\":1048576,\"id\":\"incident-12\",\"kind\":\"incident\",\"t\":1793016000022},{\"bytes\":1048576,\"id\":\"incident-13\",\"kind\":\"incident\",\"t\":1793016000023},{\"bytes\":1048576,\"id\":\"incident-14\",\"kind\":\"incident\",\"t\":1793016000024}],\"wal_bytes\":0}",
+  "input_decoded": {
+    "base_bytes": 0,
+    "floor_rows": 2,
+    "max_size_mb": 10,
+    "op": "cap_pass",
+    "rows": [
+      {
+        "bytes": 102400,
+        "id": "logged-a",
+        "kind": "event",
+        "outcome": "logged",
+        "t": 1793016000000,
+        "type": "schild.request.evaluated.v1"
+      },
+      {
+        "bytes": 102400,
+        "id": "logged-b",
+        "kind": "event",
+        "outcome": "passed",
+        "t": 1793016000001,
+        "type": "schild.request.evaluated.v1"
+      },
+      {
+        "bytes": 102400,
+        "id": "logged-c",
+        "kind": "event",
+        "outcome": "logged",
+        "t": 1793016000002,
+        "type": "schild.request.evaluated.v1"
+      },
+      {
+        "bytes": 1048576,
+        "id": "incident-00",
+        "kind": "incident",
+        "t": 1793016000010
+      },
+      {
+        "bytes": 1048576,
+        "id": "incident-01",
+        "kind": "incident",
+        "t": 1793016000011
+      },
+      {
+        "bytes": 1048576,
+        "id": "incident-02",
+        "kind": "incident",
+        "t": 1793016000012
+      },
+      {
+        "bytes": 1048576,
+        "id": "incident-03",
+        "kind": "incident",
+        "t": 1793016000013
+      },
+      {
+        "bytes": 1048576,
+        "id": "incident-04",
+        "kind": "incident",
+        "t": 1793016000014
+      },
+      {
+        "bytes": 1048576,
+        "id": "incident-05",
+        "kind": "incident",
+        "t": 1793016000015
+      },
+      {
+        "bytes": 1048576,
+        "id": "incident-06",
+        "kind": "incident",
+        "t": 1793016000016
+      },
+      {
+        "bytes": 1048576,
+        "id": "incident-07",
+        "kind": "incident",
+        "t": 1793016000017
+      },
+      {
+        "bytes": 1048576,
+        "id": "incident-08",
+        "kind": "incident",
+        "t": 1793016000018
+      },
+      {
+        "bytes": 1048576,
+        "id": "incident-09",
+        "kind": "incident",
+        "t": 1793016000019
+      },
+      {
+        "bytes": 1048576,
+        "id": "incident-10",
+        "kind": "incident",
+        "t": 1793016000020
+      },
+      {
+        "bytes": 1048576,
+        "id": "incident-11",
+        "kind": "incident",
+        "t": 1793016000021
+      },
+      {
+        "bytes": 1048576,
+        "id": "incident-12",
+        "kind": "incident",
+        "t": 1793016000022
+      },
+      {
+        "bytes": 1048576,
+        "id": "incident-13",
+        "kind": "incident",
+        "t": 1793016000023
+      },
+      {
+        "bytes": 1048576,
+        "id": "incident-14",
+        "kind": "incident",
+        "t": 1793016000024
+      }
+    ],
+    "wal_bytes": 0
+  },
+  "expect": {
+    "valid": true,
+    "result": {
+      "used_before": 16035840,
+      "deleted": [
+        "logged-a",
+        "incident-00",
+        "incident-01",
+        "incident-02",
+        "incident-03",
+        "incident-04",
+        "incident-05"
+      ],
+      "used_after": 9641984,
+      "unreachable": false
+    }
+  }
+}

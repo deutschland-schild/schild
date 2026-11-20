@@ -1,0 +1,84 @@
+{
+  "contract": "ingress-order",
+  "description": "D43: Accepted (D43): the client's Forwarded is removed and replaced by what the server knows about the peer.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"caddyfile\":\"http://a.example.test {\\n\\troute {\\n\\t\\trequest_header -Forwarded\\n\\t\\tschild\\n\\t\\treverse_proxy 127.0.0.1:18082 {\\n\\t\\t\\theader_up Forwarded \\\"for={remote_host}\\\"\\n\\t\\t}\\n\\t}\\n}\\n\",\"servers\":{\"srv0\":{\"listen\":[\":80\"],\"routes\":[{\"handle\":[{\"handler\":\"subroute\",\"routes\":[{\"handle\":[{\"handler\":\"subroute\",\"routes\":[{\"handle\":[{\"handler\":\"headers\",\"request\":{\"delete\":[\"Forwarded\"]}},{\"handler\":\"schild\"},{\"handler\":\"reverse_proxy\",\"headers\":{\"request\":{\"set\":{\"Forwarded\":[\"for={http.request.remote.host}\"]}}},\"upstreams\":[{\"dial\":\"127.0.0.1:18082\"}]}]}]}]}]}],\"match\":[{\"host\":[\"a.example.test\"]}],\"terminal\":true}]}}}",
+  "input_decoded": {
+    "caddyfile": "http://a.example.test {\n\troute {\n\t\trequest_header -Forwarded\n\t\tschild\n\t\treverse_proxy 127.0.0.1:18082 {\n\t\t\theader_up Forwarded \"for={remote_host}\"\n\t\t}\n\t}\n}\n",
+    "servers": {
+      "srv0": {
+        "listen": [
+          ":80"
+        ],
+        "routes": [
+          {
+            "handle": [
+              {
+                "handler": "subroute",
+                "routes": [
+                  {
+                    "handle": [
+                      {
+                        "handler": "subroute",
+                        "routes": [
+                          {
+                            "handle": [
+                              {
+                                "handler": "headers",
+                                "request": {
+                                  "delete": [
+                                    "Forwarded"
+                                  ]
+                                }
+                              },
+                              {
+                                "handler": "schild"
+                              },
+                              {
+                                "handler": "reverse_proxy",
+                                "headers": {
+                                  "request": {
+                                    "set": {
+                                      "Forwarded": [
+                                        "for={http.request.remote.host}"
+                                      ]
+                                    }
+                                  }
+                                },
+                                "upstreams": [
+                                  {
+                                    "dial": "127.0.0.1:18082"
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ],
+            "match": [
+              {
+                "host": [
+                  "a.example.test"
+                ]
+              }
+            ],
+            "terminal": true
+          }
+        ]
+      }
+    }
+  },
+  "expect": {
+    "valid": true,
+    "result": {
+      "findings": []
+    }
+  }
+}

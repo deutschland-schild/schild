@@ -1,0 +1,71 @@
+{
+  "contract": "website-derive",
+  "description": "D36: Unicode labels become punycode A-labels (RFC 3492); the Unicode and the punycode spelling are one host; the label shows Unicode.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"blocks\":[{\"addresses\":[\"bücher.example\",\"www.bücher.example\"],\"proxies\":true,\"schild\":true},{\"addresses\":[\"xn--bcher-kva.example:8443\"],\"proxies\":true,\"schild\":true},{\"addresses\":[\"münchen-verein.example\"],\"proxies\":true,\"schild\":true}],\"mode\":\"ingress\",\"resolve\":[\"xn--bcher-kva.example\",\"www.xn--bcher-kva.example\",\"xn--mnchen-verein-wob.example\"]}",
+  "input_decoded": {
+    "blocks": [
+      {
+        "addresses": [
+          "bücher.example",
+          "www.bücher.example"
+        ],
+        "proxies": true,
+        "schild": true
+      },
+      {
+        "addresses": [
+          "xn--bcher-kva.example:8443"
+        ],
+        "proxies": true,
+        "schild": true
+      },
+      {
+        "addresses": [
+          "münchen-verein.example"
+        ],
+        "proxies": true,
+        "schild": true
+      }
+    ],
+    "mode": "ingress",
+    "resolve": [
+      "xn--bcher-kva.example",
+      "www.xn--bcher-kva.example",
+      "xn--mnchen-verein-wob.example"
+    ]
+  },
+  "expect": {
+    "valid": true,
+    "result": {
+      "resolved": [
+        "xn--bcher-kva.example",
+        "xn--bcher-kva.example",
+        "xn--mnchen-verein-wob.example"
+      ],
+      "websites": [
+        {
+          "hosts": [
+            "xn--bcher-kva.example",
+            "www.xn--bcher-kva.example"
+          ],
+          "id": "xn--bcher-kva.example",
+          "label": "bücher.example",
+          "protection": "protected",
+          "tracked": true
+        },
+        {
+          "hosts": [
+            "xn--mnchen-verein-wob.example"
+          ],
+          "id": "xn--mnchen-verein-wob.example",
+          "label": "münchen-verein.example",
+          "protection": "protected",
+          "tracked": true
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,26 @@
+{
+  "contract": "storage-bounds",
+  "description": "2026-10-29: on a 2 TiB file system 5 % would be 102.4 GiB; the reserve is capped at 20 GiB, so 60 GiB free is ok.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"fs_avail_bytes\":64424509440,\"fs_total_bytes\":2199023255552,\"max_size_mb\":20000,\"metrics_bound_bytes\":392167424,\"op\":\"disk_budget\",\"requests_max_size_mb\":4096,\"schild_used_bytes\":2147483648}",
+  "input_decoded": {
+    "fs_avail_bytes": 64424509440,
+    "fs_total_bytes": 2199023255552,
+    "max_size_mb": 20000,
+    "metrics_bound_bytes": 392167424,
+    "op": "disk_budget",
+    "requests_max_size_mb": 4096,
+    "schild_used_bytes": 2147483648
+  },
+  "expect": {
+    "valid": true,
+    "result": {
+      "budget_bytes": 27890024448,
+      "need_bytes": 25742540800,
+      "reserve_bytes": 21474836480,
+      "verdict": "ok"
+    }
+  }
+}

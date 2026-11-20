@@ -1,0 +1,49 @@
+{
+  "contract": "events",
+  "description": "v0.4: login brute force blocked for 15 minutes (first step of the ladder).",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"data\":{\"action\":\"block\",\"client\":{\"attribution\":\"tcp_peer\",\"geo\":{\"as_org\":\"Example Hosting B.V.\",\"asn\":64500,\"city\":\"Amsterdam\",\"country\":\"NL\",\"net_class\":\"hosting\"},\"ip\":\"203.0.113.42\",\"port\":51234},\"count\":6,\"duration_s\":900,\"host\":\"verein.example\",\"incident\":\"K7QM-4XWD\",\"key_bits\":32,\"level\":1,\"mode\":\"block\",\"preset\":\"wordpress\",\"route\":\"/wp-login.php\",\"scenario\":\"login_bruteforce\",\"scope\":\"client\",\"threshold\":5,\"until\":\"2026-10-26T12:15:00Z\",\"window_s\":60,\"would_action\":\"block\"},\"datacontenttype\":\"application/json\",\"id\":\"39835484-6521-40df-a021-7b3ee1aaa1b3\",\"source\":\"schild://web-1\",\"specversion\":\"1.0\",\"time\":\"2026-10-26T11:59:58.123Z\",\"type\":\"schild.behaviour.triggered.v1\"}",
+  "input_decoded": {
+    "data": {
+      "action": "block",
+      "client": {
+        "attribution": "tcp_peer",
+        "geo": {
+          "as_org": "Example Hosting B.V.",
+          "asn": 64500,
+          "city": "Amsterdam",
+          "country": "NL",
+          "net_class": "hosting"
+        },
+        "ip": "203.0.113.42",
+        "port": 51234
+      },
+      "count": 6,
+      "duration_s": 900,
+      "host": "verein.example",
+      "incident": "K7QM-4XWD",
+      "key_bits": 32,
+      "level": 1,
+      "mode": "block",
+      "preset": "wordpress",
+      "route": "/wp-login.php",
+      "scenario": "login_bruteforce",
+      "scope": "client",
+      "threshold": 5,
+      "until": "2026-10-26T12:15:00Z",
+      "window_s": 60,
+      "would_action": "block"
+    },
+    "datacontenttype": "application/json",
+    "id": "39835484-6521-40df-a021-7b3ee1aaa1b3",
+    "source": "schild://web-1",
+    "specversion": "1.0",
+    "time": "2026-10-26T11:59:58.123Z",
+    "type": "schild.behaviour.triggered.v1"
+  },
+  "expect": {
+    "valid": true
+  }
+}

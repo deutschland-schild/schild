@@ -1,0 +1,17 @@
+# unprotected: []
+# expect: pass
+# Fix round 2: handle_errors with a status matcher and schild inside, next to a basic_auth site without a backend.
+http://a.example.test:18080 {
+	import schild
+	reverse_proxy 127.0.0.1:18081
+	handle_errors 404 410 {
+		import schild
+		reverse_proxy 127.0.0.1:18081
+	}
+}
+http://b.example.test:18080 {
+	basic_auth {
+		admin $2a$14$Zkx19XLiW6VYouLHR5NmfOFU0z2GTNmpkT/5qqR7hx4IjWJPDhjvG
+	}
+	respond "ok"
+}

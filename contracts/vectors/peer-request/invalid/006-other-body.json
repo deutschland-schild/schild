@@ -1,0 +1,20 @@
+{
+  "contract": "peer-request",
+  "description": "Body differs from the signed digest.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z",
+    "trust": [
+      "lab-a",
+      "lab-a2",
+      "lab-b",
+      "lab-c",
+      "lab-d",
+      "site-a"
+    ]
+  },
+  "input_raw": "{\"authorization\":\"v1 lab=lab-b keyid=test-lab-b ts=2026-10-26T12:00:00Z sig=yA4Y//0ScR/3dpt8vib8u2tfVuPPW439jlcV4wJLks5hskpinf5qq6nekyprEfMdYNVArQVAMos2GDNiJnZaBg==\",\"body_sha256\":\"sha256:8b130eb8bed4d41489e27eb8050322b28de46e7a72ca1d6ae5a817f7ed5003e9\",\"method\":\"POST\",\"path\":\"/v0/signatures\",\"target\":\"lab-a\"}",
+  "expect": {
+    "valid": false,
+    "error": "signature"
+  }
+}

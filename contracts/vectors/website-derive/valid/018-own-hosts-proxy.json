@@ -1,0 +1,44 @@
+{
+  "contract": "website-derive",
+  "description": "D36 amendment: proxy mode owns upstream.site_hosts (wildcards one label deep), nothing else.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"mode\":\"proxy\",\"own_hosts\":[\"verein.example\",\"www.verein.example\",\"a.b.verein.example\",\"other.example\"],\"site_hosts\":[\"verein.example\",\"*.verein.example\"]}",
+  "input_decoded": {
+    "mode": "proxy",
+    "own_hosts": [
+      "verein.example",
+      "www.verein.example",
+      "a.b.verein.example",
+      "other.example"
+    ],
+    "site_hosts": [
+      "verein.example",
+      "*.verein.example"
+    ]
+  },
+  "expect": {
+    "valid": true,
+    "result": {
+      "own": [
+        true,
+        true,
+        false,
+        false
+      ],
+      "websites": [
+        {
+          "hosts": [
+            "verein.example",
+            "*.verein.example"
+          ],
+          "id": "verein.example",
+          "label": "verein.example",
+          "protection": "protected",
+          "tracked": true
+        }
+      ]
+    }
+  }
+}

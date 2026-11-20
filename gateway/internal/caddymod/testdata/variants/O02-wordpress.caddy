@@ -1,0 +1,20 @@
+# unprotected: []
+# expect: pass
+http://a.example.test:18080 {
+	import schild
+	root * /var/www/wordpress
+	encode gzip
+	@disallowed {
+		path /xmlrpc.php
+		path *.sql
+		path /wp-content/uploads/*.php
+	}
+	rewrite @disallowed /index.php
+	php_fastcgi 127.0.0.1:9000
+	file_server
+	header {
+		Strict-Transport-Security "max-age=31536000"
+		X-Content-Type-Options nosniff
+		-Server
+	}
+}

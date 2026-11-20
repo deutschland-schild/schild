@@ -1,0 +1,21 @@
+{
+	admin off
+	http_port 19190
+	https_port 19143
+}
+
+127.0.0.1 {
+	schild
+	reverse_proxy 127.0.0.1:19101
+}
+
+[::1] {
+	schild
+	reverse_proxy 127.0.0.1:19101
+}
+
+[2001:DB8:0:0::1]:8443 {
+	schild
+	reverse_proxy 127.0.0.1:19101
+}
+

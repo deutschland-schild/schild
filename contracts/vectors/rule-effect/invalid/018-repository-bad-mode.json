@@ -1,0 +1,17 @@
+{
+  "contract": "rule-effect",
+  "description": "The mode is observe or autoblock.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"mode\":\"strict\",\"op\":\"repository\",\"state\":\"block\"}",
+  "input_decoded": {
+    "mode": "strict",
+    "op": "repository",
+    "state": "block"
+  },
+  "expect": {
+    "valid": false,
+    "error": "schema"
+  }
+}

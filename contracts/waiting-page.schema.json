@@ -1,0 +1,36 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://contracts.schild.invalid/v0/waiting-page.schema.json",
+  "title": "Waiting page decision input (v0.5, D37, MVP-23 step 1)",
+  "description": "Input of the waiting-page vectors: one fail-closed request as the gateway sees it (fail-closed reason, waiting_page.enabled, method, the request headers the decision reads, Host, the D36 website id it resolved to, the per-response jitter draw). The result is {answer, variant, language, retry_after, refresh, body, site_name, marker, problem_code} (marker and problem_code since the D37 amendment of 2026-10-29; contract/waitingpage.Decide, rules in waiting-page.md). Header values are the field values as received (a repeated header joined with \", \"); absent = not sent. Never sent anywhere.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["fail_closed", "enabled", "method", "headers", "host", "jitter_draw"],
+  "properties": {
+    "fail_closed": { "type": "string", "enum": ["waf_busy", "waf_timeout", "body_busy", "not_ready", "panic"] },
+    "enabled": { "type": "boolean" },
+    "method": { "type": "string", "pattern": "^[A-Z]{1,16}$" },
+    "headers": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "accept": { "$ref": "#/$defs/fieldValue" },
+        "accept_language": { "$ref": "#/$defs/fieldValue" },
+        "sec_fetch_dest": { "$ref": "#/$defs/fieldValue" },
+        "sec_fetch_mode": { "$ref": "#/$defs/fieldValue" },
+        "x_requested_with": { "$ref": "#/$defs/fieldValue" }
+      }
+    },
+    "host": { "type": "string", "maxLength": 300, "pattern": "^[!-~]*$" },
+    "website": {
+      "description": "D36 website id the request resolved to; absent = none.",
+      "type": "string",
+      "maxLength": 253,
+      "pattern": "^(_any|(_|[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?)(\\.(_|[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?))*)$"
+    },
+    "jitter_draw": { "type": "integer", "minimum": 0, "maximum": 4294967295 }
+  },
+  "$defs": {
+    "fieldValue": { "type": "string", "maxLength": 1024, "pattern": "^[\\t -~]*$" }
+  }
+}

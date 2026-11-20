@@ -1,0 +1,17 @@
+{
+  "contract": "website-visitor",
+  "description": "D36 amendment: a request without User-Agent matches no catalogue entry.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"bot_category\":\"search_engine\",\"outcome\":\"passed\",\"ua_class\":\"none\"}",
+  "input_decoded": {
+    "bot_category": "search_engine",
+    "outcome": "passed",
+    "ua_class": "none"
+  },
+  "expect": {
+    "valid": false,
+    "error": "schema"
+  }
+}

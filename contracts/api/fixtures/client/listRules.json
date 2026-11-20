@@ -1,0 +1,72 @@
+{
+  "items": [
+    {
+      "repository": "crs",
+      "id": "930120",
+      "msg": "OS File Access Attempt",
+      "version": "4.20.0",
+      "origin": "release",
+      "status": "active",
+      "effect": "block",
+      "hits_24h": 131,
+      "match_share_24h": 0.0027,
+      "paranoia_level": 1
+    },
+    {
+      "repository": "crowdsec",
+      "id": "62846312",
+      "name": "crowdsecurity/vpatch-CVE-2026-1207",
+      "msg": "crowdsec hub crowdsecurity/vpatch-CVE-2026-1207",
+      "version": "0.3",
+      "origin": "update",
+      "status": "settling",
+      "effect": "detect",
+      "limited_by": "settling",
+      "hits_24h": 4,
+      "match_share_24h": 8e-05,
+      "crowdsec": {
+        "name": "crowdsecurity/vpatch-CVE-2026-1207",
+        "version": "0.3",
+        "licence": "MIT",
+        "label": "Django - SQL Injection",
+        "description": "Detects SQL injection through the raster lookup of a GIS API.",
+        "cves": [
+          "CVE-2026-1207"
+        ],
+        "cwes": [
+          "CWE-89"
+        ],
+        "attack": [
+          "T1190"
+        ],
+        "first_seen": "2026-10-12T04:00:11Z",
+        "changed_at": "2026-11-06T07:31:18Z",
+        "settling_until": "2026-11-07T07:31:18Z"
+      }
+    },
+    {
+      "repository": "local",
+      "id": "10001",
+      "msg": "block the old admin path",
+      "version": "3f2a9c01be44",
+      "origin": "operator",
+      "status": "active",
+      "effect": "block",
+      "hits_24h": 2,
+      "match_share_24h": 4e-05
+    },
+    {
+      "repository": "crs",
+      "id": "942100",
+      "msg": "SQL Injection Attack Detected via libinjection",
+      "version": "4.20.0",
+      "origin": "release",
+      "status": "disabled",
+      "effect": "off",
+      "disabled_by": "config",
+      "hits_24h": 0,
+      "paranoia_level": 1
+    }
+  ],
+  "next_cursor": "o4"
+}

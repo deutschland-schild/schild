@@ -1,0 +1,31 @@
+{
+  "contract": "config/schild",
+  "description": "D39: the whole section.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"config_version\":0,\"mode\":\"observe\",\"node_name\":\"web-1\",\"rules\":{\"crowdsec\":{\"auto_update\":true,\"disabled_rules\":[\"crowdsecurity/vpatch-CVE-2026-1207\"],\"interval_s\":86400,\"pin\":\"1111111111111111111111111111111111111111\",\"settling_s\":172800,\"state\":\"block\"}},\"upstream\":{\"url\":\"http://app:80\"}}",
+  "input_decoded": {
+    "config_version": 0,
+    "mode": "observe",
+    "node_name": "web-1",
+    "rules": {
+      "crowdsec": {
+        "auto_update": true,
+        "disabled_rules": [
+          "crowdsecurity/vpatch-CVE-2026-1207"
+        ],
+        "interval_s": 86400,
+        "pin": "1111111111111111111111111111111111111111",
+        "settling_s": 172800,
+        "state": "block"
+      }
+    },
+    "upstream": {
+      "url": "http://app:80"
+    }
+  },
+  "expect": {
+    "valid": true
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "contract": "website-exception",
+  "description": "D36: braces only as {name} segments.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"id\":1000001,\"path\":\"/a/{n\",\"rule_id\":\"942100\",\"website\":{\"hosts\":[\"verein.example\"],\"id\":\"verein.example\"}}",
+  "input_decoded": {
+    "id": 1000001,
+    "path": "/a/{n",
+    "rule_id": "942100",
+    "website": {
+      "hosts": [
+        "verein.example"
+      ],
+      "id": "verein.example"
+    }
+  },
+  "expect": {
+    "valid": false,
+    "error": "schema"
+  }
+}

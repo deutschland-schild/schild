@@ -1,0 +1,9 @@
+# unprotected: []
+# expect: pass
+http://www.example.test:18080 {
+	redir http://example.test:18080{uri} permanent
+}
+http://example.test:18080 {
+	import schild
+	reverse_proxy 127.0.0.1:18081
+}

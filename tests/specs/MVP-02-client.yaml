@@ -1,0 +1,38 @@
+id: MVP-02
+title: "schild run: reverse proxy with WAF and local events"
+ships: true
+image: schild
+hypotheses: [M1]   # D72: M2, M4, M7 covered signals, remote rules and lab outages (lab later)
+refs: [K3, K7, H1, SEC-01, SEC-02, T02, T12, T16, T17, T19, T20, B01, B02, B07]
+depends_on: [MVP-01]
+contracts:
+  in:  [HTTP from the internet or an upstream proxy]
+  out: [contracts/events.schema.json]
+build:
+  base: Caddy + coraza-caddy + embedded OWASP CRS, Go, CGO_ENABLED=0
+  limits: { cpu: 1, mem: 256m }
+must:
+  - modes observe, review, autoblock; observe never blocks
+  - fail-open only on connection refused to the WAF process; on timeout answer 503, never pass the request
+  - hard body/parse limits with reject (SecRequestBodyLimitAction Reject)
+  - local events and dashboard keep full visitor IP and location in plaintext (E7); raw IPs truncated after 7 days by default, summaries kept longer
+  - country/ASN/net class from a bundled, signed geo database (DB-IP Lite or IPinfo Lite), updated with rule updates; no per-request lookups at third parties
+  - atomic rule swap without dropping requests
+  - test profile only in observe mode and absent from release builds
+  - sends nothing to labs or relays; config keys of the network (network, labs, relays, signals, site_key, ...) are refused as unknown (D72)
+  - one-minute way out documented and tested (take schild out of the path)
+measure:
+  - p50/p95/p99 overhead with and without schild at 50..2000 rps (B01)
+  - bypass count under timeout/ReDoS/nested JSON/oversized multipart corpus (K3)
+kill_if: "p95_overhead_ms > 5 at 500 rps OR bypass_count > 0"
+done: "make testlab-up && make eval SPEC=MVP-02"
+out_of_scope:
+  - dashboard UI
+  - OHTTP/Privacy Pass implementation
+  - network IP reputation (dropped)
+  - browser check
+  - egress
+  - schild-agent (MVP-11)
+  - "D72: lab later: signals only for local anomalies with the positive list (E4), sender auth and transport (site key, HTTPS, OHTTP)"
+  - "D72: lab later: remote rules (threshold signatures, version, expiry, SecLang subset), local cap of remote rules, emergency stop, min_independent_operators"
+  - "D72: lab later: network never in the request path (B02), egress capture vs positive list (T19), rule swap with 50/500 remote rules (B07)"

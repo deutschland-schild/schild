@@ -1,0 +1,17 @@
+# TEST ONLY: Linux container (schild:abend) for the server page text, evening measurement 2026-10-29 commit c54de1b
+config_version: 0
+profile: production
+mode: autoblock
+node_name: linux-1
+network:
+  enabled: false
+ingress:
+  caddyfile: /etc/schild/Caddyfile
+  storage: /var/lib/schild/caddy
+listen:
+  dashboard: "0.0.0.0:8788"
+  metrics: "127.0.0.1:9101"
+storage:
+  path: /var/lib/schild
+monitoring:
+  enabled: true

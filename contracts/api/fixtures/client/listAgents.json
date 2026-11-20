@@ -1,0 +1,75 @@
+{
+  "items": [
+    {
+      "id": "app-1",
+      "hostname": "app-1.example",
+      "label": "Shop (WordPress)",
+      "keyid": "app-1/agent/2026-10",
+      "fingerprint": "sha256:3b9f0c2e7a14d6853b9f0c2e7a14d6853b9f0c2e7a14d6853b9f0c2e7a14d685",
+      "status": "enrolled",
+      "source": "code",
+      "created_at": "2026-10-20T14:02:11Z",
+      "confirmed_at": "2026-10-20T14:03:40Z",
+      "revoked_at": null,
+      "last_report_at": "2026-10-26T11:57:00Z",
+      "silent": false
+    },
+    {
+      "id": "app-2",
+      "hostname": "app-2.example",
+      "label": "Tomcat",
+      "keyid": "app-2/agent/2026-10",
+      "fingerprint": "sha256:c41e8d7b20f9a356c41e8d7b20f9a356c41e8d7b20f9a356c41e8d7b20f9a356",
+      "status": "enrolled",
+      "source": "config",
+      "created_at": "2026-10-18T09:30:00Z",
+      "confirmed_at": "2026-10-18T09:30:00Z",
+      "revoked_at": null,
+      "last_report_at": "2026-10-24T03:12:00Z",
+      "silent": true
+    },
+    {
+      "id": "app-3",
+      "hostname": "app-3.example",
+      "label": "Laravel",
+      "keyid": "app-3/agent/2026-10",
+      "fingerprint": "sha256:5a0e6c3f81d2b9745a0e6c3f81d2b9745a0e6c3f81d2b9745a0e6c3f81d2b974",
+      "status": "enrolled",
+      "source": "code",
+      "created_at": "2026-10-26T10:05:12Z",
+      "confirmed_at": "2026-10-26T10:06:30Z",
+      "revoked_at": null,
+      "last_report_at": null,
+      "silent": false
+    },
+    {
+      "id": "app-4",
+      "hostname": "app-4.example",
+      "label": "Nextcloud",
+      "keyid": "app-4/agent/2026-10",
+      "fingerprint": "sha256:7d2a5f90e1b3c4687d2a5f90e1b3c4687d2a5f90e1b3c4687d2a5f90e1b3c468",
+      "status": "pending",
+      "source": "code",
+      "created_at": "2026-10-26T11:41:27Z",
+      "confirmed_at": null,
+      "revoked_at": null,
+      "last_report_at": null,
+      "silent": false
+    },
+    {
+      "id": "old-app",
+      "hostname": "old-app.example",
+      "label": null,
+      "keyid": "old-app/agent/2026-09",
+      "fingerprint": "sha256:e5096b1d38a72cf4e5096b1d38a72cf4e5096b1d38a72cf4e5096b1d38a72cf4",
+      "status": "revoked",
+      "source": "code",
+      "created_at": "2026-09-02T08:00:00Z",
+      "confirmed_at": "2026-09-02T08:01:00Z",
+      "revoked_at": "2026-10-10T16:20:00Z",
+      "last_report_at": "2026-10-10T03:00:00Z",
+      "silent": false
+    }
+  ],
+  "next_cursor": null
+}

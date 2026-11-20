@@ -1,0 +1,15 @@
+{
+  "contract": "agent-block",
+  "description": "D42: only create and lift.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"op\":\"extend\"}",
+  "input_decoded": {
+    "op": "extend"
+  },
+  "expect": {
+    "valid": false,
+    "error": "schema"
+  }
+}

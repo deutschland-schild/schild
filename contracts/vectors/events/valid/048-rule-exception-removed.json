@@ -1,0 +1,32 @@
+{
+  "contract": "events",
+  "description": "D54: an agent removed one.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"data\":{\"id\":1900000,\"path\":\"/livewire/update\",\"reason\":\"math text is blocked\",\"repository\":\"crs\",\"rules\":[\"933180\"],\"target\":\"ARGS:json.components.*.updates.body\",\"token_id\":\"tok_000000000001\",\"token_label\":\"Local agent\",\"website\":\"app.example.org\"},\"datacontenttype\":\"application/json\",\"id\":\"766e64ab-b56c-4151-a003-ec04aeb6e85a\",\"source\":\"schild://web-1\",\"specversion\":\"1.0\",\"time\":\"2026-10-26T11:59:58.123Z\",\"type\":\"schild.rule.exception_removed.v1\"}",
+  "input_decoded": {
+    "data": {
+      "id": 1900000,
+      "path": "/livewire/update",
+      "reason": "math text is blocked",
+      "repository": "crs",
+      "rules": [
+        "933180"
+      ],
+      "target": "ARGS:json.components.*.updates.body",
+      "token_id": "tok_000000000001",
+      "token_label": "Local agent",
+      "website": "app.example.org"
+    },
+    "datacontenttype": "application/json",
+    "id": "766e64ab-b56c-4151-a003-ec04aeb6e85a",
+    "source": "schild://web-1",
+    "specversion": "1.0",
+    "time": "2026-10-26T11:59:58.123Z",
+    "type": "schild.rule.exception_removed.v1"
+  },
+  "expect": {
+    "valid": true
+  }
+}

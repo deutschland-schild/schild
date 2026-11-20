@@ -1,0 +1,46 @@
+{
+  "contract": "website-derive",
+  "description": "D36: one host in a schild block and in a listed block without schild: one website, protection partial.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"blocks\":[{\"addresses\":[\"app.example.org\"],\"proxies\":true,\"schild\":true},{\"addresses\":[\"http://app.example.org:8080\"],\"proxies\":true,\"schild\":false}],\"mode\":\"ingress\",\"unprotected_sites\":[\"*.example.org\"]}",
+  "input_decoded": {
+    "blocks": [
+      {
+        "addresses": [
+          "app.example.org"
+        ],
+        "proxies": true,
+        "schild": true
+      },
+      {
+        "addresses": [
+          "http://app.example.org:8080"
+        ],
+        "proxies": true,
+        "schild": false
+      }
+    ],
+    "mode": "ingress",
+    "unprotected_sites": [
+      "*.example.org"
+    ]
+  },
+  "expect": {
+    "valid": true,
+    "result": {
+      "websites": [
+        {
+          "hosts": [
+            "app.example.org"
+          ],
+          "id": "app.example.org",
+          "label": "app.example.org",
+          "protection": "partial",
+          "tracked": true
+        }
+      ]
+    }
+  }
+}

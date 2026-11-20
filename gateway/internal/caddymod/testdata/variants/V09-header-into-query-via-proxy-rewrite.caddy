@@ -1,0 +1,9 @@
+# unprotected: []
+# expect: pass
+# schild first; reverse_proxy's own rewrite builds the upstream query from a header CRS does not read.
+http://a.example.test:26080 {
+	import schild
+	reverse_proxy 127.0.0.1:26082 {
+		rewrite /p?q={http.request.header.X-Q}
+	}
+}

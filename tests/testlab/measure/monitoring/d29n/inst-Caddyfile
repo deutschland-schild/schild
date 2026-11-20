@@ -1,0 +1,15 @@
+{
+	admin off
+	http_port 20200
+	https_port 20243
+	auto_https off
+}
+
+(schild) {
+	schild
+}
+
+http://shop.test:20200 {
+	import schild
+	reverse_proxy 127.0.0.1:20299
+}

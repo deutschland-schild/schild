@@ -1,0 +1,39 @@
+{
+  "contract": "bot-catalogue",
+  "description": "v0.5 MVP-22: one bot the operator publishes nothing for, no range sets.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"automation_tokens\":[\"bot\"],\"bots\":[{\"category\":\"feed_reader\",\"id\":\"feedfetcher\",\"name\":\"Example Feed\",\"operator\":\"Example\",\"ua_match\":[\"ExampleFeed\"],\"verify\":{}}],\"generated_at\":\"2026-10-26T00:00:00Z\",\"ranges\":[],\"schema\":\"schild.bot_catalogue/0.1\",\"sources\":[{\"id\":\"schild\",\"license\":\"Apache-2.0\",\"url\":\"https://schild.example/bots\"}],\"version\":\"2026-10-26.2\"}",
+  "input_decoded": {
+    "automation_tokens": [
+      "bot"
+    ],
+    "bots": [
+      {
+        "category": "feed_reader",
+        "id": "feedfetcher",
+        "name": "Example Feed",
+        "operator": "Example",
+        "ua_match": [
+          "ExampleFeed"
+        ],
+        "verify": {}
+      }
+    ],
+    "generated_at": "2026-10-26T00:00:00Z",
+    "ranges": [],
+    "schema": "schild.bot_catalogue/0.1",
+    "sources": [
+      {
+        "id": "schild",
+        "license": "Apache-2.0",
+        "url": "https://schild.example/bots"
+      }
+    ],
+    "version": "2026-10-26.2"
+  },
+  "expect": {
+    "valid": true
+  }
+}

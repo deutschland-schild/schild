@@ -1,0 +1,36 @@
+/*
+ * Brand tokens for the Schild dashboards.
+ * Derived from docs/brand/tokens.css (single source of truth for the brand).
+ * Values are copied, not imported, so dashboard builds standalone; test/tokens.test.ts
+ * fails if they drift from the brand file.
+ */
+@theme {
+  --color-signal: #0F873B;
+  --color-signal-hover: #0B6E30;
+  --color-signal-deep: #0B6E30;
+  --color-signal-soft: #86EFAC;
+  --color-signal-tint: #ECFDF5;
+  --color-on-signal: #FFFFFF;
+
+  --color-ink: #0A1A33;
+  --color-ink-800: #13284A;
+  --color-ink-700: #1D3660;
+  --color-ink-muted: #9FB3CC;
+
+  --color-paper: #FAF8F5;
+  --color-mist: #EDF2F8;
+  --color-mist-line: #D8E2EE;
+  --color-sand: #F1ECE4;
+  --color-line: #E3DDD3;
+  --color-slate: #5B6B82;
+
+  --color-link: #1663C7;
+  --color-sky: #3D9BF5;
+  --color-success: #0F873B;
+  --color-warning: #B45309;
+  --color-danger: #B91C1C;
+
+  /* Dashboards use Inter for display too (calmer than Archivo in dense UI). Fonts ship locally via @fontsource. */
+  --font-sans: 'Inter Variable', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --font-mono: 'JetBrains Mono Variable', ui-monospace, SFMono-Regular, Menlo, monospace;
+}

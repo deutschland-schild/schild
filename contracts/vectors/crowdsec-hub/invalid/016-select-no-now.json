@@ -1,0 +1,24 @@
+{
+  "contract": "crowdsec-hub",
+  "description": "D39 amendment: the date check needs the clock.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"image\":{\"present\":false,\"valid\":false},\"op\":\"select\",\"state\":\"detect\",\"stored\":{\"present\":false,\"valid\":false}}",
+  "input_decoded": {
+    "image": {
+      "present": false,
+      "valid": false
+    },
+    "op": "select",
+    "state": "detect",
+    "stored": {
+      "present": false,
+      "valid": false
+    }
+  },
+  "expect": {
+    "valid": false,
+    "error": "schema"
+  }
+}

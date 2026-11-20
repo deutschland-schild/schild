@@ -1,0 +1,30 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://contracts.schild.invalid/v0/website-exception.schema.json",
+  "title": "Website exception snippet input (v0.5, D36)",
+  "description": "Input of the exception snippet a possible false positive (MVP-22 listFalsePositiveHints) offers for rules.d, used by the website-exception vectors: the website of the hint (id and hosts as listWebsites returns them), the rule, the page (exact path or path template with {name} segments), the optional matched variable and a fresh local rule id. The result is {scope, snippet} (contract/websites.ExceptionSnippet): scope website with a Host condition heading a chain, or scope gateway for a website without hosts. The text is fixed byte for byte. Never applied by schild (D32).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["website", "rule_id", "path", "id"],
+  "properties": {
+    "website": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "hosts"],
+      "properties": {
+        "id": { "type": "string", "maxLength": 253, "pattern": "^(_any|(_|[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?)(\\.(_|[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?))*)$" },
+        "hosts": {
+          "description": "Normalised hosts (contract/websites Website.hosts): LDH labels or * labels, IPv4, or an IPv6 literal without brackets.",
+          "type": "array",
+          "maxItems": 100,
+          "uniqueItems": true,
+          "items": { "type": "string", "minLength": 1, "maxLength": 253, "pattern": "^([a-z0-9*.-]+|[0-9a-f:.]+)$" }
+        }
+      }
+    },
+    "rule_id": { "type": "string", "pattern": "^[1-9][0-9]{0,8}$" },
+    "path": { "description": "Starts with /; no quote, backslash, space or control character; braces only as {name} segments (checked by the renderer).", "type": "string", "minLength": 1, "maxLength": 512, "pattern": "^/[^\"\\\\ \\x00-\\x1F\\x7F]*$" },
+    "target": { "type": "string", "maxLength": 256, "pattern": "^[A-Z_]+(:[A-Za-z0-9_.\\-\\[\\]]{1,200})?$" },
+    "id": { "description": "Fresh local rule id.", "type": "integer", "minimum": 1, "maximum": 99999999 }
+  }
+}

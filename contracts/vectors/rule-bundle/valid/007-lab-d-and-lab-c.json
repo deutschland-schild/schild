@@ -1,0 +1,75 @@
+{
+  "contract": "rule-bundle",
+  "description": "lab-d holds a rules-only key.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z",
+    "trust": [
+      "site-a",
+      "site-b",
+      "site-c",
+      "lab-a",
+      "lab-a2",
+      "lab-b",
+      "lab-c",
+      "lab-d"
+    ],
+    "threshold": 2,
+    "channel": "schild-main"
+  },
+  "input_raw": "{\"payloadType\":\"application/vnd.schild.rule-bundle.v0+json\",\"payload\":\"eyJidW5kbGVfaWQiOiJzY2hpbGQtbWFpbiIsImV4cGlyZXMiOiIyMDI2LTExLTA5VDEyOjAwOjAwWiIsImlzc3VlZF9hdCI6IjIwMjYtMTAtMjZUMTE6MDA6MDBaIiwicnVsZXMiOlt7ImNsYXNzIjoiaGV1cmlzdGljIiwiZXZpZGVuY2UiOnsiaHVtYW5fYXBwcm92YWxfb3JncyI6MSwibWF4X2lzc3Vlcl9zaGFyZSI6MC4zNCwicmVwcm9kdWNlZF9vcGVyYXRvcnMiOjAsInNlbnNvcl9vcGVyYXRvcnMiOjIsInRpcF9pc3N1ZXJzIjozfSwiZmVlZGJhY2tfcG9saWN5IjoiYXV0b19kb3duZ3JhZGUiLCJtYXhfYWN0aW9uIjoiY2hhbGxlbmdlIiwibWF4X2FjdGlvbl91bnRpbCI6IjIwMjYtMTEtMDFUMTI6MDA6MDBaIiwibWF4X21hdGNoX3NoYXJlIjowLjAwNSwicnVsZV9pZCI6InNjaGlsZC0yMDI2LTA0MTQiLCJzZWNsYW5nIjoiU2VjUnVsZSBSRVFVRVNUX01FVEhPRCBcIkBzdHJlcSBQT1NUXCIgXCJpZDo3NzAwMDA0LHBoYXNlOjIsZGVueSxzdGF0dXM6NDI5LHNldmVyaXR5OldBUk5JTkcsbXNnOidsb2dpbiBidXJzdCcsY2hhaW5cIlxuU2VjUnVsZSBSRVFVRVNUX0ZJTEVOQU1FIFwiQGVuZHNXaXRoIC93cC1sb2dpbi5waHBcIiBcInQ6bm9uZSxjaGFpblwiXG5TZWNSdWxlICZBUkdTX1BPU1QgXCJAZ3QgMjBcIiBcInQ6bm9uZVwiIiwic3RhZ2UiOiJjYW5hcnkiLCJ0YXJnZXQiOnsic29mdHdhcmUiOiJ3b3JkcHJlc3MiLCJ2ZXJzaW9ucyI6Ij49Ni4wIn19LHsiY2xhc3MiOiJiZWhhdmlvcmFsIiwiZXZpZGVuY2UiOnsiaHVtYW5fYXBwcm92YWxfb3JncyI6MCwibWF4X2lzc3Vlcl9zaGFyZSI6MC4yLCJyZXByb2R1Y2VkX29wZXJhdG9ycyI6MCwic2Vuc29yX29wZXJhdG9ycyI6MCwidGlwX2lzc3VlcnMiOjV9LCJmZWVkYmFja19wb2xpY3kiOiJhdXRvX2Rvd25ncmFkZSIsIm1heF9hY3Rpb24iOiJvYnNlcnZlIiwibWF4X21hdGNoX3NoYXJlIjowLjAwMSwicnVsZV9pZCI6InNjaGlsZC0yMDI2LTA0MTUiLCJzZWNsYW5nIjoiU2VjUnVsZSBSRVFVRVNUX0hFQURFUlM6VXNlci1BZ2VudCBcIkBwbSBzcWxtYXAgbmlrdG8gbnVjbGVpXCIgXCJpZDo3NzAwMDA1LHBoYXNlOjEscGFzcyxsb2csc2V2ZXJpdHk6Tk9USUNFLG1zZzonc2Nhbm5lciB1c2VyIGFnZW50J1wiIiwic3RhZ2UiOiJzaGFkb3ciLCJ0YXJnZXQiOnsic29mdHdhcmUiOiJ3b3JkcHJlc3MiLCJ2ZXJzaW9ucyI6IioifX1dLCJzY2hlbWEiOiJzY2hpbGQucnVsZS1idW5kbGUvMC4xIiwidmVyc2lvbiI6NDV9\",\"signatures\":[{\"keyid\":\"test-lab-d\",\"sig\":\"tCTS9r+hAg5np9Pv6Z9iDKdlJ/s/gCIANjJmuF6iHVCb8/dHqJW9dcStOK64WF28vLSsxYj4EteViKpP/IjRBA==\"},{\"keyid\":\"test-lab-c\",\"sig\":\"O/avMmmyueeh1Q2YoC1t0zilVVED60cwwdU7NcqeklJtsCi7pPnZ7Qudxl2ITlQ/28IXLLoObnpAWObq6f1ZCA==\"}]}",
+  "input_decoded": {
+    "payload": {
+      "bundle_id": "schild-main",
+      "expires": "2026-11-09T12:00:00Z",
+      "issued_at": "2026-10-26T11:00:00Z",
+      "rules": [
+        {
+          "class": "heuristic",
+          "evidence": {
+            "human_approval_orgs": 1,
+            "max_issuer_share": 0.34,
+            "reproduced_operators": 0,
+            "sensor_operators": 2,
+            "tip_issuers": 3
+          },
+          "feedback_policy": "auto_downgrade",
+          "max_action": "challenge",
+          "max_action_until": "2026-11-01T12:00:00Z",
+          "max_match_share": 0.005,
+          "rule_id": "schild-2026-0414",
+          "seclang": "SecRule REQUEST_METHOD \"@streq POST\" \"id:7700004,phase:2,deny,status:429,severity:WARNING,msg:'login burst',chain\"\nSecRule REQUEST_FILENAME \"@endsWith /wp-login.php\" \"t:none,chain\"\nSecRule &ARGS_POST \"@gt 20\" \"t:none\"",
+          "stage": "canary",
+          "target": {
+            "software": "wordpress",
+            "versions": ">=6.0"
+          }
+        },
+        {
+          "class": "behavioral",
+          "evidence": {
+            "human_approval_orgs": 0,
+            "max_issuer_share": 0.2,
+            "reproduced_operators": 0,
+            "sensor_operators": 0,
+            "tip_issuers": 5
+          },
+          "feedback_policy": "auto_downgrade",
+          "max_action": "observe",
+          "max_match_share": 0.001,
+          "rule_id": "schild-2026-0415",
+          "seclang": "SecRule REQUEST_HEADERS:User-Agent \"@pm sqlmap nikto nuclei\" \"id:7700005,phase:1,pass,log,severity:NOTICE,msg:'scanner user agent'\"",
+          "stage": "shadow",
+          "target": {
+            "software": "wordpress",
+            "versions": "*"
+          }
+        }
+      ],
+      "schema": "schild.rule-bundle/0.1",
+      "version": 45
+    }
+  },
+  "expect": {
+    "valid": true
+  }
+}

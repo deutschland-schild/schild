@@ -1,0 +1,38 @@
+{
+  "contract": "website-derive",
+  "description": "D36: scheme, port and path do not matter; http and https addresses of one host are one host.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"blocks\":[{\"addresses\":[\"http://example.org\",\"https://example.org:443\",\"example.org:8443/api/*\"],\"proxies\":true,\"schild\":true}],\"mode\":\"ingress\"}",
+  "input_decoded": {
+    "blocks": [
+      {
+        "addresses": [
+          "http://example.org",
+          "https://example.org:443",
+          "example.org:8443/api/*"
+        ],
+        "proxies": true,
+        "schild": true
+      }
+    ],
+    "mode": "ingress"
+  },
+  "expect": {
+    "valid": true,
+    "result": {
+      "websites": [
+        {
+          "hosts": [
+            "example.org"
+          ],
+          "id": "example.org",
+          "label": "example.org",
+          "protection": "protected",
+          "tracked": true
+        }
+      ]
+    }
+  }
+}

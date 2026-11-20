@@ -1,0 +1,140 @@
+schild (Schild Gateway)
+
+Copyright (c) 2026 Martin Brüggemann and the Deutschland-Schild contributors
+
+schild and schild-agent are licensed under the MIT License; the full text is
+at the end of this file and in LICENSE at the root of the source repository
+(https://github.com/deutschland-schild/schild).
+
+------------------------------------------------------------------------------
+
+This product includes software of other projects, linked into the binaries
+schild and schild-agent, among them:
+
+- Caddy (https://github.com/caddyserver/caddy), Apache License 2.0
+- Coraza WAF and coraza-caddy (https://github.com/corazawaf), Apache License 2.0
+- OWASP CRS, the Core Rule Set embedded through coraza-coreruleset
+  (https://github.com/coreruleset/coreruleset), Apache License 2.0,
+  Copyright the OWASP CRS project
+- modernc.org/sqlite (https://gitlab.com/cznic/sqlite), BSD 3-Clause, with
+  SQLite in the public domain
+- github.com/go-sql-driver/mysql, Mozilla Public License 2.0, unmodified; its
+  source is at https://github.com/go-sql-driver/mysql
+- github.com/google/nftables (https://github.com/google/nftables), Apache
+  License 2.0, with github.com/mdlayher/netlink, MIT License
+
+The license text of every linked Go module and every third-party package
+bundled into the embedded dashboard (including the Inter and JetBrains Mono
+fonts under the SIL Open Font License 1.1), with its version, is in
+THIRD_PARTY_LICENSES next to this file in the image
+(/usr/share/doc/schild/THIRD_PARTY_LICENSES). The image also carries
+IP geolocation data by DB-IP (https://db-ip.com) under CC BY 4.0, named in
+/usr/share/schild/geo/ATTRIBUTION.txt.
+
+------------------------------------------------------------------------------
+
+This product contains default thresholds for its behaviour scenarios
+(gateway/internal/behaviour, spec MVP-17: login_bruteforce, path_probing,
+aggressive_crawl) that were adapted from scenarios of the CrowdSec Hub
+(https://github.com/crowdsecurity/hub), namely crowdsecurity/http-bf-wordpress_bf,
+crowdsecurity/http-generic-bf, crowdsecurity/http-probing and
+crowdsecurity/http-crawl-non_statics. It also contains the virtual patching
+rules of the CrowdSec Hub (collection crowdsecurity/appsec-virtual-patching,
+spec MVP-26): a pinned snapshot in gateway/internal/hub/snapshot.json, whose
+commit is recorded there and in gateway/internal/hub/snapshot.NOTICE, and at
+runtime the rules of the public hub index. No CrowdSec software, scenario file,
+parser or IP data is included or used at runtime, the CrowdSec engine does not
+run, and nothing is sent to CrowdSec beyond the request for the public file.
+The CrowdSec Hub is licensed under the MIT License:
+
+MIT License
+
+Copyright (c) 2025 CrowdSecurity
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+------------------------------------------------------------------------------
+
+This product contains a bot catalogue (gateway/internal/bots/catalogue.json,
+spec MVP-22) whose AI crawler entries (names, operators, functions) are
+derived from robots.json of the ai.robots.txt project
+(https://github.com/ai-robots-txt/ai.robots.txt). ai.robots.txt is licensed
+under the MIT License:
+
+MIT License
+
+Copyright (c) 2024 ai.robots.txt
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+The address ranges in the same file are snapshots of the lists the bot
+operators publish (Google, Microsoft, OpenAI, Perplexity, Apple, DuckDuckGo,
+Common Crawl, Ahrefs, Mistral AI, Mojeek, UptimeRobot, Pingdom); the URL and
+the fetch date of each list are recorded in the catalogue.
+
+------------------------------------------------------------------------------
+
+This product contains an end-of-life table (gateway/internal/hostcheck/eol.json,
+spec MVP-11) whose dates were checked against the API of endoflife.date
+(https://github.com/endoflife-date/endoflife.date); the source URL of each
+product is recorded in the table. endoflife.date is licensed under the MIT
+License, Copyright 2020 endoflife.date contributors (same terms as the MIT
+License texts above).
+
+------------------------------------------------------------------------------
+
+License of schild and schild-agent:
+
+MIT License
+
+Copyright (c) 2026 Martin Brüggemann and the Deutschland-Schild contributors
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.

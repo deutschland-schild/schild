@@ -1,0 +1,9 @@
+# unprotected: []
+# expect: refuse
+# php_fastcgi (index rewrite + proxy) in a route before schild.
+http://a.example.test:26080 {
+	route {
+		php_fastcgi 127.0.0.1:26083
+		schild
+	}
+}

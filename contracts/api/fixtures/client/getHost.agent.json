@@ -1,0 +1,291 @@
+{
+  "host": {
+    "id": "app-1",
+    "hostname": "app-1.example",
+    "role": "agent",
+    "agent_id": "app-1",
+    "status": "findings",
+    "silent": false,
+    "last_report_at": "2026-10-26T11:57:00Z",
+    "received_at": "2026-10-26T11:57:40Z",
+    "interval_minutes": 1440,
+    "duration_ms": 4210,
+    "counts": {
+      "critical": 0,
+      "high": 1,
+      "medium": 2,
+      "low": 1,
+      "info": 0
+    },
+    "unreadable": 2,
+    "os": {
+      "name": "Ubuntu 24.04.1 LTS",
+      "eol": "2029-05-31"
+    }
+  },
+  "report": {
+    "findings": [
+      {
+        "area": "distribution",
+        "evidence": {
+          "date": "2029-05-31",
+          "source": "eol_table"
+        },
+        "explanation": "Sicherheitsupdates gibt es bis 31.05.2029.",
+        "fix_command": null,
+        "id": "distribution.eol",
+        "severity": "info",
+        "status": "ok",
+        "title": "Ubuntu 24.04 wird unterstützt"
+      },
+      {
+        "area": "updates",
+        "evidence": {
+          "count": 1,
+          "packages": [
+            "php8.3-fpm"
+          ],
+          "source": "apt"
+        },
+        "explanation": "Für PHP gibt es ein Sicherheitsupdate.",
+        "fix_command": "sudo apt-get update && sudo apt-get upgrade",
+        "id": "updates.security_pending",
+        "severity": "medium",
+        "status": "finding",
+        "title": "1 Sicherheitsupdate wartet"
+      },
+      {
+        "area": "updates",
+        "evidence": {
+          "enabled": false,
+          "source": "unattended_upgrades"
+        },
+        "explanation": "Ohne sie hängt jedes Update davon ab, dass jemand daran denkt.",
+        "fix_command": "sudo dpkg-reconfigure -plow unattended-upgrades",
+        "id": "updates.automatic",
+        "severity": "low",
+        "status": "finding",
+        "title": "Automatische Sicherheitsupdates sind aus"
+      },
+      {
+        "area": "ports",
+        "evidence": {
+          "address": "198.51.100.20",
+          "port": 3306,
+          "process": "mysqld",
+          "protocol": "tcp",
+          "source": "ss"
+        },
+        "explanation": "Die Datenbank lauscht auf allen Adressen. Sie gehört nur an localhost oder ins interne Netz.",
+        "fix_command": "sudo ufw deny 3306/tcp",
+        "id": "ports.public_service",
+        "severity": "high",
+        "status": "finding",
+        "subject": "tcp/3306",
+        "title": "MySQL ist aus dem Netz erreichbar"
+      },
+      {
+        "area": "firewall",
+        "evidence": {
+          "source": "nft"
+        },
+        "explanation": "Der Agent läuft ohne Root und darf die nftables-Regeln nicht lesen.",
+        "fix_command": null,
+        "id": "firewall.active",
+        "severity": "info",
+        "status": "unreadable",
+        "title": "Firewall nicht lesbar",
+        "unreadable": {
+          "needs": "CAP_NET_ADMIN",
+          "reason": "permission_denied"
+        }
+      },
+      {
+        "area": "ssh",
+        "evidence": {
+          "path": "/etc/ssh/sshd_config",
+          "setting": "PasswordAuthentication",
+          "source": "sshd_config",
+          "value": "no"
+        },
+        "explanation": "Passwort-Anmeldung ist aus.",
+        "fix_command": null,
+        "id": "ssh.password_authentication",
+        "severity": "info",
+        "status": "ok",
+        "title": "SSH nur mit Schlüssel"
+      },
+      {
+        "area": "ssh",
+        "evidence": {
+          "source": "journal"
+        },
+        "explanation": "Für das Journal braucht der Agent die Gruppe systemd-journal.",
+        "fix_command": null,
+        "id": "ssh.failed_logins",
+        "severity": "info",
+        "status": "unreadable",
+        "title": "Anmeldeversuche nicht lesbar",
+        "unreadable": {
+          "needs": "group:systemd-journal",
+          "reason": "permission_denied"
+        }
+      },
+      {
+        "area": "software",
+        "evidence": {
+          "installed_version": "6.4.3",
+          "path": "/var/www/shop",
+          "source": "app_path"
+        },
+        "explanation": "Für diese Version gibt es keine Sicherheitsupdates mehr. Aktualisiere im WordPress-Backend oder mit WP-CLI.",
+        "fix_command": "sudo -u www-data wp core update --path=/var/www/shop",
+        "id": "software.app_outdated",
+        "severity": "medium",
+        "status": "finding",
+        "subject": "wordpress",
+        "title": "WordPress 6.4.3 ist veraltet"
+      }
+    ],
+    "host": {
+      "agent_key_id": "test-agent-a",
+      "hostname": "app-1.example",
+      "os": {
+        "arch": "x86_64",
+        "eol": "2029-05-31",
+        "extended_support_until": "2034-04-25",
+        "id": "ubuntu",
+        "kernel": "6.8.0-45-generic",
+        "name": "Ubuntu 24.04.1 LTS",
+        "version_id": "24.04"
+      },
+      "role": "agent"
+    },
+    "inventory": [
+      {
+        "eol": "2027-12-31",
+        "kind": "runtime",
+        "name": "php",
+        "source": "dpkg",
+        "version": "8.3.6-0ubuntu0.24.04.2"
+      },
+      {
+        "eol": null,
+        "kind": "server",
+        "name": "nginx",
+        "source": "dpkg",
+        "version": "1.24.0-2ubuntu7.1"
+      },
+      {
+        "eol": "2026-04-30",
+        "kind": "database",
+        "name": "mysql-server",
+        "source": "dpkg",
+        "version": "8.0.39-0ubuntu0.24.04.2"
+      },
+      {
+        "eol": null,
+        "kind": "app",
+        "name": "wordpress",
+        "path": "/var/www/shop",
+        "source": "app_path",
+        "version": "6.4.3"
+      },
+      {
+        "eol": null,
+        "kind": "app",
+        "name": "contact-form-7",
+        "parent": "wordpress",
+        "path": "/var/www/shop/wp-content/plugins/contact-form-7",
+        "source": "app_path",
+        "version": "5.9.3"
+      }
+    ],
+    "report_id": "7e68f0cd-353d-4c7c-a086-018528dc18a7",
+    "run": {
+      "as_root": false,
+      "duration_ms": 4210,
+      "eol_table": "2026-10-01",
+      "schild_version": "0.3.0",
+      "started_at": "2026-10-26T11:57:00Z"
+    },
+    "schema": "schild.host_report/0.1"
+  },
+  "history": [
+    {
+      "report_id": "7e68f0cd-353d-4c7c-a086-018528dc18a7",
+      "started_at": "2026-10-26T11:57:00Z",
+      "received_at": "2026-10-26T11:57:40Z",
+      "counts": {
+        "critical": 0,
+        "high": 1,
+        "medium": 2,
+        "low": 1,
+        "info": 0
+      }
+    }
+  ],
+  "last_rejected": {
+    "at": "2026-10-26T09:14:51Z",
+    "code": "expired",
+    "detail": "issued 2026-10-26T09:08:30Z is older than 5m0s"
+  },
+  "annotations": [
+    {
+      "id": "distribution.eol",
+      "subject": null,
+      "title": "Supportende der Distribution",
+      "explanation": "Der Check vergleicht die Version der Distribution mit der mitgelieferten Liste der Supportenden. Nach dem Supportende kommen keine Sicherheitsupdates mehr.",
+      "fix_verified": false
+    },
+    {
+      "id": "updates.security_pending",
+      "subject": null,
+      "title": "Ausstehende Sicherheitsupdates",
+      "explanation": "Der Check liest aus dem vorhandenen Paket-Cache, ob für installierte Pakete Sicherheitskorrekturen bereitstehen. Bis sie eingespielt sind, bleiben bekannte Lücken offen.",
+      "fix_verified": false
+    },
+    {
+      "id": "updates.automatic",
+      "subject": null,
+      "title": "Automatische Updates",
+      "explanation": "Der Check prüft, ob Sicherheitsupdates von selbst eingespielt werden (unattended-upgrades, dnf-automatic).",
+      "fix_verified": false
+    },
+    {
+      "id": "ports.public_service",
+      "subject": "tcp/3306",
+      "title": "Dienst von außen erreichbar",
+      "explanation": "Der Check listet Dienste, die auf einer Netzwerkadresse statt nur lokal lauschen. Was niemand von außen braucht, gehört an localhost oder hinter die Firewall.",
+      "fix_verified": true
+    },
+    {
+      "id": "firewall.active",
+      "subject": null,
+      "title": "Firewall",
+      "explanation": "Der Check prüft, ob eine Firewall eingehende Verbindungen filtert (ufw, firewalld oder eigene Regeln).",
+      "fix_verified": false
+    },
+    {
+      "id": "ssh.password_authentication",
+      "subject": null,
+      "title": "SSH-Anmeldung mit Passwort",
+      "explanation": "Der Check prüft, ob sich jemand per SSH mit einem Passwort anmelden kann. Schlüssel sind gegen Passwort-Raten sicher.",
+      "fix_verified": false
+    },
+    {
+      "id": "ssh.failed_logins",
+      "subject": null,
+      "title": "Fehlgeschlagene SSH-Anmeldungen",
+      "explanation": "Der Check zählt fehlgeschlagene SSH-Anmeldungen der letzten 24 Stunden (nur die Anzahl).",
+      "fix_verified": false
+    },
+    {
+      "id": "software.app_outdated",
+      "subject": "wordpress",
+      "title": "Anwendung",
+      "explanation": "Der Check liest die Version erkannter Anwendungen (WordPress, TYPO3, Laravel, Nextcloud) unter den angegebenen Pfaden.",
+      "fix_verified": false
+    }
+  ]
+}

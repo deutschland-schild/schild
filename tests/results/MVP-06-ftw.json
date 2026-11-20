@@ -1,0 +1,106 @@
+{
+  "results_version": 0,
+  "spec": "MVP-06",
+  "run_id": "MVP-06-ftw-t1-20261026",
+  "started_at": "2026-10-26T20:55:10Z",
+  "finished_at": "2026-10-26T20:55:18Z",
+  "seed": 42,
+  "profile": "t1",
+  "git_rev": "1af9fe8-dirty",
+  "host": {
+    "os": "darwin",
+    "arch": "arm64",
+    "cpus": 12,
+    "mem_mb": 65536
+  },
+  "images": [
+    {
+      "name": "schild:mvp",
+      "digest": "sha256:8603b52304b0d0e1185e638fed914c268db540db8d67ae55f453a1a7ec4c64b2"
+    },
+    {
+      "name": "schild-lab:mvp",
+      "digest": "sha256:19e13b072c775801871264df22ac557df40a7c72d517d339ceaa26f3d6e96dbd"
+    },
+    {
+      "name": "schild-relay:mvp",
+      "digest": "sha256:88317f59f0715aedd526d62ad9cc6ec971a68b3865adb60360d8bb26a0f7f180"
+    },
+    {
+      "name": "schild-testlab:mvp",
+      "digest": "sha256:a82cbc64ebaa1db0ce7109b51ca8de7a1b3d85b72b805899999839db3e06fb20"
+    },
+    {
+      "name": "ghcr.io/coreruleset/go-ftw",
+      "digest": "sha256:99e5d772dc0292a1685b23cff2ba40463db71ab96ebf98aa9cf517b641300254"
+    }
+  ],
+  "scenarios": [
+    "T03"
+  ],
+  "metrics": [
+    {
+      "name": "ftw_tests_run",
+      "value": 16,
+      "unit": "count"
+    },
+    {
+      "name": "ftw_tests_passed",
+      "value": 16,
+      "unit": "count"
+    },
+    {
+      "name": "ftw_tests_failed",
+      "value": 0,
+      "unit": "count"
+    },
+    {
+      "name": "ftw_tests_skipped",
+      "value": 0,
+      "unit": "count"
+    },
+    {
+      "name": "ftw_attacks_blocked",
+      "value": 11,
+      "unit": "count",
+      "labels": {
+        "site": "shop",
+        "mode": "autoblock"
+      },
+      "samples": 11
+    },
+    {
+      "name": "ftw_negatives_passed",
+      "value": 5,
+      "unit": "count",
+      "labels": {
+        "site": "shop",
+        "mode": "autoblock"
+      },
+      "samples": 5
+    },
+    {
+      "name": "ftw_control_attacks_passed",
+      "value": 11,
+      "unit": "count",
+      "labels": {
+        "site": "api",
+        "mode": "observe"
+      },
+      "samples": 11
+    }
+  ],
+  "kill_criteria": [
+    {
+      "expr": "attack-ftw runs zero tests, or a corpus test fails against the autoblock shop",
+      "hit": false,
+      "observed": "go-ftw 1.3.0 (cloud mode) ran 16 tests: 11/11 attacks answered 403, 5/5 negatives passed, 0 failed, 0 skipped. Control run of the same corpus against the observe-mode api site: the 11 attacks passed (observe never blocks) and the 5 negatives passed, so the 403s come from schild's block."
+    }
+  ],
+  "verdict": "pass",
+  "notes": "Fix-owner rerun of the go-ftw CRS regression subset (finding: testlab/traffic/compose/ftw held only a README, so attack-ftw ran zero tests). The corpus is the lab's own (7 attack files: 942100, 941100, 930100, 930120, 932160, 913100, 944150; negative.yaml under 949110), not the upstream CRS corpus: a small regression check, not a coverage figure (GoTestWAF stays the coverage data point). make traffic-ftw renders it with a signed ground-truth label per request; the following t1 smoke evaluator saw unlabelled=0 legit_blocks=0 (a first, unlabelled run had produced unlabelled=43 legit_blocks=22 there, which is why the labels were added). Report: results/runs/ftw/ftw.json.",
+  "artifacts": [
+    "results/runs/ftw/ftw.json",
+    "results/runs/smoke-t1/eval/MVP-05.json"
+  ]
+}

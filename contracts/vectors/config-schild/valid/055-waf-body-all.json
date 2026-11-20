@@ -1,0 +1,27 @@
+{
+  "contract": "config/schild",
+  "description": "D41: every key set.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"config_version\":0,\"mode\":\"observe\",\"node_name\":\"web-1\",\"upstream\":{\"url\":\"http://app:80\"},\"waf\":{\"body\":{\"max_in_flight\":512,\"max_in_flight_bytes\":2147483648,\"max_per_client\":4,\"max_per_network\":16}}}",
+  "input_decoded": {
+    "config_version": 0,
+    "mode": "observe",
+    "node_name": "web-1",
+    "upstream": {
+      "url": "http://app:80"
+    },
+    "waf": {
+      "body": {
+        "max_in_flight": 512,
+        "max_in_flight_bytes": 2147483648,
+        "max_per_client": 4,
+        "max_per_network": 16
+      }
+    }
+  },
+  "expect": {
+    "valid": true
+  }
+}

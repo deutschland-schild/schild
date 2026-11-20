@@ -1,0 +1,15 @@
+# unprotected: []
+# expect: pass
+# N03 after the advice: static site next to a catch-all whose handle_errors runs schild.
+http://:18080 {
+	import schild
+	reverse_proxy 127.0.0.1:18081
+	handle_errors {
+		import schild
+		reverse_proxy 127.0.0.1:18081
+	}
+}
+http://b.example.test:18080 {
+	root * /tmp/m19m3-empty
+	file_server
+}

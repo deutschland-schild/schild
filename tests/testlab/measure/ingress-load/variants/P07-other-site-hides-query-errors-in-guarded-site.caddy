@@ -1,0 +1,18 @@
+# unprotected: []
+# expect: pass
+# Site a hides the query from its schild and fails; handle_errors written in site b (server-wide) runs schild and proxies.
+http://a.example.test:18080 {
+	route {
+		rewrite * /hidden?
+		schild
+		error "boom" 500
+	}
+}
+http://b.example.test:18080 {
+	import schild
+	reverse_proxy 127.0.0.1:18082
+	handle_errors {
+		import schild
+		reverse_proxy 127.0.0.1:18082
+	}
+}

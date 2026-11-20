@@ -1,0 +1,15 @@
+# unprotected: []
+# expect: pass
+http://a.example.test:18080 {
+	import schild
+	@ws {
+		header Connection *Upgrade*
+		header Upgrade websocket
+	}
+	reverse_proxy @ws 127.0.0.1:18082
+	reverse_proxy 127.0.0.1:18081 {
+		lb_policy round_robin
+		health_uri /health
+		header_up X-Real-IP {remote_host}
+	}
+}

@@ -1,0 +1,4 @@
+2026-10-27T10:00:01+0000 host sshd[3000]: Failed password for root from 192.0.2.1 port 6000 ssh2
+2026-10-27T10:01:01+0000 host sshd[3001]: Failed password for root from 192.0.2.2 port 6001 ssh2
+2026-10-27T10:02:01+0000 host sshd[3002]: Failed password for root from 192.0.2.3 port 6002 ssh2
+2026-10-27T11:00:00+0000 host sshd[999]: Accepted publickey for deploy from 192.0.2.10 port 50000 ssh2: ED25519 SHA256:abc

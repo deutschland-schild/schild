@@ -1,0 +1,25 @@
+{
+  "contract": "body-limits",
+  "description": "D44: the class reads the media type; a missing boundary is refused with 400 after reading.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"body_limit_bytes\":33554432,\"bytes\":1048576,\"content_type\":\"multipart/form-data\",\"op\":\"size\",\"raw_limit_bytes\":131072}",
+  "input_decoded": {
+    "body_limit_bytes": 33554432,
+    "bytes": 1048576,
+    "content_type": "multipart/form-data",
+    "op": "size",
+    "raw_limit_bytes": 131072
+  },
+  "expect": {
+    "valid": true,
+    "result": {
+      "class": "multipart",
+      "code": null,
+      "held_bytes": 2097152,
+      "limit_bytes": 33554432,
+      "status": null
+    }
+  }
+}

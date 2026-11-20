@@ -1,0 +1,27 @@
+{
+  "contract": "events",
+  "description": "D73: an agent enabled a crowdsec rule again.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"data\":{\"actor\":\"agent\",\"name\":\"crowdsecurity/vpatch-CVE-2026-1207\",\"repository\":\"crowdsec\",\"rule\":\"62846312\",\"token_id\":\"tok_000000000001\",\"token_label\":\"Local agent\"},\"datacontenttype\":\"application/json\",\"id\":\"0d9a9b23-05a7-43b5-9b53-fcd3c67c3611\",\"source\":\"schild://web-1\",\"specversion\":\"1.0\",\"time\":\"2026-10-26T11:59:58.123Z\",\"type\":\"schild.rule.enabled.v1\"}",
+  "input_decoded": {
+    "data": {
+      "actor": "agent",
+      "name": "crowdsecurity/vpatch-CVE-2026-1207",
+      "repository": "crowdsec",
+      "rule": "62846312",
+      "token_id": "tok_000000000001",
+      "token_label": "Local agent"
+    },
+    "datacontenttype": "application/json",
+    "id": "0d9a9b23-05a7-43b5-9b53-fcd3c67c3611",
+    "source": "schild://web-1",
+    "specversion": "1.0",
+    "time": "2026-10-26T11:59:58.123Z",
+    "type": "schild.rule.enabled.v1"
+  },
+  "expect": {
+    "valid": true
+  }
+}

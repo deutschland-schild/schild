@@ -1,0 +1,25 @@
+{
+  "contract": "events",
+  "description": "D56: the end of a lock came.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"data\":{\"actor\":\"system\",\"reason\":\"expired\",\"scope\":\"site\",\"website\":\"musterverein.example\"},\"datacontenttype\":\"application/json\",\"id\":\"1f890d13-ecfb-422a-93e4-9cf2811af54e\",\"source\":\"schild://web-1\",\"specversion\":\"1.0\",\"time\":\"2026-10-26T11:59:58.123Z\",\"type\":\"schild.access.protection_removed.v1\"}",
+  "input_decoded": {
+    "data": {
+      "actor": "system",
+      "reason": "expired",
+      "scope": "site",
+      "website": "musterverein.example"
+    },
+    "datacontenttype": "application/json",
+    "id": "1f890d13-ecfb-422a-93e4-9cf2811af54e",
+    "source": "schild://web-1",
+    "specversion": "1.0",
+    "time": "2026-10-26T11:59:58.123Z",
+    "type": "schild.access.protection_removed.v1"
+  },
+  "expect": {
+    "valid": true
+  }
+}

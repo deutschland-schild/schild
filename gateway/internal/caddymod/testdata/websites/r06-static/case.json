@@ -1,0 +1,37 @@
+{
+ "resolve": [
+  "static.example.org",
+  "docs.example.org",
+  "app.example.org"
+ ],
+ "blocks": [
+  {
+   "Addresses": [
+    "static.example.org"
+   ],
+   "Schild": false,
+   "Proxies": false
+  },
+  {
+   "Addresses": [
+    "probe.example.org"
+   ],
+   "Schild": false,
+   "Proxies": false
+  },
+  {
+   "Addresses": [
+    "docs.example.org"
+   ],
+   "Schild": true,
+   "Proxies": false
+  },
+  {
+   "Addresses": [
+    "app.example.org"
+   ],
+   "Schild": true,
+   "Proxies": true
+  }
+ ]
+}

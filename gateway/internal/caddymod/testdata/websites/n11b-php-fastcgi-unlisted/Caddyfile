@@ -1,0 +1,14 @@
+{
+	admin off
+}
+
+old.example.org {
+	root * /var/www/old
+	php_fastcgi 127.0.0.1:9000
+}
+
+app.example.org {
+	schild
+	reverse_proxy 127.0.0.1:19101
+}
+

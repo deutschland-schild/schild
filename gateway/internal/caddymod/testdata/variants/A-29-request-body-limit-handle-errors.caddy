@@ -1,0 +1,13 @@
+# unprotected: []
+# expect: pass
+http://a.example.test:18080 {
+	request_body {
+		max_size 10KB
+	}
+	import schild
+	reverse_proxy 127.0.0.1:18081
+	handle_errors {
+		import schild
+		reverse_proxy 127.0.0.1:18081
+	}
+}

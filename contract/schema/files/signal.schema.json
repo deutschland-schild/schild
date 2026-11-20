@@ -1,0 +1,135 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://contracts.schild.invalid/v0/signal.schema.json",
+  "title": "Signal schild.signal/0.3 (client -> lab)",
+  "description": "Positive list (decision E4). Only these fields exist; unknown fields are rejected. Never a visitor IP (not truncated, hashed or as pseudonym), never a site identifier, URL, header, cookie or body. Framing fields (schema, id, kind) carry no data about visitor or site. DSSE payloadType application/vnd.schild.signal.v0+json.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "id",
+    "kind",
+    "time_bucket",
+    "action_sig",
+    "request_sig",
+    "waf_rules",
+    "score",
+    "category",
+    "origin",
+    "agent"
+  ],
+  "properties": {
+    "schema": {
+      "const": "schild.signal/0.3"
+    },
+    "id": {
+      "description": "Random per signal, used only for dedupe and ACK. Retries and copies to other labs reuse it; it is never derived from site, visitor or key.",
+      "$ref": "common.schema.json#/$defs/uuid"
+    },
+    "kind": {
+      "description": "Client signals are always tips, never evidence (G2).",
+      "const": "tip"
+    },
+    "time_bucket": {
+      "$ref": "common.schema.json#/$defs/timeBucket"
+    },
+    "action_sig": {
+      "description": "Action signature: what was attempted, e.g. login-burst/wp-admin or sqli/rest-api. At most 64 characters. No host, no query, no values, nothing address-like.",
+      "$ref": "common.schema.json#/$defs/safeToken",
+      "maxLength": 64
+    },
+    "request_sig": {
+      "description": "sha256 over the canonical request shape (signal.md): method, path template, sorted parameter names, content type, matched rule ids. No host, no values, no IP.",
+      "$ref": "common.schema.json#/$defs/sha256"
+    },
+    "waf_rules": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 32,
+      "uniqueItems": true,
+      "items": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 99999999
+      },
+      "description": "Matched rule ids, strictly ascending (canonical order, same as in request_sig); verifiers reject other orders with code schema."
+    },
+    "score": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 100
+    },
+    "category": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9-]{0,63}$",
+      "allOf": [
+        {
+          "$ref": "common.schema.json#/$defs/noLeak"
+        }
+      ]
+    },
+    "origin": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "country",
+        "asn",
+        "net_class",
+        "attribution",
+        "protected"
+      ],
+      "properties": {
+        "country": {
+          "$ref": "common.schema.json#/$defs/country"
+        },
+        "asn": {
+          "$ref": "common.schema.json#/$defs/asn"
+        },
+        "net_class": {
+          "$ref": "common.schema.json#/$defs/netClass"
+        },
+        "attribution": {
+          "$ref": "common.schema.json#/$defs/attribution"
+        },
+        "protected": {
+          "description": "Sender is on the signed protection list (G6).",
+          "type": "boolean"
+        }
+      }
+    },
+    "agent": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "family",
+        "major",
+        "bot"
+      ],
+      "properties": {
+        "family": {
+          "description": "Browser or tool family, lower case, no dots (no version strings, host names or addresses).",
+          "type": "string",
+          "pattern": "^[a-z0-9][a-z0-9_-]{0,31}$",
+          "allOf": [
+            {
+              "$ref": "common.schema.json#/$defs/noLeak"
+            }
+          ]
+        },
+        "major": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9999
+        },
+        "bot": {
+          "type": "boolean"
+        }
+      }
+    },
+    "ja4": {
+      "description": "Optional TLS client fingerprint (JA4). Prototype and alpha only; coarse or absent from v1.",
+      "type": "string",
+      "pattern": "^[tqd][0-9s]{2}[di][0-9]{2}[0-9]{2}[0-9a-z]{2}_[0-9a-f]{12}_[0-9a-f]{12}$"
+    }
+  }
+}

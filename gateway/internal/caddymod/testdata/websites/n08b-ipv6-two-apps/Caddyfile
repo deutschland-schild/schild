@@ -1,0 +1,18 @@
+{
+	admin off
+}
+
+[2001:db8::a] {
+	schild
+	reverse_proxy 127.0.0.1:19101
+}
+
+[2001:0DB8:0:0:0:0:0:B] {
+	schild
+	reverse_proxy 127.0.0.1:19101
+}
+
+http://[2001:db8:0::a], http://[2001:db8::b] {
+	redir https://{host}{uri} permanent
+}
+

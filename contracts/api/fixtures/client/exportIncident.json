@@ -1,0 +1,95 @@
+{
+  "incident": {
+    "incident": "K7QM-4XWD",
+    "status": "blocked",
+    "time": "2026-10-26T11:59:58Z",
+    "request": {
+      "id": "f2064730-835b-4d96-b173-d92534ccd620",
+      "time": "2026-10-26T11:59:58Z",
+      "type": "schild.request.blocked.v1",
+      "outcome": "blocked",
+      "ip": "2001:db8::17",
+      "geo": {
+        "country": "NL",
+        "city": "Amsterdam",
+        "asn": 64500,
+        "as_org": "Example Hosting B.V.",
+        "net_class": "hosting"
+      },
+      "method": "POST",
+      "host": "shop.example",
+      "path": "/wp-login.php",
+      "status": 403,
+      "score": 72,
+      "rules": [
+        "930120"
+      ],
+      "incident": "K7QM-4XWD"
+    },
+    "reason": "930120 OS File Access Attempt",
+    "unblocked_at": null,
+    "allowlist_entry": null
+  },
+  "exported_at": "2026-10-27T09:00:00Z",
+  "events": [
+    {
+      "data": {
+        "client": {
+          "attribution": "tcp_peer",
+          "geo": {
+            "as_org": "Example Hosting B.V.",
+            "asn": 64500,
+            "city": "Amsterdam",
+            "country": "NL",
+            "net_class": "hosting"
+          },
+          "ip": "2001:db8::17",
+          "port": 51234
+        },
+        "duration_ms": 3.2,
+        "host": "shop.example",
+        "incident": "K7QM-4XWD",
+        "method": "POST",
+        "mode": "autoblock",
+        "outcome": "blocked",
+        "path": "/wp-login.php",
+        "protocol": "h2",
+        "request_id": "req-7f3a9c22",
+        "rules": [
+          {
+            "id": 930120,
+            "match_shape": {
+              "content_type": "application/x-www-form-urlencoded",
+              "len_bucket": "16-64",
+              "location": "ARGS:log"
+            },
+            "msg": "OS File Access Attempt",
+            "severity": "critical",
+            "repository": "crs"
+          }
+        ],
+        "score": 72,
+        "status": 403,
+        "user_agent": "python-requests/2.31.0",
+        "waf_ms": 0.8
+      },
+      "datacontenttype": "application/json",
+      "id": "f2064730-835b-4d96-b173-d92534ccd620",
+      "source": "schild://web-1",
+      "specversion": "1.0",
+      "time": "2026-10-26T11:59:58.123Z",
+      "type": "schild.request.blocked.v1"
+    }
+  ],
+  "truncated": false,
+  "context": {
+    "event_id": "f2064730-835b-4d96-b173-d92534ccd620",
+    "state": "expired",
+    "from": "2026-10-26T11:54:58Z",
+    "to": "2026-10-26T12:04:58Z",
+    "anchor": null,
+    "visitor_requests": [],
+    "truncated": false,
+    "site_strip": []
+  }
+}

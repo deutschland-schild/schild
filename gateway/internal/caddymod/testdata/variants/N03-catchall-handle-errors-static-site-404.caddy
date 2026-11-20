@@ -1,0 +1,14 @@
+# unprotected: []
+# expect: refuse
+# Natural form of N01: a static site (file_server, 404 for missing files) next to a guarded catch-all with handle_errors proxy.
+http://:18080 {
+	import schild
+	reverse_proxy 127.0.0.1:18081
+	handle_errors {
+		reverse_proxy 127.0.0.1:18081
+	}
+}
+http://b.example.test:18080 {
+	root * /tmp/m19n-empty
+	file_server
+}

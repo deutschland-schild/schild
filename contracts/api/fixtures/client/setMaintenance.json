@@ -1,0 +1,10 @@
+{
+  "website": "musterverein.example",
+  "protection": null,
+  "maintenance": {
+    "on": true,
+    "message": "Wir ziehen gerade um.",
+    "updated_at": "2026-11-19T22:00:00Z",
+    "actor": "dashboard"
+  }
+}

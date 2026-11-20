@@ -1,0 +1,19 @@
+# unprotected: []
+# expect: refuse
+# handle_errors with handle groups: schild only in one group.
+http://:18080 {
+	import schild
+	reverse_proxy 127.0.0.1:18081
+	handle_errors {
+		handle /a* {
+			import schild
+			reverse_proxy 127.0.0.1:18081
+		}
+		handle {
+			reverse_proxy 127.0.0.1:18081
+		}
+	}
+}
+http://b.example.test:18080 {
+	error "boom" 500
+}

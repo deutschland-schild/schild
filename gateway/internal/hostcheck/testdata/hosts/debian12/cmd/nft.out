@@ -1,0 +1,32 @@
+table ip filter {
+	chain ufw-before-input {
+		iifname "lo" counter packets 10 bytes 600 accept
+		ct state related,established counter packets 900 bytes 8000 accept
+	}
+	chain INPUT {
+		type filter hook input priority filter; policy drop;
+		counter packets 1000 bytes 9000 jump ufw-before-input
+		counter packets 10 bytes 600 jump ufw-user-input
+	}
+	chain FORWARD {
+		type filter hook forward priority filter; policy drop;
+		counter packets 0 bytes 0 jump DOCKER-USER
+		counter packets 0 bytes 0 jump DOCKER-FORWARD
+	}
+	chain DOCKER {
+		iifname != "docker0" oifname "docker0" meta l4proto tcp ip daddr 172.17.0.2 tcp dport 3306 counter packets 0 bytes 0 accept
+	}
+	chain DOCKER-USER {
+		counter packets 0 bytes 0 return
+	}
+	chain ufw-user-input {
+		tcp dport 22 counter packets 0 bytes 0 accept
+		tcp dport 80 counter packets 0 bytes 0 accept
+		tcp dport 443 counter packets 0 bytes 0 accept
+	}
+}
+table ip nat {
+	chain DOCKER {
+		iifname != "docker0" meta l4proto tcp tcp dport 3306 counter packets 0 bytes 0 dnat to 172.17.0.2:3306
+	}
+}

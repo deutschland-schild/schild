@@ -1,0 +1,29 @@
+{
+  "context": {
+    "now": "2026-11-19T12:00:00Z"
+  },
+  "contract": "human-check",
+  "description": "active distributed wave triggers challenge",
+  "expect": {
+    "result": {
+      "answer": "challenge",
+      "reason": "distributed_wave",
+      "status": 403
+    },
+    "valid": true
+  },
+  "input_decoded": {
+    "accept": "text/html",
+    "allowlisted": false,
+    "clearance": "none",
+    "distributed_wave": true,
+    "good_bot": false,
+    "method": "GET",
+    "path": "/shop",
+    "policy": {
+      "mode": "off",
+      "website": "example.org"
+    }
+  },
+  "input_raw": "{\"accept\":\"text/html\",\"allowlisted\":false,\"clearance\":\"none\",\"distributed_wave\":true,\"good_bot\":false,\"method\":\"GET\",\"path\":\"/shop\",\"policy\":{\"mode\":\"off\",\"website\":\"example.org\"}}"
+}

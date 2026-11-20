@@ -1,0 +1,46 @@
+/*
+ * Deutschland-Schild – Design Tokens (Single Source of Truth)
+ *
+ * Beschrieben in docs/brand/01-marke.md (Gestaltung).
+ * Die Website (site/) bindet diese Datei direkt ein: Eine Änderung hier ändert die Seite.
+ * Format: Tailwind-CSS-v4-Theme (@theme) = normale CSS Custom Properties.
+ *
+ * Farben sind semantisch benannt (signal, ink, paper …), damit die Palette austauschbar bleibt.
+ */
+
+@theme {
+  /* ── Farben: Standard-Palette ───────────────────────────────────────────── */
+  --color-signal: #0F873B;        /* Signalgrün – Marker, Akzentflächen, Buttons; weiße Schrift darauf 4,6:1 (AA) */
+  --color-signal-hover: #0B6E30;
+  --color-signal-deep: #0B6E30;   /* Signalfarbe als Text/Linie auf Hell, auch auf Papier und Nebelblau (AA) */
+  --color-signal-soft: #86EFAC;   /* Signalfarbe für kleine Elemente auf Dunkel (AA) */
+  --color-signal-tint: #ECFDF5;   /* zarte Hinterlegung */
+  --color-on-signal: #FFFFFF;     /* Text auf Signalfläche (AA, 4,6:1) */
+
+  --color-ink: #0A1A33;           /* Tinte – Text und dunkle Flächen */
+  --color-ink-800: #13284A;
+  --color-ink-700: #1D3660;
+  --color-ink-muted: #9FB3CC;     /* Sekundärtext auf Tinte (AA) */
+
+  --color-paper: #FAF8F5;         /* Papier – warmer Seitenhintergrund */
+  --color-mist: #EDF2F8;          /* Nebelblau – ruhige Flächenfarbe statt Nachtblau-Vollflächen */
+  --color-mist-line: #D8E2EE;
+  --color-sand: #F1ECE4;
+  --color-line: #E3DDD3;
+  --color-slate: #5B6B82;         /* Sekundärtext auf Hell (AA) */
+
+  --color-link: #1663C7;
+  --color-sky: #3D9BF5;           /* Diagramme, Daten */
+  --color-success: #0F873B;       /* = signal */
+  --color-warning: #B45309;
+  --color-danger: #B91C1C;
+
+  /* ── Typografie (Open Font License, lokal ausgeliefert) ─────────────────── */
+  --font-display: 'Archivo Variable', 'Arial Narrow', sans-serif;
+  --font-sans: 'Inter Variable', ui-sans-serif, system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono Variable', ui-monospace, monospace;
+
+  /* ── Form ───────────────────────────────────────────────────────────────── */
+  --radius-card: 1.25rem;
+  --radius-button: 0.75rem;
+}

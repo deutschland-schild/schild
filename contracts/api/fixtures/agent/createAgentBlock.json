@@ -1,0 +1,12 @@
+{
+  "client_pseudonym": "p1-3a9f0c51d2e47b86",
+  "client_net": "203.0.113.0/24",
+  "net_class": "hosting",
+  "duration_s": 86400,
+  "persisted": false,
+  "effect": "block",
+  "changed": true,
+  "until": "2026-10-30T12:00:00Z",
+  "incident": "K7QM-4XWD",
+  "event_id": "6f1c2b7e-1d4a-4c8e-9b2f-6a5d4e3c2b16"
+}

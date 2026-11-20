@@ -1,0 +1,108 @@
+{
+  "results_version": 0,
+  "spec": "MVP-05",
+  "run_id": "stage3-smoke-t0-b18f9b2",
+  "started_at": "2026-10-26T22:31:33Z",
+  "finished_at": "2026-10-26T22:31:56Z",
+  "seed": 42,
+  "profile": "t0",
+  "git_rev": "b18f9b21ef924a22a45b254d16a5b7307bb48a03",
+  "host": {
+    "os": "darwin",
+    "arch": "arm64",
+    "cpus": 12,
+    "mem_mb": 65536
+  },
+  "images": [
+    {
+      "name": "schild:mvp",
+      "digest": "sha256:18af479c587178ba35322ad447d1267d0b53c87bb4e25cea7a679397fd7a9de6"
+    },
+    {
+      "name": "schild-lab:mvp",
+      "digest": "sha256:be7fad6d1f41b0a17172d81f014ecdd8c9c96683b88f75e89b75cf37ade4c866"
+    },
+    {
+      "name": "schild-relay:mvp",
+      "digest": "sha256:acee0669843d56cbd176234e93593375df732bafbf3319d208e6ba0f81176c47"
+    },
+    {
+      "name": "schild-testlab:mvp",
+      "digest": "sha256:0e690e7d2561e564b814930f5207192059a48fd653fb04d93105d03157b4fdae"
+    }
+  ],
+  "scenarios": [],
+  "hypotheses": [],
+  "metrics": [
+    {
+      "name": "smoke_steps_passed",
+      "value": 16,
+      "unit": "count",
+      "samples": 16
+    },
+    {
+      "name": "smoke_ok",
+      "value": 1,
+      "unit": "bool"
+    },
+    {
+      "name": "eval_precision",
+      "value": 1,
+      "unit": "ratio"
+    },
+    {
+      "name": "eval_recall",
+      "value": 1,
+      "unit": "ratio"
+    },
+    {
+      "name": "eval_false_positive_rate",
+      "value": 0,
+      "unit": "ratio"
+    },
+    {
+      "name": "eval_legit_blocks",
+      "value": 0,
+      "unit": "count"
+    },
+    {
+      "name": "eval_bypass_count",
+      "value": 0,
+      "unit": "count"
+    },
+    {
+      "name": "eval_canary_findings",
+      "value": 0,
+      "unit": "count"
+    },
+    {
+      "name": "eval_egress_ip_findings",
+      "value": 0,
+      "unit": "count"
+    },
+    {
+      "name": "eval_egress_field_findings",
+      "value": 0,
+      "unit": "count"
+    },
+    {
+      "name": "eval_unlabelled_requests",
+      "value": 0,
+      "unit": "count"
+    }
+  ],
+  "kill_criteria": [
+    {
+      "expr": "end-to-end smoke (16 steps), evaluator and browser check pass",
+      "hit": false,
+      "observed": "16/16 steps, evaluator pass"
+    }
+  ],
+  "verdict": "pass",
+  "notes": "make testlab-up + make smoke on the pinned images; a functional gate, not a kill-criterion measurement.",
+  "artifacts": [
+    "raw/smoke-t0/smoke.json",
+    "raw/smoke-t0/evaluator-MVP-05.json",
+    "raw/smoke-t0/browser-check.json"
+  ]
+}

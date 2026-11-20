@@ -1,0 +1,22 @@
+{
+  "contract": "crowdsec-hub",
+  "description": "previous entries are closed.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"index\":\"{}\",\"now\":\"2026-10-26T12:00:00Z\",\"op\":\"update\",\"previous\":{\"crowdsecurity/vpatch-CVE-2026-1207\":{\"digest\":\"x\"}}}",
+  "input_decoded": {
+    "index": "{}",
+    "now": "2026-10-26T12:00:00Z",
+    "op": "update",
+    "previous": {
+      "crowdsecurity/vpatch-CVE-2026-1207": {
+        "digest": "x"
+      }
+    }
+  },
+  "expect": {
+    "valid": false,
+    "error": "schema"
+  }
+}

@@ -1,0 +1,32 @@
+{
+  "context": {
+    "now": "2026-11-19T12:00:00Z"
+  },
+  "contract": "human-check",
+  "description": "valid PoW clearance passes even under attack",
+  "expect": {
+    "result": {
+      "answer": "pass",
+      "reason": "clearance_valid",
+      "status": 0
+    },
+    "valid": true
+  },
+  "input_decoded": {
+    "accept": "text/html",
+    "allowlisted": false,
+    "clearance": "pow",
+    "good_bot": false,
+    "method": "GET",
+    "path": "/",
+    "policy": {
+      "mode": "always",
+      "under_attack": {
+        "scope": "all",
+        "until": "2026-11-19T14:00:00Z"
+      },
+      "website": "example.org"
+    }
+  },
+  "input_raw": "{\"accept\":\"text/html\",\"allowlisted\":false,\"clearance\":\"pow\",\"good_bot\":false,\"method\":\"GET\",\"path\":\"/\",\"policy\":{\"mode\":\"always\",\"under_attack\":{\"scope\":\"all\",\"until\":\"2026-11-19T14:00:00Z\"},\"website\":\"example.org\"}}"
+}

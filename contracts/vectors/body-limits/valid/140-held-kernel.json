@@ -1,0 +1,23 @@
+{
+  "contract": "body-limits",
+  "description": "D46: stacks of the kernel, page tables and tmpfs cannot go either.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"op\":\"held\",\"stat\":{\"kernel_stack\":1048576,\"pagetables\":2097152,\"shmem\":4194304}}",
+  "input_decoded": {
+    "op": "held",
+    "stat": {
+      "kernel_stack": 1048576,
+      "pagetables": 2097152,
+      "shmem": 4194304
+    }
+  },
+  "expect": {
+    "valid": true,
+    "result": {
+      "held_bytes": 7340032,
+      "outside_bytes": 7340032
+    }
+  }
+}

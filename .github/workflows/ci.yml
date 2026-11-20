@@ -1,0 +1,156 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  go:
+    name: go
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: go.work
+          cache-dependency-path: go.work.sum
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.13"
+      # -short: load and performance tests skip themselves (they need a dedicated machine, not a shared runner).
+      - run: make test GO_TEST_FLAGS=-short
+
+  go-fuzz:
+    name: go-fuzz
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: go.work
+          cache-dependency-path: go.work.sum
+      - name: Fuzz smoke, 60 s per target (SecLang subset, bot catalogue, Caddy host matching)
+        run: |
+          (cd contract && go test -run '^$' -fuzz '^FuzzValidate$' -fuzztime 60s ./seclang)
+          (cd gateway && go test -run '^$' -fuzz '^FuzzMatchEqualsContract$' -fuzztime 60s ./internal/bots)
+          (cd gateway && go test -run '^$' -fuzz '^FuzzResolveFollowsCaddy$' -fuzztime 60s ./internal/caddymod)
+      - name: Print the failing input
+        if: failure()
+        run: |
+          git ls-files --others -- '*/testdata/fuzz/*' | while read -r f; do echo "== $f"; cat "$f"; done
+
+  go-race:
+    name: go-race
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: go.work
+          cache-dependency-path: go.work.sum
+      # The gateway under the race detector (needs cgo), short mode as in the go job.
+      - run: make gateway-race GO_TEST_FLAGS=-short
+
+  image:
+    name: image
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      # The same Dockerfile and the same steps as the release workflow: release build, dashboard built in the
+      # image. Only the geo data differs (TEST ONLY fixture instead of the DB-IP download). Nothing is pushed.
+      - name: Build the schild image (release build, TEST ONLY geo data, not pushed)
+        run: docker build -f gateway/Dockerfile --build-arg GEO=fixture --build-arg VERSION=0.0.0-ci -t schild:ci .
+      - name: A release build reports itself as one
+        run: test "$(docker run --rm schild:ci version | head -n 1)" = "schild 0.0.0-ci (release)"
+      - name: Quickstart smoke test (read-only, no capabilities, health, dashboard on 127.0.0.1:8788)
+        run: gateway/deploy/release/smoke.sh schild:ci
+      - name: Release tarball of this platform (not published)
+        run: |
+          gateway/deploy/release/tarball.sh 0.0.0-ci amd64 "$RUNNER_TEMP/dist" --build-arg GEO=fixture
+          tar -tzf "$RUNNER_TEMP/dist/schild_0.0.0-ci_linux_amd64.tar.gz"
+
+  dashboards:
+    name: dashboards
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: dashboard
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+        with:
+          package_json_file: dashboard/package.json
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: "22"
+          cache: pnpm
+          cache-dependency-path: dashboard/pnpm-lock.yaml
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm check
+
+  website:
+    name: website
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: site
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: site/.nvmrc
+          cache: npm
+          cache-dependency-path: site/package-lock.json
+      - run: npm ci
+      - run: npm run generate
+
+  dco:
+    name: dco
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Every commit carries a Signed-off-by from its author
+        env:
+          BASE: ${{ github.event.pull_request.base.sha }}
+          HEAD: ${{ github.event.pull_request.head.sha }}
+        run: |
+          fail=0
+          for c in $(git rev-list --no-merges "$BASE..$HEAD"); do
+            author=$(git show -s --format='%an <%ae>' "$c")
+            if ! git show -s --format=%B "$c" | grep -qiF "Signed-off-by: $author"; then
+              echo "::error::Commit $c has no Signed-off-by for its author. Use git commit -s."
+              fail=1
+            fi
+          done
+          exit "$fail"

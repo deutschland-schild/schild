@@ -1,0 +1,24 @@
+{
+  "contract": "access-gate",
+  "description": "D56: no other fields.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"allowlisted\":false,\"path\":\"/\",\"protection\":{\"hash\":\"x\",\"own_networks\":false,\"password\":true,\"scope\":\"site\",\"website\":\"musterverein.example\"},\"session\":\"none\"}",
+  "input_decoded": {
+    "allowlisted": false,
+    "path": "/",
+    "protection": {
+      "hash": "x",
+      "own_networks": false,
+      "password": true,
+      "scope": "site",
+      "website": "musterverein.example"
+    },
+    "session": "none"
+  },
+  "expect": {
+    "valid": false,
+    "error": "schema"
+  }
+}

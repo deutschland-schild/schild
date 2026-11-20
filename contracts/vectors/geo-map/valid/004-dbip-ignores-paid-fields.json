@@ -1,0 +1,26 @@
+{
+  "contract": "geo-map",
+  "description": "v0.5 MVP-22: dbip maps country and ASN only.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"provider\":\"dbip\",\"record\":{\"country\":{\"iso_code\":\"FR\"},\"traits\":{\"is_anonymous_vpn\":true}}}",
+  "input_decoded": {
+    "provider": "dbip",
+    "record": {
+      "country": {
+        "iso_code": "FR"
+      },
+      "traits": {
+        "is_anonymous_vpn": true
+      }
+    }
+  },
+  "expect": {
+    "valid": true,
+    "result": {
+      "asn": null,
+      "country": "FR"
+    }
+  }
+}

@@ -1,0 +1,29 @@
+{
+  "contract": "body-limits",
+  "description": "D41, E2: a stall gives a window of 0.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"arrivals\":[{\"bytes\":1048576,\"t_ms\":10}],\"end_ms\":60000,\"op\":\"rate\"}",
+  "input_decoded": {
+    "arrivals": [
+      {
+        "bytes": 1048576,
+        "t_ms": 10
+      }
+    ],
+    "end_ms": 60000,
+    "op": "rate"
+  },
+  "expect": {
+    "valid": true,
+    "result": {
+      "below_min": true,
+      "first_below": 1,
+      "windows": [
+        34952,
+        0
+      ]
+    }
+  }
+}

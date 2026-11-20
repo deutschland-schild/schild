@@ -1,0 +1,20 @@
+{
+  "contract": "rule-effect",
+  "description": "rules:write disables a rule.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"op\":\"agent_write\",\"operation\":\"updateAgentRule\",\"scope\":\"rules:write\"}",
+  "input_decoded": {
+    "op": "agent_write",
+    "operation": "updateAgentRule",
+    "scope": "rules:write"
+  },
+  "expect": {
+    "valid": true,
+    "result": {
+      "allowed": true,
+      "status": 200
+    }
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "contract": "website-status",
+  "description": "D36: duplicate keys are malformed JSON.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"protection\":\"protected\",\"protection\":\"unprotected\",\"tracked\":true,\"monitoring\":true,\"servers\":[]}",
+  "expect": {
+    "valid": false,
+    "error": "malformed"
+  }
+}

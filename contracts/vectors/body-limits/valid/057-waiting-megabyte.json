@@ -1,0 +1,19 @@
+{
+  "contract": "body-limits",
+  "description": "D44: 1 MiB, the size of the OOM, waits on disk; D45: 384 KiB of it count, the send queue of the backend's socket.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"bytes\":1048576,\"op\":\"waiting\"}",
+  "input_decoded": {
+    "bytes": 1048576,
+    "op": "waiting"
+  },
+  "expect": {
+    "valid": true,
+    "result": {
+      "in_memory": false,
+      "waiting_bytes": 524288
+    }
+  }
+}

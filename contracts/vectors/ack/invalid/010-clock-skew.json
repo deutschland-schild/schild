@@ -1,0 +1,41 @@
+{
+  "contract": "ack",
+  "description": "Ack from the future.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z",
+    "trust": [
+      "site-a",
+      "site-b",
+      "site-c",
+      "lab-a",
+      "lab-a2",
+      "lab-b",
+      "lab-c",
+      "lab-d"
+    ]
+  },
+  "input_raw": "{\"payloadType\":\"application/vnd.schild.ack.v0+json\",\"payload\":\"eyJhY2NlcHRlZCI6WyI2M2YyZmE1OC1jNjg0LTQ3MzItOTExZC1jM2QyYTgzN2I1MWUiLCIyMTBlYzI5Zi00NjA3LTQwZmUtYTk3MS1lMDdlMDE3MTA1ZWQiXSwiY29udHJvbCI6eyJtYXhfYmF0Y2giOjY0LCJyZWFzb24iOiJvayIsInJldHJ5X2FmdGVyX21zIjowfSwiZHVwbGljYXRlIjpbXSwiaW5fcmVwbHlfdG8iOiI1MWZkOTE4Zi01ZWY1LTRmN2QtYWUyZS0wNGY5NDAxNWY5NWIiLCJpc3N1ZWRfYXQiOiIyMDI2LTEwLTI2VDEyOjEwOjAwWiIsImxhYiI6ImxhYi1hIiwicmVqZWN0ZWQiOltdLCJzY2hlbWEiOiJzY2hpbGQuYWNrLzAuMSJ9\",\"signatures\":[{\"keyid\":\"test-lab-a\",\"sig\":\"0T1IW1/4SC6oj2mEHgwtY6EF+7oyfjCXqo4IB5/WCzu6Z7GsdyxotKvs3yx77/zBIOoN9ph/Uo+Nx7/BusTgBA==\"}]}",
+  "input_decoded": {
+    "payload": {
+      "accepted": [
+        "63f2fa58-c684-4732-911d-c3d2a837b51e",
+        "210ec29f-4607-40fe-a971-e07e017105ed"
+      ],
+      "control": {
+        "max_batch": 64,
+        "reason": "ok",
+        "retry_after_ms": 0
+      },
+      "duplicate": [],
+      "in_reply_to": "51fd918f-5ef5-4f7d-ae2e-04f94015f95b",
+      "issued_at": "2026-10-26T12:10:00Z",
+      "lab": "lab-a",
+      "rejected": [],
+      "schema": "schild.ack/0.1"
+    }
+  },
+  "expect": {
+    "valid": false,
+    "error": "clock_skew"
+  }
+}

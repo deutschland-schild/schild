@@ -1,0 +1,123 @@
+{
+  "hit": {
+    "id": "3b1f0d4e-2c7a-4f51-9a0e-6c1d2b3a4f51",
+    "time": "2026-10-28T09:14:02Z",
+    "kind": "scenario",
+    "scenario": "login_bruteforce",
+    "scope": "client",
+    "ip": "198.51.100.7",
+    "key_bits": 32,
+    "geo": {
+      "country": "NL",
+      "city": "Amsterdam",
+      "asn": 64500,
+      "as_org": "Example Hosting B.V.",
+      "net_class": "hosting"
+    },
+    "host": "verein.example",
+    "route": "/wp-login.php",
+    "preset": "wordpress",
+    "count": 37,
+    "threshold": 5,
+    "window_s": 120,
+    "mode": "block",
+    "action": "block",
+    "would_action": "block",
+    "level": 1,
+    "until": "2026-10-28T09:29:02Z",
+    "incident": "M4QX-7KRT",
+    "active": true,
+    "released": false
+  },
+  "requests": [
+    {
+      "id": "a0b1c2d3-e4f5-4a6b-8c7d-8e9f0a1b2c30",
+      "time": "2026-10-28T09:14:01Z",
+      "type": "schild.request.evaluated.v1",
+      "outcome": "passed",
+      "ip": "198.51.100.7",
+      "geo": {
+        "country": "NL",
+        "city": "Amsterdam",
+        "asn": 64500,
+        "as_org": "Example Hosting B.V.",
+        "net_class": "hosting"
+      },
+      "method": "POST",
+      "host": "verein.example",
+      "path": "/wp-login.php",
+      "status": 200,
+      "score": 0,
+      "rules": []
+    },
+    {
+      "id": "a0b1c2d3-e4f5-4a6b-8c7d-8e9f0a1b2c31",
+      "time": "2026-10-28T09:13:58Z",
+      "type": "schild.request.evaluated.v1",
+      "outcome": "passed",
+      "ip": "198.51.100.7",
+      "geo": {
+        "country": "NL",
+        "city": "Amsterdam",
+        "asn": 64500,
+        "as_org": "Example Hosting B.V.",
+        "net_class": "hosting"
+      },
+      "method": "POST",
+      "host": "verein.example",
+      "path": "/wp-login.php",
+      "status": 200,
+      "score": 0,
+      "rules": []
+    },
+    {
+      "id": "a0b1c2d3-e4f5-4a6b-8c7d-8e9f0a1b2c32",
+      "time": "2026-10-28T09:13:55Z",
+      "type": "schild.request.evaluated.v1",
+      "outcome": "passed",
+      "ip": "198.51.100.7",
+      "geo": {
+        "country": "NL",
+        "city": "Amsterdam",
+        "asn": 64500,
+        "as_org": "Example Hosting B.V.",
+        "net_class": "hosting"
+      },
+      "method": "POST",
+      "host": "verein.example",
+      "path": "/wp-login.php",
+      "status": 200,
+      "score": 0,
+      "rules": []
+    },
+    {
+      "id": "a0b1c2d3-e4f5-4a6b-8c7d-8e9f0a1b2c33",
+      "time": "2026-10-28T09:13:52Z",
+      "type": "schild.request.evaluated.v1",
+      "outcome": "passed",
+      "ip": "198.51.100.7",
+      "geo": {
+        "country": "NL",
+        "city": "Amsterdam",
+        "asn": 64500,
+        "as_org": "Example Hosting B.V.",
+        "net_class": "hosting"
+      },
+      "method": "POST",
+      "host": "verein.example",
+      "path": "/wp-login.php",
+      "status": 200,
+      "score": 0,
+      "rules": []
+    }
+  ],
+  "blocks": [
+    {
+      "source": "behaviour:login_bruteforce",
+      "until": "2026-10-28T09:29:02Z",
+      "level": 1,
+      "incident": "M4QX-7KRT"
+    }
+  ],
+  "allowlisted": false
+}

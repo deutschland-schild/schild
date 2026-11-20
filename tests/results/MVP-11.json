@@ -1,0 +1,759 @@
+{
+  "results_version": 0,
+  "spec": "MVP-11",
+  "run_id": "MVP-11-review-fixes-t1-20261027",
+  "started_at": "2026-10-27T05:03:00Z",
+  "finished_at": "2026-10-27T06:21:30Z",
+  "seed": 42,
+  "profile": "t1",
+  "git_rev": "6cd6ca0-dirty",
+  "host": {
+    "os": "darwin",
+    "arch": "arm64",
+    "cpus": 12,
+    "mem_mb": 65536
+  },
+  "images": [
+    {
+      "name": "schild:mvp",
+      "digest": "sha256:0fbc833a92ae286c6ef168e0ce68c7508b96fc5392dd41b4330b0fe968e23e08"
+    },
+    {
+      "name": "schild-lab:mvp",
+      "digest": "sha256:2407dc6a5319e3004c46fe512ebc618c0d544263ba00b4c4f5b9b7d3f127edbb"
+    },
+    {
+      "name": "schild-relay:mvp",
+      "digest": "sha256:dec4e0ddb1718687005babbd1209e1602e6ade7592b85957844801a14126ae98"
+    },
+    {
+      "name": "schild-testlab:mvp",
+      "digest": "sha256:aabc5a3587a851af1f63902eaddc0dfb5c9b175b4f41348bcab53d648eb85eb5"
+    },
+    {
+      "name": "schild-testlab-app-vm:mvp",
+      "digest": "sha256:240b1444ec26a8807707def02322111a12fb5e82f6e83cb8fa0c7cbe6955fda5"
+    }
+  ],
+  "hypotheses": [
+    "D3"
+  ],
+  "metrics": [
+    {
+      "name": "agent_smoke_steps",
+      "value": 24,
+      "unit": "count",
+      "labels": {
+        "status": "pass"
+      }
+    },
+    {
+      "name": "agent_smoke_steps",
+      "value": 0,
+      "unit": "count",
+      "labels": {
+        "status": "fail"
+      }
+    },
+    {
+      "name": "agent_smoke_steps",
+      "value": 0,
+      "unit": "count",
+      "labels": {
+        "status": "pending"
+      }
+    },
+    {
+      "name": "agent_smoke_steps",
+      "value": 1,
+      "unit": "count",
+      "labels": {
+        "status": "skipped"
+      }
+    },
+    {
+      "name": "smoke_steps",
+      "value": 16,
+      "unit": "count",
+      "labels": {
+        "profile": "t1",
+        "status": "pass"
+      }
+    },
+    {
+      "name": "signed_deliveries_as_contract",
+      "value": 12,
+      "unit": "count",
+      "labels": {
+        "total": "12"
+      }
+    },
+    {
+      "name": "unenrolled_reports_accepted",
+      "value": 0,
+      "unit": "count"
+    },
+    {
+      "name": "revoked_reports_accepted",
+      "value": 0,
+      "unit": "count"
+    },
+    {
+      "name": "contract_vectors_go_python_agree",
+      "value": 572,
+      "unit": "count"
+    },
+    {
+      "name": "readonly_proof_changes_outside_report_dir",
+      "value": 0,
+      "unit": "count",
+      "labels": {
+        "probe": "testlab-readonly-proof (Debian 13 app VM)",
+        "runs": "root,nobody"
+      }
+    },
+    {
+      "name": "readonly_proof_changes_outside_report_dir",
+      "value": 0,
+      "unit": "count",
+      "labels": {
+        "probe": "readonly-distros.sh Rocky 9",
+        "runs": "root,nobody"
+      }
+    },
+    {
+      "name": "readonly_proof_changes_outside_report_dir",
+      "value": 0,
+      "unit": "count",
+      "labels": {
+        "probe": "readonly-distros.sh Debian 12 + JRE/Node/PHP",
+        "runs": "root,nobody"
+      }
+    },
+    {
+      "name": "readonly_proof_changes_outside_report_dir",
+      "value": 0,
+      "unit": "count",
+      "labels": {
+        "probe": "schild-check.service under systemd on Rocky 9 (ProtectSystem=strict)",
+        "runs": "root"
+      }
+    },
+    {
+      "name": "readonly_proof_changes_outside_report_dir",
+      "value": 26,
+      "unit": "count",
+      "labels": {
+        "probe": "readonly-distros.sh with the 6cd6ca0 binary (positive control): Rocky 9 23, Debian 12 3 new entries",
+        "runs": "root,nobody"
+      }
+    },
+    {
+      "name": "rhel_updates_match_dnf_cli",
+      "value": 46,
+      "unit": "count",
+      "labels": {
+        "probe": "Rocky 9: hawkey reader vs dnf -C check-update (46 = 46, security 38 = 38)"
+      }
+    },
+    {
+      "name": "secret_canaries_in_reports",
+      "value": 0,
+      "unit": "count",
+      "labels": {
+        "probe": "adversaries/mvp11/canary/run.sh",
+        "controls": "6/6"
+      }
+    },
+    {
+      "name": "canaries_in_lab_data",
+      "value": 0,
+      "unit": "count",
+      "labels": {
+        "scope": "6 labs' data and transparency logs (smoke t1)"
+      }
+    },
+    {
+      "name": "server_page_browser_steps",
+      "value": 18,
+      "unit": "count",
+      "labels": {
+        "status": "pass",
+        "backend": "real"
+      }
+    },
+    {
+      "name": "flood_schild_api_memory_peak",
+      "value": 109156762,
+      "unit": "bytes",
+      "labels": {
+        "mode": "hold",
+        "generators_x_conns": "4x100",
+        "limit": "512MiB",
+        "run": "final-hold4",
+        "image": "final",
+        "shown_mib": "104.1"
+      }
+    },
+    {
+      "name": "flood_site_failed_requests",
+      "value": 0,
+      "unit": "count",
+      "labels": {
+        "mode": "hold",
+        "generators_x_conns": "4x100",
+        "run": "final-hold4",
+        "requests": "2200"
+      }
+    },
+    {
+      "name": "flood_site_latency_p99",
+      "value": 5.26,
+      "unit": "ms",
+      "labels": {
+        "mode": "hold",
+        "generators_x_conns": "4x100",
+        "run": "final-hold4"
+      }
+    },
+    {
+      "name": "flood_schild_api_restarts",
+      "value": 0,
+      "unit": "count",
+      "labels": {
+        "mode": "hold",
+        "generators_x_conns": "4x100",
+        "run": "final-hold4"
+      }
+    },
+    {
+      "name": "flood_schild_api_memory_peak",
+      "value": 114609357,
+      "unit": "bytes",
+      "labels": {
+        "mode": "hold",
+        "generators_x_conns": "6x100",
+        "limit": "512MiB",
+        "run": "final-hold6",
+        "image": "final",
+        "shown_mib": "109.3"
+      }
+    },
+    {
+      "name": "flood_site_failed_requests",
+      "value": 0,
+      "unit": "count",
+      "labels": {
+        "mode": "hold",
+        "generators_x_conns": "6x100",
+        "run": "final-hold6",
+        "requests": "2200"
+      }
+    },
+    {
+      "name": "flood_site_latency_p99",
+      "value": 5.25,
+      "unit": "ms",
+      "labels": {
+        "mode": "hold",
+        "generators_x_conns": "6x100",
+        "run": "final-hold6"
+      }
+    },
+    {
+      "name": "flood_schild_api_restarts",
+      "value": 0,
+      "unit": "count",
+      "labels": {
+        "mode": "hold",
+        "generators_x_conns": "6x100",
+        "run": "final-hold6"
+      }
+    },
+    {
+      "name": "flood_schild_api_memory_peak",
+      "value": 171337318,
+      "unit": "bytes",
+      "labels": {
+        "mode": "signed",
+        "generators_x_conns": "6x8",
+        "limit": "512MiB",
+        "run": "final-signed6",
+        "image": "final",
+        "shown_mib": "163.4"
+      }
+    },
+    {
+      "name": "flood_site_failed_requests",
+      "value": 0,
+      "unit": "count",
+      "labels": {
+        "mode": "signed",
+        "generators_x_conns": "6x8",
+        "run": "final-signed6",
+        "requests": "1998"
+      }
+    },
+    {
+      "name": "flood_site_latency_p99",
+      "value": 8.64,
+      "unit": "ms",
+      "labels": {
+        "mode": "signed",
+        "generators_x_conns": "6x8",
+        "run": "final-signed6"
+      }
+    },
+    {
+      "name": "flood_schild_api_restarts",
+      "value": 0,
+      "unit": "count",
+      "labels": {
+        "mode": "signed",
+        "generators_x_conns": "6x8",
+        "run": "final-signed6"
+      }
+    },
+    {
+      "name": "flood_schild_api_memory_peak",
+      "value": 108003328,
+      "unit": "bytes",
+      "labels": {
+        "mode": "hold",
+        "generators_x_conns": "4x100",
+        "limit": "512MiB",
+        "run": "hold4",
+        "image": "pre-final (same Go code, older UI assets)",
+        "shown_mib": "103.0"
+      }
+    },
+    {
+      "name": "flood_site_failed_requests",
+      "value": 0,
+      "unit": "count",
+      "labels": {
+        "mode": "hold",
+        "generators_x_conns": "4x100",
+        "run": "hold4",
+        "requests": "2200"
+      }
+    },
+    {
+      "name": "flood_site_latency_p99",
+      "value": 4.67,
+      "unit": "ms",
+      "labels": {
+        "mode": "hold",
+        "generators_x_conns": "4x100",
+        "run": "hold4"
+      }
+    },
+    {
+      "name": "flood_schild_api_restarts",
+      "value": 0,
+      "unit": "count",
+      "labels": {
+        "mode": "hold",
+        "generators_x_conns": "4x100",
+        "run": "hold4"
+      }
+    },
+    {
+      "name": "flood_schild_api_memory_peak",
+      "value": 109576192,
+      "unit": "bytes",
+      "labels": {
+        "mode": "hold",
+        "generators_x_conns": "4x100",
+        "limit": "512MiB",
+        "run": "hold4b",
+        "image": "pre-final",
+        "shown_mib": "104.5"
+      }
+    },
+    {
+      "name": "flood_site_failed_requests",
+      "value": 0,
+      "unit": "count",
+      "labels": {
+        "mode": "hold",
+        "generators_x_conns": "4x100",
+        "run": "hold4b",
+        "requests": "2200"
+      }
+    },
+    {
+      "name": "flood_site_latency_p99",
+      "value": 5.07,
+      "unit": "ms",
+      "labels": {
+        "mode": "hold",
+        "generators_x_conns": "4x100",
+        "run": "hold4b"
+      }
+    },
+    {
+      "name": "flood_schild_api_restarts",
+      "value": 0,
+      "unit": "count",
+      "labels": {
+        "mode": "hold",
+        "generators_x_conns": "4x100",
+        "run": "hold4b"
+      }
+    },
+    {
+      "name": "flood_schild_api_memory_peak",
+      "value": 117859942,
+      "unit": "bytes",
+      "labels": {
+        "mode": "hold",
+        "generators_x_conns": "6x100",
+        "limit": "512MiB",
+        "run": "hold6",
+        "image": "pre-final",
+        "shown_mib": "112.4"
+      }
+    },
+    {
+      "name": "flood_site_failed_requests",
+      "value": 5,
+      "unit": "count",
+      "labels": {
+        "mode": "hold",
+        "generators_x_conns": "6x100",
+        "run": "hold6",
+        "requests": "2121"
+      }
+    },
+    {
+      "name": "flood_site_latency_p99",
+      "value": 1007.82,
+      "unit": "ms",
+      "labels": {
+        "mode": "hold",
+        "generators_x_conns": "6x100",
+        "run": "hold6"
+      }
+    },
+    {
+      "name": "flood_schild_api_restarts",
+      "value": 0,
+      "unit": "count",
+      "labels": {
+        "mode": "hold",
+        "generators_x_conns": "6x100",
+        "run": "hold6"
+      }
+    },
+    {
+      "name": "flood_schild_api_memory_peak",
+      "value": 111358771,
+      "unit": "bytes",
+      "labels": {
+        "mode": "hold",
+        "generators_x_conns": "6x100",
+        "limit": "512MiB",
+        "run": "hold6b",
+        "image": "pre-final",
+        "shown_mib": "106.2"
+      }
+    },
+    {
+      "name": "flood_site_failed_requests",
+      "value": 0,
+      "unit": "count",
+      "labels": {
+        "mode": "hold",
+        "generators_x_conns": "6x100",
+        "run": "hold6b",
+        "requests": "2200"
+      }
+    },
+    {
+      "name": "flood_site_latency_p99",
+      "value": 5.12,
+      "unit": "ms",
+      "labels": {
+        "mode": "hold",
+        "generators_x_conns": "6x100",
+        "run": "hold6b"
+      }
+    },
+    {
+      "name": "flood_schild_api_restarts",
+      "value": 0,
+      "unit": "count",
+      "labels": {
+        "mode": "hold",
+        "generators_x_conns": "6x100",
+        "run": "hold6b"
+      }
+    },
+    {
+      "name": "flood_schild_api_memory_peak",
+      "value": 112931635,
+      "unit": "bytes",
+      "labels": {
+        "mode": "hold",
+        "generators_x_conns": "6x100",
+        "limit": "512MiB",
+        "run": "hold6c",
+        "image": "pre-final",
+        "shown_mib": "107.7"
+      }
+    },
+    {
+      "name": "flood_site_failed_requests",
+      "value": 0,
+      "unit": "count",
+      "labels": {
+        "mode": "hold",
+        "generators_x_conns": "6x100",
+        "run": "hold6c",
+        "requests": "2200"
+      }
+    },
+    {
+      "name": "flood_site_latency_p99",
+      "value": 5.34,
+      "unit": "ms",
+      "labels": {
+        "mode": "hold",
+        "generators_x_conns": "6x100",
+        "run": "hold6c"
+      }
+    },
+    {
+      "name": "flood_schild_api_restarts",
+      "value": 0,
+      "unit": "count",
+      "labels": {
+        "mode": "hold",
+        "generators_x_conns": "6x100",
+        "run": "hold6c"
+      }
+    },
+    {
+      "name": "flood_schild_api_memory_peak",
+      "value": 111044198,
+      "unit": "bytes",
+      "labels": {
+        "mode": "hold",
+        "generators_x_conns": "6x100",
+        "limit": "512MiB",
+        "run": "hold6d",
+        "image": "pre-final",
+        "shown_mib": "105.9"
+      }
+    },
+    {
+      "name": "flood_site_failed_requests",
+      "value": 0,
+      "unit": "count",
+      "labels": {
+        "mode": "hold",
+        "generators_x_conns": "6x100",
+        "run": "hold6d",
+        "requests": "2200"
+      }
+    },
+    {
+      "name": "flood_site_latency_p99",
+      "value": 5.75,
+      "unit": "ms",
+      "labels": {
+        "mode": "hold",
+        "generators_x_conns": "6x100",
+        "run": "hold6d"
+      }
+    },
+    {
+      "name": "flood_schild_api_restarts",
+      "value": 0,
+      "unit": "count",
+      "labels": {
+        "mode": "hold",
+        "generators_x_conns": "6x100",
+        "run": "hold6d"
+      }
+    },
+    {
+      "name": "flood_schild_api_memory_peak",
+      "value": 110624768,
+      "unit": "bytes",
+      "labels": {
+        "mode": "hold",
+        "generators_x_conns": "6x100",
+        "limit": "512MiB",
+        "run": "hold6e",
+        "image": "pre-final",
+        "shown_mib": "105.5"
+      }
+    },
+    {
+      "name": "flood_site_failed_requests",
+      "value": 0,
+      "unit": "count",
+      "labels": {
+        "mode": "hold",
+        "generators_x_conns": "6x100",
+        "run": "hold6e",
+        "requests": "2200"
+      }
+    },
+    {
+      "name": "flood_site_latency_p99",
+      "value": 5.08,
+      "unit": "ms",
+      "labels": {
+        "mode": "hold",
+        "generators_x_conns": "6x100",
+        "run": "hold6e"
+      }
+    },
+    {
+      "name": "flood_schild_api_restarts",
+      "value": 0,
+      "unit": "count",
+      "labels": {
+        "mode": "hold",
+        "generators_x_conns": "6x100",
+        "run": "hold6e"
+      }
+    },
+    {
+      "name": "flood_schild_api_memory_peak",
+      "value": 111883059,
+      "unit": "bytes",
+      "labels": {
+        "mode": "hold",
+        "generators_x_conns": "6x100",
+        "limit": "512MiB",
+        "run": "hold6f",
+        "image": "pre-final",
+        "shown_mib": "106.7"
+      }
+    },
+    {
+      "name": "flood_site_failed_requests",
+      "value": 0,
+      "unit": "count",
+      "labels": {
+        "mode": "hold",
+        "generators_x_conns": "6x100",
+        "run": "hold6f",
+        "requests": "2200"
+      }
+    },
+    {
+      "name": "flood_site_latency_p99",
+      "value": 5.15,
+      "unit": "ms",
+      "labels": {
+        "mode": "hold",
+        "generators_x_conns": "6x100",
+        "run": "hold6f"
+      }
+    },
+    {
+      "name": "flood_schild_api_restarts",
+      "value": 0,
+      "unit": "count",
+      "labels": {
+        "mode": "hold",
+        "generators_x_conns": "6x100",
+        "run": "hold6f"
+      }
+    },
+    {
+      "name": "flood_schild_api_memory_peak",
+      "value": 161900134,
+      "unit": "bytes",
+      "labels": {
+        "mode": "signed",
+        "generators_x_conns": "6x8",
+        "limit": "512MiB",
+        "run": "signed6",
+        "image": "pre-final",
+        "shown_mib": "154.4"
+      }
+    },
+    {
+      "name": "flood_site_failed_requests",
+      "value": 0,
+      "unit": "count",
+      "labels": {
+        "mode": "signed",
+        "generators_x_conns": "6x8",
+        "run": "signed6",
+        "requests": "2000"
+      }
+    },
+    {
+      "name": "flood_site_latency_p99",
+      "value": 8.82,
+      "unit": "ms",
+      "labels": {
+        "mode": "signed",
+        "generators_x_conns": "6x8",
+        "run": "signed6"
+      }
+    },
+    {
+      "name": "flood_schild_api_restarts",
+      "value": 0,
+      "unit": "count",
+      "labels": {
+        "mode": "signed",
+        "generators_x_conns": "6x8",
+        "run": "signed6"
+      }
+    }
+  ],
+  "kill_criteria": [
+    {
+      "expr": "(a) the check changes system state [review of 6cd6ca0]",
+      "hit": true,
+      "observed": "Rocky 9: dnf/needs-restarting as root appended /var/log/dnf*.log, hawkey.log, rewrote /var/cache/dnf/*.solv, expired_repos.json, rpm touched rpmdb.sqlite-shm (23 docker-diff entries); as nobody /var/tmp/dnf-nobody-*/; Debian 12: java -version left /tmp/hsperfdata_root and _nobody (3 entries)."
+    },
+    {
+      "expr": "(a) the check changes system state [after fixes]",
+      "hit": false,
+      "observed": "readonly-distros.sh Rocky 9 + Debian 12 (JRE/Node/PHP), root and nobody: 0 new docker-diff entries, 0 files newer than marker; schild-check.service under systemd on Rocky 9: 0 outside the report dir; testlab-readonly-proof REQUIRE=1 pass (15763 entries). dnf/yum/needs-restarting no longer run; rpm and probes as nobody."
+    },
+    {
+      "expr": "(b) a report leaks a secret",
+      "hit": false,
+      "observed": "canary/run.sh: 0 canaries in 3 reports and outputs, 6/6 positive controls; smoke t1: 0 secret canaries in 7 gateway data files; reject details now value-free (code + JSON pointer)."
+    },
+    {
+      "expr": "(c) an unenrolled agent's report is accepted",
+      "hit": false,
+      "observed": "smoke t1: unenrolled real binary rejected (signature) and not listed, revoked rejected, 12/12 signed deliveries as contract; review unit probes pass; a Schild-Agent-Key header naming an unknown key opens no lane."
+    },
+    {
+      "expr": "(d) agent/check failures affect request handling [review of 6cd6ca0]",
+      "hit": true,
+      "observed": "flood.sh hold 4x100 with schild-api at 512 MiB: held ~760 KiB bodies OOM-killed schild-api, ~1 % of site requests failed (20/2200, 23/2189)."
+    },
+    {
+      "expr": "(d) agent/check failures affect request handling [after fixes]",
+      "hit": false,
+      "observed": "final images, 512 MiB: hold 4x100 peak 104 MiB 0/2200 failed p99 5.3 ms; hold 6x100 peak 109 MiB 0/2200 p99 5.3 ms; signed 6x8 peak 163 MiB 0/1998 p99 8.6 ms; 0 restarts. Caveat: 1 of 7 6x100 runs (pre-final image, same Go code) had 5/2121 503s (p99 1008 ms) during a ~1.3 s VM-wide stall (open, see notes)."
+    },
+    {
+      "expr": "(e) host report data reaches the labs",
+      "hit": false,
+      "observed": "smoke t1: host report canaries absent from 14 files of 6 labs' data and transparency logs and from every signal sent."
+    }
+  ],
+  "verdict": "pass",
+  "notes": "Fix run after the independent review of 6cd6ca0, which hit kill criteria (a) and (d). Review findings fixed: listener memory/connection limits (1), read-only RHEL updates without dnf (2), unit-compatible reboot check without needs-restarting (3), java -XX:-UsePerfData and release file (4), value-free reject details (5), bounded LRU rate table (6), gateway catalogue + fix_verified for agent findings with no copy for unverified commands (7), 503 not counted and an own budget for enrolled agents (8); EOL table checked against endoflife.date (fetched 2026-10-27, 22 corrections). contracts v0.3 amended before freeze (CHANGELOG): no default agents.listen, HostDetail.annotations, value-free last_rejected.detail, Content-Length/411. Verified: make contracts-test (572, Go = Python), make test, make adversaries-test, pnpm check, make ui, make images (arm64), readonly-distros.sh (Rocky 9, Debian 12; root, nobody), testlab-up t1 + smoke t1 (16 steps; agents 24 pass, 0 fail, 1 skipped), testlab-readonly-proof REQUIRE=1, server-page-check.mjs, flood.sh hold 4x100 and 6x100 and signed 6x8 at 512 MiB, canary/run.sh. readonly-distros.sh changed: the marker is created before the baseline diff (its own /run entry was a false positive). Not run: the opt-in silent-agent smoke step (~11 min); checks never ran on a real (non-container) VM; RHEL 8 (platform-python) and dnf5 paths only by code, not by a container run. Open: one 6x100 hold run with 5/2121 site 503s during a VM-wide ~1.3 s stall (see kill criterion d). Builder and measurer are the same agent (README rule 2 not met). Kill criteria (a) and (d) were hit by the review of 6cd6ca0 (entries marked [review of 6cd6ca0]); after the fixes none is hit (entries [after fixes]). The 6x100 caveat: in run hold6 (pre-final image, same Go code) 5 of 2121 site requests were answered 503 by the 1 s eval_timeout during a stall of ~1.3 s in which the external docker-stats sampler also paused for 4 s (its only gap across all 12 runs); schild-api stayed at 112 MiB, no restart. The other 9 hold runs (3 at 4x100, 6 at 6x100, incl. the final images) and both signed floods had 0 failures.",
+  "artifacts": [
+    "results/runs/smoke-t1/agents.json",
+    "results/runs/smoke-t1/smoke.json",
+    "results/runs/readonly-proof/readonly-proof.json",
+    "results/ux/mvp11/real/server-page-check.json"
+  ]
+}

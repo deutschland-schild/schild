@@ -1,0 +1,29 @@
+{
+  "contract": "agent-report",
+  "description": "Payload with a duplicate key.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z",
+    "trust": [
+      "agent-a",
+      "agent-b",
+      "agent-c",
+      "site-a",
+      "lab-a"
+    ],
+    "seen_ids": [
+      "6c10930e06dcc77eec868b5acd286173"
+    ],
+    "revoked": [
+      "agent-c"
+    ],
+    "gateway": "gw-1"
+  },
+  "input_raw": "{\"payloadType\":\"application/vnd.schild.agent-report.v0+json\",\"payload\":\"eyJzY2hlbWEiOiJzY2hpbGQuYWdlbnRfcmVwb3J0LzAuMSIsInNjaGVtYSI6IngifQ==\",\"signatures\":[{\"keyid\":\"test-agent-a\",\"sig\":\"zDL5q9m7Mw0UH8Ew7PPVRjRie2Z1trfUDq8yROnb0o9RGM5Q4Hs4Q9PS8kXXR6SHb+cmTYord7FSOIHvcWd8AA==\"}]}",
+  "input_decoded": {
+    "payload_text": ""
+  },
+  "expect": {
+    "valid": false,
+    "error": "malformed"
+  }
+}

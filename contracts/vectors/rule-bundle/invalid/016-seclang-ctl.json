@@ -1,0 +1,63 @@
+{
+  "contract": "rule-bundle",
+  "description": "Rule switches the engine off with ctl: (K7).",
+  "context": {
+    "now": "2026-10-26T12:00:00Z",
+    "trust": [
+      "site-a",
+      "site-b",
+      "site-c",
+      "lab-a",
+      "lab-a2",
+      "lab-b",
+      "lab-c",
+      "lab-d"
+    ],
+    "threshold": 2,
+    "channel": "schild-main"
+  },
+  "input_raw": "{\"payloadType\":\"application/vnd.schild.rule-bundle.v0+json\",\"payload\":\"eyJidW5kbGVfaWQiOiJzY2hpbGQtbWFpbiIsImV4cGlyZXMiOiIyMDI2LTExLTA5VDEyOjAwOjAwWiIsImlzc3VlZF9hdCI6IjIwMjYtMTAtMjZUMTE6MDA6MDBaIiwicnVsZXMiOlt7ImNsYXNzIjoidmlydHVhbF9wYXRjaCIsImV2aWRlbmNlIjp7Imh1bWFuX2FwcHJvdmFsX29yZ3MiOjIsIm1heF9pc3N1ZXJfc2hhcmUiOjAuMjksIm5lZ2F0aXZlX2NvcnB1cyI6ImNvcnB1cy0yMDI2LjEwIiwicmVwcm9kdWNlZF9ieSI6WyJsYWItYSIsImxhYi1iIl0sInJlcHJvZHVjZWRfb3BlcmF0b3JzIjoyLCJzZW5zb3Jfb3BlcmF0b3JzIjoxLCJ0aXBfaXNzdWVycyI6N30sImZlZWRiYWNrX3BvbGljeSI6Im5hcnJvd19vbmx5IiwibWF4X2FjdGlvbiI6Im9ic2VydmUiLCJtYXhfbWF0Y2hfc2hhcmUiOjAuMDEsInJ1bGVfaWQiOiJzY2hpbGQtMjAyNi0wNDIwIiwic2VjbGFuZyI6IlNlY1J1bGUgQVJHUyBcIkByeCBmb29cIiBcImlkOjc3MDAwMjEscGhhc2U6MSxwYXNzLHNldmVyaXR5Ok5PVElDRSxtc2c6J3gnLGN0bDpydWxlRW5naW5lPU9mZlwiIiwic3RhZ2UiOiJnZW5lcmFsIiwidGFyZ2V0Ijp7ImN2ZSI6WyJDVkUtMjAyNi0xMjM0NSJdLCJzb2Z0d2FyZSI6IndwLXBsdWdpbi9nYWxsZXJ5IiwidmVyc2lvbnMiOiI8Mi40LjEifX1dLCJzY2hlbWEiOiJzY2hpbGQucnVsZS1idW5kbGUvMC4xIiwidmVyc2lvbiI6NDJ9\",\"signatures\":[{\"keyid\":\"test-lab-a\",\"sig\":\"+Yzu9jZ8cyfhefcyw6BDFwQxDkatlxMSzrHBoS17iCojxnRZwSkzeHO0ITMBMw0W7ONCwTx2630EwyOc+Qu+BA==\"},{\"keyid\":\"test-lab-b\",\"sig\":\"1mnKvV511OGM/iT1SJfEWAFuwMh90WRmicx1drbajDVbrk0jABKnTAFYkCJIMS1ciFnyIlZpUZysVVFTl69IBA==\"}]}",
+  "input_decoded": {
+    "payload": {
+      "bundle_id": "schild-main",
+      "expires": "2026-11-09T12:00:00Z",
+      "issued_at": "2026-10-26T11:00:00Z",
+      "rules": [
+        {
+          "class": "virtual_patch",
+          "evidence": {
+            "human_approval_orgs": 2,
+            "max_issuer_share": 0.29,
+            "negative_corpus": "corpus-2026.10",
+            "reproduced_by": [
+              "lab-a",
+              "lab-b"
+            ],
+            "reproduced_operators": 2,
+            "sensor_operators": 1,
+            "tip_issuers": 7
+          },
+          "feedback_policy": "narrow_only",
+          "max_action": "observe",
+          "max_match_share": 0.01,
+          "rule_id": "schild-2026-0420",
+          "seclang": "SecRule ARGS \"@rx foo\" \"id:7700021,phase:1,pass,severity:NOTICE,msg:'x',ctl:ruleEngine=Off\"",
+          "stage": "general",
+          "target": {
+            "cve": [
+              "CVE-2026-12345"
+            ],
+            "software": "wp-plugin/gallery",
+            "versions": "<2.4.1"
+          }
+        }
+      ],
+      "schema": "schild.rule-bundle/0.1",
+      "version": 42
+    }
+  },
+  "expect": {
+    "valid": false,
+    "error": "seclang"
+  }
+}

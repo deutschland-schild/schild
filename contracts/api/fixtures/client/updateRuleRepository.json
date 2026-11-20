@@ -1,0 +1,25 @@
+{
+  "id": "crs",
+  "name": "OWASP CRS",
+  "state": "detect",
+  "config_state": "block",
+  "state_source": "dashboard",
+  "differs": true,
+  "effect": "detect",
+  "origin": "built_in",
+  "counts": {
+    "rules": 219,
+    "disabled": 1,
+    "settling": 0,
+    "skipped": 0
+  },
+  "last_change_at": null,
+  "licence": "Apache-2.0",
+  "crs": {
+    "paranoia_level": 1,
+    "inbound_anomaly_threshold": 5,
+    "livewire_exception": true,
+    "version": "4.20.0"
+  },
+  "state_set_at": "2026-11-06T10:00:00Z"
+}

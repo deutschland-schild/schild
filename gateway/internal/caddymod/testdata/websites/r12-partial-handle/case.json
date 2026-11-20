@@ -1,0 +1,12 @@
+{
+ "resolve": [],
+ "blocks": [
+  {
+   "Addresses": [
+    "part.example.org"
+   ],
+   "Schild": false,
+   "Proxies": true
+  }
+ ]
+}

@@ -1,0 +1,77 @@
+{
+  "contract": "storage-bounds",
+  "description": "D38: five blocked requests of one client for one rule within a minute are one incident (count 5, first and last seen); every block page shows its number K7QM-4XWD.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"max_open\":65536,\"op\":\"incident_aggregate\",\"requests\":[{\"client\":\"c1\",\"draw\":\"K7QM-4XWD\",\"rules\":[\"942100\"],\"t\":1793016001000},{\"client\":\"c1\",\"draw\":\"A2BC-3DEF\",\"rules\":[\"942100\"],\"t\":1793016002000},{\"client\":\"c1\",\"draw\":\"H4JK-5LMN\",\"rules\":[\"942100\"],\"t\":1793016003000},{\"client\":\"c1\",\"draw\":\"P6QR-7STU\",\"rules\":[\"942100\"],\"t\":1793016059000},{\"client\":\"c1\",\"draw\":\"V8WX-9YZA\",\"rules\":[\"942100\"],\"t\":1793016059999}]}",
+  "input_decoded": {
+    "max_open": 65536,
+    "op": "incident_aggregate",
+    "requests": [
+      {
+        "client": "c1",
+        "draw": "K7QM-4XWD",
+        "rules": [
+          "942100"
+        ],
+        "t": 1793016001000
+      },
+      {
+        "client": "c1",
+        "draw": "A2BC-3DEF",
+        "rules": [
+          "942100"
+        ],
+        "t": 1793016002000
+      },
+      {
+        "client": "c1",
+        "draw": "H4JK-5LMN",
+        "rules": [
+          "942100"
+        ],
+        "t": 1793016003000
+      },
+      {
+        "client": "c1",
+        "draw": "P6QR-7STU",
+        "rules": [
+          "942100"
+        ],
+        "t": 1793016059000
+      },
+      {
+        "client": "c1",
+        "draw": "V8WX-9YZA",
+        "rules": [
+          "942100"
+        ],
+        "t": 1793016059999
+      }
+    ]
+  },
+  "expect": {
+    "valid": true,
+    "result": {
+      "numbers": [
+        "K7QM-4XWD",
+        "K7QM-4XWD",
+        "K7QM-4XWD",
+        "K7QM-4XWD",
+        "K7QM-4XWD"
+      ],
+      "incidents": [
+        {
+          "incident": "K7QM-4XWD",
+          "client": "c1",
+          "rule_key": "942100",
+          "minute_ms": 1793016000000,
+          "count": 5,
+          "first_ms": 1793016001000,
+          "last_ms": 1793016059999
+        }
+      ]
+    }
+  }
+}

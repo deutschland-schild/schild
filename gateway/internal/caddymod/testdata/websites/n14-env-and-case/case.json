@@ -1,0 +1,22 @@
+{
+ "resolve": [
+  "env.example.org",
+  "shop.example.org"
+ ],
+ "blocks": [
+  {
+   "Addresses": [
+    "http://Shop.Example.ORG"
+   ],
+   "Schild": false,
+   "Proxies": false
+  },
+  {
+   "Addresses": [
+    "env.example.org"
+   ],
+   "Schild": true,
+   "Proxies": true
+  }
+ ]
+}

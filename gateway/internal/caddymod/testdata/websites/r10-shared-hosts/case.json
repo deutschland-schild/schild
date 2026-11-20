@@ -1,0 +1,45 @@
+{
+ "resolve": [
+  "a.example.org",
+  "b.example.org",
+  "c.example.org"
+ ],
+ "blocks": [
+  {
+   "Addresses": [
+    "a.example.org"
+   ],
+   "Schild": true,
+   "Proxies": true
+  },
+  {
+   "Addresses": [
+    "b.example.org"
+   ],
+   "Schild": true,
+   "Proxies": true
+  },
+  {
+   "Addresses": [
+    "b.example.org:8443",
+    "a.example.org:8443"
+   ],
+   "Schild": true,
+   "Proxies": true
+  },
+  {
+   "Addresses": [
+    "c.example.org/api/*"
+   ],
+   "Schild": true,
+   "Proxies": true
+  },
+  {
+   "Addresses": [
+    "c.example.org"
+   ],
+   "Schild": true,
+   "Proxies": true
+  }
+ ]
+}

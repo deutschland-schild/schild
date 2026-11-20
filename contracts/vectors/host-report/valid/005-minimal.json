@@ -1,0 +1,11 @@
+{
+  "contract": "host-report",
+  "description": "No findings and no inventory (a check that found nothing to report).",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"findings\":[],\"host\":{\"agent_key_id\":null,\"hostname\":\"box\",\"os\":{\"arch\":\"aarch64\",\"eol\":\"2026-04-01\",\"id\":\"alpine\",\"kernel\":\"6.6.49-0-lts\",\"name\":\"Alpine Linux v3.20\",\"version_id\":\"3.20.3\"},\"role\":\"gateway\"},\"inventory\":[],\"report_id\":\"285d5a08-59f8-4c05-aef9-5475c5a8d138\",\"run\":{\"as_root\":false,\"duration_ms\":4210,\"eol_table\":\"2026-10-01\",\"schild_version\":\"0.3.0\",\"started_at\":\"2026-10-26T11:57:00Z\"},\"schema\":\"schild.host_report/0.1\"}",
+  "expect": {
+    "valid": true
+  }
+}

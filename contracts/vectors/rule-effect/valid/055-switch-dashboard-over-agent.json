@@ -1,0 +1,27 @@
+{
+  "contract": "rule-effect",
+  "description": "One overlay value per repository: the last writer owns it.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"actor\":\"dashboard\",\"config\":\"detect\",\"op\":\"switch\",\"overlay\":\"block\",\"overlay_by\":\"agent\",\"repository\":\"crowdsec\",\"requested\":\"detect\"}",
+  "input_decoded": {
+    "actor": "dashboard",
+    "config": "detect",
+    "op": "switch",
+    "overlay": "block",
+    "overlay_by": "agent",
+    "repository": "crowdsec",
+    "requested": "detect"
+  },
+  "expect": {
+    "valid": true,
+    "result": {
+      "state": "detect",
+      "source": "dashboard",
+      "changed": true,
+      "rebuild": false,
+      "differs": false
+    }
+  }
+}

@@ -1,0 +1,24 @@
+{
+  "contract": "rule-effect",
+  "description": "bypass_waf skips the WAF.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"allow\":\"bypass_waf\",\"mode\":\"autoblock\",\"now\":1000000,\"op\":\"request\",\"origin\":\"release\",\"state\":\"block\"}",
+  "input_decoded": {
+    "allow": "bypass_waf",
+    "mode": "autoblock",
+    "now": 1000000,
+    "op": "request",
+    "origin": "release",
+    "state": "block"
+  },
+  "expect": {
+    "valid": true,
+    "result": {
+      "action": "none",
+      "outcome": "passed",
+      "counts_as_hit": false
+    }
+  }
+}

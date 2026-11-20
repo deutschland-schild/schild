@@ -1,0 +1,20 @@
+{
+  "contract": "config/schild",
+  "description": "v0.4 MVP-19: production without the network, autoblock with local decisions, no keys.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"config_version\":0,\"mode\":\"autoblock\",\"node_name\":\"web-1\",\"profile\":\"production\",\"upstream\":{\"url\":\"http://app:80\"}}",
+  "input_decoded": {
+    "config_version": 0,
+    "mode": "autoblock",
+    "node_name": "web-1",
+    "profile": "production",
+    "upstream": {
+      "url": "http://app:80"
+    }
+  },
+  "expect": {
+    "valid": true
+  }
+}

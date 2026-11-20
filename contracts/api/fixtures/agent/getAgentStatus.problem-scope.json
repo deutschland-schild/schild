@@ -1,0 +1,7 @@
+{
+  "type": "about:blank",
+  "title": "Forbidden",
+  "status": 403,
+  "code": "forbidden",
+  "detail": "agent tokens are read-only"
+}

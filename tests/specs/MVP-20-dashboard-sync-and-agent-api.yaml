@@ -1,0 +1,120 @@
+id: MVP-20
+# Decisions (initiator, 2026-10-28; DECISIONS D32):
+# - Pragmatic v1 for one operator's own projects: one central Schild Dashboard for several gateways. The data model is
+#   multi-tenant from the start (tenant on every row), v1 runs with the single tenant "default"; tenant UI, roles,
+#   signed per-admin actions and service providers stay in MVP-13 (later).
+# - Connection in v1: SSH tunnel (initiator, 2026-10-28), no WireGuard.
+# - Read path: every gateway offers a read-only, cursor-based export; the dashboard keeps a copy, at most as long as the
+#   gateway keeps the data, and runs all search and charts on it.
+# - The only action from the dashboard and its API is blocking an IP or prefix (and lifting such a block); nothing that changes
+#   configuration, trust roots or turns protection off.
+# - No own AI agent: the dashboard offers a read-only agent API that serves its own OpenAPI document (D61, no MCP); any agent connects (e.g. Claude Code).
+# - Amended by D54 and D55 (2026-11-02): on one gateway an agent may test sample requests and set rule exceptions through
+#   the agent API (MVP-28). The central dashboard stays as written here.
+# - Attached gateways may run headless (built-in dashboard off); the CLI stays for local operation.
+# Background: subagent design, model research and fleet-product research of 2026-10-28 (lessons adopted below where
+# cheap: fixed action list with expiry, per-gateway token created on the host, cursor epoch,
+# gateway data treated as hostile in the dashboard).
+# Website-first (initiator 2026-10-29, DECISIONS D36): the central dashboard sums the same website (same website id)
+# across the gateways it runs on. Merge rules, checked against the MVP-21 wire types: TrafficCounters add up exactly;
+# latency histograms (one fixed scheme) add up bucket by bucket, so a merged p95 keeps the +25 % bound; both per
+# website from MetricBucket.sites[] (v0.5 adds the per-website histograms and lists every tracked website, also a
+# single one; buckets from before list nothing with one site: all traffic is that gateway's one website). Not merged:
+# unique/new client estimates (per gateway; show the largest as "mindestens"), _other, and the proxy-mode id default
+# (local to its gateway). Top lists merge approximately (counts and errors add up; a key missing from a full list may
+# be undercounted by that list's smallest count). Status over several gateways: contract/websites.Status with one
+# entry per gateway in `servers` (all down = gestört, some down or unreachable = bitte ansehen); runs_on lists them.
+title: "Central Schild Dashboard for own projects (v1, tenant default, SSH tunnel): read-only export from every gateway, central store, charts and alerts, a fixed list of simple actions, read-only agent API"
+ships: false                        # draft
+status: ENTWURF
+image: schild-dashboard             # separate image and Debian package; the gateway side is part of schild
+hypotheses: [D3]
+refs: [MVP-09, MVP-11, MVP-13, MVP-17, MVP-18, MVP-19, MVP-21, concept-24, DECISIONS-D14, DECISIONS-D32]
+depends_on: [MVP-19]
+why: >-
+  Several side projects on several servers, one place to see what happens and to react. Fetching live from every
+  gateway would run LIKE scans on the machines that check requests (gateway/internal/store/events.go q filter) and show
+  nothing for an offline gateway; a copy moves search and charts off the gateways.
+connection:                         # v1: SSH tunnel, no WireGuard
+  - 'transport is pluggable: the dashboard reaches each gateway''s loopback export listener through a transport adapter; v1 ships the SSH tunnel, a mesh such as NetBird (self-hosted) or WireGuard can be added later without changing the export or action contracts (decided 2026-10-28, D34)'
+  - 'the dashboard host keeps one SSH local forward per gateway (ssh -L, supervised and restarted by the dashboard or autossh/systemd): dashboard 127.0.0.1:<local port> -> gateway 127.0.0.1:8789'
+  - 'on the gateway a dedicated user without shell (e.g. schild-tunnel) with one key per dashboard in authorized_keys: restrict,port-forwarding,permitopen="127.0.0.1:8789",command="/usr/sbin/nologin"; the runbook and `schild dashboard tunnel-setup` print exactly this line; the key gives no shell and no other port'
+  - 'host key of each gateway pinned on the dashboard (known_hosts, no TOFU in production)'
+  - 'one token per gateway on top of the tunnel, created on the gateway host by CLI (schild dashboard token add|list|revoke), shown once, stored hashed, with expiry; scopes export:read and actions:basic; revoking it locally (or removing the key line) cuts the dashboard off at once'
+  - 'gateway listener = the MVP-21 agent API listener agent_api.listen on 127.0.0.1 only (schema refuses anything but loopback); bounded (one sync in flight, rate limit, row and byte caps, short read transactions)'
+  - 'the dashboard user and agents never get the SSH key material through any API; the key file is readable only by the dashboard service'
+read_path:
+  export:
+    - 'events: GET /export/v0/events?after=<cursor>&wait<=25s, NDJSON (zstd or gzip) in seq order; an idle long-poll does not query the database'
+    - 'changes: GET /export/v0/changes?after=<cursor> for what is not append-only (IP truncation, deletions incl. Art. 17, incident status, blocks set or lifted, mode changed)'
+    - 'metrics: the rings of MVP-21 (metrics.db: 10 s, 1 min, 10 min; traffic counters of every request, host basics from /proc every 10 s); the export streams MetricBucket rows of the 1 min ring (10 s on request) by cursor, so a dashboard outage leaves no gap within the ring (revised 2026-10-28, D33: no second sampler)'
+    - 'system log: a short positive list from journald, read only when the operator enables it: kernel warnings and above, OOM killer, "possible SYN flooding", "nf_conntrack: table full", disk full, I/O errors, schild crashes; IPs and user names in these lines pseudonymised like events'
+    - 'state: small snapshot (mode, Grundschutz, settings without secrets, host findings from MVP-11) with ETag'
+    - 'manifest: schema version, gateway id, epoch (new after reinstall or restore, so the dashboard never mixes two histories), retention, watermarks'
+    - 'cursor: opaque, monotonic within an epoch; below the low watermark -> 410 cursor_expired and the dashboard records a gap'
+  ip_mode: 'full by default for the own dashboard (same operator, same data as the built-in dashboard, E7); keyed pseudonyms for the agent API'
+  not_exported: 'the full web server access log (stays on the server); request bodies (never stored anyway)'
+dashboard:
+  - 'data model multi-tenant from the start: tenant_id on gateways, users, events, metrics, logs, actions, alerts and agent tokens; every query scoped by tenant; v1 creates only tenant "default" and shows no tenant UI'
+  - 'one or a few users, login with password plus TOTP or passkey; reachable only on localhost via SSH tunnel or a private network'
+  - 'store: SQLite for the UI, DuckDB/Parquet per gateway and day for search and charts; cgo only in this image'
+  - 'retention mirrors each gateway: never longer than its events_days, IP truncation and deletions applied within one poll (D32)'
+  - 'storage bounds (D38, 2026-10-29): the central copy has its own size cap per gateway (default the gateway''s retention.max_size_mb, configurable up to 10 x) and deletes by the same value order (contracts/storage-bounds.md section 1); rows the gateway''s size cap deleted are named in changes (kind size_cap, with the deleted event ids or the oldest kept seq per class) and are deleted from the copy within one poll, like age retention; metric copies keep at most the gateway''s ring lengths (14 d at 10 min, 90 d coarser), system-log copies at most 7 days and 64 MiB per gateway; the disk budget of the central store (sum of all caps) is checked against its file system like the gateway''s (storage_budget)'
+  - 'views: all gateways at a glance (status, Grundschutz, mode, blocks, lag), events and incidents across gateways with search, charts for metrics of the last days, the system log lines, one gateway in detail'
+  - 'treat everything from a gateway as hostile input: strict schemas, size caps, no polymorphic decoding'
+  - 'alerts, rule-based (no model): gateway silent > 5 min, Grundschutz off, mode changed, events dropped, gap, wave detected, login brute force, block rate far above baseline, kernel lines from the positive list, disk or memory nearly full, token expiring; e-mail or ntfy'
+  - 'outage of the dashboard never affects a gateway; gateways keep running with their own configuration'
+actions:                            # the only things the dashboard and its API can make a gateway do
+  list:
+    - 'block by evidence: the request names event ids (one or more) and the gateway blocks the client address it recorded for those events (or its /24 or /48 when asked); the address is resolved on the gateway, never taken from text; a caller that only sees pseudonymised IPs can still block (decided 2026-10-28, D34)'
+    - 'block an IP or prefix directly (IPv4 up to /24, IPv6 up to /48) for human users of the dashboard only; with an expiry (default 24 h, max 30 d) and a reason'
+    - 'lift a block that was set from the dashboard (to undo a mistake before it expires); nothing else (decided 2026-10-28: blocking is enough, no release or allow actions)'
+  rules:
+    - 'gateway endpoint POST /actions/v0 accepts only these kinds; anything else is 404; no free-form config, no rule or exception editing, no mode change, no trust roots, no attach/detach, nothing that switches protection off'
+    - 'every action expires by itself, is recorded in the gateway''s local audit log with the dashboard user, and shows in the built-in dashboard and `schild status`'
+    - 'a block never covers the operator''s own allowlisted addresses; blocks of cgnat or mobile addresses need an explicit confirm flag (many people behind one address)'
+    - 'rate limit per token on actions; the dashboard asks for the password again before an action'
+    - 'blocks are local to that gateway (or to the gateways the user picks); nothing goes to labs or other operators (G1)'
+  configuration_as_code:            # decided 2026-10-28
+    - 'mode (observe, review, autoblock), scenarios, rate limits, exceptions, rules and every other setting change only as code: schild.yaml and rules.d in the operator''s repository, deployed like the rest of the infrastructure (e.g. Kamal accessory files), reviewed in git'
+    - 'the dashboard shows mode and settings of each gateway read-only, with the config version (hash of schild.yaml and rules.d) and when it changed, so drift between gateways is visible'
+    - 'the dashboard can offer a change as a copyable YAML snippet (e.g. a narrow exception for a false positive), never apply it'
+agent_access:
+  - 'two ways, one read surface: MVP-21 defines a narrow agent API on each gateway, read only except the rule repository writes for scopes rules:write and rules:approve (D73) and single blocks for scope blocks:write (D42), both on the gateway and not part of this read surface (token scope agent:read, keyed IPs, no free-text search, time series and bounded windows only); a single-server operator can connect an agent there directly through the SSH tunnel, without this dashboard. The central dashboard offers the same tools over all gateways with longer history (decided 2026-10-28)'
+  - 'read-only agent API on the dashboard that serves its own OpenAPI document (D61); token scope agent:read, expiry, revocable, every call logged'
+  - 'tools: fleet_status, alerts, summary, top, timeseries, incident, event, system_log, rule_profile; answers pre-aggregated and capped; IPs keyed'
+  - 'no actions through the agent API of this central dashboard in v1, not even the action list; a human acts in the dashboard. The writes of D39 and D42 exist only on the agent API of one gateway'
+  - 'attacker-controlled fields (path, query, user agent, host, rule match data, log lines) marked untrusted in the schema, length-capped and escaped'
+  - 'docs: a ready Claude Code skill and a curl example; privacy note: with a cloud model the read data leaves the own network'
+contracts:
+  new:                              # the contracts agent owns schemas, Go types and vectors
+    - 'api/gateway-export.openapi.yaml (export/v0) and api/gateway-actions.openapi.yaml (actions/v0), event, change and log line schemas; metric samples reference MetricBucket of client-dashboard.openapi.yaml (MVP-21, D33)'
+    - 'schild.yaml: export {system_log {enabled, sources}}; the export is served on the MVP-21 agent API listener (agent_api.listen, 127.0.0.1:8789) with tokens of scope export:read from the same host-side token store (schild token add --scope export:read); sampling and ring lengths come from monitoring (MVP-21, D33)'
+    - 'vectors: cursor, epoch and watermark cases; action kinds valid/invalid (prefix too wide, expiry too long, unknown kind)'
+  version: 'contracts v0.5 (backwards compatible addendum)'
+packaging:
+  - 'images and Debian packages: schild (gateway, incl. built-in dashboard), schild-agent (MVP-11), schild-dashboard; systemd units schild.service and schild-dashboard.service'
+  - 'dashboard reads export N and N-1'
+measure:                            # by an independent agent
+  - 'tunnel: the forwarded key gives no shell, no other port and no reverse forward; a gateway with a changed host key is refused'
+  - 'tenancy: two tenants created in a test fixture see 0 objects of each other through UI, API and agent API (model check, even though v1 ships one tenant)'
+  - 'testlab t1: 3 gateways, one dashboard; restart the dashboard and a gateway -> no loss, no duplicates; reinstall a gateway -> new epoch, no mixed history; metrics gap only beyond the ring buffer'
+  - 'privacy: deletion and IP truncation on a gateway reach the copy within one poll'
+  - 'storage bounds (D38): a gateway whose size cap deletes rows during a flood -> the copy loses the same rows within one poll; the central copy stays within its own cap under a 3-gateway flood; metric and system-log copies never exceed their retention'
+  - 'block by evidence: the gateway blocks exactly the recorded client address of the named events; an IP written into a path, user agent or header of those events is never blocked; unknown or foreign event ids refused'
+  - 'actions: block and lift work, blocks expire; unknown kinds (incl. release and allow), too wide prefixes, too long expiry, own allowlisted addresses refused; every action in the local audit log; a revoked token is refused at once'
+  - 'load: export and actions next to traffic: gateway p99 latency unchanged within noise'
+  - 'system log: SYN flood, memory flood and disk full in the testlab produce the expected lines and alerts'
+  - 'agent API: agent token gets 403 on every action and admin route; hostile log content arrives marked and escaped'
+kill_if: "the export or actions measurably slow request handling OR any action outside the list reaches a gateway OR an action does not expire OR the copy outlives gateway retention or misses a deletion OR an agent token triggers an action"
+done: "make contracts-test && make test && make testlab-up PROFILE=t1 && make smoke PROFILE=t1 (incl. export, actions and dashboard steps)"
+out_of_scope:
+  - 'tenant UI, roles, service providers, per-admin signed actions (MVP-13, later); the data model already carries tenant_id'
+  - 'WireGuard (possible later as an alternative transport)'
+  - 'locking the settings of the built-in gateway dashboard when the config is managed as code (not in v1)'
+  - 'an own AI agent; actions through the agent API'
+  - 'OpenTelemetry collector on gateways; OTLP export from the dashboard may come later; Prometheus /metrics on the gateway stays local as today'
+  - 'shipping full access logs centrally'
+  - 'sending anything to labs or the Verein'
+open_questions:
+  - 'system log positive list: confirm in the testlab'

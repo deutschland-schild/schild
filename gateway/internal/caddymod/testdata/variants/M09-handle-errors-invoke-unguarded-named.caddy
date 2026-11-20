@@ -1,0 +1,16 @@
+# unprotected: []
+# expect: refuse
+# handle_errors invokes a named route that proxies without schild.
+&(up) {
+	reverse_proxy 127.0.0.1:18081
+}
+http://:18080 {
+	import schild
+	invoke up
+	handle_errors {
+		invoke up
+	}
+}
+http://b.example.test:18080 {
+	error "boom" 500
+}

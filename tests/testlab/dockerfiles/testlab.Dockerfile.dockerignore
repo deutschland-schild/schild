@@ -1,0 +1,15 @@
+# Build context is the repository root; the test-lab image needs contract/ and
+# tests/testlab/ plus the go.mod files of the other workspace modules.
+*
+!go.work
+!go.work.sum
+!contract/
+!tests/testlab/
+!gateway/go.mod
+!lab/go.mod
+!relay/go.mod
+!tests/adversaries/go.mod
+**/node_modules
+contract/vectors/
+tests/testlab/compose/secrets/
+**/*.key

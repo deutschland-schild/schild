@@ -1,0 +1,26 @@
+{
+	admin off
+	http_port 19190
+	https_port 19143
+}
+
+static.example.org {
+	root * /tmp
+	file_server
+}
+
+probe.example.org {
+	respond "ok" 200
+}
+
+docs.example.org {
+	schild
+	root * /tmp
+	file_server
+}
+
+app.example.org {
+	schild
+	reverse_proxy 127.0.0.1:19101
+}
+

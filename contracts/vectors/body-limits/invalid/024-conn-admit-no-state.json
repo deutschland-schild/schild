@@ -1,0 +1,23 @@
+{
+  "contract": "body-limits",
+  "description": "D46: conn_state is required.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"conn_limits\":{\"max_open\":16384,\"max_per_client\":2048,\"max_per_network\":8192},\"net_class\":\"unknown\",\"op\":\"conn_admit\",\"peer_known\":false,\"proxy\":false}",
+  "input_decoded": {
+    "conn_limits": {
+      "max_open": 16384,
+      "max_per_client": 2048,
+      "max_per_network": 8192
+    },
+    "net_class": "unknown",
+    "op": "conn_admit",
+    "peer_known": false,
+    "proxy": false
+  },
+  "expect": {
+    "valid": false,
+    "error": "schema"
+  }
+}

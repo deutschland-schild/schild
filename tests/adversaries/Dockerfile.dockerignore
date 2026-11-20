@@ -1,0 +1,12 @@
+# Build context is the repository root; the adversary image needs contract/ and
+# tests/adversaries/ plus the go.mod files of the other workspace modules.
+*
+!go.work
+!contract/
+!tests/adversaries/
+!gateway/go.mod
+!lab/go.mod
+!relay/go.mod
+!tests/testlab/go.mod
+**/node_modules
+**/*.key

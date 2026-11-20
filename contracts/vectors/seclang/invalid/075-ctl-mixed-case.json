@@ -1,0 +1,13 @@
+{
+  "contract": "seclang",
+  "description": "SecLang subset case ctl-mixed-case (max_action observe).",
+  "context": {
+    "now": "2026-10-26T12:00:00Z",
+    "max_action": "observe"
+  },
+  "input_raw": "SecRule ARGS \"@detectSQLi\" \"id:7700141,phase:2,pass,severity:NOTICE,msg:'x',Ctl:ruleEngine=Off\"",
+  "expect": {
+    "valid": false,
+    "error": "seclang"
+  }
+}

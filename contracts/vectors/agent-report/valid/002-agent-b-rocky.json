@@ -1,0 +1,151 @@
+{
+  "contract": "agent-report",
+  "description": "Agent b (Rocky 9) delivers.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z",
+    "trust": [
+      "agent-a",
+      "agent-b",
+      "agent-c",
+      "site-a",
+      "lab-a"
+    ],
+    "seen_ids": [
+      "6c10930e06dcc77eec868b5acd286173"
+    ],
+    "revoked": [
+      "agent-c"
+    ],
+    "gateway": "gw-1"
+  },
+  "input_raw": "{\"payloadType\":\"application/vnd.schild.agent-report.v0+json\",\"payload\":\"eyJnYXRld2F5IjoiZ3ctMSIsImlzc3VlZF9hdCI6IjIwMjYtMTAtMjZUMTE6NTk6MzBaIiwibm9uY2UiOiIzYjRmNzgwMmViZGFjZjU0OGFlMmNhYzBiYzU0YzFmNCIsInJlcG9ydCI6eyJmaW5kaW5ncyI6W3siYXJlYSI6InVwZGF0ZXMiLCJldmlkZW5jZSI6eyJjb3VudCI6MCwic291cmNlIjoiZG5mIn0sImV4cGxhbmF0aW9uIjoiRGVyIGRuZi1DYWNoZSBrZW5udCBrZWluZSBvZmZlbmVuIFNpY2hlcmhlaXRzdXBkYXRlcy4gRXIgd2lyZCBuaWNodCBuZXUgZ2VsYWRlbi4iLCJmaXhfY29tbWFuZCI6bnVsbCwiaWQiOiJ1cGRhdGVzLnNlY3VyaXR5X3BlbmRpbmciLCJzZXZlcml0eSI6ImluZm8iLCJzdGF0dXMiOiJvayIsInRpdGxlIjoiS2VpbmUgU2ljaGVyaGVpdHN1cGRhdGVzIG9mZmVuIn0seyJhcmVhIjoidXBkYXRlcyIsImV2aWRlbmNlIjp7ImVuYWJsZWQiOmZhbHNlLCJzb3VyY2UiOiJkbmZfYXV0b21hdGljIn0sImV4cGxhbmF0aW9uIjoiVXBkYXRlcyBrb21tZW4gbnVyLCB3ZW5uIGplbWFuZCBzaWUgc3RhcnRldC4iLCJmaXhfY29tbWFuZCI6InN1ZG8gZG5mIGluc3RhbGwgZG5mLWF1dG9tYXRpYyAmJiBzdWRvIHN5c3RlbWN0bCBlbmFibGUgLS1ub3cgZG5mLWF1dG9tYXRpYy1pbnN0YWxsLnRpbWVyIiwiaWQiOiJ1cGRhdGVzLmF1dG9tYXRpYyIsInNldmVyaXR5IjoibG93Iiwic3RhdHVzIjoiZmluZGluZyIsInRpdGxlIjoiZG5mLWF1dG9tYXRpYyBpc3QgYXVzIn0seyJhcmVhIjoidXBkYXRlcyIsImV2aWRlbmNlIjp7ImNhbmRpZGF0ZV92ZXJzaW9uIjoiNS4xNC4wLTQyNy4yMi4xLmVsOV80IiwiaW5zdGFsbGVkX3ZlcnNpb24iOiI1LjE0LjAtNDI3LjIyLjEuZWw5XzQiLCJzb3VyY2UiOiJuZWVkc19yZXN0YXJ0aW5nIn0sImV4cGxhbmF0aW9uIjoiRGVyIGxhdWZlbmRlIEtlcm5lbCBpc3Qgw6RsdGVyIGFscyBkZXIgaW5zdGFsbGllcnRlLiIsImZpeF9jb21tYW5kIjoic3VkbyBzeXN0ZW1jdGwgcmVib290IiwiaWQiOiJ1cGRhdGVzLnJlYm9vdF9yZXF1aXJlZCIsInNldmVyaXR5IjoibWVkaXVtIiwic3RhdHVzIjoiZmluZGluZyIsInRpdGxlIjoiTmV1c3RhcnQgbsO2dGlnIn0seyJhcmVhIjoiZmlyZXdhbGwiLCJldmlkZW5jZSI6eyJlbmFibGVkIjp0cnVlLCJwb2xpY3kiOiJyZWplY3QiLCJzb3VyY2UiOiJmaXJld2FsbGQifSwiZXhwbGFuYXRpb24iOiJFaW5nZWhlbmQgaXN0IG51ciBlcmxhdWJ0LCB3YXMgZnJlaWdlZ2ViZW4gaXN0LiIsImZpeF9jb21tYW5kIjpudWxsLCJpZCI6ImZpcmV3YWxsLmFjdGl2ZSIsInNldmVyaXR5IjoiaW5mbyIsInN0YXR1cyI6Im9rIiwidGl0bGUiOiJmaXJld2FsbGQgaXN0IGFrdGl2In0seyJhcmVhIjoiZmlyZXdhbGwiLCJldmlkZW5jZSI6eyJhZGRyZXNzIjoiMC4wLjAuMCIsInBvcnQiOjgwODAsInByb3RvY29sIjoidGNwIiwic291cmNlIjoiaXB0YWJsZXMifSwiZXhwbGFuYXRpb24iOiJFaW4gQ29udGFpbmVyIHZlcsO2ZmZlbnRsaWNodCBQb3J0IDgwODAgYXVmIGFsbGVuIEFkcmVzc2VuLiBEb2NrZXIgdHLDpGd0IGVpZ2VuZSBSZWdlbG4gZWluLCBkaWUgZmlyZXdhbGxkIG5pY2h0IHNpZWh0LiIsImZpeF9jb21tYW5kIjpudWxsLCJpZCI6ImZpcmV3YWxsLmRvY2tlcl9ieXBhc3MiLCJzZXZlcml0eSI6ImhpZ2giLCJzdGF0dXMiOiJmaW5kaW5nIiwidGl0bGUiOiJEb2NrZXIgdW1nZWh0IGZpcmV3YWxsZCJ9XSwiaG9zdCI6eyJhZ2VudF9rZXlfaWQiOiJ0ZXN0LWFnZW50LWIiLCJob3N0bmFtZSI6ImFwcC0yLmV4YW1wbGUiLCJvcyI6eyJhcmNoIjoieDg2XzY0IiwiZW9sIjoiMjAzMi0wNS0zMSIsImlkIjoicm9ja3kiLCJrZXJuZWwiOiI1LjE0LjAtNDI3LjEzLjEuZWw5XzQueDg2XzY0IiwibmFtZSI6IlJvY2t5IExpbnV4IDkuNCAoQmx1ZSBPbnl4KSIsInZlcnNpb25faWQiOiI5LjQifSwicm9sZSI6ImFnZW50In0sImludmVudG9yeSI6W3siZW9sIjoiMjAyNy0xMi0zMSIsImtpbmQiOiJydW50aW1lIiwibmFtZSI6ImphdmEtMTctb3BlbmpkayIsInNvdXJjZSI6InJwbSIsInZlcnNpb24iOiIxNy4wLjEyLjAuNy0yLmVsOSJ9LHsiZW9sIjpudWxsLCJraW5kIjoic2VydmVyIiwibmFtZSI6InRvbWNhdCIsInNvdXJjZSI6InJwbSIsInZlcnNpb24iOiI5LjAuODctMS5lbDkifSx7ImVvbCI6IjIwMjUtMTEtMTMiLCJraW5kIjoiZGF0YWJhc2UiLCJuYW1lIjoicG9zdGdyZXNxbC1zZXJ2ZXIiLCJzb3VyY2UiOiJycG0iLCJ2ZXJzaW9uIjoiMTMuMTQtMS5lbDkifV0sInJlcG9ydF9pZCI6IjA5N2VjYzFmLTAyYjgtNGU1ZC1hMjQxLTIzZjFkYWY4ZWNjYSIsInJ1biI6eyJhc19yb290Ijp0cnVlLCJkdXJhdGlvbl9tcyI6NDIxMCwiZW9sX3RhYmxlIjoiMjAyNi0xMC0wMSIsInNjaGlsZF92ZXJzaW9uIjoiMC4zLjAiLCJzdGFydGVkX2F0IjoiMjAyNi0xMC0yNlQxMTo1NzowMFoifSwic2NoZW1hIjoic2NoaWxkLmhvc3RfcmVwb3J0LzAuMSJ9LCJzY2hlbWEiOiJzY2hpbGQuYWdlbnRfcmVwb3J0LzAuMSJ9\",\"signatures\":[{\"keyid\":\"test-agent-b\",\"sig\":\"AHDNKyYSD7vRki2Z26UyWmAzqSnyH2vs2jLpVzI4NiyB3NilRKQZKfoAZUlIkF4zOqfQxh4/jDyt33qAiOvpCQ==\"}]}",
+  "input_decoded": {
+    "payload": {
+      "gateway": "gw-1",
+      "issued_at": "2026-10-26T11:59:30Z",
+      "nonce": "3b4f7802ebdacf548ae2cac0bc54c1f4",
+      "report": {
+        "findings": [
+          {
+            "area": "updates",
+            "evidence": {
+              "count": 0,
+              "source": "dnf"
+            },
+            "explanation": "Der dnf-Cache kennt keine offenen Sicherheitsupdates. Er wird nicht neu geladen.",
+            "fix_command": null,
+            "id": "updates.security_pending",
+            "severity": "info",
+            "status": "ok",
+            "title": "Keine Sicherheitsupdates offen"
+          },
+          {
+            "area": "updates",
+            "evidence": {
+              "enabled": false,
+              "source": "dnf_automatic"
+            },
+            "explanation": "Updates kommen nur, wenn jemand sie startet.",
+            "fix_command": "sudo dnf install dnf-automatic && sudo systemctl enable --now dnf-automatic-install.timer",
+            "id": "updates.automatic",
+            "severity": "low",
+            "status": "finding",
+            "title": "dnf-automatic ist aus"
+          },
+          {
+            "area": "updates",
+            "evidence": {
+              "candidate_version": "5.14.0-427.22.1.el9_4",
+              "installed_version": "5.14.0-427.22.1.el9_4",
+              "source": "needs_restarting"
+            },
+            "explanation": "Der laufende Kernel ist älter als der installierte.",
+            "fix_command": "sudo systemctl reboot",
+            "id": "updates.reboot_required",
+            "severity": "medium",
+            "status": "finding",
+            "title": "Neustart nötig"
+          },
+          {
+            "area": "firewall",
+            "evidence": {
+              "enabled": true,
+              "policy": "reject",
+              "source": "firewalld"
+            },
+            "explanation": "Eingehend ist nur erlaubt, was freigegeben ist.",
+            "fix_command": null,
+            "id": "firewall.active",
+            "severity": "info",
+            "status": "ok",
+            "title": "firewalld ist aktiv"
+          },
+          {
+            "area": "firewall",
+            "evidence": {
+              "address": "0.0.0.0",
+              "port": 8080,
+              "protocol": "tcp",
+              "source": "iptables"
+            },
+            "explanation": "Ein Container veröffentlicht Port 8080 auf allen Adressen. Docker trägt eigene Regeln ein, die firewalld nicht sieht.",
+            "fix_command": null,
+            "id": "firewall.docker_bypass",
+            "severity": "high",
+            "status": "finding",
+            "title": "Docker umgeht firewalld"
+          }
+        ],
+        "host": {
+          "agent_key_id": "test-agent-b",
+          "hostname": "app-2.example",
+          "os": {
+            "arch": "x86_64",
+            "eol": "2032-05-31",
+            "id": "rocky",
+            "kernel": "5.14.0-427.13.1.el9_4.x86_64",
+            "name": "Rocky Linux 9.4 (Blue Onyx)",
+            "version_id": "9.4"
+          },
+          "role": "agent"
+        },
+        "inventory": [
+          {
+            "eol": "2027-12-31",
+            "kind": "runtime",
+            "name": "java-17-openjdk",
+            "source": "rpm",
+            "version": "17.0.12.0.7-2.el9"
+          },
+          {
+            "eol": null,
+            "kind": "server",
+            "name": "tomcat",
+            "source": "rpm",
+            "version": "9.0.87-1.el9"
+          },
+          {
+            "eol": "2025-11-13",
+            "kind": "database",
+            "name": "postgresql-server",
+            "source": "rpm",
+            "version": "13.14-1.el9"
+          }
+        ],
+        "report_id": "097ecc1f-02b8-4e5d-a241-23f1daf8ecca",
+        "run": {
+          "as_root": true,
+          "duration_ms": 4210,
+          "eol_table": "2026-10-01",
+          "schild_version": "0.3.0",
+          "started_at": "2026-10-26T11:57:00Z"
+        },
+        "schema": "schild.host_report/0.1"
+      },
+      "schema": "schild.agent_report/0.1"
+    }
+  },
+  "expect": {
+    "valid": true
+  }
+}

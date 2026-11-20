@@ -1,0 +1,25 @@
+{
+  "contract": "body-limits",
+  "description": "D41: JSON is text: the raw limit does not apply.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"body_limit_bytes\":13107200,\"bytes\":1048576,\"content_type\":\"application/json; charset=utf-8\",\"op\":\"size\",\"raw_limit_bytes\":131072}",
+  "input_decoded": {
+    "body_limit_bytes": 13107200,
+    "bytes": 1048576,
+    "content_type": "application/json; charset=utf-8",
+    "op": "size",
+    "raw_limit_bytes": 131072
+  },
+  "expect": {
+    "valid": true,
+    "result": {
+      "class": "text",
+      "code": null,
+      "held_bytes": 1048576,
+      "limit_bytes": 13107200,
+      "status": null
+    }
+  }
+}

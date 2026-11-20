@@ -1,0 +1,26 @@
+{
+  "contract": "events",
+  "description": "D39 amendment: the change history: a change in the dashboard.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"data\":{\"actor\":\"dashboard\",\"from\":\"detect\",\"repository\":\"crowdsec\",\"state_source\":\"dashboard\",\"to\":\"off\"},\"datacontenttype\":\"application/json\",\"id\":\"12815a6b-455c-481e-b857-4482be347977\",\"source\":\"schild://web-1\",\"specversion\":\"1.0\",\"time\":\"2026-10-26T11:59:58.123Z\",\"type\":\"schild.rule.repository_switched.v1\"}",
+  "input_decoded": {
+    "data": {
+      "actor": "dashboard",
+      "from": "detect",
+      "repository": "crowdsec",
+      "state_source": "dashboard",
+      "to": "off"
+    },
+    "datacontenttype": "application/json",
+    "id": "12815a6b-455c-481e-b857-4482be347977",
+    "source": "schild://web-1",
+    "specversion": "1.0",
+    "time": "2026-10-26T11:59:58.123Z",
+    "type": "schild.rule.repository_switched.v1"
+  },
+  "expect": {
+    "valid": true
+  }
+}

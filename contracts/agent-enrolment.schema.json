@@ -1,0 +1,19 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://contracts.schild.invalid/v0/agent-enrolment.schema.json",
+  "title": "Agent enrolment request schild.agent_enrolment/0.1 (v0.3, MVP-11)",
+  "description": "Payload of the DSSE envelope `schild agent enrol` sends once to the gateway (payloadType application/vnd.schild.agent-enrolment.v0+json). Signed by the new agent key itself (proof of possession): the one signature names `keyid` and verifies with `public_key`. The one-time code proves that an admin of the gateway created the enrolment; the admin still confirms the agent in the dashboard. See host-check.md section 5.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "gateway", "code", "keyid", "public_key", "hostname", "issued_at", "nonce"],
+  "properties": {
+    "schema": { "const": "schild.agent_enrolment/0.1" },
+    "gateway": { "$ref": "common.schema.json#/$defs/id" },
+    "code": { "description": "One-time enrolment code from the dashboard (16 characters, 80 bits).", "type": "string", "pattern": "^[A-HJ-NP-Z2-9]{4}-[A-HJ-NP-Z2-9]{4}-[A-HJ-NP-Z2-9]{4}-[A-HJ-NP-Z2-9]{4}$" },
+    "keyid": { "$ref": "common.schema.json#/$defs/keyid" },
+    "public_key": { "$ref": "common.schema.json#/$defs/publicKey" },
+    "hostname": { "$ref": "host-report.schema.json#/$defs/hostname" },
+    "issued_at": { "$ref": "common.schema.json#/$defs/timestamp" },
+    "nonce": { "type": "string", "pattern": "^[0-9a-f]{32}$" }
+  }
+}

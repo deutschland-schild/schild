@@ -1,0 +1,31 @@
+{
+  "id": "local",
+  "name": "Eigene Regeln",
+  "state": "block",
+  "config_state": "block",
+  "state_source": "default",
+  "differs": false,
+  "effect": "block",
+  "origin": "operator",
+  "counts": {
+    "rules": 3,
+    "disabled": 0,
+    "settling": 0,
+    "skipped": 0
+  },
+  "last_change_at": "2026-11-05T16:02:44Z",
+  "local": {
+    "dir": "/etc/schild/rules.d",
+    "files": [
+      {
+        "name": "10-admin.conf",
+        "rules": 2
+      },
+      {
+        "name": "20-shop.conf",
+        "rules": 1
+      }
+    ],
+    "last_reload_at": "2026-11-05T16:02:44Z"
+  }
+}

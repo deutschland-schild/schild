@@ -1,0 +1,15 @@
+{
+  "contract": "ingress-order",
+  "description": "D31 amendment 2026-10-29: servers is required.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"caddyfile\":\"http://a.example.test {\\n}\\n\"}",
+  "input_decoded": {
+    "caddyfile": "http://a.example.test {\n}\n"
+  },
+  "expect": {
+    "valid": false,
+    "error": "schema"
+  }
+}

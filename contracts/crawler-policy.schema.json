@@ -1,0 +1,61 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://contracts.schild.invalid/v0/crawler-policy.schema.json",
+  "title": "Crawler control decision input (v0.5, D57, MVP-29)",
+  "description": "Input of the crawler-policy vectors: a bot catalogue, the crawler policy of one website (optionally with a preset applied), one request as the gate sees it and the gateway mode. The time is the vector context now (range snapshots older than 30 days are unknown_stale). The result is {bot, category, verification, rule, outcome, reason, status} (contract/crawlers.Decide). Every key of policy.bots must be a bot id of the catalogue, else the vector is invalid with code schema. Only user agents that name a catalogue entry can be blocked; likely_automated and likely_browser never are. Never sent anywhere.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["catalogue", "policy", "request", "mode"],
+  "properties": {
+    "catalogue": { "$ref": "bot-catalogue.schema.json" },
+    "policy": { "$ref": "#/$defs/policy" },
+    "preset": {
+      "description": "Applied to policy before the decision: the preset's categories replace the categories, the bot rules are dropped, impersonators stays (contract/crawlers.ApplyPreset).",
+      "$ref": "#/$defs/preset"
+    },
+    "request": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["user_agent", "ip"],
+      "properties": {
+        "user_agent": { "description": "Empty when the request had none. Only the first 512 bytes are matched.", "type": "string", "maxLength": 8192 },
+        "ip": { "description": "Client address as the gate resolved it (documentation ranges in vectors).", "type": "string", "pattern": "^[0-9a-fA-F.:]{2,45}$" }
+      }
+    },
+    "mode": { "description": "observe: the gateway runs the test profile and only records would_block (D89: there is no protection mode to set). autoblock: every other gateway.", "type": "string", "enum": ["observe", "autoblock"] },
+    "allowlisted": { "description": "The client address is on the allowlist (any level): never blocked, recorded as would_block.", "type": "boolean", "default": false }
+  },
+  "$defs": {
+    "action": { "type": "string", "enum": ["allow", "block"] },
+    "category": {
+      "description": "Catalogue categories (bot-catalogue.schema.json). likely_automated and likely_browser are no crawlers and cannot be named.",
+      "type": "string",
+      "enum": ["search_engine", "ai_training", "ai_search", "ai_assistant", "preview_social", "feed_reader", "monitoring", "seo_tool", "archive_research", "security_scanner", "tool_library"]
+    },
+    "botId": { "type": "string", "pattern": "^[a-z0-9][a-z0-9-]{1,47}$" },
+    "preset": {
+      "description": "block_ai_training: block the category ai_training, allow every other category.",
+      "type": "string",
+      "enum": ["block_ai_training"]
+    },
+    "policy": {
+      "description": "What one website lets crawlers do. Absent keys allow: an empty policy changes nothing. A rule for a bot overrides the rule of its category. A block applies to every request whose user agent names that crawler, verified or not. impersonators block: a request that names a crawler whose operator publishes address ranges, from an address outside them (verification mismatch), is blocked whatever the other rules say.",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "categories": {
+          "type": "object",
+          "propertyNames": { "$ref": "#/$defs/category" },
+          "additionalProperties": { "$ref": "#/$defs/action" }
+        },
+        "bots": {
+          "type": "object",
+          "maxProperties": 512,
+          "propertyNames": { "$ref": "#/$defs/botId" },
+          "additionalProperties": { "$ref": "#/$defs/action" }
+        },
+        "impersonators": { "$ref": "#/$defs/action" }
+      }
+    }
+  }
+}

@@ -1,0 +1,40 @@
+{
+  "contract": "feedback",
+  "description": "Contact data never leaves the server.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z",
+    "trust": [
+      "site-a",
+      "site-b",
+      "site-c",
+      "lab-a",
+      "lab-a2",
+      "lab-b",
+      "lab-c",
+      "lab-d"
+    ]
+  },
+  "input_raw": "{\"payloadType\":\"application/vnd.schild.feedback.v0+json\",\"payload\":\"eyJidW5kbGVfdmVyc2lvbiI6NDIsImRlY2lkZWRfYnkiOiJvcGVyYXRvciIsImVtYWlsIjoiYWRtaW5Ac2hvcC5leGFtcGxlIiwiaWQiOiI4MzEzMjgwYS0zMjI5LTQzMDAtOTlhOS0zNzE5YWNkYjgzNmYiLCJsb2NhbF9hY3Rpb24iOiJzdXNwZW5kZWQiLCJtYXRjaF9zaGFwZSI6eyJjb250ZW50X3R5cGUiOiJhcHBsaWNhdGlvbi9qc29uIiwibGVuX2J1Y2tldCI6IjI1Ni0xayIsImxvY2F0aW9uIjoiQVJHUzp0ZXh0In0sInJ1bGVfaWQiOiJzY2hpbGQtMjAyNi0wNDEyIiwic2NoZW1hIjoic2NoaWxkLmZlZWRiYWNrLzAuMiIsInRpbWVfYnVja2V0IjoiMjAyNi0xMC0yNlQxMTo1MDowMFoiLCJ2ZXJkaWN0IjoiZmFsc2VfcG9zaXRpdmUifQ==\",\"signatures\":[{\"keyid\":\"test-site-a\",\"sig\":\"CRV3TmDJau/p1CWucGyPnKcM0WR1+WGC3ueM3ejpDOwJkzxhrhx5eKXOXKjRItkxuiRKwwMuLdmE/9AlOB5SAg==\"}]}",
+  "input_decoded": {
+    "payload": {
+      "bundle_version": 42,
+      "decided_by": "operator",
+      "email": "admin@shop.example",
+      "id": "8313280a-3229-4300-99a9-3719acdb836f",
+      "local_action": "suspended",
+      "match_shape": {
+        "content_type": "application/json",
+        "len_bucket": "256-1k",
+        "location": "ARGS:text"
+      },
+      "rule_id": "schild-2026-0412",
+      "schema": "schild.feedback/0.2",
+      "time_bucket": "2026-10-26T11:50:00Z",
+      "verdict": "false_positive"
+    }
+  },
+  "expect": {
+    "valid": false,
+    "error": "forbidden_field"
+  }
+}

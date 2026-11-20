@@ -1,0 +1,17 @@
+{
+	admin off
+}
+
+http://www.example.org, http://example.org {
+	redir https://{host}{uri} permanent
+}
+
+www.example.org {
+	redir https://example.org{uri} permanent
+}
+
+example.org {
+	schild
+	reverse_proxy 127.0.0.1:19101
+}
+

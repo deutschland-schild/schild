@@ -1,0 +1,10 @@
+# unprotected: []
+# expect: refuse
+# Fix round 2 (re-measurement finding 1): handle_errors is server-wide, so a proxying handle_errors needs schild inside it.
+http://a.example.test:18080 {
+	import schild
+	reverse_proxy 127.0.0.1:18081
+	handle_errors {
+		reverse_proxy 127.0.0.1:18081
+	}
+}

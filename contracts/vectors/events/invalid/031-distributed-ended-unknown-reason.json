@@ -1,0 +1,28 @@
+{
+  "contract": "events",
+  "description": "v0.4 MVP-18: expired or ended by the operator.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"data\":{\"detector\":\"route_wave\",\"duration_s\":10,\"reason\":\"crash\",\"route\":\"/login\",\"stopped\":0,\"wave_id\":\"2a3ac97f-ecbd-42a8-afc6-c6ec714842a3\"},\"datacontenttype\":\"application/json\",\"id\":\"92969a5b-9bf1-4e2f-af5d-6a3cab031ff3\",\"source\":\"schild://web-1\",\"specversion\":\"1.0\",\"time\":\"2026-10-26T11:59:58.123Z\",\"type\":\"schild.distributed.ended.v1\"}",
+  "input_decoded": {
+    "data": {
+      "detector": "route_wave",
+      "duration_s": 10,
+      "reason": "crash",
+      "route": "/login",
+      "stopped": 0,
+      "wave_id": "2a3ac97f-ecbd-42a8-afc6-c6ec714842a3"
+    },
+    "datacontenttype": "application/json",
+    "id": "92969a5b-9bf1-4e2f-af5d-6a3cab031ff3",
+    "source": "schild://web-1",
+    "specversion": "1.0",
+    "time": "2026-10-26T11:59:58.123Z",
+    "type": "schild.distributed.ended.v1"
+  },
+  "expect": {
+    "valid": false,
+    "error": "schema"
+  }
+}

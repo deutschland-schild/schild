@@ -1,0 +1,24 @@
+{
+  "contract": "config/schild",
+  "description": "v0.5 MVP-22: IPinfo with the token from SCHILD_GEO_TOKEN, every 12 h, gateway without the network.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"config_version\":0,\"geo\":{\"provider\":\"ipinfo\",\"refresh_hours\":12},\"mode\":\"autoblock\",\"node_name\":\"web-1\",\"profile\":\"production\",\"upstream\":{\"url\":\"http://app:80\"}}",
+  "input_decoded": {
+    "config_version": 0,
+    "geo": {
+      "provider": "ipinfo",
+      "refresh_hours": 12
+    },
+    "mode": "autoblock",
+    "node_name": "web-1",
+    "profile": "production",
+    "upstream": {
+      "url": "http://app:80"
+    }
+  },
+  "expect": {
+    "valid": true
+  }
+}

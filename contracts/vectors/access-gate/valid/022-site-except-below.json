@@ -1,0 +1,33 @@
+{
+  "contract": "access-gate",
+  "description": "D56: below an except path ending in /* passes.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"allowlisted\":false,\"path\":\"/hooks/paypal\",\"protection\":{\"except\":[\"/api/stripe/webhook\",\"/hooks/*\"],\"own_networks\":false,\"password\":true,\"scope\":\"site\",\"website\":\"musterverein.example\"},\"session\":\"none\"}",
+  "input_decoded": {
+    "allowlisted": false,
+    "path": "/hooks/paypal",
+    "protection": {
+      "except": [
+        "/api/stripe/webhook",
+        "/hooks/*"
+      ],
+      "own_networks": false,
+      "password": true,
+      "scope": "site",
+      "website": "musterverein.example"
+    },
+    "session": "none"
+  },
+  "expect": {
+    "valid": true,
+    "result": {
+      "answer": "pass",
+      "canonical_path": "/hooks/paypal",
+      "login_form": false,
+      "reason": "except",
+      "status": 0
+    }
+  }
+}

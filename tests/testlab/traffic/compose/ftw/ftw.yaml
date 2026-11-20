@@ -1,0 +1,10 @@
+# go-ftw configuration for the Schild test lab (attack-ftw service).
+# Every test's dest_addr/port is overridden to the autoblock shop's label
+# stripper on the internal inet network; run in cloud mode (status codes only),
+# because the schild client's WAF log is not a file go-ftw can tail.
+# A schild block answers 403 (gateway/internal/decide).
+testoverride:
+  input:
+    dest_addr: "stripper-shop"
+    port: 8080
+    protocol: "http"

@@ -1,0 +1,32 @@
+{
+  "contract": "geo-map",
+  "description": "v0.5 MVP-22: connection type Cellular and a mobile network code: mobile with carrier.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"provider\":\"maxmind\",\"record\":{\"country\":{\"iso_code\":\"DE\"},\"traits\":{\"connection_type\":\"Cellular\",\"isp\":\"Example Mobilfunk\",\"mobile_country_code\":\"262\",\"mobile_network_code\":\"01\"}}}",
+  "input_decoded": {
+    "provider": "maxmind",
+    "record": {
+      "country": {
+        "iso_code": "DE"
+      },
+      "traits": {
+        "connection_type": "Cellular",
+        "isp": "Example Mobilfunk",
+        "mobile_country_code": "262",
+        "mobile_network_code": "01"
+      }
+    }
+  },
+  "expect": {
+    "valid": true,
+    "result": {
+      "asn": null,
+      "carrier": "Example Mobilfunk",
+      "country": "DE",
+      "is_mobile": true,
+      "net_class": "mobile"
+    }
+  }
+}

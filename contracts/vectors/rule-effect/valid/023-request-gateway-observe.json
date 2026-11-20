@@ -1,0 +1,24 @@
+{
+  "contract": "rule-effect",
+  "description": "Test profile: would_block, gateway_observe.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"mode\":\"observe\",\"now\":1000000,\"op\":\"request\",\"origin\":\"release\",\"state\":\"block\"}",
+  "input_decoded": {
+    "mode": "observe",
+    "now": 1000000,
+    "op": "request",
+    "origin": "release",
+    "state": "block"
+  },
+  "expect": {
+    "valid": true,
+    "result": {
+      "action": "would_block",
+      "outcome": "would_block",
+      "would_block_reason": "gateway_observe",
+      "counts_as_hit": false
+    }
+  }
+}

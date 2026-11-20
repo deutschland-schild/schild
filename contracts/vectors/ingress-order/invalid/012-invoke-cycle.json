@@ -1,0 +1,41 @@
+{
+  "contract": "ingress-order",
+  "description": "D31 amendment 2026-10-29: a named route that invokes itself cannot be walked.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"servers\":{\"srv0\":{\"listen\":[\":443\"],\"named_routes\":{\"loop\":{\"handle\":[{\"handler\":\"invoke\",\"name\":\"loop\"}]}},\"routes\":[{\"handle\":[{\"handler\":\"invoke\",\"name\":\"loop\"}]}]}}}",
+  "input_decoded": {
+    "servers": {
+      "srv0": {
+        "listen": [
+          ":443"
+        ],
+        "named_routes": {
+          "loop": {
+            "handle": [
+              {
+                "handler": "invoke",
+                "name": "loop"
+              }
+            ]
+          }
+        },
+        "routes": [
+          {
+            "handle": [
+              {
+                "handler": "invoke",
+                "name": "loop"
+              }
+            ]
+          }
+        ]
+      }
+    }
+  },
+  "expect": {
+    "valid": false,
+    "error": "schema"
+  }
+}

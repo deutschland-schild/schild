@@ -1,0 +1,20 @@
+{
+  "contract": "peer-request",
+  "description": "ts 10 minutes old.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z",
+    "trust": [
+      "lab-a",
+      "lab-a2",
+      "lab-b",
+      "lab-c",
+      "lab-d",
+      "site-a"
+    ]
+  },
+  "input_raw": "{\"authorization\":\"v1 lab=lab-b keyid=test-lab-b ts=2026-10-26T11:50:00Z sig=kRbzXZZoB3Hrx9DxZg+avRmLdLAVqW+bOekP5eF46+VB9QntNI7DhmI58floVoKkcE5E8rNPtcx4B9AkeiPpAA==\",\"body_sha256\":\"sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855\",\"method\":\"GET\",\"path\":\"/v0/collecting\",\"target\":\"lab-a\"}",
+  "expect": {
+    "valid": false,
+    "error": "expired"
+  }
+}

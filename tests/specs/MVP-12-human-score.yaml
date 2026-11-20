@@ -1,0 +1,142 @@
+id: MVP-12
+title: "human_score and browser check: a per-request estimate without JS (stage 0) and an opt-in interstitial with proof-of-work on suspicion (stage 1)"
+ships: false                        # draft; stage 0 may be built after MVP-11 is re-measured; stage 1 only after lawyer questions 1, 2, 5, 6 are answered
+status: ENTWURF
+image: schild                       # same binary; no new image, no new outbound connection
+hypotheses: [D1, D3, M1, M2]
+refs: [concept-24-§10, concept-24-§3-V6, concept-21-§6, concept-13-forms, concept-13-bots, concept-04-autoverify, concept-15, concept-16, concept-17-§1.4, concept-23-M1, concept-23-M2, concept-23-D1, DECISIONS-D02, DECISIONS-D10, DECISIONS-D14, DECISIONS-D15]
+depends_on: [MVP-01, MVP-02, MVP-09]
+decided:                            # binding decisions by the initiator, 2026-10-27 (concept 24 §10)
+  - 'human_score is computed only inside schild, per request, used immediately for the decision, never stored per visitor and never sent anywhere (not to labs, relays, the Schild Dashboard, the backend app or any third party)'
+  - 'outside the request only the stage (bucket) exists: in the local event and as aggregate counts; never the number'
+  - 'stage 0 (no JS) always runs; stage 1 (interstitial) is per site, default off; stage 2 (automation bits inside the interstitial) is later and only if stage 1 is measured insufficient and a lawyer agreed first'
+  - 'no injection of scripts into pages of the site; forms use a script tag the operator embeds (concept 13)'
+  - 'missing JS, missing clearance or a failed check never blocks on its own; no evidence = unknown'
+v1_cut:                             # ENTWURF 2026-11-19 after D92 (the mode challenge left the scenarios); for the initiator to decide, nothing built
+  why: 'D92 removed "Prüfen" from the scenarios: the interstitial checks only top-level page views, so it never reaches the POSTs of a login attack, a scanner without browser headers or a WAF payload. It belongs where a block is wrong or too coarse: shared addresses, fast crawling, floods of page views'
+  scope: 'stage 1 without stage 0: every trigger below works without human_score, so stage 0 (header checks, legal question 3) stays a later step; mode suspicious waits for it'
+  switch: 'one switch per website, as the crawler policy (D89: one switch per source, no global mode): Browser-Prüfung aus (default) / bei Auffälligkeiten / immer, plus Under Attack with an end time; agent API write path and dashboard form together (D84)'
+  triggers:
+    - 'under_attack per website: scope admin (login and admin routes of the presets) or all, until required (max 24 h), set by hand in the dashboard, by an agent token, or on its own while a distributed wave on that website runs (MVP-18 route_wave or shape_wave in respond), ending with the wave'
+    - 'mode always per website (Anubis-like, against AI crawlers that ignore robots.txt; fits the page KI-Crawler); verified good bots and the crawler policy decide before it'
+    - 'mode on findings: a client key that a scenario would block, but whose net_class is cgnat, mobile or tor (never blocked, concept 18 G1), gets the interstitial on its page views for the block duration instead of nothing; aggressive_crawl in block answers page views with the interstitial instead of the block page'
+  unchanged: 'token, cookie, keys, endpoints, fail-open, no-JS button and never list as above; a missing or failed check never blocks by itself; the reserved monitoring counter challenged (D92) gets its meaning back, the dashboard API gets an outcome for it again'
+  not_in_v1: 'forms script (form.js), score-based local rules, stage 0, anything to labs (D72: no labs in v1, so lawyer question 5 does not apply yet)'
+  legal_gate: 'OFFEN, initiator: lawyer questions 1 and 2 are still open (6 concerns labs mostly). Options: (a) build after both are answered; (b) build now, default off, switch on only on the own projects of the live test, offer it to third-party operators after the answers; (c) answers first, build later. Proposal: (b)'
+  effort: 'about 5 to 8 working days with contracts, vectors, dashboard switch, interstitial copy, browser and assistive-tech matrix; the PoW itself is the small part'
+never:                              # each item is a kill criterion when found in code, config schema or traffic
+  - canvas, WebGL, audio or font fingerprinting
+  - mouse, scroll, keyboard or touch biometrics, dwell times measured in the browser
+  - RUM, web vitals or any site-health metric collected by JS
+  - persistent or cross-site browser ids, including random ids in cookies, localStorage, IndexedDB and WebCrypto device keys
+  - third-party captchas or verification services (reCAPTCHA, Turnstile, hCaptcha, Friendly Captcha API, ALTCHA Sentinel)
+  - any browser-derived value (raw, hashed, bucketed per visitor) to labs or relays; a Schild Dashboard (built in or multi-tenant, MVP-13) shows only stage counts
+  - 'Accept-CH or Critical-CH to request high-entropy client hints'
+  - interstitial or script content that the network, labs or rule bundles can set or change
+  - injection into HTML responses of the protected site
+contracts:
+  new:
+    - 'contracts/human-check.md: score and stage semantics, stage 0 check codes, interstitial flow, endpoints, token and cookie formats, key handling, fail-open rules'
+    - 'config schema addition `human` (see config below), with fixed safety settings as schema constants (D15 style)'
+    - 'events.schema.json: optional `human_stage` (human | unclear | bot | unknown) and `challenge_result` (served | passed | nojs | invalid | skipped_observe); no numeric score field, no check codes per event'
+    - 'signal and feedback forbidden-key list (D02) extended by human_score, human_stage, clearance, challenge, pow, solution, ja4 so that T19 fails with forbidden_field'
+    - 'gateway dashboard API (client-dashboard.openapi.yaml): aggregate stage counts, aggregate check-code counts, challenge counters, Probelauf for score-based rules; no per-request score'
+    - 'MVP-13 instance-status (when built): 24 h counts per stage and challenge counters only'
+    - 'vectors: header sets -> stage and check codes; challenge tokens and clearance cookies (valid, expired, other host, other IP prefix, other UA, tampered MAC, replayed salt, rotated key); Coraza rules on TX:human_score with an unknown score; Go and Python agree (make contracts-test)'
+  version: next free contracts minor version after MVP-13 (backwards compatible addendum)
+score:
+  range: 'integer 0..100, higher means more likely a human with an ordinary browser; not a probability and not a percentage; never shown as "%"'
+  unknown: 'empty, never 0; used when stage 0 has too little to say (e.g. HTTP/1.0 client without browser headers is low, but a request schild could not evaluate is unknown)'
+  stages: 'bot below 30, unclear 30..69, human from 70 (defaults, per site configurable within 10..90); unknown counts as unclear in the dashboard'
+  clearance: 'a valid clearance cookie never changes the score; it suppresses further interstitials and exempts from score-based local rules for its lifetime, never from WAF rules (concept 21 §6)'
+  explainability: 'each score is the sum of documented, signed-in-repo weights per check code (no ML model in this step); the table is part of the contract and of the dashboard help'
+coraza:
+  variables: 'TX:human_score (only set when known) and TX:human_stage (human | unclear | bot | unknown), set by schild before phase 1'
+  local_rules_only: 'network rules keep the D10 ban on TX; the SecLang validator rejects any network rule that reads TX:human_*'
+  no_override: 'setvar on tx.human_* is rejected for local rules too; decisions use schild''s own value, not the TX copy'
+  unknown_semantics: 'a rule like TX:human_score "@lt 30" does not match when the score is unknown (vector)'
+stage0:                             # always on; no JS; nothing requested from the browser
+  checks:
+    - 'header consistency: User-Agent vs low-entropy client hints the browser sends by itself (Sec-CH-UA, -Mobile, -Platform) vs Sec-Fetch-Site/Mode/Dest vs Accept and Accept-Language; absence of client hints is normal for Firefox and Safari and never lowers the score'
+    - 'request rhythm and sequence per IP prefix and UA class in RAM only (sliding window of minutes, then dropped): requests per window, HTML vs asset ratio, error ratio, WAF hits, path order (concept 21 §6 session tracker, concept 17 rec. 3)'
+    - 'good bots: verified by published ranges from the signed bundle (D72: no bundle reaches the gateway yet, lab later; the source of the ranges is open), Web Bot Auth (RFC 9421 signatures, key directories only from a signed allowlist, never fetched from a URL in the request) and FCrDNS via the operator''s local resolver with cache; verified good bots skip the interstitial and get no score-based action'
+    - 'JA4 only as a header set by a trusted TLS terminator (trusted_proxies, header overwritten not appended, stripped otherwise); BSD-3-Clause JA4 only, no JA4+ (FoxIO licence); off by default'
+  outputs: [score, stage, aggregate check-code counters]
+stage1:                             # interstitial; built only after lawyer questions 1, 2, 5, 6 are answered
+  trigger:
+    - 'mode suspicious: stage unclear, or a route marked by the operator, or a local rule with effective action challenge (D11; network rules: D72, lab later), or under_attack'
+    - 'mode always: every navigation on the configured routes (under-attack use)'
+    - 'only top-level navigations: GET/HEAD with Sec-Fetch-Mode navigate or Accept text/html; never XHR/fetch, POST, assets, feeds, APIs, webhooks, robots.txt, /.well-known/, verified good bots, allowlisted IPs, path exceptions'
+  flow:
+    - 'schild answers the navigation with its own interstitial (status 403, Cache-Control no-store, X-Robots-Tag noindex, strict CSP with a hash for its own script) instead of forwarding; the app response is never modified'
+    - 'the page carries a server-issued challenge token; the static script (embedded in the binary, inlined in the page, allowed by its CSP hash; no separate script URL that a filter list could block) solves an ALTCHA-like SHA-256 proof-of-work in a worker and POSTs the solution to the verify endpoint'
+    - 'verify checks MAC, expiry, host, IP prefix, UA and replay, then sets the clearance cookie and redirects (303) to the original same-origin path'
+    - 'no-JS way out: a visible button (form POST to the continue endpoint) on the same page; no timed meta refresh (WCAG 2.2.1, F40/F41); result is a clearance of kind nojs that suppresses the interstitial but counts as unknown, not as passed'
+    - 'forms (concept 13): the operator embeds <script src="{prefix}form.js"> on the form page; it solves on first interaction or submit and adds a hidden field; schild checks the field on the configured POST routes; missing field = unknown, handled by the route''s configured action, never a block by itself'
+  endpoints:                        # {prefix} is random per instance (see config), never a fixed path shared by all instances, never /.well-known/ (RFC 8615)
+    - 'why a per-instance prefix: a path shared by every Schild site could be blocked with one filter-list line (adblockers), locking out real visitors, and would make Schild trivially recognisable; a per-request URL adds routing and debugging cost without real benefit'
+    - 'GET {prefix}form.js (forms only, embedded by the operator): static, byte-identical per release, sha256 pinned in the contract, long cache'
+    - 'requests under {prefix} that are not a valid endpoint call pass to the app unchanged; collision check against known app routes at start'
+    - 'POST {prefix}verify: {token, number, return}; answers 303 with Set-Cookie, or for form.js JSON {field}; 400 on any error without detail'
+    - 'POST {prefix}continue: no-JS way out; {token, return}; 303 with Set-Cookie kind nojs'
+    - 'all endpoints: size limit 2 KiB, rate limit per IP prefix, no other methods, no query parameters except return'
+  token: 'challenge token schild-ch1.<b64url payload>.<b64url mac>; payload {v:1, alg:SHA-256, salt (16 random bytes), challenge (hex sha256(salt||n), n secret in 0..max), max, exp (<= 5 min), host, ret}; mac = HMAC-SHA256(k_challenge, "schild/challenge/1" | host | ip_prefix | sha256(User-Agent) | payload); salts are single-use (in-memory spent set until exp)'
+  cookie: 'name __Host-schild_clr; value c1.<kind pow|nojs>.<exp unix, rounded up to the minute>.<b64url mac 128 bit>; mac = HMAC-SHA256(k_clear, "schild/clearance/1" | host | kind | exp | ip_prefix | sha256(User-Agent)); no random part, no id; HttpOnly, Secure, SameSite=Lax, Path=/, Max-Age = ttl; ip_prefix /24 IPv4, /56 IPv6'
+  keys: 'k_challenge and k_clear: 32 random bytes per instance in the state directory (0600), rotated every 24 h with one previous key accepted; never logged, never exported, never derived from lab or network material; lost keys mean a new check, never a block'
+  difficulty: 'adaptive and capped: default max chosen so that p95 solve time on the reference low-end phone is <= 2 s; operator may raise up to a hard cap of 5 s on that device'
+config:                             # schild.yaml; dashboard and file are the same (concept 03)
+  - 'human.stages: {bot_below: 30, human_from: 70}'
+  - 'human.ja4_header: "" (off) | header name set by the trusted terminator'
+  - 'human.good_bots: {ranges: true, web_bot_auth: true, fcrdns: true}'
+  - 'human.challenge.mode: off (default) | suspicious | always'
+  - 'human.challenge.observe_until: date; set to enable date + 14 days when first switched on; until then only counts what would have been challenged'
+  - 'human.challenge.routes: [{path, mode}] and human.challenge.except: [path]'
+  - 'human.challenge.under_attack: {scope: off | admin | all, until: timestamp (required, max 24 h)}'
+  - 'human.challenge.prefix: generated once per instance at first start (/_s-<8 random base32 chars>/), stored in the state directory, stable across restarts, rotatable in the dashboard or CLI (old prefix accepted for one clearance TTL), may be set explicitly; no shared default'
+  - 'human.challenge.clearance_ttl: 30m (max 60m); human.challenge.difficulty: {max, cap}'
+  - 'human.forms: [{path, method, on_missing: log | challenge}]'
+  - 'schema constants: human.send_score: false, human.content_source: builtin, human.inject: false'
+must:
+  - 'score and stage computed in the gate before Coraza phase 1; pure function with unit tests per check code (like decide.Decide)'
+  - 'decide gets the stage and clearance as inputs; a missing clearance or JS never yields blocked by itself; score-based blocking only through explicit local operator rules, which start in observe (Probelauf)'
+  - 'no per-visitor storage of score, check codes, tokens or cookies; rhythm counters in RAM with a hard memory cap and minute-scale expiry; restart loses them'
+  - 'nothing new leaves the instance: no new outbound connection except FCrDNS through the configured local resolver (documented, can be switched off); Web Bot Auth directories come from the signed bundle (D72: lab later; open until then)'
+  - 'Schild-Info header to the app gets no score and no stage; challenge=?1 stays as defined in concept 13'
+  - 'interstitial and scripts are embedded in the binary and reproducibly built; the operator may set only a plain-text site name in local config; no HTML, CSS or JS from config, rules, bundles or labs'
+  - 'fail-open: if schild is down, schild front forwards to the app and nobody is challenged; any internal error in stage 1 forwards the original request (WAF hard limits keep their M1 behaviour)'
+  - 'interstitial copy in German, du-form, plain language, no fear wording, no claim that it proves a human; says what happens, how long it takes and the no-JS button; works with keyboard and screen readers, honours prefers-reduced-motion'
+  - 'stage 2 checks (navigator.webdriver and the like) are not built in this spec'
+dashboard:
+  - 'Overview card "Prüfung im Browser": three stages "wahrscheinlich Mensch / unklar / wahrscheinlich Bot" as 24 h counts and share, stage 1 mode and observe end date'
+  - 'Detail: aggregate counts per stage 0 check code with plain-language explanation (e.g. "Client Hints passen nicht zum Browser"), challenge counters (served, passed, nojs, invalid, would have been served)'
+  - 'Probelauf for score-based rules: over the last 24 h on stored stages ("hätte 312 Anfragen mit niedrigem Score gesperrt"); for numeric thresholds a forward-running observe counter'
+  - 'Settings: mode aus / bei Verdacht / immer, routes, exceptions, under-attack with end time, preview of the interstitial, copy-ready privacy-notice text block (concept 24 §10.6)'
+  - 'no view shows a number per request or per visitor'
+measure:
+  - 'unit tests and vectors for every check code, token and cookie case; differential Go/Python check of token and cookie MACs'
+  - 'false positives with real browsers (stage 0 score and stage 1 flow), 0 in stage bot expected: current Chrome, Edge, Firefox, Firefox ESR, Safari macOS, Safari iOS, Chrome Android on a low-end phone (reference device for PoW time), Samsung Internet, Tor Browser, Brave, corporate proxy that strips Sec-Fetch and client hints, uBlock Origin, NoScript, Privacy Badger'
+  - 'no-JS and assistive tech: JS disabled in Firefox and Chrome, Lynx or w3m, NVDA with Firefox, JAWS with Chrome, VoiceOver on macOS and iOS, TalkBack; each reaches the original page via the button within 2 actions; WCAG 2.2 AA check of the interstitial'
+  - 'live (stage 3, observe): hand-checked sample of legitimate requests per site; share in stage bot <= 0.1 % (D1); count of would-have-been challenges per day; clearance loss from IP prefix changes on mobile'
+  - 'adversaries (reported, not kill): curl and python-requests with Chrome UA, headless Playwright, Patchright, a native PoW solver; stage and cost per 1000 requests'
+  - 'fail-open in the testlab: kill schild during a challenge, rotate keys, delete the state directory, flood verify; the site stays reachable, no visitor sees a 5xx caused by stage 1'
+  - 'latency (M1): stage 0 plus clearance check add <= 1 ms p95 at 500 rps for requests that are not challenged, and M1 (p95 + 5 ms overall) still holds'
+  - 'egress (M2/T19 extended): canary User-Agent, canary Accept-Language, canary Sec-CH-UA, canary JA4 header, PoW solutions and cookie values; a test-build hook forces score 37 on marked requests; none of these appear in captures of lab, relay, Schild Dashboard or DNS traffic, nor in events, logs or dashboard API responses (except the stage)'
+  - 'content integrity: a rule bundle, a lab and a config file try to change interstitial or script content; served bytes stay equal to the pinned hashes'
+kill_if: "a legitimate visitor without JS (or without clearance) is blocked solely for that OR anything browser-derived (score, stage per visitor, header values, JA4, solutions, cookie values) leaves the instance OR a score number is stored per request or visitor OR a cookie or token carries an identifier that links visits beyond its TTL OR stage 1 breaks fail-open or adds more than the latency budget to requests that are not challenged OR the network, a lab or a bundle can influence interstitial or script content OR any item of the never list is found"
+done: "make contracts-test && make test && make testlab-up PROFILE=t1 && make smoke PROFILE=t1 (incl. human-check steps) && browser matrix and assistive-tech protocol filed under tests/results/"
+out_of_scope:
+  - stage 2 automation checks and any JS signal beyond the PoW solution
+  - injection of scripts into pages of the site (not planned)
+  - pass rates or any challenge data to labs, incl. the feedback signal after a passed check (concept 04, 13); waits for lawyer question 5
+  - Privacy Pass or Private Access Tokens (v1 topic)
+  - a numeric score in the Schild-Info header or any API for the app
+  - ML models for the score
+  - JA4H, HTTP/2 fingerprints, header order (not available behind Go net/http)
+open_questions:
+  - 'legal: lawyer questions 1, 2, 5, 6 from concept 24 §10.7 must be answered before stage 1 is built; 3 before stage 0 header checks go live on third-party sites'
+  - 'status code of the interstitial: 403 (current choice) or 429; effect on monitoring and search engines'
+  - 'default stage thresholds and weights; only after stage 3 data, never tuned on the measurement set itself'
+  - 'should FCrDNS stay on by default, given that it sends visitor IPs as PTR queries to the operator''s resolver'
+  - 'concept 23 E4 allows ja4 in prototype/alpha signals; MVP-12 never adds it, but the E4 entry needs a decision so it does not contradict the never list'
+  - 'IP prefix length for cookie binding (/24 and /56) vs CGNAT and mobile network changes'
+  - 'name and copy of the interstitial ("Kurze Prüfung")'

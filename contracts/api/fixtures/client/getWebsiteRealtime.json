@@ -1,0 +1,15 @@
+{
+  "site": "verein.example",
+  "generated_at": "2026-10-29T12:00:30Z",
+  "visitors_5m": 14,
+  "requests_5m": 840,
+  "stopped_5m": 3,
+  "would_block_5m": 0,
+  "points": [
+    { "t": "2026-10-29T11:56:00Z", "requests": 172, "stopped": 1, "would_block": 0, "visitors": 6, "partial": false },
+    { "t": "2026-10-29T11:57:00Z", "requests": 158, "stopped": 0, "would_block": 0, "visitors": 5, "partial": false },
+    { "t": "2026-10-29T11:58:00Z", "requests": 181, "stopped": 2, "would_block": 0, "visitors": 7, "partial": false },
+    { "t": "2026-10-29T11:59:00Z", "requests": 166, "stopped": 0, "would_block": 0, "visitors": 6, "partial": false },
+    { "t": "2026-10-29T12:00:00Z", "requests": 80, "stopped": 0, "would_block": 0, "visitors": 3, "partial": true }
+  ]
+}

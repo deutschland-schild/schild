@@ -1,0 +1,43 @@
+{
+  "contract": "agent-block",
+  "description": "D42: nothing runs while observing, so the cap does not apply.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"budget\":{\"max_blocks\":500,\"oldest_write_age_s\":1000,\"running\":500,\"writes_per_hour\":30,\"writes_used\":0},\"duration_s\":3600,\"mode\":\"observe\",\"op\":\"create\",\"reason\":\"credential stuffing from this client\",\"scope\":\"blocks:write\",\"target\":{\"address\":\"203.0.113.7\",\"attribution\":\"tcp_peer\",\"exists\":true,\"net_class\":\"residential\"}}",
+  "input_decoded": {
+    "budget": {
+      "max_blocks": 500,
+      "oldest_write_age_s": 1000,
+      "running": 500,
+      "writes_per_hour": 30,
+      "writes_used": 0
+    },
+    "duration_s": 3600,
+    "mode": "observe",
+    "op": "create",
+    "reason": "credential stuffing from this client",
+    "scope": "blocks:write",
+    "target": {
+      "address": "203.0.113.7",
+      "attribution": "tcp_peer",
+      "exists": true,
+      "net_class": "residential"
+    }
+  },
+  "expect": {
+    "valid": true,
+    "result": {
+      "allowed": true,
+      "changed": false,
+      "code": null,
+      "counts_budget": true,
+      "effect": "would_block",
+      "limited_by": "gateway_observe",
+      "max_duration_s": null,
+      "persisted": false,
+      "retry_after": null,
+      "status": 200
+    }
+  }
+}

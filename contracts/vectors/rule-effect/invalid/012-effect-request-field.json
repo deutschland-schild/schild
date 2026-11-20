@@ -1,0 +1,20 @@
+{
+  "contract": "rule-effect",
+  "description": "effect has no request: site_mode belongs to op request.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"mode\":\"autoblock\",\"now\":1000000,\"op\":\"effect\",\"origin\":\"release\",\"site_mode\":\"observe\",\"state\":\"block\"}",
+  "input_decoded": {
+    "mode": "autoblock",
+    "now": 1000000,
+    "op": "effect",
+    "origin": "release",
+    "site_mode": "observe",
+    "state": "block"
+  },
+  "expect": {
+    "valid": false,
+    "error": "schema"
+  }
+}

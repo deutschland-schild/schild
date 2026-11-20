@@ -1,0 +1,16 @@
+{
+  "contract": "geo-map",
+  "description": "v0.5 MVP-22: dbip, ipinfo or maxmind.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"provider\":\"ip2location\",\"record\":{}}",
+  "input_decoded": {
+    "provider": "ip2location",
+    "record": {}
+  },
+  "expect": {
+    "valid": false,
+    "error": "schema"
+  }
+}

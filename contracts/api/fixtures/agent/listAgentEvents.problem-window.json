@@ -1,0 +1,13 @@
+{
+  "type": "about:blank",
+  "title": "Bad Request",
+  "status": 400,
+  "code": "invalid",
+  "detail": "to - from is at most 24 h",
+  "errors": [
+    {
+      "pointer": "#/query/from",
+      "detail": "window over 24 h"
+    }
+  ]
+}

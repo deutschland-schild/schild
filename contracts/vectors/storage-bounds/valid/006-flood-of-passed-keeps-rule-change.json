@@ -1,0 +1,153 @@
+{
+  "contract": "storage-bounds",
+  "description": "D38: a flood of sampled passed requests over a 10 MB cap: the pass deletes the oldest samples down to 95 % of the cap; the older rule changes stay (the earlier oldest-first pass deleted them first).",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"base_bytes\":1048576,\"floor_rows\":1,\"max_size_mb\":10,\"op\":\"cap_pass\",\"rows\":[{\"bytes\":1024,\"id\":\"rule-change\",\"kind\":\"event\",\"t\":1793016000000,\"type\":\"schild.rule.repository_updated.v1\"},{\"bytes\":1024,\"id\":\"rule-switch\",\"kind\":\"event\",\"t\":1793016000001,\"type\":\"schild.rule.repository_switched.v1\"},{\"bytes\":1048576,\"id\":\"passed-00\",\"kind\":\"event\",\"outcome\":\"passed\",\"sampled\":true,\"t\":1793016001000,\"type\":\"schild.request.evaluated.v1\"},{\"bytes\":1048576,\"id\":\"passed-01\",\"kind\":\"event\",\"outcome\":\"passed\",\"sampled\":true,\"t\":1793016001001,\"type\":\"schild.request.evaluated.v1\"},{\"bytes\":1048576,\"id\":\"passed-02\",\"kind\":\"event\",\"outcome\":\"passed\",\"sampled\":true,\"t\":1793016001002,\"type\":\"schild.request.evaluated.v1\"},{\"bytes\":1048576,\"id\":\"passed-03\",\"kind\":\"event\",\"outcome\":\"passed\",\"sampled\":true,\"t\":1793016001003,\"type\":\"schild.request.evaluated.v1\"},{\"bytes\":1048576,\"id\":\"passed-04\",\"kind\":\"event\",\"outcome\":\"passed\",\"sampled\":true,\"t\":1793016001004,\"type\":\"schild.request.evaluated.v1\"},{\"bytes\":1048576,\"id\":\"passed-05\",\"kind\":\"event\",\"outcome\":\"passed\",\"sampled\":true,\"t\":1793016001005,\"type\":\"schild.request.evaluated.v1\"},{\"bytes\":1048576,\"id\":\"passed-06\",\"kind\":\"event\",\"outcome\":\"passed\",\"sampled\":true,\"t\":1793016001006,\"type\":\"schild.request.evaluated.v1\"},{\"bytes\":1048576,\"id\":\"passed-07\",\"kind\":\"event\",\"outcome\":\"passed\",\"sampled\":true,\"t\":1793016001007,\"type\":\"schild.request.evaluated.v1\"},{\"bytes\":1048576,\"id\":\"passed-08\",\"kind\":\"event\",\"outcome\":\"passed\",\"sampled\":true,\"t\":1793016001008,\"type\":\"schild.request.evaluated.v1\"},{\"bytes\":1048576,\"id\":\"passed-09\",\"kind\":\"event\",\"outcome\":\"passed\",\"sampled\":true,\"t\":1793016001009,\"type\":\"schild.request.evaluated.v1\"},{\"bytes\":1048576,\"id\":\"passed-10\",\"kind\":\"event\",\"outcome\":\"passed\",\"sampled\":true,\"t\":1793016001010,\"type\":\"schild.request.evaluated.v1\"},{\"bytes\":1048576,\"id\":\"passed-11\",\"kind\":\"event\",\"outcome\":\"passed\",\"sampled\":true,\"t\":1793016001011,\"type\":\"schild.request.evaluated.v1\"}],\"wal_bytes\":0}",
+  "input_decoded": {
+    "base_bytes": 1048576,
+    "floor_rows": 1,
+    "max_size_mb": 10,
+    "op": "cap_pass",
+    "rows": [
+      {
+        "bytes": 1024,
+        "id": "rule-change",
+        "kind": "event",
+        "t": 1793016000000,
+        "type": "schild.rule.repository_updated.v1"
+      },
+      {
+        "bytes": 1024,
+        "id": "rule-switch",
+        "kind": "event",
+        "t": 1793016000001,
+        "type": "schild.rule.repository_switched.v1"
+      },
+      {
+        "bytes": 1048576,
+        "id": "passed-00",
+        "kind": "event",
+        "outcome": "passed",
+        "sampled": true,
+        "t": 1793016001000,
+        "type": "schild.request.evaluated.v1"
+      },
+      {
+        "bytes": 1048576,
+        "id": "passed-01",
+        "kind": "event",
+        "outcome": "passed",
+        "sampled": true,
+        "t": 1793016001001,
+        "type": "schild.request.evaluated.v1"
+      },
+      {
+        "bytes": 1048576,
+        "id": "passed-02",
+        "kind": "event",
+        "outcome": "passed",
+        "sampled": true,
+        "t": 1793016001002,
+        "type": "schild.request.evaluated.v1"
+      },
+      {
+        "bytes": 1048576,
+        "id": "passed-03",
+        "kind": "event",
+        "outcome": "passed",
+        "sampled": true,
+        "t": 1793016001003,
+        "type": "schild.request.evaluated.v1"
+      },
+      {
+        "bytes": 1048576,
+        "id": "passed-04",
+        "kind": "event",
+        "outcome": "passed",
+        "sampled": true,
+        "t": 1793016001004,
+        "type": "schild.request.evaluated.v1"
+      },
+      {
+        "bytes": 1048576,
+        "id": "passed-05",
+        "kind": "event",
+        "outcome": "passed",
+        "sampled": true,
+        "t": 1793016001005,
+        "type": "schild.request.evaluated.v1"
+      },
+      {
+        "bytes": 1048576,
+        "id": "passed-06",
+        "kind": "event",
+        "outcome": "passed",
+        "sampled": true,
+        "t": 1793016001006,
+        "type": "schild.request.evaluated.v1"
+      },
+      {
+        "bytes": 1048576,
+        "id": "passed-07",
+        "kind": "event",
+        "outcome": "passed",
+        "sampled": true,
+        "t": 1793016001007,
+        "type": "schild.request.evaluated.v1"
+      },
+      {
+        "bytes": 1048576,
+        "id": "passed-08",
+        "kind": "event",
+        "outcome": "passed",
+        "sampled": true,
+        "t": 1793016001008,
+        "type": "schild.request.evaluated.v1"
+      },
+      {
+        "bytes": 1048576,
+        "id": "passed-09",
+        "kind": "event",
+        "outcome": "passed",
+        "sampled": true,
+        "t": 1793016001009,
+        "type": "schild.request.evaluated.v1"
+      },
+      {
+        "bytes": 1048576,
+        "id": "passed-10",
+        "kind": "event",
+        "outcome": "passed",
+        "sampled": true,
+        "t": 1793016001010,
+        "type": "schild.request.evaluated.v1"
+      },
+      {
+        "bytes": 1048576,
+        "id": "passed-11",
+        "kind": "event",
+        "outcome": "passed",
+        "sampled": true,
+        "t": 1793016001011,
+        "type": "schild.request.evaluated.v1"
+      }
+    ],
+    "wal_bytes": 0
+  },
+  "expect": {
+    "valid": true,
+    "result": {
+      "used_before": 13633536,
+      "deleted": [
+        "passed-00",
+        "passed-01",
+        "passed-02",
+        "passed-03"
+      ],
+      "used_after": 9439232,
+      "unreachable": false
+    }
+  }
+}

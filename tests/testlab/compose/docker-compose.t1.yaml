@@ -1,0 +1,319 @@
+# Schild test lab, profile t1: two light sites behind their own schild
+# gateways (api: observe with the test profile; shop: autoblock, production
+# profile), their label strippers, ground truth, the dashboard gateway and the
+# one-shot smoke test / evaluator.
+#
+# Four labs of four operators (co-signing, threshold 3) and two relays run here
+# as planned parts for their own tests. Since D72 the schild gateways have no
+# network features: they sit on `sites` only and never talk to them.
+#
+# Heavier third-party sites (WordPress, DVWA, Juice Shop and their schild
+# clients) are under the compose profile `full` and pull third-party images;
+# lab-mal (MVP-07) is under `adversary`. Neither is started by make testlab-up.
+#
+# Subnets: t1 column of conventions.md §6. Fixed addresses: strippers in
+# 10.66.17.0/28, load generators in 10.66.20.0/28; dynamic ones from the upper
+# halves. Project name: schild-testlab-t1.
+name: schild-testlab-t1
+
+x-ca: &ca "./secrets/ca.pem:/etc/schild-ca/ca.pem:ro"
+
+x-lab: &lab
+  image: schild-lab:dev
+  environment: &labenv
+    SCHILD_LAB_CONFIG: /etc/schild-lab/lab.yaml
+    SCHILD_LAB_DATA_DIR: /var/lib/schild-lab
+    SCHILD_TEST_CA: /etc/schild-ca/ca.pem
+    SCHILD_ALLOW_TEST_KEYS: "1"            # TEST LAB ONLY: start with test keys and the test CA (D24 preflight)
+    SCHILD_LAB_THRESHOLD: "3"
+    SCHILD_LOG_FORMAT: json
+    SCHILD_LOG_LEVEL: ${SCHILD_LOG_LEVEL:-info}
+  networks: [federation]
+  restart: unless-stopped
+
+x-relay: &relay
+  image: schild-relay:dev
+  environment: &relayenv
+    SCHILD_RELAY_LISTEN: ":7480"
+    SCHILD_RELAY_UPSTREAMS: https://lab-a:7444,https://lab-b:7444,https://lab-c:7444,https://lab-d:7444
+    SCHILD_RELAY_BUFFER: "256"
+    SCHILD_RELAY_MAX_PER_IP: "100000"   # load generators open many streams from one address
+    SCHILD_TEST_CA: /etc/schild-ca/ca.pem
+    SCHILD_ALLOW_TEST_KEYS: "1"            # TEST LAB ONLY: start with test keys and the test CA (D24 preflight)
+    SCHILD_LOG_FORMAT: json
+  volumes: [*ca]
+  networks: [federation]
+  restart: unless-stopped
+
+x-stripper: &stripper
+  image: schild-testlab:dev
+  command: ["/usr/local/bin/label-stripper"]
+  volumes: ["groundtruth:/var/lib/testlab"]
+  depends_on: { ground-truth: { condition: service_healthy } }
+  restart: unless-stopped
+  healthcheck:
+    test: ["CMD", "/usr/local/bin/healthcheck", "http://localhost:8080/healthz"]
+    interval: 5s
+    timeout: 3s
+    retries: 10
+
+x-schild: &schild
+  image: schild:dev
+  networks: [sites]                      # D72: no federation, the gateway talks to no lab or relay
+  restart: unless-stopped
+
+x-schild-env: &schildenv
+  SCHILD_CONFIG: /etc/schild/schild.yaml
+  SCHILD_ALLOW_TEST_KEYS: "1"            # TEST LAB ONLY: start with test keys and the test CA (D24 preflight)
+  SCHILD_EVENTS_NDJSON_DIR: /var/lib/schild/export
+  SCHILD_LOG_FORMAT: json
+  SCHILD_LOG_LEVEL: ${SCHILD_LOG_LEVEL:-info}
+
+networks:
+  sites:
+    internal: true
+    ipam:
+      config:
+        - { subnet: 10.66.17.0/24, ip_range: 10.66.17.128/25 }
+  federation:
+    internal: true
+    ipam:
+      config:
+        - { subnet: 10.66.18.0/24 }
+  obs:
+    internal: true
+    ipam:
+      config:
+        - { subnet: 10.66.19.0/24 }
+  inet:
+    internal: true
+    enable_ipv6: true
+    ipam:
+      config:
+        - { subnet: 10.66.20.0/22, ip_range: 10.66.22.0/23 }
+        - { subnet: "fd66:0:0:14::/80" }
+  mgmt:
+    ipam:
+      config:
+        - { subnet: 10.66.24.0/24 }
+
+volumes:
+  groundtruth:
+  export-api:
+  export-shop:
+  data-api:
+  data-shop:
+  labdata-a:
+  labdata-b:
+  labdata-c:
+  labdata-d:
+
+services:
+  # ---- test-lab infrastructure ---------------------------------------------
+  ground-truth:
+    image: schild-testlab:dev
+    command: ["/usr/local/bin/groundtruth"]
+    environment: { GT_DB: /var/lib/testlab/ground-truth.sqlite, GT_LISTEN: ":9201" }
+    volumes: ["groundtruth:/var/lib/testlab"]
+    networks: [obs]
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "/usr/local/bin/healthcheck", "http://localhost:9201/healthz"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  site-api:
+    image: schild-testlab:dev
+    command: ["/usr/local/bin/site-api"]
+    environment: { SITE_API_LISTEN: ":8080" }
+    networks: [sites]
+    restart: unless-stopped
+
+  site-shop:
+    image: schild-testlab:dev
+    command: ["/usr/local/bin/site-api"]
+    environment: { SITE_API_LISTEN: ":8080" }
+    networks: [sites]
+    restart: unless-stopped
+
+  stripper-api:
+    <<: *stripper
+    environment:
+      STRIPPER_LISTEN: ":8080"
+      STRIPPER_UPSTREAM: http://schild-api:8080
+      STRIPPER_GT_DB: /var/lib/testlab/ground-truth.sqlite
+      SCHILD_LABEL_SECRET: ${SCHILD_LABEL_SECRET:?set SCHILD_LABEL_SECRET}
+    networks:
+      inet: {}
+      sites: { ipv4_address: 10.66.17.5 }
+
+  stripper-shop:
+    <<: *stripper
+    environment:
+      STRIPPER_LISTEN: ":8080"
+      STRIPPER_UPSTREAM: http://schild-shop:8080
+      STRIPPER_GT_DB: /var/lib/testlab/ground-truth.sqlite
+      SCHILD_LABEL_SECRET: ${SCHILD_LABEL_SECRET:?set SCHILD_LABEL_SECRET}
+    networks:
+      inet: {}
+      sites: { ipv4_address: 10.66.17.6 }
+
+  # ---- schild gateways ---------------------------------------------------------
+  schild-api:
+    <<: *schild
+    environment: *schildenv              # mode observe, profile test
+    volumes:
+      - ./config/t1/api:/etc/schild:ro
+      - ./secrets/geo:/usr/share/schild/geo-fixture:ro
+      - data-api:/var/lib/schild
+      - export-api:/var/lib/schild/export
+
+  schild-shop:
+    <<: *schild
+    environment: *schildenv              # mode autoblock, profile production
+    volumes:
+      - ./config/t1/shop:/etc/schild:ro
+      - ./secrets/geo:/usr/share/schild/geo-fixture:ro
+      - data-shop:/var/lib/schild
+      - export-shop:/var/lib/schild/export
+
+  # ---- four labs of four operators (planned part, lab-side tests only) -------
+  lab-a:
+    <<: *lab
+    volumes: ["./config/t1/lab-a:/etc/schild-lab:ro", "./secrets/labs/lab-a:/run/schild-lab:ro", *ca, "labdata-a:/var/lib/schild-lab"]
+  lab-b:
+    <<: *lab
+    volumes: ["./config/t1/lab-b:/etc/schild-lab:ro", "./secrets/labs/lab-b:/run/schild-lab:ro", *ca, "labdata-b:/var/lib/schild-lab"]
+  lab-c:
+    <<: *lab
+    volumes: ["./config/t1/lab-c:/etc/schild-lab:ro", "./secrets/labs/lab-c:/run/schild-lab:ro", *ca, "labdata-c:/var/lib/schild-lab"]
+  lab-d:
+    <<: *lab
+    volumes: ["./config/t1/lab-d:/etc/schild-lab:ro", "./secrets/labs/lab-d:/run/schild-lab:ro", *ca, "labdata-d:/var/lib/schild-lab"]
+
+  # Placeholder slot for the adversaries agent (MVP-07): a malicious lab.
+  lab-mal:
+    image: schild-adversary-malicious-lab:dev
+    environment:
+      SCHILD_LAB_CONFIG: /etc/schild-lab/lab.yaml
+      SCHILD_LOG_FORMAT: json
+    volumes: ["./config/t1/lab-mal:/etc/schild-lab:ro"]
+    networks: [federation]
+    profiles: ["adversary"]
+    restart: unless-stopped
+
+  # ---- two relays (planned part, lab-side tests only) -------------------------
+  relay-1:
+    <<: *relay
+    environment: { <<: *relayenv, SCHILD_RELAY_ID: relay-1 }
+  relay-2:
+    <<: *relay
+    environment: { <<: *relayenv, SCHILD_RELAY_ID: relay-2, SCHILD_RELAY_UPSTREAMS: "https://lab-d:7444,https://lab-c:7444,https://lab-b:7444,https://lab-a:7444" }
+
+  # ---- dashboards on 127.0.0.1 (the only container on mgmt) -------------------
+  gateway:
+    image: schild-testlab:dev
+    command: ["/usr/local/bin/gateway"]
+    environment:
+      GATEWAY_ROUTES: ":28788=http://schild-api:8788,:28798=http://schild-shop:8788,:28789=http://lab-a:8789,:28790=http://lab-b:8789,:28791=http://lab-c:8789,:28792=http://lab-d:8789"
+    ports:
+      - "127.0.0.1:28788:28788"   # client dashboard (site api)
+      - "127.0.0.1:28798:28798"   # client dashboard (site shop)
+      - "127.0.0.1:28789:28789"   # lab-a dashboard
+      - "127.0.0.1:28790:28790"   # lab-b dashboard
+      - "127.0.0.1:28791:28791"   # lab-c dashboard
+      - "127.0.0.1:28792:28792"   # lab-d dashboard
+    networks: [mgmt, sites, federation]
+    restart: unless-stopped
+
+  # ---- one-shot jobs (docker compose run) ------------------------------------
+  smoke:
+    image: schild-testlab:dev
+    profiles: ["jobs"]
+    entrypoint: ["/usr/local/bin/smoke"]
+    command:
+      - -profile=t1
+      - -sites=api=http://stripper-api:8080|http://schild-api:8788|/export/api|observe,shop=http://stripper-shop:8080|http://schild-shop:8788|/export/shop|autoblock
+      - -labs=lab-a=http://lab-a:8789|https://lab-a:7444,lab-b=http://lab-b:8789|https://lab-b:7444,lab-c=http://lab-c:8789|https://lab-c:7444,lab-d=http://lab-d:8789|https://lab-d:7444
+      - -relays=relay-1=http://relay-1:7480,relay-2=http://relay-2:7480
+      - -approvers=2
+      - -cosigners=2
+      - -out=/results/runs/smoke-t1/smoke.json
+    environment:
+      SCHILD_LABEL_SECRET: ${SCHILD_LABEL_SECRET:?set SCHILD_LABEL_SECRET}
+      SCHILD_TEST_CA: /etc/schild-ca/ca.pem
+      SCHILD_ALLOW_TEST_KEYS: "1"            # TEST LAB ONLY: start with test keys and the test CA (D24 preflight)
+      SMOKE_PASSWORD: ${SMOKE_PASSWORD:-}
+      SMOKE_SETUP_CODE_API: ${SMOKE_SETUP_CODE_API:-}
+      SMOKE_SETUP_CODE_SHOP: ${SMOKE_SETUP_CODE_SHOP:-}
+    volumes: [*ca, "export-api:/export/api:ro", "export-shop:/export/shop:ro", "../../results/runs:/results/runs"]
+    networks:
+      inet: { ipv4_address: 10.66.20.10 }
+      federation: {}
+
+  evaluator:
+    image: schild-testlab:dev
+    profiles: ["jobs"]
+    entrypoint: ["/usr/local/bin/evaluator"]
+    # D72: the gateways send no signals, so there is no transparency log to check (-signals).
+    command: ["-ground-truth", "/var/lib/testlab/ground-truth.sqlite",
+              "-events", "/export/api/events.ndjson,/export/shop/events.ndjson",
+              "-spec", "MVP-05", "-profile", "t1", "-out", "/results/runs/smoke-t1/eval"]
+    volumes: ["groundtruth:/var/lib/testlab:ro", "export-api:/export/api:ro", "export-shop:/export/shop:ro", "../../results/runs:/results/runs"]
+    networks: [obs]
+
+  # ---- heavier target sites (opt in with --profile full; pulls images) -------
+  app-juice:
+    image: bkimminich/juice-shop:latest
+    networks: [sites]
+    profiles: ["full"]
+    restart: unless-stopped
+  app-dvwa:
+    image: ghcr.io/digininja/dvwa:latest
+    networks: [sites]
+    profiles: ["full"]
+    restart: unless-stopped
+  db-wp:
+    image: mariadb:13
+    environment: { MARIADB_DATABASE: wordpress, MARIADB_USER: wp, MARIADB_PASSWORD: wp, MARIADB_RANDOM_ROOT_PASSWORD: "yes" }
+    networks: [sites]
+    profiles: ["full"]
+    restart: unless-stopped
+  app-wp:
+    image: wordpress:7.1-php8.5-apache
+    environment: { WORDPRESS_DB_HOST: db-wp, WORDPRESS_DB_USER: wp, WORDPRESS_DB_PASSWORD: wp, WORDPRESS_DB_NAME: wordpress }
+    depends_on: [db-wp]
+    networks: [sites]
+    profiles: ["full"]
+    restart: unless-stopped
+  schild-wp:
+    <<: *schild
+    environment: *schildenv
+    volumes: ["./config/t1/wp:/etc/schild:ro", "./secrets/geo:/usr/share/schild/geo-fixture:ro"]
+    profiles: ["full"]
+  schild-dvwa:
+    <<: *schild
+    environment: *schildenv
+    volumes: ["./config/t1/dvwa:/etc/schild:ro", "./secrets/geo:/usr/share/schild/geo-fixture:ro"]
+    profiles: ["full"]
+  schild-juice:
+    <<: *schild
+    environment: *schildenv
+    volumes: ["./config/t1/juice:/etc/schild:ro", "./secrets/geo:/usr/share/schild/geo-fixture:ro"]
+    profiles: ["full"]
+  stripper-wp:
+    <<: *stripper
+    environment: { STRIPPER_LISTEN: ":8080", STRIPPER_UPSTREAM: "http://schild-wp:8080", STRIPPER_GT_DB: /var/lib/testlab/ground-truth.sqlite, SCHILD_LABEL_SECRET: "${SCHILD_LABEL_SECRET:?set SCHILD_LABEL_SECRET}" }
+    networks: { inet: {}, sites: { ipv4_address: 10.66.17.7 } }
+    profiles: ["full"]
+  stripper-dvwa:
+    <<: *stripper
+    environment: { STRIPPER_LISTEN: ":8080", STRIPPER_UPSTREAM: "http://schild-dvwa:8080", STRIPPER_GT_DB: /var/lib/testlab/ground-truth.sqlite, SCHILD_LABEL_SECRET: "${SCHILD_LABEL_SECRET:?set SCHILD_LABEL_SECRET}" }
+    networks: { inet: {}, sites: { ipv4_address: 10.66.17.8 } }
+    profiles: ["full"]
+  stripper-juice:
+    <<: *stripper
+    environment: { STRIPPER_LISTEN: ":8080", STRIPPER_UPSTREAM: "http://schild-juice:8080", STRIPPER_GT_DB: /var/lib/testlab/ground-truth.sqlite, SCHILD_LABEL_SECRET: "${SCHILD_LABEL_SECRET:?set SCHILD_LABEL_SECRET}" }
+    networks: { inet: {}, sites: { ipv4_address: 10.66.17.9 } }
+    profiles: ["full"]

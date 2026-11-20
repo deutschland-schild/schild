@@ -1,0 +1,58 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://contracts.schild.invalid/v0/human-check.schema.json",
+  "title": "Human check decision input (MVP-12 v1_cut)",
+  "description": "Input of the human-check vectors: the per-website browser verification policy and one request as the gate sees it. The result is {answer, reason, status} (contract/humancheck.Decide). Never sent anywhere.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["policy", "method", "path", "allowlisted", "good_bot", "clearance"],
+  "properties": {
+    "policy": { "$ref": "#/$defs/policy" },
+    "method": { "type": "string", "minLength": 1, "maxLength": 16, "pattern": "^[A-Z]+$" },
+    "path": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 2048,
+      "pattern": "^/[!-~]*$"
+    },
+    "accept": { "type": "string", "maxLength": 512 },
+    "sec_fetch_mode": { "type": "string", "maxLength": 64 },
+    "allowlisted": { "type": "boolean" },
+    "good_bot": { "type": "boolean" },
+    "clearance": { "type": "string", "enum": ["none", "pow", "nojs", "invalid"] },
+    "shared_scenario_hit": { "type": "boolean" },
+    "aggressive_crawl_hit": { "type": "boolean" },
+    "distributed_wave": { "type": "boolean" }
+  },
+  "$defs": {
+    "policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["website", "mode"],
+      "properties": {
+        "website": {
+          "type": "string",
+          "maxLength": 253,
+          "pattern": "^(_any|(_|[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?)(\\.(_|[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?))*)$"
+        },
+        "mode": { "type": "string", "enum": ["off", "findings", "always"] },
+        "under_attack": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["scope"],
+          "properties": {
+            "scope": { "type": "string", "enum": ["off", "admin", "all"] },
+            "until": { "type": "string", "maxLength": 64 }
+          }
+        },
+        "except": {
+          "type": "array",
+          "maxItems": 16,
+          "items": { "type": "string", "maxLength": 255, "pattern": "^/[A-Za-z0-9._~!$&'()+,;=:@/-]*(/\\*)?$" }
+        },
+        "clearance_ttl_s": { "type": "integer", "minimum": 60, "maximum": 3600 },
+        "difficulty": { "type": "integer", "minimum": 1000, "maximum": 250000 }
+      }
+    }
+  }
+}

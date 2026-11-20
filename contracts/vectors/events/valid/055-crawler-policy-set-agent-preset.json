@@ -1,0 +1,32 @@
+{
+  "contract": "events",
+  "description": "D57: an agent applied the preset block_ai_training, with token and reason.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"data\":{\"actor\":\"agent\",\"bots\":{},\"categories\":{\"ai_training\":\"block\"},\"impersonators\":\"allow\",\"preset\":\"block_ai_training\",\"reason\":\"The operator asked to keep AI training crawlers out.\",\"token_id\":\"tok_000000000002\",\"token_label\":\"site agent\",\"website\":\"musterverein.example\"},\"datacontenttype\":\"application/json\",\"id\":\"ff0ba5d8-81ce-49a4-adee-106dd1a1ce7b\",\"source\":\"schild://web-1\",\"specversion\":\"1.0\",\"time\":\"2026-10-26T11:59:58.123Z\",\"type\":\"schild.crawler.policy_set.v1\"}",
+  "input_decoded": {
+    "data": {
+      "actor": "agent",
+      "bots": {},
+      "categories": {
+        "ai_training": "block"
+      },
+      "impersonators": "allow",
+      "preset": "block_ai_training",
+      "reason": "The operator asked to keep AI training crawlers out.",
+      "token_id": "tok_000000000002",
+      "token_label": "site agent",
+      "website": "musterverein.example"
+    },
+    "datacontenttype": "application/json",
+    "id": "ff0ba5d8-81ce-49a4-adee-106dd1a1ce7b",
+    "source": "schild://web-1",
+    "specversion": "1.0",
+    "time": "2026-10-26T11:59:58.123Z",
+    "type": "schild.crawler.policy_set.v1"
+  },
+  "expect": {
+    "valid": true
+  }
+}

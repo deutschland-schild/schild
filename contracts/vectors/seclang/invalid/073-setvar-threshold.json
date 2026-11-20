@@ -1,0 +1,13 @@
+{
+  "contract": "seclang",
+  "description": "SecLang subset case setvar-threshold (max_action observe).",
+  "context": {
+    "now": "2026-10-26T12:00:00Z",
+    "max_action": "observe"
+  },
+  "input_raw": "SecRule ARGS \"@detectSQLi\" \"id:7700139,phase:2,pass,severity:NOTICE,msg:'x',setvar:tx.inbound_anomaly_score_threshold=10000\"",
+  "expect": {
+    "valid": false,
+    "error": "seclang"
+  }
+}

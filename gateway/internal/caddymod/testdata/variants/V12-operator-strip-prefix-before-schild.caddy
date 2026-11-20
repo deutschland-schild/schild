@@ -1,0 +1,9 @@
+# unprotected: []
+# expect: refuse
+http://a.example.test:26080 {
+	route /app/* {
+		uri strip_prefix /app
+		schild
+		reverse_proxy 127.0.0.1:26082
+	}
+}

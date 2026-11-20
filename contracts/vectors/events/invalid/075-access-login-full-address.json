@@ -1,0 +1,24 @@
+{
+  "contract": "events",
+  "description": "D56: a login keeps the prefix, never the full address.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"data\":{\"address_prefix\":\"203.0.113.7\",\"website\":\"musterverein.example\"},\"datacontenttype\":\"application/json\",\"id\":\"3f3ccac3-5f93-4dbf-ba20-566993274150\",\"source\":\"schild://web-1\",\"specversion\":\"1.0\",\"time\":\"2026-10-26T11:59:58.123Z\",\"type\":\"schild.access.login.v1\"}",
+  "input_decoded": {
+    "data": {
+      "address_prefix": "203.0.113.7",
+      "website": "musterverein.example"
+    },
+    "datacontenttype": "application/json",
+    "id": "3f3ccac3-5f93-4dbf-ba20-566993274150",
+    "source": "schild://web-1",
+    "specversion": "1.0",
+    "time": "2026-10-26T11:59:58.123Z",
+    "type": "schild.access.login.v1"
+  },
+  "expect": {
+    "valid": false,
+    "error": "schema"
+  }
+}

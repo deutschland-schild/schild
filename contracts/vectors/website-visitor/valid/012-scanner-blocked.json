@@ -1,0 +1,20 @@
+{
+  "contract": "website-visitor",
+  "description": "D36 amendment: a security scanner stopped by the WAF is still a bot client (the bot estimate counts every outcome).",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"bot_category\":\"security_scanner\",\"outcome\":\"blocked_waf\",\"ua_class\":\"tool\"}",
+  "input_decoded": {
+    "bot_category": "security_scanner",
+    "outcome": "blocked_waf",
+    "ua_class": "tool"
+  },
+  "expect": {
+    "valid": true,
+    "result": {
+      "bot_client": true,
+      "visitor": false
+    }
+  }
+}

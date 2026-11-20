@@ -1,0 +1,100 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://contracts.schild.invalid/v0/rule-effect.schema.json",
+  "title": "Rule effect input (v0.6, D73, D89)",
+  "description": "Input of the rule-effect vectors: the one function of status and effect of a rule of any repository (contract/rules). Five ops: the status and effect of a rule (effect), what a matched rule does to one request (request), what a repository does (repository), the state of a repository with the settings overlay (switch), the scope check of a write of the agent API (agent_write).",
+  "oneOf": [
+    { "$ref": "#/$defs/effect" },
+    { "$ref": "#/$defs/request" },
+    { "$ref": "#/$defs/repository" },
+    { "$ref": "#/$defs/switch" },
+    { "$ref": "#/$defs/agentWrite" }
+  ],
+  "$defs": {
+    "repositoryId": {
+      "description": "crs (OWASP CRS, built into the binary), crowdsec (CrowdSec Hub virtual patches), local (the operator's rules.d).",
+      "type": "string",
+      "enum": ["crs", "crowdsec", "local"]
+    },
+    "state": {
+      "description": "State of a repository. off: no rules, nothing fetched. detect: rules match and are logged, never block. block.",
+      "type": "string",
+      "enum": ["off", "detect", "block"]
+    },
+    "mode": {
+      "description": "D89: there is no protection mode to set. observe is the dry run of the test profile, in which nothing blocks; autoblock every other gateway.",
+      "type": "string",
+      "enum": ["observe", "autoblock"]
+    },
+    "actor": { "type": "string", "enum": ["dashboard", "agent"] },
+    "unix": { "type": "integer", "minimum": 0, "maximum": 9007199254740991 },
+    "rule": {
+      "description": "One rule of one repository at one moment.",
+      "type": "object",
+      "required": ["op", "mode", "state", "origin", "now"],
+      "properties": {
+        "mode": { "$ref": "#/$defs/mode" },
+        "state": { "$ref": "#/$defs/state" },
+        "origin": {
+          "description": "release: ships with the image. update: received while the gateway runs. operator: the operator's own file.",
+          "type": "string",
+          "enum": ["release", "update", "operator"]
+        },
+        "disabled": { "type": "boolean" },
+        "disabled_by": { "type": "string", "enum": ["config", "dashboard", "agent"] },
+        "settling_until": { "description": "Unix second an update has settled (absent: none).", "$ref": "#/$defs/unix" },
+        "now": { "$ref": "#/$defs/unix" }
+      }
+    },
+    "effect": {
+      "allOf": [{ "$ref": "#/$defs/rule" }],
+      "unevaluatedProperties": false,
+      "properties": { "op": { "const": "effect" } }
+    },
+    "request": {
+      "allOf": [{ "$ref": "#/$defs/rule" }],
+      "unevaluatedProperties": false,
+      "properties": {
+        "op": { "const": "request" },
+        "site_mode": { "description": "observe: the website is set to observe.", "type": "string", "enum": ["observe", "protect"] },
+        "allow": { "description": "Allowlist level of the client.", "type": "string", "enum": ["no_block", "bypass_waf"] },
+        "excepted": { "description": "An unblock excepts this rule's source for this client.", "type": "boolean" }
+      }
+    },
+    "repository": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["op", "state", "mode"],
+      "properties": {
+        "op": { "const": "repository" },
+        "state": { "$ref": "#/$defs/state" },
+        "mode": { "$ref": "#/$defs/mode" }
+      }
+    },
+    "switch": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["op", "repository"],
+      "properties": {
+        "op": { "const": "switch" },
+        "repository": { "$ref": "#/$defs/repositoryId" },
+        "config": { "description": "rules.<repository>.state in schild.yaml (absent: not set).", "$ref": "#/$defs/state" },
+        "overlay": { "description": "The value in the settings overlay (absent: none).", "$ref": "#/$defs/state" },
+        "overlay_by": { "description": "Who set the overlay value (absent: dashboard).", "$ref": "#/$defs/actor" },
+        "requested": { "description": "The value asked for.", "$ref": "#/$defs/state" },
+        "actor": { "description": "Who asks (absent: dashboard).", "$ref": "#/$defs/actor" },
+        "reset": { "description": "Drop the overlay value: schild.yaml counts again.", "type": "boolean" }
+      }
+    },
+    "agentWrite": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["op", "scope", "operation"],
+      "properties": {
+        "op": { "const": "agent_write" },
+        "scope": { "description": "Scope of a token that authenticated.", "type": "string", "maxLength": 32 },
+        "operation": { "description": "operationId of the write.", "type": "string", "pattern": "^[A-Za-z]{1,64}$" }
+      }
+    }
+  }
+}

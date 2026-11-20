@@ -1,0 +1,17 @@
+{
+  "website": "musterverein.example",
+  "policy": {
+    "categories": { "ai_training": "block" },
+    "bots": {},
+    "impersonators": "allow"
+  },
+  "updated_at": "2026-11-02T10:16:00.000Z",
+  "actor": "dashboard",
+  "catalogue_version": "2026-10-26.1",
+  "crawlers": [
+    { "id": "googlebot", "name": "Googlebot", "operator": "Google", "category": "search_engine", "verifiable": true },
+    { "id": "gptbot", "name": "GPTBot", "operator": "OpenAI", "category": "ai_training", "verifiable": true },
+    { "id": "ccbot", "name": "CCBot", "operator": "Common Crawl", "category": "ai_training", "verifiable": false }
+  ],
+  "presets": ["block_ai_training"]
+}

@@ -1,0 +1,1050 @@
+{
+  "results_version": 0,
+  "spec": "MVP-02",
+  "run_id": "stage3-T12-t0-b18f9b2",
+  "started_at": "2026-10-26T22:53:45Z",
+  "finished_at": "2026-10-26T23:03:00Z",
+  "seed": 42,
+  "profile": "t0",
+  "git_rev": "b18f9b21ef924a22a45b254d16a5b7307bb48a03",
+  "host": {
+    "os": "darwin",
+    "arch": "arm64",
+    "cpus": 12,
+    "mem_mb": 65536
+  },
+  "images": [
+    {
+      "name": "schild:mvp",
+      "digest": "sha256:18af479c587178ba35322ad447d1267d0b53c87bb4e25cea7a679397fd7a9de6"
+    },
+    {
+      "name": "schild-lab:mvp",
+      "digest": "sha256:be7fad6d1f41b0a17172d81f014ecdd8c9c96683b88f75e89b75cf37ade4c866"
+    },
+    {
+      "name": "schild-relay:mvp",
+      "digest": "sha256:acee0669843d56cbd176234e93593375df732bafbf3319d208e6ba0f81176c47"
+    },
+    {
+      "name": "schild-testlab:mvp",
+      "digest": "sha256:0e690e7d2561e564b814930f5207192059a48fd653fb04d93105d03157b4fdae"
+    }
+  ],
+  "scenarios": [
+    "T12"
+  ],
+  "hypotheses": [
+    "M1",
+    "D3"
+  ],
+  "metrics": [
+    {
+      "name": "t12_pass",
+      "value": 1,
+      "unit": "bool",
+      "labels": {
+        "rep": "1"
+      }
+    },
+    {
+      "name": "t12_requests",
+      "value": 1000,
+      "unit": "count",
+      "labels": {
+        "phase": "A-baseline",
+        "rep": "1"
+      }
+    },
+    {
+      "name": "t12_answered_2xx",
+      "value": 1000,
+      "unit": "count",
+      "labels": {
+        "phase": "A-baseline",
+        "rep": "1"
+      }
+    },
+    {
+      "name": "t12_status_503",
+      "value": 0,
+      "unit": "count",
+      "labels": {
+        "phase": "A-baseline",
+        "rep": "1"
+      }
+    },
+    {
+      "name": "t12_status_502",
+      "value": 0,
+      "unit": "count",
+      "labels": {
+        "phase": "A-baseline",
+        "rep": "1"
+      }
+    },
+    {
+      "name": "t12_bypassed",
+      "value": 0,
+      "unit": "count",
+      "labels": {
+        "phase": "A-baseline",
+        "rep": "1"
+      }
+    },
+    {
+      "name": "t12_requests",
+      "value": 1200,
+      "unit": "count",
+      "labels": {
+        "phase": "B-kill-under-load",
+        "rep": "1"
+      }
+    },
+    {
+      "name": "t12_answered_2xx",
+      "value": 1200,
+      "unit": "count",
+      "labels": {
+        "phase": "B-kill-under-load",
+        "rep": "1"
+      }
+    },
+    {
+      "name": "t12_status_503",
+      "value": 0,
+      "unit": "count",
+      "labels": {
+        "phase": "B-kill-under-load",
+        "rep": "1"
+      }
+    },
+    {
+      "name": "t12_status_502",
+      "value": 0,
+      "unit": "count",
+      "labels": {
+        "phase": "B-kill-under-load",
+        "rep": "1"
+      }
+    },
+    {
+      "name": "t12_bypassed",
+      "value": 819,
+      "unit": "count",
+      "labels": {
+        "phase": "B-kill-under-load",
+        "rep": "1"
+      }
+    },
+    {
+      "name": "t12_requests",
+      "value": 1000,
+      "unit": "count",
+      "labels": {
+        "phase": "C-schild-down",
+        "rep": "1"
+      }
+    },
+    {
+      "name": "t12_answered_2xx",
+      "value": 1000,
+      "unit": "count",
+      "labels": {
+        "phase": "C-schild-down",
+        "rep": "1"
+      }
+    },
+    {
+      "name": "t12_status_503",
+      "value": 0,
+      "unit": "count",
+      "labels": {
+        "phase": "C-schild-down",
+        "rep": "1"
+      }
+    },
+    {
+      "name": "t12_status_502",
+      "value": 0,
+      "unit": "count",
+      "labels": {
+        "phase": "C-schild-down",
+        "rep": "1"
+      }
+    },
+    {
+      "name": "t12_bypassed",
+      "value": 1000,
+      "unit": "count",
+      "labels": {
+        "phase": "C-schild-down",
+        "rep": "1"
+      }
+    },
+    {
+      "name": "t12_requests",
+      "value": 1000,
+      "unit": "count",
+      "labels": {
+        "phase": "D-restarted",
+        "rep": "1"
+      }
+    },
+    {
+      "name": "t12_answered_2xx",
+      "value": 1000,
+      "unit": "count",
+      "labels": {
+        "phase": "D-restarted",
+        "rep": "1"
+      }
+    },
+    {
+      "name": "t12_status_503",
+      "value": 0,
+      "unit": "count",
+      "labels": {
+        "phase": "D-restarted",
+        "rep": "1"
+      }
+    },
+    {
+      "name": "t12_status_502",
+      "value": 0,
+      "unit": "count",
+      "labels": {
+        "phase": "D-restarted",
+        "rep": "1"
+      }
+    },
+    {
+      "name": "t12_bypassed",
+      "value": 0,
+      "unit": "count",
+      "labels": {
+        "phase": "D-restarted",
+        "rep": "1"
+      }
+    },
+    {
+      "name": "t12_requests",
+      "value": 160,
+      "unit": "count",
+      "labels": {
+        "phase": "E-schild-hung",
+        "rep": "1"
+      }
+    },
+    {
+      "name": "t12_answered_2xx",
+      "value": 0,
+      "unit": "count",
+      "labels": {
+        "phase": "E-schild-hung",
+        "rep": "1"
+      }
+    },
+    {
+      "name": "t12_status_503",
+      "value": 160,
+      "unit": "count",
+      "labels": {
+        "phase": "E-schild-hung",
+        "rep": "1"
+      }
+    },
+    {
+      "name": "t12_status_502",
+      "value": 0,
+      "unit": "count",
+      "labels": {
+        "phase": "E-schild-hung",
+        "rep": "1"
+      }
+    },
+    {
+      "name": "t12_bypassed",
+      "value": 0,
+      "unit": "count",
+      "labels": {
+        "phase": "E-schild-hung",
+        "rep": "1"
+      }
+    },
+    {
+      "name": "t12_requests",
+      "value": 1000,
+      "unit": "count",
+      "labels": {
+        "phase": "F-resumed",
+        "rep": "1"
+      }
+    },
+    {
+      "name": "t12_answered_2xx",
+      "value": 1000,
+      "unit": "count",
+      "labels": {
+        "phase": "F-resumed",
+        "rep": "1"
+      }
+    },
+    {
+      "name": "t12_status_503",
+      "value": 0,
+      "unit": "count",
+      "labels": {
+        "phase": "F-resumed",
+        "rep": "1"
+      }
+    },
+    {
+      "name": "t12_status_502",
+      "value": 0,
+      "unit": "count",
+      "labels": {
+        "phase": "F-resumed",
+        "rep": "1"
+      }
+    },
+    {
+      "name": "t12_bypassed",
+      "value": 0,
+      "unit": "count",
+      "labels": {
+        "phase": "F-resumed",
+        "rep": "1"
+      }
+    },
+    {
+      "name": "t12_pass",
+      "value": 1,
+      "unit": "bool",
+      "labels": {
+        "rep": "2"
+      }
+    },
+    {
+      "name": "t12_requests",
+      "value": 1000,
+      "unit": "count",
+      "labels": {
+        "phase": "A-baseline",
+        "rep": "2"
+      }
+    },
+    {
+      "name": "t12_answered_2xx",
+      "value": 1000,
+      "unit": "count",
+      "labels": {
+        "phase": "A-baseline",
+        "rep": "2"
+      }
+    },
+    {
+      "name": "t12_status_503",
+      "value": 0,
+      "unit": "count",
+      "labels": {
+        "phase": "A-baseline",
+        "rep": "2"
+      }
+    },
+    {
+      "name": "t12_status_502",
+      "value": 0,
+      "unit": "count",
+      "labels": {
+        "phase": "A-baseline",
+        "rep": "2"
+      }
+    },
+    {
+      "name": "t12_bypassed",
+      "value": 0,
+      "unit": "count",
+      "labels": {
+        "phase": "A-baseline",
+        "rep": "2"
+      }
+    },
+    {
+      "name": "t12_requests",
+      "value": 1200,
+      "unit": "count",
+      "labels": {
+        "phase": "B-kill-under-load",
+        "rep": "2"
+      }
+    },
+    {
+      "name": "t12_answered_2xx",
+      "value": 1200,
+      "unit": "count",
+      "labels": {
+        "phase": "B-kill-under-load",
+        "rep": "2"
+      }
+    },
+    {
+      "name": "t12_status_503",
+      "value": 0,
+      "unit": "count",
+      "labels": {
+        "phase": "B-kill-under-load",
+        "rep": "2"
+      }
+    },
+    {
+      "name": "t12_status_502",
+      "value": 0,
+      "unit": "count",
+      "labels": {
+        "phase": "B-kill-under-load",
+        "rep": "2"
+      }
+    },
+    {
+      "name": "t12_bypassed",
+      "value": 815,
+      "unit": "count",
+      "labels": {
+        "phase": "B-kill-under-load",
+        "rep": "2"
+      }
+    },
+    {
+      "name": "t12_requests",
+      "value": 1000,
+      "unit": "count",
+      "labels": {
+        "phase": "C-schild-down",
+        "rep": "2"
+      }
+    },
+    {
+      "name": "t12_answered_2xx",
+      "value": 1000,
+      "unit": "count",
+      "labels": {
+        "phase": "C-schild-down",
+        "rep": "2"
+      }
+    },
+    {
+      "name": "t12_status_503",
+      "value": 0,
+      "unit": "count",
+      "labels": {
+        "phase": "C-schild-down",
+        "rep": "2"
+      }
+    },
+    {
+      "name": "t12_status_502",
+      "value": 0,
+      "unit": "count",
+      "labels": {
+        "phase": "C-schild-down",
+        "rep": "2"
+      }
+    },
+    {
+      "name": "t12_bypassed",
+      "value": 1000,
+      "unit": "count",
+      "labels": {
+        "phase": "C-schild-down",
+        "rep": "2"
+      }
+    },
+    {
+      "name": "t12_requests",
+      "value": 1000,
+      "unit": "count",
+      "labels": {
+        "phase": "D-restarted",
+        "rep": "2"
+      }
+    },
+    {
+      "name": "t12_answered_2xx",
+      "value": 1000,
+      "unit": "count",
+      "labels": {
+        "phase": "D-restarted",
+        "rep": "2"
+      }
+    },
+    {
+      "name": "t12_status_503",
+      "value": 0,
+      "unit": "count",
+      "labels": {
+        "phase": "D-restarted",
+        "rep": "2"
+      }
+    },
+    {
+      "name": "t12_status_502",
+      "value": 0,
+      "unit": "count",
+      "labels": {
+        "phase": "D-restarted",
+        "rep": "2"
+      }
+    },
+    {
+      "name": "t12_bypassed",
+      "value": 0,
+      "unit": "count",
+      "labels": {
+        "phase": "D-restarted",
+        "rep": "2"
+      }
+    },
+    {
+      "name": "t12_requests",
+      "value": 160,
+      "unit": "count",
+      "labels": {
+        "phase": "E-schild-hung",
+        "rep": "2"
+      }
+    },
+    {
+      "name": "t12_answered_2xx",
+      "value": 0,
+      "unit": "count",
+      "labels": {
+        "phase": "E-schild-hung",
+        "rep": "2"
+      }
+    },
+    {
+      "name": "t12_status_503",
+      "value": 160,
+      "unit": "count",
+      "labels": {
+        "phase": "E-schild-hung",
+        "rep": "2"
+      }
+    },
+    {
+      "name": "t12_status_502",
+      "value": 0,
+      "unit": "count",
+      "labels": {
+        "phase": "E-schild-hung",
+        "rep": "2"
+      }
+    },
+    {
+      "name": "t12_bypassed",
+      "value": 0,
+      "unit": "count",
+      "labels": {
+        "phase": "E-schild-hung",
+        "rep": "2"
+      }
+    },
+    {
+      "name": "t12_requests",
+      "value": 1000,
+      "unit": "count",
+      "labels": {
+        "phase": "F-resumed",
+        "rep": "2"
+      }
+    },
+    {
+      "name": "t12_answered_2xx",
+      "value": 1000,
+      "unit": "count",
+      "labels": {
+        "phase": "F-resumed",
+        "rep": "2"
+      }
+    },
+    {
+      "name": "t12_status_503",
+      "value": 0,
+      "unit": "count",
+      "labels": {
+        "phase": "F-resumed",
+        "rep": "2"
+      }
+    },
+    {
+      "name": "t12_status_502",
+      "value": 0,
+      "unit": "count",
+      "labels": {
+        "phase": "F-resumed",
+        "rep": "2"
+      }
+    },
+    {
+      "name": "t12_bypassed",
+      "value": 0,
+      "unit": "count",
+      "labels": {
+        "phase": "F-resumed",
+        "rep": "2"
+      }
+    },
+    {
+      "name": "t12_pass",
+      "value": 1,
+      "unit": "bool",
+      "labels": {
+        "rep": "3"
+      }
+    },
+    {
+      "name": "t12_requests",
+      "value": 1000,
+      "unit": "count",
+      "labels": {
+        "phase": "A-baseline",
+        "rep": "3"
+      }
+    },
+    {
+      "name": "t12_answered_2xx",
+      "value": 1000,
+      "unit": "count",
+      "labels": {
+        "phase": "A-baseline",
+        "rep": "3"
+      }
+    },
+    {
+      "name": "t12_status_503",
+      "value": 0,
+      "unit": "count",
+      "labels": {
+        "phase": "A-baseline",
+        "rep": "3"
+      }
+    },
+    {
+      "name": "t12_status_502",
+      "value": 0,
+      "unit": "count",
+      "labels": {
+        "phase": "A-baseline",
+        "rep": "3"
+      }
+    },
+    {
+      "name": "t12_bypassed",
+      "value": 0,
+      "unit": "count",
+      "labels": {
+        "phase": "A-baseline",
+        "rep": "3"
+      }
+    },
+    {
+      "name": "t12_requests",
+      "value": 1200,
+      "unit": "count",
+      "labels": {
+        "phase": "B-kill-under-load",
+        "rep": "3"
+      }
+    },
+    {
+      "name": "t12_answered_2xx",
+      "value": 1200,
+      "unit": "count",
+      "labels": {
+        "phase": "B-kill-under-load",
+        "rep": "3"
+      }
+    },
+    {
+      "name": "t12_status_503",
+      "value": 0,
+      "unit": "count",
+      "labels": {
+        "phase": "B-kill-under-load",
+        "rep": "3"
+      }
+    },
+    {
+      "name": "t12_status_502",
+      "value": 0,
+      "unit": "count",
+      "labels": {
+        "phase": "B-kill-under-load",
+        "rep": "3"
+      }
+    },
+    {
+      "name": "t12_bypassed",
+      "value": 817,
+      "unit": "count",
+      "labels": {
+        "phase": "B-kill-under-load",
+        "rep": "3"
+      }
+    },
+    {
+      "name": "t12_requests",
+      "value": 1000,
+      "unit": "count",
+      "labels": {
+        "phase": "C-schild-down",
+        "rep": "3"
+      }
+    },
+    {
+      "name": "t12_answered_2xx",
+      "value": 1000,
+      "unit": "count",
+      "labels": {
+        "phase": "C-schild-down",
+        "rep": "3"
+      }
+    },
+    {
+      "name": "t12_status_503",
+      "value": 0,
+      "unit": "count",
+      "labels": {
+        "phase": "C-schild-down",
+        "rep": "3"
+      }
+    },
+    {
+      "name": "t12_status_502",
+      "value": 0,
+      "unit": "count",
+      "labels": {
+        "phase": "C-schild-down",
+        "rep": "3"
+      }
+    },
+    {
+      "name": "t12_bypassed",
+      "value": 1000,
+      "unit": "count",
+      "labels": {
+        "phase": "C-schild-down",
+        "rep": "3"
+      }
+    },
+    {
+      "name": "t12_requests",
+      "value": 1000,
+      "unit": "count",
+      "labels": {
+        "phase": "D-restarted",
+        "rep": "3"
+      }
+    },
+    {
+      "name": "t12_answered_2xx",
+      "value": 1000,
+      "unit": "count",
+      "labels": {
+        "phase": "D-restarted",
+        "rep": "3"
+      }
+    },
+    {
+      "name": "t12_status_503",
+      "value": 0,
+      "unit": "count",
+      "labels": {
+        "phase": "D-restarted",
+        "rep": "3"
+      }
+    },
+    {
+      "name": "t12_status_502",
+      "value": 0,
+      "unit": "count",
+      "labels": {
+        "phase": "D-restarted",
+        "rep": "3"
+      }
+    },
+    {
+      "name": "t12_bypassed",
+      "value": 0,
+      "unit": "count",
+      "labels": {
+        "phase": "D-restarted",
+        "rep": "3"
+      }
+    },
+    {
+      "name": "t12_requests",
+      "value": 160,
+      "unit": "count",
+      "labels": {
+        "phase": "E-schild-hung",
+        "rep": "3"
+      }
+    },
+    {
+      "name": "t12_answered_2xx",
+      "value": 0,
+      "unit": "count",
+      "labels": {
+        "phase": "E-schild-hung",
+        "rep": "3"
+      }
+    },
+    {
+      "name": "t12_status_503",
+      "value": 160,
+      "unit": "count",
+      "labels": {
+        "phase": "E-schild-hung",
+        "rep": "3"
+      }
+    },
+    {
+      "name": "t12_status_502",
+      "value": 0,
+      "unit": "count",
+      "labels": {
+        "phase": "E-schild-hung",
+        "rep": "3"
+      }
+    },
+    {
+      "name": "t12_bypassed",
+      "value": 0,
+      "unit": "count",
+      "labels": {
+        "phase": "E-schild-hung",
+        "rep": "3"
+      }
+    },
+    {
+      "name": "t12_requests",
+      "value": 1000,
+      "unit": "count",
+      "labels": {
+        "phase": "F-resumed",
+        "rep": "3"
+      }
+    },
+    {
+      "name": "t12_answered_2xx",
+      "value": 1000,
+      "unit": "count",
+      "labels": {
+        "phase": "F-resumed",
+        "rep": "3"
+      }
+    },
+    {
+      "name": "t12_status_503",
+      "value": 0,
+      "unit": "count",
+      "labels": {
+        "phase": "F-resumed",
+        "rep": "3"
+      }
+    },
+    {
+      "name": "t12_status_502",
+      "value": 0,
+      "unit": "count",
+      "labels": {
+        "phase": "F-resumed",
+        "rep": "3"
+      }
+    },
+    {
+      "name": "t12_bypassed",
+      "value": 0,
+      "unit": "count",
+      "labels": {
+        "phase": "F-resumed",
+        "rep": "3"
+      }
+    },
+    {
+      "name": "t12_kill_probe_502",
+      "value": 0,
+      "unit": "count",
+      "labels": {
+        "run": "g1000_1",
+        "methods_502": "none"
+      },
+      "samples": 12000
+    },
+    {
+      "name": "t12_kill_probe_502",
+      "value": 0,
+      "unit": "count",
+      "labels": {
+        "run": "g1000_2",
+        "methods_502": "none"
+      },
+      "samples": 12000
+    },
+    {
+      "name": "t12_kill_probe_502",
+      "value": 2,
+      "unit": "count",
+      "labels": {
+        "run": "m1000_1",
+        "methods_502": "POST"
+      },
+      "samples": 12000
+    },
+    {
+      "name": "t12_kill_probe_502",
+      "value": 1,
+      "unit": "count",
+      "labels": {
+        "run": "m1000_2",
+        "methods_502": "POST"
+      },
+      "samples": 12000
+    },
+    {
+      "name": "t12_kill_probe_502",
+      "value": 2,
+      "unit": "count",
+      "labels": {
+        "run": "m1000_3",
+        "methods_502": "POST"
+      },
+      "samples": 12000
+    },
+    {
+      "name": "t12_kill_probe_502",
+      "value": 2,
+      "unit": "count",
+      "labels": {
+        "run": "m1000_4",
+        "methods_502": "POST"
+      },
+      "samples": 12000
+    },
+    {
+      "name": "t12_kill_probe_502",
+      "value": 0,
+      "unit": "count",
+      "labels": {
+        "run": "m100_1",
+        "methods_502": "none"
+      },
+      "samples": 1200
+    },
+    {
+      "name": "t12_kill_probe_502",
+      "value": 0,
+      "unit": "count",
+      "labels": {
+        "run": "m100_2",
+        "methods_502": "none"
+      },
+      "samples": 1200
+    },
+    {
+      "name": "t12_kill_probe_502",
+      "value": 0,
+      "unit": "count",
+      "labels": {
+        "run": "m100_3",
+        "methods_502": "none"
+      },
+      "samples": 1200
+    },
+    {
+      "name": "t12_kill_probe_502",
+      "value": 0,
+      "unit": "count",
+      "labels": {
+        "run": "m100_4",
+        "methods_502": "none"
+      },
+      "samples": 1200
+    },
+    {
+      "name": "t12_kill_probe_502",
+      "value": 0,
+      "unit": "count",
+      "labels": {
+        "run": "m100_5",
+        "methods_502": "none"
+      },
+      "samples": 1200
+    },
+    {
+      "name": "t12_kill_probe_502",
+      "value": 0,
+      "unit": "count",
+      "labels": {
+        "run": "m100_6",
+        "methods_502": "none"
+      },
+      "samples": 1200
+    },
+    {
+      "name": "t12_kill_probe_502",
+      "value": 8,
+      "unit": "count",
+      "labels": {
+        "run": "p1000_1",
+        "methods_502": "POST"
+      },
+      "samples": 12000
+    },
+    {
+      "name": "t12_kill_probe_502",
+      "value": 5,
+      "unit": "count",
+      "labels": {
+        "run": "p1000_2",
+        "methods_502": "POST"
+      },
+      "samples": 12000
+    },
+    {
+      "name": "t12_kill_probe_502_get",
+      "value": 0,
+      "unit": "count"
+    },
+    {
+      "name": "t12_kill_probe_502_post",
+      "value": 20,
+      "unit": "count"
+    }
+  ],
+  "kill_criteria": [
+    {
+      "expr": "M1: a single request reaches the backend uninspected on timeout/overload",
+      "hit": false,
+      "observed": "hung schild (docker pause, 3 s front timeout): 160/160 x 503 and 0 bypassed in each of 3 runs; fail-open only while the process was dead (connection refused)"
+    },
+    {
+      "expr": "D3: an outage of the website caused by schild (lab analogue: kill-under-load must not take the site down)",
+      "hit": false,
+      "observed": "3 x make testlab-t12: kill phase 1200/1200 2xx each; 14 extra instrumented kills: 20 x 502, all POST requests whose connection to schild was open when SIGKILL hit (front: connection reset/EOF, POST is not retried); GET in flight retried by the front and served via fail-open; site served throughout"
+    }
+  ],
+  "verdict": "pass",
+  "notes": "make testlab-t12 three times (100 rps, front timeout 3 s), all verdict checks true, no 502. The single 502 of the integration run was reproduced with an instrumented per-request probe (outside the repo) and 14 more kills: at 100 rps 0/6 kills produced an error; at 1000 rps every kill with POSTs produced 1-2 (mixed) or 5-8 (POST-only) 502s, GET-only kills produced 0. Each 502 is a non-idempotent request in flight at the moment schild died (front log: read: connection reset by peer / EOF). Go's http.Transport in schild front retries idempotent requests on a reused connection, so GETs fall through to fail-open; POSTs are answered 502 (correct: not replayable). 1 of 20 failed POSTs had already reached the app through schild (inspected). Not an M1 violation (nothing passed uninspected) and not a D3 outage (transient per-request error during a crash); expected behaviour, documented as a limitation.",
+  "artifacts": [
+    "raw/t12/t12_r1.json",
+    "raw/t12/t12_r2.json",
+    "raw/t12/t12_r3.json",
+    "raw/t12-kill-analysis/runs.ndjson",
+    "raw/t12-kill-analysis/front-errors.txt",
+    "raw/t12-kill-analysis/docker-events.txt",
+    "raw/t12-kill-analysis/post-502-reached-app.txt"
+  ]
+}

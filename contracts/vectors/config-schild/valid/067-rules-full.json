@@ -1,0 +1,47 @@
+{
+  "contract": "config/schild",
+  "description": "D73: every key of the three repositories.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"config_version\":0,\"mode\":\"observe\",\"node_name\":\"web-1\",\"rules\":{\"crowdsec\":{\"auto_update\":true,\"disabled_rules\":[\"crowdsecurity/vpatch-CVE-2026-1207\"],\"interval_s\":3600,\"settling_s\":0,\"state\":\"block\"},\"crs\":{\"disabled_rules\":[\"942100\",\"920350\"],\"inbound_anomaly_threshold\":7,\"livewire_exception\":true,\"paranoia_level\":2,\"state\":\"block\"},\"local\":{\"dir\":\"/srv/schild/rules.d\",\"disabled_rules\":[\"10001\"],\"state\":\"detect\"}},\"upstream\":{\"url\":\"http://app:80\"}}",
+  "input_decoded": {
+    "config_version": 0,
+    "mode": "observe",
+    "node_name": "web-1",
+    "rules": {
+      "crowdsec": {
+        "auto_update": true,
+        "disabled_rules": [
+          "crowdsecurity/vpatch-CVE-2026-1207"
+        ],
+        "interval_s": 3600,
+        "settling_s": 0,
+        "state": "block"
+      },
+      "crs": {
+        "disabled_rules": [
+          "942100",
+          "920350"
+        ],
+        "inbound_anomaly_threshold": 7,
+        "livewire_exception": true,
+        "paranoia_level": 2,
+        "state": "block"
+      },
+      "local": {
+        "dir": "/srv/schild/rules.d",
+        "disabled_rules": [
+          "10001"
+        ],
+        "state": "detect"
+      }
+    },
+    "upstream": {
+      "url": "http://app:80"
+    }
+  },
+  "expect": {
+    "valid": true
+  }
+}

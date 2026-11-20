@@ -1,0 +1,87 @@
+# schild as the ingress (MVP-19, D31): the operator's Caddyfile, loaded by
+# `schild run` with Caddy's stock Caddyfile adapter. TLS and ACME are Caddy's;
+# every site that reaches a backend imports the snippet `schild`.
+#
+#   visitor -> schild :443 (Caddy + schild directive) -> kamal-proxy 127.0.0.1:8080 -> apps
+#
+# Rollback to the stock Caddy image: the same file with the snippet emptied
+#
+#   (schild) {
+#   }
+#
+# because stock Caddy does not know the `schild` directive. Everything else
+# stays byte for byte the same.
+#
+# Check before a deploy:  schild ingress validate -config /etc/schild/schild.yaml
+# Example domains only (example.de); replace them outside this repo.
+{
+	email ops@example.de
+	# The admin API stays disabled under schild whatever this says; changes
+	# need a restart (kamal accessory reboot ingress).
+	admin off
+	# Request bodies (D41): read_body bounds a whole upload, 6 minutes carry
+	# 12 MB at 1 Mbit/s with room to spare. HTTP/3 stays off, it ignores
+	# read_body, until schild enforces a minimum rate; browsers fall back to
+	# HTTP/2. Keep port 443/udp closed.
+	servers {
+		protocols h1 h2
+		timeouts {
+			read_body 6m
+			read_header 10s
+			idle 2m
+		}
+	}
+}
+
+(schild) {
+	schild
+}
+
+# Probe paths nobody legitimate asks for. schild runs first; what the CRS
+# does not stop already ends here with a plain 404.
+(probes) {
+	@probes path /.env /.git/* /wp-login.php /xmlrpc.php /phpmyadmin* /.aws/*
+	respond @probes 404
+}
+
+# JSON access log as before: fail2ban filters and logrotate keep working.
+# The embedded Caddy does not reopen the file, so the host's logrotate rule
+# needs copytruncate; `schild ingress validate` warns (log_roll_disabled)
+# and prints the rule (D38).
+(access_log) {
+	log {
+		output file /var/log/caddy/access.log {
+			roll_disabled
+		}
+		format json
+	}
+}
+
+shop.example.de, www.shop.example.de {
+	import schild
+	import probes
+	import access_log
+	encode zstd gzip
+	# Uploaded files of the app, served directly from the shared folder.
+	handle_path /storage/* {
+		root * /srv/shop/storage
+		file_server
+	}
+	# Laravel with Livewire behind kamal-proxy (Host header passes unchanged).
+	reverse_proxy 127.0.0.1:8080
+}
+
+api.example.de {
+	import schild
+	import access_log
+	reverse_proxy 127.0.0.1:8080
+}
+
+# Static files only: no backend, so `schild` is optional here; without it
+# `schild ingress validate` warns. List the site in ingress.unprotected_sites
+# to say that this is intended.
+static.example.de {
+	import access_log
+	root * /srv/static
+	file_server
+}

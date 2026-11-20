@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://contracts.schild.invalid/v0/peer-request.schema.json",
+  "title": "Peer-authenticated feed request as seen by the receiving lab (contracts v0.1, cosign.md)",
+  "description": "What a lab verifies before it answers GET /v0/collecting: the request line, its own lab id (target), the sha256 of the request body and the Schild-Peer-Auth header value. Used by golden vectors; the wire format is the header (cosign.md).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["method", "path", "target", "body_sha256", "authorization"],
+  "properties": {
+    "method": { "type": "string", "enum": ["GET", "POST"] },
+    "path": { "type": "string", "pattern": "^/v0/[a-z/]{1,64}$" },
+    "target": { "$ref": "common.schema.json#/$defs/id" },
+    "body_sha256": { "$ref": "common.schema.json#/$defs/sha256" },
+    "authorization": { "type": "string", "maxLength": 512 }
+  }
+}

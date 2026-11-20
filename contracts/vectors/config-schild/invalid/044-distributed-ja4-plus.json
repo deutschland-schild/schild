@@ -1,0 +1,27 @@
+{
+  "contract": "config/schild",
+  "description": "v0.4 MVP-18: one header name, not a JA4+ variant list.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"behaviour\":{\"distributed\":{\"fingerprint\":{\"ja4_header\":\"X-JA4H,X-JA4S\"}}},\"config_version\":0,\"mode\":\"observe\",\"node_name\":\"web-1\",\"upstream\":{\"url\":\"http://app:80\"}}",
+  "input_decoded": {
+    "behaviour": {
+      "distributed": {
+        "fingerprint": {
+          "ja4_header": "X-JA4H,X-JA4S"
+        }
+      }
+    },
+    "config_version": 0,
+    "mode": "observe",
+    "node_name": "web-1",
+    "upstream": {
+      "url": "http://app:80"
+    }
+  },
+  "expect": {
+    "valid": false,
+    "error": "schema"
+  }
+}

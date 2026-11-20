@@ -1,0 +1,41 @@
+{
+  "contract": "crowdsec-hub",
+  "description": "Mapping: BODY_ARGS is ARGS_POST, BODY_ARGS_NAMES ARGS_POST_NAMES, ARGS_NAMES ARGS_GET_NAMES, COOKIES REQUEST_COOKIES, FILENAMES FILES (the file name), FILES_NAMES FILES_NAMES, HEADERS_NAMES REQUEST_HEADERS_NAMES, URI_FULL REQUEST_URI, METHOD REQUEST_METHOD, PROTOCOL REQUEST_PROTOCOL.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"content\":\"name: crowdsecurity/vpatch-CVE-2026-1207\\ndescription: 'Rewritten test rule.'\\nrules:\\n  - and:\\n      - zones:\\n          - URI_FULL\\n        match:\\n          type: contains\\n          value: /api/v2/import\\n      - zones:\\n          - METHOD\\n        match:\\n          type: equals\\n          value: POST\\n      - zones:\\n          - PROTOCOL\\n        match:\\n          type: startsWith\\n          value: HTTP/1\\n      - zones:\\n          - BODY_ARGS\\n        variables:\\n          - 'cmd'\\n        match:\\n          type: contains\\n          value: x\\n      - zones:\\n          - ARGS_NAMES\\n        match:\\n          type: regex\\n          value: ^tsml_(info|geocodes)$\\n      - zones:\\n          - COOKIES\\n        variables:\\n          - 'sid'\\n        match:\\n          type: contains\\n          value: '%2e'\\n      - zones:\\n          - HEADERS_NAMES\\n        match:\\n          type: contains\\n          value: x-middleware-subrequest\\n      - zones:\\n          - FILES_NAMES\\n        match:\\n          type: contains\\n          value: shell\\nlabels:\\n  type: exploit\\n  confidence: 3\\n  spoofable: 0\\n  label: Example - RCE\\n  classification:\\n    - cve.CVE-2026-1207\\n    - attack.T1190\\n    - cwe.CWE-89\\n\",\"name\":\"crowdsecurity/vpatch-CVE-2026-1207\",\"op\":\"convert\",\"version\":\"0.2\"}",
+  "input_decoded": {
+    "content": "name: crowdsecurity/vpatch-CVE-2026-1207\ndescription: 'Rewritten test rule.'\nrules:\n  - and:\n      - zones:\n          - URI_FULL\n        match:\n          type: contains\n          value: /api/v2/import\n      - zones:\n          - METHOD\n        match:\n          type: equals\n          value: POST\n      - zones:\n          - PROTOCOL\n        match:\n          type: startsWith\n          value: HTTP/1\n      - zones:\n          - BODY_ARGS\n        variables:\n          - 'cmd'\n        match:\n          type: contains\n          value: x\n      - zones:\n          - ARGS_NAMES\n        match:\n          type: regex\n          value: ^tsml_(info|geocodes)$\n      - zones:\n          - COOKIES\n        variables:\n          - 'sid'\n        match:\n          type: contains\n          value: '%2e'\n      - zones:\n          - HEADERS_NAMES\n        match:\n          type: contains\n          value: x-middleware-subrequest\n      - zones:\n          - FILES_NAMES\n        match:\n          type: contains\n          value: shell\nlabels:\n  type: exploit\n  confidence: 3\n  spoofable: 0\n  label: Example - RCE\n  classification:\n    - cve.CVE-2026-1207\n    - attack.T1190\n    - cwe.CWE-89\n",
+    "name": "crowdsecurity/vpatch-CVE-2026-1207",
+    "op": "convert",
+    "version": "0.2"
+  },
+  "expect": {
+    "valid": true,
+    "result": {
+      "outcome": "converted",
+      "rule": {
+        "name": "crowdsecurity/vpatch-CVE-2026-1207",
+        "version": "0.2",
+        "digest": "8976e2c7d8f1158d7f13dc1177c10ac2b34dd7c46beac6a859007150c2f30063",
+        "base_id": 62846312,
+        "seclang": [
+          "SecRule REQUEST_URI \"@contains /api/v2/import\" \"id:62846312,phase:2,pass,t:none,severity:CRITICAL,msg:'crowdsec hub crowdsecurity/vpatch-CVE-2026-1207',tag:crowdsec_hub,chain\"\nSecRule REQUEST_METHOD \"@streq POST\" \"t:none,chain\"\nSecRule REQUEST_PROTOCOL \"@beginsWith HTTP/1\" \"t:none,chain\"\nSecRule ARGS_POST:cmd \"@contains x\" \"t:none,chain\"\nSecRule ARGS_GET_NAMES \"@rx ^tsml_(info|geocodes)$\" \"t:none,chain\"\nSecRule REQUEST_COOKIES:sid \"@contains %2e\" \"t:none,chain\"\nSecRule REQUEST_HEADERS_NAMES \"@contains x-middleware-subrequest\" \"t:none,chain\"\nSecRule FILES_NAMES \"@contains shell\" \"t:none\""
+        ],
+        "label": "Example - RCE",
+        "description": "Rewritten test rule.",
+        "cves": [
+          "CVE-2026-1207"
+        ],
+        "cwes": [
+          "CWE-89"
+        ],
+        "attack": [
+          "T1190"
+        ],
+        "notes": []
+      }
+    }
+  }
+}

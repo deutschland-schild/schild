@@ -1,0 +1,25 @@
+{
+  "contract": "request-recheck",
+  "description": "D33 amendment 2026-10-29: rule ids are CRS numbers or network rule ids.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"evaluations\":[{\"detection\":true,\"outcome\":\"would_block\",\"path\":\"/x\",\"rules\":[\"abc\"],\"score\":5}]}",
+  "input_decoded": {
+    "evaluations": [
+      {
+        "detection": true,
+        "outcome": "would_block",
+        "path": "/x",
+        "rules": [
+          "abc"
+        ],
+        "score": 5
+      }
+    ]
+  },
+  "expect": {
+    "valid": false,
+    "error": "schema"
+  }
+}

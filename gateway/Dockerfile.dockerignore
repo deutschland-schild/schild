@@ -1,0 +1,30 @@
+# Build context is the repository root; the schild image needs contract/,
+# gateway/, dashboard/ (the dashboard is built in the image), go.work.sum and
+# the few files of the release tarball. No lab, no relay, no test modules.
+*
+!go.work.sum
+!LICENSE
+!contract/
+!gateway/
+!dashboard/
+!docs/ops/systemd/schild.service
+!docs/ops/systemd/schild-firewall.service
+# The dashboard is built in the ui stage; a local build copy (make ui) never
+# enters the image. .gitkeep stays so the embed directory exists.
+gateway/internal/webui/dist/*
+!gateway/internal/webui/dist/.gitkeep
+dashboard/apps/lab-dashboard/src
+dashboard/apps/*/dist
+dashboard/apps/*/dist-mock
+dashboard/apps/*/e2e
+dashboard/apps/*/test-results
+dashboard/apps/*/playwright-report
+**/node_modules
+**/*.test
+**/coverage.*
+**/*.key
+# Keys, certificates and env files never enter the build context (the build
+# needs none of them; TEST ONLY lab secrets included).
+**/*.pem
+**/.env
+**/.env.*

@@ -1,0 +1,13 @@
+# unprotected: []
+# expect: pass
+http://a.example.test:18080 {
+	import schild
+	handle /api/* {
+		reverse_proxy 127.0.0.1:18081
+	}
+	handle {
+		root * /srv/spa
+		try_files {path} /index.html
+		file_server
+	}
+}

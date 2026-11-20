@@ -1,0 +1,26 @@
+{
+  "contract": "geo-map",
+  "description": "v0.5 MVP-22: another connection type: not mobile; no carrier without a mobile network code.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"provider\":\"maxmind\",\"record\":{\"connection_type\":\"Cable/DSL\",\"country\":{\"iso_code\":\"DE\"},\"isp\":\"Example Kabel\"}}",
+  "input_decoded": {
+    "provider": "maxmind",
+    "record": {
+      "connection_type": "Cable/DSL",
+      "country": {
+        "iso_code": "DE"
+      },
+      "isp": "Example Kabel"
+    }
+  },
+  "expect": {
+    "valid": true,
+    "result": {
+      "asn": null,
+      "country": "DE",
+      "is_mobile": false
+    }
+  }
+}

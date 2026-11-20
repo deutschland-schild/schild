@@ -1,0 +1,37 @@
+{
+  "contract": "ack",
+  "description": "Full queue answers at once with retry_after_ms (never a timeout).",
+  "context": {
+    "now": "2026-10-26T12:00:00Z",
+    "trust": [
+      "site-a",
+      "site-b",
+      "site-c",
+      "lab-a",
+      "lab-a2",
+      "lab-b",
+      "lab-c",
+      "lab-d"
+    ]
+  },
+  "input_raw": "{\"payloadType\":\"application/vnd.schild.ack.v0+json\",\"payload\":\"eyJhY2NlcHRlZCI6W10sImNvbnRyb2wiOnsibWF4X2JhdGNoIjoxNiwicmVhc29uIjoicXVldWVfZnVsbCIsInJldHJ5X2FmdGVyX21zIjo1MDAwfSwiZHVwbGljYXRlIjpbXSwiaW5fcmVwbHlfdG8iOiI0MzExYmEzMS0wMmQ1LTRkYjctODA5Yy02MTYyM2UwODVjM2YiLCJpc3N1ZWRfYXQiOiIyMDI2LTEwLTI2VDExOjU5OjU4WiIsImxhYiI6ImxhYi1iIiwicmVqZWN0ZWQiOltdLCJzY2hlbWEiOiJzY2hpbGQuYWNrLzAuMSJ9\",\"signatures\":[{\"keyid\":\"test-lab-b\",\"sig\":\"IsaLOCPiTZP4DDzjCdya08jL1JiqVRibMtSr7Z0ej1i0Hia29hxt/wQyoRzd05k6rlHQ4lyKNPvxMr+N/ByRBw==\"}]}",
+  "input_decoded": {
+    "payload": {
+      "accepted": [],
+      "control": {
+        "max_batch": 16,
+        "reason": "queue_full",
+        "retry_after_ms": 5000
+      },
+      "duplicate": [],
+      "in_reply_to": "4311ba31-02d5-4db7-809c-61623e085c3f",
+      "issued_at": "2026-10-26T11:59:58Z",
+      "lab": "lab-b",
+      "rejected": [],
+      "schema": "schild.ack/0.1"
+    }
+  },
+  "expect": {
+    "valid": true
+  }
+}

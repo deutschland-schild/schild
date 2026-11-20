@@ -1,0 +1,19 @@
+{
+  "contract": "crowdsec-hub",
+  "description": "D43: times are not negative.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"baseline_ns\":-1,\"candidate_ns\":1,\"op\":\"set_cost\",\"reference_ns\":1,\"rounds\":1}",
+  "input_decoded": {
+    "baseline_ns": -1,
+    "candidate_ns": 1,
+    "op": "set_cost",
+    "reference_ns": 1,
+    "rounds": 1
+  },
+  "expect": {
+    "valid": false,
+    "error": "schema"
+  }
+}

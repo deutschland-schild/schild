@@ -1,0 +1,14 @@
+# unprotected: []
+# expect: pass
+# request_header removes a header before schild; error; handle_errors with schild (headers are not restored by Caddy, so nothing uninspected reaches the backend).
+http://a.example.test:18080 {
+	route {
+		request_header -X-Payload
+		schild
+		error "boom" 500
+	}
+	handle_errors {
+		import schild
+		reverse_proxy 127.0.0.1:18081
+	}
+}

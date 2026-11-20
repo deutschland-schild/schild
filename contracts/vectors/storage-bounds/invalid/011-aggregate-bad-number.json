@@ -1,0 +1,26 @@
+{
+  "contract": "storage-bounds",
+  "description": "D38: incident numbers use the IncidentNumber alphabet (no O, I, 0, 1).",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"max_open\":16,\"op\":\"incident_aggregate\",\"requests\":[{\"client\":\"c1\",\"draw\":\"K7QM-4XW0\",\"rules\":[\"942100\"],\"t\":1793016000000}]}",
+  "input_decoded": {
+    "max_open": 16,
+    "op": "incident_aggregate",
+    "requests": [
+      {
+        "client": "c1",
+        "draw": "K7QM-4XW0",
+        "rules": [
+          "942100"
+        ],
+        "t": 1793016000000
+      }
+    ]
+  },
+  "expect": {
+    "valid": false,
+    "error": "schema"
+  }
+}

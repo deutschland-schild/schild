@@ -1,0 +1,29 @@
+# schild.yaml for site "api" behind the T12 front proxy (compose profile t12), test lab t0. TEST ONLY: public
+# test keys (contracts/testkeys); release builds refuse them and the test profile.
+# Profile test: nothing is blocked (D89). Local only: no labs, relays or signals (D72).
+config_version: 0
+profile: test
+node_name: site-api-t12
+listen:
+  proxy: "0.0.0.0:8080"
+  dashboard: "0.0.0.0:8788"   # inside the container; published only via the gateway on 127.0.0.1
+  metrics: "0.0.0.0:9101"
+upstream:
+  url: "http://site-api:8080"
+  timeout_ms: 30000
+ingress:
+  # schild-t12 shares the network namespace of front-api (`schild front`), so every
+  # request arrives from 127.0.0.1; the front appends its peer, the T12 label
+  # stripper (10.66.1.7/32), to X-Forwarded-For. Load generators: 10.66.4.0/28.
+  trusted_proxies: ["127.0.0.1/32", "10.66.1.7/32", "10.66.4.0/28"]
+  client_ip_headers: [X-Forwarded-For]
+rules:
+  crs: { state: block, paranoia_level: 1, inbound_anomaly_threshold: 5 }
+waf:
+  request_body_limit_bytes: 13107200
+  eval_timeout_ms: 1000
+geo: { db_path: /usr/share/schild/geo-fixture/geo.mmdb }   # schild geo-fixture (TEST ONLY)
+storage: { path: /var/lib/schild }
+retention:
+  raw_ip_days: 7
+  events_days: 14

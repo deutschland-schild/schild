@@ -1,0 +1,6 @@
+{
+  "type": "https://schild.invalid/problems/csrf",
+  "title": "CSRF-Token fehlt oder ist ungültig",
+  "status": 403,
+  "code": "csrf"
+}

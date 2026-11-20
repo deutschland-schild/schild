@@ -1,0 +1,30 @@
+{
+  "contract": "geo-map",
+  "description": "v0.5 MVP-22: mobile carrier from the carrier object.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"provider\":\"ipinfo\",\"record\":{\"carrier\":{\"mcc\":\"262\",\"mnc\":\"02\",\"name\":\"Example Mobil\"},\"country_code\":\"DE\",\"is_mobile\":true}}",
+  "input_decoded": {
+    "provider": "ipinfo",
+    "record": {
+      "carrier": {
+        "mcc": "262",
+        "mnc": "02",
+        "name": "Example Mobil"
+      },
+      "country_code": "DE",
+      "is_mobile": true
+    }
+  },
+  "expect": {
+    "valid": true,
+    "result": {
+      "asn": null,
+      "carrier": "Example Mobil",
+      "country": "DE",
+      "is_mobile": true,
+      "net_class": "mobile"
+    }
+  }
+}

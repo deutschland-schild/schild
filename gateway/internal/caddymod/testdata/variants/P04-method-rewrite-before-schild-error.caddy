@@ -1,0 +1,14 @@
+# unprotected: []
+# expect: refuse
+# route changes the method to GET before schild, then an error; Caddy restores the original method (POST) for handle_errors, so its schild must inspect again.
+http://a.example.test:18080 {
+	route {
+		method GET
+		schild
+		error "boom" 500
+	}
+	handle_errors {
+		import schild
+		reverse_proxy 127.0.0.1:18082
+	}
+}

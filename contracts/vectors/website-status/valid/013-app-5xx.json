@@ -1,0 +1,40 @@
+{
+  "contract": "website-status",
+  "description": "D36: the app itself answers 5xx to 30 of 100 requests: disrupted (errors_5xx only).",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"monitoring\":true,\"protection\":\"protected\",\"servers\":[{\"baseline_protection\":\"active\",\"hints\":[],\"node\":\"web-1\",\"state\":\"ok\"}],\"tracked\":true,\"traffic\":{\"fail_closed\":0,\"forwarded\":100,\"requests\":100,\"status_5xx\":30,\"upstream_errors\":0,\"upstream_timeouts\":0}}",
+  "input_decoded": {
+    "monitoring": true,
+    "protection": "protected",
+    "servers": [
+      {
+        "baseline_protection": "active",
+        "hints": [],
+        "node": "web-1",
+        "state": "ok"
+      }
+    ],
+    "tracked": true,
+    "traffic": {
+      "fail_closed": 0,
+      "forwarded": 100,
+      "requests": 100,
+      "status_5xx": 30,
+      "upstream_errors": 0,
+      "upstream_timeouts": 0
+    }
+  },
+  "expect": {
+    "valid": true,
+    "result": {
+      "reasons": [
+        {
+          "code": "errors_5xx"
+        }
+      ],
+      "status": "disrupted"
+    }
+  }
+}

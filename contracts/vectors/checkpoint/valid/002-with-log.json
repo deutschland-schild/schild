@@ -1,0 +1,42 @@
+{
+  "contract": "checkpoint",
+  "description": "Checkpoint with transparency log state.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z",
+    "trust": [
+      "site-a",
+      "site-b",
+      "site-c",
+      "lab-a",
+      "lab-a2",
+      "lab-b",
+      "lab-c",
+      "lab-d"
+    ],
+    "threshold": 2,
+    "channel": "schild-main"
+  },
+  "input_raw": "{\"payloadType\":\"application/vnd.schild.checkpoint.v0+json\",\"payload\":\"eyJidW5kbGUiOnsiYnVuZGxlX2lkIjoic2NoaWxkLW1haW4iLCJkaWdlc3QiOiJzaGEyNTY6ZjdjYjFlMjRjMjA0NjkyZDYzNzk5ZjM2NTViZmEyNmVlOTllODRiMTAyZDcxNWI2NzkzYzBhMjgxZjVkYjk3ZCIsInZlcnNpb24iOjQyfSwiZXhwaXJlcyI6IjIwMjYtMTAtMjZUMTI6MDI6MzBaIiwiaXNzdWVkX2F0IjoiMjAyNi0xMC0yNlQxMTo1OTozMFoiLCJsYWIiOiJsYWItYiIsImxvZyI6eyJyb290Ijoic2hhMjU2OjQ4MTM0OTRkMTM3ZTE2MzFiYmEzMDFkNWFjYWI2ZTdiYjdhYTc0Y2UxMTg1ZDQ1NjU2NWVmNTFkNzM3Njc3YjIiLCJzaXplIjoxMjM0fSwic2NoZW1hIjoic2NoaWxkLmNoZWNrcG9pbnQvMC4xIiwic2VxIjo3LCJ3aXRoZHJhd2FsX3NlcSI6M30=\",\"signatures\":[{\"keyid\":\"test-lab-b\",\"sig\":\"oshTUg8wnUyYp0GU4YyTjtAKvsHoXMEDsO3yCo1/bis84GjixKu3mThR3lePreOSyX3RXlVtVHI/+EDc8Df2CA==\"}]}",
+  "input_decoded": {
+    "payload": {
+      "bundle": {
+        "bundle_id": "schild-main",
+        "digest": "sha256:f7cb1e24c204692d63799f3655bfa26ee99e84b102d715b6793c0a281f5db97d",
+        "version": 42
+      },
+      "expires": "2026-10-26T12:02:30Z",
+      "issued_at": "2026-10-26T11:59:30Z",
+      "lab": "lab-b",
+      "log": {
+        "root": "sha256:4813494d137e1631bba301d5acab6e7bb7aa74ce1185d456565ef51d737677b2",
+        "size": 1234
+      },
+      "schema": "schild.checkpoint/0.1",
+      "seq": 7,
+      "withdrawal_seq": 3
+    }
+  },
+  "expect": {
+    "valid": true
+  }
+}

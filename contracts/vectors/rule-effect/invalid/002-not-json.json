@@ -1,0 +1,12 @@
+{
+  "contract": "rule-effect",
+  "description": "Not JSON.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"op\":",
+  "expect": {
+    "valid": false,
+    "error": "malformed"
+  }
+}

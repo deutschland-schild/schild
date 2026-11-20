@@ -1,0 +1,25 @@
+{
+  "contract": "events",
+  "description": "D72: the gateway has no network rules; schild.rule.suspended.v1 is an unknown type.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"data\":{\"bundle_version\":42,\"reason\":\"local_brake\",\"rule_id\":\"schild-2026-0412\"},\"datacontenttype\":\"application/json\",\"id\":\"047c9933-f535-41d8-a30b-8d64f10706b5\",\"source\":\"schild://web-1\",\"specversion\":\"1.0\",\"time\":\"2026-10-26T11:59:58.123Z\",\"type\":\"schild.rule.suspended.v1\"}",
+  "input_decoded": {
+    "data": {
+      "bundle_version": 42,
+      "reason": "local_brake",
+      "rule_id": "schild-2026-0412"
+    },
+    "datacontenttype": "application/json",
+    "id": "047c9933-f535-41d8-a30b-8d64f10706b5",
+    "source": "schild://web-1",
+    "specversion": "1.0",
+    "time": "2026-10-26T11:59:58.123Z",
+    "type": "schild.rule.suspended.v1"
+  },
+  "expect": {
+    "valid": false,
+    "error": "schema"
+  }
+}

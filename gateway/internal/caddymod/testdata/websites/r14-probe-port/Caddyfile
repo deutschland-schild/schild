@@ -1,0 +1,15 @@
+{
+	admin off
+	http_port 19190
+	https_port 19143
+}
+
+:19198 {
+	respond /healthz "ok" 200
+}
+
+app.example.org {
+	schild
+	reverse_proxy 127.0.0.1:19101
+}
+

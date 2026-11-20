@@ -1,0 +1,27 @@
+{
+  "contract": "events",
+  "description": "v0.4 MVP-18: a response expired by itself.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"data\":{\"detector\":\"account_wave\",\"duration_s\":1200,\"reason\":\"expired\",\"route\":\"/user/login\",\"stopped\":0,\"wave_id\":\"baab0ddc-e974-42f9-94d5-50bb2c3c834d\"},\"datacontenttype\":\"application/json\",\"id\":\"60f22f37-1204-46e3-a503-0aed78a027c5\",\"source\":\"schild://web-1\",\"specversion\":\"1.0\",\"time\":\"2026-10-26T11:59:58.123Z\",\"type\":\"schild.distributed.ended.v1\"}",
+  "input_decoded": {
+    "data": {
+      "detector": "account_wave",
+      "duration_s": 1200,
+      "reason": "expired",
+      "route": "/user/login",
+      "stopped": 0,
+      "wave_id": "baab0ddc-e974-42f9-94d5-50bb2c3c834d"
+    },
+    "datacontenttype": "application/json",
+    "id": "60f22f37-1204-46e3-a503-0aed78a027c5",
+    "source": "schild://web-1",
+    "specversion": "1.0",
+    "time": "2026-10-26T11:59:58.123Z",
+    "type": "schild.distributed.ended.v1"
+  },
+  "expect": {
+    "valid": true
+  }
+}

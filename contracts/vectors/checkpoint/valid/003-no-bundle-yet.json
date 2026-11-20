@@ -1,0 +1,38 @@
+{
+  "contract": "checkpoint",
+  "description": "Version 0: no bundle published yet.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z",
+    "trust": [
+      "site-a",
+      "site-b",
+      "site-c",
+      "lab-a",
+      "lab-a2",
+      "lab-b",
+      "lab-c",
+      "lab-d"
+    ],
+    "threshold": 2,
+    "channel": "schild-main"
+  },
+  "input_raw": "{\"payloadType\":\"application/vnd.schild.checkpoint.v0+json\",\"payload\":\"eyJidW5kbGUiOnsiYnVuZGxlX2lkIjoic2NoaWxkLW1haW4iLCJkaWdlc3QiOiJzaGEyNTY6ZTNiMGM0NDI5OGZjMWMxNDlhZmJmNGM4OTk2ZmI5MjQyN2FlNDFlNDY0OWI5MzRjYTQ5NTk5MWI3ODUyYjg1NSIsInZlcnNpb24iOjB9LCJleHBpcmVzIjoiMjAyNi0xMC0yNlQxMjowMjozMFoiLCJpc3N1ZWRfYXQiOiIyMDI2LTEwLTI2VDExOjU5OjMwWiIsImxhYiI6ImxhYi1hMiIsInNjaGVtYSI6InNjaGlsZC5jaGVja3BvaW50LzAuMSIsInNlcSI6MSwid2l0aGRyYXdhbF9zZXEiOjB9\",\"signatures\":[{\"keyid\":\"test-lab-a2\",\"sig\":\"OQJnRuYBD5ouE72TdDdIMMXBeVxroQnGyovtgRfgi1LmztMz/MYWPlwPjpHQYvE6DDgrkUutLeIRGEkdZGUYCQ==\"}]}",
+  "input_decoded": {
+    "payload": {
+      "bundle": {
+        "bundle_id": "schild-main",
+        "digest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "version": 0
+      },
+      "expires": "2026-10-26T12:02:30Z",
+      "issued_at": "2026-10-26T11:59:30Z",
+      "lab": "lab-a2",
+      "schema": "schild.checkpoint/0.1",
+      "seq": 1,
+      "withdrawal_seq": 0
+    }
+  },
+  "expect": {
+    "valid": true
+  }
+}

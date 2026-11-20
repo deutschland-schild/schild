@@ -1,0 +1,13 @@
+{
+  "contract": "seclang",
+  "description": "SecLang subset case count-with-rx (max_action block).",
+  "context": {
+    "now": "2026-10-26T12:00:00Z",
+    "max_action": "block"
+  },
+  "input_raw": "SecRule &ARGS \"@rx [2-9]\" \"id:7700124,phase:1,deny,severity:CRITICAL,msg:'x'\"",
+  "expect": {
+    "valid": false,
+    "error": "seclang"
+  }
+}

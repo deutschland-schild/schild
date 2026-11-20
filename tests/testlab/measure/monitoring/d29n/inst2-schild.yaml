@@ -1,0 +1,39 @@
+# TEST ONLY: D29 amendment measurement (native macOS, ports 20200-20299, d29n re-measurement)
+config_version: 0
+profile: production
+mode: autoblock
+node_name: d29-measure-2
+network:
+  enabled: false
+ingress:
+  caddyfile: /tmp/d36n/c/inst2/Caddyfile
+  storage: /tmp/d36n/c/inst2/caddy
+  trusted_proxies: ["127.0.0.1/32"]
+  client_ip_headers: ["X-Forwarded-For"]
+listen:
+  dashboard: "127.0.0.1:20289"
+  metrics: "127.0.0.1:20292"
+geo:
+  db_path: /tmp/d36n/c/inst2/geo.mmdb
+storage:
+  path: /tmp/d36n/c/inst2/data
+allowlist:
+  - cidr: 10.4.99.0/24
+    label: config allowlist test
+    level: no_block
+    expires: never
+behaviour:
+  presets: [generic]
+  preset_limits: "off"
+  scenarios:
+    path_probing:
+      mode: block
+    waf_repeat:
+      mode: block
+  distributed:
+    detectors:
+      route_wave: { mode: "off" }
+      account_wave: { mode: "off" }
+      shape_wave: { mode: "off" }
+      fingerprint_cluster: { mode: "off" }
+      inconsistency: { mode: "off" }

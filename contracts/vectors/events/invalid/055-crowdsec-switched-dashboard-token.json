@@ -1,0 +1,29 @@
+{
+  "contract": "events",
+  "description": "D39 amendment: the dashboard has no token.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"data\":{\"actor\":\"dashboard\",\"from\":\"detect\",\"repository\":\"crowdsec\",\"state_source\":\"dashboard\",\"to\":\"off\",\"token_id\":\"tok_000000000001\",\"token_label\":\"x\"},\"datacontenttype\":\"application/json\",\"id\":\"60e83069-0f4b-4511-b867-6edf6e68d0f7\",\"source\":\"schild://web-1\",\"specversion\":\"1.0\",\"time\":\"2026-10-26T11:59:58.123Z\",\"type\":\"schild.rule.repository_switched.v1\"}",
+  "input_decoded": {
+    "data": {
+      "actor": "dashboard",
+      "from": "detect",
+      "repository": "crowdsec",
+      "state_source": "dashboard",
+      "to": "off",
+      "token_id": "tok_000000000001",
+      "token_label": "x"
+    },
+    "datacontenttype": "application/json",
+    "id": "60e83069-0f4b-4511-b867-6edf6e68d0f7",
+    "source": "schild://web-1",
+    "specversion": "1.0",
+    "time": "2026-10-26T11:59:58.123Z",
+    "type": "schild.rule.repository_switched.v1"
+  },
+  "expect": {
+    "valid": false,
+    "error": "schema"
+  }
+}

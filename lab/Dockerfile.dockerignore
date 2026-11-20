@@ -1,0 +1,11 @@
+# Build context is the repository root; the lab image needs contract/, relay/ (hub, metrics,
+# upstream) and lab/ only. lab/internal/webui/dist is kept (dashboard build).
+*
+!contract/
+!relay/
+!lab/
+**/node_modules
+**/*_test.go
+contract/vectors/
+**/*.key
+lab/dev/data/

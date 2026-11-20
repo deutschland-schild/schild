@@ -1,0 +1,39 @@
+# lab.yaml for lab-a in the test lab, profile t1. TEST ONLY: public test keys
+# (contracts/testkeys) and the test CA.
+# Secrets (keys, TLS) come from testlab/compose/secrets (make testlab-secrets).
+config_version: 0
+profile: test
+identity: { operator: op-test-a, lab: lab-a }
+listen: { ingest: "0.0.0.0:7443", feed: "0.0.0.0:7444", dashboard: "0.0.0.0:8789", metrics: "0.0.0.0:9102" }
+tls: { cert_file: /run/schild-lab/tls/cert.pem, key_file: /run/schild-lab/tls/key.pem }
+channel: schild-main
+keys:
+  - { keyid: test-lab-a, private_key_file: /run/schild-lab/keys/lab.key, purposes: [ack, rules, checkpoint] }
+issuers: [ { id: issuer-test-1 }, { id: issuer-test-2 } ]
+clients:
+  - { keyid: test-site-a, public_key: "ed25519:4HDXCYuKTC7or+jY5cfx0frqJsA5bTxnc1Ftu0gjb5w=", issuer: issuer-test-1 }
+  - { keyid: test-site-b, public_key: "ed25519:LcTU1BywmLDy/Lt/hKg+ws/QBJgTvg5dk3YPOiBLpns=", issuer: issuer-test-1 }
+  - { keyid: test-site-c, public_key: "ed25519:kvgubTf561NxFRt6siZ7/yZx/rl/ZOv2gRyRTlfCybs=", issuer: issuer-test-2 }
+scoring: { min_issuers: 3, max_issuer_share: 0.34 }
+# Short intervals so the smoke test sees state changes within seconds.
+publish: { bundle_validity_hours: 168, checkpoint_interval_s: 10, checkpoint_ttl_s: 120 }
+storage: { path: /var/lib/schild-lab }
+retention: { signals_days: 30 }
+# Co-signing peers (contracts/cosign.md): every other lab of the test lab.
+peers:
+  - lab: lab-b
+    operator: op-test-b
+    endpoint: "https://lab-b:7444"
+    keys:
+      - { keyid: test-lab-b, public_key: "ed25519:hIYFrYAjDybrGnkupAzk8JX6HWeO3YMusPj0Pt621pc=", purposes: [ack, rules, checkpoint] }
+  - lab: lab-c
+    operator: op-test-c
+    endpoint: "https://lab-c:7444"
+    keys:
+      - { keyid: test-lab-c, public_key: "ed25519:GLkF+iKm3+i93jB0Idy57rs4/nMYD3rwY8AWCddM70o=", purposes: [ack, rules, checkpoint] }
+  - lab: lab-d
+    operator: op-test-d
+    endpoint: "https://lab-d:7444"
+    keys:
+      - { keyid: test-lab-d, public_key: "ed25519:ZVRbTykT7It4WMQVE/5meSND4YLTmKNAIxrV00pjayk=", purposes: [rules] }
+      - { keyid: testlab-lab-d-online, public_key: "ed25519:3UV7P+fJOcSOyV0n6VD4bO442AKeNaUPHJjIbhqjSXQ=", purposes: [ack, checkpoint] }

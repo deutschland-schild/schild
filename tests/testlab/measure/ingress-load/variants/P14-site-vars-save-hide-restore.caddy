@@ -1,0 +1,12 @@
+# unprotected: []
+# expect: refuse
+# No error path: route saves the URI in a var, hides the query from schild, restores the saved URI after schild and proxies.
+http://a.example.test:18080 {
+	route {
+		vars saved {uri}
+		rewrite * /hidden?
+		schild
+		rewrite * {vars.saved}
+		reverse_proxy 127.0.0.1:18082
+	}
+}

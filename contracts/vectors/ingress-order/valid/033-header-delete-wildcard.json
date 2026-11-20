@@ -1,0 +1,100 @@
+{
+  "contract": "ingress-order",
+  "description": "D40: Refused: a delete pattern hides every name it matches.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"caddyfile\":\"http://a.example.test {\\n\\troute {\\n\\t\\trequest_header -X-Secret-*\\n\\t\\tschild\\n\\t\\trequest_header X-Secret-Token {vars.t}\\n\\t\\treverse_proxy 127.0.0.1:18082\\n\\t}\\n}\\n\",\"servers\":{\"srv0\":{\"listen\":[\":80\"],\"routes\":[{\"handle\":[{\"handler\":\"subroute\",\"routes\":[{\"handle\":[{\"handler\":\"subroute\",\"routes\":[{\"handle\":[{\"handler\":\"headers\",\"request\":{\"delete\":[\"X-Secret-*\"]}},{\"handler\":\"schild\"},{\"handler\":\"headers\",\"request\":{\"set\":{\"X-Secret-Token\":[\"{http.vars.t}\"]}}},{\"handler\":\"reverse_proxy\",\"upstreams\":[{\"dial\":\"127.0.0.1:18082\"}]}]}]}]}]}],\"match\":[{\"host\":[\"a.example.test\"]}],\"terminal\":true}]}}}",
+  "input_decoded": {
+    "caddyfile": "http://a.example.test {\n\troute {\n\t\trequest_header -X-Secret-*\n\t\tschild\n\t\trequest_header X-Secret-Token {vars.t}\n\t\treverse_proxy 127.0.0.1:18082\n\t}\n}\n",
+    "servers": {
+      "srv0": {
+        "listen": [
+          ":80"
+        ],
+        "routes": [
+          {
+            "handle": [
+              {
+                "handler": "subroute",
+                "routes": [
+                  {
+                    "handle": [
+                      {
+                        "handler": "subroute",
+                        "routes": [
+                          {
+                            "handle": [
+                              {
+                                "handler": "headers",
+                                "request": {
+                                  "delete": [
+                                    "X-Secret-*"
+                                  ]
+                                }
+                              },
+                              {
+                                "handler": "schild"
+                              },
+                              {
+                                "handler": "headers",
+                                "request": {
+                                  "set": {
+                                    "X-Secret-Token": [
+                                      "{http.vars.t}"
+                                    ]
+                                  }
+                                }
+                              },
+                              {
+                                "handler": "reverse_proxy",
+                                "upstreams": [
+                                  {
+                                    "dial": "127.0.0.1:18082"
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ],
+            "match": [
+              {
+                "host": [
+                  "a.example.test"
+                ]
+              }
+            ],
+            "terminal": true
+          }
+        ]
+      }
+    }
+  },
+  "expect": {
+    "valid": true,
+    "result": {
+      "findings": [
+        {
+          "code": "header_hidden_from_schild",
+          "msg_key": "ingress.err.header_hidden_from_schild",
+          "server": "srv0",
+          "route": "/routes/0",
+          "hosts": [
+            "a.example.test"
+          ],
+          "directive": "request_header",
+          "hide": "/routes/0/handle/0/routes/0/handle/0/routes/0/handle/0",
+          "schild": "/routes/0/handle/0/routes/0/handle/0/routes/0/handle/1",
+          "restore": "/routes/0/handle/0/routes/0/handle/0/routes/0/handle/2",
+          "header": "x-secret-token"
+        }
+      ]
+    }
+  }
+}

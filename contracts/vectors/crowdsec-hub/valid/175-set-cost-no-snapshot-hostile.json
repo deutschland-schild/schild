@@ -1,0 +1,24 @@
+{
+  "contract": "crowdsec-hub",
+  "description": "D43: without a snapshot a hostile set is refused.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"baseline_ns\":22000,\"candidate_ns\":1600000,\"op\":\"set_cost\",\"reference_ns\":22000,\"rounds\":16}",
+  "input_decoded": {
+    "baseline_ns": 22000,
+    "candidate_ns": 1600000,
+    "op": "set_cost",
+    "reference_ns": 22000,
+    "rounds": 16
+  },
+  "expect": {
+    "valid": true,
+    "result": {
+      "outcome": "refused",
+      "code": "set_too_costly",
+      "added_ns": 1578000,
+      "allowed_ns": 176000
+    }
+  }
+}

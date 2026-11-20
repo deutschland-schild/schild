@@ -1,0 +1,87 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://contracts.schild.invalid/v0/bot-catalogue.schema.json",
+  "title": "Bot catalogue schild.bot_catalogue/0.1 (v0.5, MVP-22, D35)",
+  "description": "Known bots and the address ranges their operators publish, shipped in the schild binary with every release (decided 2026-10-29: catalogue and range snapshots travel with releases and the signed rule bundle; a direct fetch from the operators is optional and off, bots.ranges_fetch). Seeded from ai.robots.txt robots.json (MIT, attribution in client/NOTICE) plus own search, SEO, monitoring and preview entries. Works fully offline. Matching and verification are fixed by contract/bots (Go) and contracts/tools/crosscheck.py (Python), checked by the bot-match vectors: (1) the first 512 bytes of the User-Agent, ASCII lower-cased, are searched for every ua_match token (ASCII case-insensitive substring); the longest matching token wins, on a tie the earlier bot. (2) Without a match the category is likely_automated when the User-Agent is empty, does not start with 'mozilla/' or contains an automation_tokens entry, otherwise likely_browser; no bot, no verification. (3) A matched bot is verified when bots.verify.fcrdns is on and the forward-confirmed reverse name ends in one of its rdns_suffixes, or when bots.verify.ranges is on and the client address (IPv4-mapped IPv6 unmapped) is in a prefix of its range set and the set was fetched at most 30 days ago; otherwise mismatch when the address is outside a fresh range set or the confirmed name has another suffix ('gibt sich als ... aus'), otherwise unknown_stale when its range set is older than 30 days, otherwise claimed (the operator publishes nothing, or the check is off). Semantic checks (code schema): unique bot, range set and source ids, every verify.ranges names a range set and every bot source a source, prefixes are canonical (no host bits, no IPv4-mapped IPv6), ua_match and automation_tokens are unique ASCII case-insensitively across the whole catalogue.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "version", "generated_at", "sources", "automation_tokens", "bots", "ranges"],
+  "properties": {
+    "schema": { "const": "schild.bot_catalogue/0.1" },
+    "version": { "description": "Date of the catalogue and a counter, e.g. 2026-10-29.1; shown in the dashboard.", "type": "string", "pattern": "^20[0-9]{2}-[0-9]{2}-[0-9]{2}\\.[0-9]{1,3}$" },
+    "generated_at": { "$ref": "common.schema.json#/$defs/timestamp" },
+    "sources": {
+      "description": "Where entries come from, with licence (attribution).",
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 16,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "license", "url"],
+        "properties": {
+          "id": { "$ref": "#/$defs/id" },
+          "license": { "type": "string", "pattern": "^[A-Za-z0-9.+-]{1,32}$" },
+          "url": { "$ref": "#/$defs/url" }
+        }
+      }
+    },
+    "automation_tokens": {
+      "description": "Generic tokens of automated clients for user agents no bot matches (e.g. bot, crawl, spider, scrape, headless, python, curl).",
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 64,
+      "items": { "$ref": "#/$defs/token" }
+    },
+    "bots": { "type": "array", "minItems": 1, "maxItems": 1024, "items": { "$ref": "#/$defs/bot" } },
+    "ranges": { "type": "array", "maxItems": 64, "items": { "$ref": "#/$defs/rangeSet" } }
+  },
+  "$defs": {
+    "id": { "type": "string", "pattern": "^[a-z0-9][a-z0-9-]{1,47}$" },
+    "url": { "type": "string", "maxLength": 256, "pattern": "^https://[!-~]{1,248}$" },
+    "text": { "type": "string", "minLength": 1, "maxLength": 64, "pattern": "^[^\\x00-\\x1F\\x7F]+$" },
+    "token": { "description": "Printable ASCII, no leading or trailing space.", "type": "string", "minLength": 2, "maxLength": 64, "pattern": "^[!-~]([ -~]*[!-~])?$" },
+    "domain": { "type": "string", "maxLength": 253, "pattern": "^([a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?\\.)+[a-z]([a-z0-9-]{0,61}[a-z0-9])?$" },
+    "category": {
+      "description": "Catalogue categories (the first eleven of BotCategory in client-dashboard.openapi.yaml).",
+      "type": "string",
+      "enum": ["search_engine", "ai_training", "ai_search", "ai_assistant", "preview_social", "feed_reader", "monitoring", "seo_tool", "archive_research", "security_scanner", "tool_library"]
+    },
+    "bot": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "name", "operator", "category", "ua_match", "verify"],
+      "properties": {
+        "id": { "$ref": "#/$defs/id" },
+        "name": { "$ref": "#/$defs/text" },
+        "operator": { "$ref": "#/$defs/text" },
+        "category": { "$ref": "#/$defs/category" },
+        "robots_token": { "description": "The user-agent token the bot obeys in robots.txt (for the robots.txt view).", "type": "string", "pattern": "^[A-Za-z0-9._-]{1,64}$" },
+        "ua_match": { "type": "array", "minItems": 1, "maxItems": 8, "items": { "$ref": "#/$defs/token" } },
+        "verify": {
+          "description": "How an address is checked. Empty: the operator publishes nothing, the bot is always claimed.",
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "ranges": { "description": "Id of a range set in ranges.", "$ref": "#/$defs/id" },
+            "rdns_suffixes": { "description": "Domains a forward-confirmed reverse name must end in (FCrDNS, only with bots.verify.fcrdns).", "type": "array", "minItems": 1, "maxItems": 8, "uniqueItems": true, "items": { "$ref": "#/$defs/domain" } }
+          }
+        },
+        "source": { "description": "Id of the source in sources (absent: own entry).", "$ref": "#/$defs/id" },
+        "url": { "$ref": "#/$defs/url" }
+      }
+    },
+    "rangeSet": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "operator", "url", "fetched_at", "prefixes"],
+      "properties": {
+        "id": { "$ref": "#/$defs/id" },
+        "operator": { "$ref": "#/$defs/text" },
+        "url": { "description": "Where the operator publishes the ranges (fetched for the snapshot; at runtime only with bots.ranges_fetch).", "$ref": "#/$defs/url" },
+        "fetched_at": { "$ref": "common.schema.json#/$defs/timestamp" },
+        "prefixes": { "type": "array", "minItems": 1, "maxItems": 4096, "items": { "type": "string", "pattern": "^[0-9a-fA-F.:]{2,45}/(0|[1-9][0-9]{0,2})$" } }
+      }
+    }
+  }
+}

@@ -1,0 +1,22 @@
+{
+  "contract": "body-limits",
+  "description": "D41: times start at 0.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"arrivals\":[{\"bytes\":1,\"t_ms\":-1}],\"end_ms\":10,\"op\":\"rate\"}",
+  "input_decoded": {
+    "arrivals": [
+      {
+        "bytes": 1,
+        "t_ms": -1
+      }
+    ],
+    "end_ms": 10,
+    "op": "rate"
+  },
+  "expect": {
+    "valid": false,
+    "error": "schema"
+  }
+}

@@ -1,0 +1,26 @@
+{
+  "contract": "website-exception",
+  "description": "D36: regex metacharacters of a template path are escaped.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"id\":1000001,\"path\":\"/wiki/(alt)/{slug}+x$\",\"rule_id\":\"942100\",\"website\":{\"hosts\":[\"verein.example\"],\"id\":\"verein.example\"}}",
+  "input_decoded": {
+    "id": 1000001,
+    "path": "/wiki/(alt)/{slug}+x$",
+    "rule_id": "942100",
+    "website": {
+      "hosts": [
+        "verein.example"
+      ],
+      "id": "verein.example"
+    }
+  },
+  "expect": {
+    "valid": true,
+    "result": {
+      "scope": "website",
+      "snippet": "# schild: exception for rule 942100 on /wiki/(alt)/{slug}+x$, website verein.example only\nSecRule REQUEST_HEADERS:Host \"@rx ^(?:verein\\.example)(?::[0-9]{1,5})?$\" \"id:1000001,phase:1,pass,nolog,t:none,t:lowercase,chain\"\n    SecRule REQUEST_FILENAME \"@rx ^/wiki/\\(alt\\)/[^/]+\\+x\\$$\" \"t:none,ctl:ruleRemoveById=942100\"\n"
+    }
+  }
+}

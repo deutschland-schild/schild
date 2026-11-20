@@ -1,0 +1,35 @@
+{
+  "contract": "withdrawal",
+  "description": "Withdrawal for another channel.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z",
+    "trust": [
+      "site-a",
+      "site-b",
+      "site-c",
+      "lab-a",
+      "lab-a2",
+      "lab-b",
+      "lab-c",
+      "lab-d"
+    ],
+    "threshold": 2,
+    "channel": "schild-main"
+  },
+  "input_raw": "{\"payloadType\":\"application/vnd.schild.withdrawal.v0+json\",\"payload\":\"eyJidW5kbGVfaWQiOiJzY2hpbGQtb3RoZXIiLCJpc3N1ZWRfYXQiOiIyMDI2LTEwLTI2VDExOjU5OjAwWiIsInJlYXNvbiI6ImVtZXJnZW5jeV9zdG9wIiwic2NoZW1hIjoic2NoaWxkLndpdGhkcmF3YWwvMC4xIiwic2NvcGUiOiJhbGwiLCJzZXEiOjQsInVwX3RvX3ZlcnNpb24iOjQyfQ==\",\"signatures\":[{\"keyid\":\"test-lab-a\",\"sig\":\"6WpTVJ7QhVtsgHHMEMp9nkgIgR0jUk5fZz+tXupHaq2eHs6tCgsR2EEmBrD04cmIa10Q9c+mh1jbj1L4B2WuBg==\"},{\"keyid\":\"test-lab-b\",\"sig\":\"7/jbt2tLD8FO4Q17TDBIQQKKe68ZezS9shsqY74wOyDQvoz4pMxcfLnucdKCzaXAdRAy4k1j7A5EhWbbbrRKCQ==\"}]}",
+  "input_decoded": {
+    "payload": {
+      "bundle_id": "schild-other",
+      "issued_at": "2026-10-26T11:59:00Z",
+      "reason": "emergency_stop",
+      "schema": "schild.withdrawal/0.1",
+      "scope": "all",
+      "seq": 4,
+      "up_to_version": 42
+    }
+  },
+  "expect": {
+    "valid": false,
+    "error": "channel"
+  }
+}

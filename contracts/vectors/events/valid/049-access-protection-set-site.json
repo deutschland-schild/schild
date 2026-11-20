@@ -1,0 +1,32 @@
+{
+  "contract": "events",
+  "description": "D56: a whole website locked from the dashboard.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"data\":{\"actor\":\"dashboard\",\"addresses\":2,\"except\":[\"/api/stripe/webhook\"],\"own_networks\":true,\"password\":true,\"scope\":\"site\",\"until\":\"2026-11-04T12:00:00Z\",\"user\":\"admin\",\"website\":\"musterverein.example\"},\"datacontenttype\":\"application/json\",\"id\":\"b2e473b6-2b67-4b26-92a8-f5ce81d6e72d\",\"source\":\"schild://web-1\",\"specversion\":\"1.0\",\"time\":\"2026-10-26T11:59:58.123Z\",\"type\":\"schild.access.protection_set.v1\"}",
+  "input_decoded": {
+    "data": {
+      "actor": "dashboard",
+      "addresses": 2,
+      "except": [
+        "/api/stripe/webhook"
+      ],
+      "own_networks": true,
+      "password": true,
+      "scope": "site",
+      "until": "2026-11-04T12:00:00Z",
+      "user": "admin",
+      "website": "musterverein.example"
+    },
+    "datacontenttype": "application/json",
+    "id": "b2e473b6-2b67-4b26-92a8-f5ce81d6e72d",
+    "source": "schild://web-1",
+    "specversion": "1.0",
+    "time": "2026-10-26T11:59:58.123Z",
+    "type": "schild.access.protection_set.v1"
+  },
+  "expect": {
+    "valid": true
+  }
+}

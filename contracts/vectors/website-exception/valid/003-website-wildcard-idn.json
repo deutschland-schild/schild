@@ -1,0 +1,28 @@
+{
+  "contract": "website-exception",
+  "description": "D36: a wildcard host matches one label; IDN hosts in their A-label (the Host header carries punycode).",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"id\":1000001,\"path\":\"/\",\"rule_id\":\"941100\",\"target\":\"ARGS_NAMES\",\"website\":{\"hosts\":[\"*.kunden.example.org\",\"xn--bcher-kva.example\"],\"id\":\"_.kunden.example.org\"}}",
+  "input_decoded": {
+    "id": 1000001,
+    "path": "/",
+    "rule_id": "941100",
+    "target": "ARGS_NAMES",
+    "website": {
+      "hosts": [
+        "*.kunden.example.org",
+        "xn--bcher-kva.example"
+      ],
+      "id": "_.kunden.example.org"
+    }
+  },
+  "expect": {
+    "valid": true,
+    "result": {
+      "scope": "website",
+      "snippet": "# schild: exception for rule 941100 on /, website _.kunden.example.org only\nSecRule REQUEST_HEADERS:Host \"@rx ^(?:[a-z0-9-]+\\.kunden\\.example\\.org|xn--bcher-kva\\.example)(?::[0-9]{1,5})?$\" \"id:1000001,phase:1,pass,nolog,t:none,t:lowercase,chain\"\n    SecRule REQUEST_FILENAME \"@streq /\" \"t:none,ctl:ruleRemoveTargetById=941100;ARGS_NAMES\"\n"
+    }
+  }
+}

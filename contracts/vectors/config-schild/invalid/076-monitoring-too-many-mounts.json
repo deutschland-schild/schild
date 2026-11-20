@@ -1,0 +1,41 @@
+{
+  "contract": "config/schild",
+  "description": "v0.4 MVP-21: at most 16 mounts (bounded series).",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"config_version\":0,\"mode\":\"observe\",\"monitoring\":{\"mounts\":[\"/m01\",\"/m02\",\"/m03\",\"/m04\",\"/m05\",\"/m06\",\"/m07\",\"/m08\",\"/m09\",\"/m10\",\"/m11\",\"/m12\",\"/m13\",\"/m14\",\"/m15\",\"/m16\",\"/m17\"]},\"node_name\":\"web-1\",\"upstream\":{\"url\":\"http://app:80\"}}",
+  "input_decoded": {
+    "config_version": 0,
+    "mode": "observe",
+    "monitoring": {
+      "mounts": [
+        "/m01",
+        "/m02",
+        "/m03",
+        "/m04",
+        "/m05",
+        "/m06",
+        "/m07",
+        "/m08",
+        "/m09",
+        "/m10",
+        "/m11",
+        "/m12",
+        "/m13",
+        "/m14",
+        "/m15",
+        "/m16",
+        "/m17"
+      ]
+    },
+    "node_name": "web-1",
+    "upstream": {
+      "url": "http://app:80"
+    }
+  },
+  "expect": {
+    "valid": false,
+    "error": "schema"
+  }
+}

@@ -1,0 +1,40 @@
+{
+  "contract": "website-status",
+  "description": "D36: 10 of 200 requests answered 503 by schild (exactly 5 %): disrupted.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"monitoring\":true,\"protection\":\"protected\",\"servers\":[{\"baseline_protection\":\"active\",\"hints\":[],\"node\":\"web-1\",\"state\":\"ok\"}],\"tracked\":true,\"traffic\":{\"fail_closed\":10,\"forwarded\":190,\"requests\":200,\"status_5xx\":10,\"upstream_errors\":0,\"upstream_timeouts\":0}}",
+  "input_decoded": {
+    "monitoring": true,
+    "protection": "protected",
+    "servers": [
+      {
+        "baseline_protection": "active",
+        "hints": [],
+        "node": "web-1",
+        "state": "ok"
+      }
+    ],
+    "tracked": true,
+    "traffic": {
+      "fail_closed": 10,
+      "forwarded": 190,
+      "requests": 200,
+      "status_5xx": 10,
+      "upstream_errors": 0,
+      "upstream_timeouts": 0
+    }
+  },
+  "expect": {
+    "valid": true,
+    "result": {
+      "reasons": [
+        {
+          "code": "fail_closed"
+        }
+      ],
+      "status": "disrupted"
+    }
+  }
+}

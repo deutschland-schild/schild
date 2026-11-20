@@ -1,0 +1,23 @@
+# TEST ONLY: evening measurement C (W=32 worst-case metrics.db over HTTP), ports 22200-22299
+config_version: 0
+profile: production
+mode: autoblock
+node_name: web-1
+network:
+  enabled: false
+ingress:
+  caddyfile: /tmp/abend/s/http/Caddyfile
+  storage: /tmp/abend/s/http/caddy
+  trusted_proxies: ["127.0.0.1/32"]
+  client_ip_headers: ["X-Forwarded-For"]
+listen:
+  dashboard: "127.0.0.1:22288"
+  metrics: "127.0.0.1:22211"
+geo:
+  db_path: /tmp/abend/s/http/geo.mmdb
+storage:
+  path: /tmp/abend/s/http/data
+monitoring:
+  enabled: true
+behaviour:
+  presets: [generic]

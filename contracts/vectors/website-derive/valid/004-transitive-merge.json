@@ -1,0 +1,54 @@
+{
+  "contract": "website-derive",
+  "description": "D36: A{a} and B{b} are joined by C{a, b}; the earliest block names the website, hosts in order of appearance.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"blocks\":[{\"addresses\":[\"a.example.org\"],\"proxies\":true,\"schild\":true},{\"addresses\":[\"b.example.org\"],\"proxies\":true,\"schild\":true},{\"addresses\":[\"b.example.org\",\"a.example.org\",\"c.example.org\"],\"proxies\":true,\"schild\":true}],\"mode\":\"ingress\"}",
+  "input_decoded": {
+    "blocks": [
+      {
+        "addresses": [
+          "a.example.org"
+        ],
+        "proxies": true,
+        "schild": true
+      },
+      {
+        "addresses": [
+          "b.example.org"
+        ],
+        "proxies": true,
+        "schild": true
+      },
+      {
+        "addresses": [
+          "b.example.org",
+          "a.example.org",
+          "c.example.org"
+        ],
+        "proxies": true,
+        "schild": true
+      }
+    ],
+    "mode": "ingress"
+  },
+  "expect": {
+    "valid": true,
+    "result": {
+      "websites": [
+        {
+          "hosts": [
+            "a.example.org",
+            "b.example.org",
+            "c.example.org"
+          ],
+          "id": "a.example.org",
+          "label": "a.example.org",
+          "protection": "protected",
+          "tracked": true
+        }
+      ]
+    }
+  }
+}

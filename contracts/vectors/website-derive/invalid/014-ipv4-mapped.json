@@ -1,0 +1,24 @@
+{
+  "contract": "website-derive",
+  "description": "D36: IPv4-mapped IPv6 literals are written as IPv4.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"blocks\":[{\"addresses\":[\"[::ffff:192.0.2.1]\"],\"proxies\":true,\"schild\":true}],\"mode\":\"ingress\"}",
+  "input_decoded": {
+    "blocks": [
+      {
+        "addresses": [
+          "[::ffff:192.0.2.1]"
+        ],
+        "proxies": true,
+        "schild": true
+      }
+    ],
+    "mode": "ingress"
+  },
+  "expect": {
+    "valid": false,
+    "error": "schema"
+  }
+}

@@ -1,0 +1,20 @@
+{
+  "contract": "peer-request",
+  "description": "body_sha256 is required.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z",
+    "trust": [
+      "lab-a",
+      "lab-a2",
+      "lab-b",
+      "lab-c",
+      "lab-d",
+      "site-a"
+    ]
+  },
+  "input_raw": "{\"authorization\":\"v1 lab=lab-b keyid=test-lab-b ts=2026-10-26T12:00:00Z sig=pOYyYDIImbmr/IYGb1IiQhI88pQLHfuhmMug2MNkhIZYqiyuaVq29CN1gdfcJXL6nAG97xNdMfe1Lirhxi5PBw==\",\"method\":\"GET\",\"path\":\"/v0/collecting\",\"target\":\"lab-a\"}",
+  "expect": {
+    "valid": false,
+    "error": "schema"
+  }
+}

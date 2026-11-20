@@ -1,0 +1,28 @@
+{
+  "contract": "crowdsec-hub",
+  "description": "Start: nothing valid: no rules, and the gateway starts anyway; this source never stops a start.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"image\":{\"present\":false,\"valid\":false},\"now\":\"2026-10-26T12:00:00Z\",\"op\":\"select\",\"state\":\"block\",\"stored\":{\"present\":true,\"valid\":false}}",
+  "input_decoded": {
+    "image": {
+      "present": false,
+      "valid": false
+    },
+    "now": "2026-10-26T12:00:00Z",
+    "op": "select",
+    "state": "block",
+    "stored": {
+      "present": true,
+      "valid": false
+    }
+  },
+  "expect": {
+    "valid": true,
+    "result": {
+      "set": "none",
+      "pin_pending": false
+    }
+  }
+}

@@ -1,0 +1,25 @@
+{
+  "contract": "rule-effect",
+  "description": "An allowlist no_block entry: would_block, allowlist.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"allow\":\"no_block\",\"mode\":\"autoblock\",\"now\":1000000,\"op\":\"request\",\"origin\":\"release\",\"state\":\"block\"}",
+  "input_decoded": {
+    "allow": "no_block",
+    "mode": "autoblock",
+    "now": 1000000,
+    "op": "request",
+    "origin": "release",
+    "state": "block"
+  },
+  "expect": {
+    "valid": true,
+    "result": {
+      "action": "would_block",
+      "outcome": "would_block",
+      "would_block_reason": "allowlist",
+      "counts_as_hit": false
+    }
+  }
+}

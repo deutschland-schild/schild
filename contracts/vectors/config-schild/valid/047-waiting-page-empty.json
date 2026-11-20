@@ -1,0 +1,20 @@
+{
+  "contract": "config/schild",
+  "description": "D37: an empty waiting_page keeps the default (on).",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"config_version\":0,\"mode\":\"observe\",\"node_name\":\"web-1\",\"upstream\":{\"url\":\"http://app:80\"},\"waiting_page\":{}}",
+  "input_decoded": {
+    "config_version": 0,
+    "mode": "observe",
+    "node_name": "web-1",
+    "upstream": {
+      "url": "http://app:80"
+    },
+    "waiting_page": {}
+  },
+  "expect": {
+    "valid": true
+  }
+}

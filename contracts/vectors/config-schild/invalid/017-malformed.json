@@ -1,0 +1,12 @@
+{
+  "contract": "config/schild",
+  "description": "YAML is converted to JSON before validation; this JSON is broken.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"mode\":\"observe\",}",
+  "expect": {
+    "valid": false,
+    "error": "malformed"
+  }
+}

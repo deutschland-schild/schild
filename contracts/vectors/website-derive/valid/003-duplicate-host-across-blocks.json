@@ -1,0 +1,62 @@
+{
+  "contract": "website-derive",
+  "description": "D36: blocks that share a host (case, trailing dot and port ignored) are one website; a redirect block without schild and without a backend is no website; an unknown host resolves to none.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"blocks\":[{\"addresses\":[\"http://shop.example.org\"],\"proxies\":false,\"schild\":false},{\"addresses\":[\"Shop.Example.ORG.\"],\"proxies\":true,\"schild\":true},{\"addresses\":[\"shop.example.org:8443\"],\"proxies\":true,\"schild\":true}],\"mode\":\"ingress\",\"resolve\":[\"shop.example.org\",\"SHOP.example.org:8443\",\"shop.example.org.\",\"other.example.org\"]}",
+  "input_decoded": {
+    "blocks": [
+      {
+        "addresses": [
+          "http://shop.example.org"
+        ],
+        "proxies": false,
+        "schild": false
+      },
+      {
+        "addresses": [
+          "Shop.Example.ORG."
+        ],
+        "proxies": true,
+        "schild": true
+      },
+      {
+        "addresses": [
+          "shop.example.org:8443"
+        ],
+        "proxies": true,
+        "schild": true
+      }
+    ],
+    "mode": "ingress",
+    "resolve": [
+      "shop.example.org",
+      "SHOP.example.org:8443",
+      "shop.example.org.",
+      "other.example.org"
+    ]
+  },
+  "expect": {
+    "valid": true,
+    "result": {
+      "resolved": [
+        "shop.example.org",
+        "shop.example.org",
+        "shop.example.org",
+        null
+      ],
+      "websites": [
+        {
+          "hosts": [
+            "shop.example.org"
+          ],
+          "id": "shop.example.org",
+          "label": "shop.example.org",
+          "protection": "protected",
+          "tracked": true
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,28 @@
+{
+  "contract": "submission",
+  "description": "No site identifier in the transport body.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"envelopes\":[{\"payload\":\"eyJzY2hlbWEiOiJzY2hpbGQuc2lnbmFsLzAuMyIsImlkIjoiMDY1ZDhlMzQtYjNkMy00MmM0LWIxOWMtZDI0YWQ5NjY0NGE1Iiwia2luZCI6InRpcCIsInRpbWVfYnVja2V0IjoiMjAyNi0xMC0yNlQxMTo1NTowMFoiLCJhY3Rpb25fc2lnIjoibG9naW4tYnVyc3Qvd3AtYWRtaW4iLCJyZXF1ZXN0X3NpZyI6InNoYTI1NjphMDcxODdmMWM3ZDFjNTY0M2IwMmNlNzMwYmVmM2Q3YmM1NzAwYTViZWUwYjM4MzNkMTNmMjgxOWYxZTJiZTgxIiwid2FmX3J1bGVzIjpbOTMwMTIwLDk0OTExMF0sInNjb3JlIjo3MiwiY2F0ZWdvcnkiOiJ3b3JkcHJlc3MtbG9naW4tYnJ1dGVmb3JjZSIsIm9yaWdpbiI6eyJjb3VudHJ5IjoiTkwiLCJhc24iOjE0MDYxLCJuZXRfY2xhc3MiOiJob3N0aW5nIiwiYXR0cmlidXRpb24iOiJ0Y3BfcGVlciIsInByb3RlY3RlZCI6ZmFsc2V9LCJhZ2VudCI6eyJmYW1pbHkiOiJweXRob24tcmVxdWVzdHMiLCJtYWpvciI6MiwiYm90IjpmYWxzZX19\",\"payloadType\":\"application/vnd.schild.signal.v0+json\",\"signatures\":[{\"keyid\":\"test-site-a\",\"sig\":\"ShQeR8l8yikNnsDKwq3Ca3mAwpirJjRMNn20h3t91Q2ggZ/feDyjRN/2sssczUXrhaAdOsyRF1zMS3WYwoOoCA==\"}]}],\"request_id\":\"2e63aed6-e2a4-4dd9-987b-ceeb6efe5cb6\",\"site\":\"shop.example\"}",
+  "input_decoded": {
+    "envelopes": [
+      {
+        "payload": "eyJzY2hlbWEiOiJzY2hpbGQuc2lnbmFsLzAuMyIsImlkIjoiMDY1ZDhlMzQtYjNkMy00MmM0LWIxOWMtZDI0YWQ5NjY0NGE1Iiwia2luZCI6InRpcCIsInRpbWVfYnVja2V0IjoiMjAyNi0xMC0yNlQxMTo1NTowMFoiLCJhY3Rpb25fc2lnIjoibG9naW4tYnVyc3Qvd3AtYWRtaW4iLCJyZXF1ZXN0X3NpZyI6InNoYTI1NjphMDcxODdmMWM3ZDFjNTY0M2IwMmNlNzMwYmVmM2Q3YmM1NzAwYTViZWUwYjM4MzNkMTNmMjgxOWYxZTJiZTgxIiwid2FmX3J1bGVzIjpbOTMwMTIwLDk0OTExMF0sInNjb3JlIjo3MiwiY2F0ZWdvcnkiOiJ3b3JkcHJlc3MtbG9naW4tYnJ1dGVmb3JjZSIsIm9yaWdpbiI6eyJjb3VudHJ5IjoiTkwiLCJhc24iOjE0MDYxLCJuZXRfY2xhc3MiOiJob3N0aW5nIiwiYXR0cmlidXRpb24iOiJ0Y3BfcGVlciIsInByb3RlY3RlZCI6ZmFsc2V9LCJhZ2VudCI6eyJmYW1pbHkiOiJweXRob24tcmVxdWVzdHMiLCJtYWpvciI6MiwiYm90IjpmYWxzZX19",
+        "payloadType": "application/vnd.schild.signal.v0+json",
+        "signatures": [
+          {
+            "keyid": "test-site-a",
+            "sig": "ShQeR8l8yikNnsDKwq3Ca3mAwpirJjRMNn20h3t91Q2ggZ/feDyjRN/2sssczUXrhaAdOsyRF1zMS3WYwoOoCA=="
+          }
+        ]
+      }
+    ],
+    "request_id": "2e63aed6-e2a4-4dd9-987b-ceeb6efe5cb6",
+    "site": "shop.example"
+  },
+  "expect": {
+    "valid": false,
+    "error": "schema"
+  }
+}

@@ -1,0 +1,5 @@
+Listing...
+libssl3/stable-security 3.0.15-1~deb12u1 amd64 [upgradable from: 3.0.14-1~deb12u2]
+openssl/stable-security 3.0.15-1~deb12u1 amd64 [upgradable from: 3.0.14-1~deb12u2]
+linux-image-amd64/stable-security 6.1.112-1 amd64 [upgradable from: 6.1.106-3]
+tzdata/stable-updates 2024b-0+deb12u1 all [upgradable from: 2024a-0+deb12u1]

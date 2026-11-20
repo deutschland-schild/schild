@@ -1,0 +1,18 @@
+{
+  "contract": "body-limits",
+  "description": "D45: at least 16.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"memory_bytes\":67108864,\"op\":\"large_in_flight\"}",
+  "input_decoded": {
+    "memory_bytes": 67108864,
+    "op": "large_in_flight"
+  },
+  "expect": {
+    "valid": true,
+    "result": {
+      "max_large_in_flight": 16
+    }
+  }
+}

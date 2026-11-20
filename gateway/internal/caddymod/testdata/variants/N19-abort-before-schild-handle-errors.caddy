@@ -1,0 +1,14 @@
+# unprotected: []
+# expect: refuse
+# Fix round 2: refused because handle_errors proxies without schild inside it (handle_errors is server-wide). abort itself raises no error (it panics with http.ErrAbortHandler).
+# abort in a route before schild plus handle_errors proxy (abort raises no handled error). Refusal = over-rejection.
+http://a.example.test:18080 {
+	route {
+		abort /blocked/*
+		schild
+		reverse_proxy 127.0.0.1:18081
+	}
+	handle_errors {
+		reverse_proxy 127.0.0.1:18081
+	}
+}

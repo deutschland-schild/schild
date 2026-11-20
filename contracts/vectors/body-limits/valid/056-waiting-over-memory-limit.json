@@ -1,0 +1,19 @@
+{
+  "contract": "body-limits",
+  "description": "D44: one byte more waits in a temp file; D45: it still counts what the send queue of the backend holds.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"bytes\":131073,\"op\":\"waiting\"}",
+  "input_decoded": {
+    "bytes": 131073,
+    "op": "waiting"
+  },
+  "expect": {
+    "valid": true,
+    "result": {
+      "in_memory": false,
+      "waiting_bytes": 262145
+    }
+  }
+}

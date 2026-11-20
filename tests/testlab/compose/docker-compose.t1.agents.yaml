@@ -1,0 +1,171 @@
+# MVP-11 agent lab: overlay for profile t1 (server check and agents).
+#
+#   docker compose -p schild-testlab-t1 -f docker-compose.t1.yaml -f docker-compose.t1.agents.yaml ...
+#   (make testlab-up PROFILE=t1, on by default; scripts/agent-smoke.sh)
+#
+# The gateway is schild-api (site "api", node_name site-api). This overlay
+#   - switches its config to config/t1/api-agents (host_check with the agent
+#     listener on :8790, test-agent-a enrolled and test-agent-c revoked by
+#     public key) and mounts the listener's TLS key pair and the report dir
+#     (read-only, as on a real gateway host);
+#   - adds gw-host-check, which plays the gateway host's systemd timer: it runs
+#     `schild check` (the gateway binary) every 5 minutes into the shared
+#     report dir;
+#   - adds three app VMs on the sites network (no route to the labs, none to
+#     the outside): app-vm (enrolled with a one-time code by the smoke, keeps
+#     `schild-agent run` going), app-revoked (enrolled, then revoked by the
+#     smoke), app-unenrolled (TEST ONLY key agent-b, never enrolled);
+#   - adds the one-shot job agent-smoke (smoke binary, phase `agents`).
+#
+# The app VMs run the schild-agent binary and gw-host-check the schild binary,
+# both from the schild:dev image (image volume), so the test lab never builds
+# them. schild-agent is not part of the first gateway version (D60b): build
+# that image with `make gateway-image AGENT=1` for this scenario. Canary values: internal/hostcanary
+# (compose/agents_test.go keeps this file in sync).
+
+x-ca: &ca "./secrets/ca.pem:/etc/schild-ca/ca.pem:ro"
+
+x-schild-bin: &schildbin
+  type: image
+  source: schild:dev
+  target: /opt/schild
+  image: { subpath: usr/local/bin }
+
+x-app-vm: &appvm
+  image: schild-testlab-app-vm:dev
+  init: true
+  profiles: ["agents"]
+  restart: unless-stopped
+  networks: [sites]
+  depends_on: { schild-api: { condition: service_started } }
+
+x-app-vm-env: &appvmenv
+  SCHILD_AGENT_GATEWAY: https://schild-api:8790
+  SCHILD_AGENT_GATEWAY_NAME: site-api   # node_name of schild-api (Enrolment.gateway_name)
+  SCHILD_AGENT_INTERVAL: 5m             # = host_check.agents.interval_minutes of schild-api
+  SCHILD_AGENT_PIN_FILE: /etc/schild-testlab/gateway.pin
+  SCHILD_ALLOW_TEST_KEYS: "1"            # TEST LAB ONLY: agents with test keys (D24 preflight)
+  SCHILD_LOG_FORMAT: json
+  SCHILD_LOG_LEVEL: ${SCHILD_LOG_LEVEL:-info}
+  # Secret canary in every process environment, including the agent's. No
+  # report may ever carry it (hostcanary.SecretEnv).
+  APP_SECRET_TOKEN: schild-secret-canary-env-t6w1y5
+
+volumes:
+  hostcheck-api:
+  hostcheck-trigger:
+  agentstate-app-vm:
+  agentstate-app-revoked:
+
+services:
+  schild-api:
+    volumes: !override
+      - ./config/t1/api-agents:/etc/schild:ro
+      - ./secrets/sites/api/agent-tls:/run/schild/agent-tls:ro
+      - ./secrets/geo:/usr/share/schild/geo-fixture:ro
+      - data-api:/var/lib/schild
+      - export-api:/var/lib/schild/export
+      - hostcheck-api:/var/lib/schild/host-check:ro
+      - hostcheck-trigger:/run/schild-check     # "Jetzt prüfen": request file only (docs/systemd/schild-check.path)
+    environment:
+      SCHILD_HOST_CHECK_TRIGGER: /run/schild-check/request
+      SCHILD_AGENT_URL: https://schild-api:8790   # shown in the enrolment command
+      SCHILD_HOST_AGENTS: "1"                    # TEST ONLY: agents are not part of the first version (D60b)
+
+  # The gateway host's timer: `schild check` every 5 minutes into the report
+  # dir that schild-api mounts read-only, and at once when schild-api wrote
+  # the "Jetzt prüfen" request (the path unit of a real host). No network at all: the check needs
+  # none (a TLS handshake to localhost stays inside this container).
+  gw-host-check:
+    image: schild-testlab-app-vm:dev
+    init: true
+    profiles: ["agents"]
+    restart: unless-stopped
+    hostname: gw-api-host
+    network_mode: none
+    environment:
+      APP_VM_MODE: check-loop
+      CHECK_INTERVAL_S: "300"
+      SCHILD_REPORT_DIR: /var/lib/schild/host-check
+      SCHILD_HOST_CHECK_TRIGGER: /run/schild-check/request
+      SCHILD_ALLOW_TEST_KEYS: "1"
+      SCHILD_LOG_FORMAT: json
+    volumes:
+      - *schildbin
+      - hostcheck-api:/var/lib/schild/host-check
+      - hostcheck-trigger:/run/schild-check
+
+  app-vm:
+    <<: *appvm
+    hostname: app-vm-canary-k4p8z2          # hostcanary.Hostname
+    environment:
+      <<: *appvmenv
+      APP_VM_MODE: agent
+    volumes:
+      - *schildbin
+      - ./secrets/sites/api/agent-tls/pin:/etc/schild-testlab/gateway.pin:ro
+      - agentstate-app-vm:/var/lib/schild-agent
+
+  app-revoked:
+    <<: *appvm
+    hostname: app-revoked
+    environment:
+      <<: *appvmenv
+      APP_VM_MODE: idle
+      APP_VM_SERVICES: sshd
+    volumes:
+      - *schildbin
+      - ./secrets/sites/api/agent-tls/pin:/etc/schild-testlab/gateway.pin:ro
+      - agentstate-app-revoked:/var/lib/schild-agent
+
+  app-unenrolled:
+    <<: *appvm
+    hostname: app-unenrolled
+    environment:
+      <<: *appvmenv
+      APP_VM_MODE: idle
+      APP_VM_SERVICES: sshd
+      SCHILD_AGENT_KEY: /etc/schild-testlab/agent.key
+      SCHILD_AGENT_KEYID: test-agent-b
+    volumes:
+      - *schildbin
+      - ./secrets/sites/api/agent-tls/pin:/etc/schild-testlab/gateway.pin:ro
+      - ./secrets/agents/app-unenrolled/agent.key:/etc/schild-testlab/agent.key:ro
+
+  # One-shot phases of the agent smoke (scripts/agent-smoke.sh runs them).
+  # inet with a fixed load-generator address (trusted proxy of schild-api),
+  # sites for the dashboard and the agent listener (D72: the gateway is on no
+  # other network); read-only views of every lab's data and of the gateway's
+  # data for the canary scan.
+  agent-smoke: &agentsmoke
+    image: schild-testlab:dev
+    profiles: ["jobs"]
+    entrypoint: ["/usr/local/bin/smoke", "agents"]
+    environment:
+      SCHILD_LABEL_SECRET: ${SCHILD_LABEL_SECRET:?set SCHILD_LABEL_SECRET}
+      SMOKE_PASSWORD: ${SMOKE_PASSWORD:-}
+      SMOKE_SETUP_CODE_API: ${SMOKE_SETUP_CODE_API:-}
+    volumes:
+      - ./secrets/sites/api/agent-tls/pin:/run/agent-tls/pin:ro
+      - labdata-a:/scan/lab-a:ro
+      - labdata-b:/scan/lab-b:ro
+      - labdata-c:/scan/lab-c:ro
+      - labdata-d:/scan/lab-d:ro
+      - data-api:/scan/gateway-data:ro
+      - hostcheck-api:/scan/gateway-host-check:ro
+      - ../../results/runs:/results/runs
+    networks:
+      inet: { ipv4_address: 10.66.20.11 }
+      sites: {}
+
+  # The signed-deliveries phase from its own address: the listener's request
+  # budget is per address and 15 minutes, and the flood of the traffic phase
+  # (agent-smoke, whose dynamic sites address Docker hands out again for
+  # every run) would otherwise use it up for a re-run of the smoke on the
+  # same lab. Fixed in the static lower half of the sites subnet, away from
+  # the strippers (10.66.17.0/28) and the dynamic addresses.
+  agent-smoke-deliveries:
+    <<: *agentsmoke
+    networks:
+      inet: { ipv4_address: 10.66.20.12 }
+      sites: { ipv4_address: 10.66.17.100 }

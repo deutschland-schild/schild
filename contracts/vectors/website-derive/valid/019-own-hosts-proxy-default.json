@@ -1,0 +1,31 @@
+{
+  "contract": "website-derive",
+  "description": "D36 amendment: proxy mode without upstream.site_hosts owns no host; only the request's own host and its registrable domain are _intern.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"mode\":\"proxy\",\"own_hosts\":[\"example.org\"]}",
+  "input_decoded": {
+    "mode": "proxy",
+    "own_hosts": [
+      "example.org"
+    ]
+  },
+  "expect": {
+    "valid": true,
+    "result": {
+      "own": [
+        false
+      ],
+      "websites": [
+        {
+          "hosts": [],
+          "id": "default",
+          "label": "default",
+          "protection": "protected",
+          "tracked": true
+        }
+      ]
+    }
+  }
+}

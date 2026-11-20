@@ -1,0 +1,12 @@
+{
+  "contract": "seclang",
+  "description": "SecLang subset case observe-pass-pm (max_action observe).",
+  "context": {
+    "now": "2026-10-26T12:00:00Z",
+    "max_action": "observe"
+  },
+  "input_raw": "SecRule REQUEST_HEADERS:User-Agent \"@pm sqlmap nikto nuclei\" \"id:7700003,phase:1,pass,log,severity:NOTICE,msg:'scanner user agent'\"",
+  "expect": {
+    "valid": true
+  }
+}

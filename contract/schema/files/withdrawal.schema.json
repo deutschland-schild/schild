@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://contracts.schild.invalid/v0/withdrawal.schema.json",
+  "title": "Withdrawal schild.withdrawal/0.1 (emergency stop and rule withdrawal)",
+  "description": "k-of-n signed like a bundle (SEC-02). Applies to bundles of the channel with version <= up_to_version; a later bundle is authoritative again. scope all = emergency stop: every network rule is removed, local rules stay. Withdrawals only remove network rules, they can never add or widen anything. DSSE payloadType application/vnd.schild.withdrawal.v0+json.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "bundle_id", "seq", "issued_at", "scope", "up_to_version", "reason"],
+  "properties": {
+    "schema": { "const": "schild.withdrawal/0.1" },
+    "bundle_id": { "$ref": "common.schema.json#/$defs/id" },
+    "seq": { "type": "integer", "minimum": 1, "maximum": 9007199254740991 },
+    "issued_at": { "$ref": "common.schema.json#/$defs/timestamp" },
+    "scope": { "type": "string", "enum": ["all", "rules"] },
+    "rule_ids": { "type": "array", "minItems": 1, "maxItems": 500, "uniqueItems": true, "items": { "$ref": "common.schema.json#/$defs/ruleId" } },
+    "up_to_version": { "type": "integer", "minimum": 1, "maximum": 9007199254740991 },
+    "reason": { "type": "string", "enum": ["emergency_stop", "false_positives", "superseded", "compromised_key", "other"] },
+    "note": { "type": "string", "maxLength": 280, "pattern": "^[ -~]*$" }
+  },
+  "if": { "properties": { "scope": { "const": "rules" } } },
+  "then": { "required": ["rule_ids"] },
+  "else": { "not": { "required": ["rule_ids"] } }
+}

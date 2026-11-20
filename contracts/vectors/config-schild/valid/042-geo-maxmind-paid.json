@@ -1,0 +1,29 @@
+{
+  "contract": "config/schild",
+  "description": "v0.5 MVP-22: MaxMind paid databases incl. anonymous IP, every 3 days.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"config_version\":0,\"geo\":{\"database\":[\"GeoIP2-Country\",\"GeoIP2-ISP\",\"GeoIP2-Anonymous-IP\"],\"provider\":\"maxmind\",\"refresh_hours\":72,\"token_file\":\"/etc/schild/maxmind.token\"},\"mode\":\"observe\",\"node_name\":\"web-1\",\"upstream\":{\"url\":\"http://app:80\"}}",
+  "input_decoded": {
+    "config_version": 0,
+    "geo": {
+      "database": [
+        "GeoIP2-Country",
+        "GeoIP2-ISP",
+        "GeoIP2-Anonymous-IP"
+      ],
+      "provider": "maxmind",
+      "refresh_hours": 72,
+      "token_file": "/etc/schild/maxmind.token"
+    },
+    "mode": "observe",
+    "node_name": "web-1",
+    "upstream": {
+      "url": "http://app:80"
+    }
+  },
+  "expect": {
+    "valid": true
+  }
+}

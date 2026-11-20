@@ -1,0 +1,34 @@
+{
+  "name": "schild-ui",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@12.16.1",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "gen:api": "node scripts/gen-api.mjs",
+    "dev:mock": "pnpm --parallel --filter \"./apps/*\" dev:mock",
+    "dev:mock:client": "pnpm --filter @schild/client-dashboard dev:mock",
+    "dev:mock:lab": "pnpm --filter @schild/lab-dashboard dev:mock",
+    "build": "pnpm -r --filter \"./apps/*\" build",
+    "typecheck": "pnpm -r typecheck",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "test": "pnpm -r test",
+    "test:e2e": "pnpm --filter @schild/client-dashboard test:e2e && pnpm --filter @schild/lab-dashboard test:e2e",
+    "check": "pnpm typecheck && pnpm lint && pnpm test && pnpm build"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@vue/eslint-config-typescript": "^14.9.0",
+    "eslint": "^10.15.0",
+    "eslint-plugin-vue": "^10.12.1",
+    "globals": "^17.14.0",
+    "openapi-typescript": "^7.13.0",
+    "typescript": "~6.0.3",
+    "typescript-eslint": "^8.73.0",
+    "vue-eslint-parser": "^10.4.2",
+    "yaml": "^2.9.1"
+  }
+}

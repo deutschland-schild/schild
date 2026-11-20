@@ -1,0 +1,14 @@
+{
+ "resolve": [
+  "x.example"
+ ],
+ "blocks": [
+  {
+   "Addresses": [
+    "http://"
+   ],
+   "Schild": true,
+   "Proxies": true
+  }
+ ]
+}

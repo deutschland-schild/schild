@@ -1,0 +1,28 @@
+{
+  "contract": "agent-enrolment",
+  "description": "Payload names agent-b's public key, agent-a signed.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z",
+    "seen_ids": [
+      "e19b3beff9689ce22935775df4d7debe"
+    ],
+    "gateway": "gw-1"
+  },
+  "input_raw": "{\"payloadType\":\"application/vnd.schild.agent-enrolment.v0+json\",\"payload\":\"eyJjb2RlIjoiSzdRTS0yWFJQLTlIV0QtVDROQSIsImdhdGV3YXkiOiJndy0xIiwiaG9zdG5hbWUiOiJhcHAtMS5leGFtcGxlIiwiaXNzdWVkX2F0IjoiMjAyNi0xMC0yNlQxMjowMDowMFoiLCJrZXlpZCI6InRlc3QtYWdlbnQtYSIsIm5vbmNlIjoiMDNmYTg5NGEzODMxMzI2ZDVmYjgyZTRiZDRmNjFmMmEiLCJwdWJsaWNfa2V5IjoiZWQyNTUxOTpoRUJlRlVDU3FRUlQvSUhHWFc5WlZVakU4Ly9uNi96SUxpakFtR3dkTmRFPSIsInNjaGVtYSI6InNjaGlsZC5hZ2VudF9lbnJvbG1lbnQvMC4xIn0=\",\"signatures\":[{\"keyid\":\"test-agent-a\",\"sig\":\"/PnXYHZchYJDVCGrjybkjfKwXOHMez5h4l4/OOVv8HOqrABI78TvDe6PwO0W7gXQ44+OhUAbwowp5qx18UGnAQ==\"}]}",
+  "input_decoded": {
+    "payload": {
+      "code": "K7QM-2XRP-9HWD-T4NA",
+      "gateway": "gw-1",
+      "hostname": "app-1.example",
+      "issued_at": "2026-10-26T12:00:00Z",
+      "keyid": "test-agent-a",
+      "nonce": "03fa894a3831326d5fb82e4bd4f61f2a",
+      "public_key": "ed25519:hEBeFUCSqQRT/IHGXW9ZVUjE8//n6/zILijAmGwdNdE=",
+      "schema": "schild.agent_enrolment/0.1"
+    }
+  },
+  "expect": {
+    "valid": false,
+    "error": "signature"
+  }
+}

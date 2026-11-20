@@ -1,0 +1,28 @@
+{
+  "contract": "agent-enrolment",
+  "description": "Exactly one signature.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z",
+    "seen_ids": [
+      "e19b3beff9689ce22935775df4d7debe"
+    ],
+    "gateway": "gw-1"
+  },
+  "input_raw": "{\"payloadType\":\"application/vnd.schild.agent-enrolment.v0+json\",\"payload\":\"eyJjb2RlIjoiSzdRTS0yWFJQLTlIV0QtVDROQSIsImdhdGV3YXkiOiJndy0xIiwiaG9zdG5hbWUiOiJhcHAtMS5leGFtcGxlIiwiaXNzdWVkX2F0IjoiMjAyNi0xMC0yNlQxMjowMDowMFoiLCJrZXlpZCI6InRlc3QtYWdlbnQtYSIsIm5vbmNlIjoiMzJhNWQ1ZTdhMDNlNTVlZmY0ZjJjMmM0ZWFjN2U1ZjEiLCJwdWJsaWNfa2V5IjoiZWQyNTUxOTprNEpvMmkwdDFqTS95cFE4cWRHN203bWp1ai92QXQ2U1d0ZGMwdFRyM1JNPSIsInNjaGVtYSI6InNjaGlsZC5hZ2VudF9lbnJvbG1lbnQvMC4xIn0=\",\"signatures\":[{\"keyid\":\"test-agent-a\",\"sig\":\"wrF02ghUfkiJ7I7wRLIfwqoWnolWdqF+W/d9X6KTv7WmCydmZqXichZ72BMQzj8rjccFKFASpoV6GjnpuYq2Cg==\"},{\"keyid\":\"test-agent-b\",\"sig\":\"nFlKnFnoOjbhuyKSj7k+MEWFaruAGJY8I1F3dOboD05qNt+NBl9x1r+AFZDdwM0g7R+k/qsCjmIhoVmOhir4DQ==\"}]}",
+  "input_decoded": {
+    "payload": {
+      "code": "K7QM-2XRP-9HWD-T4NA",
+      "gateway": "gw-1",
+      "hostname": "app-1.example",
+      "issued_at": "2026-10-26T12:00:00Z",
+      "keyid": "test-agent-a",
+      "nonce": "32a5d5e7a03e55eff4f2c2c4eac7e5f1",
+      "public_key": "ed25519:k4Jo2i0t1jM/ypQ8qdG7m7mjuj/vAt6SWtdc0tTr3RM=",
+      "schema": "schild.agent_enrolment/0.1"
+    }
+  },
+  "expect": {
+    "valid": false,
+    "error": "envelope"
+  }
+}

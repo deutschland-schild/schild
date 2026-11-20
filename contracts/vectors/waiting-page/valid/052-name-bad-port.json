@@ -1,0 +1,35 @@
+{
+  "contract": "waiting-page",
+  "description": "D37: a port that is not 1-5 digits makes the host unusable.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"enabled\":true,\"fail_closed\":\"waf_busy\",\"headers\":{\"accept\":\"text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7\",\"sec_fetch_dest\":\"document\",\"sec_fetch_mode\":\"navigate\"},\"host\":\"musterverein.example:http\",\"jitter_draw\":0,\"method\":\"GET\",\"website\":\"musterverein.example\"}",
+  "input_decoded": {
+    "enabled": true,
+    "fail_closed": "waf_busy",
+    "headers": {
+      "accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7",
+      "sec_fetch_dest": "document",
+      "sec_fetch_mode": "navigate"
+    },
+    "host": "musterverein.example:http",
+    "jitter_draw": 0,
+    "method": "GET",
+    "website": "musterverein.example"
+  },
+  "expect": {
+    "valid": true,
+    "result": {
+      "answer": "waiting_page",
+      "body": true,
+      "language": "de",
+      "marker": true,
+      "problem_code": null,
+      "refresh": 5,
+      "retry_after": 5,
+      "site_name": null,
+      "variant": "reload"
+    }
+  }
+}

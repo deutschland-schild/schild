@@ -1,0 +1,68 @@
+{
+  "contract": "storage-bounds",
+  "description": "D38: a request of an earlier minute arriving after a newer one gets its own incident (its minute is closed).",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"max_open\":65536,\"op\":\"incident_aggregate\",\"requests\":[{\"client\":\"c1\",\"draw\":\"K7QM-4XWD\",\"rules\":[\"942100\"],\"t\":1793016060000},{\"client\":\"c1\",\"draw\":\"A2BC-3DEF\",\"rules\":[\"942100\"],\"t\":1793016059000},{\"client\":\"c1\",\"draw\":\"H4JK-5LMN\",\"rules\":[\"942100\"],\"t\":1793016060500}]}",
+  "input_decoded": {
+    "max_open": 65536,
+    "op": "incident_aggregate",
+    "requests": [
+      {
+        "client": "c1",
+        "draw": "K7QM-4XWD",
+        "rules": [
+          "942100"
+        ],
+        "t": 1793016060000
+      },
+      {
+        "client": "c1",
+        "draw": "A2BC-3DEF",
+        "rules": [
+          "942100"
+        ],
+        "t": 1793016059000
+      },
+      {
+        "client": "c1",
+        "draw": "H4JK-5LMN",
+        "rules": [
+          "942100"
+        ],
+        "t": 1793016060500
+      }
+    ]
+  },
+  "expect": {
+    "valid": true,
+    "result": {
+      "numbers": [
+        "K7QM-4XWD",
+        "A2BC-3DEF",
+        "K7QM-4XWD"
+      ],
+      "incidents": [
+        {
+          "incident": "K7QM-4XWD",
+          "client": "c1",
+          "rule_key": "942100",
+          "minute_ms": 1793016060000,
+          "count": 2,
+          "first_ms": 1793016060000,
+          "last_ms": 1793016060500
+        },
+        {
+          "incident": "A2BC-3DEF",
+          "client": "c1",
+          "rule_key": "942100",
+          "minute_ms": 1793016000000,
+          "count": 1,
+          "first_ms": 1793016059000,
+          "last_ms": 1793016059000
+        }
+      ]
+    }
+  }
+}

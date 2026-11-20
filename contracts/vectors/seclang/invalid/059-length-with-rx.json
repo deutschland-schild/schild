@@ -1,0 +1,13 @@
+{
+  "contract": "seclang",
+  "description": "SecLang subset case length-with-rx (max_action block).",
+  "context": {
+    "now": "2026-10-26T12:00:00Z",
+    "max_action": "block"
+  },
+  "input_raw": "SecRule REQUEST_URI \"@rx ^[2-9][1-9]$\" \"id:7700125,phase:1,deny,severity:CRITICAL,msg:'x',t:length\"",
+  "expect": {
+    "valid": false,
+    "error": "seclang"
+  }
+}

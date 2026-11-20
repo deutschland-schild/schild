@@ -1,0 +1,28 @@
+{
+  "generated_at": "2026-10-29T12:00:00Z",
+  "website": {
+    "id": "xn--bcher-kva.example",
+    "label": "bücher.example",
+    "hosts": ["xn--bcher-kva.example", "www.xn--bcher-kva.example"],
+    "hosts_total": 2,
+    "source": "caddyfile",
+    "protection": "protected",
+    "tracked": true,
+    "status": "ok",
+    "reasons": [],
+    "now": {
+      "window_s": 60, "requests_per_s": 5.2, "requests_per_s_10s": 4.9, "stopped_share": 0.004, "would_block_share": 0.001, "fail_closed": 0,
+      "upstream_error_share": 0, "latency_total_p50_ms": 12.1, "latency_total_p95_ms": 58.2, "latency_overhead_p95_ms": 1.0, "latency_upstream_p95_ms": 57.0,
+      "bytes_in_per_s": 400, "bytes_out_per_s": 310000
+    },
+    "runs_on": [ { "node": "web-1", "this": true, "status": "ok", "baseline_protection": "active", "hints": [] } ]
+  },
+  "traffic_24h": {
+    "requests": 449280, "forwarded": 447100, "stopped": 2180, "blocked_waf": 410, "blocked_behaviour": 120, "rate_limited": 1650, "rejected_limit": 0, "challenged": 0,
+    "fail_closed": 0, "fail_closed_by": { "waf_timeout": 0, "waf_busy": 0, "not_ready": 0, "panic": 0 },
+    "would_block": 35, "would_rate_limit": 0, "page_views": 61200, "detections": 440,
+    "status": { "s1xx": 0, "s2xx": 401000, "s3xx": 30100, "s4xx": 18100, "s5xx": 80 },
+    "upstream_errors": 12, "upstream_timeouts": 3, "bytes_in": 31000000, "bytes_out": 26700000000
+  },
+  "incidents_24h": 4
+}

@@ -1,0 +1,32 @@
+{
+  "context": {
+    "now": "2026-11-19T12:00:00Z"
+  },
+  "contract": "human-check",
+  "description": "expired under_attack passes",
+  "expect": {
+    "result": {
+      "answer": "pass",
+      "reason": "off",
+      "status": 0
+    },
+    "valid": true
+  },
+  "input_decoded": {
+    "accept": "text/html",
+    "allowlisted": false,
+    "clearance": "none",
+    "good_bot": false,
+    "method": "GET",
+    "path": "/",
+    "policy": {
+      "mode": "off",
+      "under_attack": {
+        "scope": "all",
+        "until": "2026-11-19T11:00:00Z"
+      },
+      "website": "example.org"
+    }
+  },
+  "input_raw": "{\"accept\":\"text/html\",\"allowlisted\":false,\"clearance\":\"none\",\"good_bot\":false,\"method\":\"GET\",\"path\":\"/\",\"policy\":{\"mode\":\"off\",\"under_attack\":{\"scope\":\"all\",\"until\":\"2026-11-19T11:00:00Z\"},\"website\":\"example.org\"}}"
+}

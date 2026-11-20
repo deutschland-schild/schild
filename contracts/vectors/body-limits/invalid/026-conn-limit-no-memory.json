@@ -1,0 +1,15 @@
+{
+  "contract": "body-limits",
+  "description": "D46: memory_bytes is required.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"op\":\"conn_limit\"}",
+  "input_decoded": {
+    "op": "conn_limit"
+  },
+  "expect": {
+    "valid": false,
+    "error": "schema"
+  }
+}

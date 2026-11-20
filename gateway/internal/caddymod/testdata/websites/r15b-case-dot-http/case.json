@@ -1,0 +1,23 @@
+{
+ "resolve": [
+  "shop.example.org",
+  "SHOP.example.org:8080",
+  "shop.example.org."
+ ],
+ "blocks": [
+  {
+   "Addresses": [
+    "http://Shop.Example.ORG."
+   ],
+   "Schild": true,
+   "Proxies": true
+  },
+  {
+   "Addresses": [
+    "http://shop.example.org:8080"
+   ],
+   "Schild": true,
+   "Proxies": true
+  }
+ ]
+}

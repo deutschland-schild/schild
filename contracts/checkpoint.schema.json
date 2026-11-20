@@ -1,0 +1,36 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://contracts.schild.invalid/v0/checkpoint.schema.json",
+  "title": "Checkpoint schild.checkpoint/0.1 (lab -> clients, freshness)",
+  "description": "TUF-timestamp-like statement signed by one lab online key: the newest bundle and withdrawal state of a channel. Re-signed every 60 s; short validity (<= 600 s). A relay cannot forge it, only withhold it, which clients detect (stream.md). DSSE payloadType application/vnd.schild.checkpoint.v0+json.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "lab", "seq", "issued_at", "expires", "bundle", "withdrawal_seq"],
+  "properties": {
+    "schema": { "const": "schild.checkpoint/0.1" },
+    "lab": { "$ref": "common.schema.json#/$defs/id" },
+    "seq": { "type": "integer", "minimum": 1, "maximum": 9007199254740991 },
+    "issued_at": { "$ref": "common.schema.json#/$defs/timestamp" },
+    "expires": { "$ref": "common.schema.json#/$defs/timestamp" },
+    "bundle": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["bundle_id", "version", "digest"],
+      "properties": {
+        "bundle_id": { "$ref": "common.schema.json#/$defs/id" },
+        "version": { "type": "integer", "minimum": 0, "maximum": 9007199254740991 },
+        "digest": { "description": "sha256 of the bundle payload bytes; for version 0 (no bundle yet) sha256 of the empty string.", "$ref": "common.schema.json#/$defs/sha256" }
+      }
+    },
+    "withdrawal_seq": { "type": "integer", "minimum": 0, "maximum": 9007199254740991 },
+    "log": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["size", "root"],
+      "properties": {
+        "size": { "type": "integer", "minimum": 0, "maximum": 9007199254740991 },
+        "root": { "$ref": "common.schema.json#/$defs/sha256" }
+      }
+    }
+  }
+}

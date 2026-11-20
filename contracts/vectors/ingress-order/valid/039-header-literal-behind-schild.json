@@ -1,0 +1,84 @@
+{
+  "contract": "ingress-order",
+  "description": "D40: Accepted: a literal value cannot bring a client's bytes back.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"caddyfile\":\"http://a.example.test {\\n\\troute {\\n\\t\\trequest_header -X-Env\\n\\t\\tschild\\n\\t\\treverse_proxy 127.0.0.1:18082 {\\n\\t\\t\\theader_up X-Env production\\n\\t\\t}\\n\\t}\\n}\\n\",\"servers\":{\"srv0\":{\"listen\":[\":80\"],\"routes\":[{\"handle\":[{\"handler\":\"subroute\",\"routes\":[{\"handle\":[{\"handler\":\"subroute\",\"routes\":[{\"handle\":[{\"handler\":\"headers\",\"request\":{\"delete\":[\"X-Env\"]}},{\"handler\":\"schild\"},{\"handler\":\"reverse_proxy\",\"headers\":{\"request\":{\"set\":{\"X-Env\":[\"production\"]}}},\"upstreams\":[{\"dial\":\"127.0.0.1:18082\"}]}]}]}]}]}],\"match\":[{\"host\":[\"a.example.test\"]}],\"terminal\":true}]}}}",
+  "input_decoded": {
+    "caddyfile": "http://a.example.test {\n\troute {\n\t\trequest_header -X-Env\n\t\tschild\n\t\treverse_proxy 127.0.0.1:18082 {\n\t\t\theader_up X-Env production\n\t\t}\n\t}\n}\n",
+    "servers": {
+      "srv0": {
+        "listen": [
+          ":80"
+        ],
+        "routes": [
+          {
+            "handle": [
+              {
+                "handler": "subroute",
+                "routes": [
+                  {
+                    "handle": [
+                      {
+                        "handler": "subroute",
+                        "routes": [
+                          {
+                            "handle": [
+                              {
+                                "handler": "headers",
+                                "request": {
+                                  "delete": [
+                                    "X-Env"
+                                  ]
+                                }
+                              },
+                              {
+                                "handler": "schild"
+                              },
+                              {
+                                "handler": "reverse_proxy",
+                                "headers": {
+                                  "request": {
+                                    "set": {
+                                      "X-Env": [
+                                        "production"
+                                      ]
+                                    }
+                                  }
+                                },
+                                "upstreams": [
+                                  {
+                                    "dial": "127.0.0.1:18082"
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ],
+            "match": [
+              {
+                "host": [
+                  "a.example.test"
+                ]
+              }
+            ],
+            "terminal": true
+          }
+        ]
+      }
+    }
+  },
+  "expect": {
+    "valid": true,
+    "result": {
+      "findings": []
+    }
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "contract": "ingress-order",
+  "description": "D31 amendment 2026-10-29: duplicate keys are malformed JSON.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"servers\":{\"srv0\":{\"routes\":[]},\"srv0\":{\"routes\":[]}}}",
+  "expect": {
+    "valid": false,
+    "error": "malformed"
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "contract": "agent-ack",
+  "description": "retry_after_s only with retry.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"error\":null,\"nonce\":\"9b843833996f92f59ce47492edca89bf\",\"received_at\":\"2026-10-26T12:00:00Z\",\"retry_after_s\":60,\"schema\":\"schild.agent_ack/0.1\",\"status\":\"accepted\"}",
+  "expect": {
+    "valid": false,
+    "error": "schema"
+  }
+}

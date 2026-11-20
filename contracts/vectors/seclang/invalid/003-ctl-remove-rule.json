@@ -1,0 +1,13 @@
+{
+  "contract": "seclang",
+  "description": "SecLang subset case ctl-remove-rule (max_action observe).",
+  "context": {
+    "now": "2026-10-26T12:00:00Z",
+    "max_action": "observe"
+  },
+  "input_raw": "SecRule REQUEST_URI \"@beginsWith /api\" \"id:7700022,phase:1,pass,severity:NOTICE,msg:'x',ctl:ruleRemoveById=942100\"",
+  "expect": {
+    "valid": false,
+    "error": "seclang"
+  }
+}

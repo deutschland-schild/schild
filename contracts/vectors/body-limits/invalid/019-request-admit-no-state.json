@@ -1,0 +1,23 @@
+{
+  "contract": "body-limits",
+  "description": "D45: request_state is required.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"client_known\":false,\"jitter_draw\":0,\"net_class\":\"unknown\",\"op\":\"request_admit\",\"request_limits\":{\"max_waiting\":8192,\"max_waiting_per_client\":1024,\"max_waiting_per_network\":4096}}",
+  "input_decoded": {
+    "client_known": false,
+    "jitter_draw": 0,
+    "net_class": "unknown",
+    "op": "request_admit",
+    "request_limits": {
+      "max_waiting": 8192,
+      "max_waiting_per_client": 1024,
+      "max_waiting_per_network": 4096
+    }
+  },
+  "expect": {
+    "valid": false,
+    "error": "schema"
+  }
+}

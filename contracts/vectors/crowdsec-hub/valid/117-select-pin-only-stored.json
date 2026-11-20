@@ -1,0 +1,30 @@
+{
+  "contract": "crowdsec-hub",
+  "description": "Start: with a broken image a stored set of another commit is still better than none.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"image\":{\"present\":true,\"valid\":false},\"now\":\"2026-10-26T12:00:00Z\",\"op\":\"select\",\"pin\":\"1111111111111111111111111111111111111111\",\"state\":\"detect\",\"stored\":{\"commit\":\"2222222222222222222222222222222222222222\",\"present\":true,\"valid\":true}}",
+  "input_decoded": {
+    "image": {
+      "present": true,
+      "valid": false
+    },
+    "now": "2026-10-26T12:00:00Z",
+    "op": "select",
+    "pin": "1111111111111111111111111111111111111111",
+    "state": "detect",
+    "stored": {
+      "commit": "2222222222222222222222222222222222222222",
+      "present": true,
+      "valid": true
+    }
+  },
+  "expect": {
+    "valid": true,
+    "result": {
+      "set": "stored",
+      "pin_pending": true
+    }
+  }
+}

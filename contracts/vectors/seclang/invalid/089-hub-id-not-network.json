@@ -1,0 +1,13 @@
+{
+  "contract": "seclang",
+  "description": "D39: the id range of the hub source is not open to network rules.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z",
+    "max_action": "observe"
+  },
+  "input_raw": "SecRule REQUEST_FILENAME \"@contains /wp-json/example/v1/\" \"id:62846312,phase:2,pass,t:none,severity:CRITICAL,msg:'x',chain\"\nSecRule ARGS_GET:a \"@contains x\" \"t:none\"",
+  "expect": {
+    "valid": false,
+    "error": "seclang"
+  }
+}

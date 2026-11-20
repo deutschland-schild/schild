@@ -1,0 +1,26 @@
+{
+  "context": {
+    "now": "2026-11-19T12:00:00Z"
+  },
+  "contract": "human-check",
+  "description": "except path with .. is refused",
+  "expect": {
+    "error": "schema",
+    "valid": false
+  },
+  "input_decoded": {
+    "allowlisted": false,
+    "clearance": "none",
+    "good_bot": false,
+    "method": "GET",
+    "path": "/",
+    "policy": {
+      "except": [
+        "/api/../secret"
+      ],
+      "mode": "always",
+      "website": "example.org"
+    }
+  },
+  "input_raw": "{\"allowlisted\":false,\"clearance\":\"none\",\"good_bot\":false,\"method\":\"GET\",\"path\":\"/\",\"policy\":{\"except\":[\"/api/../secret\"],\"mode\":\"always\",\"website\":\"example.org\"}}"
+}

@@ -1,0 +1,66 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://contracts.schild.invalid/v0/agent-block.schema.json",
+  "title": "Agent block decision input (v0.5, D42)",
+  "description": "Input of the agent-block vectors: one block write of the agent API after the gateway looked up its target (contract/agentapi CheckBlock, CheckLift; D42). op create: createAgentBlock; op lift: liftAgentBlock. address is the address the gateway recorded; it exists only inside the gateway and never in an agent's request or answer. Never sent anywhere.",
+  "oneOf": [
+    { "$ref": "#/$defs/create" },
+    { "$ref": "#/$defs/lift" }
+  ],
+  "$defs": {
+    "scope": { "type": "string", "enum": ["agent:read", "export:read", "rules:write", "rules:approve", "blocks:write"] },
+    "budget": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["writes_per_hour", "writes_used", "oldest_write_age_s", "max_blocks", "running"],
+      "properties": {
+        "writes_per_hour": { "description": "agent_api.block_writes_per_hour.", "type": "integer", "minimum": 1, "maximum": 36000 },
+        "writes_used": { "description": "Writes of this token in the rolling hour.", "type": "integer", "minimum": 0, "maximum": 100000 },
+        "oldest_write_age_s": { "type": "integer", "minimum": 0, "maximum": 3600 },
+        "max_blocks": { "description": "agent_api.max_agent_blocks.", "type": "integer", "minimum": 1, "maximum": 4096 },
+        "running": { "description": "Blocks set by agents that run now, whatever token set them.", "type": "integer", "minimum": 0, "maximum": 100000 }
+      }
+    },
+    "create": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["op", "scope", "mode", "duration_s", "reason", "target", "budget"],
+      "properties": {
+        "op": { "const": "create" },
+        "scope": { "$ref": "#/$defs/scope" },
+        "mode": { "description": "observe: the gateway runs the test profile, nothing is blocked (D89: there is no protection mode to set). autoblock: every other gateway.", "type": "string", "enum": ["observe", "autoblock"] },
+        "duration_s": { "type": "integer", "minimum": 0, "maximum": 31536000 },
+        "reason": { "type": "string", "maxLength": 300 },
+        "target": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["exists"],
+          "properties": {
+            "exists": { "description": "The named event, incident or pseudonym was found.", "type": "boolean" },
+            "gone": { "description": "The full address is no longer stored, or the evidence is older than 7 days.", "type": "boolean" },
+            "address": { "type": "string", "maxLength": 64 },
+            "attribution": { "description": "As recorded. Anything but tcp_peer and trusted_proxy is refused.", "type": "string", "maxLength": 32 },
+            "net_class": { "$ref": "common.schema.json#/$defs/netClass" },
+            "own": { "description": "On the allowlist, an address of the gateway host or in ingress.trusted_proxies.", "type": "boolean" },
+            "released": { "description": "An unblock exception of the operator runs for this client.", "type": "boolean" },
+            "running": { "description": "A block of this client key runs already.", "type": "boolean" }
+          }
+        },
+        "budget": { "$ref": "#/$defs/budget" }
+      }
+    },
+    "lift": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["op", "scope", "reason", "status", "running", "budget"],
+      "properties": {
+        "op": { "const": "lift" },
+        "scope": { "$ref": "#/$defs/scope" },
+        "reason": { "type": "string", "maxLength": 300 },
+        "status": { "description": "Status of the incident; missing: no such number.", "type": "string", "enum": ["blocked", "unblocked", "missing"] },
+        "running": { "description": "A timed block runs under this incident.", "type": "boolean" },
+        "budget": { "$ref": "#/$defs/budget" }
+      }
+    }
+  }
+}

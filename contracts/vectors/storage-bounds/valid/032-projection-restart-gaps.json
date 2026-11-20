@@ -1,0 +1,52 @@
+{
+  "contract": "storage-bounds",
+  "description": "D38 (MVP-21): days with fewer than 36 samples (restart gaps) do not count; four counted days of growth are enough.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"days\":[{\"min_used_bytes\":75161927680,\"samples\":144},{\"min_used_bytes\":1073741824,\"samples\":10},{\"min_used_bytes\":79456894976,\"samples\":144},{\"min_used_bytes\":81604378624,\"samples\":100},{\"min_used_bytes\":0,\"samples\":0},{\"min_used_bytes\":85899345920,\"samples\":36},{\"min_used_bytes\":88046829568,\"samples\":144}],\"op\":\"disk_projection\",\"total_bytes\":107374182400,\"used_bytes\":96636764160}",
+  "input_decoded": {
+    "days": [
+      {
+        "min_used_bytes": 75161927680,
+        "samples": 144
+      },
+      {
+        "min_used_bytes": 1073741824,
+        "samples": 10
+      },
+      {
+        "min_used_bytes": 79456894976,
+        "samples": 144
+      },
+      {
+        "min_used_bytes": 81604378624,
+        "samples": 100
+      },
+      {
+        "min_used_bytes": 0,
+        "samples": 0
+      },
+      {
+        "min_used_bytes": 85899345920,
+        "samples": 36
+      },
+      {
+        "min_used_bytes": 88046829568,
+        "samples": 144
+      }
+    ],
+    "op": "disk_projection",
+    "total_bytes": 107374182400,
+    "used_bytes": 96636764160
+  },
+  "expect": {
+    "valid": true,
+    "result": {
+      "hint": true,
+      "level": "notice",
+      "days_left": 5,
+      "rate_bytes_per_day": 2147483648
+    }
+  }
+}

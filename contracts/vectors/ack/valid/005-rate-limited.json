@@ -1,0 +1,42 @@
+{
+  "contract": "ack",
+  "description": "Client over its rate.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z",
+    "trust": [
+      "site-a",
+      "site-b",
+      "site-c",
+      "lab-a",
+      "lab-a2",
+      "lab-b",
+      "lab-c",
+      "lab-d"
+    ]
+  },
+  "input_raw": "{\"payloadType\":\"application/vnd.schild.ack.v0+json\",\"payload\":\"eyJhY2NlcHRlZCI6W10sImNvbnRyb2wiOnsibWF4X2JhdGNoIjoxLCJyZWFzb24iOiJyYXRlX2xpbWl0ZWQiLCJyZXRyeV9hZnRlcl9tcyI6NjAwMDB9LCJkdXBsaWNhdGUiOltdLCJpbl9yZXBseV90byI6IjE1NDIzMDkxLTU0ZjEtNGE0MC1iOWYzLTkxMTNjMGRhYjc1YyIsImlzc3VlZF9hdCI6IjIwMjYtMTAtMjZUMTE6NTk6NThaIiwibGFiIjoibGFiLWEiLCJyZWplY3RlZCI6W3siaWQiOiJlMTYxNDJhMC0wYmIxLTQ2YzItOWZkNy1iYTMzNzFjMDRiNjMiLCJyZWFzb24iOiJxdW90YSJ9XSwic2NoZW1hIjoic2NoaWxkLmFjay8wLjEifQ==\",\"signatures\":[{\"keyid\":\"test-lab-a\",\"sig\":\"ACAn5jP1/PnN+nvB6jx8fvxPUhleeqZH6J6QpuxKf4yfxri6FJRM5HCEhSpdyyNLyj3cWusVuRs4SurtqcBMCA==\"}]}",
+  "input_decoded": {
+    "payload": {
+      "accepted": [],
+      "control": {
+        "max_batch": 1,
+        "reason": "rate_limited",
+        "retry_after_ms": 60000
+      },
+      "duplicate": [],
+      "in_reply_to": "15423091-54f1-4a40-b9f3-9113c0dab75c",
+      "issued_at": "2026-10-26T11:59:58Z",
+      "lab": "lab-a",
+      "rejected": [
+        {
+          "id": "e16142a0-0bb1-46c2-9fd7-ba3371c04b63",
+          "reason": "quota"
+        }
+      ],
+      "schema": "schild.ack/0.1"
+    }
+  },
+  "expect": {
+    "valid": true
+  }
+}

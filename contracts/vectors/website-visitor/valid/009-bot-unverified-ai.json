@@ -1,0 +1,20 @@
+{
+  "contract": "website-visitor",
+  "description": "D36 amendment: an AI crawler that is not verified is a bot client.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"bot_category\":\"ai_training\",\"outcome\":\"passed\",\"ua_class\":\"bot_unverified\"}",
+  "input_decoded": {
+    "bot_category": "ai_training",
+    "outcome": "passed",
+    "ua_class": "bot_unverified"
+  },
+  "expect": {
+    "valid": true,
+    "result": {
+      "bot_client": true,
+      "visitor": false
+    }
+  }
+}

@@ -1,0 +1,14 @@
+# unprotected: []
+# expect: pass
+# handle_errors imported before schild, guarded site.
+(errs) {
+	handle_errors {
+		import schild
+		reverse_proxy 127.0.0.1:18081
+	}
+}
+http://a.example.test:18080 {
+	import errs
+	import schild
+	reverse_proxy 127.0.0.1:18081
+}

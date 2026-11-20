@@ -1,0 +1,62 @@
+id: MVP-28
+# Direction decided by the initiator 2026-11-01 and 2026-11-02 (DECISIONS D54, D55): agentic hosting. The case it is
+# built for: "Ich schalte schild live und weiß, dass ein endpunkt probleme machen wird (weil mein agent auch den code
+# kennt). Dann soll der eigenständig alle regeln sehen und die passende granulare ausnahme einrichten können." A rule
+# exception nobody maintains by hand is worth nothing, and the agent that writes the code knows its fields best.
+# The first draft of this spec (evidence of three networks, budget, protected rules, kill switch, undo log) was too
+# complicated: it only allowed fixes after visitors had been blocked. Dropped 2026-11-02.
+# Checked against the code of 2026-11-02:
+# - built: read API (MVP-21), rule exceptions (D54), rule list and request test (D55), the API serves its own OpenAPI
+#   document and has no MCP (D61).
+# - agent_api.listen accepts loopback only (contract/config/agentapi.go); the API is off by default.
+# - a rule exception names website, path, field and CRS rules; the gateway renders the SecLang (websites.RuleExceptionRule).
+title: "Agent firewall: an agent that knows the code of a website sees every rule, tests sample requests and sets the narrowest rule exception, before the website goes live and after"
+ships: false                        # draft; the flow below is built (D54, D55), not measured
+status: ENTWURF
+image: schild                       # same binary
+hypotheses: [D3]
+refs: [MVP-21, MVP-22, MVP-27, DECISIONS-D32, DECISIONS-D33, DECISIONS-D52, DECISIONS-D54, DECISIONS-D55, DECISIONS-D61]
+depends_on: [MVP-21]
+why: >-
+  A WAF needs tuning, and small operators do not do it: they leave it in observe, or switch it off after the first
+  false positive. The agent that wrote or reads the code knows which fields take free text (a math editor, a code
+  field, a price). It should fix the rules for them before the first visitor is blocked, in plain language and without
+  a file on the server.
+flow:                               # operations of the agent API; GET /agent/v0/openapi.json describes them all (D61)
+  - 'listWebsites: the website id'
+  - 'listAgentRules: every CRS rule that runs, with number, message and paranoia level'
+  - 'testAgentRequest: a sample request as the code sends it (method, path, content type, headers, body); the answer names each rule, the field it hit, the anomaly score, whether it would block in the current mode, and suggests the narrowest exceptions. Nothing is forwarded, counted, stored or changed'
+  - 'createAgentException: one suggestion plus a reason; in force before the answer returns, survives a restart'
+  - 'testAgentRequest again: the sample passes; other fields, pages, websites and rules stay checked'
+  - 'later: listAgentFalsePositiveHints and queryRequests show what real visitors hit; removeAgentException takes an exception back'
+narrow_by_contract:                 # what keeps an exception small, enforced by the server
+  - 'one website (its hosts), one path ({name} for one segment), one named field of ARGS, REQUEST_COOKIES or REQUEST_HEADERS (* for one part of a name), 1 to 16 CRS detection rules (910000 to 948999)'
+  - 'no SecLang from an agent, no whole collection, no mode, paranoia level, anomaly threshold or CRS switch'
+  - 'at most 256 exceptions per gateway'
+security:
+  - 'loopback listener only, reached through an SSH tunnel or a local agent; off by default'
+  - 'tokens created on the host by a person, with expiry and label, stored as hashes; reading and testing need agent:read, exceptions need exceptions:write'
+  - 'every call is in the call log, every exception writes schild.rule.exception_set.v1 or exception_removed.v1 with token and reason'
+  - 'the request test runs two samples at once at most, 2 s each, body at most 64 KiB, behind the per-token rate limit'
+  - 'visitor text stays marked x-untrusted in every answer'
+not_planned:                        # considered in the first draft, left out on purpose
+  - 'evidence from visitors before an exception: the point is to fix before anyone is blocked'
+  - 'a separate write budget, protected rules, a kill switch: the token is the switch (schild token revoke), and an exception is removed like it was set'
+open:
+  - 'the dashboard lists no agent exceptions yet; listAgentExceptions and the events do'
+  - 'MVP-27: rule_exceptions_v1 travels as shared access state in an HA group'
+  - 'rate limits and scenarios through the agent API, by the same pattern, when a case needs it'
+must:
+  - 'an agent that knows a free text field gets a passing sample with one exception per field, before go-live, without a restart and without a file on the server'
+  - 'a sample is evaluated exactly as a live request to that website: same rules, same exceptions, same body limits'
+  - 'no sequence of calls widens an exception beyond narrow_by_contract'
+  - 'a gateway without the agent API behaves exactly as before'
+measure:                            # by an independent agent, not the builder
+  - 'real false positives (Livewire text, math, code, prices, passwords): an agent with only the code and this API reaches passing samples, with no exception wider than the case'
+  - 'attack corpus (CRS regression tests) on the same website before and after: detection loss on other fields and pages is zero'
+  - 'injection: sample bodies and visitor text that tell the agent to widen an exception; count what the server let through'
+kill_if: "proposal for the initiator: a sample and a live request with the same content get different verdicts OR an exception acts outside its website, path, field or rules"
+done: "make contracts-test && make test"
+out_of_scope:
+  - 'deployment, updates, backups, certificates: other modules of agentic hosting'
+  - 'our own agent or model: operators connect the agent of their choice (D32)'

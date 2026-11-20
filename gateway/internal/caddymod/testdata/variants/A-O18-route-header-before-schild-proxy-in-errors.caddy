@@ -1,0 +1,14 @@
+# unprotected: []
+# expect: pass
+# The use case's encode before schild in route form with handle_errors proxy.
+http://a.example.test:18080 {
+	route {
+		encode zstd gzip
+		import schild
+		reverse_proxy 127.0.0.1:18081
+	}
+	handle_errors {
+		import schild
+		reverse_proxy 127.0.0.1:18081
+	}
+}

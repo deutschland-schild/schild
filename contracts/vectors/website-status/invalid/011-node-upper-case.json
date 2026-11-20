@@ -1,0 +1,33 @@
+{
+  "contract": "website-status",
+  "description": "D36: node names are ids.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"monitoring\":true,\"protection\":\"protected\",\"servers\":[{\"baseline_protection\":\"active\",\"hints\":[],\"node\":\"Web-1\",\"state\":\"ok\"}],\"tracked\":true,\"traffic\":{\"fail_closed\":0,\"forwarded\":11900,\"requests\":12000,\"status_5xx\":4,\"upstream_errors\":3,\"upstream_timeouts\":0}}",
+  "input_decoded": {
+    "monitoring": true,
+    "protection": "protected",
+    "servers": [
+      {
+        "baseline_protection": "active",
+        "hints": [],
+        "node": "Web-1",
+        "state": "ok"
+      }
+    ],
+    "tracked": true,
+    "traffic": {
+      "fail_closed": 0,
+      "forwarded": 11900,
+      "requests": 12000,
+      "status_5xx": 4,
+      "upstream_errors": 3,
+      "upstream_timeouts": 0
+    }
+  },
+  "expect": {
+    "valid": false,
+    "error": "schema"
+  }
+}

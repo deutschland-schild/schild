@@ -1,0 +1,14 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "types": ["vite/client", "vitest/globals", "node"],
+    "paths": {
+      "@/*": ["./src/*"],
+      "@schild/ui": ["../../packages/ui/src/index.ts"],
+      "@schild/ui/*": ["../../packages/ui/src/*"],
+      "@schild/app-kit": ["../../packages/app-kit/src/index.ts"],
+      "@schild/app-kit/*": ["../../packages/app-kit/*"]
+    }
+  },
+  "include": ["src/**/*.ts", "src/**/*.vue", "test/**/*.ts", "*.config.ts", "../../packages/ui/src/env.d.ts"]
+}

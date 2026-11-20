@@ -1,0 +1,16 @@
+# TEST ONLY: abend D29 re-measurement copy (ports 22700-22799, backend 22699)
+{
+	admin off
+	http_port 22700
+	https_port 22743
+	auto_https off
+}
+
+(schild) {
+	schild
+}
+
+http://shop.test:22700 {
+	import schild
+	reverse_proxy 127.0.0.1:22699
+}

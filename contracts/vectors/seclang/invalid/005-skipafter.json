@@ -1,0 +1,13 @@
+{
+  "contract": "seclang",
+  "description": "SecLang subset case skipafter (max_action observe).",
+  "context": {
+    "now": "2026-10-26T12:00:00Z",
+    "max_action": "observe"
+  },
+  "input_raw": "SecRule ARGS \"@rx x\" \"id:7700024,phase:1,pass,severity:NOTICE,msg:'x',skipAfter:END-REQUEST\"",
+  "expect": {
+    "valid": false,
+    "error": "seclang"
+  }
+}

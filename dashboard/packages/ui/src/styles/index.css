@@ -1,0 +1,233 @@
+/*
+ * Schild dashboard theme (Tailwind v4 + shadcn-vue variables).
+ * Same look as the dashboard preview on the website: white content, warm paper/sand surfaces,
+ * ink for primary actions, brand green only for "Grundschutz aktiv" and signal states.
+ * Light by default (the website has no dark mode); dark is opt-in.
+ * Dark mode via the `dark` class on <html>.
+ * All text/background pairs below meet WCAG 2.2 AA (checked in test/contrast.test.ts).
+ */
+@import 'tailwindcss';
+@import 'tw-animate-css';
+@import './brand-tokens.css';
+
+/* Scan the design system sources so apps get all utilities used here. */
+@source '../';
+
+@custom-variant dark (&:is(.dark *));
+
+:root {
+  --radius: 0.75rem;
+
+  --background: #ffffff;
+  --foreground: #0a1a33;
+  --card: #ffffff;
+  --card-foreground: #0a1a33;
+  --popover: #ffffff;
+  --popover-foreground: #0a1a33;
+  --primary: #0a1a33;
+  --primary-foreground: #ffffff;
+  --secondary: #f1ece4;
+  --secondary-foreground: #0a1a33;
+  --muted: #faf8f5;
+  --muted-foreground: #5b6b82;
+  --accent: #f1ece4;
+  --accent-foreground: #0a1a33;
+  --destructive: #b91c1c;
+  --destructive-foreground: #ffffff;
+  --border: #e3ddd3;
+  --input: #8191a7; /* 3:1 against background for form control boundaries (WCAG 1.4.11) */
+  --ring: #047857;
+
+  /* Status colors: `*` is for text/icons on background, `*-subtle` for pill fills. */
+  --success: #15803d;
+  --success-subtle: #ecfdf5;
+  --warning: #b45309;
+  --warning-subtle: #fffbeb;
+  --danger: #b91c1c;
+  --danger-subtle: #fef2f2;
+  --info: #1663c7;
+  --info-subtle: #eff6ff;
+  --neutral: #5b6b82;
+  --neutral-subtle: #f1ece4;
+  /* "Grundschutz aktiv" and other signal states. */
+  --signal: #22c55e;
+  --signal-foreground: #0a1a33;
+  --signal-text: #047857;
+  --signal-subtle: #ecfdf5;
+
+  /* Categorical chart slots, fixed order; validated for CVD separation (light and dark). */
+  --chart-1: #047857;
+  --chart-2: #1663c7;
+  --chart-3: #b45309;
+  --chart-4: #7c3aed;
+  --chart-5: #be185d;
+  /* Monitoring charts (Traffic, Server, Gerade jetzt): one calm brand hue in tonal steps plus a neutral grey,
+     never red for normal traffic. Fills step wash -> light -> mid -> deep (monotone lightness, validated as an
+     ordinal ramp); main is the line and total colour (brand signal #0F873B). The wash sits below 3:1 on purpose:
+     it is a background fill under a 2px main line, values stay readable in the tooltip and the table view. */
+  --tone-wash: #dcefe3;
+  --tone-light: #7fc496;
+  --tone-mid: #4a9a68;
+  --tone-main: #0f873b;
+  --tone-deep: #0b4f27;
+  --tone-neutral: #7b8798;
+
+  --sidebar: #faf8f5;
+  --sidebar-foreground: #0a1a33;
+  --sidebar-primary: #0a1a33;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #f1ece4;
+  --sidebar-accent-foreground: #0a1a33;
+  --sidebar-border: #e3ddd3;
+  --sidebar-ring: #047857;
+}
+
+.dark {
+  --background: #0a1a33;
+  --foreground: #f1f5fa;
+  --card: #0f213f;
+  --card-foreground: #f1f5fa;
+  --popover: #0f213f;
+  --popover-foreground: #f1f5fa;
+  --primary: #f1f5fa;
+  --primary-foreground: #0a1a33;
+  --secondary: #1d3660;
+  --secondary-foreground: #f1f5fa;
+  --muted: #13284a;
+  --muted-foreground: #9fb3cc;
+  --accent: #1d3660;
+  --accent-foreground: #f1f5fa;
+  --destructive: #f87171;
+  --destructive-foreground: #0a1a33;
+  --border: #1d3660;
+  --input: #5a77a3;
+  --ring: #86efac;
+
+  --success: #86efac;
+  --success-subtle: #0f2e2a;
+  --warning: #fcd34d;
+  --warning-subtle: #2e2614;
+  --danger: #fca5a5;
+  --danger-subtle: #3a1a24;
+  --info: #93c5fd;
+  --info-subtle: #132c52;
+  --neutral: #9fb3cc;
+  --neutral-subtle: #13284a;
+  --signal: #22c55e;
+  --signal-foreground: #0a1a33;
+  --signal-text: #86efac;
+  --signal-subtle: #0f2e2a;
+
+  --chart-1: #16a34a;
+  --chart-2: #2f80d9;
+  --chart-3: #c2710a;
+  --chart-4: #8b5cf6;
+  --chart-5: #db2777;
+  /* Dark: selected steps for the navy card, prominence still grows from wash to deep. */
+  --tone-wash: #183f34;
+  --tone-light: #25714a;
+  --tone-mid: #3a9a64;
+  --tone-main: #4ade80;
+  --tone-deep: #c8f5d6;
+  --tone-neutral: #7d8ea6;
+
+  --sidebar: #0c1d38;
+  --sidebar-foreground: #f1f5fa;
+  --sidebar-primary: #86efac;
+  --sidebar-primary-foreground: #0a1a33;
+  --sidebar-accent: #1d3660;
+  --sidebar-accent-foreground: #f1f5fa;
+  --sidebar-border: #1d3660;
+  --sidebar-ring: #86efac;
+}
+
+@theme inline {
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  --color-status-success: var(--success);
+  --color-status-success-subtle: var(--success-subtle);
+  --color-status-warning: var(--warning);
+  --color-status-warning-subtle: var(--warning-subtle);
+  --color-status-danger: var(--danger);
+  --color-status-danger-subtle: var(--danger-subtle);
+  --color-status-info: var(--info);
+  --color-status-info-subtle: var(--info-subtle);
+  --color-status-neutral: var(--neutral);
+  --color-status-neutral-subtle: var(--neutral-subtle);
+  --color-status-signal: var(--signal);
+  --color-status-signal-foreground: var(--signal-foreground);
+  --color-status-signal-text: var(--signal-text);
+  --color-status-signal-subtle: var(--signal-subtle);
+
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  html {
+    -webkit-text-size-adjust: 100%;
+    font-feature-settings: 'cv11', 'ss01';
+  }
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+  }
+  /* Visible focus for keyboard users everywhere (WCAG 2.4.7 / 2.4.13). */
+  :focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+  }
+  .tabular-nums,
+  time,
+  [data-numeric] {
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

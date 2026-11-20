@@ -1,0 +1,4 @@
+kernel	1780000000
+kernel-core	1780000000
+glibc	1780000000
+systemd	1780000000

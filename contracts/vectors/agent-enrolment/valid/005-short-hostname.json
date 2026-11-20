@@ -1,0 +1,27 @@
+{
+  "contract": "agent-enrolment",
+  "description": "Host names need no domain.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z",
+    "seen_ids": [
+      "e19b3beff9689ce22935775df4d7debe"
+    ],
+    "gateway": "gw-1"
+  },
+  "input_raw": "{\"payloadType\":\"application/vnd.schild.agent-enrolment.v0+json\",\"payload\":\"eyJjb2RlIjoiSzdRTS0yWFJQLTlIV0QtVDROQSIsImdhdGV3YXkiOiJndy0xIiwiaG9zdG5hbWUiOiJkYi0yIiwiaXNzdWVkX2F0IjoiMjAyNi0xMC0yNlQxMjowMDowMFoiLCJrZXlpZCI6InRlc3QtYWdlbnQtYyIsIm5vbmNlIjoiMmViZTA5MGRhNjUyYTlkNTkwZGE5OTllMmE3ODU3N2IiLCJwdWJsaWNfa2V5IjoiZWQyNTUxOTp3MUxxR0puTXhOUU83TmR4ZXB2NWVsSXRZc2NpeHFCYjZBa0daMXFlUnRNPSIsInNjaGVtYSI6InNjaGlsZC5hZ2VudF9lbnJvbG1lbnQvMC4xIn0=\",\"signatures\":[{\"keyid\":\"test-agent-c\",\"sig\":\"Fmax4MUyPV/4qIr5AiPPNTn/t1JhS683K1h540Hy/LMaxEDqlBcGoWBm6tsZf/Sm5o29/qLume9NIj9M+mW7Dw==\"}]}",
+  "input_decoded": {
+    "payload": {
+      "code": "K7QM-2XRP-9HWD-T4NA",
+      "gateway": "gw-1",
+      "hostname": "db-2",
+      "issued_at": "2026-10-26T12:00:00Z",
+      "keyid": "test-agent-c",
+      "nonce": "2ebe090da652a9d590da999e2a78577b",
+      "public_key": "ed25519:w1LqGJnMxNQO7Ndxepv5elItYscixqBb6AkGZ1qeRtM=",
+      "schema": "schild.agent_enrolment/0.1"
+    }
+  },
+  "expect": {
+    "valid": true
+  }
+}

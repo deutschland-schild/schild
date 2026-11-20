@@ -1,0 +1,35 @@
+{
+	admin off
+	http_port 19190
+	https_port 19143
+}
+
+http://shop.test:19190, http://www.shop.test:19190 {
+	schild
+	reverse_proxy 127.0.0.1:19101
+}
+
+http://blog.test:19190 {
+	schild
+	reverse_proxy 127.0.0.1:19101
+}
+
+http://app.test:19190 {
+	schild
+	reverse_proxy 127.0.0.1:19101
+}
+
+http://down.test:19190 {
+	schild
+	reverse_proxy 127.0.0.1:19103
+}
+
+http://static.test:19190 {
+	root * /tmp
+	file_server
+}
+
+http://legacy.test:19190 {
+	reverse_proxy 127.0.0.1:19101
+}
+

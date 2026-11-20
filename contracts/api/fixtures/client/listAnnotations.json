@@ -1,0 +1,14 @@
+{
+  "site": "verein.example",
+  "from": "2026-10-28T12:00:00Z",
+  "to": "2026-10-29T12:00:00Z",
+  "items": [
+    { "t": "2026-10-28T13:10:00Z", "until": "2026-10-28T13:40:00Z", "kind": "wave_detected", "ref": "0c1a5c6e-8f0b-4e6a-9d55-2f6d7c1e4b11", "detector": "route_wave", "count": 380 },
+    { "t": "2026-10-28T14:02:11Z", "until": "2026-11-04T14:02:11Z", "kind": "block_long", "ref": "K7QM-4XWD", "net_class": "hosting", "duration_s": 604800 },
+    { "t": "2026-10-28T18:00:00Z", "until": "2026-10-28T18:10:00Z", "kind": "incident", "ref": "R3TJ-9PLC", "count": 3 },
+    { "t": "2026-10-29T08:00:00Z", "kind": "config_changed", "config_sha256": "4f2c9a1b7e3d5f6a8b0c2d4e6f8a0b1c3d5e7f9a1b3c5d7e9f0a2b4c6d8e0f1a" },
+    { "t": "2026-10-29T08:00:02Z", "kind": "mode_changed", "mode_from": "observe", "mode_to": "autoblock" },
+    { "t": "2026-10-29T09:00:00Z", "until": "2026-10-29T09:03:00Z", "kind": "monitoring_gap" }
+  ],
+  "truncated": false
+}

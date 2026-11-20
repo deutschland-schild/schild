@@ -1,0 +1,80 @@
+{
+  "items": [
+    {
+      "channel": "schild-main",
+      "version": 43,
+      "status": "collecting",
+      "issued_at": "2026-10-26T12:00:00Z",
+      "expires": "2026-11-02T12:00:00Z",
+      "rules": [
+        {
+          "rule_id": "schild-2026-0412",
+          "class": "virtual_patch",
+          "max_action": "challenge",
+          "stage": "canary",
+          "change": "changed"
+        },
+        {
+          "rule_id": "schild-2026-0413",
+          "class": "behavioral",
+          "max_action": "observe",
+          "stage": "shadow",
+          "change": "unchanged"
+        }
+      ],
+      "signatures": [
+        {
+          "keyid": "test-lab-a",
+          "lab": "lab-a",
+          "operator": "op-test-a",
+          "at": "2026-10-26T12:00:00Z"
+        }
+      ],
+      "threshold": 3,
+      "envelope": null,
+      "proposed_by": "lab-a"
+    },
+    {
+      "channel": "schild-main",
+      "version": 42,
+      "status": "published",
+      "issued_at": "2026-10-26T11:00:00Z",
+      "expires": "2026-11-09T12:00:00Z",
+      "digest": "sha256:4b4b4b4b4b4b4b4b4b4b4b4b4b4b4b4b4b4b4b4b4b4b4b4b4b4b4b4b4b4b4b4b",
+      "rules": [
+        {
+          "rule_id": "schild-2026-0412",
+          "class": "virtual_patch",
+          "max_action": "observe",
+          "stage": "shadow",
+          "change": "added"
+        },
+        {
+          "rule_id": "schild-2026-0413",
+          "class": "behavioral",
+          "max_action": "observe",
+          "stage": "shadow",
+          "change": "unchanged"
+        }
+      ],
+      "signatures": [
+        {
+          "keyid": "test-lab-a",
+          "lab": "lab-a",
+          "operator": "op-test-a",
+          "at": "2026-10-26T11:00:00Z"
+        },
+        {
+          "keyid": "test-lab-a2",
+          "lab": "lab-a2",
+          "operator": "op-test-a",
+          "at": "2026-10-26T11:00:03Z"
+        }
+      ],
+      "threshold": 2,
+      "envelope": null,
+      "proposed_by": "lab-a"
+    }
+  ],
+  "next_cursor": null
+}

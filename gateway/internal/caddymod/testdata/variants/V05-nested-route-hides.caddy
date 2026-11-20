@@ -1,0 +1,16 @@
+# unprotected: []
+# expect: refuse
+# Hiding rewrite in a nested route before schild.
+http://a.example.test:26080 {
+	route {
+		vars saved {query}
+		route {
+			route {
+				rewrite * /hidden?
+			}
+		}
+		schild
+		uri replace /hidden /hidden?{vars.saved}
+		reverse_proxy 127.0.0.1:26082
+	}
+}

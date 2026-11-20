@@ -1,0 +1,24 @@
+{
+  "contract": "events",
+  "description": "D72: the gateway has no network rules; schild.rule.dropped.v1 is an unknown type.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"data\":{\"bundle_version\":42,\"rule_id\":\"schild-2026-0412\"},\"datacontenttype\":\"application/json\",\"id\":\"a12265cc-6185-4336-92a7-a888c9c3c6cc\",\"source\":\"schild://web-1\",\"specversion\":\"1.0\",\"time\":\"2026-10-26T11:59:58.123Z\",\"type\":\"schild.rule.dropped.v1\"}",
+  "input_decoded": {
+    "data": {
+      "bundle_version": 42,
+      "rule_id": "schild-2026-0412"
+    },
+    "datacontenttype": "application/json",
+    "id": "a12265cc-6185-4336-92a7-a888c9c3c6cc",
+    "source": "schild://web-1",
+    "specversion": "1.0",
+    "time": "2026-10-26T11:59:58.123Z",
+    "type": "schild.rule.dropped.v1"
+  },
+  "expect": {
+    "valid": false,
+    "error": "schema"
+  }
+}

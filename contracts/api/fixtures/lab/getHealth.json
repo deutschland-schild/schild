@@ -1,0 +1,57 @@
+{
+  "lab": "lab-a",
+  "operator": "op-test-a",
+  "profile": "test",
+  "generated_at": "2026-10-26T12:00:00Z",
+  "ingest": {
+    "rate_per_s": 184.2,
+    "accepted_24h": 912311,
+    "duplicate_24h": 40211,
+    "rejected_24h": 1290,
+    "rejected_by_reason": {
+      "signature": 1022,
+      "schema": 201,
+      "expired": 67
+    },
+    "retry_after_sent_24h": 0
+  },
+  "ack_ms": {
+    "p50": 3.1,
+    "p99": 18.7,
+    "max": 44.0,
+    "window_s": 300
+  },
+  "queue": {
+    "depth": {
+      "new_pattern": 12,
+      "repeat": 2210,
+      "baseline": 40112
+    },
+    "max_depth": 1000000,
+    "full": false,
+    "oldest_age_s": 41.0
+  },
+  "workers": [
+    {
+      "name": "scoring",
+      "status": "running",
+      "processed_per_s": 180.0,
+      "lag_s": 2.1,
+      "last_error": null
+    },
+    {
+      "name": "publisher",
+      "status": "idle",
+      "processed_per_s": 0,
+      "lag_s": 0,
+      "last_error": null
+    }
+  ],
+  "feed": {
+    "subscribers": 2,
+    "checkpoint_seq": 10,
+    "last_checkpoint_at": "2026-10-26T11:59:30Z",
+    "bundle_version": 42,
+    "withdrawal_seq": 3
+  }
+}

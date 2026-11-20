@@ -1,0 +1,13 @@
+{
+	admin off
+}
+
+http://Shop.Example.ORG {
+	redir https://{host}{uri} permanent
+}
+
+{$D36N_HOST:env.example.org} {
+	schild
+	reverse_proxy 127.0.0.1:19101
+}
+

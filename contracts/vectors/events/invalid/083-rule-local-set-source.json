@@ -1,0 +1,26 @@
+{
+  "contract": "events",
+  "description": "D73: set_source is a crowdsec field.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"data\":{\"outcome\":\"reloaded\",\"repository\":\"local\",\"rules_loaded\":1,\"set_source\":\"image\"},\"datacontenttype\":\"application/json\",\"id\":\"c27e9d6b-e7d1-4c5c-8fb0-d697108493bd\",\"source\":\"schild://web-1\",\"specversion\":\"1.0\",\"time\":\"2026-10-26T11:59:58.123Z\",\"type\":\"schild.rule.repository_updated.v1\"}",
+  "input_decoded": {
+    "data": {
+      "outcome": "reloaded",
+      "repository": "local",
+      "rules_loaded": 1,
+      "set_source": "image"
+    },
+    "datacontenttype": "application/json",
+    "id": "c27e9d6b-e7d1-4c5c-8fb0-d697108493bd",
+    "source": "schild://web-1",
+    "specversion": "1.0",
+    "time": "2026-10-26T11:59:58.123Z",
+    "type": "schild.rule.repository_updated.v1"
+  },
+  "expect": {
+    "valid": false,
+    "error": "schema"
+  }
+}

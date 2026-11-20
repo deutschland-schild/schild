@@ -1,0 +1,17 @@
+# unprotected: []
+# expect: pass
+# Common shape: static files under /assets via handle_path, missing ones go to the app through handle_errors with schild. Counts evaluations and monitoring per request.
+http://a.example.test:18080 {
+	import schild
+	handle_path /assets/* {
+		root * /tmp/abend/empty
+		file_server
+	}
+	handle {
+		reverse_proxy 127.0.0.1:18082
+	}
+	handle_errors {
+		import schild
+		reverse_proxy 127.0.0.1:18082
+	}
+}

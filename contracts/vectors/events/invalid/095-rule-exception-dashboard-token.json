@@ -1,0 +1,34 @@
+{
+  "contract": "events",
+  "description": "D84: the dashboard names no token.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"data\":{\"actor\":\"dashboard\",\"id\":1900000,\"path\":\"/livewire/update\",\"reason\":\"math text is blocked\",\"repository\":\"crs\",\"rules\":[\"933180\"],\"target\":\"ARGS:json.components.*.updates.body\",\"token_id\":\"tok_000000000001\",\"token_label\":\"Local agent\",\"website\":\"app.example.org\"},\"datacontenttype\":\"application/json\",\"id\":\"f89ec8eb-b813-42ba-8154-5ce78108efda\",\"source\":\"schild://web-1\",\"specversion\":\"1.0\",\"time\":\"2026-10-26T11:59:58.123Z\",\"type\":\"schild.rule.exception_set.v1\"}",
+  "input_decoded": {
+    "data": {
+      "actor": "dashboard",
+      "id": 1900000,
+      "path": "/livewire/update",
+      "reason": "math text is blocked",
+      "repository": "crs",
+      "rules": [
+        "933180"
+      ],
+      "target": "ARGS:json.components.*.updates.body",
+      "token_id": "tok_000000000001",
+      "token_label": "Local agent",
+      "website": "app.example.org"
+    },
+    "datacontenttype": "application/json",
+    "id": "f89ec8eb-b813-42ba-8154-5ce78108efda",
+    "source": "schild://web-1",
+    "specversion": "1.0",
+    "time": "2026-10-26T11:59:58.123Z",
+    "type": "schild.rule.exception_set.v1"
+  },
+  "expect": {
+    "valid": false,
+    "error": "schema"
+  }
+}

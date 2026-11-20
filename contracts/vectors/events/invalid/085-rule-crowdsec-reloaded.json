@@ -1,0 +1,26 @@
+{
+  "contract": "events",
+  "description": "D73: crowdsec updates, it does not reload.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"data\":{\"outcome\":\"reloaded\",\"repository\":\"crowdsec\",\"rules_loaded\":1,\"set_source\":\"stored\"},\"datacontenttype\":\"application/json\",\"id\":\"002dea15-0c43-4b7e-8700-59740eb68786\",\"source\":\"schild://web-1\",\"specversion\":\"1.0\",\"time\":\"2026-10-26T11:59:58.123Z\",\"type\":\"schild.rule.repository_updated.v1\"}",
+  "input_decoded": {
+    "data": {
+      "outcome": "reloaded",
+      "repository": "crowdsec",
+      "rules_loaded": 1,
+      "set_source": "stored"
+    },
+    "datacontenttype": "application/json",
+    "id": "002dea15-0c43-4b7e-8700-59740eb68786",
+    "source": "schild://web-1",
+    "specversion": "1.0",
+    "time": "2026-10-26T11:59:58.123Z",
+    "type": "schild.rule.repository_updated.v1"
+  },
+  "expect": {
+    "valid": false,
+    "error": "schema"
+  }
+}

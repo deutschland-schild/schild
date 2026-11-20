@@ -1,0 +1,37 @@
+{
+  "contract": "feedback",
+  "description": "Shadow locally; content_type is optional.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z",
+    "trust": [
+      "site-a",
+      "site-b",
+      "site-c",
+      "lab-a",
+      "lab-a2",
+      "lab-b",
+      "lab-c",
+      "lab-d"
+    ]
+  },
+  "input_raw": "{\"payloadType\":\"application/vnd.schild.feedback.v0+json\",\"payload\":\"eyJidW5kbGVfdmVyc2lvbiI6NDIsImRlY2lkZWRfYnkiOiJvcGVyYXRvciIsImlkIjoiODgzMDliZGMtNjhhZS00NGE1LTliZTMtMzcwOTM4MDQ4NTIxIiwibG9jYWxfYWN0aW9uIjoic2hhZG93IiwibWF0Y2hfc2hhcGUiOnsibGVuX2J1Y2tldCI6IjAtMTYiLCJsb2NhdGlvbiI6IlJFUVVFU1RfQ09PS0lFU19OQU1FUyJ9LCJydWxlX2lkIjoic2NoaWxkLTIwMjYtMDQxMiIsInNjaGVtYSI6InNjaGlsZC5mZWVkYmFjay8wLjIiLCJ0aW1lX2J1Y2tldCI6IjIwMjYtMTAtMjZUMTE6NTA6MDBaIiwidmVyZGljdCI6ImZhbHNlX3Bvc2l0aXZlIn0=\",\"signatures\":[{\"keyid\":\"test-site-b\",\"sig\":\"tTA9zLYXmXLPkbmmxzFtKu6F+l31NAd9si3cZQi5FtnbbPR90HGME8wtdMPxrQcvM6OtGWoONWGbHmmranTNDQ==\"}]}",
+  "input_decoded": {
+    "payload": {
+      "bundle_version": 42,
+      "decided_by": "operator",
+      "id": "88309bdc-68ae-44a5-9be3-370938048521",
+      "local_action": "shadow",
+      "match_shape": {
+        "len_bucket": "0-16",
+        "location": "REQUEST_COOKIES_NAMES"
+      },
+      "rule_id": "schild-2026-0412",
+      "schema": "schild.feedback/0.2",
+      "time_bucket": "2026-10-26T11:50:00Z",
+      "verdict": "false_positive"
+    }
+  },
+  "expect": {
+    "valid": true
+  }
+}

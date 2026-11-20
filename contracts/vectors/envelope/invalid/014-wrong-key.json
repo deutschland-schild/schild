@@ -1,0 +1,51 @@
+{
+  "contract": "envelope",
+  "description": "Signed only by an untrusted key.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z",
+    "kind": "signal",
+    "trust": [
+      "site-a",
+      "site-b",
+      "site-c",
+      "lab-a",
+      "lab-a2",
+      "lab-b",
+      "lab-c",
+      "lab-d"
+    ]
+  },
+  "input_raw": "{\"payloadType\":\"application/vnd.schild.signal.v0+json\",\"payload\":\"eyJzY2hlbWEiOiJzY2hpbGQuc2lnbmFsLzAuMyIsImlkIjoiZTVhOGI2MTQtOGE5YS00OWFlLWIyZDAtMTZkY2Y5OTFjZjNkIiwia2luZCI6InRpcCIsInRpbWVfYnVja2V0IjoiMjAyNi0xMC0yNlQxMTo1NTowMFoiLCJhY3Rpb25fc2lnIjoibG9naW4tYnVyc3Qvd3AtYWRtaW4iLCJyZXF1ZXN0X3NpZyI6InNoYTI1NjphMDcxODdmMWM3ZDFjNTY0M2IwMmNlNzMwYmVmM2Q3YmM1NzAwYTViZWUwYjM4MzNkMTNmMjgxOWYxZTJiZTgxIiwid2FmX3J1bGVzIjpbOTMwMTIwLDk0OTExMF0sInNjb3JlIjo3MiwiY2F0ZWdvcnkiOiJ3b3JkcHJlc3MtbG9naW4tYnJ1dGVmb3JjZSIsIm9yaWdpbiI6eyJjb3VudHJ5IjoiTkwiLCJhc24iOjE0MDYxLCJuZXRfY2xhc3MiOiJob3N0aW5nIiwiYXR0cmlidXRpb24iOiJ0Y3BfcGVlciIsInByb3RlY3RlZCI6ZmFsc2V9LCJhZ2VudCI6eyJmYW1pbHkiOiJweXRob24tcmVxdWVzdHMiLCJtYWpvciI6MiwiYm90IjpmYWxzZX19\",\"signatures\":[{\"keyid\":\"test-evil\",\"sig\":\"G8O6BSwiDLCiCX/okVXvuGPrYfnFL/1LrOXAQT4liHPKE5+Jt4fZjEtUW/JrtiKTyovc8cPOTa8U/Veu1novBA==\"}]}",
+  "input_decoded": {
+    "payload": {
+      "action_sig": "login-burst/wp-admin",
+      "agent": {
+        "bot": false,
+        "family": "python-requests",
+        "major": 2
+      },
+      "category": "wordpress-login-bruteforce",
+      "id": "e5a8b614-8a9a-49ae-b2d0-16dcf991cf3d",
+      "kind": "tip",
+      "origin": {
+        "asn": 14061,
+        "attribution": "tcp_peer",
+        "country": "NL",
+        "net_class": "hosting",
+        "protected": false
+      },
+      "request_sig": "sha256:a07187f1c7d1c5643b02ce730bef3d7bc5700a5bee0b3833d13f2819f1e2be81",
+      "schema": "schild.signal/0.3",
+      "score": 72,
+      "time_bucket": "2026-10-26T11:55:00Z",
+      "waf_rules": [
+        930120,
+        949110
+      ]
+    }
+  },
+  "expect": {
+    "valid": false,
+    "error": "signature"
+  }
+}

@@ -1,0 +1,25 @@
+{
+  "contract": "body-limits",
+  "description": "D44: Coraza has no multipart parser for this subtype: raw, with the raw limit.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"body_limit_bytes\":33554432,\"bytes\":1048576,\"content_type\":\"multipart/mixed; boundary=x\",\"op\":\"size\",\"raw_limit_bytes\":131072}",
+  "input_decoded": {
+    "body_limit_bytes": 33554432,
+    "bytes": 1048576,
+    "content_type": "multipart/mixed; boundary=x",
+    "op": "size",
+    "raw_limit_bytes": 131072
+  },
+  "expect": {
+    "valid": true,
+    "result": {
+      "class": "raw",
+      "code": "raw_body_too_large",
+      "held_bytes": 1048576,
+      "limit_bytes": 131072,
+      "status": 413
+    }
+  }
+}

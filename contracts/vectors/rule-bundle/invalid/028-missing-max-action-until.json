@@ -1,0 +1,55 @@
+{
+  "contract": "rule-bundle",
+  "description": "challenge without an end date.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z",
+    "trust": [
+      "site-a",
+      "site-b",
+      "site-c",
+      "lab-a",
+      "lab-a2",
+      "lab-b",
+      "lab-c",
+      "lab-d"
+    ],
+    "threshold": 2,
+    "channel": "schild-main"
+  },
+  "input_raw": "{\"payloadType\":\"application/vnd.schild.rule-bundle.v0+json\",\"payload\":\"eyJidW5kbGVfaWQiOiJzY2hpbGQtbWFpbiIsImV4cGlyZXMiOiIyMDI2LTExLTA5VDEyOjAwOjAwWiIsImlzc3VlZF9hdCI6IjIwMjYtMTAtMjZUMTE6MDA6MDBaIiwicnVsZXMiOlt7ImNsYXNzIjoiaGV1cmlzdGljIiwiZXZpZGVuY2UiOnsiaHVtYW5fYXBwcm92YWxfb3JncyI6MSwibWF4X2lzc3Vlcl9zaGFyZSI6MC4zNCwicmVwcm9kdWNlZF9vcGVyYXRvcnMiOjAsInNlbnNvcl9vcGVyYXRvcnMiOjIsInRpcF9pc3N1ZXJzIjozfSwiZmVlZGJhY2tfcG9saWN5IjoiYXV0b19kb3duZ3JhZGUiLCJtYXhfYWN0aW9uIjoiY2hhbGxlbmdlIiwibWF4X21hdGNoX3NoYXJlIjowLjAwNSwicnVsZV9pZCI6InNjaGlsZC0yMDI2LTA0MjkiLCJzZWNsYW5nIjoiU2VjUnVsZSBSRVFVRVNUX01FVEhPRCBcIkBzdHJlcSBQT1NUXCIgXCJpZDo3NzAwMDA0LHBoYXNlOjIsZGVueSxzdGF0dXM6NDI5LHNldmVyaXR5OldBUk5JTkcsbXNnOidsb2dpbiBidXJzdCcsY2hhaW5cIlxuU2VjUnVsZSBSRVFVRVNUX0ZJTEVOQU1FIFwiQGVuZHNXaXRoIC93cC1sb2dpbi5waHBcIiBcInQ6bm9uZSxjaGFpblwiXG5TZWNSdWxlICZBUkdTX1BPU1QgXCJAZ3QgMjBcIiBcInQ6bm9uZVwiIiwic3RhZ2UiOiJjYW5hcnkiLCJ0YXJnZXQiOnsic29mdHdhcmUiOiJ3b3JkcHJlc3MiLCJ2ZXJzaW9ucyI6Ij49Ni4wIn19XSwic2NoZW1hIjoic2NoaWxkLnJ1bGUtYnVuZGxlLzAuMSIsInZlcnNpb24iOjQyfQ==\",\"signatures\":[{\"keyid\":\"test-lab-a\",\"sig\":\"bySM7KOxOLaZYvGC9kEUV++/1HMOc/FzcPv8DtCFXJ9pJ0K29FAt1XtZCQg+j0ayWZVH6CZpDcOijwMzUY5SDQ==\"},{\"keyid\":\"test-lab-b\",\"sig\":\"O7y0x5tua2x0VoyW6SLqBZaQwpyZNVbLGA7P2NDZ+q6dGcHY7PJovjv2rUnRvVUKKpkjZQ+SB5TV3dp9adc+Cg==\"}]}",
+  "input_decoded": {
+    "payload": {
+      "bundle_id": "schild-main",
+      "expires": "2026-11-09T12:00:00Z",
+      "issued_at": "2026-10-26T11:00:00Z",
+      "rules": [
+        {
+          "class": "heuristic",
+          "evidence": {
+            "human_approval_orgs": 1,
+            "max_issuer_share": 0.34,
+            "reproduced_operators": 0,
+            "sensor_operators": 2,
+            "tip_issuers": 3
+          },
+          "feedback_policy": "auto_downgrade",
+          "max_action": "challenge",
+          "max_match_share": 0.005,
+          "rule_id": "schild-2026-0429",
+          "seclang": "SecRule REQUEST_METHOD \"@streq POST\" \"id:7700004,phase:2,deny,status:429,severity:WARNING,msg:'login burst',chain\"\nSecRule REQUEST_FILENAME \"@endsWith /wp-login.php\" \"t:none,chain\"\nSecRule &ARGS_POST \"@gt 20\" \"t:none\"",
+          "stage": "canary",
+          "target": {
+            "software": "wordpress",
+            "versions": ">=6.0"
+          }
+        }
+      ],
+      "schema": "schild.rule-bundle/0.1",
+      "version": 42
+    }
+  },
+  "expect": {
+    "valid": false,
+    "error": "schema"
+  }
+}

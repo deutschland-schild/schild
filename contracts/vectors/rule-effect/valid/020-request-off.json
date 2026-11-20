@@ -1,0 +1,23 @@
+{
+  "contract": "rule-effect",
+  "description": "Repository off: nothing.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"mode\":\"autoblock\",\"now\":1000000,\"op\":\"request\",\"origin\":\"release\",\"state\":\"off\"}",
+  "input_decoded": {
+    "mode": "autoblock",
+    "now": 1000000,
+    "op": "request",
+    "origin": "release",
+    "state": "off"
+  },
+  "expect": {
+    "valid": true,
+    "result": {
+      "action": "none",
+      "outcome": "passed",
+      "counts_as_hit": false
+    }
+  }
+}

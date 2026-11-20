@@ -1,0 +1,24 @@
+{
+  "contract": "checkpoint",
+  "description": "Untrusted signer.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z",
+    "trust": [
+      "site-a",
+      "site-b",
+      "site-c",
+      "lab-a",
+      "lab-a2",
+      "lab-b",
+      "lab-c",
+      "lab-d"
+    ],
+    "threshold": 2,
+    "channel": "schild-main"
+  },
+  "input_raw": "{\"payloadType\":\"application/vnd.schild.checkpoint.v0+json\",\"payload\":\"eyJidW5kbGUiOnsiYnVuZGxlX2lkIjoic2NoaWxkLW1haW4iLCJkaWdlc3QiOiJzaGEyNTY6ZjdjYjFlMjRjMjA0NjkyZDYzNzk5ZjM2NTViZmEyNmVlOTllODRiMTAyZDcxNWI2NzkzYzBhMjgxZjVkYjk3ZCIsInZlcnNpb24iOjQyfSwiZXhwaXJlcyI6IjIwMjYtMTAtMjZUMTI6MDI6MzBaIiwiaXNzdWVkX2F0IjoiMjAyNi0xMC0yNlQxMTo1OTozMFoiLCJsYWIiOiJldmlsIiwic2NoZW1hIjoic2NoaWxkLmNoZWNrcG9pbnQvMC4xIiwic2VxIjo1LCJ3aXRoZHJhd2FsX3NlcSI6M30=\",\"signatures\":[{\"keyid\":\"test-evil\",\"sig\":\"fI2qKa9cCmvPnTbsp0Py1VK2HcYbLxqXTJI4H3Nb5fYMS1GzvMSZiIaFLGgfPVj+b9Lab+a4G21GlJjvXrYhBw==\"}]}",
+  "expect": {
+    "valid": false,
+    "error": "signature"
+  }
+}

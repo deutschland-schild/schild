@@ -1,0 +1,26 @@
+{
+  "contract": "events",
+  "description": "D43: the operator went back to the image snapshot.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"data\":{\"outcome\":\"reset\",\"repository\":\"crowdsec\",\"rules_loaded\":201,\"rules_skipped\":5,\"set_source\":\"image\"},\"datacontenttype\":\"application/json\",\"id\":\"3ef92147-5c32-4995-b2c2-0c3c5dbff7ee\",\"source\":\"schild://web-1\",\"specversion\":\"1.0\",\"time\":\"2026-10-26T11:59:58.123Z\",\"type\":\"schild.rule.repository_updated.v1\"}",
+  "input_decoded": {
+    "data": {
+      "outcome": "reset",
+      "repository": "crowdsec",
+      "rules_loaded": 201,
+      "rules_skipped": 5,
+      "set_source": "image"
+    },
+    "datacontenttype": "application/json",
+    "id": "3ef92147-5c32-4995-b2c2-0c3c5dbff7ee",
+    "source": "schild://web-1",
+    "specversion": "1.0",
+    "time": "2026-10-26T11:59:58.123Z",
+    "type": "schild.rule.repository_updated.v1"
+  },
+  "expect": {
+    "valid": true
+  }
+}

@@ -1,0 +1,93 @@
+#!/bin/sh
+# TEST ONLY: the one place where the test lab calls the `schild-agent` and
+# `schild check` command lines (MVP-11). Everything else (compose, smoke
+# scripts) goes through this wrapper, so a CLI change is one edit here.
+#
+# CLI (client/cmd/schild-agent, `schild-agent help`; client/cmd/schild, `schild check -h`):
+#   schild-agent enrol --dir D --gateway URL --gateway-name NAME --pin sha256:HEX --code CODE [--keyid ID]
+#   schild-agent init  --dir D --gateway URL --gateway-name NAME --pin sha256:HEX --key FILE --keyid ID
+#                                       agent enrolled by public key in schild.yaml (no code)
+#   schild-agent once|run --dir D [--app PATH] [--interval 5m]
+#   schild-agent check -dir DIR [-app PATH]   (app VM: the same local check as schild check)
+#   schild check -dir DIR [-app PATH]         (gateway host: gw-host-check, read-only proof)
+#
+#   schild-testlab-agent supported [agent|check]
+#                                         exit 0 when the binaries have the commands
+#                                         (default both: schild-agent and schild check)
+#   schild-testlab-agent enrol CODE [KEYID]
+#                                         enrol; prints the agent's output (fingerprint);
+#                                         KEYID: explicit key id (re-enrolment of the same host)
+#   schild-testlab-agent enrolled         exit 0 when this VM holds an enrolment
+#   schild-testlab-agent reset            forget the enrolment on this VM (key, agent.json,
+#                                         marker): a re-run of the smoke enrols anew
+#   schild-testlab-agent once             one check + delivery, exit status of the agent
+#   schild-testlab-agent daemon           the long-running agent
+#   schild-testlab-agent check DIR        one `schild check` into DIR (gateway host)
+#   schild-testlab-agent agent-check DIR  one `schild-agent check` into DIR (app VM)
+#
+# Env: SCHILD_AGENT_GATEWAY (https://schild-api:8790), SCHILD_AGENT_GATEWAY_NAME
+# (node_name of the gateway, site-api), SCHILD_AGENT_PIN_FILE,
+# SCHILD_AGENT_KEY + SCHILD_AGENT_KEYID (explicit key, optional),
+# SCHILD_AGENT_DIR (key and agent.json, default /var/lib/schild-agent),
+# SCHILD_AGENT_INTERVAL (default 5m, = host_check.agents.interval_minutes),
+# SCHILD_AGENT_APP (application path to inventory, default /var/www/html).
+set -eu
+export SCHILD_AGENT_DIR=${SCHILD_AGENT_DIR:-/var/lib/schild-agent}
+dir=$SCHILD_AGENT_DIR
+gateway=${SCHILD_AGENT_GATEWAY:-https://schild-api:8790}
+name=${SCHILD_AGENT_GATEWAY_NAME:-site-api}
+app=${SCHILD_AGENT_APP:-/var/www/html}
+pin() { tr -d ' \n' < "${SCHILD_AGENT_PIN_FILE:-/etc/schild-testlab/gateway.pin}"; }
+# Agent with an explicit key: write agent.json once (no network, no code).
+explicit_init() {
+  if [ -n "${SCHILD_AGENT_KEY:-}" ] && [ ! -f "$dir/agent.json" ]; then
+    schild-agent init --dir "$dir" --gateway "$gateway" --gateway-name "$name" --pin "$(pin)" \
+      --key "$SCHILD_AGENT_KEY" --keyid "${SCHILD_AGENT_KEYID:?SCHILD_AGENT_KEYID}" >/dev/null
+  fi
+}
+cmd=${1:-}
+[ $# -gt 0 ] && shift
+case $cmd in
+  supported)
+    what=${1:-both}
+    if [ "$what" != check ]; then
+      out=$(schild-agent help 2>&1 || true)
+      echo "$out" | grep -q 'schild-agent enrol' && echo "$out" | grep -q 'schild-agent check' || exit 1
+    fi
+    if [ "$what" != agent ]; then
+      out=$(schild help 2>&1 || true)
+      echo "$out" | grep -q 'schild check' || exit 1
+    fi
+    ;;
+  enrol)
+    code=${1:?enrol CODE [KEYID]}
+    if [ -n "${2:-}" ]; then
+      schild-agent enrol --dir "$dir" --gateway "$gateway" --gateway-name "$name" --pin "$(pin)" --code "$code" --keyid "$2"
+    else
+      schild-agent enrol --dir "$dir" --gateway "$gateway" --gateway-name "$name" --pin "$(pin)" --code "$code"
+    fi
+    touch "$dir/.testlab-enrolled"
+    ;;
+  enrolled)
+    test -f "$dir/agent.json" || test -f "$dir/.testlab-enrolled"
+    ;;
+  reset)
+    find "$dir" -mindepth 1 -maxdepth 1 -exec rm -rf {} +
+    ;;
+  once)
+    explicit_init
+    exec schild-agent once --dir "$dir" --app "$app"
+    ;;
+  daemon)
+    explicit_init
+    exec schild-agent run --dir "$dir" --app "$app" --interval "${SCHILD_AGENT_INTERVAL:-5m}"
+    ;;
+  check)
+    exec schild check -dir "${1:?check DIR}"
+    ;;
+  agent-check)
+    exec schild-agent check -dir "${1:?agent-check DIR}"
+    ;;
+  *)
+    echo "usage: schild-testlab-agent supported [agent|check]|enrol CODE [KEYID]|enrolled|reset|once|daemon|check DIR|agent-check DIR" >&2; exit 2 ;;
+esac

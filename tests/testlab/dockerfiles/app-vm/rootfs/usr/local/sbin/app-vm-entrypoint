@@ -1,0 +1,71 @@
+#!/bin/sh
+# TEST ONLY entrypoint of the app VM container (MVP-11 agent lab).
+#
+#   APP_VM_MODE=agent       start the services, wait until `schild-agent enrol`
+#                           succeeded (marker written by schild-testlab-agent),
+#                           then keep `schild-agent run` going (default)
+#   APP_VM_MODE=idle        start the services only; agent runs are driven by
+#                           `docker compose exec ... schild-testlab-agent once`
+#   APP_VM_MODE=check-loop  no services: run `schild check` every
+#                           CHECK_INTERVAL_S seconds into SCHILD_REPORT_DIR, like
+#                           the systemd timer on a gateway host (gw-host-check),
+#                           and at once when SCHILD_HOST_CHECK_TRIGGER appears
+#                           (the path unit; the check removes the file)
+#   APP_VM_SERVICES         services to start (default: sshd mariadb php-fpm nginx)
+set -eu
+mode=${APP_VM_MODE:-agent}
+log() { printf '{"time":"%s","level":"INFO","component":"app-vm","msg":"%s"}\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$*"; }
+
+start_services() {
+  for svc in ${APP_VM_SERVICES:-sshd mariadb php-fpm nginx}; do
+    case $svc in
+      sshd)    /usr/sbin/sshd ;;
+      mariadb) (mariadbd --user=mysql >/var/log/mysql-testlab.log 2>&1 &) ;;
+      php-fpm) php-fpm --daemonize ;;
+      nginx)   nginx ;;
+      *)       log "unknown service $svc" ;;
+    esac
+    log "started $svc"
+  done
+}
+
+case $mode in
+  check-loop)
+    dir=${SCHILD_REPORT_DIR:-/var/lib/schild/host-check}
+    # Same layout as on a gateway host (docs/systemd): root:65532, setgid, so
+    # reports (0640) are readable by the schild container (uid/gid 65532).
+    mkdir -p "$dir"; chown root:65532 "$dir"; chmod 2750 "$dir"
+    trig=${SCHILD_HOST_CHECK_TRIGGER:-}
+    if [ -n "$trig" ]; then d=$(dirname "$trig"); mkdir -p "$d"; chown root:65532 "$d"; chmod 0770 "$d"; fi
+    interval=${CHECK_INTERVAL_S:-300}
+    last=0
+    while :; do
+      now=$(date +%s)
+      if [ $((now - last)) -ge "$interval" ] || { [ -n "$trig" ] && [ -f "$trig" ]; }; then
+        if schild-testlab-agent check "$dir"; then log "check written to $dir"; else log "schild check failed with $?"; fi
+        last=$now
+      fi
+      sleep 2
+    done
+    ;;
+  idle)
+    start_services
+    log "idle: agent runs are driven from outside"
+    exec sleep infinity
+    ;;
+  agent)
+    start_services
+    marker=${SCHILD_AGENT_DIR:-/var/lib/schild-agent}/.testlab-enrolled
+    while [ ! -f "$marker" ]; do sleep 2; done
+    log "enrolled: starting schild-agent"
+    # The agent schedules itself and retries with backoff; it should never
+    # exit. If it does, this line shows up in the log (the smoke checks it).
+    while :; do
+      rc=0; schild-testlab-agent daemon || rc=$?
+      log "schild-agent exited with $rc"
+      sleep 10
+    done
+    ;;
+  *)
+    log "unknown APP_VM_MODE $mode"; exit 2 ;;
+esac

@@ -1,0 +1,3 @@
+# TEST ONLY canaries of the test lab (testlab/internal/hostcanary): fake secrets the server check must find and never report.
+tests/testlab/dockerfiles/app-vm/dotenv.canary:generic-api-key:3
+tests/testlab/dockerfiles/app-vm/dotenv.canary:generic-api-key:4

@@ -1,0 +1,62 @@
+id: MVP-24
+# Initiator idea (2026-10-29), first recorded as a draft only: evaluate the logs of the app containers on the server
+# (e.g. Kamal deployments) in the dashboard, essentially exception tracking: "Oft sieht man ja erst die Exception, dann
+# schaut man sich an, was das war." Exceptions belong next to alerts and requests: from an exception to the requests and
+# WAF detections around it, and from an alert ("Erkannt", passed) to the app error it caused.
+# Not on the critical path for level 1 live; builds on MVP-21 (websites, series), MVP-22 (request ring, Kontext) and the
+# log hygiene check (MVP-11 addendum, storage audit 2026-10-29).
+title: "App logs and exception tracking: signals from the app containers' logs (errors, exceptions, container restarts and OOM kills) per website, grouped exceptions linked to the requests and WAF alerts around them, without the Docker socket and without storing raw logs long term"
+ships: false                        # draft, recorded only
+status: ENTWURF
+image: schild                       # same binary; optional local ingest endpoints
+hypotheses: [M2, D1]
+refs: [MVP-11, MVP-19, MVP-20, MVP-21, MVP-22, DECISIONS-D36, concept-24]
+depends_on: [MVP-21, MVP-22]
+why: >-
+  The strongest warning sign is a detected attack that passed (observe, learning, own rule in Probelauf) followed by an
+  app error on the same website, e.g. a SQL error after an SQL injection attempt. Neither the WAF nor the access log sees
+  that alone. Operators usually notice the exception first and then look for the request behind it; today that means
+  grepping container logs by time.
+
+sources:                            # no Docker socket (root-equivalent), read only
+  - 'preferred: Docker log driver journald (one line in Kamal deploy.yml); schild reads the journal read-only (group systemd-journal or a read-only mount when schild runs as a container), lines carry CONTAINER_NAME; also bounds container logs through journald limits'
+  - 'alternative: Docker log driver syslog or gelf to a local receiver in schild on 127.0.0.1 (push, no host rights)'
+  - 'optional: a local exception ingest compatible with an existing open error-reporting SDK protocol (apps point their DSN to schild on localhost instead of a cloud service); licence and protocol scope to be checked'
+  - 'container to website mapping: by container name pattern or explicit mapping in schild.yaml (configuration as code); kamal-proxy host routing as a hint'
+
+signals:
+  - 'per website and minute: log lines by level, error rate, new exception groups, container restarts, OOM kills, exit codes'
+  - 'exception groups: fingerprint from exception class plus normalised message template and top in-app frames; first seen, last seen, count, affected routes, release if logged; status open / known / resolved (local only)'
+  - 'presets per stack like the login presets: Laravel (local.ERROR, SQLSTATE, exception JSON), PHP-FPM, nginx, Node, kamal-proxy; own patterns as code in schild.yaml'
+
+linking:
+  - 'exact join: schild adds a request id header to every proxied request (e.g. X-Request-Id if absent, never overwriting one the client or a proxy in front set without the operator trusting it); apps that log it (Laravel log context middleware, documented) link an exception to the exact request in the MVP-22 ring and its WAF events'
+  - 'fallback join: same website, time window of a few seconds, route and status 5xx; marked as "wahrscheinlich" in the UI'
+  - 'hint "möglicherweise erfolgreicher Angriff": a detected-but-passed request (Erkannt) followed by an app error or a new exception group on the same route within seconds'
+  - 'dashboard: exceptions panel on the website overview and a band or annotation in the main chart; exception detail with the requests and alerts around it (Kontext); from an alert to the app errors after it'
+
+privacy_and_bounds:
+  - 'no raw log lines stored long term; counts and exception fingerprints only; short-lived raw context around an incident or exception (truncated, escaped, marked untrusted) with the same retention as events'
+  - 'redaction before anything is stored: IPs pseudonymised like events, e-mail addresses, tokens, passwords and query strings removed by pattern; stack traces cut to in-app frames and file:line'
+  - 'bounded reading: lines per second, line length, memory; on a log flood count and drop; never slows request handling'
+  - 'storage under the schild.db size cap (storage audit 2026-10-29), deleted first before incidents and events'
+
+contracts:
+  new: 'later (contracts first): schild.yaml app_logs {source, containers, presets, patterns}, request id header rules, exception group and signal schemas, dashboard and agent API read operations, redaction vectors'
+must:
+  - 'no Docker socket access; read only'
+  - 'nothing personal stored beyond the event rules; redaction tested with hostile log lines'
+  - 'request handling unaffected by log volume'
+measure:
+  - 'Laravel and Node test apps: exceptions grouped correctly, linked to the right request with the request id, fallback join precision'
+  - 'seeded SQL injection in observe mode followed by an app SQL error produces the hint'
+  - 'log flood: bounded memory and CPU, p99 unchanged'
+  - 'redaction: no e-mail, token, password or full IP from seeded log lines in storage or responses'
+kill_if: "schild needs the Docker socket OR personal data from logs is stored beyond the event rules OR log volume measurably slows request handling OR the hint fires on unrelated errors more often than the measured threshold"
+out_of_scope:
+  - 'full log search and long-term log storage (use a log stack)'
+  - 'alerting to external services (MVP-20 alerts)'
+  - 'deployment or restarting containers (other modules)'
+open_questions:
+  - 'local ingest for an existing error-reporting SDK protocol: worth it, and which licence constraints apply?'
+  - 'request id header name and trust rules behind other proxies'

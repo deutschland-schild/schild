@@ -1,0 +1,31 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://contracts.schild.invalid/v0/website-visitor.schema.json",
+  "title": "Visitor counting input (v0.5, D36 amendment 2026-10-29)",
+  "description": "Input of the per-request visitor rule, used by the website-visitor vectors: the classification of one request as the gateway records it (ua_class, bot_category from the User-Agent, outcome). The result is {visitor, bot_client} (contract/monitoring.Visitor and BotClient): visitor true when the request adds its client key to the \"Besucher\" estimates (MetricBucket clients unique, new and unique_day, per website and gateway-wide; getWebsiteKpis visitors; getWebsiteRealtime visitors_5m and points[].visitors; TrafficNow.clients_unique): a browser user agent (ua_class browser, bot_category likely_browser) whose request schild forwarded (outcome passed or would_block). bot_client true when the request adds its client key to the \"Bot-Clients\" estimate (clients.bots): every request that is not a browser request, whatever schild did with it. ua_class browser and bot_category likely_browser come together (both say: no bot, no tool, a browser user agent); none (no User-Agent) is always likely_automated. Never sent anywhere.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["ua_class", "bot_category", "outcome"],
+  "properties": {
+    "ua_class": { "type": "string", "enum": ["browser", "bot_verified", "bot_unverified", "tool", "none", "other"] },
+    "bot_category": {
+      "type": "string",
+      "enum": ["search_engine", "ai_training", "ai_search", "ai_assistant", "preview_social", "feed_reader", "monitoring", "seo_tool", "archive_research", "security_scanner", "tool_library", "likely_automated", "likely_browser"]
+    },
+    "outcome": { "type": "string", "enum": ["passed", "would_block", "blocked_waf", "blocked_behaviour", "rate_limited", "rejected_limit", "fail_closed", "blocked_crawler"] }
+  },
+  "allOf": [
+    {
+      "if": { "properties": { "ua_class": { "const": "browser" } } },
+      "then": { "properties": { "bot_category": { "const": "likely_browser" } } }
+    },
+    {
+      "if": { "properties": { "bot_category": { "const": "likely_browser" } } },
+      "then": { "properties": { "ua_class": { "const": "browser" } } }
+    },
+    {
+      "if": { "properties": { "ua_class": { "const": "none" } } },
+      "then": { "properties": { "bot_category": { "const": "likely_automated" } } }
+    }
+  ]
+}

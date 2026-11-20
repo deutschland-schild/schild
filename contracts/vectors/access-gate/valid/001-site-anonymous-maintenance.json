@@ -1,0 +1,29 @@
+{
+  "contract": "access-gate",
+  "description": "D56: a whole website locked with a password: an anonymous request gets the maintenance page (503) with the login form.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"allowlisted\":false,\"path\":\"/\",\"protection\":{\"own_networks\":false,\"password\":true,\"scope\":\"site\",\"website\":\"musterverein.example\"},\"session\":\"none\"}",
+  "input_decoded": {
+    "allowlisted": false,
+    "path": "/",
+    "protection": {
+      "own_networks": false,
+      "password": true,
+      "scope": "site",
+      "website": "musterverein.example"
+    },
+    "session": "none"
+  },
+  "expect": {
+    "valid": true,
+    "result": {
+      "answer": "maintenance",
+      "canonical_path": "/",
+      "login_form": true,
+      "reason": "locked",
+      "status": 503
+    }
+  }
+}

@@ -1,0 +1,55 @@
+# MVP-07 adversaries, attached to the running t1 test lab networks.
+#
+# Bring up the honest stack first (make testlab-up PROFILE=t1), then:
+#   docker compose -p schild-adversaries -f adversaries/compose/docker-compose.adversary.yaml --profile redteam up
+# The networks are the ones the t1 project created (external); every one is
+# internal: true, so these containers have no route out. Attack tools only
+# ever target our own containers here (conventions.md §6/§7).
+name: schild-adversaries
+
+x-ca: &ca "../../testlab/compose/secrets/ca.pem:/etc/schild-ca/ca.pem:ro"
+
+networks:
+  federation:
+    external: true
+    name: schild-testlab-t1_federation
+  inet:
+    external: true
+    name: schild-testlab-t1_inet
+
+services:
+  # A misbehaving lab: signs with its own operator key (evil), so honest
+  # clients can never reach k independent operators with it (T07, M3). A relay
+  # may follow it (SCHILD_RELAY_UPSTREAMS) to carry its output to clients,
+  # which must refuse it.
+  misbehaving-lab:
+    image: schild-adversary:dev
+    command: ["/usr/local/bin/misbehaving-lab"]
+    environment:
+      SCHILD_ADVERSARY_MODE: ${ADVERSARY_MODE:-poison} # poison|silent|equivocate|replay
+      SCHILD_ADVERSARY_KEY: evil
+      SCHILD_ADVERSARY_LAB: lab-mal
+      SCHILD_ADVERSARY_LISTEN: ":7444"
+    networks: [federation]
+    profiles: ["redteam"]
+    restart: unless-stopped
+
+  # Sybil clients and feedback flood against a lab's ingest (T08, K6).
+  sybil:
+    image: schild-adversary:dev
+    command: ["/usr/local/bin/sybil", "-n", "500", "-submit", "https://lab-a:7443"]
+    environment:
+      SCHILD_TEST_CA: /etc/schild-ca/ca.pem
+    volumes: [*ca]
+    networks: [federation]
+    profiles: ["redteam-jobs"]
+
+  # The scenario runner. It exercises the real acceptance code in-process and
+  # writes results/MVP-07.json. It needs no network but joins federation so it
+  # can be extended to probe live endpoints.
+  adversary:
+    image: schild-adversary:dev
+    command: ["-scenario", "all", "-profile", "t1", "-out", "/results"]
+    volumes: ["../../results:/results"]
+    networks: [federation]
+    profiles: ["redteam-jobs"]

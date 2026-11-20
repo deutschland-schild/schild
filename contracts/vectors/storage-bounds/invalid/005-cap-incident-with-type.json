@@ -1,0 +1,28 @@
+{
+  "contract": "storage-bounds",
+  "description": "D38: only event rows carry type, outcome, action and sampled.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"base_bytes\":0,\"floor_rows\":0,\"max_size_mb\":10,\"op\":\"cap_pass\",\"rows\":[{\"bytes\":1,\"id\":\"i-1\",\"kind\":\"incident\",\"t\":1793016000000,\"type\":\"schild.request.blocked.v1\"}],\"wal_bytes\":0}",
+  "input_decoded": {
+    "base_bytes": 0,
+    "floor_rows": 0,
+    "max_size_mb": 10,
+    "op": "cap_pass",
+    "rows": [
+      {
+        "bytes": 1,
+        "id": "i-1",
+        "kind": "incident",
+        "t": 1793016000000,
+        "type": "schild.request.blocked.v1"
+      }
+    ],
+    "wal_bytes": 0
+  },
+  "expect": {
+    "valid": false,
+    "error": "schema"
+  }
+}

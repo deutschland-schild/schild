@@ -1,0 +1,22 @@
+{
+  "repository": "local",
+  "id": "10001",
+  "msg": "block the old admin path",
+  "version": "3f2a9c01be44",
+  "origin": "operator",
+  "status": "disabled",
+  "effect": "off",
+  "disabled_by": "dashboard",
+  "hits_24h": 2,
+  "match_share_24h": 4e-05,
+  "seclang": "SecRule REQUEST_FILENAME \"@beginsWith /old-admin\" \"id:10001,phase:1,deny,status:403,msg:'block the old admin path'\"",
+  "file": "10-admin.conf",
+  "decisions": [
+    {
+      "kind": "disabled",
+      "by": "dashboard",
+      "note": "admin moved back for a day",
+      "at": "2026-11-06T11:00:00Z"
+    }
+  ]
+}

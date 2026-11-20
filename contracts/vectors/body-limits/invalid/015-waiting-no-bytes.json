@@ -1,0 +1,15 @@
+{
+  "contract": "body-limits",
+  "description": "D44: bytes is required.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"op\":\"waiting\"}",
+  "input_decoded": {
+    "op": "waiting"
+  },
+  "expect": {
+    "valid": false,
+    "error": "schema"
+  }
+}

@@ -1,0 +1,72 @@
+{
+  "items": [
+    {
+      "id": "f2064730-835b-4d96-b173-d92534ccd620",
+      "time": "2026-10-26T11:59:58Z",
+      "type": "schild.request.blocked.v1",
+      "outcome": "blocked",
+      "ip": "2001:db8::17",
+      "geo": {
+        "country": "NL",
+        "city": "Amsterdam",
+        "asn": 64500,
+        "as_org": "Example Hosting B.V.",
+        "net_class": "hosting"
+      },
+      "method": "POST",
+      "host": "shop.example",
+      "path": "/wp-login.php",
+      "status": 403,
+      "score": 72,
+      "rules": [
+        "930120"
+      ],
+      "incident": "K7QM-4XWD"
+    },
+    {
+      "id": "03ea1960-912c-4aaa-9eb6-5624a1af7bc4",
+      "time": "2026-10-26T11:59:51Z",
+      "type": "schild.request.evaluated.v1",
+      "outcome": "would_block",
+      "ip": "203.0.113.42",
+      "geo": {
+        "country": "NL",
+        "city": "Amsterdam",
+        "asn": 64500,
+        "as_org": "Example Hosting B.V.",
+        "net_class": "hosting"
+      },
+      "method": "POST",
+      "host": "shop.example",
+      "path": "/wp-login.php",
+      "status": 200,
+      "score": 72,
+      "rules": [
+        "930120"
+      ],
+      "session_id": "s_k3j9x2m1p0"
+    },
+    {
+      "id": "3f1c2b7e-1d4a-4c8e-9b2f-6a5d4e3c2b1a",
+      "time": "2026-10-26T11:58:10Z",
+      "type": "schild.request.evaluated.v1",
+      "outcome": "passed",
+      "ip": "198.51.100.23",
+      "geo": {
+        "country": "DE",
+        "city": "Berlin",
+        "asn": 64496,
+        "as_org": "Example Telekom",
+        "net_class": "residential"
+      },
+      "method": "GET",
+      "host": "shop.example",
+      "path": "/produkte/",
+      "status": 200,
+      "score": 0,
+      "rules": []
+    }
+  ],
+  "next_cursor": "eyJ0IjoiMjAyNi0xMC0yNlQxMTo0MDowMFoifQ",
+  "total_estimate": 48213
+}

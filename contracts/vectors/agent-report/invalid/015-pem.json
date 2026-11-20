@@ -1,0 +1,222 @@
+{
+  "contract": "agent-report",
+  "description": "A private key in the report.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z",
+    "trust": [
+      "agent-a",
+      "agent-b",
+      "agent-c",
+      "site-a",
+      "lab-a"
+    ],
+    "seen_ids": [
+      "6c10930e06dcc77eec868b5acd286173"
+    ],
+    "revoked": [
+      "agent-c"
+    ],
+    "gateway": "gw-1"
+  },
+  "input_raw": "{\"payloadType\":\"application/vnd.schild.agent-report.v0+json\",\"payload\":\"eyJnYXRld2F5IjoiZ3ctMSIsImlzc3VlZF9hdCI6IjIwMjYtMTAtMjZUMTI6MDA6MDBaIiwibm9uY2UiOiI3NGIxNTgyZmM5YjQyM2MzYTNhNzE4MzViNTAwZmI0OSIsInJlcG9ydCI6eyJmaW5kaW5ncyI6W3siYXJlYSI6ImRpc3RyaWJ1dGlvbiIsImV2aWRlbmNlIjp7ImRhdGUiOiIyMDI5LTA1LTMxIiwic291cmNlIjoiZW9sX3RhYmxlIn0sImV4cGxhbmF0aW9uIjoiLS0tLS1CRUdJTiBPUEVOU1NIIFBSSVZBVEUgS0VZLS0tLS1iM0JsYm5OemFDMXJaWGt0ZGpFQUFBQUFCRzV2Ym1VQUFBQUVibTl1WlEtLS0tLUVORCBPUEVOU1NIIFBSSVZBVEUgS0VZLS0tLS0iLCJmaXhfY29tbWFuZCI6bnVsbCwiaWQiOiJkaXN0cmlidXRpb24uZW9sIiwic2V2ZXJpdHkiOiJpbmZvIiwic3RhdHVzIjoib2siLCJ0aXRsZSI6IlVidW50dSAyNC4wNCB3aXJkIHVudGVyc3TDvHR6dCJ9LHsiYXJlYSI6InVwZGF0ZXMiLCJldmlkZW5jZSI6eyJjb3VudCI6MSwicGFja2FnZXMiOlsicGhwOC4zLWZwbSJdLCJzb3VyY2UiOiJhcHQifSwiZXhwbGFuYXRpb24iOiJGw7xyIFBIUCBnaWJ0IGVzIGVpbiBTaWNoZXJoZWl0c3VwZGF0ZS4iLCJmaXhfY29tbWFuZCI6InN1ZG8gYXB0LWdldCB1cGRhdGUgJiYgc3VkbyBhcHQtZ2V0IHVwZ3JhZGUiLCJpZCI6InVwZGF0ZXMuc2VjdXJpdHlfcGVuZGluZyIsInNldmVyaXR5IjoibWVkaXVtIiwic3RhdHVzIjoiZmluZGluZyIsInRpdGxlIjoiMSBTaWNoZXJoZWl0c3VwZGF0ZSB3YXJ0ZXQifSx7ImFyZWEiOiJ1cGRhdGVzIiwiZXZpZGVuY2UiOnsiZW5hYmxlZCI6ZmFsc2UsInNvdXJjZSI6InVuYXR0ZW5kZWRfdXBncmFkZXMifSwiZXhwbGFuYXRpb24iOiJPaG5lIHNpZSBow6RuZ3QgamVkZXMgVXBkYXRlIGRhdm9uIGFiLCBkYXNzIGplbWFuZCBkYXJhbiBkZW5rdC4iLCJmaXhfY29tbWFuZCI6InN1ZG8gZHBrZy1yZWNvbmZpZ3VyZSAtcGxvdyB1bmF0dGVuZGVkLXVwZ3JhZGVzIiwiaWQiOiJ1cGRhdGVzLmF1dG9tYXRpYyIsInNldmVyaXR5IjoibG93Iiwic3RhdHVzIjoiZmluZGluZyIsInRpdGxlIjoiQXV0b21hdGlzY2hlIFNpY2hlcmhlaXRzdXBkYXRlcyBzaW5kIGF1cyJ9LHsiYXJlYSI6InBvcnRzIiwiZXZpZGVuY2UiOnsiYWRkcmVzcyI6IjAuMC4wLjAiLCJwb3J0IjozMzA2LCJwcm9jZXNzIjoibXlzcWxkIiwicHJvdG9jb2wiOiJ0Y3AiLCJzb3VyY2UiOiJzcyJ9LCJleHBsYW5hdGlvbiI6IkRpZSBEYXRlbmJhbmsgbGF1c2NodCBhdWYgYWxsZW4gQWRyZXNzZW4uIFNpZSBnZWjDtnJ0IG51ciBhbiBsb2NhbGhvc3Qgb2RlciBpbnMgaW50ZXJuZSBOZXR6LiIsImZpeF9jb21tYW5kIjoic3VkbyBzZWQgLWkgJ3MvXmJpbmQtYWRkcmVzcy4qL2JpbmQtYWRkcmVzcyA9IDEyNy4wLjAuMS8nIC9ldGMvbXlzcWwvbXlzcWwuY29uZi5kL215c3FsZC5jbmYgJiYgc3VkbyBzeXN0ZW1jdGwgcmVzdGFydCBteXNxbCIsImlkIjoicG9ydHMucHVibGljX3NlcnZpY2UiLCJzZXZlcml0eSI6ImhpZ2giLCJzdGF0dXMiOiJmaW5kaW5nIiwic3ViamVjdCI6InRjcC8zMzA2IiwidGl0bGUiOiJNeVNRTCBpc3QgYXVzIGRlbSBOZXR6IGVycmVpY2hiYXIifSx7ImFyZWEiOiJmaXJld2FsbCIsImV2aWRlbmNlIjp7InNvdXJjZSI6Im5mdCJ9LCJleHBsYW5hdGlvbiI6IkRlciBBZ2VudCBsw6R1ZnQgb2huZSBSb290IHVuZCBkYXJmIGRpZSBuZnRhYmxlcy1SZWdlbG4gbmljaHQgbGVzZW4uIiwiZml4X2NvbW1hbmQiOm51bGwsImlkIjoiZmlyZXdhbGwuYWN0aXZlIiwic2V2ZXJpdHkiOiJpbmZvIiwic3RhdHVzIjoidW5yZWFkYWJsZSIsInRpdGxlIjoiRmlyZXdhbGwgbmljaHQgbGVzYmFyIiwidW5yZWFkYWJsZSI6eyJuZWVkcyI6IkNBUF9ORVRfQURNSU4iLCJyZWFzb24iOiJwZXJtaXNzaW9uX2RlbmllZCJ9fSx7ImFyZWEiOiJzc2giLCJldmlkZW5jZSI6eyJwYXRoIjoiL2V0Yy9zc2gvc3NoZF9jb25maWciLCJzZXR0aW5nIjoiUGFzc3dvcmRBdXRoZW50aWNhdGlvbiIsInNvdXJjZSI6InNzaGRfY29uZmlnIiwidmFsdWUiOiJubyJ9LCJleHBsYW5hdGlvbiI6IlBhc3N3b3J0LUFubWVsZHVuZyBpc3QgYXVzLiIsImZpeF9jb21tYW5kIjpudWxsLCJpZCI6InNzaC5wYXNzd29yZF9hdXRoZW50aWNhdGlvbiIsInNldmVyaXR5IjoiaW5mbyIsInN0YXR1cyI6Im9rIiwidGl0bGUiOiJTU0ggbnVyIG1pdCBTY2hsw7xzc2VsIn0seyJhcmVhIjoic3NoIiwiZXZpZGVuY2UiOnsic291cmNlIjoiam91cm5hbCJ9LCJleHBsYW5hdGlvbiI6IkbDvHIgZGFzIEpvdXJuYWwgYnJhdWNodCBkZXIgQWdlbnQgZGllIEdydXBwZSBzeXN0ZW1kLWpvdXJuYWwuIiwiZml4X2NvbW1hbmQiOm51bGwsImlkIjoic3NoLmZhaWxlZF9sb2dpbnMiLCJzZXZlcml0eSI6ImluZm8iLCJzdGF0dXMiOiJ1bnJlYWRhYmxlIiwidGl0bGUiOiJBbm1lbGRldmVyc3VjaGUgbmljaHQgbGVzYmFyIiwidW5yZWFkYWJsZSI6eyJuZWVkcyI6Imdyb3VwOnN5c3RlbWQtam91cm5hbCIsInJlYXNvbiI6InBlcm1pc3Npb25fZGVuaWVkIn19LHsiYXJlYSI6InNvZnR3YXJlIiwiZXZpZGVuY2UiOnsiaW5zdGFsbGVkX3ZlcnNpb24iOiI2LjQuMyIsInBhdGgiOiIvdmFyL3d3dy9zaG9wIiwic291cmNlIjoiYXBwX3BhdGgifSwiZXhwbGFuYXRpb24iOiJGw7xyIGRpZXNlIFZlcnNpb24gZ2lidCBlcyBrZWluZSBTaWNoZXJoZWl0c3VwZGF0ZXMgbWVoci4gQWt0dWFsaXNpZXJlIGltIFdvcmRQcmVzcy1CYWNrZW5kIG9kZXIgbWl0IFdQLUNMSS4iLCJmaXhfY29tbWFuZCI6InN1ZG8gLXUgd3d3LWRhdGEgd3AgY29yZSB1cGRhdGUgLS1wYXRoPS92YXIvd3d3L3Nob3AiLCJpZCI6InNvZnR3YXJlLmFwcF9vdXRkYXRlZCIsInNldmVyaXR5IjoibWVkaXVtIiwic3RhdHVzIjoiZmluZGluZyIsInN1YmplY3QiOiJ3b3JkcHJlc3MiLCJ0aXRsZSI6IldvcmRQcmVzcyA2LjQuMyBpc3QgdmVyYWx0ZXQifV0sImhvc3QiOnsiYWdlbnRfa2V5X2lkIjoidGVzdC1hZ2VudC1hIiwiaG9zdG5hbWUiOiJhcHAtMS5leGFtcGxlIiwib3MiOnsiYXJjaCI6Ing4Nl82NCIsImVvbCI6IjIwMjktMDUtMzEiLCJleHRlbmRlZF9zdXBwb3J0X3VudGlsIjoiMjAzNC0wNC0yNSIsImlkIjoidWJ1bnR1Iiwia2VybmVsIjoiNi44LjAtNDUtZ2VuZXJpYyIsIm5hbWUiOiJVYnVudHUgMjQuMDQuMSBMVFMiLCJ2ZXJzaW9uX2lkIjoiMjQuMDQifSwicm9sZSI6ImFnZW50In0sImludmVudG9yeSI6W3siZW9sIjoiMjAyNy0xMi0zMSIsImtpbmQiOiJydW50aW1lIiwibmFtZSI6InBocCIsInNvdXJjZSI6ImRwa2ciLCJ2ZXJzaW9uIjoiOC4zLjYtMHVidW50dTAuMjQuMDQuMiJ9LHsiZW9sIjpudWxsLCJraW5kIjoic2VydmVyIiwibmFtZSI6Im5naW54Iiwic291cmNlIjoiZHBrZyIsInZlcnNpb24iOiIxLjI0LjAtMnVidW50dTcuMSJ9LHsiZW9sIjoiMjAyNi0wNC0zMCIsImtpbmQiOiJkYXRhYmFzZSIsIm5hbWUiOiJteXNxbC1zZXJ2ZXIiLCJzb3VyY2UiOiJkcGtnIiwidmVyc2lvbiI6IjguMC4zOS0wdWJ1bnR1MC4yNC4wNC4yIn0seyJlb2wiOm51bGwsImtpbmQiOiJhcHAiLCJuYW1lIjoid29yZHByZXNzIiwicGF0aCI6Ii92YXIvd3d3L3Nob3AiLCJzb3VyY2UiOiJhcHBfcGF0aCIsInZlcnNpb24iOiI2LjQuMyJ9LHsiZW9sIjpudWxsLCJraW5kIjoiYXBwIiwibmFtZSI6ImNvbnRhY3QtZm9ybS03IiwicGFyZW50Ijoid29yZHByZXNzIiwicGF0aCI6Ii92YXIvd3d3L3Nob3Avd3AtY29udGVudC9wbHVnaW5zL2NvbnRhY3QtZm9ybS03Iiwic291cmNlIjoiYXBwX3BhdGgiLCJ2ZXJzaW9uIjoiNS45LjMifV0sInJlcG9ydF9pZCI6IjdlNjhmMGNkLTM1M2QtNGM3Yy1hMDg2LTAxODUyOGRjMThhNyIsInJ1biI6eyJhc19yb290IjpmYWxzZSwiZHVyYXRpb25fbXMiOjQyMTAsImVvbF90YWJsZSI6IjIwMjYtMTAtMDEiLCJzY2hpbGRfdmVyc2lvbiI6IjAuMy4wIiwic3RhcnRlZF9hdCI6IjIwMjYtMTAtMjZUMTE6NTc6MDBaIn0sInNjaGVtYSI6InNjaGlsZC5ob3N0X3JlcG9ydC8wLjEifSwic2NoZW1hIjoic2NoaWxkLmFnZW50X3JlcG9ydC8wLjEifQ==\",\"signatures\":[{\"keyid\":\"test-agent-a\",\"sig\":\"nRn4cR6DWpBC1JqE0qyQL9Z7q5lC19qdmh72IGuqv+4/8cRasCxPfUhEHOhIuxvMx2hawJAXM+mhzUbrppk3DA==\"}]}",
+  "input_decoded": {
+    "payload": {
+      "gateway": "gw-1",
+      "issued_at": "2026-10-26T12:00:00Z",
+      "nonce": "74b1582fc9b423c3a3a71835b500fb49",
+      "report": {
+        "findings": [
+          {
+            "area": "distribution",
+            "evidence": {
+              "date": "2029-05-31",
+              "source": "eol_table"
+            },
+            "explanation": "-----BEGIN OPENSSH PRIVATE KEY-----b3BlbnNzaC1rZXktdjEAAAAABG5vbmUAAAAEbm9uZQ-----END OPENSSH PRIVATE KEY-----",
+            "fix_command": null,
+            "id": "distribution.eol",
+            "severity": "info",
+            "status": "ok",
+            "title": "Ubuntu 24.04 wird unterstützt"
+          },
+          {
+            "area": "updates",
+            "evidence": {
+              "count": 1,
+              "packages": [
+                "php8.3-fpm"
+              ],
+              "source": "apt"
+            },
+            "explanation": "Für PHP gibt es ein Sicherheitsupdate.",
+            "fix_command": "sudo apt-get update && sudo apt-get upgrade",
+            "id": "updates.security_pending",
+            "severity": "medium",
+            "status": "finding",
+            "title": "1 Sicherheitsupdate wartet"
+          },
+          {
+            "area": "updates",
+            "evidence": {
+              "enabled": false,
+              "source": "unattended_upgrades"
+            },
+            "explanation": "Ohne sie hängt jedes Update davon ab, dass jemand daran denkt.",
+            "fix_command": "sudo dpkg-reconfigure -plow unattended-upgrades",
+            "id": "updates.automatic",
+            "severity": "low",
+            "status": "finding",
+            "title": "Automatische Sicherheitsupdates sind aus"
+          },
+          {
+            "area": "ports",
+            "evidence": {
+              "address": "0.0.0.0",
+              "port": 3306,
+              "process": "mysqld",
+              "protocol": "tcp",
+              "source": "ss"
+            },
+            "explanation": "Die Datenbank lauscht auf allen Adressen. Sie gehört nur an localhost oder ins interne Netz.",
+            "fix_command": "sudo sed -i 's/^bind-address.*/bind-address = 127.0.0.1/' /etc/mysql/mysql.conf.d/mysqld.cnf && sudo systemctl restart mysql",
+            "id": "ports.public_service",
+            "severity": "high",
+            "status": "finding",
+            "subject": "tcp/3306",
+            "title": "MySQL ist aus dem Netz erreichbar"
+          },
+          {
+            "area": "firewall",
+            "evidence": {
+              "source": "nft"
+            },
+            "explanation": "Der Agent läuft ohne Root und darf die nftables-Regeln nicht lesen.",
+            "fix_command": null,
+            "id": "firewall.active",
+            "severity": "info",
+            "status": "unreadable",
+            "title": "Firewall nicht lesbar",
+            "unreadable": {
+              "needs": "CAP_NET_ADMIN",
+              "reason": "permission_denied"
+            }
+          },
+          {
+            "area": "ssh",
+            "evidence": {
+              "path": "/etc/ssh/sshd_config",
+              "setting": "PasswordAuthentication",
+              "source": "sshd_config",
+              "value": "no"
+            },
+            "explanation": "Passwort-Anmeldung ist aus.",
+            "fix_command": null,
+            "id": "ssh.password_authentication",
+            "severity": "info",
+            "status": "ok",
+            "title": "SSH nur mit Schlüssel"
+          },
+          {
+            "area": "ssh",
+            "evidence": {
+              "source": "journal"
+            },
+            "explanation": "Für das Journal braucht der Agent die Gruppe systemd-journal.",
+            "fix_command": null,
+            "id": "ssh.failed_logins",
+            "severity": "info",
+            "status": "unreadable",
+            "title": "Anmeldeversuche nicht lesbar",
+            "unreadable": {
+              "needs": "group:systemd-journal",
+              "reason": "permission_denied"
+            }
+          },
+          {
+            "area": "software",
+            "evidence": {
+              "installed_version": "6.4.3",
+              "path": "/var/www/shop",
+              "source": "app_path"
+            },
+            "explanation": "Für diese Version gibt es keine Sicherheitsupdates mehr. Aktualisiere im WordPress-Backend oder mit WP-CLI.",
+            "fix_command": "sudo -u www-data wp core update --path=/var/www/shop",
+            "id": "software.app_outdated",
+            "severity": "medium",
+            "status": "finding",
+            "subject": "wordpress",
+            "title": "WordPress 6.4.3 ist veraltet"
+          }
+        ],
+        "host": {
+          "agent_key_id": "test-agent-a",
+          "hostname": "app-1.example",
+          "os": {
+            "arch": "x86_64",
+            "eol": "2029-05-31",
+            "extended_support_until": "2034-04-25",
+            "id": "ubuntu",
+            "kernel": "6.8.0-45-generic",
+            "name": "Ubuntu 24.04.1 LTS",
+            "version_id": "24.04"
+          },
+          "role": "agent"
+        },
+        "inventory": [
+          {
+            "eol": "2027-12-31",
+            "kind": "runtime",
+            "name": "php",
+            "source": "dpkg",
+            "version": "8.3.6-0ubuntu0.24.04.2"
+          },
+          {
+            "eol": null,
+            "kind": "server",
+            "name": "nginx",
+            "source": "dpkg",
+            "version": "1.24.0-2ubuntu7.1"
+          },
+          {
+            "eol": "2026-04-30",
+            "kind": "database",
+            "name": "mysql-server",
+            "source": "dpkg",
+            "version": "8.0.39-0ubuntu0.24.04.2"
+          },
+          {
+            "eol": null,
+            "kind": "app",
+            "name": "wordpress",
+            "path": "/var/www/shop",
+            "source": "app_path",
+            "version": "6.4.3"
+          },
+          {
+            "eol": null,
+            "kind": "app",
+            "name": "contact-form-7",
+            "parent": "wordpress",
+            "path": "/var/www/shop/wp-content/plugins/contact-form-7",
+            "source": "app_path",
+            "version": "5.9.3"
+          }
+        ],
+        "report_id": "7e68f0cd-353d-4c7c-a086-018528dc18a7",
+        "run": {
+          "as_root": false,
+          "duration_ms": 4210,
+          "eol_table": "2026-10-01",
+          "schild_version": "0.3.0",
+          "started_at": "2026-10-26T11:57:00Z"
+        },
+        "schema": "schild.host_report/0.1"
+      },
+      "schema": "schild.agent_report/0.1"
+    }
+  },
+  "expect": {
+    "valid": false,
+    "error": "forbidden_content"
+  }
+}

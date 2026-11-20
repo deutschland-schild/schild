@@ -1,0 +1,23 @@
+{
+  "contract": "request-recheck",
+  "description": "D33 amendment 2026-10-29: outcomes are those of the request ring.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"evaluations\":[{\"detection\":false,\"outcome\":\"logged\",\"path\":\"/x\",\"rules\":[],\"score\":0}]}",
+  "input_decoded": {
+    "evaluations": [
+      {
+        "detection": false,
+        "outcome": "logged",
+        "path": "/x",
+        "rules": [],
+        "score": 0
+      }
+    ]
+  },
+  "expect": {
+    "valid": false,
+    "error": "schema"
+  }
+}

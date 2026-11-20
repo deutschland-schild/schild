@@ -1,0 +1,148 @@
+{
+  "contract": "storage-bounds",
+  "description": "D38: used bytes at or below the cap: the pass deletes nothing.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"base_bytes\":2097152,\"floor_rows\":1,\"max_size_mb\":100,\"op\":\"cap_pass\",\"rows\":[{\"bytes\":1024,\"id\":\"rule-change\",\"kind\":\"event\",\"t\":1793016000000,\"type\":\"schild.rule.repository_updated.v1\"},{\"bytes\":1024,\"id\":\"rule-switch\",\"kind\":\"event\",\"t\":1793016000001,\"type\":\"schild.rule.repository_switched.v1\"},{\"bytes\":1048576,\"id\":\"passed-00\",\"kind\":\"event\",\"outcome\":\"passed\",\"sampled\":true,\"t\":1793016001000,\"type\":\"schild.request.evaluated.v1\"},{\"bytes\":1048576,\"id\":\"passed-01\",\"kind\":\"event\",\"outcome\":\"passed\",\"sampled\":true,\"t\":1793016001001,\"type\":\"schild.request.evaluated.v1\"},{\"bytes\":1048576,\"id\":\"passed-02\",\"kind\":\"event\",\"outcome\":\"passed\",\"sampled\":true,\"t\":1793016001002,\"type\":\"schild.request.evaluated.v1\"},{\"bytes\":1048576,\"id\":\"passed-03\",\"kind\":\"event\",\"outcome\":\"passed\",\"sampled\":true,\"t\":1793016001003,\"type\":\"schild.request.evaluated.v1\"},{\"bytes\":1048576,\"id\":\"passed-04\",\"kind\":\"event\",\"outcome\":\"passed\",\"sampled\":true,\"t\":1793016001004,\"type\":\"schild.request.evaluated.v1\"},{\"bytes\":1048576,\"id\":\"passed-05\",\"kind\":\"event\",\"outcome\":\"passed\",\"sampled\":true,\"t\":1793016001005,\"type\":\"schild.request.evaluated.v1\"},{\"bytes\":1048576,\"id\":\"passed-06\",\"kind\":\"event\",\"outcome\":\"passed\",\"sampled\":true,\"t\":1793016001006,\"type\":\"schild.request.evaluated.v1\"},{\"bytes\":1048576,\"id\":\"passed-07\",\"kind\":\"event\",\"outcome\":\"passed\",\"sampled\":true,\"t\":1793016001007,\"type\":\"schild.request.evaluated.v1\"},{\"bytes\":1048576,\"id\":\"passed-08\",\"kind\":\"event\",\"outcome\":\"passed\",\"sampled\":true,\"t\":1793016001008,\"type\":\"schild.request.evaluated.v1\"},{\"bytes\":1048576,\"id\":\"passed-09\",\"kind\":\"event\",\"outcome\":\"passed\",\"sampled\":true,\"t\":1793016001009,\"type\":\"schild.request.evaluated.v1\"},{\"bytes\":1048576,\"id\":\"passed-10\",\"kind\":\"event\",\"outcome\":\"passed\",\"sampled\":true,\"t\":1793016001010,\"type\":\"schild.request.evaluated.v1\"},{\"bytes\":1048576,\"id\":\"passed-11\",\"kind\":\"event\",\"outcome\":\"passed\",\"sampled\":true,\"t\":1793016001011,\"type\":\"schild.request.evaluated.v1\"}],\"wal_bytes\":1048576}",
+  "input_decoded": {
+    "base_bytes": 2097152,
+    "floor_rows": 1,
+    "max_size_mb": 100,
+    "op": "cap_pass",
+    "rows": [
+      {
+        "bytes": 1024,
+        "id": "rule-change",
+        "kind": "event",
+        "t": 1793016000000,
+        "type": "schild.rule.repository_updated.v1"
+      },
+      {
+        "bytes": 1024,
+        "id": "rule-switch",
+        "kind": "event",
+        "t": 1793016000001,
+        "type": "schild.rule.repository_switched.v1"
+      },
+      {
+        "bytes": 1048576,
+        "id": "passed-00",
+        "kind": "event",
+        "outcome": "passed",
+        "sampled": true,
+        "t": 1793016001000,
+        "type": "schild.request.evaluated.v1"
+      },
+      {
+        "bytes": 1048576,
+        "id": "passed-01",
+        "kind": "event",
+        "outcome": "passed",
+        "sampled": true,
+        "t": 1793016001001,
+        "type": "schild.request.evaluated.v1"
+      },
+      {
+        "bytes": 1048576,
+        "id": "passed-02",
+        "kind": "event",
+        "outcome": "passed",
+        "sampled": true,
+        "t": 1793016001002,
+        "type": "schild.request.evaluated.v1"
+      },
+      {
+        "bytes": 1048576,
+        "id": "passed-03",
+        "kind": "event",
+        "outcome": "passed",
+        "sampled": true,
+        "t": 1793016001003,
+        "type": "schild.request.evaluated.v1"
+      },
+      {
+        "bytes": 1048576,
+        "id": "passed-04",
+        "kind": "event",
+        "outcome": "passed",
+        "sampled": true,
+        "t": 1793016001004,
+        "type": "schild.request.evaluated.v1"
+      },
+      {
+        "bytes": 1048576,
+        "id": "passed-05",
+        "kind": "event",
+        "outcome": "passed",
+        "sampled": true,
+        "t": 1793016001005,
+        "type": "schild.request.evaluated.v1"
+      },
+      {
+        "bytes": 1048576,
+        "id": "passed-06",
+        "kind": "event",
+        "outcome": "passed",
+        "sampled": true,
+        "t": 1793016001006,
+        "type": "schild.request.evaluated.v1"
+      },
+      {
+        "bytes": 1048576,
+        "id": "passed-07",
+        "kind": "event",
+        "outcome": "passed",
+        "sampled": true,
+        "t": 1793016001007,
+        "type": "schild.request.evaluated.v1"
+      },
+      {
+        "bytes": 1048576,
+        "id": "passed-08",
+        "kind": "event",
+        "outcome": "passed",
+        "sampled": true,
+        "t": 1793016001008,
+        "type": "schild.request.evaluated.v1"
+      },
+      {
+        "bytes": 1048576,
+        "id": "passed-09",
+        "kind": "event",
+        "outcome": "passed",
+        "sampled": true,
+        "t": 1793016001009,
+        "type": "schild.request.evaluated.v1"
+      },
+      {
+        "bytes": 1048576,
+        "id": "passed-10",
+        "kind": "event",
+        "outcome": "passed",
+        "sampled": true,
+        "t": 1793016001010,
+        "type": "schild.request.evaluated.v1"
+      },
+      {
+        "bytes": 1048576,
+        "id": "passed-11",
+        "kind": "event",
+        "outcome": "passed",
+        "sampled": true,
+        "t": 1793016001011,
+        "type": "schild.request.evaluated.v1"
+      }
+    ],
+    "wal_bytes": 1048576
+  },
+  "expect": {
+    "valid": true,
+    "result": {
+      "used_before": 15730688,
+      "deleted": [],
+      "used_after": 15730688,
+      "unreachable": false
+    }
+  }
+}

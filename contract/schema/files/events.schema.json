@@ -1,0 +1,1713 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://contracts.schild.invalid/v0/events.schema.json",
+  "title": "Local events schild.<thing>.<verb>.v1 (CloudEvents 1.0, structured JSON)",
+  "description": "Events the client writes on its own server (concept 21 §2.1). They never leave the server: full visitor IP and location in plaintext (E7), like any server log. Secrets (passwords, tokens, cookies, Authorization, e-mail addresses) are redacted before storage, request bodies are never stored. Unsigned: they are local records, not messages.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "specversion",
+    "id",
+    "source",
+    "type",
+    "time",
+    "datacontenttype",
+    "data"
+  ],
+  "properties": {
+    "specversion": {
+      "const": "1.0"
+    },
+    "id": {
+      "$ref": "common.schema.json#/$defs/uuid"
+    },
+    "source": {
+      "type": "string",
+      "pattern": "^schild://[a-z0-9][a-z0-9.-]{0,62}$"
+    },
+    "type": {
+      "type": "string",
+      "enum": [
+        "schild.request.evaluated.v1",
+        "schild.request.blocked.v1",
+        "schild.request.unblocked.v1",
+        "schild.session.flagged.v1",
+        "schild.environment.changed.v1",
+        "schild.environment.anomaly.v1",
+        "schild.advisory.assessed.v1",
+        "schild.behaviour.triggered.v1",
+        "schild.ratelimit.exceeded.v1",
+        "schild.distributed.detected.v1",
+        "schild.distributed.ended.v1",
+        "schild.dashboard.access_reset.v1",
+        "schild.incident.exported.v1",
+        "schild.rule.repository_updated.v1",
+        "schild.rule.repository_switched.v1",
+        "schild.rule.disabled.v1",
+        "schild.rule.enabled.v1",
+        "schild.rule.approved.v1",
+        "schild.rule.rejected.v1",
+        "schild.block.set.v1",
+        "schild.block.lifted.v1",
+        "schild.rule.exception_set.v1",
+        "schild.rule.exception_removed.v1",
+        "schild.access.protection_set.v1",
+        "schild.access.protection_removed.v1",
+        "schild.access.login.v1",
+        "schild.access.prefix_locked.v1",
+        "schild.crawler.policy_set.v1"
+      ]
+    },
+    "time": {
+      "$ref": "common.schema.json#/$defs/timestampMillis"
+    },
+    "subject": {
+      "type": "string",
+      "maxLength": 128,
+      "pattern": "^[ -~]*$"
+    },
+    "datacontenttype": {
+      "const": "application/json"
+    },
+    "data": {
+      "type": "object"
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "const": "schild.request.evaluated.v1"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "data": {
+            "$ref": "#/$defs/request"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "const": "schild.request.blocked.v1"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "data": {
+            "allOf": [
+              {
+                "$ref": "#/$defs/request"
+              },
+              {
+                "required": [
+                  "incident"
+                ]
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "const": "schild.request.unblocked.v1"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "data": {
+            "$ref": "#/$defs/unblocked"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "const": "schild.session.flagged.v1"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "data": {
+            "$ref": "#/$defs/sessionFlagged"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "const": "schild.environment.changed.v1"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "data": {
+            "$ref": "#/$defs/environmentChanged"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "const": "schild.environment.anomaly.v1"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "data": {
+            "$ref": "#/$defs/environmentAnomaly"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "const": "schild.advisory.assessed.v1"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "data": {
+            "$ref": "#/$defs/advisoryAssessed"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "const": "schild.behaviour.triggered.v1"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "data": {
+            "$ref": "#/$defs/behaviourTriggered"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "const": "schild.ratelimit.exceeded.v1"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "data": {
+            "$ref": "#/$defs/ratelimitExceeded"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "const": "schild.distributed.detected.v1"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "data": {
+            "$ref": "#/$defs/distributedDetected"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "const": "schild.distributed.ended.v1"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "data": {
+            "$ref": "#/$defs/distributedEnded"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "const": "schild.dashboard.access_reset.v1"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "data": {
+            "$ref": "#/$defs/accessReset"
+          }
+        }
+      }
+    },
+    {
+      "if": { "properties": { "type": { "const": "schild.incident.exported.v1" } } },
+      "then": { "properties": { "data": { "$ref": "#/$defs/incidentExported" } } }
+    },
+    {
+      "if": { "properties": { "type": { "const": "schild.rule.repository_updated.v1" } }, "required": ["type"] },
+      "then": { "properties": { "data": { "$ref": "#/$defs/repositoryUpdated" } } }
+    },
+    {
+      "if": { "properties": { "type": { "enum": ["schild.rule.disabled.v1", "schild.rule.enabled.v1"] } }, "required": ["type"] },
+      "then": { "properties": { "data": { "$ref": "#/$defs/ruleDisabledChange" } } }
+    },
+    {
+      "if": { "properties": { "type": { "enum": ["schild.rule.approved.v1", "schild.rule.rejected.v1"] } }, "required": ["type"] },
+      "then": { "properties": { "data": { "$ref": "#/$defs/ruleApprovalChange" } } }
+    },
+    {
+      "if": { "properties": { "type": { "const": "schild.block.set.v1" } } },
+      "then": { "properties": { "data": { "$ref": "#/$defs/blockSet" } } }
+    },
+    {
+      "if": { "properties": { "type": { "const": "schild.block.lifted.v1" } } },
+      "then": { "properties": { "data": { "$ref": "#/$defs/blockLifted" } } }
+    },
+    {
+      "if": { "properties": { "type": { "enum": ["schild.rule.exception_set.v1", "schild.rule.exception_removed.v1"] } }, "required": ["type"] },
+      "then": { "properties": { "data": { "$ref": "#/$defs/ruleExceptionChange" } } }
+    },
+    {
+      "if": { "properties": { "type": { "const": "schild.access.protection_set.v1" } }, "required": ["type"] },
+      "then": { "properties": { "data": { "$ref": "#/$defs/accessProtectionSet" } } }
+    },
+    {
+      "if": { "properties": { "type": { "const": "schild.access.protection_removed.v1" } }, "required": ["type"] },
+      "then": { "properties": { "data": { "$ref": "#/$defs/accessProtectionRemoved" } } }
+    },
+    {
+      "if": { "properties": { "type": { "const": "schild.access.login.v1" } }, "required": ["type"] },
+      "then": { "properties": { "data": { "$ref": "#/$defs/accessLogin" } } }
+    },
+    {
+      "if": { "properties": { "type": { "const": "schild.access.prefix_locked.v1" } }, "required": ["type"] },
+      "then": { "properties": { "data": { "$ref": "#/$defs/accessPrefixLocked" } } }
+    },
+    {
+      "if": { "properties": { "type": { "const": "schild.crawler.policy_set.v1" } }, "required": ["type"] },
+      "then": { "properties": { "data": { "$ref": "#/$defs/crawlerPolicySet" } } }
+    },
+    {
+      "if": { "properties": { "type": { "const": "schild.rule.repository_switched.v1" } }, "required": ["type"] },
+      "then": { "properties": { "data": { "$ref": "#/$defs/repositorySwitched" } } }
+    }
+  ],
+  "$defs": {
+    "ip": {
+      "description": "Full visitor IP in plaintext (local only, E7).",
+      "type": "string",
+      "anyOf": [
+        {
+          "pattern": "^((25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9]?[0-9])\\.){3}(25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9]?[0-9])$"
+        },
+        {
+          "pattern": "^[0-9a-f]{0,4}(:[0-9a-f]{0,4}){2,7}$",
+          "maxLength": 39
+        },
+        {
+          "pattern": "^[0-9a-f:]{2,29}:((25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9]?[0-9])\\.){3}(25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9]?[0-9])$"
+        }
+      ]
+    },
+    "client": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "ip",
+        "attribution",
+        "geo"
+      ],
+      "properties": {
+        "ip": {
+          "$ref": "#/$defs/ip"
+        },
+        "port": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 65535
+        },
+        "attribution": {
+          "type": "string",
+          "enum": [
+            "tcp_peer",
+            "trusted_proxy",
+            "untrusted_header"
+          ]
+        },
+        "geo": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "country",
+            "asn",
+            "net_class"
+          ],
+          "properties": {
+            "country": {
+              "$ref": "common.schema.json#/$defs/country"
+            },
+            "city": {
+              "type": "string",
+              "maxLength": 128
+            },
+            "asn": {
+              "$ref": "common.schema.json#/$defs/asn"
+            },
+            "as_org": {
+              "type": "string",
+              "maxLength": 256
+            },
+            "net_class": {
+              "$ref": "common.schema.json#/$defs/netClass"
+            }
+          }
+        },
+        "allowlisted": {
+          "type": "boolean"
+        }
+      }
+    },
+    "incident": {
+      "type": "string",
+      "pattern": "^[A-HJ-NP-Z2-9]{4}-[A-HJ-NP-Z2-9]{4}$"
+    },
+    "matchedRule": {
+      "description": "v0.6 (D73): one rule that matched, with the repository it belongs to. id is the SecRule id; for crowdsec the id of the matching AND-group, the crowdsec object names the hub rule.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "repository"],
+      "if": { "properties": { "repository": { "const": "crowdsec" } }, "required": ["repository"] },
+      "then": { "required": ["crowdsec"] },
+      "else": { "not": { "required": ["crowdsec"] } },
+      "properties": {
+        "id": { "type": "integer", "minimum": 1, "maximum": 99999999 },
+        "repository": { "type": "string", "enum": ["crs", "local", "crowdsec"] },
+        "crowdsec": { "description": "Only with repository crowdsec.", "$ref": "#/$defs/crowdsecRuleRef" },
+        "msg": {
+          "type": "string",
+          "maxLength": 512
+        },
+        "severity": {
+          "type": "string",
+          "enum": [
+            "critical",
+            "error",
+            "warning",
+            "notice"
+          ]
+        },
+        "match_shape": {
+          "$ref": "common.schema.json#/$defs/matchShape"
+        }
+      }
+    },
+    "request": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "request_id",
+        "client",
+        "method",
+        "host",
+        "path",
+        "status",
+        "rules",
+        "score",
+        "outcome",
+        "mode",
+        "duration_ms",
+        "waf_ms"
+      ],
+      "properties": {
+        "request_id": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9-]{8,64}$"
+        },
+        "incident": {
+          "$ref": "#/$defs/incident"
+        },
+        "client": {
+          "$ref": "#/$defs/client"
+        },
+        "method": {
+          "type": "string",
+          "pattern": "^[A-Z]{1,16}$"
+        },
+        "host": {
+          "type": "string",
+          "maxLength": 253
+        },
+        "path": {
+          "description": "The path schild inspected (D33 amendment 2026-10-29: of the last evaluation when schild evaluated the request more than once, never the path after a later rewrite).",
+          "type": "string",
+          "maxLength": 2048
+        },
+        "checked_paths": {
+          "description": "D33 amendment (initiator, 2026-10-29): present only when schild evaluated this request more than once (e.g. again in handle_errors after handle_path stripped a prefix): the paths every evaluation inspected, in order, redacted as path; above 4 evaluations the first three and the last. The last equals path. One HTTP request writes one event and counts once (contract/monitoring.Recheck, vectors request-recheck); rules are merged over the evaluations, score is the highest.",
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 4,
+          "items": { "type": "string", "maxLength": 2048 }
+        },
+        "query": {
+          "description": "Query string with values of secret-looking parameters replaced by [redacted].",
+          "type": "string",
+          "maxLength": 4096
+        },
+        "protocol": {
+          "type": "string",
+          "enum": [
+            "http/1.0",
+            "http/1.1",
+            "h2",
+            "h3"
+          ]
+        },
+        "status": {
+          "type": "integer",
+          "minimum": 100,
+          "maximum": 599
+        },
+        "user_agent": {
+          "type": "string",
+          "maxLength": 1024
+        },
+        "session_id": {
+          "type": "string",
+          "pattern": "^s_[a-z0-9]{8,32}$"
+        },
+        "rules": {
+          "type": "array",
+          "maxItems": 128,
+          "items": {
+            "$ref": "#/$defs/matchedRule"
+          }
+        },
+        "score": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "outcome": {
+          "type": "string",
+          "enum": [
+            "passed",
+            "logged",
+            "challenged",
+            "blocked",
+            "would_block"
+          ]
+        },
+        "mode": {
+          "$ref": "common.schema.json#/$defs/mode"
+        },
+        "duration_ms": {
+          "type": "number",
+          "minimum": 0
+        },
+        "waf_ms": {
+          "type": "number",
+          "minimum": 0
+        },
+        "sampled": {
+          "description": "Unremarkable requests are only recorded as a sample.",
+          "type": "boolean"
+        },
+        "would_block_reason": {
+          "$ref": "#/$defs/wouldBlockReason"
+        }
+      },
+      "dependentSchemas": {
+        "would_block_reason": {
+          "properties": {
+            "outcome": {
+              "const": "would_block"
+            }
+          }
+        }
+      }
+    },
+    "wouldBlockReason": {
+      "description": "v0.5 (D36 open items, 2026-10-29): why a request schild would have blocked was passed (UI: \"Erkannt, aber durchgelassen: ...\"). Only with outcome would_block; when several apply the first in this order: gateway_observe (the test profile; before D89 schild.yaml mode observe), site_observe (the website is set to observe while the gateway blocks), learning (learning period of a fresh installation), scenario_observe (the behaviour scenario, rate limit or detector is set to observe), source_detect (D90: the rule source that matched is set to detect), settling (D90: the rule is a CrowdSec update that still settles), allowlist (the client is on the allowlist or an exception covers it), shared_address (the client's address is shared - cgnat, mobile or tor - and is never blocked by address).",
+      "type": "string",
+      "enum": [
+        "gateway_observe",
+        "site_observe",
+        "learning",
+        "scenario_observe",
+        "source_detect",
+        "settling",
+        "allowlist",
+        "shared_address"
+      ]
+    },
+    "repository": { "description": "v0.6 (D73): a rule repository.", "type": "string", "enum": ["crs", "crowdsec", "local"] },
+    "ruleState": { "type": "string", "enum": ["off", "detect", "block"] },
+    "ruleActor": {
+      "description": "Who changed it. With agent the token and its label are named, otherwise never.",
+      "type": "object",
+      "if": { "properties": { "actor": { "const": "agent" } }, "required": ["actor"] },
+      "then": { "required": ["token_id", "token_label"] },
+      "else": { "properties": { "token_id": false, "token_label": false } }
+    },
+    "repositorySwitched": {
+      "description": "v0.6 (D73): the state of a rule repository changed, from the dashboard or through the agent API. Written for every change of the effective state. Local only.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["repository", "from", "to", "actor", "state_source"],
+      "allOf": [{ "$ref": "#/$defs/ruleActor" }],
+      "properties": {
+        "repository": { "$ref": "#/$defs/repository" },
+        "from": { "$ref": "#/$defs/ruleState" },
+        "to": { "$ref": "#/$defs/ruleState" },
+        "actor": { "type": "string", "enum": ["dashboard", "agent"] },
+        "state_source": { "description": "state_source after the change; config or default after reset_state.", "type": "string", "enum": ["default", "config", "dashboard", "agent"] },
+        "reset": { "description": "The overlay value was dropped.", "type": "boolean" },
+        "token_id": { "type": "string", "pattern": "^tok_[0-9a-f]{12}$" },
+        "token_label": { "type": "string", "maxLength": 64 }
+      }
+    },
+    "ruleRef": {
+      "description": "A rule of a repository: the SecRule id as a string (crowdsec: the base id, the hub name in name).",
+      "type": "string",
+      "pattern": "^[1-9][0-9]{0,8}$"
+    },
+    "ruleDisabledChange": {
+      "description": "v0.6 (D73): a person or an agent disabled or enabled one rule (schild.rule.disabled.v1, schild.rule.enabled.v1). CRS and local rules are rebuilt without it, a crowdsec rule stops at once. Local only.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["repository", "rule", "actor"],
+      "allOf": [{ "$ref": "#/$defs/ruleActor" }],
+      "properties": {
+        "repository": { "$ref": "#/$defs/repository" },
+        "rule": { "$ref": "#/$defs/ruleRef" },
+        "name": { "description": "crowdsec: the hub name.", "type": "string", "maxLength": 160 },
+        "actor": { "type": "string", "enum": ["dashboard", "agent"] },
+        "token_id": { "type": "string", "pattern": "^tok_[0-9a-f]{12}$" },
+        "token_label": { "type": "string", "minLength": 1, "maxLength": 64 },
+        "note": { "description": "Text of the person or agent, sanitised.", "type": "string", "maxLength": 500 }
+      }
+    },
+    "ruleApprovalChange": {
+      "description": "v0.6 (D73): a person or an agent approved or rejected one version of a rule update (schild.rule.approved.v1, schild.rule.rejected.v1). An approval acts at once, without settling; a rejected version never runs. Local only.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["repository", "rule", "version", "actor"],
+      "allOf": [{ "$ref": "#/$defs/ruleActor" }],
+      "properties": {
+        "repository": { "$ref": "#/$defs/repository" },
+        "rule": { "$ref": "#/$defs/ruleRef" },
+        "name": { "description": "crowdsec: the hub name.", "type": "string", "maxLength": 160 },
+        "version": { "type": "string", "minLength": 1, "maxLength": 64 },
+        "actor": { "type": "string", "enum": ["dashboard", "agent"] },
+        "token_id": { "type": "string", "pattern": "^tok_[0-9a-f]{12}$" },
+        "token_label": { "type": "string", "minLength": 1, "maxLength": 64 },
+        "note": { "description": "Text of the person or agent, sanitised.", "type": "string", "maxLength": 500 }
+      }
+    },
+    "blockSet": {
+      "description": "v0.5 (D42): an agent set a single block through the agent API, or would have (effect would_block: the gateway observes, nothing was blocked, no incident). Carries the address it was resolved to, like every local event; the agent never sees it. D88: also the operator in the dashboard (actor dashboard, target_kind address, no token, no evidence event); without actor it was an agent. Local only.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["effect", "client", "key_bits", "duration_s", "target_kind", "reason"],
+      "allOf": [
+        { "if": { "properties": { "effect": { "const": "block" } } },
+          "then": { "required": ["until", "incident"] },
+          "else": { "properties": { "until": false, "incident": false, "persisted": false } } },
+        { "if": { "properties": { "actor": { "const": "dashboard" } }, "required": ["actor"] },
+          "then": { "properties": { "token_id": false, "token_label": false, "evidence_event_id": false, "target_kind": { "const": "address" } } },
+          "else": { "required": ["evidence_event_id", "token_id", "token_label"], "properties": { "target_kind": { "enum": ["event", "incident", "pseudonym"] } } } }
+      ],
+      "properties": {
+        "actor": { "type": "string", "enum": ["dashboard", "agent"] },
+        "effect": { "type": "string", "enum": ["block", "would_block"] },
+        "client": { "$ref": "#/$defs/client" },
+        "key_bits": { "type": "integer", "enum": [32, 64] },
+        "duration_s": { "description": "As asked for, within the cap of the net class. No ladder step: an agent chooses it.", "type": "integer", "minimum": 60, "maximum": 604800 },
+        "until": { "$ref": "#/$defs/blockUntil" },
+        "persisted": { "type": "boolean" },
+        "incident": { "$ref": "#/$defs/incident" },
+        "target_kind": { "description": "D88: address when the operator typed the address in the dashboard.", "type": "string", "enum": ["event", "incident", "pseudonym", "address"] },
+        "evidence_event_id": { "$ref": "common.schema.json#/$defs/uuid" },
+        "token_id": { "type": "string", "pattern": "^tok_[0-9a-f]{12}$" },
+        "token_label": { "type": "string", "minLength": 1, "maxLength": 64 },
+        "reason": { "description": "Text of the agent or the operator, sanitised.", "type": "string", "minLength": 1, "maxLength": 300 }
+      }
+    },
+    "blockLifted": {
+      "description": "v0.5 (D42): an agent ended a running block. It creates no exception and no allowlist entry. Local only.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["incident", "source", "token_id", "token_label", "reason"],
+      "properties": {
+        "incident": { "$ref": "#/$defs/incident" },
+        "source": { "description": "The source of the block: behaviour:<scenario>, ratelimit:<id>, agent:<token id> or (D88) dashboard.", "type": "string", "maxLength": 96 },
+        "token_id": { "type": "string", "pattern": "^tok_[0-9a-f]{12}$" },
+        "token_label": { "type": "string", "minLength": 1, "maxLength": 64 },
+        "reason": { "description": "Text of the agent, sanitised.", "type": "string", "minLength": 1, "maxLength": 300 }
+      }
+    },
+    "ruleExceptionChange": {
+      "description": "v0.5 (D54), v0.6 (D73): a rule exception for rules of repository crs or crowdsec was set or removed. D84: also from the dashboard (actor dashboard, no token, the reason may be empty); without actor it was an agent. Local only.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "website", "path", "target", "repository", "rules", "reason"],
+      "if": { "properties": { "actor": { "const": "dashboard" } }, "required": ["actor"] },
+      "then": { "properties": { "token_id": false, "token_label": false } },
+      "else": { "required": ["token_id", "token_label"], "properties": { "reason": { "minLength": 1 } } },
+      "properties": {
+        "actor": { "type": "string", "enum": ["dashboard", "agent"] },
+        "id": { "type": "integer", "minimum": 1900000, "maximum": 1999999 },
+        "website": { "type": "string", "minLength": 1, "maxLength": 253 },
+        "path": { "type": "string", "pattern": "^/", "maxLength": 256 },
+        "target": { "type": "string", "maxLength": 180 },
+        "repository": { "type": "string", "enum": ["crs", "crowdsec"] },
+        "rules": { "type": "array", "minItems": 1, "maxItems": 16, "items": { "$ref": "#/$defs/ruleRef" } },
+        "token_id": { "type": "string", "pattern": "^tok_[0-9a-f]{12}$" },
+        "token_label": { "type": "string", "minLength": 1, "maxLength": 64 },
+        "reason": { "description": "Text of the agent or the operator, sanitised.", "type": "string", "maxLength": 300 }
+      }
+    },
+    "accessProtectionSet": {
+      "description": "v0.5 (D56): the access lock of a website was set or changed, from the dashboard or with schild lock on the server. Addresses are counted, the password is only named as set. Local only.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["website", "scope", "password", "addresses", "own_networks", "actor"],
+      "properties": {
+        "website": { "type": "string", "minLength": 1, "maxLength": 253 },
+        "scope": { "type": "string", "enum": ["site", "paths"] },
+        "paths": { "type": "array", "maxItems": 32, "items": { "type": "string", "pattern": "^/", "maxLength": 255 } },
+        "except": { "type": "array", "maxItems": 16, "items": { "type": "string", "pattern": "^/", "maxLength": 255 } },
+        "password": { "type": "boolean" },
+        "addresses": { "description": "How many addresses and networks are listed.", "type": "integer", "minimum": 0, "maximum": 64 },
+        "own_networks": { "type": "boolean" },
+        "until": { "$ref": "#/$defs/blockUntil" },
+        "actor": { "type": "string", "enum": ["dashboard", "cli"] },
+        "user": { "description": "Dashboard user, absent for cli.", "type": "string", "minLength": 1, "maxLength": 64 }
+      }
+    },
+    "accessProtectionRemoved": {
+      "description": "v0.5 (D56): the access lock of a website ended: removed from the dashboard or the CLI, or its end came (actor system, reason expired). Every session of it ended too. Local only.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["website", "scope", "actor", "reason"],
+      "properties": {
+        "website": { "type": "string", "minLength": 1, "maxLength": 253 },
+        "scope": { "type": "string", "enum": ["site", "paths"] },
+        "actor": { "type": "string", "enum": ["dashboard", "cli", "system"] },
+        "user": { "type": "string", "minLength": 1, "maxLength": 64 },
+        "reason": { "type": "string", "enum": ["removed", "expired"] }
+      }
+    },
+    "accessLogin": {
+      "description": "v0.5 (D56): a successful login with the shared password of a website. Failed guesses are only counted (schild_access_logins_total). The address is kept as its prefix (/24, /48). Local only.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["website", "address_prefix"],
+      "properties": {
+        "website": { "type": "string", "minLength": 1, "maxLength": 253 },
+        "address_prefix": { "type": "string", "pattern": "^([0-9]{1,3}\\.){3}0/24$|^[0-9a-f:]{2,39}/48$" }
+      }
+    },
+    "accessPrefixLocked": {
+      "description": "v0.5 (D56): an address prefix guessed the password of a website wrong 5 times within 15 minutes and may not try again until the given time. Local only.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["website", "address_prefix", "until"],
+      "properties": {
+        "website": { "type": "string", "minLength": 1, "maxLength": 253 },
+        "address_prefix": { "type": "string", "pattern": "^([0-9]{1,3}\\.){3}0/24$|^[0-9a-f:]{2,39}/48$" },
+        "until": { "$ref": "#/$defs/blockUntil" }
+      }
+    },
+    "crawlerPolicySet": {
+      "description": "v0.5 (D57, MVP-29): the crawler policy of a website changed, from the dashboard or through the agent API (scope crawlers:write). Holds the whole policy after the change (empty categories and bots: everything allowed). reason is the agent's text, sanitised: untrusted, render it as text. Local only.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["website", "categories", "bots", "impersonators", "actor"],
+      "properties": {
+        "website": { "type": "string", "minLength": 1, "maxLength": 253 },
+        "categories": { "$ref": "crawler-policy.schema.json#/$defs/policy/properties/categories" },
+        "bots": { "$ref": "crawler-policy.schema.json#/$defs/policy/properties/bots" },
+        "impersonators": { "$ref": "crawler-policy.schema.json#/$defs/action" },
+        "preset": { "$ref": "crawler-policy.schema.json#/$defs/preset" },
+        "actor": { "type": "string", "enum": ["dashboard", "agent"] },
+        "user": { "description": "Dashboard user.", "type": "string", "minLength": 1, "maxLength": 64 },
+        "token_id": { "type": "string", "pattern": "^tok_[0-9a-f]{12}$" },
+        "token_label": { "type": "string", "minLength": 1, "maxLength": 64 },
+        "reason": { "description": "Text of the agent, sanitised.", "type": "string", "minLength": 1, "maxLength": 300 }
+      },
+      "if": { "properties": { "actor": { "const": "agent" } }, "required": ["actor"] },
+      "then": { "required": ["token_id", "token_label", "reason"] }
+    },
+    "blockUntil": { "type": "string", "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$" },
+    "crowdsecRuleRef": {
+      "description": "v0.6 (D73): which CrowdSec Hub rule of repository crowdsec matched. Hub text is third-party text: show it, never interpret it.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "version"
+      ],
+      "properties": {
+        "name": {
+          "type": "string",
+          "pattern": "^crowdsecurity/vpatch-[A-Za-z0-9._-]{1,128}$"
+        },
+        "version": {
+          "type": "string",
+          "pattern": "^[0-9]{1,6}\\.[0-9]{1,6}$"
+        },
+        "label": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "cves": {
+          "type": "array",
+          "maxItems": 16,
+          "items": {
+            "type": "string",
+            "pattern": "^CVE-[0-9]{4}-[0-9]{4,8}$"
+          }
+        }
+      }
+    },
+    "repositoryUpdated": {
+      "description": "v0.6 (D73): the rules of a repository changed or a change was refused: a crowdsec update (accepted, refused), the way back to the image snapshot (reset), a sync of local (reloaded, refused). Not written for a check or sync that found nothing new. Local only.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["repository", "outcome", "rules_loaded"],
+      "properties": {
+        "repository": { "$ref": "#/$defs/repository" },
+        "outcome": { "type": "string", "enum": ["accepted", "refused", "reset", "reloaded"] },
+        "code": {
+          "description": "Refusal code; only with outcome refused. crowdsec: crowdsec-hub.md section 6. local: dir_missing, read_failed, id_range, compile_failed.",
+          "type": "string",
+          "pattern": "^[a-z_]{1,32}$"
+        },
+        "set_source": { "description": "crowdsec only: the set running after this change.", "type": "string", "enum": ["stored", "image", "none"] },
+        "index_sha256": { "description": "crowdsec only.", "type": "string", "pattern": "^[0-9a-f]{64}$" },
+        "hub_commit": { "description": "crowdsec only, for a pinned set: the index of the master branch names no commit.", "type": "string", "pattern": "^[0-9a-f]{40}$" },
+        "rules_loaded": { "type": "integer", "minimum": 0 },
+        "rules_skipped": { "type": "integer", "minimum": 0 },
+        "added": { "description": "crowdsec: hub names; local: rule ids.", "type": "array", "maxItems": 100, "items": { "type": "string", "maxLength": 160 } },
+        "changed": { "type": "array", "maxItems": 100, "items": { "type": "string", "maxLength": 160 } },
+        "removed": { "type": "array", "maxItems": 100, "items": { "type": "string", "maxLength": 160 } },
+        "truncated": { "description": "added, changed or removed lists were cut at 100.", "type": "boolean" }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "outcome": { "const": "refused" } }, "required": ["outcome"] },
+          "then": { "required": ["code"] },
+          "else": { "not": { "required": ["code"] } }
+        },
+        {
+          "if": { "properties": { "repository": { "const": "crowdsec" } }, "required": ["repository"] },
+          "then": { "required": ["set_source"], "properties": { "outcome": { "enum": ["accepted", "refused", "reset"] } } },
+          "else": {
+            "properties": { "set_source": false, "index_sha256": false, "hub_commit": false, "outcome": { "enum": ["reloaded", "refused"] } }
+          }
+        }
+      ]
+    },
+    "incidentExported": {
+      "description": "v0.5 (D51): a dashboard user downloaded an incident with its events and context. No address, no user agent, only that it happened.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["incident", "by", "events"],
+      "properties": {
+        "incident": { "$ref": "#/$defs/incident" },
+        "by": { "description": "The dashboard user.", "type": "string", "minLength": 1, "maxLength": 64 },
+        "events": { "description": "Events in the file.", "type": "integer", "minimum": 0 }
+      }
+    },
+    "accessReset": {
+      "description": "v0.5 (D38, MVP-09 addendum): `schild dashboard reset-password` on the host removed the dashboard users and ended every session; first-run setup with a new one-time setup code is required. Audit record only: no password, hash, setup code or session id is ever stored.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "via",
+        "users_removed",
+        "sessions_ended"
+      ],
+      "properties": {
+        "via": {
+          "description": "host_cli: the CLI on the host while schild was stopped; control_path: the CLI told the running gateway through its local control path.",
+          "type": "string",
+          "enum": [
+            "host_cli",
+            "control_path"
+          ]
+        },
+        "users_removed": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1000
+        },
+        "sessions_ended": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1000000
+        },
+        "host_user": {
+          "description": "Name of the host account that ran the command (from the process credentials), if known.",
+          "type": "string",
+          "pattern": "^[a-z_][a-z0-9_-]{0,31}$"
+        }
+      }
+    },
+    "unblocked": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "incident",
+        "request_id",
+        "by",
+        "false_positive"
+      ],
+      "properties": {
+        "incident": {
+          "$ref": "#/$defs/incident"
+        },
+        "request_id": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9-]{8,64}$"
+        },
+        "by": {
+          "type": "string",
+          "enum": [
+            "operator",
+            "cli"
+          ]
+        },
+        "false_positive": {
+          "type": "boolean"
+        },
+        "allowlist_entry": {
+          "type": "string",
+          "maxLength": 64
+        }
+      }
+    },
+    "sessionFlagged": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "session_id",
+        "client",
+        "reason",
+        "requests",
+        "window_s"
+      ],
+      "properties": {
+        "session_id": {
+          "type": "string",
+          "pattern": "^s_[a-z0-9]{8,32}$"
+        },
+        "client": {
+          "$ref": "#/$defs/client"
+        },
+        "reason": {
+          "type": "string",
+          "enum": [
+            "rate",
+            "error_rate",
+            "path_sequence",
+            "waf_hits"
+          ]
+        },
+        "requests": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "window_s": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "threshold": {
+          "type": "number"
+        }
+      }
+    },
+    "environmentChanged": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "name"
+      ],
+      "properties": {
+        "kind": {
+          "type": "string",
+          "enum": [
+            "os",
+            "webserver",
+            "runtime",
+            "application",
+            "plugin",
+            "setting"
+          ]
+        },
+        "name": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "from_version": {
+          "type": "string",
+          "maxLength": 64
+        },
+        "to_version": {
+          "type": "string",
+          "maxLength": 64
+        }
+      }
+    },
+    "environmentAnomaly": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "level",
+        "index",
+        "factors"
+      ],
+      "properties": {
+        "level": {
+          "type": "string",
+          "enum": [
+            "normal",
+            "elevated",
+            "suspicious"
+          ]
+        },
+        "index": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "factors": {
+          "type": "array",
+          "maxItems": 16,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "name",
+              "points"
+            ],
+            "properties": {
+              "name": {
+                "type": "string",
+                "maxLength": 64
+              },
+              "points": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 100
+              }
+            }
+          }
+        }
+      }
+    },
+    "advisoryAssessed": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "advisory_id",
+        "result"
+      ],
+      "properties": {
+        "advisory_id": {
+          "type": "string",
+          "maxLength": 64
+        },
+        "result": {
+          "type": "string",
+          "enum": [
+            "affected",
+            "mitigated",
+            "likely_not_affected",
+            "not_reachable",
+            "unclear"
+          ]
+        },
+        "components": {
+          "type": "array",
+          "maxItems": 32,
+          "items": {
+            "type": "string",
+            "maxLength": 128
+          }
+        }
+      }
+    },
+    "clientKeyBits": {
+      "description": "v0.4: granularity of the client key the counters use: 32 for an IPv4 address, 64 for an IPv6 /64 (never coarser than /24 for IPv4).",
+      "type": "integer",
+      "enum": [
+        24,
+        32,
+        64
+      ]
+    },
+    "behaviourReason": {
+      "description": "v0.4: why the action stayed below the configured mode: net_class (cgnat, mobile or tor, never blocked), allowlisted (own address), released (operator released the client or set an exception), challenge_unavailable (only in events written before D92: the old mode challenge without a browser check), unverified_bot (claims to be a search bot that could not be verified; counted, never acted on), site_scope (detected across the whole site, no single client to act on), learning (v0.4 addendum 2026-10-28: a scenario in block observes during the learning period of a fresh installation, as the distributed detectors do; behaviour scenarios only, never on rate limits, which act from day 0).",
+      "type": "string",
+      "enum": [
+        "net_class",
+        "allowlisted",
+        "released",
+        "challenge_unavailable",
+        "unverified_bot",
+        "site_scope",
+        "learning"
+      ]
+    },
+    "behaviourTriggered": {
+      "description": "v0.4 (MVP-17): a scenario over several requests triggered. Local only (E4, G1). No user name, hash, password or body. scope client: one client key; scope site: across the whole site (credential_stuffing from a pool of addresses), no client.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "scenario",
+        "scope",
+        "mode",
+        "action",
+        "count",
+        "threshold",
+        "window_s"
+      ],
+      "properties": {
+        "scenario": {
+          "type": "string",
+          "enum": [
+            "login_bruteforce",
+            "credential_stuffing",
+            "path_probing",
+            "aggressive_crawl",
+            "waf_repeat"
+          ]
+        },
+        "scope": {
+          "type": "string",
+          "enum": [
+            "client",
+            "site"
+          ]
+        },
+        "client": {
+          "$ref": "#/$defs/client"
+        },
+        "key_bits": {
+          "$ref": "#/$defs/clientKeyBits"
+        },
+        "host": {
+          "type": "string",
+          "maxLength": 253
+        },
+        "route": {
+          "description": "Path or preset route the scenario counted (redacted like request paths).",
+          "type": "string",
+          "maxLength": 512
+        },
+        "preset": {
+          "type": "string",
+          "enum": [
+            "wordpress",
+            "joomla",
+            "drupal",
+            "nextcloud",
+            "typo3",
+            "laravel",
+            "generic"
+          ]
+        },
+        "count": {
+          "description": "Observed events in the window: failed logins, estimated distinct user names, distinct paths (probe paths weighted), requests, distinct WAF rules.",
+          "type": "integer",
+          "minimum": 0
+        },
+        "threshold": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "window_s": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "baseline": {
+          "description": "aggressive_crawl: the site's per-client baseline in requests per window.",
+          "type": "number",
+          "minimum": 0
+        },
+        "mode": {
+          "description": "challenge appears only in events written before D92 (no browser check).",
+          "type": "string",
+          "enum": [
+            "observe",
+            "challenge",
+            "block"
+          ]
+        },
+        "action": {
+          "description": "What schild did. challenge was never taken (no browser check, D92).",
+          "type": "string",
+          "enum": [
+            "observe",
+            "challenge",
+            "block"
+          ]
+        },
+        "would_action": {
+          "description": "What mode block would have done for this client (shown in observe as \"hätte gesperrt\").",
+          "type": "string",
+          "enum": [
+            "observe",
+            "challenge",
+            "block"
+          ]
+        },
+        "reason": {
+          "$ref": "#/$defs/behaviourReason"
+        },
+        "level": {
+          "description": "Escalation step of a repeat offender (1 = first block).",
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 16
+        },
+        "duration_s": {
+          "description": "Block duration from the ladder of the client's net class (D29 amendment 2026-10-29): hosting 900, 3600, 86400, then 604800 (7 days) from level 4; every other class 900, 3600, 14400, then 86400 from level 4. Blocks over 24 h are kept in schild.db and survive a restart.",
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 604800
+        },
+        "until": {
+          "$ref": "common.schema.json#/$defs/timestamp"
+        },
+        "incident": {
+          "$ref": "#/$defs/incident"
+        }
+      },
+      "allOf": [
+        {
+          "description": "D29 amendment (2026-10-29): the duration is the ladder step of the level for the client's net class.",
+          "if": {
+            "required": [
+              "duration_s"
+            ]
+          },
+          "then": {
+            "if": {
+              "required": [
+                "client"
+              ],
+              "properties": {
+                "client": {
+                  "properties": {
+                    "geo": {
+                      "properties": {
+                        "net_class": {
+                          "const": "hosting"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "then": {
+              "required": [
+                "level"
+              ],
+              "anyOf": [
+                {
+                  "properties": {
+                    "level": {
+                      "const": 1
+                    },
+                    "duration_s": {
+                      "const": 900
+                    }
+                  }
+                },
+                {
+                  "properties": {
+                    "level": {
+                      "const": 2
+                    },
+                    "duration_s": {
+                      "const": 3600
+                    }
+                  }
+                },
+                {
+                  "properties": {
+                    "level": {
+                      "const": 3
+                    },
+                    "duration_s": {
+                      "const": 86400
+                    }
+                  }
+                },
+                {
+                  "properties": {
+                    "level": {
+                      "minimum": 4
+                    },
+                    "duration_s": {
+                      "const": 604800
+                    }
+                  }
+                }
+              ]
+            },
+            "else": {
+              "required": [
+                "level"
+              ],
+              "anyOf": [
+                {
+                  "properties": {
+                    "level": {
+                      "const": 1
+                    },
+                    "duration_s": {
+                      "const": 900
+                    }
+                  }
+                },
+                {
+                  "properties": {
+                    "level": {
+                      "const": 2
+                    },
+                    "duration_s": {
+                      "const": 3600
+                    }
+                  }
+                },
+                {
+                  "properties": {
+                    "level": {
+                      "const": 3
+                    },
+                    "duration_s": {
+                      "const": 14400
+                    }
+                  }
+                },
+                {
+                  "properties": {
+                    "level": {
+                      "minimum": 4
+                    },
+                    "duration_s": {
+                      "const": 86400
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "scope": {
+                "const": "client"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "client",
+              "key_bits"
+            ]
+          },
+          "else": {
+            "not": {
+              "required": [
+                "client"
+              ]
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "action": {
+                "const": "block"
+              }
+            },
+            "required": [
+              "action"
+            ]
+          },
+          "then": {
+            "required": [
+              "until",
+              "duration_s",
+              "level",
+              "incident"
+            ]
+          }
+        }
+      ]
+    },
+    "ratelimitExceeded": {
+      "description": "v0.4 (MVP-17): a client went over a rate limit. Written at most once per limit and client key per minute, with the number of requests over the limit since the last record. Local only.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "limit_id",
+        "source",
+        "route",
+        "client",
+        "key_bits",
+        "limit",
+        "per_s",
+        "burst",
+        "count",
+        "mode",
+        "action"
+      ],
+      "properties": {
+        "limit_id": {
+          "$ref": "common.schema.json#/$defs/id"
+        },
+        "source": {
+          "type": "string",
+          "enum": [
+            "config",
+            "dashboard",
+            "preset"
+          ]
+        },
+        "route": {
+          "type": "string",
+          "maxLength": 256
+        },
+        "methods": {
+          "type": "array",
+          "maxItems": 7,
+          "items": {
+            "type": "string",
+            "enum": [
+              "GET",
+              "HEAD",
+              "POST",
+              "PUT",
+              "PATCH",
+              "DELETE",
+              "OPTIONS"
+            ]
+          }
+        },
+        "host": {
+          "type": "string",
+          "maxLength": 253
+        },
+        "path": {
+          "description": "Path of the first request over the limit (redacted).",
+          "type": "string",
+          "maxLength": 512
+        },
+        "client": {
+          "$ref": "#/$defs/client"
+        },
+        "key_bits": {
+          "$ref": "#/$defs/clientKeyBits"
+        },
+        "limit": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "per_s": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 86400
+        },
+        "burst": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "count": {
+          "description": "Requests over the limit since the last record.",
+          "type": "integer",
+          "minimum": 1
+        },
+        "mode": {
+          "type": "string",
+          "enum": [
+            "observe",
+            "block"
+          ]
+        },
+        "action": {
+          "description": "observe: counted (\"hätte begrenzt\"); block: answered 429 with Retry-After.",
+          "type": "string",
+          "enum": [
+            "observe",
+            "block"
+          ]
+        },
+        "reason": {
+          "description": "v0.4 addendum 2026-10-28: never learning; rate limits act from day 0 (D29).",
+          "allOf": [
+            {
+              "$ref": "#/$defs/behaviourReason"
+            },
+            {
+              "not": {
+                "const": "learning"
+              }
+            }
+          ]
+        },
+        "retry_after_s": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 86400
+        }
+      }
+    },
+    "distributedDetected": {
+      "description": "v0.4 (MVP-18): a distributed attack (wave) was detected. Address-free: no client IP, no user name, no account key; the fingerprint is a local id (keyed per process, never stored beyond the window). Local only.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "wave_id",
+        "detector",
+        "route",
+        "senders",
+        "count",
+        "threshold",
+        "window_s",
+        "response",
+        "mode",
+        "action"
+      ],
+      "properties": {
+        "wave_id": {
+          "description": "Local wave id (random, never derived from a sender, account or host).",
+          "$ref": "common.schema.json#/$defs/uuid"
+        },
+        "detector": {
+          "type": "string",
+          "enum": [
+            "route_wave",
+            "account_wave",
+            "shape_wave",
+            "fingerprint_cluster",
+            "inconsistency"
+          ]
+        },
+        "host": {
+          "type": "string",
+          "maxLength": 253
+        },
+        "route": {
+          "description": "Path or route pattern under attack (redacted like request paths).",
+          "type": "string",
+          "maxLength": 512
+        },
+        "senders": {
+          "description": "Estimated distinct client keys in the window (sketch).",
+          "type": "integer",
+          "minimum": 0
+        },
+        "count": {
+          "description": "Failures, senders or requests that triggered, per detector.",
+          "type": "integer",
+          "minimum": 0
+        },
+        "threshold": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "window_s": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "baseline": {
+          "description": "route_wave: the route's own failures per window before the wave.",
+          "type": "number",
+          "minimum": 0
+        },
+        "fingerprint": {
+          "description": "Local fingerprint id of the cluster (12 hex, per-process key).",
+          "type": "string",
+          "pattern": "^[0-9a-f]{12}$"
+        },
+        "fingerprint_kind": {
+          "type": "string",
+          "enum": [
+            "ja4",
+            "headers"
+          ]
+        },
+        "user_agents": {
+          "description": "Distinct user agent families seen with the fingerprint.",
+          "type": "integer",
+          "minimum": 0
+        },
+        "request_sig": {
+          "$ref": "common.schema.json#/$defs/sha256"
+        },
+        "waf_rules": {
+          "type": "array",
+          "maxItems": 32,
+          "items": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 99999999
+          }
+        },
+        "response": {
+          "type": "string",
+          "enum": [
+            "route_tighten",
+            "account_slowdown",
+            "shape_block"
+          ]
+        },
+        "mode": {
+          "type": "string",
+          "enum": [
+            "observe",
+            "respond"
+          ]
+        },
+        "action": {
+          "description": "respond: the response is enforced; observe: shown as \"hätte reagiert\".",
+          "type": "string",
+          "enum": [
+            "observe",
+            "respond"
+          ]
+        },
+        "reason": {
+          "description": "Why the action stayed observe: learning (fresh install), gateway_observe (gateway mode observe).",
+          "type": "string",
+          "enum": [
+            "learning",
+            "gateway_observe"
+          ]
+        },
+        "until": {
+          "$ref": "common.schema.json#/$defs/timestamp"
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "action": {
+                "const": "respond"
+              }
+            },
+            "required": [
+              "action"
+            ]
+          },
+          "then": {
+            "required": [
+              "until"
+            ]
+          }
+        }
+      ]
+    },
+    "distributedEnded": {
+      "description": "v0.4 (MVP-18): a wave's response ended (expired or ended early by the operator). Local only.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "wave_id",
+        "detector",
+        "route",
+        "reason",
+        "duration_s",
+        "stopped"
+      ],
+      "properties": {
+        "wave_id": {
+          "description": "Local wave id (random, never derived from a sender, account or host).",
+          "$ref": "common.schema.json#/$defs/uuid"
+        },
+        "detector": {
+          "type": "string",
+          "enum": [
+            "route_wave",
+            "account_wave",
+            "shape_wave",
+            "fingerprint_cluster",
+            "inconsistency"
+          ]
+        },
+        "host": {
+          "type": "string",
+          "maxLength": 253
+        },
+        "route": {
+          "type": "string",
+          "maxLength": 512
+        },
+        "reason": {
+          "type": "string",
+          "enum": [
+            "expired",
+            "operator"
+          ]
+        },
+        "duration_s": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 7200
+        },
+        "stopped": {
+          "description": "Requests answered with 429 or 403 by the response.",
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    }
+  }
+}

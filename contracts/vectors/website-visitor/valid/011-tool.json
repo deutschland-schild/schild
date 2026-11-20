@@ -1,0 +1,20 @@
+{
+  "contract": "website-visitor",
+  "description": "D36 amendment: HTTP libraries and command line tools are bot clients.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"bot_category\":\"tool_library\",\"outcome\":\"passed\",\"ua_class\":\"tool\"}",
+  "input_decoded": {
+    "bot_category": "tool_library",
+    "outcome": "passed",
+    "ua_class": "tool"
+  },
+  "expect": {
+    "valid": true,
+    "result": {
+      "bot_client": true,
+      "visitor": false
+    }
+  }
+}

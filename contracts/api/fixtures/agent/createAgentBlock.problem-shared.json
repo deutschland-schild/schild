@@ -1,0 +1,7 @@
+{
+  "type": "https://schild.invalid/problems/shared_address",
+  "title": "Not blocked",
+  "status": 409,
+  "code": "shared_address",
+  "detail": "Many people share this address (mobile): it is never blocked."
+}

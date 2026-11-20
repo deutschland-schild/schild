@@ -1,0 +1,26 @@
+{
+  "site": "verein.example",
+  "from": "2026-10-29T00:00:00Z",
+  "to": "2026-10-29T12:00:00Z",
+  "previous_from": "2026-10-28T12:00:00Z",
+  "previous_to": "2026-10-29T00:00:00Z",
+  "source": "rings",
+  "current": {
+    "visitors": { "value": 902, "exact": false, "partial": true, "error_bound": 0.033 },
+    "page_views": { "value": 2410, "exact": true, "partial": true },
+    "requests": { "value": 22300, "exact": true, "partial": true },
+    "stopped": { "value": 140, "exact": true, "partial": true },
+    "would_block": { "value": 5, "exact": true, "partial": true },
+    "latency_p95_ms": { "value": 88.1, "exact": false, "partial": true, "error_bound": 0.25 },
+    "error_rate": { "value": 0.001, "exact": true, "partial": true }
+  },
+  "previous": {
+    "visitors": { "value": 915, "exact": false, "error_bound": 0.033 },
+    "page_views": { "value": 2560, "exact": true },
+    "requests": { "value": 24100, "exact": true },
+    "stopped": { "value": 160, "exact": true },
+    "would_block": { "value": 6, "exact": true },
+    "latency_p95_ms": { "value": 90.4, "exact": false, "error_bound": 0.25 },
+    "error_rate": { "value": 0.002, "exact": true }
+  }
+}

@@ -1,0 +1,122 @@
+id: MVP-22
+# Maintainer request (2026-10-29): all requests in the dashboard, not only WAF alerts, "like Google Analytics for the
+# last 48 h": context around an alert, a bot and AI-crawler overview like Cloudflare's, access by region.
+# Design study 2026-10-29 (subagent, no code): most of the aggregate view fits MVP-21 (addendum below); this prototype adds
+# a 48 h request ring, Kontext, bot catalogue and verification, robots.txt view and the "Zugriffe" page.
+# Decided (initiator, 2026-10-29): geo enrichment can use the operator's own IPinfo token (BYOK) to download the
+# IPinfo database and look up locally; the bundled DB-IP Lite stays the default. Paid-tier fields (VPN, proxy, Tor,
+# hosting, mobile carrier) are optional and filled only when the database provides them.
+# Decided (initiator, 2026-10-29): open_questions 1-9 accepted as recommended (after the arrow). Contracts v0.5 (D35) next.
+# Contracts written 2026-10-29: MVP-21 addendum in v0.4 (D33); contracts v0.5 (DECISIONS D35): monitoring.requests, bots,
+# geo.provider in schild.yaml, bot-catalogue.schema.json, tag `requests` of both API documents, contract/bots,
+# contract/geo, contract/requests. Not built yet.
+title: "Zugriffe und Bots: all requests of the last 48 h in the built-in dashboard (pages, sources, countries, technology, errors), context around incidents, bot and AI-crawler overview with verification, optional geo enrichment with the operator's own IPinfo or MaxMind key"
+ships: false                        # draft
+status: ENTWURF
+image: schild                       # same binary; no new component
+hypotheses: [M2, D1, D3]
+refs: [E7, concept-24, MVP-08, MVP-12, MVP-17, MVP-19, MVP-20, MVP-21, DECISIONS-D28, DECISIONS-D30, DECISIONS-D33]
+depends_on: [MVP-21]
+why: >-
+  MVP-21 counts every request but keeps no single requests; events sample clean traffic (20/s, then 1 %). So the
+  dashboard cannot answer "what did this client do before the incident?", "which AI crawlers were here today, and do
+  they respect robots.txt?" or "which pages fail or are slow?" without opening the access log on the server.
+
+MVP-21 addendum:                     # cheap additions to the unreleased contracts v0.4 (MVP-21 builds them)
+  - 'breakdowns: referrer domain (registrable domain only; own sites as "intern"; known AI assistants grouped), browser family, OS family, device class (fixed enums, no versions)'
+  - 'bot_category dimension from the user agent only; verification shown as unavailable until this prototype'
+  - 'counter page_views: GET, 2xx, document request (Sec-Fetch-Dest document or Accept text/html), not a bot'
+  - 'detections (incl. would_block) per path template and per rule id (top-K) in the rings, next to request counts, so alert rates per page and rule are exact over 14 d'
+  - 'fix the waf.max_concurrent_evals description (cost classes instead of "bodies over 128 KiB", MVP-19 fix round 2)'
+
+request_ring:
+  - 'append-only segment files, one per 10 min, own dictionary per segment (host, path, referrer domain, bot id), about 40 B per record, flate-compressed when closed; retention deletes whole files; no SQLite, nothing written to schild.db or metrics.db'
+  - 'record: time offset, site, path, method, status, country, ASN, browser/OS/device enum, bot id and verification state, referrer id, log-scale duration, bytes, a visitor key (HMAC of the client key with a daily random key held in memory only)'
+  - 'never stored: IP or prefix, query strings, cookies, full user agent, full referrer URL, city or region, Accept-Language, client hints (never requested via Accept-CH), header-order or JA4 fingerprints, a visitor key valid longer than a day'
+  - 'hot path: build the record, non-blocking send to one writer; full channel drops the record and counts it'
+  - 'size cap monitoring.requests.max_size_mb (default 512); above it consistent sampling by visitor key, rate stored per segment, UI shows "Näherungswert"'
+  - 'context: an in-memory ring with every request of the last 10 min (<= 16 MiB); an incident or hint writes +-5 min of it unsampled to a pinned segment (capped per hour)'
+  - 'storage bounds (D38, 2026-10-29): pinned context segments count against keep_hours and max_size_mb like every other segment (pinned means not sampled, never outside the cap); when the cap is reached the oldest segments go first, pinned or not'
+  - 'D51 (draft, amends D38): pinned context segments stay min(events_days, raw_ip_days) days instead of keep_hours, so the context of an incident lasts as long as the incident; ordinary segments and queryRequests stay at keep_hours'
+  - 'queries: one at a time, at most 6 h unsampled per query'
+  - 'numbers on the dashboard always come from the MVP-21 counters; the ring serves drill-down, filters and context'
+  - 'every record carries the security outcome (passed, would_block, blocked_waf, blocked_behaviour, rate_limited, rejected_limit, fail_closed), anomaly score, up to 3 matched rule ids and the event id when one was written, so valid requests and WAF alerts sit in one stream and join without a second lookup'
+
+requests_and_alerts:                # maintainer focus 2026-10-29: valid requests together with WAF alerts
+  - 'one timeline: every chart and list shows clean requests and alerts together (stacked: durchgelassen, hätte gesperrt, gesperrt), filterable by page, rule, country, bot class, status'
+  - 'per client in Kontext: the valid requests before and after an alert in order (e.g. login, browsing, then the request with the alert), so a human sees at a glance whether it was a visitor or a scanner'
+  - 'per rule: on which pages it fires, the share of requests of that page it hits, and how many of the hit clients otherwise behaved like normal visitors (page views, 2xx, browser, no other alerts); a rule hitting many otherwise normal visitors on one page is shown as "möglicher Fehlalarm" with a narrow exception as copyable YAML snippet (never applied, configuration as code, D32)'
+  - 'per page: alert rate next to traffic, status and latency; a page where alerts are followed by 2xx responses in observe mode is highlighted for review'
+  - 'per client: clients whose alerts are their only requests (scanner pattern) vs. clients with alerts inside normal sessions (false-positive pattern); counts only, visitor keys stay daily and pseudonymous'
+  - 'MVP-21 adds the matching aggregates: detections per path template and per rule id in the 1 min ring, so the rates work beyond the 48 h of the ring'
+
+bots:
+  catalogue: 'bot-catalogue.json shipped in the binary: id, operator, category, robots token, UA pattern, verification method; seeded from ai.robots.txt robots.json (MIT, attribution in gateway/NOTICE) plus own search, SEO, monitoring and preview entries'
+  categories: 'Suchmaschine, KI-Training, KI-Suche, KI-Assistent, Vorschau/Social, Feed-Reader, Monitoring, SEO-Werkzeug, Archiv/Forschung, Sicherheitsscanner, Werkzeug/Bibliothek, Wahrscheinlich automatisiert, Wahrscheinlich Browser'
+  verification: 'verified (IP in a published range, or FCrDNS / Web Bot Auth match), claimed (operator publishes nothing or check off), mismatch (ranges published, IP not in them: "gibt sich als ... aus"), unknown_stale (range snapshot older than 30 days); range snapshots of Google, Bing, OpenAI, Perplexity, Apple and others shipped with releases; MVP-12 reuses the same code'
+  robots_txt: 'hourly local fetch of each site''s own robots.txt from the upstream; per bot: read it, when last, requests to disallowed paths ("hält sich daran: ja / nein / unklar"); observation only'
+
+geo:                                # decided 2026-10-29: BYOK enrichment
+  - 'providers: dbip (default, bundled DB-IP Lite country + ASN, unchanged), ipinfo (operator''s own token), maxmind (operator''s own GeoLite2 or paid licence)'
+  - 'with a token the gateway downloads the provider''s MMDB itself (default every 24 h) and looks up locally; no visitor address is ever sent to the provider; the database is not redistributed by the project (IPinfo Lite is CC BY-SA)'
+  - 'token from a file (token_file) or environment, never in schild.yaml, never logged, never returned by any API'
+  - 'download: size cap, parse and sanity check before an atomic swap (existing hot reload); on failure keep the last good database and show it'
+  - 'download files (D38): written to a temp file in the same directory, removed on any failure and at start (stale temp files from a crash); after a swap only the current database stays (no growing set of old databases), so the geo directory holds at most the current file plus one download in progress'
+  - 'field mapping per provider (IPinfo: country_code, asn as "AS<n>", as_name, as_domain; MaxMind: country.iso_code, autonomous_system_number); unknown fields ignored'
+  - 'optional fields, filled only when the database provides them: is_vpn, is_proxy, is_tor, is_hosting, is_mobile, carrier; they feed net_class (MVP-17 cgnat/mobile caution, "Wahrscheinlich automatisiert") and the views'
+  - 'the download is an outbound connection to the provider: off unless configured, works without labs, shown in the dashboard ("Geo-Daten: IPinfo, Stand <Datum>") and in the runbook'
+  - 'live API lookups per request: not part of this prototype (would send visitor addresses to a third country)'
+
+dashboard:                          # German UI, du-form, calm; MVP-21 "Traffic" becomes "Zugriffe"
+  - 'tabs: Überblick, Seiten, Herkunft (incl. KI-Assistenten), Länder (list plus built-in SVG map, no tile servers), Bots & KI-Crawler (categories, per-bot table with requests, bytes, last seen, verified, robots.txt; "gibt sich aus als"), Technik, Fehler & Langsam, Anfragen (filtered list from the ring)'
+  - 'every incident and event detail gets "Kontext": same visitor key +-5 min plus a site-wide strip of the same window'
+  - 'no red for normal traffic; "Näherungswert" wherever sampled or estimated; a note when a CDN in front means only origin traffic is visible'
+
+agent_api:
+  - 'MVP-21 getTrafficBreakdown gains the new dimensions (so MVP-20 exports them without extra work)'
+  - 'new read operations queryRequests (<= 1 h, <= 10k records scanned), getRequestContext(event_id), getBotOverview and matching MCP tools; visitor keys re-keyed as p1- pseudonyms; path, referrer and host marked x-untrusted'
+  - 'MVP-20: no bulk export of the ring (stays on the server like the access log); the central dashboard asks for bounded context through the tunnel'
+
+privacy:
+  - 'purpose: operational statistics for security and monitoring (concept 24, new V13 "Betriebsstatistik"); no marketing features'
+  - 'TDDDG section 25 not touched: no cookies, no script, nothing read from the device'
+  - 'disclosure text for the operator''s privacy notice (page, referrer domain, country, IP address, user agent, response time; single requests deleted after 48 h, the context of an incident with the incident, D49, D50, D51 draft; no cookies, no third parties); humanizer pass and legal review before publishing'
+
+contracts:
+  new:                              # D35, by the contracts agent after open_questions are decided
+    - 'schild.schema.json: monitoring.requests {enabled, keep_hours <= 720 (D66, was 48; the ring keeps min(keep_hours, raw_ip_days x 24)), max_size_mb, raw_paths}, bots {verify {ranges, fcrdns}, ranges_fetch (default true since D67)}, geo {provider, token_file, database, refresh_hours}'
+    - 'bot-catalogue.schema.json with Go/Python vectors (UA -> bot, IP -> verification); geo field mapping vectors per provider'
+    - 'client-dashboard.openapi.yaml: breakdown enum, tag requests, geo source and date in the overview'
+    - 'gateway-agent.openapi.yaml: new operations and tools'
+  version: 'contracts v0.5 (backwards compatible addendum), MVP-21 addendum stays in v0.4'
+
+must:
+  - 'at most 1.5 us extra p50 per request; nothing on the hot path blocks'
+  - 'ring <= max_size_mb and <= 48 h, pinned context segments <= min(events_days, raw_ip_days) days (D51 draft); no address outlives raw_ip_days (D49); no long-lived key on disk'
+  - 'bot catalogue and verification work fully offline'
+  - 'geo download failures never affect request handling; the last good database stays'
+measure:                            # by an independent agent
+  - 'replay with ground truth: bot class precision >= 0.95 for verified bots; 0 "verified" for spoofed user agents from foreign IPs'
+  - 'ring counts within the stated sampling bound; grep ring files for replayed IPs after raw_ip_days and after privacy/delete: 0 hits (D49)'
+  - 'CPU at 500 and 5000 rps vs. ring off: <= 1 % of a core; p99 unchanged within noise; context query p95 < 300 ms'
+  - 'geo: IPinfo Lite and MaxMind test databases map to the same fields; token never in logs, API or config dumps; broken or oversized download keeps the old database'
+  - 'usability: "Welche KI-Crawler waren heute da?" answered in 30 s, "Was tat dieser Client vor dem Vorfall?" in 1 min'
+  - 'false positives: replay with seeded false positives (a rule firing on a form field of normal sessions) and seeded scanners; "möglicher Fehlalarm" flags >= 80 % of the seeded false positives and < 5 % of the scanner rules; the offered exception is narrow (one rule, one page, one field) and blocks the scanner replay again'
+kill_if: "an IP or anything derived from one outlives raw_ip_days or stays in the ring after privacy/delete (D49), or outside a pinned context segment outlives 48 h (D51 draft) OR a spoofed bot is shown as verified OR p99 increases measurably OR the ring exceeds its cap OR a visitor address leaves the server for geo enrichment OR the geo token appears in a log or API response"
+done: "make contracts-test && make test && (cd ui && pnpm check) && make testlab-up PROFILE=t1 && make smoke PROFILE=t1 (incl. Zugriffe steps)"
+out_of_scope:
+  - 'marketing analytics (UTM, campaigns, goals, funnels)'
+  - 'charging AI crawlers and robots.txt enforcement; blocking crawlers per website was decided separately: DECISIONS D57, MVP-29'
+  - 'live IP API lookups per request'
+  - 'region or city below country'
+  - 'bulk copy of the ring to the central dashboard'
+decided_questions:                  # initiator 2026-10-29: accepted as recommended (after the arrow)
+  - '1 purpose: operational statistics only or marketing analytics too -> operational only'
+  - '2 real paths in the ring or templates only -> real path (redacted, no query) in the ring only, switch per site'
+  - '3 bot ranges and catalogue updates -> with releases plus the signed rule bundle (D72: no bundle reaches the gateway, lab later; until then with releases); direct fetch from the operators optional and off'
+  - '4 FCrDNS default (shared with MVP-12) -> off (sends visitor IPs to the resolver)'
+  - '5 blocking or robots enforcement for AI crawlers -> not now (blocking taken up 2026-11-02 in D57, MVP-29; robots enforcement and charging stay out)'
+  - '6 ring cap and sampling -> 512 MB, consistent sampling per visitor'
+  - '7 visitor key across restarts or midnight -> memory only, daily'
+  - '8 ring in the central dashboard -> bounded context queries only'
+  - '9 region below country -> no'

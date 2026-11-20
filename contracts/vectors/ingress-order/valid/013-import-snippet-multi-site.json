@@ -1,0 +1,194 @@
+{
+  "contract": "ingress-order",
+  "description": "D31 amendment 2026-10-29: Accepted: two sites with import schild (the snippet), redir, uri strip_prefix, handle_path, try_files after it.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"caddyfile\":\"(schild) {\\n\\tschild\\n}\\nhttp://a.example.test, http://www.a.example.test {\\n\\timport schild\\n\\tredir /alt /neu 301\\n\\turi strip_prefix /legacy\\n\\treverse_proxy 127.0.0.1:18081\\n}\\nhttp://b.example.test {\\n\\timport schild\\n\\thandle_path /api/* {\\n\\t\\treverse_proxy 127.0.0.1:18082\\n\\t}\\n\\thandle {\\n\\t\\troot * /srv/b\\n\\t\\ttry_files {path} /index.html\\n\\t\\tfile_server\\n\\t}\\n}\\n\",\"servers\":{\"srv0\":{\"listen\":[\":80\"],\"routes\":[{\"handle\":[{\"handler\":\"subroute\",\"routes\":[{\"handle\":[{\"handler\":\"schild\"}]},{\"handle\":[{\"handler\":\"static_response\",\"headers\":{\"Location\":[\"/neu\"]},\"status_code\":301}],\"match\":[{\"path\":[\"/alt\"]}]},{\"handle\":[{\"handler\":\"rewrite\",\"strip_path_prefix\":\"/legacy\"},{\"handler\":\"reverse_proxy\",\"upstreams\":[{\"dial\":\"127.0.0.1:18081\"}]}]}]}],\"match\":[{\"host\":[\"a.example.test\",\"www.a.example.test\"]}],\"terminal\":true},{\"handle\":[{\"handler\":\"subroute\",\"routes\":[{\"handle\":[{\"handler\":\"schild\"}]},{\"group\":\"group3\",\"handle\":[{\"handler\":\"subroute\",\"routes\":[{\"handle\":[{\"handler\":\"rewrite\",\"strip_path_prefix\":\"/api\"}]},{\"handle\":[{\"handler\":\"reverse_proxy\",\"upstreams\":[{\"dial\":\"127.0.0.1:18082\"}]}]}]}],\"match\":[{\"path\":[\"/api/*\"]}]},{\"group\":\"group3\",\"handle\":[{\"handler\":\"subroute\",\"routes\":[{\"handle\":[{\"handler\":\"vars\",\"root\":\"/srv/b\"}]},{\"handle\":[{\"handler\":\"rewrite\",\"uri\":\"{http.matchers.file.relative}\"}],\"match\":[{\"file\":{\"try_files\":[\"{http.request.uri.path}\",\"/index.html\"]}}]},{\"handle\":[{\"handler\":\"file_server\",\"hide\":[\"/tmp/ingcases/in/p13-import-snippet-multi-site.caddy\"]}]}]}]}]}],\"match\":[{\"host\":[\"b.example.test\"]}],\"terminal\":true}]}}}",
+  "input_decoded": {
+    "caddyfile": "(schild) {\n\tschild\n}\nhttp://a.example.test, http://www.a.example.test {\n\timport schild\n\tredir /alt /neu 301\n\turi strip_prefix /legacy\n\treverse_proxy 127.0.0.1:18081\n}\nhttp://b.example.test {\n\timport schild\n\thandle_path /api/* {\n\t\treverse_proxy 127.0.0.1:18082\n\t}\n\thandle {\n\t\troot * /srv/b\n\t\ttry_files {path} /index.html\n\t\tfile_server\n\t}\n}\n",
+    "servers": {
+      "srv0": {
+        "listen": [
+          ":80"
+        ],
+        "routes": [
+          {
+            "handle": [
+              {
+                "handler": "subroute",
+                "routes": [
+                  {
+                    "handle": [
+                      {
+                        "handler": "schild"
+                      }
+                    ]
+                  },
+                  {
+                    "handle": [
+                      {
+                        "handler": "static_response",
+                        "headers": {
+                          "Location": [
+                            "/neu"
+                          ]
+                        },
+                        "status_code": 301
+                      }
+                    ],
+                    "match": [
+                      {
+                        "path": [
+                          "/alt"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "handle": [
+                      {
+                        "handler": "rewrite",
+                        "strip_path_prefix": "/legacy"
+                      },
+                      {
+                        "handler": "reverse_proxy",
+                        "upstreams": [
+                          {
+                            "dial": "127.0.0.1:18081"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ],
+            "match": [
+              {
+                "host": [
+                  "a.example.test",
+                  "www.a.example.test"
+                ]
+              }
+            ],
+            "terminal": true
+          },
+          {
+            "handle": [
+              {
+                "handler": "subroute",
+                "routes": [
+                  {
+                    "handle": [
+                      {
+                        "handler": "schild"
+                      }
+                    ]
+                  },
+                  {
+                    "group": "group3",
+                    "handle": [
+                      {
+                        "handler": "subroute",
+                        "routes": [
+                          {
+                            "handle": [
+                              {
+                                "handler": "rewrite",
+                                "strip_path_prefix": "/api"
+                              }
+                            ]
+                          },
+                          {
+                            "handle": [
+                              {
+                                "handler": "reverse_proxy",
+                                "upstreams": [
+                                  {
+                                    "dial": "127.0.0.1:18082"
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ],
+                    "match": [
+                      {
+                        "path": [
+                          "/api/*"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "group": "group3",
+                    "handle": [
+                      {
+                        "handler": "subroute",
+                        "routes": [
+                          {
+                            "handle": [
+                              {
+                                "handler": "vars",
+                                "root": "/srv/b"
+                              }
+                            ]
+                          },
+                          {
+                            "handle": [
+                              {
+                                "handler": "rewrite",
+                                "uri": "{http.matchers.file.relative}"
+                              }
+                            ],
+                            "match": [
+                              {
+                                "file": {
+                                  "try_files": [
+                                    "{http.request.uri.path}",
+                                    "/index.html"
+                                  ]
+                                }
+                              }
+                            ]
+                          },
+                          {
+                            "handle": [
+                              {
+                                "handler": "file_server",
+                                "hide": [
+                                  "/tmp/ingcases/in/p13-import-snippet-multi-site.caddy"
+                                ]
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ],
+            "match": [
+              {
+                "host": [
+                  "b.example.test"
+                ]
+              }
+            ],
+            "terminal": true
+          }
+        ]
+      }
+    }
+  },
+  "expect": {
+    "valid": true,
+    "result": {
+      "findings": []
+    }
+  }
+}

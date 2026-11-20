@@ -1,0 +1,42 @@
+{
+  "contract": "crowdsec-hub",
+  "description": "Mapping: several entries in rules: are alternatives; the group index runs on across them.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"content\":\"name: crowdsecurity/vpatch-CVE-2026-1207\\ndescription: 'Rewritten test rule.'\\nrules:\\n  - zones:\\n      - URI\\n    match:\\n      type: endsWith\\n      value: /_profiler/phpinfo\\n  - zones:\\n      - URI\\n    match:\\n      type: endsWith\\n      value: /_profiler/open\\nlabels:\\n  type: exploit\\n  confidence: 3\\n  spoofable: 0\\n  label: Example - RCE\\n  classification:\\n    - cve.CVE-2026-1207\\n    - attack.T1190\\n    - cwe.CWE-89\\n\",\"name\":\"crowdsecurity/vpatch-CVE-2026-1207\",\"op\":\"convert\",\"version\":\"0.2\"}",
+  "input_decoded": {
+    "content": "name: crowdsecurity/vpatch-CVE-2026-1207\ndescription: 'Rewritten test rule.'\nrules:\n  - zones:\n      - URI\n    match:\n      type: endsWith\n      value: /_profiler/phpinfo\n  - zones:\n      - URI\n    match:\n      type: endsWith\n      value: /_profiler/open\nlabels:\n  type: exploit\n  confidence: 3\n  spoofable: 0\n  label: Example - RCE\n  classification:\n    - cve.CVE-2026-1207\n    - attack.T1190\n    - cwe.CWE-89\n",
+    "name": "crowdsecurity/vpatch-CVE-2026-1207",
+    "op": "convert",
+    "version": "0.2"
+  },
+  "expect": {
+    "valid": true,
+    "result": {
+      "outcome": "converted",
+      "rule": {
+        "name": "crowdsecurity/vpatch-CVE-2026-1207",
+        "version": "0.2",
+        "digest": "367a248d39b68324c416e09b6929ad749061728392b7286bd03343510cda9e79",
+        "base_id": 62846312,
+        "seclang": [
+          "SecRule REQUEST_FILENAME \"@endsWith /_profiler/phpinfo\" \"id:62846312,phase:2,pass,t:none,severity:CRITICAL,msg:'crowdsec hub crowdsecurity/vpatch-CVE-2026-1207',tag:crowdsec_hub\"",
+          "SecRule REQUEST_FILENAME \"@endsWith /_profiler/open\" \"id:62846313,phase:2,pass,t:none,severity:CRITICAL,msg:'crowdsec hub crowdsecurity/vpatch-CVE-2026-1207',tag:crowdsec_hub\""
+        ],
+        "label": "Example - RCE",
+        "description": "Rewritten test rule.",
+        "cves": [
+          "CVE-2026-1207"
+        ],
+        "cwes": [
+          "CWE-89"
+        ],
+        "attack": [
+          "T1190"
+        ],
+        "notes": []
+      }
+    }
+  }
+}

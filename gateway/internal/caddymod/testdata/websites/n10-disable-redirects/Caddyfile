@@ -1,0 +1,19 @@
+{
+	admin off
+	auto_https disable_redirects
+}
+
+http://shop.example.org {
+	redir https://shop.example.org{uri} 301
+}
+
+shop.example.org {
+	schild
+	reverse_proxy 127.0.0.1:19101
+}
+
+http://intranet.example.org {
+	schild
+	reverse_proxy 127.0.0.1:19101
+}
+

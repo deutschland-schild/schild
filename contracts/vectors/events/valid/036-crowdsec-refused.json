@@ -1,0 +1,27 @@
+{
+  "contract": "events",
+  "description": "D39: an update was refused, the running set stayed.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"data\":{\"code\":\"shrink\",\"outcome\":\"refused\",\"repository\":\"crowdsec\",\"rules_loaded\":199,\"rules_skipped\":5,\"set_source\":\"image\"},\"datacontenttype\":\"application/json\",\"id\":\"b90a362f-7eb0-47b0-af7c-200238e40777\",\"source\":\"schild://web-1\",\"specversion\":\"1.0\",\"time\":\"2026-10-26T11:59:58.123Z\",\"type\":\"schild.rule.repository_updated.v1\"}",
+  "input_decoded": {
+    "data": {
+      "code": "shrink",
+      "outcome": "refused",
+      "repository": "crowdsec",
+      "rules_loaded": 199,
+      "rules_skipped": 5,
+      "set_source": "image"
+    },
+    "datacontenttype": "application/json",
+    "id": "b90a362f-7eb0-47b0-af7c-200238e40777",
+    "source": "schild://web-1",
+    "specversion": "1.0",
+    "time": "2026-10-26T11:59:58.123Z",
+    "type": "schild.rule.repository_updated.v1"
+  },
+  "expect": {
+    "valid": true
+  }
+}

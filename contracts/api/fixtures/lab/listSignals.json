@@ -1,0 +1,68 @@
+{
+  "items": [
+    {
+      "received_at": "2026-10-26T12:00:01Z",
+      "issuer": "issuer-test-1",
+      "keyid": "test-site-a",
+      "pattern_id": "p_3c9d0e1f2a3b4c5d",
+      "payload": {
+        "action_sig": "login-burst/wp-admin",
+        "agent": {
+          "bot": false,
+          "family": "python-requests",
+          "major": 2
+        },
+        "category": "wordpress-login-bruteforce",
+        "id": "65d5559f-81e1-4937-b533-d2a60218c658",
+        "kind": "tip",
+        "origin": {
+          "asn": 14061,
+          "attribution": "tcp_peer",
+          "country": "NL",
+          "net_class": "hosting",
+          "protected": false
+        },
+        "request_sig": "sha256:a07187f1c7d1c5643b02ce730bef3d7bc5700a5bee0b3833d13f2819f1e2be81",
+        "schema": "schild.signal/0.3",
+        "score": 72,
+        "time_bucket": "2026-10-26T11:55:00Z",
+        "waf_rules": [
+          930120,
+          949110
+        ]
+      }
+    },
+    {
+      "received_at": "2026-10-26T11:45:09Z",
+      "issuer": "issuer-test-2",
+      "keyid": "test-site-a",
+      "pattern_id": "p_3c9d0e1f2a3b4c5d",
+      "payload": {
+        "action_sig": "sqli/rest-api",
+        "agent": {
+          "bot": false,
+          "family": "chrome",
+          "major": 130
+        },
+        "category": "sql-injection",
+        "id": "9a8b288f-101e-4d28-a1b7-81c7b153d842",
+        "kind": "tip",
+        "origin": {
+          "asn": 3320,
+          "attribution": "trusted_proxy",
+          "country": "DE",
+          "net_class": "mobile",
+          "protected": true
+        },
+        "request_sig": "sha256:a07187f1c7d1c5643b02ce730bef3d7bc5700a5bee0b3833d13f2819f1e2be81",
+        "schema": "schild.signal/0.3",
+        "score": 100,
+        "time_bucket": "2026-10-26T11:45:00Z",
+        "waf_rules": [
+          942100
+        ]
+      }
+    }
+  ],
+  "next_cursor": "c2lnbmFsLTEyMzQ"
+}

@@ -1,0 +1,13 @@
+{
+  "contract": "seclang",
+  "description": "SecLang subset case setvar-lower-score (max_action observe).",
+  "context": {
+    "now": "2026-10-26T12:00:00Z",
+    "max_action": "observe"
+  },
+  "input_raw": "SecRule ARGS \"@rx x\" \"id:7700025,phase:1,pass,severity:NOTICE,msg:'x',setvar:tx.inbound_anomaly_score_pl1=-5\"",
+  "expect": {
+    "valid": false,
+    "error": "seclang"
+  }
+}

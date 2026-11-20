@@ -1,0 +1,25 @@
+{
+  "contract": "agent-block",
+  "description": "D42: budget is required.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"duration_s\":60,\"mode\":\"autoblock\",\"op\":\"create\",\"reason\":\"credential stuffing from this client\",\"scope\":\"blocks:write\",\"target\":{\"address\":\"203.0.113.7\",\"attribution\":\"tcp_peer\",\"exists\":true,\"net_class\":\"residential\"}}",
+  "input_decoded": {
+    "duration_s": 60,
+    "mode": "autoblock",
+    "op": "create",
+    "reason": "credential stuffing from this client",
+    "scope": "blocks:write",
+    "target": {
+      "address": "203.0.113.7",
+      "attribution": "tcp_peer",
+      "exists": true,
+      "net_class": "residential"
+    }
+  },
+  "expect": {
+    "valid": false,
+    "error": "schema"
+  }
+}

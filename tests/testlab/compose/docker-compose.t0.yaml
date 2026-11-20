@@ -1,0 +1,285 @@
+# Schild test lab, profile t0: the tiny REST API behind one schild gateway
+# (observe, test profile), its label stripper, ground truth, the dashboard
+# gateway and the one-shot smoke test / evaluator. The heavier third-party
+# sites are only in t1 (compose profile `full`).
+#
+# Three labs of three operators (co-signing, threshold 3) and two relays run
+# here as planned parts for their own tests. Since D72 the schild gateway has
+# no network features: it sits on `sites` only and never talks to them.
+#
+#   make testlab-secrets            # TEST ONLY keys, test CA, geo fixture (once)
+#   make testlab-up PROFILE=t0      # users, then the stack (waits for health)
+#   make smoke PROFILE=t0           # end-to-end proof, report in results/runs/
+#   make testlab-down PROFILE=t0
+#
+# All networks are internal (no route out) except mgmt, which only the gateway
+# joins to publish the dashboards on 127.0.0.1. Subnets are fixed inside
+# 10.66.0.0/16 (conventions.md §6). Fixed addresses: label strippers in
+# 10.66.1.0/28 (sites), load generators in 10.66.4.0/28 (inet); dynamic
+# addresses come from the upper halves (ip_range) so they never collide.
+# Project name: schild-testlab-t0.
+name: schild-testlab-t0
+
+x-ca: &ca "./secrets/ca.pem:/etc/schild-ca/ca.pem:ro"
+
+x-lab: &lab
+  image: schild-lab:dev
+  environment: &labenv
+    SCHILD_LAB_CONFIG: /etc/schild-lab/lab.yaml
+    SCHILD_LAB_DATA_DIR: /var/lib/schild-lab
+    SCHILD_TEST_CA: /etc/schild-ca/ca.pem
+    SCHILD_ALLOW_TEST_KEYS: "1"            # TEST LAB ONLY: start with test keys and the test CA (D24 preflight)
+    SCHILD_LAB_THRESHOLD: "3"          # distinct operators before a bundle/withdrawal is published
+    SCHILD_LOG_FORMAT: json
+    SCHILD_LOG_LEVEL: ${SCHILD_LOG_LEVEL:-info}
+  networks: [federation]
+  restart: unless-stopped
+
+x-relay: &relay
+  image: schild-relay:dev
+  environment: &relayenv
+    SCHILD_RELAY_LISTEN: ":7480"
+    SCHILD_RELAY_UPSTREAMS: https://lab-a:7444,https://lab-b:7444,https://lab-c:7444
+    SCHILD_RELAY_BUFFER: "256"
+    SCHILD_RELAY_MAX_PER_IP: "100000"   # load generators open many streams from one address
+    SCHILD_TEST_CA: /etc/schild-ca/ca.pem
+    SCHILD_ALLOW_TEST_KEYS: "1"            # TEST LAB ONLY: start with test keys and the test CA (D24 preflight)
+    SCHILD_LOG_FORMAT: json
+  volumes: [*ca]
+  networks: [federation]
+  restart: unless-stopped
+
+networks:
+  sites:
+    internal: true
+    ipam:
+      config:
+        - { subnet: 10.66.1.0/24, ip_range: 10.66.1.128/25 }
+  federation:
+    internal: true
+    ipam:
+      config:
+        - { subnet: 10.66.2.0/24 }
+  obs:
+    internal: true
+    ipam:
+      config:
+        - { subnet: 10.66.3.0/24 }
+  inet:
+    internal: true
+    enable_ipv6: true
+    ipam:
+      config:
+        - { subnet: 10.66.4.0/22, ip_range: 10.66.6.0/23 }
+        - { subnet: "fd66:0:0:4::/80" }
+  mgmt:
+    # Not internal: only the gateway joins it to publish dashboards on 127.0.0.1.
+    ipam:
+      config:
+        - { subnet: 10.66.8.0/24 }
+
+volumes:
+  groundtruth:
+  export-api:
+  data-api:
+  labdata-a:
+  labdata-b:
+  labdata-c:
+  data-api-t12:
+  export-api-t12:
+
+services:
+  # ---- test-lab infrastructure ---------------------------------------------
+  ground-truth:
+    image: schild-testlab:dev
+    command: ["/usr/local/bin/groundtruth"]
+    environment: { GT_DB: /var/lib/testlab/ground-truth.sqlite, GT_LISTEN: ":9201" }
+    volumes: ["groundtruth:/var/lib/testlab"]
+    networks: [obs]
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "/usr/local/bin/healthcheck", "http://localhost:9201/healthz"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  site-api:
+    image: schild-testlab:dev
+    command: ["/usr/local/bin/site-api"]
+    environment: { SITE_API_LISTEN: ":8080" }
+    networks: [sites]
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "/usr/local/bin/healthcheck", "http://localhost:8080/healthz"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  stripper-api:
+    image: schild-testlab:dev
+    command: ["/usr/local/bin/label-stripper"]
+    environment:
+      STRIPPER_LISTEN: ":8080"
+      STRIPPER_UPSTREAM: http://schild-api:8080
+      STRIPPER_GT_DB: /var/lib/testlab/ground-truth.sqlite
+      SCHILD_LABEL_SECRET: ${SCHILD_LABEL_SECRET:?set SCHILD_LABEL_SECRET}
+    volumes: ["groundtruth:/var/lib/testlab"]
+    networks:
+      inet: {}
+      sites: { ipv4_address: 10.66.1.5 }   # trusted proxy of schild-api
+    depends_on: { ground-truth: { condition: service_healthy } }
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "/usr/local/bin/healthcheck", "http://localhost:8080/healthz"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  # ---- the schild client in front of the REST API ---------------------------
+  schild-api:
+    image: schild:dev
+    environment:
+      SCHILD_CONFIG: /etc/schild/schild.yaml
+      SCHILD_ALLOW_TEST_KEYS: "1"            # TEST LAB ONLY: start with test keys and the test CA (D24 preflight)
+      SCHILD_EVENTS_NDJSON_DIR: /var/lib/schild/export   # evaluator input (TEST LAB only)
+      SCHILD_LOG_FORMAT: json
+      SCHILD_LOG_LEVEL: ${SCHILD_LOG_LEVEL:-info}
+    volumes:
+      - ./config/t0/api:/etc/schild:ro
+      - ./secrets/geo:/usr/share/schild/geo-fixture:ro
+      - data-api:/var/lib/schild
+      - export-api:/var/lib/schild/export
+    networks: [sites]                      # D72: no federation, the gateway talks to no lab or relay
+    restart: unless-stopped
+
+  # ---- T12: front proxy fail-open (compose profile t12, scripts/t12.sh) -------
+  # The real deployment shape for fail-open: a front proxy (`schild front`, the
+  # reference implementation of gateway/deploy/nginx-front.conf) talks to schild
+  # on 127.0.0.1 of the same host. schild-t12 shares front-api's network
+  # namespace, so when the schild process dies the front gets "connection
+  # refused" (fail-open to the app) and when schild hangs (docker pause) the
+  # front times out (503, nothing reaches the app). The default stack above is
+  # unchanged; stripper-api still points straight at schild-api.
+  stripper-t12:
+    image: schild-testlab:dev
+    profiles: ["t12"]
+    command: ["/usr/local/bin/label-stripper"]
+    environment:
+      STRIPPER_LISTEN: ":8080"
+      STRIPPER_UPSTREAM: http://front-api:8090
+      STRIPPER_GT_DB: /var/lib/testlab/ground-truth.sqlite
+      SCHILD_LABEL_SECRET: ${SCHILD_LABEL_SECRET:?set SCHILD_LABEL_SECRET}
+    volumes: ["groundtruth:/var/lib/testlab"]
+    networks:
+      inet: {}
+      sites: { ipv4_address: 10.66.1.7 }   # trusted proxy of schild-t12
+    depends_on: { ground-truth: { condition: service_healthy }, front-api: { condition: service_started } }
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "/usr/local/bin/healthcheck", "http://localhost:8080/healthz"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  front-api:
+    image: schild:dev
+    profiles: ["t12"]
+    # Reads schild-t12's access lock state (D56, D71): without it the front
+    # never fails open, and T12 would measure nothing.
+    command: ["front", "-listen", ":8090", "-schild", "http://127.0.0.1:8080", "-app", "http://site-api:8080", "-timeout", "${T12_FRONT_TIMEOUT:-3s}",
+              "-access-dir", "/var/lib/schild"]
+    volumes: ["data-api-t12:/var/lib/schild:ro"]
+    environment: { SCHILD_LOG_FORMAT: json }
+    networks:
+      sites: { ipv4_address: 10.66.1.6 }
+    healthcheck: { disable: true }         # the image check probes schild's readyz, which T12 takes down on purpose
+    restart: unless-stopped
+
+  schild-t12:
+    image: schild:dev
+    profiles: ["t12"]
+    network_mode: "service:front-api"
+    environment:
+      SCHILD_CONFIG: /etc/schild/schild.yaml
+      SCHILD_ALLOW_TEST_KEYS: "1"            # TEST LAB ONLY: start with test keys and the test CA (D24 preflight)
+      SCHILD_EVENTS_NDJSON_DIR: /var/lib/schild/export
+      SCHILD_LOG_FORMAT: json
+      SCHILD_LOG_LEVEL: ${SCHILD_LOG_LEVEL:-info}
+    volumes:
+      - ./config/t0/api-t12:/etc/schild:ro
+      - ./secrets/geo:/usr/share/schild/geo-fixture:ro
+      - data-api-t12:/var/lib/schild
+      - export-api-t12:/var/lib/schild/export
+    depends_on: { front-api: { condition: service_started } }
+    restart: "no"                          # T12 kills it on purpose; t12.sh starts it again
+
+  # ---- three labs of three operators (planned part, lab-side tests only) -----
+  lab-a:
+    <<: *lab
+    volumes: ["./config/t0/lab-a:/etc/schild-lab:ro", "./secrets/labs/lab-a:/run/schild-lab:ro", *ca, "labdata-a:/var/lib/schild-lab"]
+  lab-b:
+    <<: *lab
+    volumes: ["./config/t0/lab-b:/etc/schild-lab:ro", "./secrets/labs/lab-b:/run/schild-lab:ro", *ca, "labdata-b:/var/lib/schild-lab"]
+  lab-c:
+    <<: *lab
+    volumes: ["./config/t0/lab-c:/etc/schild-lab:ro", "./secrets/labs/lab-c:/run/schild-lab:ro", *ca, "labdata-c:/var/lib/schild-lab"]
+
+  # ---- two relays (planned part, lab-side tests only) -------------------------
+  relay-1:
+    <<: *relay
+    environment: { <<: *relayenv, SCHILD_RELAY_ID: relay-1 }
+  relay-2:
+    <<: *relay
+    environment: { <<: *relayenv, SCHILD_RELAY_ID: relay-2, SCHILD_RELAY_UPSTREAMS: "https://lab-c:7444,https://lab-b:7444,https://lab-a:7444" }
+
+  # ---- dashboards on 127.0.0.1 (the only container on mgmt) -------------------
+  gateway:
+    image: schild-testlab:dev
+    command: ["/usr/local/bin/gateway"]
+    environment:
+      GATEWAY_ROUTES: ":18788=http://schild-api:8788,:18789=http://lab-a:8789,:18790=http://lab-b:8789,:18791=http://lab-c:8789"
+    ports:
+      - "127.0.0.1:18788:18788"   # client dashboard (site api)
+      - "127.0.0.1:18789:18789"   # lab-a dashboard
+      - "127.0.0.1:18790:18790"   # lab-b dashboard
+      - "127.0.0.1:18791:18791"   # lab-c dashboard
+    networks: [mgmt, sites, federation]
+    restart: unless-stopped
+
+  # ---- one-shot jobs (docker compose run) ------------------------------------
+  smoke:
+    image: schild-testlab:dev
+    profiles: ["jobs"]
+    entrypoint: ["/usr/local/bin/smoke"]
+    command:
+      - -profile=t0
+      - -sites=api=http://stripper-api:8080|http://schild-api:8788|/export/api|observe
+      - -labs=lab-a=http://lab-a:8789|https://lab-a:7444,lab-b=http://lab-b:8789|https://lab-b:7444,lab-c=http://lab-c:8789|https://lab-c:7444
+      - -relays=relay-1=http://relay-1:7480,relay-2=http://relay-2:7480
+      - -approvers=1
+      - -cosigners=2
+      - -out=/results/runs/smoke-t0/smoke.json
+    environment:
+      SCHILD_LABEL_SECRET: ${SCHILD_LABEL_SECRET:?set SCHILD_LABEL_SECRET}
+      SCHILD_TEST_CA: /etc/schild-ca/ca.pem
+      SCHILD_ALLOW_TEST_KEYS: "1"            # TEST LAB ONLY: start with test keys and the test CA (D24 preflight)
+      SMOKE_PASSWORD: ${SMOKE_PASSWORD:-}
+      SMOKE_SETUP_CODE_API: ${SMOKE_SETUP_CODE_API:-}
+    volumes: [*ca, "export-api:/export/api:ro", "../../results/runs:/results/runs"]
+    networks:
+      inet: { ipv4_address: 10.66.4.10 }   # load generator, trusted proxy of the sites
+      federation: {}
+
+  evaluator:
+    image: schild-testlab:dev
+    profiles: ["jobs"]
+    entrypoint: ["/usr/local/bin/evaluator"]
+    # D72: the gateway sends no signals, so there is no transparency log to check (-signals).
+    command: ["-ground-truth", "/var/lib/testlab/ground-truth.sqlite", "-events", "/export/api/events.ndjson",
+              "-spec", "MVP-05", "-profile", "t0", "-out", "/results/runs/smoke-t0/eval"]
+    volumes: ["groundtruth:/var/lib/testlab:ro", "export-api:/export/api:ro", "../../results/runs:/results/runs"]
+    networks: [obs]
+
+  # D72: the egress-check sidecar (compose profile check) read the gateway's
+  # transparency log of sent signals. The gateway sends none, so it is gone;
+  # cmd/egress-check stays for the signal contract (lab later).

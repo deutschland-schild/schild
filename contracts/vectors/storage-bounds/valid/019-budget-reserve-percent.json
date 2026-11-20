@@ -1,0 +1,26 @@
+{
+  "contract": "storage-bounds",
+  "description": "D38: on a 100 GiB file system the reserve is 5 % (5 GiB), not 1 GiB.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"fs_avail_bytes\":32212254720,\"fs_total_bytes\":107374182400,\"max_size_mb\":20000,\"metrics_bound_bytes\":392167424,\"op\":\"disk_budget\",\"requests_max_size_mb\":4096,\"schild_used_bytes\":2147483648}",
+  "input_decoded": {
+    "fs_avail_bytes": 32212254720,
+    "fs_total_bytes": 107374182400,
+    "max_size_mb": 20000,
+    "metrics_bound_bytes": 392167424,
+    "op": "disk_budget",
+    "requests_max_size_mb": 4096,
+    "schild_used_bytes": 2147483648
+  },
+  "expect": {
+    "valid": true,
+    "result": {
+      "budget_bytes": 27890024448,
+      "need_bytes": 25742540800,
+      "reserve_bytes": 5368709120,
+      "verdict": "ok"
+    }
+  }
+}

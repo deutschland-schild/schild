@@ -1,0 +1,25 @@
+{
+  "contract": "events",
+  "description": "D73: an agent write always names the token.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"data\":{\"actor\":\"agent\",\"repository\":\"local\",\"rule\":\"10001\"},\"datacontenttype\":\"application/json\",\"id\":\"40497a59-1853-44ad-b6b4-03d7339dc886\",\"source\":\"schild://web-1\",\"specversion\":\"1.0\",\"time\":\"2026-10-26T11:59:58.123Z\",\"type\":\"schild.rule.disabled.v1\"}",
+  "input_decoded": {
+    "data": {
+      "actor": "agent",
+      "repository": "local",
+      "rule": "10001"
+    },
+    "datacontenttype": "application/json",
+    "id": "40497a59-1853-44ad-b6b4-03d7339dc886",
+    "source": "schild://web-1",
+    "specversion": "1.0",
+    "time": "2026-10-26T11:59:58.123Z",
+    "type": "schild.rule.disabled.v1"
+  },
+  "expect": {
+    "valid": false,
+    "error": "schema"
+  }
+}

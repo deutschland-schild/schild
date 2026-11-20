@@ -1,0 +1,58 @@
+{
+  "contract": "events",
+  "description": "D39: the hub reference carries no points: this source has no anomaly score.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"data\":{\"client\":{\"attribution\":\"tcp_peer\",\"geo\":{\"as_org\":\"Example Hosting B.V.\",\"asn\":64500,\"city\":\"Amsterdam\",\"country\":\"NL\",\"net_class\":\"hosting\"},\"ip\":\"203.0.113.42\",\"port\":51234},\"duration_ms\":3.2,\"host\":\"shop.example\",\"method\":\"POST\",\"mode\":\"observe\",\"outcome\":\"logged\",\"path\":\"/wp-login.php\",\"protocol\":\"h2\",\"request_id\":\"req-hub-match\",\"rules\":[{\"crowdsec\":{\"name\":\"crowdsecurity/vpatch-CVE-2026-1207\",\"points\":5,\"version\":\"0.2\"},\"id\":62846312,\"msg\":\"crowdsec hub crowdsecurity/vpatch-CVE-2026-1207\",\"repository\":\"crowdsec\"}],\"score\":72,\"status\":200,\"user_agent\":\"python-requests/2.31.0\",\"waf_ms\":0.8},\"datacontenttype\":\"application/json\",\"id\":\"3e8e1a30-e93c-4e61-b295-5d1c6c4b5d60\",\"source\":\"schild://web-1\",\"specversion\":\"1.0\",\"time\":\"2026-10-26T11:59:58.123Z\",\"type\":\"schild.request.evaluated.v1\"}",
+  "input_decoded": {
+    "data": {
+      "client": {
+        "attribution": "tcp_peer",
+        "geo": {
+          "as_org": "Example Hosting B.V.",
+          "asn": 64500,
+          "city": "Amsterdam",
+          "country": "NL",
+          "net_class": "hosting"
+        },
+        "ip": "203.0.113.42",
+        "port": 51234
+      },
+      "duration_ms": 3.2,
+      "host": "shop.example",
+      "method": "POST",
+      "mode": "observe",
+      "outcome": "logged",
+      "path": "/wp-login.php",
+      "protocol": "h2",
+      "request_id": "req-hub-match",
+      "rules": [
+        {
+          "crowdsec": {
+            "name": "crowdsecurity/vpatch-CVE-2026-1207",
+            "points": 5,
+            "version": "0.2"
+          },
+          "id": 62846312,
+          "msg": "crowdsec hub crowdsecurity/vpatch-CVE-2026-1207",
+          "repository": "crowdsec"
+        }
+      ],
+      "score": 72,
+      "status": 200,
+      "user_agent": "python-requests/2.31.0",
+      "waf_ms": 0.8
+    },
+    "datacontenttype": "application/json",
+    "id": "3e8e1a30-e93c-4e61-b295-5d1c6c4b5d60",
+    "source": "schild://web-1",
+    "specversion": "1.0",
+    "time": "2026-10-26T11:59:58.123Z",
+    "type": "schild.request.evaluated.v1"
+  },
+  "expect": {
+    "valid": false,
+    "error": "schema"
+  }
+}

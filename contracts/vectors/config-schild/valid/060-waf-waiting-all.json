@@ -1,0 +1,26 @@
+{
+  "contract": "config/schild",
+  "description": "D44: every key set.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"config_version\":0,\"mode\":\"observe\",\"node_name\":\"web-1\",\"upstream\":{\"url\":\"http://app:80\"},\"waf\":{\"body\":{\"max_waiting_bytes\":268435456,\"max_waiting_bytes_per_client\":33554432,\"max_waiting_bytes_per_network\":134217728}}}",
+  "input_decoded": {
+    "config_version": 0,
+    "mode": "observe",
+    "node_name": "web-1",
+    "upstream": {
+      "url": "http://app:80"
+    },
+    "waf": {
+      "body": {
+        "max_waiting_bytes": 268435456,
+        "max_waiting_bytes_per_client": 33554432,
+        "max_waiting_bytes_per_network": 134217728
+      }
+    }
+  },
+  "expect": {
+    "valid": true
+  }
+}

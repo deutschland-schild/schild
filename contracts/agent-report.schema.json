@@ -1,0 +1,21 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://contracts.schild.invalid/v0/agent-report.schema.json",
+  "title": "Agent report schild.agent_report/0.1 (v0.3, MVP-11)",
+  "description": "Payload of the DSSE envelope an agent sends to the gateway schild (payloadType application/vnd.schild.agent-report.v0+json, exactly one signature by the agent's own key, purpose agent). Binds the host report to one gateway, a time and a nonce (replay window 5 min / 120 s skew). See host-check.md section 3.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "gateway", "issued_at", "nonce", "report"],
+  "properties": {
+    "schema": { "const": "schild.agent_report/0.1" },
+    "gateway": { "description": "node_name of the gateway the agent is enrolled at.", "$ref": "common.schema.json#/$defs/id" },
+    "issued_at": { "$ref": "common.schema.json#/$defs/timestamp" },
+    "nonce": { "description": "16 random bytes, lower-case hex; new for every delivery attempt.", "type": "string", "pattern": "^[0-9a-f]{32}$" },
+    "report": {
+      "allOf": [
+        { "$ref": "host-report.schema.json" },
+        { "properties": { "host": { "properties": { "role": { "const": "agent" } } } } }
+      ]
+    }
+  }
+}

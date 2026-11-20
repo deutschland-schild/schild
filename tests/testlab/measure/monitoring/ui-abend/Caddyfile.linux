@@ -1,0 +1,11 @@
+# TEST ONLY: Linux container, one site (evening measurement 2026-10-29)
+{
+	admin off
+	http_port 8080
+	auto_https off
+}
+
+http://shop.test:8080 {
+	schild
+	respond "ok" 200
+}

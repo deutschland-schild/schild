@@ -1,0 +1,16 @@
+# unprotected: []
+# expect: pass
+# Backend answers 500 for /__status; handle_response turns it into an error; handle_errors with schild (one evaluation expected).
+http://a.example.test:18080 {
+	import schild
+	reverse_proxy 127.0.0.1:18081 {
+		@bad status 5xx
+		handle_response @bad {
+			error "upstream" 502
+		}
+	}
+	handle_errors {
+		import schild
+		reverse_proxy 127.0.0.1:18081
+	}
+}

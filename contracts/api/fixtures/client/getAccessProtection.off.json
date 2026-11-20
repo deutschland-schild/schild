@@ -1,0 +1,8 @@
+{
+  "website": "musterverein.example",
+  "protection": null,
+  "maintenance": {
+    "on": false,
+    "message": ""
+  }
+}

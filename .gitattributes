@@ -1,0 +1,11 @@
+# No global text=auto: contract vectors and fixtures must stay byte-exact.
+*.sh text eol=lf
+
+# Collapsed in diffs, not counted in language statistics
+contracts/vectors/** linguist-generated
+dashboard/apps/*/src/api/generated/** linguist-generated
+site/diagrams/*.svg linguist-generated
+site/package-lock.json linguist-generated
+dashboard/pnpm-lock.yaml linguist-generated
+go.work.sum linguist-generated
+tests/results/** linguist-documentation

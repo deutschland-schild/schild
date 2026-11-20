@@ -1,0 +1,37 @@
+# TEST ONLY: D36 website-first dashboard measurement (native macOS, evening measurement 2026-10-29 commit c54de1b, ports 23000-23999)
+config_version: 0
+profile: production
+mode: observe
+node_name: web-1
+network:
+  enabled: false
+ingress:
+  caddyfile: /tmp/abend/uirun/off/Caddyfile
+  storage: /tmp/abend/uirun/off/caddy
+  trusted_proxies: ["127.0.0.1/32"]
+  client_ip_headers: ["X-Forwarded-For"]
+listen:
+  dashboard: "127.0.0.1:23078"
+  metrics: "127.0.0.1:23012"
+geo:
+  db_path: /tmp/abend/uirun/off/geo.mmdb
+storage:
+  path: /tmp/abend/uirun/off/data
+monitoring:
+  enabled: false
+behaviour:
+  presets: [generic]
+  preset_limits: observe
+  scenarios:
+    login_bruteforce: { mode: block }
+    path_probing: { mode: block }
+    aggressive_crawl: { mode: block }
+    waf_repeat: { mode: block }
+  rate_limits:
+    - id: api-search
+      route: /v1/search
+      site: api.test
+      limit: 30
+      per: 1m
+      burst: 10
+      mode: block

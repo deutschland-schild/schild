@@ -1,0 +1,21 @@
+{
+  "contract": "crowdsec-hub",
+  "description": "Refusal bad_name: the name goes into msg, so its characters are fixed.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"content\":\"name: x\\n\",\"name\":\"crowdsecurity/vpatch-CVE,ctl:x\",\"op\":\"convert\",\"version\":\"0.2\"}",
+  "input_decoded": {
+    "content": "name: x\n",
+    "name": "crowdsecurity/vpatch-CVE,ctl:x",
+    "op": "convert",
+    "version": "0.2"
+  },
+  "expect": {
+    "valid": true,
+    "result": {
+      "outcome": "skipped",
+      "code": "bad_name"
+    }
+  }
+}

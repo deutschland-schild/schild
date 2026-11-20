@@ -1,0 +1,100 @@
+{
+  "contract": "website-derive",
+  "description": "D69: a request Host is read as Caddy's host matcher reads it: the port is not checked, brackets are stripped from any name, a * label matches any content (also _, empty or a leading hyphen), an unbracketed IPv6 literal is that IPv6 host, the long s and the Kelvin sign compare as s and k (strings.EqualFold); two ports and a deeper name resolve to none.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"blocks\":[{\"addresses\":[\"secret.example.org\"],\"proxies\":true,\"schild\":true},{\"addresses\":[\"*.kunden.example.org\"],\"proxies\":true,\"schild\":true},{\"addresses\":[\"[2001:db8::1]\"],\"proxies\":true,\"schild\":true}],\"mode\":\"ingress\",\"resolve\":[\"secret.example.org:abc\",\"secret.example.org:\",\"secret.example.org:0443\",\"secret.example.org:70000\",\"[secret.example.org]\",\"[secret.example.org]:443\",\"ſecret.example.org\",\"a_b.kunden.example.org\",\".kunden.example.org:443\",\"-a.kunden.example.org\",\"a.Kunden.example.org\",\"2001:DB8::1\",\"secret.example.org:443:443\",\"a.secret.example.org\"]}",
+  "input_decoded": {
+    "blocks": [
+      {
+        "addresses": [
+          "secret.example.org"
+        ],
+        "proxies": true,
+        "schild": true
+      },
+      {
+        "addresses": [
+          "*.kunden.example.org"
+        ],
+        "proxies": true,
+        "schild": true
+      },
+      {
+        "addresses": [
+          "[2001:db8::1]"
+        ],
+        "proxies": true,
+        "schild": true
+      }
+    ],
+    "mode": "ingress",
+    "resolve": [
+      "secret.example.org:abc",
+      "secret.example.org:",
+      "secret.example.org:0443",
+      "secret.example.org:70000",
+      "[secret.example.org]",
+      "[secret.example.org]:443",
+      "ſecret.example.org",
+      "a_b.kunden.example.org",
+      ".kunden.example.org:443",
+      "-a.kunden.example.org",
+      "a.Kunden.example.org",
+      "2001:DB8::1",
+      "secret.example.org:443:443",
+      "a.secret.example.org"
+    ]
+  },
+  "expect": {
+    "valid": true,
+    "result": {
+      "resolved": [
+        "secret.example.org",
+        "secret.example.org",
+        "secret.example.org",
+        "secret.example.org",
+        "secret.example.org",
+        "secret.example.org",
+        "secret.example.org",
+        "_.kunden.example.org",
+        "_.kunden.example.org",
+        "_.kunden.example.org",
+        "_.kunden.example.org",
+        "ipv6-2001-db8--1",
+        null,
+        null
+      ],
+      "websites": [
+        {
+          "hosts": [
+            "secret.example.org"
+          ],
+          "id": "secret.example.org",
+          "label": "secret.example.org",
+          "protection": "protected",
+          "tracked": true
+        },
+        {
+          "hosts": [
+            "*.kunden.example.org"
+          ],
+          "id": "_.kunden.example.org",
+          "label": "*.kunden.example.org",
+          "protection": "protected",
+          "tracked": true
+        },
+        {
+          "hosts": [
+            "2001:db8::1"
+          ],
+          "id": "ipv6-2001-db8--1",
+          "label": "[2001:db8::1]",
+          "protection": "protected",
+          "tracked": true
+        }
+      ]
+    }
+  }
+}

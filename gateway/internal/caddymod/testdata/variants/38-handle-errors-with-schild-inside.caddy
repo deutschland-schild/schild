@@ -1,0 +1,15 @@
+# unprotected: []
+# expect: pass
+# Fix round 2: the accepted form of a proxying handle_errors. schild runs inside handle_errors, so errors of any site on the server are inspected before they reach the backend.
+http://:18080 {
+	import schild
+	reverse_proxy 127.0.0.1:18081
+	handle_errors {
+		import schild
+		reverse_proxy 127.0.0.1:18081
+	}
+}
+http://b.example.test:18080 {
+	root * /tmp/m19n-empty
+	file_server
+}

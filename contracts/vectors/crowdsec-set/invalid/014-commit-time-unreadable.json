@@ -1,0 +1,30 @@
+{
+  "contract": "crowdsec-set",
+  "description": "D39 amendment: the file format allows no unreadable date; a set that has one is not used.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"fetched_at\":\"2026-10-26T12:00:00Z\",\"hub_commit\":\"1111111111111111111111111111111111111111\",\"hub_commit_at\":\"yesterday\",\"index_sha256\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"not_selected\":30,\"rules\":[{\"changed_at\":\"2026-10-26T12:00:00Z\",\"content\":\"bmFtZTogY3Jvd2RzZWN1cml0eS92cGF0Y2gtQ1ZFLTIwMjYtMTIwNwpkZXNjcmlwdGlvbjogJ1Jld3JpdHRlbiB0ZXN0IHJ1bGUuJwpydWxlczoKICAtIGFuZDoKICAgICAgLSB6b25lczoKICAgICAgICAgIC0gVVJJCiAgICAgICAgdHJhbnNmb3JtOgogICAgICAgICAgLSBsb3dlcmNhc2UKICAgICAgICBtYXRjaDoKICAgICAgICAgIHR5cGU6IGNvbnRhaW5zCiAgICAgICAgICB2YWx1ZTogL3dwLWpzb24vZXhhbXBsZS92MS8KICAgICAgLSB6b25lczoKICAgICAgICAgIC0gQVJHUwogICAgICAgIHZhcmlhYmxlczoKICAgICAgICAgIC0gJ2EnCiAgICAgICAgbWF0Y2g6CiAgICAgICAgICB0eXBlOiBjb250YWlucwogICAgICAgICAgdmFsdWU6IHgKbGFiZWxzOgogIHR5cGU6IGV4cGxvaXQKICBjb25maWRlbmNlOiAzCiAgc3Bvb2ZhYmxlOiAwCiAgbGFiZWw6IEV4YW1wbGUgLSBSQ0UKICBjbGFzc2lmaWNhdGlvbjoKICAgIC0gY3ZlLkNWRS0yMDI2LTEyMDcKICAgIC0gYXR0YWNrLlQxMTkwCiAgICAtIGN3ZS5DV0UtODkK\",\"digest\":\"f1330c5f32e5ceb0ae26c9b25a904b584cf8d82346e898f172178d6999a294a6\",\"first_seen\":\"2026-10-01T00:00:00Z\",\"name\":\"crowdsecurity/vpatch-CVE-2026-1207\",\"version\":\"0.2\"}],\"schema\":\"schild.crowdsec_set/0.1\"}",
+  "input_decoded": {
+    "fetched_at": "2026-10-26T12:00:00Z",
+    "hub_commit": "1111111111111111111111111111111111111111",
+    "hub_commit_at": "yesterday",
+    "index_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "not_selected": 30,
+    "rules": [
+      {
+        "changed_at": "2026-10-26T12:00:00Z",
+        "content": "bmFtZTogY3Jvd2RzZWN1cml0eS92cGF0Y2gtQ1ZFLTIwMjYtMTIwNwpkZXNjcmlwdGlvbjogJ1Jld3JpdHRlbiB0ZXN0IHJ1bGUuJwpydWxlczoKICAtIGFuZDoKICAgICAgLSB6b25lczoKICAgICAgICAgIC0gVVJJCiAgICAgICAgdHJhbnNmb3JtOgogICAgICAgICAgLSBsb3dlcmNhc2UKICAgICAgICBtYXRjaDoKICAgICAgICAgIHR5cGU6IGNvbnRhaW5zCiAgICAgICAgICB2YWx1ZTogL3dwLWpzb24vZXhhbXBsZS92MS8KICAgICAgLSB6b25lczoKICAgICAgICAgIC0gQVJHUwogICAgICAgIHZhcmlhYmxlczoKICAgICAgICAgIC0gJ2EnCiAgICAgICAgbWF0Y2g6CiAgICAgICAgICB0eXBlOiBjb250YWlucwogICAgICAgICAgdmFsdWU6IHgKbGFiZWxzOgogIHR5cGU6IGV4cGxvaXQKICBjb25maWRlbmNlOiAzCiAgc3Bvb2ZhYmxlOiAwCiAgbGFiZWw6IEV4YW1wbGUgLSBSQ0UKICBjbGFzc2lmaWNhdGlvbjoKICAgIC0gY3ZlLkNWRS0yMDI2LTEyMDcKICAgIC0gYXR0YWNrLlQxMTkwCiAgICAtIGN3ZS5DV0UtODkK",
+        "digest": "f1330c5f32e5ceb0ae26c9b25a904b584cf8d82346e898f172178d6999a294a6",
+        "first_seen": "2026-10-01T00:00:00Z",
+        "name": "crowdsecurity/vpatch-CVE-2026-1207",
+        "version": "0.2"
+      }
+    ],
+    "schema": "schild.crowdsec_set/0.1"
+  },
+  "expect": {
+    "valid": false,
+    "error": "schema"
+  }
+}

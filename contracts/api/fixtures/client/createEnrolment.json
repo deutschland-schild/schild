@@ -1,0 +1,9 @@
+{
+  "code": "K7QM-2XRP-9HWD-T4NA",
+  "expires_at": "2026-10-26T12:30:00Z",
+  "label": "Nextcloud",
+  "gateway_url": "https://gw-1.example:8790",
+  "gateway_name": "gw-1",
+  "gateway_pin": "sha256:9e4c1a7b3d5f20869e4c1a7b3d5f20869e4c1a7b3d5f20869e4c1a7b3d5f2086",
+  "command": "sudo schild agent enrol --gateway https://gw-1.example:8790 --gateway-name gw-1 --pin sha256:9e4c1a7b3d5f20869e4c1a7b3d5f20869e4c1a7b3d5f20869e4c1a7b3d5f2086 --code K7QM-2XRP-9HWD-T4NA"
+}

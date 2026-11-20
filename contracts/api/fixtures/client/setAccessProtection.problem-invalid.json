@@ -1,0 +1,8 @@
+{
+  "type": "https://schild.invalid/problems/invalid",
+  "title": "Invalid input",
+  "status": 400,
+  "code": "invalid",
+  "detail": "password: a password, an address or own networks",
+  "errors": [{ "pointer": "/password", "detail": "a password, an address or own networks" }]
+}

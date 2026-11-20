@@ -1,0 +1,11 @@
+{
+  "contract": "host-report",
+  "description": "End-of-life system: critical distribution finding, yum cache not readable.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"findings\":[{\"area\":\"distribution\",\"evidence\":{\"date\":\"2024-06-30\",\"source\":\"eol_table\"},\"explanation\":\"Seit 30.06.2024 gibt es keine Sicherheitsupdates. Neue Lücken bleiben offen. Plane den Umzug auf ein unterstütztes System, zum Beispiel Rocky Linux 9 oder AlmaLinux 9.\",\"fix_command\":null,\"id\":\"distribution.eol\",\"severity\":\"critical\",\"status\":\"finding\",\"title\":\"CentOS 7 bekommt keine Updates mehr\"},{\"area\":\"software\",\"evidence\":{\"date\":\"2015-09-03\",\"installed_version\":\"5.4.16-48.el7\",\"package\":\"php\",\"source\":\"rpm\"},\"explanation\":\"Für PHP 5.4 gibt es keine Sicherheitsupdates.\",\"fix_command\":null,\"id\":\"software.runtime_eol\",\"severity\":\"high\",\"status\":\"finding\",\"subject\":\"php\",\"title\":\"PHP 5.4 wird seit Jahren nicht mehr gepflegt\"},{\"area\":\"updates\",\"evidence\":{\"source\":\"yum\"},\"explanation\":\"yum hat keinen lesbaren Cache. Schild lädt ihn nicht neu.\",\"fix_command\":null,\"id\":\"updates.security_pending\",\"severity\":\"info\",\"status\":\"unreadable\",\"title\":\"Updates nicht prüfbar\",\"unreadable\":{\"reason\":\"not_configured\"}}],\"host\":{\"agent_key_id\":null,\"hostname\":\"legacy.example\",\"os\":{\"arch\":\"x86_64\",\"eol\":\"2024-06-30\",\"extended_support_until\":null,\"id\":\"centos\",\"kernel\":\"3.10.0-1160.119.1.el7.x86_64\",\"name\":\"CentOS Linux 7 (Core)\",\"version_id\":\"7\"},\"role\":\"gateway\"},\"inventory\":[{\"eol\":\"2015-09-03\",\"kind\":\"runtime\",\"name\":\"php\",\"source\":\"rpm\",\"version\":\"5.4.16-48.el7\"}],\"report_id\":\"3e430c46-e4d0-4a86-81e5-a7f351a12712\",\"run\":{\"as_root\":true,\"duration_ms\":4210,\"eol_table\":\"2026-10-01\",\"schild_version\":\"0.3.0\",\"started_at\":\"2026-10-26T11:57:00Z\"},\"schema\":\"schild.host_report/0.1\"}",
+  "expect": {
+    "valid": true
+  }
+}

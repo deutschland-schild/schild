@@ -1,0 +1,9 @@
+{
+  "website": "musterverein.example",
+  "policy": { "categories": { "ai_training": "block" }, "bots": {}, "impersonators": "allow" },
+  "updated_at": "2026-11-02T10:15:00.000Z",
+  "actor": "agent",
+  "crawlers": [
+    { "bot": "gptbot", "name": "GPTBot", "category": "ai_training", "rule": "block", "blocked": 0, "would_block": 0 }
+  ]
+}

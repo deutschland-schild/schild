@@ -1,0 +1,24 @@
+{
+  "contract": "website-exception",
+  "description": "D36: collections are upper case.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"id\":1000001,\"path\":\"/\",\"rule_id\":\"942100\",\"target\":\"args:a\",\"website\":{\"hosts\":[\"verein.example\"],\"id\":\"verein.example\"}}",
+  "input_decoded": {
+    "id": 1000001,
+    "path": "/",
+    "rule_id": "942100",
+    "target": "args:a",
+    "website": {
+      "hosts": [
+        "verein.example"
+      ],
+      "id": "verein.example"
+    }
+  },
+  "expect": {
+    "valid": false,
+    "error": "schema"
+  }
+}

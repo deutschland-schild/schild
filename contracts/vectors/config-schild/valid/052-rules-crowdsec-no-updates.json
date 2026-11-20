@@ -1,0 +1,24 @@
+{
+  "contract": "config/schild",
+  "description": "D39: updates can be switched off.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"config_version\":0,\"mode\":\"observe\",\"node_name\":\"web-1\",\"rules\":{\"crowdsec\":{\"auto_update\":false}},\"upstream\":{\"url\":\"http://app:80\"}}",
+  "input_decoded": {
+    "config_version": 0,
+    "mode": "observe",
+    "node_name": "web-1",
+    "rules": {
+      "crowdsec": {
+        "auto_update": false
+      }
+    },
+    "upstream": {
+      "url": "http://app:80"
+    }
+  },
+  "expect": {
+    "valid": true
+  }
+}

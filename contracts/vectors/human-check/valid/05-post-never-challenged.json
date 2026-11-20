@@ -1,0 +1,28 @@
+{
+  "context": {
+    "now": "2026-11-19T12:00:00Z"
+  },
+  "contract": "human-check",
+  "description": "POST requests are never challenged",
+  "expect": {
+    "result": {
+      "answer": "pass",
+      "reason": "not_navigation",
+      "status": 0
+    },
+    "valid": true
+  },
+  "input_decoded": {
+    "accept": "text/html",
+    "allowlisted": false,
+    "clearance": "none",
+    "good_bot": false,
+    "method": "POST",
+    "path": "/login",
+    "policy": {
+      "mode": "always",
+      "website": "example.org"
+    }
+  },
+  "input_raw": "{\"accept\":\"text/html\",\"allowlisted\":false,\"clearance\":\"none\",\"good_bot\":false,\"method\":\"POST\",\"path\":\"/login\",\"policy\":{\"mode\":\"always\",\"website\":\"example.org\"}}"
+}

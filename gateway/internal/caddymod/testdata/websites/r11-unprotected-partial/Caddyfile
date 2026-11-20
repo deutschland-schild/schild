@@ -1,0 +1,28 @@
+{
+	admin off
+	http_port 19190
+	https_port 19143
+}
+
+legacy.example.org {
+	reverse_proxy 127.0.0.1:19101
+}
+
+mixed.example.org {
+	schild
+	reverse_proxy 127.0.0.1:19101
+}
+
+http://mixed.example.org {
+	reverse_proxy 127.0.0.1:19101
+}
+
+old.legacy.example.org {
+	reverse_proxy 127.0.0.1:19101
+}
+
+new.example.org {
+	schild
+	reverse_proxy 127.0.0.1:19101
+}
+

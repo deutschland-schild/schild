@@ -1,0 +1,24 @@
+{
+  "items": [
+    {
+      "keyid": "test-site-a",
+      "issuer": "issuer-test-1",
+      "public_key": "ed25519:4HDXCYuKTC7or+jY5cfx0frqJsA5bTxnc1Ftu0gjb5w=",
+      "quota_per_day": 500,
+      "used_24h": 311,
+      "last_seen_bucket": "2026-10-26T11:55:00Z",
+      "revoked": false,
+      "test_key": true
+    },
+    {
+      "keyid": "test-site-c",
+      "issuer": "issuer-test-2",
+      "quota_per_day": 1000,
+      "used_24h": 95,
+      "last_seen_bucket": "2026-10-26T11:45:00Z",
+      "revoked": false,
+      "test_key": true
+    }
+  ],
+  "next_cursor": null
+}

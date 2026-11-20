@@ -1,0 +1,29 @@
+{
+  "context": {
+    "now": "2026-11-19T12:00:00Z"
+  },
+  "contract": "human-check",
+  "description": "mode findings challenges on CGNAT/mobile/Tor scenario hit",
+  "expect": {
+    "result": {
+      "answer": "challenge",
+      "reason": "shared_scenario",
+      "status": 403
+    },
+    "valid": true
+  },
+  "input_decoded": {
+    "accept": "text/html",
+    "allowlisted": false,
+    "clearance": "none",
+    "good_bot": false,
+    "method": "GET",
+    "path": "/",
+    "policy": {
+      "mode": "findings",
+      "website": "example.org"
+    },
+    "shared_scenario_hit": true
+  },
+  "input_raw": "{\"accept\":\"text/html\",\"allowlisted\":false,\"clearance\":\"none\",\"good_bot\":false,\"method\":\"GET\",\"path\":\"/\",\"policy\":{\"mode\":\"findings\",\"website\":\"example.org\"},\"shared_scenario_hit\":true}"
+}

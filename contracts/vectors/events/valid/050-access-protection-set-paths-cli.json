@@ -1,0 +1,30 @@
+{
+  "contract": "events",
+  "description": "D56: paths protected with schild lock on the server, without an end.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"data\":{\"actor\":\"cli\",\"addresses\":1,\"own_networks\":false,\"password\":false,\"paths\":[\"/wp-admin/*\"],\"scope\":\"paths\",\"website\":\"musterverein.example\"},\"datacontenttype\":\"application/json\",\"id\":\"15160581-5fc0-4b4a-afc2-d46bb02d11f6\",\"source\":\"schild://web-1\",\"specversion\":\"1.0\",\"time\":\"2026-10-26T11:59:58.123Z\",\"type\":\"schild.access.protection_set.v1\"}",
+  "input_decoded": {
+    "data": {
+      "actor": "cli",
+      "addresses": 1,
+      "own_networks": false,
+      "password": false,
+      "paths": [
+        "/wp-admin/*"
+      ],
+      "scope": "paths",
+      "website": "musterverein.example"
+    },
+    "datacontenttype": "application/json",
+    "id": "15160581-5fc0-4b4a-afc2-d46bb02d11f6",
+    "source": "schild://web-1",
+    "specversion": "1.0",
+    "time": "2026-10-26T11:59:58.123Z",
+    "type": "schild.access.protection_set.v1"
+  },
+  "expect": {
+    "valid": true
+  }
+}

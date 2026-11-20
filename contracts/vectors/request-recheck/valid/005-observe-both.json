@@ -1,0 +1,50 @@
+{
+  "contract": "request-recheck",
+  "description": "D33 amendment 2026-10-29: would_block in both: one would_block, one detection, rules merged without duplicates, the higher score.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"evaluations\":[{\"detection\":true,\"outcome\":\"would_block\",\"path\":\"/x\",\"rules\":[\"941100\"],\"score\":5},{\"detection\":true,\"outcome\":\"would_block\",\"path\":\"/app/x\",\"rules\":[\"941100\",\"941160\"],\"score\":8}]}",
+  "input_decoded": {
+    "evaluations": [
+      {
+        "detection": true,
+        "outcome": "would_block",
+        "path": "/x",
+        "rules": [
+          "941100"
+        ],
+        "score": 5
+      },
+      {
+        "detection": true,
+        "outcome": "would_block",
+        "path": "/app/x",
+        "rules": [
+          "941100",
+          "941160"
+        ],
+        "score": 8
+      }
+    ]
+  },
+  "expect": {
+    "valid": true,
+    "result": {
+      "requests": 1,
+      "rechecked": true,
+      "outcome": "would_block",
+      "detection": true,
+      "path": "/app/x",
+      "checked_paths": [
+        "/x",
+        "/app/x"
+      ],
+      "rules": [
+        "941100",
+        "941160"
+      ],
+      "score": 8
+    }
+  }
+}

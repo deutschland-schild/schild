@@ -1,0 +1,31 @@
+{
+  "contract": "crowdsec-hub",
+  "description": "D39 amendment: a date beats no date: a pinned stored set without a commit time may be old.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"image\":{\"commit\":\"2222222222222222222222222222222222222222\",\"present\":true,\"time\":\"2026-10-20T00:00:00Z\",\"valid\":true},\"now\":\"2026-10-26T12:00:00Z\",\"op\":\"select\",\"state\":\"detect\",\"stored\":{\"commit\":\"1111111111111111111111111111111111111111\",\"present\":true,\"valid\":true}}",
+  "input_decoded": {
+    "image": {
+      "commit": "2222222222222222222222222222222222222222",
+      "present": true,
+      "time": "2026-10-20T00:00:00Z",
+      "valid": true
+    },
+    "now": "2026-10-26T12:00:00Z",
+    "op": "select",
+    "state": "detect",
+    "stored": {
+      "commit": "1111111111111111111111111111111111111111",
+      "present": true,
+      "valid": true
+    }
+  },
+  "expect": {
+    "valid": true,
+    "result": {
+      "set": "image",
+      "pin_pending": false
+    }
+  }
+}

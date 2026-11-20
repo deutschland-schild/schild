@@ -1,0 +1,22 @@
+{
+  "contract": "signal",
+  "description": "Signed payload is not JSON.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z",
+    "trust": [
+      "site-a",
+      "site-b",
+      "site-c",
+      "lab-a",
+      "lab-a2",
+      "lab-b",
+      "lab-c",
+      "lab-d"
+    ]
+  },
+  "input_raw": "{\"payloadType\":\"application/vnd.schild.signal.v0+json\",\"payload\":\"aXA9MjAzLjAuMTEzLjc=\",\"signatures\":[{\"keyid\":\"test-site-a\",\"sig\":\"wz+ROlqhNsgEImnN8D+PWi5QaXhV7MYY0v/n8sfEj5NDxpxiwGElPCPpCAETF8j558tU+mttqRLLH3DHgD/5AA==\"}]}",
+  "expect": {
+    "valid": false,
+    "error": "malformed"
+  }
+}

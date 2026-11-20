@@ -1,0 +1,15 @@
+{
+  "contract": "request-recheck",
+  "description": "D33 amendment 2026-10-29: at least one evaluation.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"evaluations\":[]}",
+  "input_decoded": {
+    "evaluations": []
+  },
+  "expect": {
+    "valid": false,
+    "error": "schema"
+  }
+}

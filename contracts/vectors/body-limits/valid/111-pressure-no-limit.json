@@ -1,0 +1,19 @@
+{
+  "contract": "body-limits",
+  "description": "D45: no known memory limit: no level.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"held_bytes\":8589934592,\"memory_bytes\":0,\"op\":\"pressure\"}",
+  "input_decoded": {
+    "held_bytes": 8589934592,
+    "memory_bytes": 0,
+    "op": "pressure"
+  },
+  "expect": {
+    "valid": true,
+    "result": {
+      "pressure": 0
+    }
+  }
+}

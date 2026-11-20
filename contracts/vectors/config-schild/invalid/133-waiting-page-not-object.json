@@ -1,0 +1,21 @@
+{
+  "contract": "config/schild",
+  "description": "D37: waiting_page is an object.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"config_version\":0,\"mode\":\"observe\",\"node_name\":\"web-1\",\"upstream\":{\"url\":\"http://app:80\"},\"waiting_page\":true}",
+  "input_decoded": {
+    "config_version": 0,
+    "mode": "observe",
+    "node_name": "web-1",
+    "upstream": {
+      "url": "http://app:80"
+    },
+    "waiting_page": true
+  },
+  "expect": {
+    "valid": false,
+    "error": "schema"
+  }
+}

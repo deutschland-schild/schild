@@ -1,0 +1,13 @@
+# unprotected: []
+# expect: refuse
+# Guarded catch-all with handle_errors proxy; a second site without schild raises an error.
+http://:18080 {
+	import schild
+	reverse_proxy 127.0.0.1:18081
+	handle_errors {
+		reverse_proxy 127.0.0.1:18081
+	}
+}
+http://b.example.test:18080 {
+	error "boom" 500
+}

@@ -1,0 +1,4 @@
+# TEST ONLY: the database listens on every interface (finding: public database).
+[mysqld]
+bind-address = 0.0.0.0
+skip-name-resolve

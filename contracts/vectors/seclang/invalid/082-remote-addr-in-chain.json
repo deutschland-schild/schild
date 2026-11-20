@@ -1,0 +1,13 @@
+{
+  "contract": "seclang",
+  "description": "SecLang subset case remote-addr-in-chain (max_action block).",
+  "context": {
+    "now": "2026-10-26T12:00:00Z",
+    "max_action": "block"
+  },
+  "input_raw": "SecRule ARGS \"@detectSQLi\" \"id:7700145,phase:2,deny,severity:CRITICAL,msg:'x',chain\"\nSecRule REMOTE_ADDR \"@ipMatch 203.0.113.0/24\" \"t:none\"",
+  "expect": {
+    "valid": false,
+    "error": "seclang"
+  }
+}

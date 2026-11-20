@@ -1,0 +1,12 @@
+{
+  "website": "musterverein.example",
+  "policy": { "categories": {}, "bots": {}, "impersonators": "allow" },
+  "updated_at": null,
+  "actor": null,
+  "catalogue_version": "2026-10-26.1",
+  "crawlers": [
+    { "id": "googlebot", "name": "Googlebot", "operator": "Google", "category": "search_engine", "verifiable": true },
+    { "id": "gptbot", "name": "GPTBot", "operator": "OpenAI", "category": "ai_training", "verifiable": true }
+  ],
+  "presets": ["block_ai_training"]
+}

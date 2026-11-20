@@ -1,0 +1,95 @@
+{
+  "contract": "ingress-order",
+  "description": "D31 amendment 2026-10-29: Accepted: an invoked named route that starts with schild guards its own rewrite and what follows the invoke.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"caddyfile\":\"&(guarded) {\\n\\tschild\\n\\trewrite * /x\\n}\\nhttp://a.example.test {\\n\\troute {\\n\\t\\tinvoke guarded\\n\\t\\treverse_proxy 127.0.0.1:18082\\n\\t}\\n}\\n\",\"servers\":{\"srv0\":{\"listen\":[\":80\"],\"named_routes\":{\"guarded\":{\"handle\":[{\"handler\":\"subroute\",\"routes\":[{\"handle\":[{\"handler\":\"schild\"}]},{\"group\":\"group0\",\"handle\":[{\"handler\":\"rewrite\",\"uri\":\"/x\"}]}]}]}},\"routes\":[{\"handle\":[{\"handler\":\"subroute\",\"routes\":[{\"handle\":[{\"handler\":\"subroute\",\"routes\":[{\"handle\":[{\"handler\":\"invoke\",\"name\":\"guarded\"},{\"handler\":\"reverse_proxy\",\"upstreams\":[{\"dial\":\"127.0.0.1:18082\"}]}]}]}]}]}],\"match\":[{\"host\":[\"a.example.test\"]}],\"terminal\":true}]}}}",
+  "input_decoded": {
+    "caddyfile": "&(guarded) {\n\tschild\n\trewrite * /x\n}\nhttp://a.example.test {\n\troute {\n\t\tinvoke guarded\n\t\treverse_proxy 127.0.0.1:18082\n\t}\n}\n",
+    "servers": {
+      "srv0": {
+        "listen": [
+          ":80"
+        ],
+        "named_routes": {
+          "guarded": {
+            "handle": [
+              {
+                "handler": "subroute",
+                "routes": [
+                  {
+                    "handle": [
+                      {
+                        "handler": "schild"
+                      }
+                    ]
+                  },
+                  {
+                    "group": "group0",
+                    "handle": [
+                      {
+                        "handler": "rewrite",
+                        "uri": "/x"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        "routes": [
+          {
+            "handle": [
+              {
+                "handler": "subroute",
+                "routes": [
+                  {
+                    "handle": [
+                      {
+                        "handler": "subroute",
+                        "routes": [
+                          {
+                            "handle": [
+                              {
+                                "handler": "invoke",
+                                "name": "guarded"
+                              },
+                              {
+                                "handler": "reverse_proxy",
+                                "upstreams": [
+                                  {
+                                    "dial": "127.0.0.1:18082"
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ],
+            "match": [
+              {
+                "host": [
+                  "a.example.test"
+                ]
+              }
+            ],
+            "terminal": true
+          }
+        ]
+      }
+    }
+  },
+  "expect": {
+    "valid": true,
+    "result": {
+      "findings": []
+    }
+  }
+}

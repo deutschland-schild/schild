@@ -1,0 +1,699 @@
+{
+  "results_version": 0,
+  "spec": "MVP-02",
+  "run_id": "MVP-02-m1m2m7-t0-20261026",
+  "started_at": "2026-10-26T19:38:48Z",
+  "finished_at": "2026-10-26T20:46:36Z",
+  "seed": 42,
+  "profile": "t0",
+  "git_rev": "1af9fe8-dirty",
+  "host": {
+    "os": "darwin",
+    "arch": "arm64",
+    "cpus": 12,
+    "mem_mb": 65536
+  },
+  "images": [
+    {
+      "name": "schild:mvp",
+      "digest": "sha256:2981cbdbc644ff27aaf93994fc36bed1f84a3d64dde204ee84112ba32b43937e"
+    },
+    {
+      "name": "schild-lab:mvp",
+      "digest": "sha256:93406b68826f65fdc7eb5bfcd9872ed5484ad10315507cf7e213e9cac8f74ad5"
+    },
+    {
+      "name": "schild-relay:mvp",
+      "digest": "sha256:88317f59f0715aedd526d62ad9cc6ec971a68b3865adb60360d8bb26a0f7f180"
+    },
+    {
+      "name": "schild-testlab:mvp",
+      "digest": "sha256:a82cbc64ebaa1db0ce7109b51ca8de7a1b3d85b72b805899999839db3e06fb20"
+    },
+    {
+      "name": "schild:mvp",
+      "digest": "sha256:8603b52304b0d0e1185e638fed914c268db540db8d67ae55f453a1a7ec4c64b2"
+    }
+  ],
+  "scenarios": [
+    "B01",
+    "B02",
+    "T20",
+    "T19",
+    "T09",
+    "T12"
+  ],
+  "hypotheses": [
+    "M1",
+    "M2",
+    "M7"
+  ],
+  "metrics": [
+    {
+      "name": "latency_p50",
+      "value": 0.689,
+      "unit": "ms",
+      "labels": {
+        "variant": "no_schild",
+        "rps": "50"
+      },
+      "samples": 1000
+    },
+    {
+      "name": "latency_p95",
+      "value": 7.902,
+      "unit": "ms",
+      "labels": {
+        "variant": "no_schild",
+        "rps": "50"
+      },
+      "samples": 1000
+    },
+    {
+      "name": "latency_p99",
+      "value": 10.078,
+      "unit": "ms",
+      "labels": {
+        "variant": "no_schild",
+        "rps": "50"
+      },
+      "samples": 1000
+    },
+    {
+      "name": "latency_p50",
+      "value": 1.839,
+      "unit": "ms",
+      "labels": {
+        "variant": "with_schild",
+        "rps": "50"
+      },
+      "samples": 1000
+    },
+    {
+      "name": "latency_p95",
+      "value": 9.936,
+      "unit": "ms",
+      "labels": {
+        "variant": "with_schild",
+        "rps": "50"
+      },
+      "samples": 1000
+    },
+    {
+      "name": "latency_p99",
+      "value": 12.394,
+      "unit": "ms",
+      "labels": {
+        "variant": "with_schild",
+        "rps": "50"
+      },
+      "samples": 1000
+    },
+    {
+      "name": "overhead_p95_ms",
+      "value": 2.034,
+      "unit": "ms",
+      "labels": {
+        "rps": "50"
+      }
+    },
+    {
+      "name": "overhead_p99_ms",
+      "value": 2.316,
+      "unit": "ms",
+      "labels": {
+        "rps": "50"
+      }
+    },
+    {
+      "name": "latency_p50",
+      "value": 0.165,
+      "unit": "ms",
+      "labels": {
+        "variant": "no_schild",
+        "rps": "500"
+      },
+      "samples": 10000
+    },
+    {
+      "name": "latency_p95",
+      "value": 3.881,
+      "unit": "ms",
+      "labels": {
+        "variant": "no_schild",
+        "rps": "500"
+      },
+      "samples": 10000
+    },
+    {
+      "name": "latency_p99",
+      "value": 5.292,
+      "unit": "ms",
+      "labels": {
+        "variant": "no_schild",
+        "rps": "500"
+      },
+      "samples": 10000
+    },
+    {
+      "name": "latency_p50",
+      "value": 0.903,
+      "unit": "ms",
+      "labels": {
+        "variant": "with_schild",
+        "rps": "500"
+      },
+      "samples": 10000
+    },
+    {
+      "name": "latency_p95",
+      "value": 4.692,
+      "unit": "ms",
+      "labels": {
+        "variant": "with_schild",
+        "rps": "500"
+      },
+      "samples": 10000
+    },
+    {
+      "name": "latency_p99",
+      "value": 6.148,
+      "unit": "ms",
+      "labels": {
+        "variant": "with_schild",
+        "rps": "500"
+      },
+      "samples": 10000
+    },
+    {
+      "name": "overhead_p95_ms",
+      "value": 0.811,
+      "unit": "ms",
+      "labels": {
+        "rps": "500"
+      }
+    },
+    {
+      "name": "overhead_p99_ms",
+      "value": 0.856,
+      "unit": "ms",
+      "labels": {
+        "rps": "500"
+      }
+    },
+    {
+      "name": "latency_p50",
+      "value": 0.333,
+      "unit": "ms",
+      "labels": {
+        "variant": "no_schild",
+        "rps": "2000"
+      },
+      "samples": 40000
+    },
+    {
+      "name": "latency_p95",
+      "value": 4.858,
+      "unit": "ms",
+      "labels": {
+        "variant": "no_schild",
+        "rps": "2000"
+      },
+      "samples": 40000
+    },
+    {
+      "name": "latency_p99",
+      "value": 7.211,
+      "unit": "ms",
+      "labels": {
+        "variant": "no_schild",
+        "rps": "2000"
+      },
+      "samples": 40000
+    },
+    {
+      "name": "latency_p50",
+      "value": 1.388,
+      "unit": "ms",
+      "labels": {
+        "variant": "with_schild",
+        "rps": "2000"
+      },
+      "samples": 40000
+    },
+    {
+      "name": "latency_p95",
+      "value": 8.274,
+      "unit": "ms",
+      "labels": {
+        "variant": "with_schild",
+        "rps": "2000"
+      },
+      "samples": 40000
+    },
+    {
+      "name": "latency_p99",
+      "value": 15.135,
+      "unit": "ms",
+      "labels": {
+        "variant": "with_schild",
+        "rps": "2000"
+      },
+      "samples": 40000
+    },
+    {
+      "name": "overhead_p95_ms",
+      "value": 3.416,
+      "unit": "ms",
+      "labels": {
+        "rps": "2000"
+      }
+    },
+    {
+      "name": "overhead_p99_ms",
+      "value": 7.924,
+      "unit": "ms",
+      "labels": {
+        "rps": "2000"
+      }
+    },
+    {
+      "name": "bypass_count",
+      "value": 0.0,
+      "unit": "count"
+    },
+    {
+      "name": "canary_findings",
+      "value": 0.0,
+      "unit": "count"
+    },
+    {
+      "name": "egress_ip_findings",
+      "value": 0.0,
+      "unit": "count"
+    },
+    {
+      "name": "egress_field_findings",
+      "value": 0.0,
+      "unit": "count"
+    },
+    {
+      "name": "signals_checked",
+      "value": 1053.0,
+      "unit": "count"
+    },
+    {
+      "name": "latency_p99",
+      "value": 17.095,
+      "unit": "ms",
+      "labels": {
+        "state": "labs_up",
+        "attack_share": "0_3"
+      },
+      "samples": 10000
+    },
+    {
+      "name": "request_errors",
+      "value": 0.0,
+      "unit": "count",
+      "labels": {
+        "state": "labs_up"
+      }
+    },
+    {
+      "name": "latency_p99",
+      "value": 12.955,
+      "unit": "ms",
+      "labels": {
+        "state": "labs_down",
+        "attack_share": "0_3"
+      },
+      "samples": 10000
+    },
+    {
+      "name": "request_errors",
+      "value": 0.0,
+      "unit": "count",
+      "labels": {
+        "state": "labs_down"
+      }
+    },
+    {
+      "name": "latency_p99",
+      "value": 17.876,
+      "unit": "ms",
+      "labels": {
+        "state": "labs_relays_down",
+        "attack_share": "0_3"
+      },
+      "samples": 10000
+    },
+    {
+      "name": "request_errors",
+      "value": 0.0,
+      "unit": "count",
+      "labels": {
+        "state": "labs_relays_down"
+      }
+    },
+    {
+      "name": "network_share_of_p99_ms",
+      "value": 0.0,
+      "unit": "ms"
+    },
+    {
+      "name": "t12_requests",
+      "value": 1000,
+      "unit": "count",
+      "labels": {
+        "test": "T12",
+        "phase": "baseline",
+        "rps": "100"
+      }
+    },
+    {
+      "name": "t12_answered_2xx",
+      "value": 1000,
+      "unit": "count",
+      "labels": {
+        "test": "T12",
+        "phase": "baseline",
+        "rps": "100"
+      }
+    },
+    {
+      "name": "t12_answered_503",
+      "value": 0,
+      "unit": "count",
+      "labels": {
+        "test": "T12",
+        "phase": "baseline",
+        "rps": "100"
+      }
+    },
+    {
+      "name": "t12_transport_errors",
+      "value": 0,
+      "unit": "count",
+      "labels": {
+        "test": "T12",
+        "phase": "baseline",
+        "rps": "100"
+      }
+    },
+    {
+      "name": "t12_bypassed_to_app",
+      "value": 0,
+      "unit": "count",
+      "labels": {
+        "test": "T12",
+        "phase": "baseline",
+        "rps": "100"
+      }
+    },
+    {
+      "name": "t12_requests",
+      "value": 1200,
+      "unit": "count",
+      "labels": {
+        "test": "T12",
+        "phase": "kill_under_load",
+        "rps": "100"
+      }
+    },
+    {
+      "name": "t12_answered_2xx",
+      "value": 1200,
+      "unit": "count",
+      "labels": {
+        "test": "T12",
+        "phase": "kill_under_load",
+        "rps": "100"
+      }
+    },
+    {
+      "name": "t12_answered_503",
+      "value": 0,
+      "unit": "count",
+      "labels": {
+        "test": "T12",
+        "phase": "kill_under_load",
+        "rps": "100"
+      }
+    },
+    {
+      "name": "t12_transport_errors",
+      "value": 0,
+      "unit": "count",
+      "labels": {
+        "test": "T12",
+        "phase": "kill_under_load",
+        "rps": "100"
+      }
+    },
+    {
+      "name": "t12_bypassed_to_app",
+      "value": 814,
+      "unit": "count",
+      "labels": {
+        "test": "T12",
+        "phase": "kill_under_load",
+        "rps": "100"
+      }
+    },
+    {
+      "name": "t12_requests",
+      "value": 1000,
+      "unit": "count",
+      "labels": {
+        "test": "T12",
+        "phase": "schild_down",
+        "rps": "100"
+      }
+    },
+    {
+      "name": "t12_answered_2xx",
+      "value": 1000,
+      "unit": "count",
+      "labels": {
+        "test": "T12",
+        "phase": "schild_down",
+        "rps": "100"
+      }
+    },
+    {
+      "name": "t12_answered_503",
+      "value": 0,
+      "unit": "count",
+      "labels": {
+        "test": "T12",
+        "phase": "schild_down",
+        "rps": "100"
+      }
+    },
+    {
+      "name": "t12_transport_errors",
+      "value": 0,
+      "unit": "count",
+      "labels": {
+        "test": "T12",
+        "phase": "schild_down",
+        "rps": "100"
+      }
+    },
+    {
+      "name": "t12_bypassed_to_app",
+      "value": 1000,
+      "unit": "count",
+      "labels": {
+        "test": "T12",
+        "phase": "schild_down",
+        "rps": "100"
+      }
+    },
+    {
+      "name": "t12_requests",
+      "value": 1000,
+      "unit": "count",
+      "labels": {
+        "test": "T12",
+        "phase": "restarted",
+        "rps": "100"
+      }
+    },
+    {
+      "name": "t12_answered_2xx",
+      "value": 1000,
+      "unit": "count",
+      "labels": {
+        "test": "T12",
+        "phase": "restarted",
+        "rps": "100"
+      }
+    },
+    {
+      "name": "t12_answered_503",
+      "value": 0,
+      "unit": "count",
+      "labels": {
+        "test": "T12",
+        "phase": "restarted",
+        "rps": "100"
+      }
+    },
+    {
+      "name": "t12_transport_errors",
+      "value": 0,
+      "unit": "count",
+      "labels": {
+        "test": "T12",
+        "phase": "restarted",
+        "rps": "100"
+      }
+    },
+    {
+      "name": "t12_bypassed_to_app",
+      "value": 0,
+      "unit": "count",
+      "labels": {
+        "test": "T12",
+        "phase": "restarted",
+        "rps": "100"
+      }
+    },
+    {
+      "name": "t12_requests",
+      "value": 160,
+      "unit": "count",
+      "labels": {
+        "test": "T12",
+        "phase": "schild_hung",
+        "rps": "20"
+      }
+    },
+    {
+      "name": "t12_answered_2xx",
+      "value": 0,
+      "unit": "count",
+      "labels": {
+        "test": "T12",
+        "phase": "schild_hung",
+        "rps": "20"
+      }
+    },
+    {
+      "name": "t12_answered_503",
+      "value": 160,
+      "unit": "count",
+      "labels": {
+        "test": "T12",
+        "phase": "schild_hung",
+        "rps": "20"
+      }
+    },
+    {
+      "name": "t12_transport_errors",
+      "value": 0,
+      "unit": "count",
+      "labels": {
+        "test": "T12",
+        "phase": "schild_hung",
+        "rps": "20"
+      }
+    },
+    {
+      "name": "t12_bypassed_to_app",
+      "value": 0,
+      "unit": "count",
+      "labels": {
+        "test": "T12",
+        "phase": "schild_hung",
+        "rps": "20"
+      }
+    },
+    {
+      "name": "t12_requests",
+      "value": 1000,
+      "unit": "count",
+      "labels": {
+        "test": "T12",
+        "phase": "resumed",
+        "rps": "100"
+      }
+    },
+    {
+      "name": "t12_answered_2xx",
+      "value": 1000,
+      "unit": "count",
+      "labels": {
+        "test": "T12",
+        "phase": "resumed",
+        "rps": "100"
+      }
+    },
+    {
+      "name": "t12_answered_503",
+      "value": 0,
+      "unit": "count",
+      "labels": {
+        "test": "T12",
+        "phase": "resumed",
+        "rps": "100"
+      }
+    },
+    {
+      "name": "t12_transport_errors",
+      "value": 0,
+      "unit": "count",
+      "labels": {
+        "test": "T12",
+        "phase": "resumed",
+        "rps": "100"
+      }
+    },
+    {
+      "name": "t12_bypassed_to_app",
+      "value": 0,
+      "unit": "count",
+      "labels": {
+        "test": "T12",
+        "phase": "resumed",
+        "rps": "100"
+      }
+    }
+  ],
+  "kill_criteria": [
+    {
+      "expr": "p95_overhead_ms > 5 at 500 rps",
+      "hit": false,
+      "observed": "p95 overhead at 500 rps = 0.811 ms (with_schild p95=4.692 ms, no_schild p95=3.881 ms)"
+    },
+    {
+      "expr": "bypass_count > 0 (a request reaches the origin uninspected under K3 timeout/overload)",
+      "hit": false,
+      "observed": "K3 corpus over 15 rounds under 300 rps load: bypass_count=0 (oversized->413, nested->400, huge field->503, too_many_args->400, redos->404)"
+    },
+    {
+      "expr": "canary_found > 0 (a canary value or a visitor IP leaves the server)",
+      "hit": false,
+      "observed": "egress-check on schild transparency log (1053 signals, canaries + canary IPs planted): canary=0 ip=0 field=0"
+    },
+    {
+      "expr": "network_share_of_p99_ms > 0 (labs/relay slow or down adds latency to the request path)",
+      "hit": false,
+      "observed": "p99 at 500 rps 30% attack: labs_up=17.095 ms, labs_down=12.955 ms, labs+relays_down=17.876 ms, all 0 request errors; differences are within host noise. Signals are an async non-blocking offer, never in the request path."
+    },
+    {
+      "expr": "T12: site unreachable while the schild process is dead, or a request passes around schild while schild hangs (timeout)",
+      "hit": false,
+      "observed": "front proxy (schild front) + schild-t12 in its network namespace, 100 rps: schild killed under load -> 1200/1200 answered 2xx, 0 errors (814 sent around schild by fail-open); schild dead -> 1000/1000 2xx, all via fail-open; schild hung (docker pause) -> 160/160 answered 503 after the 3 s front timeout, 0 passed to the app; up/restarted/resumed phases 3000/3000 2xx with 0 bypass"
+    }
+  ],
+  "verdict": "pass",
+  "notes": "M1/M2/M7 on profile t0 (Apple M2 Max, Docker Desktop, shared dev host, ~30 other containers running - absolute latency carries VM/overlay and host-noise overhead; the with/without delta is the load-bearing figure). Latency: independent open-loop generator (measure latency) hitting schild-api vs site-api directly on the sites network, 50/500/2000 rps, 20 s, 3 s warmup. Headline M1 kill criterion: p95 overhead at 500 rps = 0.81 ms (<5 ms). K3 (measure k3): resilience corpus under concurrent benign load; every malicious payload was rejected or answered 503 on timeout (fail-closed), never passed. M2/T19 (measure egress + egress-check): 60 attack requests through the stripper with canary values in path/query/body/cookie/user-agent and canary source IPs (v4+v6); the independent egress-check found 0 leaks over 1053 signals. The t0 smoke additionally cross-checked the client transparency log against each lab's received signals (IP-free). M7/B02: request-path p99 is unchanged (within noise) with all labs down and with all labs+relays down, 0 request errors; Grundschutz stayed active. T12 (fix-owner rerun at 2026-10-26T20:46:36Z on the rebuilt schild:mvp sha256:8603b52304b0..., whose only change against sha256:2981cbdb... is the embedded dashboard build): live in t0 with the new compose profile t12 (front-api = `schild front` -> schild-t12 on 127.0.0.1 in the front's network namespace, app site-api), driven by testlab/scripts/t12.sh (make testlab-t12): kill under load, dead, restarted, hung (docker pause), resumed. Fail-open only on connection refused (process dead); a hung schild gives 503 after the 3 s front timeout and nothing reaches the app. All other numbers in this file are from the earlier run on sha256:2981cbdb....",
+  "artifacts": [
+    "results/runs/smoke-t0/smoke.json",
+    "results/runs/smoke-t0/eval/MVP-05.json",
+    "results/runs/t12/t12.json"
+  ]
+}

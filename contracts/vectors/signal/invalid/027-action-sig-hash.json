@@ -1,0 +1,50 @@
+{
+  "contract": "signal",
+  "description": "A hash (for example of an IP) hidden in action_sig.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z",
+    "trust": [
+      "site-a",
+      "site-b",
+      "site-c",
+      "lab-a",
+      "lab-a2",
+      "lab-b",
+      "lab-c",
+      "lab-d"
+    ]
+  },
+  "input_raw": "{\"payloadType\":\"application/vnd.schild.signal.v0+json\",\"payload\":\"eyJhY3Rpb25fc2lnIjoic3FsaS9hYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiIiwiYWdlbnQiOnsiYm90IjpmYWxzZSwiZmFtaWx5IjoicHl0aG9uLXJlcXVlc3RzIiwibWFqb3IiOjJ9LCJjYXRlZ29yeSI6IndvcmRwcmVzcy1sb2dpbi1icnV0ZWZvcmNlIiwiaWQiOiJjNDA4MzQ1OC0wY2NiLTRmMDktYTQ0Yi0wYThjNjk0MzA1OTEiLCJraW5kIjoidGlwIiwib3JpZ2luIjp7ImFzbiI6MTQwNjEsImF0dHJpYnV0aW9uIjoidGNwX3BlZXIiLCJjb3VudHJ5IjoiTkwiLCJuZXRfY2xhc3MiOiJob3N0aW5nIiwicHJvdGVjdGVkIjpmYWxzZX0sInJlcXVlc3Rfc2lnIjoic2hhMjU2OmEwNzE4N2YxYzdkMWM1NjQzYjAyY2U3MzBiZWYzZDdiYzU3MDBhNWJlZTBiMzgzM2QxM2YyODE5ZjFlMmJlODEiLCJzY2hlbWEiOiJzY2hpbGQuc2lnbmFsLzAuMyIsInNjb3JlIjo3MiwidGltZV9idWNrZXQiOiIyMDI2LTEwLTI2VDExOjU1OjAwWiIsIndhZl9ydWxlcyI6WzkzMDEyMCw5NDkxMTBdfQ==\",\"signatures\":[{\"keyid\":\"test-site-a\",\"sig\":\"kC+oIEACW874QAtyCOA7KEeR/2KMFBR0rsr5W0poFluRui/B+syu+HVV8cz7ZNSEm+Jfdzs66K5+ubLbNhEMAQ==\"}]}",
+  "input_decoded": {
+    "payload": {
+      "action_sig": "sqli/abababababababababababababababababababababababababababababababab",
+      "agent": {
+        "bot": false,
+        "family": "python-requests",
+        "major": 2
+      },
+      "category": "wordpress-login-bruteforce",
+      "id": "c4083458-0ccb-4f09-a44b-0a8c69430591",
+      "kind": "tip",
+      "origin": {
+        "asn": 14061,
+        "attribution": "tcp_peer",
+        "country": "NL",
+        "net_class": "hosting",
+        "protected": false
+      },
+      "request_sig": "sha256:a07187f1c7d1c5643b02ce730bef3d7bc5700a5bee0b3833d13f2819f1e2be81",
+      "schema": "schild.signal/0.3",
+      "score": 72,
+      "time_bucket": "2026-10-26T11:55:00Z",
+      "waf_rules": [
+        930120,
+        949110
+      ]
+    }
+  },
+  "expect": {
+    "valid": false,
+    "error": "schema"
+  }
+}

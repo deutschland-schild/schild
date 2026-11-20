@@ -1,0 +1,37 @@
+# TEST ONLY: D36 website-first dashboard measurement (native macOS, ports 19300-19399)
+config_version: 0
+profile: production
+mode: autoblock
+node_name: web-1
+network:
+  enabled: false
+ingress:
+  caddyfile: /tmp/m21d36/d/Caddyfile
+  storage: /tmp/m21d36/d/caddy
+  trusted_proxies: ["127.0.0.1/32"]
+  client_ip_headers: ["X-Forwarded-For"]
+listen:
+  dashboard: "127.0.0.1:19388"
+  metrics: "127.0.0.1:19311"
+geo:
+  db_path: /tmp/m21d36/d/geo.mmdb
+storage:
+  path: /tmp/m21d36/d/data
+monitoring:
+  enabled: true
+behaviour:
+  presets: [generic]
+  preset_limits: observe
+  scenarios:
+    login_bruteforce: { mode: block }
+    path_probing: { mode: block }
+    aggressive_crawl: { mode: block }
+    waf_repeat: { mode: block }
+  rate_limits:
+    - id: api-search
+      route: /v1/search
+      site: api.test
+      limit: 30
+      per: 1m
+      burst: 10
+      mode: block

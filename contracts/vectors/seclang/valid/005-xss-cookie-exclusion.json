@@ -1,0 +1,12 @@
+{
+  "contract": "seclang",
+  "description": "SecLang subset case xss-cookie-exclusion (max_action block).",
+  "context": {
+    "now": "2026-10-26T12:00:00Z",
+    "max_action": "block"
+  },
+  "input_raw": "SecRule REQUEST_COOKIES|!REQUEST_COOKIES:wp_settings|ARGS \"@detectXSS\" \"id:7799999,phase:2,block,severity:2,msg:'XSS in cookies or args',rev:'2',ver:'schild-2026.10',tag:'xss'\"",
+  "expect": {
+    "valid": true
+  }
+}

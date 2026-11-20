@@ -1,0 +1,14 @@
+# unprotected: []
+# expect: refuse
+# uri query -q (delete one argument) before schild in route, error, handle_errors with schild.
+http://a.example.test:18080 {
+	route {
+		uri query -q
+		schild
+		error "boom" 500
+	}
+	handle_errors {
+		import schild
+		reverse_proxy 127.0.0.1:18082
+	}
+}

@@ -1,0 +1,24 @@
+{
+  "contract": "stream",
+  "description": "Broken JSON line.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z",
+    "trust": [
+      "site-a",
+      "site-b",
+      "site-c",
+      "lab-a",
+      "lab-a2",
+      "lab-b",
+      "lab-c",
+      "lab-d"
+    ],
+    "threshold": 2,
+    "channel": "schild-main"
+  },
+  "input_raw": "{\"type\":\"schild.dist.heartbeat.v1\",",
+  "expect": {
+    "valid": false,
+    "error": "malformed"
+  }
+}

@@ -1,0 +1,21 @@
+{
+	admin off
+	http_port 19190
+	https_port 19143
+}
+
+bücher.example {
+	schild
+	reverse_proxy 127.0.0.1:19101
+}
+
+xn--bcher-kva.example:8443 {
+	schild
+	reverse_proxy 127.0.0.1:19101
+}
+
+müller.de, www.müller.de {
+	schild
+	reverse_proxy 127.0.0.1:19101
+}
+

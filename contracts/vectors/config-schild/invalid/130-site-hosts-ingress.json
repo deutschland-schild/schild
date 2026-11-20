@@ -1,0 +1,28 @@
+{
+  "contract": "config/schild",
+  "description": "D36: with ingress.caddyfile the Caddyfile names the websites; upstream (and site_hosts) must be absent.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"config_version\":0,\"ingress\":{\"caddyfile\":\"/etc/caddy/Caddyfile\",\"storage\":\"/data/caddy\"},\"mode\":\"autoblock\",\"node_name\":\"web-1\",\"profile\":\"production\",\"upstream\":{\"site_hosts\":[\"verein.example\"],\"url\":\"http://app:80\"}}",
+  "input_decoded": {
+    "config_version": 0,
+    "ingress": {
+      "caddyfile": "/etc/caddy/Caddyfile",
+      "storage": "/data/caddy"
+    },
+    "mode": "autoblock",
+    "node_name": "web-1",
+    "profile": "production",
+    "upstream": {
+      "site_hosts": [
+        "verein.example"
+      ],
+      "url": "http://app:80"
+    }
+  },
+  "expect": {
+    "valid": false,
+    "error": "schema"
+  }
+}

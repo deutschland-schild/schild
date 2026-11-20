@@ -1,0 +1,3 @@
+/boot
+/etc/ssh/sshd_config
+/var/log/secure

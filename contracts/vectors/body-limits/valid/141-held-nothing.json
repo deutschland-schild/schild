@@ -1,0 +1,19 @@
+{
+  "contract": "body-limits",
+  "description": "D46: an empty stat.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"op\":\"held\",\"stat\":{}}",
+  "input_decoded": {
+    "op": "held",
+    "stat": {}
+  },
+  "expect": {
+    "valid": true,
+    "result": {
+      "held_bytes": 0,
+      "outside_bytes": 0
+    }
+  }
+}

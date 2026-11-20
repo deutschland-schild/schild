@@ -1,0 +1,23 @@
+{
+  "contract": "envelope",
+  "description": "Non-canonical base64 (padding bits set) must be rejected.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z",
+    "kind": "signal",
+    "trust": [
+      "site-a",
+      "site-b",
+      "site-c",
+      "lab-a",
+      "lab-a2",
+      "lab-b",
+      "lab-c",
+      "lab-d"
+    ]
+  },
+  "input_raw": "{\"payloadType\":\"application/vnd.schild.signal.v0+json\",\"payload\":\"QR==\",\"signatures\":[{\"keyid\":\"test-site-a\",\"sig\":\"9bBqrtu6vlQh4XXlOfFA5qhD1Yxymh5+qKaUfj3/Gt3hKDt61g2BiNy90ynqtVQXo/N4t+hSGbNc6L0/7hdlCA==\"}]}",
+  "expect": {
+    "valid": false,
+    "error": "envelope"
+  }
+}

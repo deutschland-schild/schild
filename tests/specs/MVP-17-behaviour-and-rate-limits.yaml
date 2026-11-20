@@ -1,0 +1,69 @@
+id: MVP-17
+# Decision (initiator, 2026-10-28): Schild covers the open CrowdSec features itself, without CrowdSec IP lists and
+# without coupling (concept 22 §4). The largest gap from the parity research: behaviour across requests and rate limits.
+# Decisions (initiator, 2026-10-28, after the build; contracts v0.4, DECISIONS D29):
+# - Default thresholds are the values adapted from the CrowdSec hub scenarios (MIT, attribution in gateway/NOTICE);
+#   testlab measurements may tune them later.
+# - Tor exit addresses (net_class tor) join cgnat and mobile: never blocked by scenarios, never a 429 from rate limits,
+#   at most observed or challenged; WAF rules still apply.
+# - A gateway in mode observe blocks and limits nobody through behaviour either.
+# Amendment (initiator, 2026-10-29; DECISIONS D29, contracts v0.5): maximum block duration per net class. Data-centre
+# addresses (net_class hosting) that come back: 15 min, 1 h, 24 h, 7 days; every other class unchanged 15 min, 1 h,
+# 4 h, 24 h (hard cap). Spamhaus DROP and similar lists: as long as listed (D28, unchanged). Blocks over 24 h are kept
+# in schild.db and survive a restart (expiry enforced; Art. 17 deletion and the allowlist always win). The UI says
+# how long and why, e.g. "7 Tage, weil Rechenzentrum und wiederholt".
+# Amendment (initiator, 2026-11-19; DECISIONS D92): there is no mode challenge (an old value loads as observe), and
+# new installations start every scenario on its recommendation: block for login_bruteforce, credential_stuffing,
+# path_probing and waf_repeat, observe for aggressive_crawl. The learning period still holds them on observe for
+# 14 days. The lines below that name challenge or "all scenarios in observe" describe the state before D92.
+title: "Behaviour across requests and rate limits: fixed local scenarios (brute force, probing, crawling, WAF repeats) and per-route rate limits, all local"
+ships: false                        # draft
+status: ENTWURF
+image: schild                       # same binary; HTTP level only (network-level bans are MVP-15)
+hypotheses: [D1, D3]
+refs: [concept-04, concept-13, concept-18-G1, concept-22-crowdsec, MVP-02, MVP-09, MVP-12, MVP-14, MVP-15, MVP-16, internal research 2026-10-28 crowdsec parity]
+depends_on: [MVP-02, MVP-09]
+why: 'the prototype decides every request on its own; attacks that are only visible as a series (password guessing, path probing, aggressive crawling, an attacker trying payload after payload) pass as long as each single request looks harmless or is merely observed'
+scenarios:                          # fixed in Go, no DSL; thresholds per preset, adapted from CrowdSec hub scenarios (MIT, attribution in NOTICE)
+  - 'login_bruteforce: failed logins on known login routes of the detected stack (presets: WordPress wp-login.php and xmlrpc.php, Joomla, Drupal, Nextcloud, TYPO3, Laravel, generic POST /login) – e.g. 5 failures in 1 min or 30 in 1 h per client; failure detected from status/redirect pattern of the preset, never by reading passwords'
+  - 'credential_stuffing: many distinct user names against one site from one client or IP prefix (user names hashed locally with a per-instance key, kept in memory only)'
+  - 'path_probing: many 404/403 on distinct paths (e.g. 20 distinct in 1 min), weighted up for known probe paths (.env, .git/, wp-config.php.bak, phpmyadmin, /vendor/phpunit)'
+  - 'aggressive_crawl: request rate far above the site''s own baseline for one client, unverified bots only (verified search bots are counted, never acted on)'
+  - 'waf_repeat: a client hits 2 or more distinct WAF rules or virtual patches within 1 min (shares the counter with MVP-15 waf_repeat; MVP-15 decides network bans, this spec the HTTP-level response)'
+rate_limits:
+  - 'token bucket per route pattern and client key; client key = IP for single addresses, /64 for IPv6, never coarser than /24 for IPv4'
+  - 'presets ship limits for login, password reset, xmlrpc, search, contact forms and API write routes; operators add own routes in schild.yaml and the dashboard'
+  - 'answer 429 with Retry-After and the calm block page (concept 03); API clients get RFC 9457 problem details'
+  - 'per site when MVP-16 is configured'
+actions:
+  - 'ladder per scenario: observe (count, "hätte begrenzt") → challenge (MVP-12 proof-of-work page, only when the browser check is enabled; else stays at observe) → temporary block at HTTP level with the block page and unblock request'
+  - 'temporary blocks escalate for repeat offenders (e.g. 15 min, 1 h, 4 h) with a cap of 24 h; every block expires by itself'
+  - 'net_class cgnat, mobile or tor: never block on behaviour and never answer 429 from a rate limit, at most challenge (many people behind one address, concept 18 G1; tor decided 2026-10-28); WAF rules still apply'
+  - 'locally released or verified senders (G6) and the operator''s own addresses are never blocked by scenarios or limits; WAF rules still apply to them'
+  - 'new installations: all scenarios in observe for 14 days (same as the general observe phase), then the operator switches them on per scenario; login_bruteforce may be suggested earlier when a CMS login is detected'
+contracts:
+  new:                              # proposal for the next contracts version; the contracts agent owns schemas, Go types and vectors
+    - 'schild.yaml: behaviour {scenarios: {<id>: {mode: off|observe|challenge|block, thresholds?}}, rate_limits: [{route, methods?, limit, per, burst?, site?}]}; validator rejects limits that would apply to the whole site at once without an explicit confirm flag'
+    - 'local events: schild.behaviour.triggered.v1 (scenario, client, site, counts, action, until) and schild.ratelimit.exceeded.v1; local only'
+    - 'client dashboard API: list and detail of behaviour hits, per-scenario settings, rate limit CRUD with dry-run counts, release of a client (same reauth as other settings)'
+    - 'signals: unchanged in this spec. Option for later (open question): a scenario hit as an IP-free hint with scenario id and route shape, so labs see waves of brute force across many sites'
+must:
+  - 'everything local: counters, user-name hashes and blocks never leave the server; nothing from this spec reaches labs or relays (E4, G1)'
+  - 'bounded memory: sketches or fixed-size tables with eviction; a flood of distinct addresses must not exhaust memory or slow down clean traffic'
+  - 'no request body is stored; login failure detection works on status codes and redirects of the preset'
+  - 'dashboard explains every hit in plain German ("37 falsche Anmeldungen in 2 Minuten an wp-login.php von 198.51.100.7"), shows what would have happened in observe, and offers release, a narrow exception and "dauerhaft erlauben"'
+  - 'German UI copy, du-form, calm; no fear wording'
+  - 'a gateway in mode observe (stage 3, test profile) blocks and limits nobody through behaviour: scenario and limit modes are capped to observe and hits record what would have happened (decided 2026-10-28)'
+measure:
+  - 'testlab: SSH-like and HTTP brute force from 1 and from 100 addresses (MVP-06/07 suites): detected within thresholds, blocked or challenged as configured'
+  - 'credential stuffing with 1000 user names from a residential proxy pool: detected per site, not per address'
+  - 'CGNAT simulation: 200 legitimate users behind one IPv4 address doing normal logins and browsing: 0 blocks, challenges below an agreed rate'
+  - 'legitimate traffic replay (one week per preset): false positive rate of scenarios and limits below 0.1 % of sessions in block mode'
+  - 'flood of 1 million distinct addresses: memory stays within budget, M1 latency unchanged for clean traffic'
+kill_if: "legitimate users behind CGNAT or mobile addresses get blocked by a scenario OR memory grows without bound under address floods OR any counter, hash or address from this spec leaves the server OR false positives in block mode exceed 0.1 % of legitimate sessions after tuning"
+done: "make contracts-test && make test && make testlab-up PROFILE=t1 && make smoke PROFILE=t1 (incl. behaviour and rate-limit steps)"
+out_of_scope: [network-level bans (MVP-15), a scenario DSL or user-written scenarios, CrowdSec scenarios at runtime (only thresholds adapted with attribution), sharing behaviour hits with labs (open question), bot detection by browser fingerprinting (MVP-12)]
+open_questions:
+  - 'RESOLVED 2026-10-28 (initiator): default thresholds are the values adapted from the CrowdSec hub; testlab measurements may tune them later'
+  - 'should a scenario hit become an IP-free hint to the labs (scenario id + route shape), so waves of brute force across many sites become visible?'
+  - 'credential stuffing: is a per-instance keyed hash of user names in memory acceptable under concept 24, or count only distinct-name cardinality without storing hashes?'

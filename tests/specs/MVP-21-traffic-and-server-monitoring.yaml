@@ -1,0 +1,266 @@
+id: MVP-21
+# Maintainer feedback (2026-10-28): "Aktuell kommt man ins Dashboard und sieht nicht, was der Server macht."
+# Contracts written 2026-10-28 (contracts v0.4 extended, DECISIONS D33, DRAFT): `monitoring` in schild.yaml, tag
+# `monitoring` of the client dashboard API, Go package contract/monitoring. Not built yet.
+# Amended 2026-10-30 (D39 amendment, D42), 2026-11-06 (D73): the agent API reads, with named writes: rule repositories and rules for tokens with scope rules:write, approving rule updates for rules:approve, single blocks for tokens with scope blocks:write.
+# Added 2026-10-28 (initiator): a narrow read-only agent API on the gateway (agent_api, gateway-agent.openapi.yaml,
+# contract/agentapi), so a single-server operator connects an agent directly; MVP-20 pulls the same surface.
+# Website-first (initiator 2026-10-29, DECISIONS D36, contracts v0.5): the dashboard is organised by website, not by
+# server. See `websites` below; it supersedes the "Überblick"/"sites" lines of `dashboard` where they differ.
+# Decisions after the evening measurement (initiator, 2026-10-29; DECISIONS "Amendments after the evening
+# measurement"; contracts v0.5 written, gateway and UI not built):
+# - minute checkpoint: every 60 s the running 10 min bucket (gateway-wide and per website, top lists and clients
+#   estimates included) is written to its slot as a checkpoint (partial, gap_kind lost) and replaced by the final
+#   write; an orderly shutdown writes gap_kind restart; a start inside the same bucket resumes from the checkpoint
+#   (space-saving counts and errors continue, clients estimates add up). A hard kill loses at most one minute of
+#   breakdowns, series and per-website top lists from the 10 min ring (the measurement saw -51 % in that bucket).
+# - gap_kind restart|lost (only with partial, lost wins) on KpiValue, TrafficBreakdown and MetricBucket: the UI tells
+#   a deploy ("Neustart") from real loss ("Messlücke"); BehaviourBlock.ended_at marks a block that is no longer in
+#   force (ran out, lifted, or ended by a restart), so clients stop comparing until with now.
+# - a request schild evaluates more than once counts once in every counter and writes one event with
+#   checked_paths (TrafficCounters.rechecked, contract/monitoring.Recheck).
+title: "Traffic and server monitoring in the built-in gateway dashboard: what the server does right now, complete counters, host metrics from /proc, bounded local time series"
+ships: false                        # draft
+status: ENTWURF
+image: schild                       # same binary; no new component, no new heavy dependency
+hypotheses: [M2, D1, D3]
+refs: [E7, concept-13-admin, concept-24, brand-01, MVP-02, MVP-09, MVP-11, MVP-16, MVP-17, MVP-18, MVP-19, MVP-20, DECISIONS-D14, DECISIONS-D33]
+depends_on: [MVP-09, MVP-19]
+why: >-
+  The dashboard shows events (sampled for clean traffic: 20/s, then 1 %), 24 h counters and host findings, but not
+  what the server is doing: no request rate, no latency split between app and schild, no CPU, memory, disk or network.
+  Operators open htop and the access log next to it. The numbers exist (gate, /proc); they are not collected.
+contracts:
+  in:  [contracts/api/client-dashboard.openapi.yaml (tag monitoring), contracts/api/gateway-agent.openapi.yaml (agent/v0, MCP tools), contracts/config/schild.schema.json (monitoring, agent_api), contract/monitoring (catalogue, rings, histogram, wire types), contract/agentapi (tokens, pseudonyms, escaping, caps, tools, wire types)]
+  out: [client/internal/monitoring (counters, sampler, rings, hints), gateway/internal/dashboard handlers, gateway/internal/agentapi (listener, tokens, call log, MCP), schild token CLI, ui/apps/client-dashboard (Überblick, Traffic, Server)]
+  version: 'contracts v0.4 extended (still unreleased: no tag, no image, no deployment; D30/D31 precedent); MVP-20 builds its export on MetricBucket'
+
+counting:                           # where and how traffic is counted
+  point: 'gate.finish for every request that reaches the schild handler (proxy mode, Caddyfile ingress, schild front): forwarded, blocked, rate limited, hard limits, fail-closed 503 and behaviour stops alike. Not counted: /.schild/healthz and readyz, sites in ingress.unprotected_sites, requests Caddy refuses before the handler (TLS errors, 421)'
+  classes: 'disjoint: requests = forwarded + stopped + fail_closed; stopped = blocked_waf + blocked_behaviour + rate_limited + rejected_limit + challenged; fail_closed split by waf_timeout, waf_busy (saturation), not_ready, panic. Overlays on forwarded requests: would_block, would_rate_limit (observe). TrafficCounters in the OpenAPI document states the invariants; contract/monitoring TrafficCounters.Check tests them'
+  upstream: 'upstream_errors = the proxy got no response (caddyhttp HandlerError: refused, reset, 502); upstream_timeouts = 504 from the proxy. A 5xx the app itself sends counts in status_5xx only'
+  bytes: 'bytes_in/bytes_out = request and response body bytes as read and written by the gate (exact). Headers, TLS and HTTP/2 framing are not in them; the wire total is server.net_rx/tx_bytes'
+  latency: 'three histograms per bucket (scheme exp1.25-0.05ms, 58 buckets): total (gate start to response end), upstream (time inside next.ServeHTTP), overhead = total - upstream for forwarded requests (blocked requests: overhead = total). 101 upgrades and text/event-stream responses are counted, not timed'
+  dimensions: 'site (MVP-16; up to 32 sites with own series, the rest summed as _other), path template (pathtpl, never raw path or query), country, ASN (with AS org), net_class, UA class, method, status class. No IP dimension anywhere'
+  ua_class: 'browser | bot_verified (needs MVP-12 verification; 0 and marked unavailable until then) | bot_unverified (claims bot or crawler, e.g. the searchBotRe of the behaviour presets plus generic bot/crawler/spider tokens) | tool (curl, wget, python-requests, Go-http-client, libwww, okhttp, ...) | none (no User-Agent) | other'
+  clients: 'D36 amendment 2026-10-29: only visitors (browser requests schild forwarded, contract/monitoring.Visitor) enter unique and new; every other request enters clients.bots. Unique clients per bucket: HyperLogLog (precision 10, ±3.3 %) over the client key (IPv4 address, IPv6 /64) hashed with a per-process random key held in memory only; new clients: not seen in the last 7 days per seven daily in-memory Bloom filters (false positive rate <= 1 %) of the same keyed hash, so "new" means new since max(7 days, process start). Only the two counts per bucket are stored; registers, filters and the key never touch the disk'
+  hot_path: 'no allocation for the common case: striped atomic counters, one histogram increment per series, pathtpl on the escaped path, top-K updates in sharded space-saving tables (capacity 2 x K per shard); one 1 Hz swap of the per-second accumulator'
+
+exactness:                          # shown in the UI ("Näherungswert") and in getMetricCatalogue (exact, error_bound)
+  exact: 'all TrafficCounters (requests, outcome classes, fail-closed causes, status classes, upstream errors and timeouts, body bytes), per-site counts, the breakdowns by country (ZZ unknown), net_class, ua_class, method, status class and site, every kernel counter and gauge read from /proc and /sys (exact at the sample, rates exact over the sample interval)'
+  estimate:
+    - 'latency quantiles: upper bound of the histogram bucket, at most 25 % above the true value (error_bound 0.25)'
+    - 'top paths and top ASNs: space-saving lists with K = 64 per bucket; each entry carries `error`, the maximum overcount; entries below the list are in `other`'
+    - 'unique and new clients: ±3.3 % (HyperLogLog), new clients also Bloom false positives (<= 1 %, undercounts new) and reset at a process restart; per-bucket values are not additive across buckets'
+    - 'gauges in the 1 min and 10 min rings: avg, min and max of the 10 s samples (short spikes between samples are not seen)'
+  not_from_events: 'none of these numbers is computed from the stored events; the sampled clean events stay what they are (a sample for the event list). Breakdowns with IPs stay in the event views (E7)'
+
+server:                             # sampled every 10 s from /proc and /sys (Linux); budget below
+  sources:
+    - 'CPU: /proc/stat (total, user, system, iowait, steal, per core); load: /proc/loadavg; cores from /proc/stat'
+    - 'memory: /proc/meminfo (MemTotal, MemAvailable, Cached, SwapTotal, SwapFree); OOM kills: /proc/vmstat oom_kill delta'
+    - 'disks: mounts from /proc/self/mountinfo (block-device file systems, one per device, max 16, or monitoring.mounts) with statfs (blocks, inodes); I/O from /proc/diskstats (sectors read/written, reads, writes, io_ticks -> busy ratio)'
+    - 'network: /proc/net/dev per interface (bytes, packets, errs, drop; default without lo and container bridges/veths, max 16, or monitoring.interfaces)'
+    - 'TCP: state counts by NETLINK_SOCK_DIAG (golang.org/x/sys/unix, already a dependency) or /proc/net/tcp{,6} while the socket count is at most a cap and the measured scan cost stays within a budget (D36 fix round 1: gateway-tuned, currently 5000 sockets and 10 ms), else totals from /proc/net/sockstat{,6}; ListenOverflows/ListenDrops from /proc/net/netstat, RetransSegs from /proc/net/snmp'
+    - 'conntrack: /proc/sys/net/netfilter/nf_conntrack_count and _max (absent module: not_present)'
+    - 'file descriptors: /proc/sys/fs/file-nr (system), /proc/self/fd count and RLIMIT_NOFILE (process)'
+    - 'schild process: /proc/self/stat (CPU), RSS, runtime/metrics (heap, goroutines, GC pauses), threads; internals: event queue length/capacity, events dropped, eval slots in use/max (gate EvalLimits), schild.db size vs retention.max_size_mb, metrics.db size, sampler CPU time'
+    - 'OS and kernel: the latest local MVP-11 host report (name, kernel, arch, EOL); without one uname only'
+  containers:
+    - 'detect: /.dockerenv, /run/.containerenv or a non-root cgroup path; cgroup v2 from /sys/fs/cgroup/cgroup.controllers'
+    - '/proc/stat, /proc/meminfo, /proc/loadavg and /proc/diskstats are host-wide in a container (no lxcfs): CPU, memory, load and disk I/O show the server (scope host); with lxcfs they show the container (scope container)'
+    - 'cgroup v2 of schild''s own container next to them: cpu.max (limit in cores), cpu.stat (usage, nr_throttled, throttled_usec), memory.current, memory.max, memory.events oom_kill; cgroup v1: reason cgroup_v1, no limits shown'
+    - 'network_mode host (the MVP-19 runbook setup): /proc/net/* show the host: interfaces, sockets, listen drops and conntrack are the server''s (net_namespace host). Own network namespace: interfaces and sockets are the container''s; conntrack is container_hidden. Detection: the interface list (only lo and one eth with a veth peer) and /proc/net/route; unknown when unsure, and the UI says what it shows'
+    - 'disk usage in a container: statfs of the mounts the container sees (overlay root, volumes); volumes report their host file system. To see other host disks, bind-mount them read-only and list them in monitoring.mounts'
+    - 'not Linux (development on macOS): server sections unavailable (not_linux), traffic and process numbers work'
+  degrade: 'every area that cannot be read is null with an entry in ServerSnapshot.unavailable (area, reason) and the catalogue entry available false; a failing read never stops the sampler or the request path'
+
+storage:                            # DECISIONS D33
+  file: '<storage.path>/metrics.db, a separate SQLite file (modernc.org/sqlite, already used; WAL), 0600, owned like schild.db'
+  why_separate: 'own write lock: the 10 s writes never wait for or delay the event writer and its batches (busy_timeout 10 s, _txlock immediate); not part of retention.max_size_mb, whose cap deletes events; deterministic size; can be deleted to reset monitoring without touching events, incidents or the transparency log; the MVP-20 export reads it with its own short read transactions'
+  rings:
+    - '10 s for 6 h (2160 slots), 1 min for 48 h (2880), 10 min for 14 d (2016); configurable within 1-24 h, 6-168 h, 1-90 d (monitoring.keep), coarse never shorter than fine'
+    - 'one table per ring: (slot INTEGER PRIMARY KEY, t INTEGER NOT NULL, bucket BLOB NOT NULL) WITHOUT ROWID, slot = (unix / step) mod slots (contract/monitoring Ring.Slot); a write is INSERT OR REPLACE of one row, so the file stops growing once every slot was written'
+    - 'bucket BLOB = the MetricBucket of the contract, JSON compressed with the standard library (compress/flate); 10 s buckets carry no top lists'
+    - 'aggregation in memory: 1 Hz accumulator -> 10 s bucket (written) -> six of them make the 1 min bucket (written) -> ten of those the 10 min bucket (written); no read-back for downsampling. A restart loses the unfinished buckets and marks the next ones partial'
+  size_bound: 'estimated with one site: 10 s ~1.5 KiB x 2160, 1 min ~4 KiB x 2880, 10 min ~6 KiB x 2016 = about 27 MiB; each additional tracked site adds ~0.3 KiB per bucket; at most 32 sites with own series. The builder measures the real bound and documents it; metrics.db must never exceed 2 x the documented bound'
+  queries: 'series and buckets: primary-key range over at most two contiguous slot ranges (Ring.SlotRanges), rows whose t is outside the range are ignored (overwritten slots); cost O(points x series), at most 1000 points and 16 metrics. breakdown: same range read on the 1 min or 10 min ring, merging at most 1000 top lists. now, server, stream: memory only. No LIKE, no scan, no query on schild.db'
+  retention_privacy: 'no IP address, client key, keyed hash, HyperLogLog register or Bloom filter is written; path templates only. privacyDelete has nothing to delete in metrics.db and says so; the 10 min ring is capped at 90 days'
+
+api:                                # contracts/api/client-dashboard.openapi.yaml, tag monitoring; all GET, session auth
+  - 'getMonitoringNow GET /monitoring/now -> MonitoringNow: TrafficNow (60 s and 10 s), ServerNow, HealthHint[], per-site cards (MVP-16)'
+  - 'streamMonitoring GET /monitoring/stream -> SSE `tick` per second (LiveTick; every 10th with server), Last-Event-ID = Unix second, 300 s replay ring, keep-alive 15 s, at most 16 subscribers (429)'
+  - 'queryMetricSeries GET /monitoring/series?metric=<id>[:<stat>]&from&to&resolution=auto|10s|1m|10m&site&object -> SeriesResult (null for missing steps, restarts listed); 400 too_many_points above 1000 points'
+  - 'getTrafficBreakdown GET /monitoring/traffic/breakdown?by=path|country|asn|net_class|ua_class|method|status_class|site&from&to&site&top -> TrafficBreakdown (exact flag, error per item, other)'
+  - 'getServerSnapshot GET /monitoring/server -> ServerSnapshot (environment, OS, CPU per core, memory, container, mounts, interfaces, TCP, conntrack, files, process, schild internals, unavailable[])'
+  - 'getMetricCatalogue GET /monitoring/catalogue -> MetricCatalogue (rings, metric ids with kind, unit, scope, stats, exact, error_bound, available, reason)'
+  - 'listMetricBuckets GET /monitoring/buckets?resolution&from&cursor&limit -> MetricBucketPage (oldest first; the MVP-20 export unit)'
+  - 'monitoring.enabled false: every monitoring operation answers 409 monitoring_off; the dashboard explains it'
+  - 'Prometheus on the metrics port gets the same traffic counters and histograms (schild_http_requests_total{class}, schild_http_bytes_total{direction}, schild_http_latency_seconds{part}), labels without visitor data, path or country'
+
+health_hints:                       # thresholds in HealthHintCode; levels info, notice, warning (no alarm level)
+  - 'cpu_high, cpu_throttled, load_high, memory_low, swap_active, oom_kill, disk_full_soon, disk_io_busy, net_errors, conntrack_high, fd_high, listen_drops'
+  - 'upstream_errors, upstream_slow, fail_closed, waf_saturated, events_dropped, store_near_cap, traffic_spike, monitoring_degraded'
+  - 'v0.5 (D38, 2026-10-29): store_cap_unreachable, storage_budget, disk_fill_projection (contracts/storage-bounds.md); store_near_cap, store_cap_unreachable and storage_budget mark only the server, never its websites (D36 open items)'
+  - 'a hint has since, value, threshold and the object (mount, interface); it clears when the condition is gone for 5 min; hints never change request handling or the Grundschutz state'
+
+dashboard:                          # German UI copy, du-form, calm; checked against skills/humanizer/SCHILD.md
+  first_screen:
+    - 'Überblick starts with "Gerade jetzt" above today''s content: tiles "Anfragen pro Sekunde", "Gestoppt" (Anteil, with "hätte gesperrt" in observe), "Antwortzeit" (p95, small "davon Schild 1,2 ms"), "CPU", "Arbeitsspeicher", "Festplatte" (fullest mount), each with a 60-minute sparkline from queryMetricSeries'
+    - 'one status line in plain German: "Grundschutz aktiv · 42 Anfragen pro Sekunde · 0,8 % gestoppt · alles im üblichen Rahmen" (or the number of hints); the tile values update once per second from streamMonitoring, the sparklines every 10 s'
+    - 'below: "Hinweise" with each hint as one sentence and the next step, e.g. disk_full_soon: "/var/lib/docker ist zu 91 % belegt. Bei 100 % können App und Datenbank nichts mehr schreiben." (more texts in copy below)'
+    - 'no hints: "Keine Auffälligkeiten. CPU, Speicher und Festplatte sind im üblichen Rahmen." Never "sicher" or "geschützt"; never red for traffic numbers'
+  traffic_page:
+    - 'new navigation entry "Traffic" (/traffic, group Schutz): time-range picker "Live", "1 Stunde", "6 Stunden", "24 Stunden", "7 Tage", "14 Tage" (and custom), kept in the URL'
+    - 'charts: Anfragen pro Sekunde (stacked: durchgelassen, gestoppt, mit 503 beantwortet; "hätte gesperrt" as a line), Was Schild getan hat (the stop classes), Statuscodes (2xx-5xx), Antwortzeit (p50/p95/p99 gesamt, App, Schild), Datenmenge (eingehend, ausgehend), Fehler der App (502, 504)'
+    - 'tables: Häufigste Pfade, Länder, Netze (ASN), Netzarten, Clients (Browser, Bots bestätigt, Bots unbestätigt, Werkzeuge, ohne Kennung), Methoden; each row links to Ereignisse with the same filter and time range (that is where IPs are)'
+    - 'Neue und bekannte Adressen as two lines, marked as Näherungswert'
+  server_page:
+    - '/server gets two tabs: "Auslastung" (new, default) and "Server-Check" (the MVP-11 view, /server/check; old deep links keep working)'
+    - 'Auslastung: CPU (with per-core bars live), Last, Arbeitsspeicher und Swap, Festplatten (per mount: belegt, Inodes, Lesen/Schreiben, ausgelastet), Netzwerk (per interface, Fehler), Verbindungen (TCP-Zustände, abgewiesene Verbindungen, Verbindungstabelle), offene Dateien, Schild selbst (CPU, Speicher, Warteschlangen, Prüfplätze, Speicherplatz der Ereignisse), Betriebssystem und Kernel, Laufzeit'
+    - 'a short box explains what is visible here: container, network namespace, what each number describes'
+  sites: 'with MVP-16: the switcher "Alle Websites" / one website filters traffic tiles, charts and tables; server numbers stay per server and say so'
+  charts:
+    - 'own SVG components in packages/ui (extend Sparkline and AreaChart), no chart library; colours from docs/brand/tokens.css: data in --color-sky, durchgelassen in --color-signal-deep, gestoppt in --color-ink-700, warnings only for hints in --color-warning; --color-danger is not used for traffic'
+    - 'accessible: each chart is role="img" with an aria-label summary ("Anfragen pro Sekunde, letzte Stunde: im Mittel 38, höchstens 120 um 11:42"), a "Als Tabelle zeigen" toggle with the same data, keyboard-reachable data points with tooltips, patterns or labels besides colour, no animation with prefers-reduced-motion; live numbers are not an aria-live region (only new hints are announced, politely)'
+    - 'gaps (null) are drawn as gaps; restarts as a thin marker "Neustart von Schild"; estimates carry "Näherungswert" with a tooltip on how far off they can be'
+  mobile: 'Überblick at 375 px: tiles two per row, hints full width, charts full width with the picker as a select; Traffic and Server usable at 375 px, tables scroll horizontally'
+  copy:                             # German UI strings (examples the builder uses verbatim or close to)
+    empty: 'Noch keine Werte. Die ersten erscheinen nach etwa 10 Sekunden.'
+    monitoring_off: 'Die Auslastungsanzeige ist ausgeschaltet (monitoring.enabled: false in schild.yaml).'
+    container: 'Schild läuft in einem Container. CPU und Arbeitsspeicher zeigen den ganzen Server, das Limit des Containers steht daneben.'
+    own_network: 'Netzwerkwerte zeigen nur den Container. Mit network_mode: host siehst du die Werte des Servers.'
+    estimate: 'Näherungswert: kann um bis zu {n} abweichen.'
+    hints:
+      cpu_high: 'Die CPU ist seit {dauer} zu über 90 % ausgelastet. Anfragen können dadurch langsamer werden.'
+      cpu_throttled: 'Der Container stößt an sein CPU-Limit ({limit} Kerne). Das Limit steht in deiner Container-Konfiguration.'
+      load_high: 'Es warten mehr Prozesse auf Rechenzeit, als Kerne da sind (Last {wert} bei {kerne} Kernen).'
+      memory_low: 'Weniger als 10 % Arbeitsspeicher frei. Wird er knapp, beendet der Kernel Prozesse.'
+      swap_active: 'Der Server lagert Arbeitsspeicher auf die Festplatte aus. Das macht ihn spürbar langsamer.'
+      oom_kill: 'Der Kernel hat in den letzten 24 Stunden {n} Prozess(e) wegen Speichermangels beendet.'
+      disk_full_soon: '{mount} ist zu {prozent} % belegt. Bei 100 % können App und Datenbank nichts mehr schreiben.'
+      disk_io_busy: '{gerät} ist seit {dauer} fast durchgehend mit Lesen und Schreiben beschäftigt.'
+      net_errors: '{schnittstelle} meldet Übertragungsfehler oder verworfene Pakete.'
+      conntrack_high: 'Die Verbindungstabelle der Firewall ist zu {prozent} % voll. Ist sie voll, verwirft der Kernel neue Verbindungen.'
+      fd_high: 'Schild nutzt {prozent} % der erlaubten offenen Dateien. Erhöhe das Limit (LimitNOFILE oder ulimit -n).'
+      listen_drops: 'Der Server hat neue Verbindungen abgewiesen, weil die Warteschlange voll war.'
+      upstream_errors: 'Deine App hat {n} Anfragen nicht oder mit einem Fehler (502, 504) beantwortet.'
+      upstream_slow: 'Deine App antwortet langsamer als sonst (p95 {wert}). Schild selbst braucht davon {overhead}.'
+      fail_closed: 'Schild hat {n} Anfragen mit 503 beantwortet, weil die Prüfung nicht rechtzeitig fertig wurde. Ungeprüft geht keine Anfrage durch.'
+      waf_saturated: 'Alle Prüfplätze waren belegt. {n} Anfragen bekamen 503 und können es gleich noch einmal versuchen.'
+      events_dropped: '{n} Ereignisse wurden nicht gespeichert, weil zu viele auf einmal kamen. Die Zahlen hier sind trotzdem vollständig.'
+      store_near_cap: 'Der Speicher für Ereignisse ist fast voll ({belegt} von {max} MB). Ältere Ereignisse werden früher gelöscht.'
+      traffic_spike: 'Gerade kommen etwa {faktor}-mal so viele Anfragen wie in der letzten Stunde üblich.'
+      store_cap_unreachable: 'Der Ereignisspeicher bleibt über der Grenze von {max} MB. Die neuesten Einträge löscht Schild nicht. Erhöhe retention.max_size_mb oder sieh nach, was so viel schreibt.'
+      storage_budget: 'Wenn alle Speichergrenzen von Schild ausgeschöpft sind, bleiben auf {pfad} weniger als {reserve} frei. Senke retention.max_size_mb oder schaffe Platz.'
+      disk_fill_projection: '{mount} ist in etwa {tage} Tagen voll, wenn es so weitergeht wie in den letzten 7 Tagen (+{rate} pro Tag). Unter „Server“ siehst du große Logdateien.'
+      monitoring_degraded: 'Die Messung braucht gerade länger als geplant und lässt einzelne Werte aus.'
+
+must:
+  - 'request path: counting adds at most 2 µs CPU per request at p50 (pathtpl included) and allocates nothing for a request without top-K eviction; nothing blocks, nothing waits for metrics.db'
+  - 'sampler: one goroutine, every 10 s, at most 50 ms CPU per sample (budget; over budget or overlapping: skip the sample, mark the bucket partial, hint monitoring_degraded); average below 0.2 % of one core with 16 mounts, 16 interfaces and 50000 TCP sockets'
+  - 'bounded memory: accumulators, top-K tables, the 300 s live ring and the client sketches stay within 32 MiB regardless of distinct paths, ASNs or addresses'
+  - 'bounded disk: metrics.db fixed after the rings filled (size_bound); no growth with traffic or cardinality'
+  - 'privacy: aggregates only; no IP, client key, hash or sketch on disk or in any monitoring response; top lists with IPs only in the existing event views (E7)'
+  - 'monitoring never affects request handling, the Grundschutz state or the event writer; a failure in it is logged and shown as a hint'
+  - 'German UI copy, du-form, calm; "Grundschutz aktiv"; no fear wording; WCAG 2.2 AA; no third-party request; nothing polls faster than every 10 s (the live view is the SSE stream)'
+
+agent_api:                          # added 2026-10-28 (initiator); DECISIONS D33
+  purpose: 'a single-server operator connects an agent (e.g. Claude Code over MCP) to one gateway without the central dashboard; the gateway stays lean (no agent of its own, nothing that acts); MVP-20 pulls the same read surface (one implementation)'
+  listener:
+    decision: 'dedicated loopback listener agent_api.listen (default 127.0.0.1:8789, off by default), not a path prefix on the dashboard listener'
+    why:
+      - 'two auth models never share a port: the dashboard has sessions, cookies and CSRF; this listener has bearer tokens only. A bug in either middleware cannot open the other; the dashboard listener never accepts a token (401) and this one never a cookie'
+      - 'works on headless gateways (dashboard.enabled false, MVP-20) and without the dashboard UI being built'
+      - 'the SSH key of an agent user can be limited to this one port (permitopen="127.0.0.1:8789"), so the agent tunnel never reaches the dashboard login'
+      - 'own limits (rate, concurrency, response size) and own call log, without touching dashboard latency'
+      - 'MVP-20 had reserved 127.0.0.1:8789 for its export: the export becomes scope export:read on this listener'
+    rules: 'loopback only (schema pattern), never the dashboard or metrics listener (semantic check); Host header must name the listener, requests with an Origin header are refused (DNS rebinding), no CORS'
+  tokens:
+    - 'own token kind, created, listed and revoked only on the host: `schild token add --scope agent:read --expires 90d [--label "Claude Code Laptop"]`, `schild token list`, `schild token revoke <tok_id>`; never through the dashboard or any API'
+    - 'format sat1_ + 32 random bytes base64url; shown once; stored as SHA-256 with id tok_<12 hex>, scope, label, created and expiry; expiry required, at most 365 days (contract/agentapi ParseTTL)'
+    - 'scopes: agent:read (every read operation of agent/v0 and MCP); export:read reserved for the MVP-20 export (listMetricBuckets and the export/v0 operations); rules:write (D73, was crowdsec:write): agent:read plus the rule repository and rule writes, label required; rules:approve (D73): agent:read plus approveAgentRule and rejectAgentRule, label required; blocks:write (D42): agent:read plus createAgentBlock and liftAgentBlock, label required'
+    - 'no session, no password, no CSRF. The writes are updateAgentCrowdsecHub (D39 amendment), createAgentBlock and liftAgentBlock (D42); every other method than GET (and POST /mcp) and every path outside agent/v0 and /mcp answers 403 forbidden; missing, unknown, expired or revoked tokens 401'
+    - 'call log in schild.db: token id, time, operation or tool, status, rows, bytes; kept agent_api.log_days (default 30); shown by `schild token log` (and later read-only in the dashboard)'
+  operations:                       # gateway-agent.openapi.yaml, all GET under /agent/v0 except the writes (D39 amendment, D42)
+    - 'getAgentStatus: Overview (mode, Grundschutz, 24 h counters), AgentSettings read-only (mode, retention, WAF incl. effective eval slots, scenario modes, learning_until, monitoring rings, counts of rate limits and allowlist entries, config hash) - no keys, paths, lab endpoints or own addresses, plus the calling token (id, scope, expiry)'
+    - 'the seven monitoring operations of this spec, unchanged and served by the same handlers: getMonitoringNow, streamMonitoring, queryMetricSeries, getTrafficBreakdown, getServerSnapshot, getMetricCatalogue, listMetricBuckets'
+    - 'listAgentEvents (from and to required, at most 24 h, filters type and outcome only), getAgentEvent (by id, with matched rules), listAgentIncidents (at most 7 days, filter status), getAgentIncident (by number); time-index ranges, newest first, by cursor'
+    - 'no free-text search, no path or IP filter, no LIKE; at most 200 items per page, 10000 rows read per request (then scan_capped and a cursor), 1 MiB per response'
+  limits: 'per token agent_api.requests_per_minute (default 120) and agent_api.max_concurrent (default 2; an open stream counts as one), else 429 with Retry-After'
+  privacy:
+    - 'no full IP in any response: client_pseudonym = p1- + first 8 bytes of HMAC-SHA256 with a gateway-local random key over the client key of the behaviour engine (IPv4 address, IPv6 /64); client_net = IPv4 /24, IPv6 /48. The key never leaves the gateway; regenerating it unlinks earlier pseudonyms'
+    - 'no city, no query string, no session id, no request id; monitoring data is aggregate anyway'
+  untrusted:
+    - 'visitor-controlled text (host, path, user agent, rule messages, incident reasons) is marked x-untrusted in the schema, has a maxLength and is escaped by the gateway: control, line separator and bidi characters and invalid UTF-8 become U+FFFD, then cut on a rune boundary with … (contract/agentapi Sanitize)'
+    - 'every MCP tool result starts with a fixed notice that these fields are data, never instructions (agentapi.UntrustedNotice)'
+  mcp:                              # removed by D61 (2026-11-02): the API serves its own OpenAPI document instead
+    decision: 'MCP over streamable HTTP at /mcp on the same loopback listener, same bearer token; no `schild mcp` stdio command (it would need a shell on the server for the agent user)'
+    protocol: 'JSON-RPC subset written in the gateway (initialize, ping, tools/list, tools/call), stateless, JSON responses only, no server-initiated messages, no sessions; no MCP SDK dependency'
+    tools: 'schild_status, schild_now, schild_series, schild_breakdown, schild_server, schild_metrics, schild_events, schild_event, schild_incidents, schild_incident (x-mcp-tools; each wraps one operation, arguments = its parameters, result = its JSON)'
+    setup: 'on the operator''s machine: ssh -N -L 8789:127.0.0.1:8789 <gateway> (agent user with permitopen and no shell), then the MCP client points at http://127.0.0.1:8789/mcp with Authorization: Bearer sat1_...; the docs ship a Claude Code MCP config example and the privacy note that with a cloud model the read data leaves the own network'
+
+websites:                           # added 2026-10-29 (initiator, D36); contracts v0.5, contract/websites
+  ia: 'navigation Websites, Server, Einstellungen. Start page "Websites": one card per website (status, Anfragen pro Sekunde, Anteil gestoppt, Antwortzeit p95, "läuft auf N Servern"). One website: tabs Überblick, Zugriffe (MVP-22), Angriffe (events, incidents, behaviour hits, waves of this website), Ausnahmen; everything filtered with site=<id>; "Läuft auf: <server> ●" links to the server. Server is its own area (CPU, RAM, disk, network, host check); a server problem shows at its websites only as one short line. Regeln lives under Einstellungen; Freigaben, Signale and Verbund are gone (D72)'
+  derivation: 'ingress: one Caddyfile site block = one website (all addresses), blocks sharing a host joined; proxy: one website named after upstream.site_hosts[0], else default. Ids from the first host (punycode, no port, _ for a wildcard label). The gateway derives them at every config load; the gate counts every request for the website its Host resolves to (MetricBucket.sites, also with one website, with per-website latency histograms)'
+  api: 'listWebsites / getWebsite (memory only), site filter everywhere, HealthHint.site for website-scoped hints, listIncidents, listAgentCalls (call log read-only: closes the open question below), queryMetricSeries merges buckets beyond 1000 points (14 d = 30 min points), getTrafficBreakdown reads at most 2016 buckets'
+  status: 'gestört / bitte ansehen / ok / keine Messwerte by contract/websites.Status (D36): gestört when every gateway is down or, over 5 min with >= 10 requests, >= 5 % fail-closed 503, >= 20 % upstream errors and timeouts, or >= 20 % 5xx; bitte ansehen for any website or server hint or a degraded Grundschutz'
+  copy:                             # German short lines for server hints at a website ("<node>: <text>")
+    cpu_high: 'CPU stark ausgelastet'
+    cpu_throttled: 'CPU-Limit des Containers erreicht'
+    load_high: 'sehr hohe Last'
+    memory_low: 'Arbeitsspeicher knapp'
+    swap_active: 'lagert Speicher aus'
+    oom_kill: 'Prozesse wegen Speichermangel beendet'
+    disk_full_soon: 'Platte fast voll'
+    disk_io_busy: 'Platte ausgelastet'
+    net_errors: 'Netzwerkfehler'
+    conntrack_high: 'Verbindungstabelle fast voll'
+    fd_high: 'zu viele offene Dateien'
+    listen_drops: 'Verbindungen abgewiesen'
+    waf_saturated: 'Prüfplätze voll'
+    events_dropped: 'Ereignisse nicht gespeichert'
+    store_near_cap: 'Ereignisspeicher fast voll'   # server page only since 2026-10-29 (D36 open items): no longer shown at websites
+    disk_fill_projection: 'Platte bald voll'
+    monitoring_degraded: 'Messung lückenhaft'
+    status: { ok: 'läuft', attention: 'bitte ansehen', disrupted: 'gestört', unknown: 'keine Messwerte' }
+    block_scope: 'Die Sperre gilt für alle Websites auf diesem Server.'
+  limits: 'per-website numbers exist for the first 32 websites (the rest is _other); per-website top lists only in the 10 min ring (K = 16); combined filters only within the 48 h request ring (else filter_unavailable)'
+  visitors: 'D36 amendment (initiator 2026-10-29): "Besucher" are people, like Plausible. A client is a visitor only with a browser request schild forwarded (ua_class browser + bot_category likely_browser, outcome passed or would_block; contract/monitoring.Visitor, vectors website-visitor). Bots (verified or not), tools, no User-Agent, other and likely_automated never count, nor clients whose every request was stopped. Applies to clients unique/new/unique_day (gateway-wide and per website), traffic.clients_unique/clients_new, TrafficNow.clients_unique, getWebsiteKpis visitors and getWebsiteRealtime visitors_5m and points. clients.bots estimates the bot clients ("Bot-Clients"); the Bots & KI-Crawler panel keeps requests per bot category. UI label "Besucher ohne erkannte Bots". Same HyperLogLog, same privacy rules'
+  amendment_gaps: 'D36 amendment 2026-10-29: listEvents filters net_class, method, ua_class (breakdown rows link to Ereignisse); TCPSnapshot.listen null = unknown on the sockstat path (UI "unbekannt"); AlertItem.possible_false_positive set by the gateway; Incident.block (BehaviourBlock: until, level, net_class, duration_s, persisted); referrer _intern also for every host of every website of this gateway (contract/websites Set.OwnHost); website fixtures in contracts/api/fixtures/client by operationId'
+  overview: 'website Überblick modelled on Plausible (D36 addendum): KPI row with previous period (getWebsiteKpis), main chart traffic + attacks with partial points (queryMetricSeries site), annotations (listAnnotations), Echtzeit (getWebsiteRealtime), panels Herkunft, Seiten, Woher (Länder, Netzarten, Netzbetreiber with requests, gestoppt, hätte gestoppt per row), Technik, Bots & KI-Crawler, Angriffe with click-to-filter (getTrafficBreakdown site + filter), Letzte Alarme (listAlerts)'
+
+spec20_compatibility:
+  - 'MetricBucket is the unit of the MVP-20 export ("metrics" read path): the export streams the rows of the 1 min ring (and on request the 10 s ring) by cursor; MVP-20''s own 30 s sampler is replaced by these rings'
+  - 'MVP-20 contracts (planned v0.5) reference #/components/schemas/MetricBucket of this document instead of a second metric sample schema; the central dashboard stores buckets as they are'
+  - 'a headless gateway (dashboard.enabled false) keeps monitoring on for the export'
+
+measure:                            # by an independent agent, not the builder
+  - 'ground truth: testlab traffic replay (MVP-06 suites, fixed seed) with known counts per class, status, site, path and country plus attacks and a flood that saturates the eval slots: every exact counter equals the ground truth (difference 0) for requests reaching the handler; fail_closed_by.waf_busy equals the 503 waf_busy answers seen by the client'
+  - 'estimates within bounds: latency p50/p95/p99 vs client-side timings minus network RTT within +25 %/-5 %; top-10 paths and ASNs overlap >= 9 of 10 with the exact ranking, every error bound holds; unique clients within ±5 %, new clients within ±5 % after 1 day of replay'
+  - 'server numbers vs reference tools at 10 s: CPU and memory vs vmstat/free within 3 percentage points, disk vs df within 1 %, network vs /sys/class/net counters within 2 %, TCP states vs ss -s within 2 %; in a container (network bridge and host) the labels say what is shown and match the reference for that scope'
+  - 'cost: CPU of schild with monitoring on vs off at 1000 and 5000 req/s: difference <= 1 % of one core; p99 latency unchanged within noise; sampler CPU per sample with 50000 sockets <= 50 ms'
+  - 'bounds: flood of 1 million distinct paths and 1 million addresses: monitoring memory <= 32 MiB, metrics.db at its documented bound after the rings filled; 72 h soak: no growth'
+  - 'privacy: grep metrics.db and every monitoring response for the replayed IPs (and their /24 and /64): 0 hits'
+  - 'queries: queryMetricSeries for 16 metrics x 1000 points p95 < 100 ms; getTrafficBreakdown over 14 days p95 < 300 ms; streamMonitoring with 16 subscribers adds < 0.2 % CPU'
+  - 'agent API: an agent:read token gets 403 on every write or settings route of both listeners (fuzz all methods x all dashboard and agent paths) and 401 on the dashboard listener; an expired or revoked token is refused at once; a token never appears in logs; Origin and foreign Host headers are refused'
+  - 'agent API privacy: replay traffic from known addresses, then grep every agent and MCP response for each address, its /32 and its IPv6 /64 written out: 0 hits; client_net is /24 or /48 only'
+  - 'agent API untrusted fields: requests with control, bidi and line separator characters and prompt-injection text in host, path and user agent arrive escaped, capped and inside x-untrusted fields; every MCP result carries the notice'
+  - 'agent API cost: events and incidents queries over the full 24 h or 7 d window with 1,000,000 stored events p95 < 200 ms and never above 10000 rows read; rate and concurrency limits hold; gateway p99 latency unchanged within noise while an agent polls at the limit'
+  - 'usability (5 people who run small sites, no help): U-M1 "Was macht dein Server gerade? Wie viele Anfragen pro Sekunde, wie viel davon gestoppt?" within 10 s; U-M2 "Läuft eine Festplatte bald voll?" within 20 s; U-M3 "Heute Nacht um 3 Uhr war die Website langsam. Lag es an der App oder an Schild?" within 2 min; U-M4 "Welche Seiten werden am häufigsten aufgerufen, und aus welchem Netz kommen die meisten gestoppten Anfragen?" within 1 min; pass: each task by >= 4 of 5; nobody believes the site is fully safe afterwards'
+kill_if: "monitoring costs more than 1 % of one core at 1000 req/s or measurably raises p99 latency OR an agent token changes anything on the gateway or reads a full IP address OR an exact counter differs from the ground truth OR an estimate is off beyond its stated bound OR memory or metrics.db grows with traffic or cardinality OR an IP address or anything derived from one is written to metrics.db or appears in a monitoring response OR a usability task is solved by fewer than 3 of 5 people"
+done: "make contracts-test && make test && make ui && make testlab-up PROFILE=t1 && make smoke PROFILE=t1 (incl. monitoring steps) && make eval SPEC=MVP-21"
+out_of_scope:
+  - 'alerting by e-mail or ntfy (MVP-20 central dashboard); hints are shown only'
+  - 'process list of the host, per-process CPU of other programs, log reading (MVP-20 system log)'
+  - 'metrics of app VMs behind the gateway (schild-agent stays a read-only checker in MVP-11; a later spec may add samples)'
+  - 'configurable hint thresholds (fixed in v0.4; open question)'
+  - 'OpenTelemetry export; Prometheus remote write'
+  - 'IP-level top lists outside the event views'
+  - 'agent API: any action (blocking stays in MVP-20 for the central dashboard), free-text search, an agent API reachable from other hosts without an SSH tunnel'
+open_questions:
+  - 'should the hint thresholds become schild.yaml keys (monitoring.hints), or stay fixed until stage 3 shows which ones are noisy?'
+  - 'is 14 days at 10 min the right default, or should the 10 min ring default to 30 days (about 2 x the size)?'
+  - 'new clients: is the 7-day in-memory window acceptable, given that a restart resets it, or should a rotating keyed filter be persisted (pseudonymous data on disk, concept 24 review needed)?'
+  - 'per-core CPU in the rings (now snapshot and live only)?'
+  - 'agent API: should the dashboard show the token call log read-only (tokens still managed only on the host)? Decided 2026-10-29 (D36): yes, listAgentCalls'

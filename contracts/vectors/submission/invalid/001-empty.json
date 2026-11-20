@@ -1,0 +1,16 @@
+{
+  "contract": "submission",
+  "description": "No envelopes.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"envelopes\":[],\"request_id\":\"ffc8c1ae-37d5-4965-97c6-48724fe5c819\"}",
+  "input_decoded": {
+    "envelopes": [],
+    "request_id": "ffc8c1ae-37d5-4965-97c6-48724fe5c819"
+  },
+  "expect": {
+    "valid": false,
+    "error": "schema"
+  }
+}

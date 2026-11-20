@@ -1,0 +1,117 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://contracts.schild.invalid/v0/storage-bounds.schema.json",
+  "title": "Storage bounds decision input (v0.5, D38)",
+  "description": "Input of the storage-bounds vectors: one decision of the gateway's storage bounds (contract/storage, rules in storage-bounds.md). op check_due: is a size-cap pass due; op cap_pass: which rows of schild.db the size cap deletes and in which order; op disk_budget: does the sum of the configured bounds fit the file system of storage.path; op incident_aggregate: incident numbers and aggregated incidents of a series of blocked requests; op disk_projection: the MVP-21 hint disk_fill_projection. Sizes are bytes, times unix milliseconds. Never sent anywhere.",
+  "oneOf": [
+    { "$ref": "#/$defs/checkDue" },
+    { "$ref": "#/$defs/capPass" },
+    { "$ref": "#/$defs/diskBudget" },
+    { "$ref": "#/$defs/incidentAggregate" },
+    { "$ref": "#/$defs/diskProjection" }
+  ],
+  "$defs": {
+    "bytes": { "type": "integer", "minimum": 0, "maximum": 9007199254740991 },
+    "maxSizeMB": { "description": "retention.max_size_mb of schild.yaml.", "type": "integer", "minimum": 10, "maximum": 100000 },
+    "checkDue": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["op", "max_size_mb", "written_bytes", "elapsed_s"],
+      "properties": {
+        "op": { "const": "check_due" },
+        "max_size_mb": { "$ref": "#/$defs/maxSizeMB" },
+        "written_bytes": { "description": "Bytes the event and incident writers wrote to schild.db since the last pass.", "$ref": "#/$defs/bytes" },
+        "elapsed_s": { "description": "Seconds since the last pass.", "type": "integer", "minimum": 0, "maximum": 31536000 }
+      }
+    },
+    "row": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "kind", "t", "bytes"],
+      "properties": {
+        "id": { "type": "string", "pattern": "^[a-z0-9-]{1,32}$" },
+        "kind": { "description": "event: a row of events; incident: a row of incidents (aggregated); agent_call: a row of the agent API call log.", "type": "string", "enum": ["event", "incident", "agent_call"] },
+        "type": { "description": "Event type (kind event only).", "type": "string", "pattern": "^schild\\.[a-z]+\\.[a-z_]+\\.v1$" },
+        "outcome": { "description": "Request outcome (request events only).", "type": "string", "enum": ["passed", "logged", "challenged", "blocked", "would_block"] },
+        "action": { "description": "What a behaviour, rate-limit or distributed event did: observe = shown as \"hätte reagiert\", anything else enforced.", "type": "string", "pattern": "^[a-z_]{1,32}$" },
+        "sampled": { "description": "The request was recorded as a sample (unremarkable, or stopped by a running block).", "type": "boolean" },
+        "t": { "description": "Write time, unix ms.", "$ref": "#/$defs/bytes" },
+        "bytes": { "description": "Bytes the row occupies (payload and index entries).", "type": "integer", "minimum": 1, "maximum": 67108864 }
+      },
+      "if": { "properties": { "kind": { "const": "event" } } },
+      "then": { "required": ["type"] },
+      "else": { "not": { "anyOf": [{ "required": ["type"] }, { "required": ["outcome"] }, { "required": ["action"] }, { "required": ["sampled"] }] } }
+    },
+    "capPass": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["op", "max_size_mb", "base_bytes", "wal_bytes", "floor_rows", "rows"],
+      "properties": {
+        "op": { "const": "cap_pass" },
+        "max_size_mb": { "$ref": "#/$defs/maxSizeMB" },
+        "base_bytes": { "description": "Used bytes of everything the pass never deletes (summaries, settings, users, exceptions, config changes, page overhead).", "$ref": "#/$defs/bytes" },
+        "wal_bytes": { "description": "Size of schild.db-wal after the checkpoint that starts the pass.", "$ref": "#/$defs/bytes" },
+        "floor_rows": { "description": "Newest rows of each class the pass never deletes. The gateway uses storage.FloorRows (100); vectors use small values.", "type": "integer", "minimum": 0, "maximum": 1000 },
+        "rows": { "type": "array", "maxItems": 2000, "items": { "$ref": "#/$defs/row" } }
+      }
+    },
+    "diskBudget": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["op", "max_size_mb", "metrics_bound_bytes", "requests_max_size_mb", "fs_total_bytes", "fs_avail_bytes", "schild_used_bytes"],
+      "properties": {
+        "op": { "const": "disk_budget" },
+        "max_size_mb": { "$ref": "#/$defs/maxSizeMB" },
+        "metrics_bound_bytes": { "description": "monitoring.MetricsBoundBytes for the configured keep and website count (0 with monitoring off).", "$ref": "#/$defs/bytes" },
+        "requests_max_size_mb": { "description": "monitoring.requests.max_size_mb, 0 with the request ring off.", "type": "integer", "minimum": 0, "maximum": 4096 },
+        "body_spool_bytes": { "description": "D41: waf.body.max_in_flight_bytes, the temp space of bodies under storage.path. Absent: not counted.", "$ref": "#/$defs/bytes" },
+        "fs_total_bytes": { "description": "Size of the file system of storage.path (statfs f_blocks x f_frsize).", "type": "integer", "minimum": 1, "maximum": 9007199254740991 },
+        "fs_avail_bytes": { "description": "Bytes available to schild on it (statfs f_bavail x f_frsize).", "$ref": "#/$defs/bytes" },
+        "schild_used_bytes": { "description": "What the bounded files already occupy: schild.db, metrics.db, both WALs and the request ring segments.", "$ref": "#/$defs/bytes" }
+      }
+    },
+    "blockedRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["client", "t", "draw"],
+      "properties": {
+        "client": { "description": "Client key of the behaviour engine (IPv4 address, IPv6 /64), as a keyed token.", "type": "string", "pattern": "^[a-z0-9:._-]{1,64}$" },
+        "rules": { "description": "Rule ids that caused the block (WAF).", "type": "array", "minItems": 1, "maxItems": 32, "items": { "type": "string", "pattern": "^[A-Za-z0-9_.:-]{1,32}$" } },
+        "limit": { "description": "Request limit code that caused the block (instead of rules).", "type": "string", "pattern": "^[a-z_]{1,32}$" },
+        "t": { "description": "Request time, unix ms.", "$ref": "#/$defs/bytes" },
+        "draw": { "description": "The fresh incident number the gateway would draw for this request.", "type": "string", "pattern": "^[A-HJ-NP-Z2-9]{4}-[A-HJ-NP-Z2-9]{4}$" }
+      },
+      "oneOf": [{ "required": ["rules"] }, { "required": ["limit"] }]
+    },
+    "incidentAggregate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["op", "max_open", "requests"],
+      "properties": {
+        "op": { "const": "incident_aggregate" },
+        "max_open": { "description": "Open aggregates the gateway keeps in memory (storage.MaxOpenAggregates, 65536); vectors use small values.", "type": "integer", "minimum": 0, "maximum": 65536 },
+        "requests": { "type": "array", "minItems": 1, "maxItems": 1000, "items": { "$ref": "#/$defs/blockedRequest" } }
+      }
+    },
+    "day": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["min_used_bytes", "samples"],
+      "properties": {
+        "min_used_bytes": { "description": "Smallest server.disk_used of the mount on that UTC day.", "$ref": "#/$defs/bytes" },
+        "samples": { "description": "10-minute points of that day in the ring (144 = complete).", "type": "integer", "minimum": 0, "maximum": 144 }
+      }
+    },
+    "diskProjection": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["op", "total_bytes", "used_bytes", "days"],
+      "properties": {
+        "op": { "const": "disk_projection" },
+        "total_bytes": { "description": "Size of the mount.", "type": "integer", "minimum": 1, "maximum": 9007199254740991 },
+        "used_bytes": { "description": "server.disk_used now.", "$ref": "#/$defs/bytes" },
+        "days": { "description": "The last 7 complete UTC days, oldest first.", "type": "array", "minItems": 7, "maxItems": 7, "items": { "$ref": "#/$defs/day" } }
+      }
+    }
+  }
+}

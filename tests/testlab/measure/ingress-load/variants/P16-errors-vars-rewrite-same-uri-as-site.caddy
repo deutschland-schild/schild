@@ -1,0 +1,15 @@
+# unprotected: []
+# expect: refuse
+# The site's schild sees the full URI; handle_errors restores nothing but its own route rewrites the URI to exactly what the site inspected after saving it (marker matches) - control for P15 with a site that did not hide anything.
+http://a.example.test:18080 {
+	route {
+		vars saved {uri}
+		schild
+		rewrite * /x?{vars.saved}
+		error "boom" 500
+	}
+	handle_errors {
+		import schild
+		reverse_proxy 127.0.0.1:18082
+	}
+}

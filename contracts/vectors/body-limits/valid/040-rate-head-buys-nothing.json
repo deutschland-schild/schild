@@ -1,0 +1,38 @@
+{
+  "contract": "body-limits",
+  "description": "D41, E2: fixed windows: bytes at the start do not cover a later slow window.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"arrivals\":[{\"bytes\":131072,\"t_ms\":0},{\"bytes\":10,\"t_ms\":31000},{\"bytes\":10,\"t_ms\":61000}],\"end_ms\":90000,\"op\":\"rate\"}",
+  "input_decoded": {
+    "arrivals": [
+      {
+        "bytes": 131072,
+        "t_ms": 0
+      },
+      {
+        "bytes": 10,
+        "t_ms": 31000
+      },
+      {
+        "bytes": 10,
+        "t_ms": 61000
+      }
+    ],
+    "end_ms": 90000,
+    "op": "rate"
+  },
+  "expect": {
+    "valid": true,
+    "result": {
+      "below_min": true,
+      "first_below": 1,
+      "windows": [
+        4369,
+        0,
+        0
+      ]
+    }
+  }
+}

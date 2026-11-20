@@ -1,0 +1,29 @@
+{
+  "contract": "events",
+  "description": "v0.4 MVP-18: no address in wave records.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"data\":{\"detector\":\"route_wave\",\"duration_s\":10,\"ip\":\"203.0.113.7\",\"reason\":\"expired\",\"route\":\"/login\",\"stopped\":0,\"wave_id\":\"e9f23e04-f748-41f3-88e7-7e6f0ad8ce59\"},\"datacontenttype\":\"application/json\",\"id\":\"bbbc5d8e-bd3f-4781-933a-00f3ef7791d9\",\"source\":\"schild://web-1\",\"specversion\":\"1.0\",\"time\":\"2026-10-26T11:59:58.123Z\",\"type\":\"schild.distributed.ended.v1\"}",
+  "input_decoded": {
+    "data": {
+      "detector": "route_wave",
+      "duration_s": 10,
+      "ip": "203.0.113.7",
+      "reason": "expired",
+      "route": "/login",
+      "stopped": 0,
+      "wave_id": "e9f23e04-f748-41f3-88e7-7e6f0ad8ce59"
+    },
+    "datacontenttype": "application/json",
+    "id": "bbbc5d8e-bd3f-4781-933a-00f3ef7791d9",
+    "source": "schild://web-1",
+    "specversion": "1.0",
+    "time": "2026-10-26T11:59:58.123Z",
+    "type": "schild.distributed.ended.v1"
+  },
+  "expect": {
+    "valid": false,
+    "error": "schema"
+  }
+}

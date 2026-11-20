@@ -1,0 +1,64 @@
+{
+  "contract": "website-derive",
+  "description": "D36 amendment: IP literal websites own their literal (IPv6 in brackets, canonical form); an unbracketed IPv6 host is not parsed.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"blocks\":[{\"addresses\":[\"192.0.2.10\"],\"proxies\":true,\"schild\":true},{\"addresses\":[\"[2001:db8::1]\"],\"proxies\":true,\"schild\":true}],\"mode\":\"ingress\",\"own_hosts\":[\"192.0.2.10:443\",\"[2001:0db8::1]\",\"192.0.2.11\",\"2001:db8::1\"]}",
+  "input_decoded": {
+    "blocks": [
+      {
+        "addresses": [
+          "192.0.2.10"
+        ],
+        "proxies": true,
+        "schild": true
+      },
+      {
+        "addresses": [
+          "[2001:db8::1]"
+        ],
+        "proxies": true,
+        "schild": true
+      }
+    ],
+    "mode": "ingress",
+    "own_hosts": [
+      "192.0.2.10:443",
+      "[2001:0db8::1]",
+      "192.0.2.11",
+      "2001:db8::1"
+    ]
+  },
+  "expect": {
+    "valid": true,
+    "result": {
+      "own": [
+        true,
+        true,
+        false,
+        false
+      ],
+      "websites": [
+        {
+          "hosts": [
+            "192.0.2.10"
+          ],
+          "id": "192.0.2.10",
+          "label": "192.0.2.10",
+          "protection": "protected",
+          "tracked": true
+        },
+        {
+          "hosts": [
+            "2001:db8::1"
+          ],
+          "id": "ipv6-2001-db8--1",
+          "label": "[2001:db8::1]",
+          "protection": "protected",
+          "tracked": true
+        }
+      ]
+    }
+  }
+}

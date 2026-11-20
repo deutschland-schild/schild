@@ -1,0 +1,21 @@
+{
+	admin off
+}
+
+http://wp.example.org {
+	redir https://{host}{uri} permanent
+}
+
+wp.example.org {
+	schild
+	root * /var/www/wp
+	php_fastcgi unix//run/php/php-fpm.sock
+	file_server
+}
+
+old.example.org {
+	root * /var/www/old
+	php_fastcgi 127.0.0.1:9000
+	file_server
+}
+

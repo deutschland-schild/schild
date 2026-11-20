@@ -1,0 +1,48 @@
+{
+  "contract": "events",
+  "description": "D29 amendment: data centre, repeat offender (level 4): 7 days (\"7 Tage, weil Rechenzentrum und wiederholt\"); kept across restarts.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"data\":{\"action\":\"block\",\"client\":{\"attribution\":\"tcp_peer\",\"geo\":{\"as_org\":\"Example Hosting B.V.\",\"asn\":64500,\"city\":\"Amsterdam\",\"country\":\"NL\",\"net_class\":\"hosting\"},\"ip\":\"203.0.113.42\",\"port\":51234},\"count\":40,\"duration_s\":604800,\"host\":\"verein.example\",\"incident\":\"K7QM-4XWD\",\"key_bits\":32,\"level\":4,\"mode\":\"block\",\"route\":\"/.env\",\"scenario\":\"path_probing\",\"scope\":\"client\",\"threshold\":30,\"until\":\"2026-11-02T12:00:00Z\",\"window_s\":60,\"would_action\":\"block\"},\"datacontenttype\":\"application/json\",\"id\":\"e469f901-8f82-4e09-aa0b-5d5a3a0fefaa\",\"source\":\"schild://web-1\",\"specversion\":\"1.0\",\"time\":\"2026-10-26T11:59:58.123Z\",\"type\":\"schild.behaviour.triggered.v1\"}",
+  "input_decoded": {
+    "data": {
+      "action": "block",
+      "client": {
+        "attribution": "tcp_peer",
+        "geo": {
+          "as_org": "Example Hosting B.V.",
+          "asn": 64500,
+          "city": "Amsterdam",
+          "country": "NL",
+          "net_class": "hosting"
+        },
+        "ip": "203.0.113.42",
+        "port": 51234
+      },
+      "count": 40,
+      "duration_s": 604800,
+      "host": "verein.example",
+      "incident": "K7QM-4XWD",
+      "key_bits": 32,
+      "level": 4,
+      "mode": "block",
+      "route": "/.env",
+      "scenario": "path_probing",
+      "scope": "client",
+      "threshold": 30,
+      "until": "2026-11-02T12:00:00Z",
+      "window_s": 60,
+      "would_action": "block"
+    },
+    "datacontenttype": "application/json",
+    "id": "e469f901-8f82-4e09-aa0b-5d5a3a0fefaa",
+    "source": "schild://web-1",
+    "specversion": "1.0",
+    "time": "2026-10-26T11:59:58.123Z",
+    "type": "schild.behaviour.triggered.v1"
+  },
+  "expect": {
+    "valid": true
+  }
+}

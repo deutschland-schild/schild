@@ -1,0 +1,19 @@
+{
+  "contract": "peer-request",
+  "description": "A signed POST binds the body digest.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z",
+    "trust": [
+      "lab-a",
+      "lab-a2",
+      "lab-b",
+      "lab-c",
+      "lab-d",
+      "site-a"
+    ]
+  },
+  "input_raw": "{\"authorization\":\"v1 lab=lab-b keyid=test-lab-b ts=2026-10-26T12:00:00Z sig=yA4Y//0ScR/3dpt8vib8u2tfVuPPW439jlcV4wJLks5hskpinf5qq6nekyprEfMdYNVArQVAMos2GDNiJnZaBg==\",\"body_sha256\":\"sha256:121041e397d97977dbd6d107a073ba1e1b83bd64ab65393dfbc0763293d202b0\",\"method\":\"POST\",\"path\":\"/v0/signatures\",\"target\":\"lab-a\"}",
+  "expect": {
+    "valid": true
+  }
+}

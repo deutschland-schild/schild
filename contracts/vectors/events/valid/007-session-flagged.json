@@ -1,0 +1,38 @@
+{
+  "contract": "events",
+  "description": "Session over the rate threshold.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"data\":{\"client\":{\"attribution\":\"tcp_peer\",\"geo\":{\"as_org\":\"Example Hosting B.V.\",\"asn\":64500,\"city\":\"Amsterdam\",\"country\":\"NL\",\"net_class\":\"hosting\"},\"ip\":\"203.0.113.42\",\"port\":51234},\"reason\":\"rate\",\"requests\":480,\"session_id\":\"s_k3j9x2m1p0\",\"threshold\":300,\"window_s\":60},\"datacontenttype\":\"application/json\",\"id\":\"854bff32-5861-4b55-a366-9c1d0b463052\",\"source\":\"schild://web-1\",\"specversion\":\"1.0\",\"time\":\"2026-10-26T11:59:58.123Z\",\"type\":\"schild.session.flagged.v1\"}",
+  "input_decoded": {
+    "data": {
+      "client": {
+        "attribution": "tcp_peer",
+        "geo": {
+          "as_org": "Example Hosting B.V.",
+          "asn": 64500,
+          "city": "Amsterdam",
+          "country": "NL",
+          "net_class": "hosting"
+        },
+        "ip": "203.0.113.42",
+        "port": 51234
+      },
+      "reason": "rate",
+      "requests": 480,
+      "session_id": "s_k3j9x2m1p0",
+      "threshold": 300,
+      "window_s": 60
+    },
+    "datacontenttype": "application/json",
+    "id": "854bff32-5861-4b55-a366-9c1d0b463052",
+    "source": "schild://web-1",
+    "specversion": "1.0",
+    "time": "2026-10-26T11:59:58.123Z",
+    "type": "schild.session.flagged.v1"
+  },
+  "expect": {
+    "valid": true
+  }
+}

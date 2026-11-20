@@ -1,0 +1,11 @@
+# unprotected: []
+# expect: refuse
+http://a.example.test:18080 {
+	handle /api/* {
+		header X-Api 1
+	}
+	handle {
+		import schild
+	}
+	reverse_proxy 127.0.0.1:18081
+}

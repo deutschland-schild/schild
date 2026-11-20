@@ -1,0 +1,24 @@
+{
+  "contract": "website-derive",
+  "description": "D36: labels are letters, digits and hyphens.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"blocks\":[{\"addresses\":[\"_dmarc.example.org\"],\"proxies\":true,\"schild\":true}],\"mode\":\"ingress\"}",
+  "input_decoded": {
+    "blocks": [
+      {
+        "addresses": [
+          "_dmarc.example.org"
+        ],
+        "proxies": true,
+        "schild": true
+      }
+    ],
+    "mode": "ingress"
+  },
+  "expect": {
+    "valid": false,
+    "error": "schema"
+  }
+}

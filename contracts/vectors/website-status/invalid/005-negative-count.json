@@ -1,0 +1,33 @@
+{
+  "contract": "website-status",
+  "description": "D36: counts are not negative.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"monitoring\":true,\"protection\":\"protected\",\"servers\":[{\"baseline_protection\":\"active\",\"hints\":[],\"node\":\"web-1\",\"state\":\"ok\"}],\"tracked\":true,\"traffic\":{\"fail_closed\":-1,\"forwarded\":10,\"requests\":10,\"status_5xx\":0,\"upstream_errors\":0,\"upstream_timeouts\":0}}",
+  "input_decoded": {
+    "monitoring": true,
+    "protection": "protected",
+    "servers": [
+      {
+        "baseline_protection": "active",
+        "hints": [],
+        "node": "web-1",
+        "state": "ok"
+      }
+    ],
+    "tracked": true,
+    "traffic": {
+      "fail_closed": -1,
+      "forwarded": 10,
+      "requests": 10,
+      "status_5xx": 0,
+      "upstream_errors": 0,
+      "upstream_timeouts": 0
+    }
+  },
+  "expect": {
+    "valid": false,
+    "error": "schema"
+  }
+}

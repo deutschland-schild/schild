@@ -1,0 +1,28 @@
+{
+  "contract": "events",
+  "description": "D43: a reset is no refusal and has no code.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"data\":{\"code\":\"shrink\",\"outcome\":\"reset\",\"repository\":\"crowdsec\",\"rules_loaded\":201,\"rules_skipped\":5,\"set_source\":\"image\"},\"datacontenttype\":\"application/json\",\"id\":\"acef2d3d-2135-4927-9e5f-50f49d1d596f\",\"source\":\"schild://web-1\",\"specversion\":\"1.0\",\"time\":\"2026-10-26T11:59:58.123Z\",\"type\":\"schild.rule.repository_updated.v1\"}",
+  "input_decoded": {
+    "data": {
+      "code": "shrink",
+      "outcome": "reset",
+      "repository": "crowdsec",
+      "rules_loaded": 201,
+      "rules_skipped": 5,
+      "set_source": "image"
+    },
+    "datacontenttype": "application/json",
+    "id": "acef2d3d-2135-4927-9e5f-50f49d1d596f",
+    "source": "schild://web-1",
+    "specversion": "1.0",
+    "time": "2026-10-26T11:59:58.123Z",
+    "type": "schild.rule.repository_updated.v1"
+  },
+  "expect": {
+    "valid": false,
+    "error": "schema"
+  }
+}

@@ -1,0 +1,51 @@
+{
+  "contract": "signal",
+  "description": "Referer carries the site's host.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z",
+    "trust": [
+      "site-a",
+      "site-b",
+      "site-c",
+      "lab-a",
+      "lab-a2",
+      "lab-b",
+      "lab-c",
+      "lab-d"
+    ]
+  },
+  "input_raw": "{\"payloadType\":\"application/vnd.schild.signal.v0+json\",\"payload\":\"eyJhY3Rpb25fc2lnIjoibG9naW4tYnVyc3Qvd3AtYWRtaW4iLCJhZ2VudCI6eyJib3QiOmZhbHNlLCJmYW1pbHkiOiJweXRob24tcmVxdWVzdHMiLCJtYWpvciI6Mn0sImNhdGVnb3J5Ijoid29yZHByZXNzLWxvZ2luLWJydXRlZm9yY2UiLCJpZCI6Ijc4NTY3Njg1LTkyODUtNDhiOC04ZWYzLTkzMWVhNTc2YjQ3MiIsImtpbmQiOiJ0aXAiLCJvcmlnaW4iOnsiYXNuIjoxNDA2MSwiYXR0cmlidXRpb24iOiJ0Y3BfcGVlciIsImNvdW50cnkiOiJOTCIsIm5ldF9jbGFzcyI6Imhvc3RpbmciLCJwcm90ZWN0ZWQiOmZhbHNlfSwicmVmZXJlciI6Imh0dHBzOi8vc2hvcC5leGFtcGxlLyIsInJlcXVlc3Rfc2lnIjoic2hhMjU2OmEwNzE4N2YxYzdkMWM1NjQzYjAyY2U3MzBiZWYzZDdiYzU3MDBhNWJlZTBiMzgzM2QxM2YyODE5ZjFlMmJlODEiLCJzY2hlbWEiOiJzY2hpbGQuc2lnbmFsLzAuMyIsInNjb3JlIjo3MiwidGltZV9idWNrZXQiOiIyMDI2LTEwLTI2VDExOjU1OjAwWiIsIndhZl9ydWxlcyI6WzkzMDEyMCw5NDkxMTBdfQ==\",\"signatures\":[{\"keyid\":\"test-site-a\",\"sig\":\"Nuxo1OaWQBiEsmt3jHxePqLFF5WU3ERMzqgmRmGzb7S0oHwAepAG5aov9S86t7H5k8heBgn2KWDBCeSDViFdCQ==\"}]}",
+  "input_decoded": {
+    "payload": {
+      "action_sig": "login-burst/wp-admin",
+      "agent": {
+        "bot": false,
+        "family": "python-requests",
+        "major": 2
+      },
+      "category": "wordpress-login-bruteforce",
+      "id": "78567685-9285-48b8-8ef3-931ea576b472",
+      "kind": "tip",
+      "origin": {
+        "asn": 14061,
+        "attribution": "tcp_peer",
+        "country": "NL",
+        "net_class": "hosting",
+        "protected": false
+      },
+      "referer": "https://shop.example/",
+      "request_sig": "sha256:a07187f1c7d1c5643b02ce730bef3d7bc5700a5bee0b3833d13f2819f1e2be81",
+      "schema": "schild.signal/0.3",
+      "score": 72,
+      "time_bucket": "2026-10-26T11:55:00Z",
+      "waf_rules": [
+        930120,
+        949110
+      ]
+    }
+  },
+  "expect": {
+    "valid": false,
+    "error": "forbidden_field"
+  }
+}

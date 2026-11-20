@@ -1,0 +1,32 @@
+{
+  "context": {
+    "now": "2026-11-19T12:00:00Z"
+  },
+  "contract": "human-check",
+  "description": "under_attack admin challenges login routes",
+  "expect": {
+    "result": {
+      "answer": "challenge",
+      "reason": "under_attack",
+      "status": 403
+    },
+    "valid": true
+  },
+  "input_decoded": {
+    "accept": "text/html",
+    "allowlisted": false,
+    "clearance": "none",
+    "good_bot": false,
+    "method": "GET",
+    "path": "/wp-login.php",
+    "policy": {
+      "mode": "off",
+      "under_attack": {
+        "scope": "admin",
+        "until": "2026-11-19T14:00:00Z"
+      },
+      "website": "example.org"
+    }
+  },
+  "input_raw": "{\"accept\":\"text/html\",\"allowlisted\":false,\"clearance\":\"none\",\"good_bot\":false,\"method\":\"GET\",\"path\":\"/wp-login.php\",\"policy\":{\"mode\":\"off\",\"under_attack\":{\"scope\":\"admin\",\"until\":\"2026-11-19T14:00:00Z\"},\"website\":\"example.org\"}}"
+}

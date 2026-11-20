@@ -1,0 +1,31 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://contracts.schild.invalid/v0/bot-match.schema.json",
+  "title": "Bot match input (v0.5, MVP-22, D35)",
+  "description": "Input of the bot classification as the gateway runs it for one request, used by the bot-match vectors: a catalogue, what the gateway knows about the request, and the bots.verify switches of schild.yaml. Never stored, never sent anywhere. The result is {bot, category, verification} (see bot-catalogue.schema.json for the rules; contract/bots.Classify). fcrdns_name is the reverse name of the address that resolved forward to the same address (absent: no lookup, lookup failed or not confirmed); the gateway asks the resolver only with bots.verify.fcrdns on.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["catalogue", "request"],
+  "properties": {
+    "catalogue": { "$ref": "bot-catalogue.schema.json" },
+    "request": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["user_agent", "ip"],
+      "properties": {
+        "user_agent": { "description": "Empty when the request had none. Only the first 512 bytes are matched.", "type": "string", "maxLength": 8192 },
+        "ip": { "description": "Client address (documentation ranges in vectors).", "type": "string", "pattern": "^[0-9a-fA-F.:]{2,45}$" },
+        "fcrdns_name": { "type": "string", "maxLength": 254, "pattern": "^[A-Za-z0-9.-]{1,254}$" }
+      }
+    },
+    "options": {
+      "description": "bots.verify of schild.yaml; absent keys take the defaults (ranges true, fcrdns false).",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "ranges": { "type": "boolean", "default": true },
+        "fcrdns": { "type": "boolean", "default": false }
+      }
+    }
+  }
+}

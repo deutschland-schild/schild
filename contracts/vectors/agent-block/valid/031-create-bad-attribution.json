@@ -1,0 +1,43 @@
+{
+  "contract": "agent-block",
+  "description": "D42: an address from any other source could name a victim.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"budget\":{\"max_blocks\":500,\"oldest_write_age_s\":1000,\"running\":0,\"writes_per_hour\":30,\"writes_used\":0},\"duration_s\":3600,\"mode\":\"autoblock\",\"op\":\"create\",\"reason\":\"credential stuffing from this client\",\"scope\":\"blocks:write\",\"target\":{\"address\":\"203.0.113.7\",\"attribution\":\"untrusted_header\",\"exists\":true,\"net_class\":\"residential\"}}",
+  "input_decoded": {
+    "budget": {
+      "max_blocks": 500,
+      "oldest_write_age_s": 1000,
+      "running": 0,
+      "writes_per_hour": 30,
+      "writes_used": 0
+    },
+    "duration_s": 3600,
+    "mode": "autoblock",
+    "op": "create",
+    "reason": "credential stuffing from this client",
+    "scope": "blocks:write",
+    "target": {
+      "address": "203.0.113.7",
+      "attribution": "untrusted_header",
+      "exists": true,
+      "net_class": "residential"
+    }
+  },
+  "expect": {
+    "valid": true,
+    "result": {
+      "allowed": false,
+      "changed": false,
+      "code": "unreliable_attribution",
+      "counts_budget": false,
+      "effect": null,
+      "limited_by": null,
+      "max_duration_s": null,
+      "persisted": false,
+      "retry_after": null,
+      "status": 409
+    }
+  }
+}

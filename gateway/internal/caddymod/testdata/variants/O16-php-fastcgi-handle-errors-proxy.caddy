@@ -1,0 +1,12 @@
+# unprotected: []
+# expect: refuse
+# Fix round 2: a handle_errors proxy must run schild itself; the one-line fix is the A-* variant.
+http://a.example.test:18080 {
+	import schild
+	root * /var/www/app/public
+	php_fastcgi 127.0.0.1:9000
+	file_server
+	handle_errors {
+		reverse_proxy 127.0.0.1:18081
+	}
+}

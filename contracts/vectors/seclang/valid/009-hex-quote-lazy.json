@@ -1,0 +1,12 @@
+{
+  "contract": "seclang",
+  "description": "SecLang subset case hex-quote-lazy (max_action block).",
+  "context": {
+    "now": "2026-10-26T12:00:00Z",
+    "max_action": "block"
+  },
+  "input_raw": "SecRule ARGS \"@rx (?i)<script[^>]*?>|\\x22\\s*onerror=\" \"id:7700102,phase:2,deny,severity:CRITICAL,msg:'XSS'\"",
+  "expect": {
+    "valid": true
+  }
+}

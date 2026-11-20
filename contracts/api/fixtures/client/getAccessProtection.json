@@ -1,0 +1,22 @@
+{
+  "website": "musterverein.example",
+  "protection": {
+    "scope": "site",
+    "except": [
+      "/api/stripe/webhook"
+    ],
+    "password": true,
+    "addresses": [
+      "203.0.113.7",
+      "2001:db8:1234::/48"
+    ],
+    "own_networks": true,
+    "message": "",
+    "updated_at": "2026-11-02T12:00:00Z",
+    "actor": "dashboard"
+  },
+  "maintenance": {
+    "on": false,
+    "message": ""
+  }
+}

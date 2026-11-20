@@ -1,0 +1,26 @@
+{
+  "contract": "submission",
+  "description": "One signal envelope.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"envelopes\":[{\"payload\":\"eyJzY2hlbWEiOiJzY2hpbGQuc2lnbmFsLzAuMyIsImlkIjoiNWY1ZGFjYWYtOWI5Yy00OGQ2LWE4NzYtOWY2NDg1Yzg1YTBhIiwia2luZCI6InRpcCIsInRpbWVfYnVja2V0IjoiMjAyNi0xMC0yNlQxMTo1NTowMFoiLCJhY3Rpb25fc2lnIjoibG9naW4tYnVyc3Qvd3AtYWRtaW4iLCJyZXF1ZXN0X3NpZyI6InNoYTI1NjphMDcxODdmMWM3ZDFjNTY0M2IwMmNlNzMwYmVmM2Q3YmM1NzAwYTViZWUwYjM4MzNkMTNmMjgxOWYxZTJiZTgxIiwid2FmX3J1bGVzIjpbOTMwMTIwLDk0OTExMF0sInNjb3JlIjo3MiwiY2F0ZWdvcnkiOiJ3b3JkcHJlc3MtbG9naW4tYnJ1dGVmb3JjZSIsIm9yaWdpbiI6eyJjb3VudHJ5IjoiTkwiLCJhc24iOjE0MDYxLCJuZXRfY2xhc3MiOiJob3N0aW5nIiwiYXR0cmlidXRpb24iOiJ0Y3BfcGVlciIsInByb3RlY3RlZCI6ZmFsc2V9LCJhZ2VudCI6eyJmYW1pbHkiOiJweXRob24tcmVxdWVzdHMiLCJtYWpvciI6MiwiYm90IjpmYWxzZX19\",\"payloadType\":\"application/vnd.schild.signal.v0+json\",\"signatures\":[{\"keyid\":\"test-site-a\",\"sig\":\"Bgu4p+C/92oWpYQXlNJiS8yTYJt4nxYys3WcTtIdn9dPMJIx0+gCkiucO/qPJcpJpOKxy2z44q3A7azxFLxqCg==\"}]}],\"request_id\":\"5fd19d4c-3503-4170-be89-afa18ec72fdd\"}",
+  "input_decoded": {
+    "envelopes": [
+      {
+        "payload": "eyJzY2hlbWEiOiJzY2hpbGQuc2lnbmFsLzAuMyIsImlkIjoiNWY1ZGFjYWYtOWI5Yy00OGQ2LWE4NzYtOWY2NDg1Yzg1YTBhIiwia2luZCI6InRpcCIsInRpbWVfYnVja2V0IjoiMjAyNi0xMC0yNlQxMTo1NTowMFoiLCJhY3Rpb25fc2lnIjoibG9naW4tYnVyc3Qvd3AtYWRtaW4iLCJyZXF1ZXN0X3NpZyI6InNoYTI1NjphMDcxODdmMWM3ZDFjNTY0M2IwMmNlNzMwYmVmM2Q3YmM1NzAwYTViZWUwYjM4MzNkMTNmMjgxOWYxZTJiZTgxIiwid2FmX3J1bGVzIjpbOTMwMTIwLDk0OTExMF0sInNjb3JlIjo3MiwiY2F0ZWdvcnkiOiJ3b3JkcHJlc3MtbG9naW4tYnJ1dGVmb3JjZSIsIm9yaWdpbiI6eyJjb3VudHJ5IjoiTkwiLCJhc24iOjE0MDYxLCJuZXRfY2xhc3MiOiJob3N0aW5nIiwiYXR0cmlidXRpb24iOiJ0Y3BfcGVlciIsInByb3RlY3RlZCI6ZmFsc2V9LCJhZ2VudCI6eyJmYW1pbHkiOiJweXRob24tcmVxdWVzdHMiLCJtYWpvciI6MiwiYm90IjpmYWxzZX19",
+        "payloadType": "application/vnd.schild.signal.v0+json",
+        "signatures": [
+          {
+            "keyid": "test-site-a",
+            "sig": "Bgu4p+C/92oWpYQXlNJiS8yTYJt4nxYys3WcTtIdn9dPMJIx0+gCkiucO/qPJcpJpOKxy2z44q3A7azxFLxqCg=="
+          }
+        ]
+      }
+    ],
+    "request_id": "5fd19d4c-3503-4170-be89-afa18ec72fdd"
+  },
+  "expect": {
+    "valid": true
+  }
+}

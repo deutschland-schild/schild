@@ -1,0 +1,31 @@
+{
+  "contract": "geo-map",
+  "description": "v0.5 MVP-22: GeoIP2 Anonymous IP flags at the top level; VPN wins over hosting for net_class.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"provider\":\"maxmind\",\"record\":{\"is_anonymous\":true,\"is_anonymous_vpn\":true,\"is_hosting_provider\":true,\"is_public_proxy\":false,\"is_residential_proxy\":false,\"is_tor_exit_node\":false}}",
+  "input_decoded": {
+    "provider": "maxmind",
+    "record": {
+      "is_anonymous": true,
+      "is_anonymous_vpn": true,
+      "is_hosting_provider": true,
+      "is_public_proxy": false,
+      "is_residential_proxy": false,
+      "is_tor_exit_node": false
+    }
+  },
+  "expect": {
+    "valid": true,
+    "result": {
+      "asn": null,
+      "country": "ZZ",
+      "is_hosting": true,
+      "is_proxy": false,
+      "is_tor": false,
+      "is_vpn": true,
+      "net_class": "vpn"
+    }
+  }
+}

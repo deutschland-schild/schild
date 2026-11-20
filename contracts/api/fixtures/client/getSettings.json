@@ -1,0 +1,9 @@
+{
+  "profile": "test",
+  "retention": {
+    "raw_ip_days": 7,
+    "events_days": 14,
+    "max_size_mb": 100,
+    "summaries_days": 90
+  }
+}

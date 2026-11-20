@@ -1,0 +1,24 @@
+{
+  "contract": "rule-effect",
+  "description": "reset_state without an overlay value changes nothing.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"config\":\"block\",\"op\":\"switch\",\"repository\":\"crowdsec\",\"reset\":true}",
+  "input_decoded": {
+    "config": "block",
+    "op": "switch",
+    "repository": "crowdsec",
+    "reset": true
+  },
+  "expect": {
+    "valid": true,
+    "result": {
+      "state": "block",
+      "source": "config",
+      "changed": false,
+      "rebuild": false,
+      "differs": false
+    }
+  }
+}

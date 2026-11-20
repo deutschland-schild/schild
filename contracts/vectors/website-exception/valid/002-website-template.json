@@ -1,0 +1,26 @@
+{
+  "contract": "website-exception",
+  "description": "D36: a path template becomes @rx with [^/]+ per {name} segment; literal parts escaped; without a field the whole rule is removed for that page.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"id\":1000001,\"path\":\"/api/v1/orders/{n}/notes.json\",\"rule_id\":\"932100\",\"website\":{\"hosts\":[\"shop.example.org\"],\"id\":\"shop.example.org\"}}",
+  "input_decoded": {
+    "id": 1000001,
+    "path": "/api/v1/orders/{n}/notes.json",
+    "rule_id": "932100",
+    "website": {
+      "hosts": [
+        "shop.example.org"
+      ],
+      "id": "shop.example.org"
+    }
+  },
+  "expect": {
+    "valid": true,
+    "result": {
+      "scope": "website",
+      "snippet": "# schild: exception for rule 932100 on /api/v1/orders/{n}/notes.json, website shop.example.org only\nSecRule REQUEST_HEADERS:Host \"@rx ^(?:shop\\.example\\.org)(?::[0-9]{1,5})?$\" \"id:1000001,phase:1,pass,nolog,t:none,t:lowercase,chain\"\n    SecRule REQUEST_FILENAME \"@rx ^/api/v1/orders/[^/]+/notes\\.json$\" \"t:none,ctl:ruleRemoveById=932100\"\n"
+    }
+  }
+}

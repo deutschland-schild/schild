@@ -1,0 +1,10 @@
+{
+  "index": 2,
+  "time": "2026-10-26T12:00:00Z",
+  "kind": "checkpoint",
+  "ref": "10",
+  "digest": "sha256:5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a",
+  "summary": "checkpoint 10: bundle 42, withdrawal 3",
+  "envelope": null,
+  "envelope_sha256": "sha256:80a2fbeb883fbfa40819bfe89d206b317e597e3c4de23f284ed9525cdcc30567"
+}

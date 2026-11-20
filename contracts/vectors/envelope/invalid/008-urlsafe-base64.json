@@ -1,0 +1,23 @@
+{
+  "contract": "envelope",
+  "description": "URL-safe base64 alphabet.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z",
+    "kind": "signal",
+    "trust": [
+      "site-a",
+      "site-b",
+      "site-c",
+      "lab-a",
+      "lab-a2",
+      "lab-b",
+      "lab-c",
+      "lab-d"
+    ]
+  },
+  "input_raw": "{\"payloadType\":\"application/vnd.schild.signal.v0+json\",\"payload\":\"-__-\",\"signatures\":[{\"keyid\":\"test-site-a\",\"sig\":\"RgpdIWWk7x20W3CqVRLFWGC0/2S3sBvodKfNx8DAcNQhRkaogWAMwclxupo8MfB1m3rV6Ss+gPKcngVLJ0H7DA==\"}]}",
+  "expect": {
+    "valid": false,
+    "error": "envelope"
+  }
+}

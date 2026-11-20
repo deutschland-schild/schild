@@ -1,0 +1,24 @@
+# schild.yaml for the local test lab, profile t0.
+# TEST ONLY: release builds refuse the test profile.
+config_version: 0
+profile: test            # test lab only: nothing is blocked, refused by release builds
+node_name: site-wordpress
+listen:
+  proxy: "0.0.0.0:8080"
+  dashboard: "0.0.0.0:8788"   # inside the container; publish only on 127.0.0.1
+  metrics: "0.0.0.0:9101"
+upstream:
+  url: "http://wordpress:80"
+  timeout_ms: 30000
+ingress:
+  trusted_proxies: ["127.0.0.1/32", "::1/128"]
+rules:
+  crs: { state: block, paranoia_level: 1, inbound_anomaly_threshold: 5 }
+waf:
+  request_body_limit_bytes: 13107200
+  eval_timeout_ms: 1000
+retention:
+  raw_ip_days: 7
+  events_days: 14
+allowlist:
+  - { ip: 192.0.2.10, label: "Testlab admin", level: no_block, expires: never }

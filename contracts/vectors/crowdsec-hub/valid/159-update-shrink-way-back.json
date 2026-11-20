@@ -1,0 +1,127 @@
+{
+  "contract": "crowdsec-hub",
+  "description": "D43: a running set that grew too large does not block the way back: 2 rules against 7 running and a snapshot of 3 are accepted.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"index\":\"{\\\"appsec-rules\\\":{\\\"crowdsecurity/base-config\\\":{\\\"author\\\":\\\"crowdsecurity\\\",\\\"content\\\":\\\"bmFtZTogY3Jvd2RzZWN1cml0eS9iYXNlLWNvbmZpZwpzZWNsYW5nX3J1bGVzOiBbXQo=\\\",\\\"path\\\":\\\"appsec-rules/crowdsecurity/base-config.yaml\\\",\\\"version\\\":\\\"0.2\\\",\\\"versions\\\":{\\\"0.1\\\":{\\\"deprecated\\\":false,\\\"digest\\\":\\\"0000000000000000000000000000000000000000000000000000000000000000\\\"},\\\"0.2\\\":{\\\"deprecated\\\":false,\\\"digest\\\":\\\"78f5a8c967a1a76e9932bb839de7556690a42e65a636491ab8879ac2495f91d7\\\"}}},\\\"crowdsecurity/vpatch-CVE-2024-27956\\\":{\\\"author\\\":\\\"crowdsecurity\\\",\\\"content\\\":\\\"bmFtZTogY3Jvd2RzZWN1cml0eS92cGF0Y2gtQ1ZFLTIwMjQtMjc5NTYKZGVzY3JpcHRpb246ICdSZXdyaXR0ZW4gdGVzdCBydWxlLicKcnVsZXM6CiAgLSBhbmQ6CiAgICAgIC0gem9uZXM6CiAgICAgICAgICAtIFVSSQogICAgICAgIHRyYW5zZm9ybToKICAgICAgICAgIC0gbG93ZXJjYXNlCiAgICAgICAgbWF0Y2g6CiAgICAgICAgICB0eXBlOiBjb250YWlucwogICAgICAgICAgdmFsdWU6IC93cC1qc29uL2V4YW1wbGUvdjEvCiAgICAgIC0gem9uZXM6CiAgICAgICAgICAtIEJPRFlfQVJHUwogICAgICAgIHZhcmlhYmxlczoKICAgICAgICAgIC0gJ2F1dGgnCiAgICAgICAgbWF0Y2g6CiAgICAgICAgICB0eXBlOiBjb250YWlucwogICAgICAgICAgdmFsdWU6ICJceDAwIgpsYWJlbHM6CiAgdHlwZTogZXhwbG9pdAogIGNvbmZpZGVuY2U6IDMKICBzcG9vZmFibGU6IDAKICBsYWJlbDogRXhhbXBsZSAtIFJDRQogIGNsYXNzaWZpY2F0aW9uOgogICAgLSBjdmUuQ1ZFLTIwMjYtMTIwNwogICAgLSBhdHRhY2suVDExOTAKICAgIC0gY3dlLkNXRS04OQo=\\\",\\\"path\\\":\\\"appsec-rules/crowdsecurity/vpatch-CVE-2024-27956.yaml\\\",\\\"version\\\":\\\"0.2\\\",\\\"versions\\\":{\\\"0.1\\\":{\\\"deprecated\\\":false,\\\"digest\\\":\\\"0000000000000000000000000000000000000000000000000000000000000000\\\"},\\\"0.2\\\":{\\\"deprecated\\\":false,\\\"digest\\\":\\\"59d522c46e545ce00068744a1c35fa5c027a25b35733e91996e30da34083c2c8\\\"}}},\\\"crowdsecurity/vpatch-CVE-2025-29927\\\":{\\\"author\\\":\\\"crowdsecurity\\\",\\\"content\\\":\\\"bmFtZTogY3Jvd2RzZWN1cml0eS92cGF0Y2gtQ1ZFLTIwMjUtMjk5MjcKZGVzY3JpcHRpb246ICdSZXdyaXR0ZW4gdGVzdCBydWxlLicKcnVsZXM6CiAgLSB6b25lczoKICAgICAgLSBIRUFERVJTX05BTUVTCiAgICB0cmFuc2Zvcm06CiAgICAgIC0gbG93ZXJjYXNlCiAgICBtYXRjaDoKICAgICAgdHlwZTogcmVnZXgKICAgICAgdmFsdWU6IHgtbWlkZGxld2FyZS0oc3VicmVxdWVzdHxyZXdyaXRlKQpsYWJlbHM6CiAgdHlwZTogZXhwbG9pdAogIGNvbmZpZGVuY2U6IDMKICBzcG9vZmFibGU6IDAKICBsYWJlbDogRXhhbXBsZSAtIFJDRQogIGNsYXNzaWZpY2F0aW9uOgogICAgLSBjdmUuQ1ZFLTIwMjYtMTIwNwogICAgLSBhdHRhY2suVDExOTAKICAgIC0gY3dlLkNXRS04OQo=\\\",\\\"path\\\":\\\"appsec-rules/crowdsecurity/vpatch-CVE-2025-29927.yaml\\\",\\\"version\\\":\\\"0.2\\\",\\\"versions\\\":{\\\"0.1\\\":{\\\"deprecated\\\":false,\\\"digest\\\":\\\"0000000000000000000000000000000000000000000000000000000000000000\\\"},\\\"0.2\\\":{\\\"deprecated\\\":false,\\\"digest\\\":\\\"fb303917a872106cebc18267e933267f80edb01e3134acf392ea6e33c452012f\\\"}}},\\\"crowdsecurity/vpatch-CVE-2026-111497\\\":{\\\"author\\\":\\\"crowdsecurity\\\",\\\"content\\\":\\\"bmFtZTogY3Jvd2RzZWN1cml0eS92cGF0Y2gtQ1ZFLTIwMjYtMTIwNwpkZXNjcmlwdGlvbjogJ1Jld3JpdHRlbiB0ZXN0IHJ1bGUuJwpydWxlczoKICAtIGFuZDoKICAgICAgLSB6b25lczoKICAgICAgICAgIC0gVVJJCiAgICAgICAgdHJhbnNmb3JtOgogICAgICAgICAgLSBsb3dlcmNhc2UKICAgICAgICBtYXRjaDoKICAgICAgICAgIHR5cGU6IGNvbnRhaW5zCiAgICAgICAgICB2YWx1ZTogL3dwLWpzb24vZXhhbXBsZS92MS8KICAgICAgLSB6b25lczoKICAgICAgICAgIC0gQVJHUwogICAgICAgIHZhcmlhYmxlczoKICAgICAgICAgIC0gJ2EnCiAgICAgICAgbWF0Y2g6CiAgICAgICAgICB0eXBlOiBjb250YWlucwogICAgICAgICAgdmFsdWU6IHgKbGFiZWxzOgogIHR5cGU6IGV4cGxvaXQKICBjb25maWRlbmNlOiAzCiAgc3Bvb2ZhYmxlOiAwCiAgbGFiZWw6IEV4YW1wbGUgLSBSQ0UKICBjbGFzc2lmaWNhdGlvbjoKICAgIC0gY3ZlLkNWRS0yMDI2LTEyMDcKICAgIC0gYXR0YWNrLlQxMTkwCiAgICAtIGN3ZS5DV0UtODkK\\\",\\\"path\\\":\\\"appsec-rules/crowdsecurity/vpatch-CVE-2026-111497.yaml\\\",\\\"version\\\":\\\"0.2\\\",\\\"versions\\\":{\\\"0.1\\\":{\\\"deprecated\\\":false,\\\"digest\\\":\\\"0000000000000000000000000000000000000000000000000000000000000000\\\"},\\\"0.2\\\":{\\\"deprecated\\\":false,\\\"digest\\\":\\\"f1330c5f32e5ceb0ae26c9b25a904b584cf8d82346e898f172178d6999a294a6\\\"}}},\\\"crowdsecurity/vpatch-CVE-2026-1207\\\":{\\\"author\\\":\\\"crowdsecurity\\\",\\\"content\\\":\\\"bmFtZTogY3Jvd2RzZWN1cml0eS92cGF0Y2gtQ1ZFLTIwMjYtMTIwNwpkZXNjcmlwdGlvbjogJ1Jld3JpdHRlbiB0ZXN0IHJ1bGUuJwpydWxlczoKICAtIGFuZDoKICAgICAgLSB6b25lczoKICAgICAgICAgIC0gVVJJCiAgICAgICAgdHJhbnNmb3JtOgogICAgICAgICAgLSBsb3dlcmNhc2UKICAgICAgICBtYXRjaDoKICAgICAgICAgIHR5cGU6IGNvbnRhaW5zCiAgICAgICAgICB2YWx1ZTogL3dwLWpzb24vZXhhbXBsZS92MS8KICAgICAgLSB6b25lczoKICAgICAgICAgIC0gQVJHUwogICAgICAgIHZhcmlhYmxlczoKICAgICAgICAgIC0gJ2EnCiAgICAgICAgbWF0Y2g6CiAgICAgICAgICB0eXBlOiBjb250YWlucwogICAgICAgICAgdmFsdWU6IHgKbGFiZWxzOgogIHR5cGU6IGV4cGxvaXQKICBjb25maWRlbmNlOiAzCiAgc3Bvb2ZhYmxlOiAwCiAgbGFiZWw6IEV4YW1wbGUgLSBSQ0UKICBjbGFzc2lmaWNhdGlvbjoKICAgIC0gY3ZlLkNWRS0yMDI2LTEyMDcKICAgIC0gYXR0YWNrLlQxMTkwCiAgICAtIGN3ZS5DV0UtODkK\\\",\\\"path\\\":\\\"appsec-rules/crowdsecurity/vpatch-CVE-2026-1207.yaml\\\",\\\"version\\\":\\\"0.2\\\",\\\"versions\\\":{\\\"0.1\\\":{\\\"deprecated\\\":false,\\\"digest\\\":\\\"0000000000000000000000000000000000000000000000000000000000000000\\\"},\\\"0.2\\\":{\\\"deprecated\\\":false,\\\"digest\\\":\\\"f1330c5f32e5ceb0ae26c9b25a904b584cf8d82346e898f172178d6999a294a6\\\"}}}},\\\"collections\\\":{\\\"crowdsecurity/appsec-virtual-patching\\\":{\\\"appsec-rules\\\":[\\\"crowdsecurity/base-config\\\",\\\"crowdsecurity/vpatch-CVE-2024-27956\\\",\\\"crowdsecurity/vpatch-CVE-2025-29927\\\",\\\"crowdsecurity/vpatch-CVE-2026-1207\\\"]}},\\\"scenarios\\\":{\\\"crowdsecurity/http-probing\\\":{\\\"path\\\":\\\"scenarios/x.yaml\\\"}}}\",\"now\":\"2026-10-26T12:00:00Z\",\"op\":\"update\",\"previous\":{\"crowdsecurity/vpatch-CVE-2020-0000\":{\"changed_at\":\"2026-10-01T00:00:00Z\",\"digest\":\"dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd\",\"first_seen\":\"2026-10-01T00:00:00Z\"},\"crowdsecurity/vpatch-CVE-2020-0001\":{\"changed_at\":\"2026-10-01T00:00:00Z\",\"digest\":\"dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd\",\"first_seen\":\"2026-10-01T00:00:00Z\"},\"crowdsecurity/vpatch-CVE-2020-0002\":{\"changed_at\":\"2026-10-01T00:00:00Z\",\"digest\":\"dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd\",\"first_seen\":\"2026-10-01T00:00:00Z\"},\"crowdsecurity/vpatch-CVE-2020-0003\":{\"changed_at\":\"2026-10-01T00:00:00Z\",\"digest\":\"dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd\",\"first_seen\":\"2026-10-01T00:00:00Z\"},\"crowdsecurity/vpatch-CVE-2020-0004\":{\"changed_at\":\"2026-10-01T00:00:00Z\",\"digest\":\"dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd\",\"first_seen\":\"2026-10-01T00:00:00Z\"},\"crowdsecurity/vpatch-CVE-2020-0005\":{\"changed_at\":\"2026-10-01T00:00:00Z\",\"digest\":\"dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd\",\"first_seen\":\"2026-10-01T00:00:00Z\"},\"crowdsecurity/vpatch-CVE-2020-0006\":{\"changed_at\":\"2026-10-01T00:00:00Z\",\"digest\":\"dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd\",\"first_seen\":\"2026-10-01T00:00:00Z\"}},\"shrink_base\":3}",
+  "input_decoded": {
+    "index": "{\"appsec-rules\":{\"crowdsecurity/base-config\":{\"author\":\"crowdsecurity\",\"content\":\"bmFtZTogY3Jvd2RzZWN1cml0eS9iYXNlLWNvbmZpZwpzZWNsYW5nX3J1bGVzOiBbXQo=\",\"path\":\"appsec-rules/crowdsecurity/base-config.yaml\",\"version\":\"0.2\",\"versions\":{\"0.1\":{\"deprecated\":false,\"digest\":\"0000000000000000000000000000000000000000000000000000000000000000\"},\"0.2\":{\"deprecated\":false,\"digest\":\"78f5a8c967a1a76e9932bb839de7556690a42e65a636491ab8879ac2495f91d7\"}}},\"crowdsecurity/vpatch-CVE-2024-27956\":{\"author\":\"crowdsecurity\",\"content\":\"bmFtZTogY3Jvd2RzZWN1cml0eS92cGF0Y2gtQ1ZFLTIwMjQtMjc5NTYKZGVzY3JpcHRpb246ICdSZXdyaXR0ZW4gdGVzdCBydWxlLicKcnVsZXM6CiAgLSBhbmQ6CiAgICAgIC0gem9uZXM6CiAgICAgICAgICAtIFVSSQogICAgICAgIHRyYW5zZm9ybToKICAgICAgICAgIC0gbG93ZXJjYXNlCiAgICAgICAgbWF0Y2g6CiAgICAgICAgICB0eXBlOiBjb250YWlucwogICAgICAgICAgdmFsdWU6IC93cC1qc29uL2V4YW1wbGUvdjEvCiAgICAgIC0gem9uZXM6CiAgICAgICAgICAtIEJPRFlfQVJHUwogICAgICAgIHZhcmlhYmxlczoKICAgICAgICAgIC0gJ2F1dGgnCiAgICAgICAgbWF0Y2g6CiAgICAgICAgICB0eXBlOiBjb250YWlucwogICAgICAgICAgdmFsdWU6ICJceDAwIgpsYWJlbHM6CiAgdHlwZTogZXhwbG9pdAogIGNvbmZpZGVuY2U6IDMKICBzcG9vZmFibGU6IDAKICBsYWJlbDogRXhhbXBsZSAtIFJDRQogIGNsYXNzaWZpY2F0aW9uOgogICAgLSBjdmUuQ1ZFLTIwMjYtMTIwNwogICAgLSBhdHRhY2suVDExOTAKICAgIC0gY3dlLkNXRS04OQo=\",\"path\":\"appsec-rules/crowdsecurity/vpatch-CVE-2024-27956.yaml\",\"version\":\"0.2\",\"versions\":{\"0.1\":{\"deprecated\":false,\"digest\":\"0000000000000000000000000000000000000000000000000000000000000000\"},\"0.2\":{\"deprecated\":false,\"digest\":\"59d522c46e545ce00068744a1c35fa5c027a25b35733e91996e30da34083c2c8\"}}},\"crowdsecurity/vpatch-CVE-2025-29927\":{\"author\":\"crowdsecurity\",\"content\":\"bmFtZTogY3Jvd2RzZWN1cml0eS92cGF0Y2gtQ1ZFLTIwMjUtMjk5MjcKZGVzY3JpcHRpb246ICdSZXdyaXR0ZW4gdGVzdCBydWxlLicKcnVsZXM6CiAgLSB6b25lczoKICAgICAgLSBIRUFERVJTX05BTUVTCiAgICB0cmFuc2Zvcm06CiAgICAgIC0gbG93ZXJjYXNlCiAgICBtYXRjaDoKICAgICAgdHlwZTogcmVnZXgKICAgICAgdmFsdWU6IHgtbWlkZGxld2FyZS0oc3VicmVxdWVzdHxyZXdyaXRlKQpsYWJlbHM6CiAgdHlwZTogZXhwbG9pdAogIGNvbmZpZGVuY2U6IDMKICBzcG9vZmFibGU6IDAKICBsYWJlbDogRXhhbXBsZSAtIFJDRQogIGNsYXNzaWZpY2F0aW9uOgogICAgLSBjdmUuQ1ZFLTIwMjYtMTIwNwogICAgLSBhdHRhY2suVDExOTAKICAgIC0gY3dlLkNXRS04OQo=\",\"path\":\"appsec-rules/crowdsecurity/vpatch-CVE-2025-29927.yaml\",\"version\":\"0.2\",\"versions\":{\"0.1\":{\"deprecated\":false,\"digest\":\"0000000000000000000000000000000000000000000000000000000000000000\"},\"0.2\":{\"deprecated\":false,\"digest\":\"fb303917a872106cebc18267e933267f80edb01e3134acf392ea6e33c452012f\"}}},\"crowdsecurity/vpatch-CVE-2026-111497\":{\"author\":\"crowdsecurity\",\"content\":\"bmFtZTogY3Jvd2RzZWN1cml0eS92cGF0Y2gtQ1ZFLTIwMjYtMTIwNwpkZXNjcmlwdGlvbjogJ1Jld3JpdHRlbiB0ZXN0IHJ1bGUuJwpydWxlczoKICAtIGFuZDoKICAgICAgLSB6b25lczoKICAgICAgICAgIC0gVVJJCiAgICAgICAgdHJhbnNmb3JtOgogICAgICAgICAgLSBsb3dlcmNhc2UKICAgICAgICBtYXRjaDoKICAgICAgICAgIHR5cGU6IGNvbnRhaW5zCiAgICAgICAgICB2YWx1ZTogL3dwLWpzb24vZXhhbXBsZS92MS8KICAgICAgLSB6b25lczoKICAgICAgICAgIC0gQVJHUwogICAgICAgIHZhcmlhYmxlczoKICAgICAgICAgIC0gJ2EnCiAgICAgICAgbWF0Y2g6CiAgICAgICAgICB0eXBlOiBjb250YWlucwogICAgICAgICAgdmFsdWU6IHgKbGFiZWxzOgogIHR5cGU6IGV4cGxvaXQKICBjb25maWRlbmNlOiAzCiAgc3Bvb2ZhYmxlOiAwCiAgbGFiZWw6IEV4YW1wbGUgLSBSQ0UKICBjbGFzc2lmaWNhdGlvbjoKICAgIC0gY3ZlLkNWRS0yMDI2LTEyMDcKICAgIC0gYXR0YWNrLlQxMTkwCiAgICAtIGN3ZS5DV0UtODkK\",\"path\":\"appsec-rules/crowdsecurity/vpatch-CVE-2026-111497.yaml\",\"version\":\"0.2\",\"versions\":{\"0.1\":{\"deprecated\":false,\"digest\":\"0000000000000000000000000000000000000000000000000000000000000000\"},\"0.2\":{\"deprecated\":false,\"digest\":\"f1330c5f32e5ceb0ae26c9b25a904b584cf8d82346e898f172178d6999a294a6\"}}},\"crowdsecurity/vpatch-CVE-2026-1207\":{\"author\":\"crowdsecurity\",\"content\":\"bmFtZTogY3Jvd2RzZWN1cml0eS92cGF0Y2gtQ1ZFLTIwMjYtMTIwNwpkZXNjcmlwdGlvbjogJ1Jld3JpdHRlbiB0ZXN0IHJ1bGUuJwpydWxlczoKICAtIGFuZDoKICAgICAgLSB6b25lczoKICAgICAgICAgIC0gVVJJCiAgICAgICAgdHJhbnNmb3JtOgogICAgICAgICAgLSBsb3dlcmNhc2UKICAgICAgICBtYXRjaDoKICAgICAgICAgIHR5cGU6IGNvbnRhaW5zCiAgICAgICAgICB2YWx1ZTogL3dwLWpzb24vZXhhbXBsZS92MS8KICAgICAgLSB6b25lczoKICAgICAgICAgIC0gQVJHUwogICAgICAgIHZhcmlhYmxlczoKICAgICAgICAgIC0gJ2EnCiAgICAgICAgbWF0Y2g6CiAgICAgICAgICB0eXBlOiBjb250YWlucwogICAgICAgICAgdmFsdWU6IHgKbGFiZWxzOgogIHR5cGU6IGV4cGxvaXQKICBjb25maWRlbmNlOiAzCiAgc3Bvb2ZhYmxlOiAwCiAgbGFiZWw6IEV4YW1wbGUgLSBSQ0UKICBjbGFzc2lmaWNhdGlvbjoKICAgIC0gY3ZlLkNWRS0yMDI2LTEyMDcKICAgIC0gYXR0YWNrLlQxMTkwCiAgICAtIGN3ZS5DV0UtODkK\",\"path\":\"appsec-rules/crowdsecurity/vpatch-CVE-2026-1207.yaml\",\"version\":\"0.2\",\"versions\":{\"0.1\":{\"deprecated\":false,\"digest\":\"0000000000000000000000000000000000000000000000000000000000000000\"},\"0.2\":{\"deprecated\":false,\"digest\":\"f1330c5f32e5ceb0ae26c9b25a904b584cf8d82346e898f172178d6999a294a6\"}}}},\"collections\":{\"crowdsecurity/appsec-virtual-patching\":{\"appsec-rules\":[\"crowdsecurity/base-config\",\"crowdsecurity/vpatch-CVE-2024-27956\",\"crowdsecurity/vpatch-CVE-2025-29927\",\"crowdsecurity/vpatch-CVE-2026-1207\"]}},\"scenarios\":{\"crowdsecurity/http-probing\":{\"path\":\"scenarios/x.yaml\"}}}",
+    "now": "2026-10-26T12:00:00Z",
+    "op": "update",
+    "previous": {
+      "crowdsecurity/vpatch-CVE-2020-0000": {
+        "changed_at": "2026-10-01T00:00:00Z",
+        "digest": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "first_seen": "2026-10-01T00:00:00Z"
+      },
+      "crowdsecurity/vpatch-CVE-2020-0001": {
+        "changed_at": "2026-10-01T00:00:00Z",
+        "digest": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "first_seen": "2026-10-01T00:00:00Z"
+      },
+      "crowdsecurity/vpatch-CVE-2020-0002": {
+        "changed_at": "2026-10-01T00:00:00Z",
+        "digest": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "first_seen": "2026-10-01T00:00:00Z"
+      },
+      "crowdsecurity/vpatch-CVE-2020-0003": {
+        "changed_at": "2026-10-01T00:00:00Z",
+        "digest": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "first_seen": "2026-10-01T00:00:00Z"
+      },
+      "crowdsecurity/vpatch-CVE-2020-0004": {
+        "changed_at": "2026-10-01T00:00:00Z",
+        "digest": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "first_seen": "2026-10-01T00:00:00Z"
+      },
+      "crowdsecurity/vpatch-CVE-2020-0005": {
+        "changed_at": "2026-10-01T00:00:00Z",
+        "digest": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "first_seen": "2026-10-01T00:00:00Z"
+      },
+      "crowdsecurity/vpatch-CVE-2020-0006": {
+        "changed_at": "2026-10-01T00:00:00Z",
+        "digest": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "first_seen": "2026-10-01T00:00:00Z"
+      }
+    },
+    "shrink_base": 3
+  },
+  "expect": {
+    "valid": true,
+    "result": {
+      "outcome": "accepted",
+      "index_sha256": "464cf304422955069e1903727504db90ac6fb532f57ceb0c8548d0a92a90d1cb",
+      "rules": [
+        {
+          "name": "crowdsecurity/vpatch-CVE-2025-29927",
+          "version": "0.2",
+          "digest": "fb303917a872106cebc18267e933267f80edb01e3134acf392ea6e33c452012f",
+          "base_id": 76219168,
+          "seclang": [
+            "SecRule REQUEST_HEADERS_NAMES \"@rx x-middleware-(subrequest|rewrite)\" \"id:76219168,phase:2,pass,t:none,t:lowercase,severity:CRITICAL,msg:'crowdsec hub crowdsecurity/vpatch-CVE-2025-29927',tag:crowdsec_hub\""
+          ],
+          "label": "Example - RCE",
+          "description": "Rewritten test rule.",
+          "cves": [
+            "CVE-2026-1207"
+          ],
+          "cwes": [
+            "CWE-89"
+          ],
+          "attack": [
+            "T1190"
+          ],
+          "notes": [],
+          "first_seen": "2026-10-26T12:00:00Z",
+          "changed_at": "2026-10-26T12:00:00Z"
+        },
+        {
+          "name": "crowdsecurity/vpatch-CVE-2026-1207",
+          "version": "0.2",
+          "digest": "f1330c5f32e5ceb0ae26c9b25a904b584cf8d82346e898f172178d6999a294a6",
+          "base_id": 62846312,
+          "seclang": [
+            "SecRule REQUEST_FILENAME \"@contains /wp-json/example/v1/\" \"id:62846312,phase:2,pass,t:none,t:lowercase,severity:CRITICAL,msg:'crowdsec hub crowdsecurity/vpatch-CVE-2026-1207',tag:crowdsec_hub,chain\"\nSecRule ARGS_GET:a \"@contains x\" \"t:none\""
+          ],
+          "label": "Example - RCE",
+          "description": "Rewritten test rule.",
+          "cves": [
+            "CVE-2026-1207"
+          ],
+          "cwes": [
+            "CWE-89"
+          ],
+          "attack": [
+            "T1190"
+          ],
+          "notes": [],
+          "first_seen": "2026-10-26T12:00:00Z",
+          "changed_at": "2026-10-26T12:00:00Z"
+        }
+      ],
+      "skipped": [
+        {
+          "name": "crowdsecurity/vpatch-CVE-2024-27956",
+          "version": "0.2",
+          "code": "value_chars"
+        }
+      ],
+      "not_selected": 2,
+      "added": [
+        "crowdsecurity/vpatch-CVE-2025-29927",
+        "crowdsecurity/vpatch-CVE-2026-1207"
+      ],
+      "removed": [
+        "crowdsecurity/vpatch-CVE-2020-0000",
+        "crowdsecurity/vpatch-CVE-2020-0001",
+        "crowdsecurity/vpatch-CVE-2020-0002",
+        "crowdsecurity/vpatch-CVE-2020-0003",
+        "crowdsecurity/vpatch-CVE-2020-0004",
+        "crowdsecurity/vpatch-CVE-2020-0005",
+        "crowdsecurity/vpatch-CVE-2020-0006"
+      ]
+    }
+  }
+}

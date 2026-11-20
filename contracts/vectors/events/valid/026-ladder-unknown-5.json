@@ -1,0 +1,48 @@
+{
+  "contract": "events",
+  "description": "D29 amendment: unknown net class, level 5: 24 h cap.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"data\":{\"action\":\"block\",\"client\":{\"attribution\":\"tcp_peer\",\"geo\":{\"as_org\":\"Example Hosting B.V.\",\"asn\":64500,\"city\":\"Amsterdam\",\"country\":\"NL\",\"net_class\":\"unknown\"},\"ip\":\"203.0.113.42\",\"port\":51234},\"count\":40,\"duration_s\":86400,\"host\":\"verein.example\",\"incident\":\"K7QM-4XWD\",\"key_bits\":32,\"level\":5,\"mode\":\"block\",\"route\":\"/.env\",\"scenario\":\"path_probing\",\"scope\":\"client\",\"threshold\":30,\"until\":\"2026-10-27T12:00:00Z\",\"window_s\":60,\"would_action\":\"block\"},\"datacontenttype\":\"application/json\",\"id\":\"630858df-ba1f-4328-93ed-1e2687c0a2b5\",\"source\":\"schild://web-1\",\"specversion\":\"1.0\",\"time\":\"2026-10-26T11:59:58.123Z\",\"type\":\"schild.behaviour.triggered.v1\"}",
+  "input_decoded": {
+    "data": {
+      "action": "block",
+      "client": {
+        "attribution": "tcp_peer",
+        "geo": {
+          "as_org": "Example Hosting B.V.",
+          "asn": 64500,
+          "city": "Amsterdam",
+          "country": "NL",
+          "net_class": "unknown"
+        },
+        "ip": "203.0.113.42",
+        "port": 51234
+      },
+      "count": 40,
+      "duration_s": 86400,
+      "host": "verein.example",
+      "incident": "K7QM-4XWD",
+      "key_bits": 32,
+      "level": 5,
+      "mode": "block",
+      "route": "/.env",
+      "scenario": "path_probing",
+      "scope": "client",
+      "threshold": 30,
+      "until": "2026-10-27T12:00:00Z",
+      "window_s": 60,
+      "would_action": "block"
+    },
+    "datacontenttype": "application/json",
+    "id": "630858df-ba1f-4328-93ed-1e2687c0a2b5",
+    "source": "schild://web-1",
+    "specversion": "1.0",
+    "time": "2026-10-26T11:59:58.123Z",
+    "type": "schild.behaviour.triggered.v1"
+  },
+  "expect": {
+    "valid": true
+  }
+}

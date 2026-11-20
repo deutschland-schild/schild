@@ -1,0 +1,61 @@
+id: MVP-15
+# Decisions (initiator, 2026-10-27):
+# - Network blocking for all ports is part of the basic protection; beginners get it without extra software or accounts.
+# - Spamhaus DROP is on by default (explicit exception to "never block on IP alone": DROP lists hijacked networks
+#   without legitimate traffic); operators can allow single addresses in the dashboard.
+# - Dry run as default: SSH and WAF repeat offenders enforce at once, port scans and lists observe for 7 days first.
+# - No firewall on app VMs: VMs behind the gateway must only be reachable via the internal network or be secured by hand;
+#   Schild only warns (MVP-11 findings).
+# - CrowdSec: no dependency (2026-10-27).
+# Decision (initiator, 2026-10-28): no CrowdSec integration at all – no Raw IP List, no bridge; Schild covers the open
+#   CrowdSec features itself.
+title: "Network blocking: host-wide nftables bans for all ports, built-in local sources"
+ships: false                        # draft; step 1 shipped as D87: scenario and agent blocks into nftables table inet schild, web ports only, by schild firewall run over the agent API
+status: ENTWURF
+image: schild                       # new small host binary schild-firewall shipped in the same release
+hypotheses: [D3]
+refs: [concept-13, concept-18-G1, concept-22, concept-24, MVP-11, MVP-12, DECISIONS-D28, internal research 2026-10-27 crowdsec gap analysis]
+depends_on: [MVP-02, MVP-09, MVP-11]
+components:
+  schild-firewall: 'small Go host binary, the only Schild part with CAP_NET_ADMIN; manages one table `inet schild` via google/nftables (Apache-2.0); no network listener; gets ban requests from schild over a local unix socket and reads local logs itself'
+  schild: 'decides WAF repeat offenders, sends ban requests; never needs root'
+sources:
+  on_by_default:
+    - 'ssh: failed logins from journald or auth.log (fixed Go parser, no DSL); thresholds adapted from CrowdSec hub ssh-bf (MIT, attribution): 5 failures in 10 s, plus a slow variant'
+    - 'waf_repeat: repeated WAF blocks of one client; only when the gateway sees the real peer IP (no CDN or upstream proxy in front), else disabled with a dashboard hint'
+    - 'portscan: connection attempts to closed ports (NFLOG, rate limited), e.g. 15 distinct ports in 5 s; observe for 7 days first'
+    - 'spamhaus_drop: Spamhaus DROP (includes EDROP since 2024-04-10), fetched directly from Spamhaus at most daily, attribution kept; observe for 7 days first'
+  correlation: 'a client that fails SSH and also has WAF hits is banned at once on all ports (local cross-service correlation against fast automated attacks)'
+must:
+  - 'bans cover all ports of the host including published Docker ports (hook before Docker''s DNAT, or input + forward; decided by the test matrix)'
+  - 'port scan bans never apply to ports 80/443: SYN source addresses can be forged, so a forged scan must not lock a third party out of the website (open question 1 for the initiator)'
+  - 'on 80/443 the HTTP path comes first (block page with unblock request); network drops on web ports only for clear repeat offenders, short, never for net_class cgnat or mobile'
+  - 'allowlist and locally released or verified senders (G6) sit in the same chain before any drop rule; own IP and VPN are added at setup; allowlist entries have an optional expiry and a comment and apply to all layers (firewall, WAF, lists)'
+  - 'no `policy drop`; every ban has a kernel timeout, so bans expire even if schild-firewall dies; a clean stop empties the table'
+  - 'dead man switch on first activation (5 min confirm or revert)'
+  - 'escalating ban duration for repeat offenders with a cap; IPv6 grouped as /64; sets with flags interval, timeout'
+  - 'dry run per source ("hätte gesperrt"), defaults: ssh and waf_repeat enforce at once, portscan and lists observe 7 days'
+  - 'reconcile loop between intended and kernel state; alarm in the dashboard when they differ (lesson: silently empty sets in other bouncers)'
+  - 'warn when fail2ban or a CrowdSec firewall bouncer is active (double blocking)'
+  - 'decisions are local only: nothing from the firewall goes to labs or relays; network signals never cause an IP ban (G1)'
+  - 'resource budget: CPU and RAM well below fail2ban-class tools for SSH-only protection; measured'
+cli: ['schild-firewall status', 'schild-firewall explain <ip>', 'schild-firewall unban <ip>', 'schild-firewall allow --mine', 'schild-firewall test (self-test with a documentation address, never locks out the admin)']
+dashboard:
+  - 'Module "Netzwerkschutz": one switch per source with state (aktiv / Probelauf bis <Datum> / aus), suggested by the MVP-11 inventory ("SSH gefunden – Schutz an?")'
+  - 'list of current bans: address, source, reason, until, "Freigeben" and "Dauerhaft erlauben"'
+  - 'counters: dropped packets and bytes per source, "hätte gesperrt" during dry run'
+  - 'warnings from MVP-11 when app VMs behind the gateway are publicly reachable: "nur über das interne Netz erreichbar machen oder selbst absichern"'
+measure:
+  - 'test matrix: Docker with iptables-nft and iptables-legacy, ufw, firewalld, plain nftables; a banned address reaches no port, including published container ports'
+  - 'lockout safety: own IP/VPN and released or verified senders never banned; dead man switch reverts; helper killed -> bans expire on time'
+  - 'forged SYN scan from a third-party address does not block 80/443 for it'
+  - 'correctness of CIDR handling (interval sets) for v4 and v6; no silent set drift under churn (10k bans/min)'
+  - 'SSH brute force from 100 addresses: banned within thresholds; legitimate logins unaffected'
+  - 'request handling latency unchanged (M1) while the firewall works'
+kill_if: "a banned address reaches a published container port OR the admin's own allowlisted address or VPN gets banned OR a ban survives its timeout after the helper died OR a forged port scan blocks a third party on 80/443 OR anything from the firewall reaches labs or relays"
+done: "make test && firewall test matrix in the testlab && make smoke PROFILE=t1 (incl. network blocking steps)"
+out_of_scope: [firewall on app VMs (warn only), automatic AS or country bans, notifications (later), replay of old logs as preview (v1), mail/Nextcloud/database log sources (v1), SYN flood throttling, XDP/eBPF, Hetzner Cloud Firewall API]
+open_questions:
+  - 'confirm: port scan bans only for ports other than 80/443 (forged source addresses)'
+  - 'hook choice (prerouting vs input+forward) and Docker''s native nftables mode in 2026: decide by test matrix'
+  - 'licence of reused CrowdSec hub content (MIT, attribution): confirm per file'

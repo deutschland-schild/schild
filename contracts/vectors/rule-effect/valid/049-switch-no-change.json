@@ -1,0 +1,24 @@
+{
+  "contract": "rule-effect",
+  "description": "Asking for the current value changes nothing: no rebuild, no entry in the change history.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"config\":\"detect\",\"op\":\"switch\",\"repository\":\"crowdsec\",\"requested\":\"detect\"}",
+  "input_decoded": {
+    "config": "detect",
+    "op": "switch",
+    "repository": "crowdsec",
+    "requested": "detect"
+  },
+  "expect": {
+    "valid": true,
+    "result": {
+      "state": "detect",
+      "source": "dashboard",
+      "changed": false,
+      "rebuild": false,
+      "differs": false
+    }
+  }
+}

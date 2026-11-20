@@ -1,0 +1,20 @@
+{
+  "contract": "rule-effect",
+  "description": "D89: no approvals.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"approval\":\"approved\",\"mode\":\"autoblock\",\"now\":1000000,\"op\":\"effect\",\"origin\":\"release\",\"state\":\"block\"}",
+  "input_decoded": {
+    "approval": "approved",
+    "mode": "autoblock",
+    "now": 1000000,
+    "op": "effect",
+    "origin": "release",
+    "state": "block"
+  },
+  "expect": {
+    "valid": false,
+    "error": "schema"
+  }
+}

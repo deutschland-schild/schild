@@ -1,0 +1,12 @@
+# unprotected: []
+# expect: refuse
+# try_files (a rewrite) before schild in a route, query restored with uri replace.
+http://a.example.test:26080 {
+	route {
+		vars saved {query}
+		try_files /hidden?
+		schild
+		uri replace /hidden /hidden?{vars.saved}
+		reverse_proxy 127.0.0.1:26082
+	}
+}

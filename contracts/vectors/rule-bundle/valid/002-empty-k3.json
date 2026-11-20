@@ -1,0 +1,33 @@
+{
+  "contract": "rule-bundle",
+  "description": "Empty bundle (all network rules removed), three operators with k=3.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z",
+    "trust": [
+      "site-a",
+      "site-b",
+      "site-c",
+      "lab-a",
+      "lab-a2",
+      "lab-b",
+      "lab-c",
+      "lab-d"
+    ],
+    "threshold": 3,
+    "channel": "schild-main"
+  },
+  "input_raw": "{\"payloadType\":\"application/vnd.schild.rule-bundle.v0+json\",\"payload\":\"eyJidW5kbGVfaWQiOiJzY2hpbGQtbWFpbiIsImV4cGlyZXMiOiIyMDI2LTExLTA5VDEyOjAwOjAwWiIsImlzc3VlZF9hdCI6IjIwMjYtMTAtMjZUMTE6MDA6MDBaIiwicnVsZXMiOltdLCJzY2hlbWEiOiJzY2hpbGQucnVsZS1idW5kbGUvMC4xIiwidmVyc2lvbiI6NDN9\",\"signatures\":[{\"keyid\":\"test-lab-a\",\"sig\":\"81Uzdz8G3cKCVm8wcMMWVC/wJXQqzy06Oaq9fqLF/ZGFCDQKz55lKkJlh2C09zkKpYKHnsvQoCscbXv3XqgWAQ==\"},{\"keyid\":\"test-lab-b\",\"sig\":\"omc34M75ws9N2VV9Hambk+bQuHzn1Wr8yUNv5PcQpPtnzCFAgEWfUQX9gXxkKYHjThXEnp2E9AMajgtyjaj4CA==\"},{\"keyid\":\"test-lab-c\",\"sig\":\"8feWGQy8h3F8+uo+NfegIClU7kvXyhCwsHPjCIP2P959D4ltoui5Smc+bQzALILxSo+9Qd9tMshOPfDjNFXtAw==\"}]}",
+  "input_decoded": {
+    "payload": {
+      "bundle_id": "schild-main",
+      "expires": "2026-11-09T12:00:00Z",
+      "issued_at": "2026-10-26T11:00:00Z",
+      "rules": [],
+      "schema": "schild.rule-bundle/0.1",
+      "version": 43
+    }
+  },
+  "expect": {
+    "valid": true
+  }
+}

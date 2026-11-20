@@ -1,0 +1,20 @@
+---
+meta:
+  author: "schild-testlab"
+  description: "Remote command execution: Unix shell code (REQUEST-932). Schild test-lab regression subset in go-ftw format (written for this lab, not copied from CRS)."
+rule_id: 932160
+tests:
+  - test_id: 1
+    desc: "command chaining with cat /etc/passwd"
+    stages:
+      - input:
+          dest_addr: "127.0.0.1"
+          port: 80
+          method: "GET"
+          uri: '/api/items?host=127.0.0.1%3Bcat%20%2Fetc%2Fpasswd'
+          headers:
+            Host: 'shop.example'
+            User-Agent: 'OWASP CRS test agent'
+            Accept: '*/*'
+        output:
+          status: 403

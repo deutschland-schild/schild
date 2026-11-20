@@ -1,0 +1,23 @@
+{
+  "contract": "geo-map",
+  "description": "v0.5 MVP-22: country falls back to registered_country, upper-cased.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"provider\":\"dbip\",\"record\":{\"registered_country\":{\"iso_code\":\"nl\"}}}",
+  "input_decoded": {
+    "provider": "dbip",
+    "record": {
+      "registered_country": {
+        "iso_code": "nl"
+      }
+    }
+  },
+  "expect": {
+    "valid": true,
+    "result": {
+      "asn": null,
+      "country": "NL"
+    }
+  }
+}

@@ -1,0 +1,32 @@
+{
+  "contract": "request-recheck",
+  "description": "D33 amendment 2026-10-29: a stop ends the request: only the last evaluation may stop it.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"evaluations\":[{\"detection\":true,\"outcome\":\"blocked_waf\",\"path\":\"/x\",\"rules\":[\"942100\"],\"score\":10},{\"detection\":false,\"outcome\":\"passed\",\"path\":\"/app/x\",\"rules\":[],\"score\":0}]}",
+  "input_decoded": {
+    "evaluations": [
+      {
+        "detection": true,
+        "outcome": "blocked_waf",
+        "path": "/x",
+        "rules": [
+          "942100"
+        ],
+        "score": 10
+      },
+      {
+        "detection": false,
+        "outcome": "passed",
+        "path": "/app/x",
+        "rules": [],
+        "score": 0
+      }
+    ]
+  },
+  "expect": {
+    "valid": false,
+    "error": "schema"
+  }
+}

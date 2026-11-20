@@ -1,0 +1,16 @@
+{
+  "contract": "crowdsec-hub",
+  "description": "update needs now.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"index\":\"{}\",\"op\":\"update\"}",
+  "input_decoded": {
+    "index": "{}",
+    "op": "update"
+  },
+  "expect": {
+    "valid": false,
+    "error": "schema"
+  }
+}

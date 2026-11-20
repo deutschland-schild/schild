@@ -1,0 +1,35 @@
+{
+  "contract": "events",
+  "description": "D56: addresses are counted, never listed in an event.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"data\":{\"actor\":\"dashboard\",\"addresses\":[\"203.0.113.7\"],\"except\":[\"/api/stripe/webhook\"],\"own_networks\":true,\"password\":true,\"scope\":\"site\",\"until\":\"2026-11-04T12:00:00Z\",\"user\":\"admin\",\"website\":\"musterverein.example\"},\"datacontenttype\":\"application/json\",\"id\":\"c88d0b80-b947-42e4-8773-b456d3fdadea\",\"source\":\"schild://web-1\",\"specversion\":\"1.0\",\"time\":\"2026-10-26T11:59:58.123Z\",\"type\":\"schild.access.protection_set.v1\"}",
+  "input_decoded": {
+    "data": {
+      "actor": "dashboard",
+      "addresses": [
+        "203.0.113.7"
+      ],
+      "except": [
+        "/api/stripe/webhook"
+      ],
+      "own_networks": true,
+      "password": true,
+      "scope": "site",
+      "until": "2026-11-04T12:00:00Z",
+      "user": "admin",
+      "website": "musterverein.example"
+    },
+    "datacontenttype": "application/json",
+    "id": "c88d0b80-b947-42e4-8773-b456d3fdadea",
+    "source": "schild://web-1",
+    "specversion": "1.0",
+    "time": "2026-10-26T11:59:58.123Z",
+    "type": "schild.access.protection_set.v1"
+  },
+  "expect": {
+    "valid": false,
+    "error": "schema"
+  }
+}

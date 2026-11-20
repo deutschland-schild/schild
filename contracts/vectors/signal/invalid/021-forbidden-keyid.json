@@ -1,0 +1,51 @@
+{
+  "contract": "signal",
+  "description": "Key id inside the payload (the sender is identified by the envelope only).",
+  "context": {
+    "now": "2026-10-26T12:00:00Z",
+    "trust": [
+      "site-a",
+      "site-b",
+      "site-c",
+      "lab-a",
+      "lab-a2",
+      "lab-b",
+      "lab-c",
+      "lab-d"
+    ]
+  },
+  "input_raw": "{\"payloadType\":\"application/vnd.schild.signal.v0+json\",\"payload\":\"eyJhY3Rpb25fc2lnIjoibG9naW4tYnVyc3Qvd3AtYWRtaW4iLCJhZ2VudCI6eyJib3QiOmZhbHNlLCJmYW1pbHkiOiJweXRob24tcmVxdWVzdHMiLCJtYWpvciI6Mn0sImNhdGVnb3J5Ijoid29yZHByZXNzLWxvZ2luLWJydXRlZm9yY2UiLCJpZCI6IjcyMDFhMjM1LTU3OWMtNDRkZC1hY2I2LTg5OWViMjQ3Yjg4ZCIsImtleV9pZCI6InRlc3Qtc2l0ZS1hIiwia2luZCI6InRpcCIsIm9yaWdpbiI6eyJhc24iOjE0MDYxLCJhdHRyaWJ1dGlvbiI6InRjcF9wZWVyIiwiY291bnRyeSI6Ik5MIiwibmV0X2NsYXNzIjoiaG9zdGluZyIsInByb3RlY3RlZCI6ZmFsc2V9LCJyZXF1ZXN0X3NpZyI6InNoYTI1NjphMDcxODdmMWM3ZDFjNTY0M2IwMmNlNzMwYmVmM2Q3YmM1NzAwYTViZWUwYjM4MzNkMTNmMjgxOWYxZTJiZTgxIiwic2NoZW1hIjoic2NoaWxkLnNpZ25hbC8wLjMiLCJzY29yZSI6NzIsInRpbWVfYnVja2V0IjoiMjAyNi0xMC0yNlQxMTo1NTowMFoiLCJ3YWZfcnVsZXMiOls5MzAxMjAsOTQ5MTEwXX0=\",\"signatures\":[{\"keyid\":\"test-site-a\",\"sig\":\"4yqHiP8uq2M+Pb/jZg+Hg5HmO4K+fz9grxn42H3mRj03HQMW9TjYA6uxLzUKZ0aV9fNEMG83fxr/qSy4xCqzDw==\"}]}",
+  "input_decoded": {
+    "payload": {
+      "action_sig": "login-burst/wp-admin",
+      "agent": {
+        "bot": false,
+        "family": "python-requests",
+        "major": 2
+      },
+      "category": "wordpress-login-bruteforce",
+      "id": "7201a235-579c-44dd-acb6-899eb247b88d",
+      "key_id": "test-site-a",
+      "kind": "tip",
+      "origin": {
+        "asn": 14061,
+        "attribution": "tcp_peer",
+        "country": "NL",
+        "net_class": "hosting",
+        "protected": false
+      },
+      "request_sig": "sha256:a07187f1c7d1c5643b02ce730bef3d7bc5700a5bee0b3833d13f2819f1e2be81",
+      "schema": "schild.signal/0.3",
+      "score": 72,
+      "time_bucket": "2026-10-26T11:55:00Z",
+      "waf_rules": [
+        930120,
+        949110
+      ]
+    }
+  },
+  "expect": {
+    "valid": false,
+    "error": "forbidden_field"
+  }
+}

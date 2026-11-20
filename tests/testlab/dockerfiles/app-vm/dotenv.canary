@@ -1,0 +1,4 @@
+# TEST ONLY canary (testlab/internal/hostcanary): must never appear in a report.
+APP_ENV=production
+APP_KEY=schild-secret-canary-dotenv-h3j9c7
+DB_PASSWORD=schild-secret-canary-db-v2n8r4

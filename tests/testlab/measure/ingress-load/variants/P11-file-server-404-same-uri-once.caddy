@@ -1,0 +1,12 @@
+# unprotected: []
+# expect: pass
+# Plain static site with a 404 handed to the app through handle_errors (same URI): one evaluation, one event expected.
+http://a.example.test:18080 {
+	import schild
+	root * /tmp/abend/empty
+	file_server
+	handle_errors {
+		import schild
+		reverse_proxy 127.0.0.1:18082
+	}
+}

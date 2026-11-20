@@ -1,0 +1,183 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://contracts.schild.invalid/v0/config/lab.schema.json",
+  "title": "lab.yaml (lab configuration) v0",
+  "description": "Loaded like schild.yaml (YAML 1.2 -> JSON -> schema -> strict decode). Default path /etc/schild-lab/lab.yaml, env SCHILD_LAB_CONFIG.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["config_version", "identity", "channel", "keys", "clients", "issuers"],
+  "properties": {
+    "config_version": { "const": 0 },
+    "profile": { "type": "string", "enum": ["production", "test"], "default": "production" },
+    "identity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["operator", "lab"],
+      "properties": {
+        "operator": { "$ref": "../common.schema.json#/$defs/id" },
+        "lab": { "$ref": "../common.schema.json#/$defs/id" }
+      }
+    },
+    "listen": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "ingest": { "$ref": "#/$defs/hostport", "default": "0.0.0.0:7443" },
+        "feed": { "$ref": "#/$defs/hostport", "default": "0.0.0.0:7444" },
+        "dashboard": { "$ref": "#/$defs/hostport", "default": "127.0.0.1:8789" },
+        "metrics": { "$ref": "#/$defs/hostport", "default": "127.0.0.1:9102" }
+      }
+    },
+    "tls": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["cert_file", "key_file"],
+      "properties": {
+        "cert_file": { "$ref": "#/$defs/path" },
+        "key_file": { "$ref": "#/$defs/path" }
+      }
+    },
+    "channel": { "$ref": "../common.schema.json#/$defs/id" },
+    "keys": {
+      "description": "Signing keys of this lab, one per purpose recommended.",
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 8,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["keyid", "private_key_file", "purposes"],
+        "properties": {
+          "keyid": { "$ref": "../common.schema.json#/$defs/keyid" },
+          "private_key_file": { "$ref": "#/$defs/path" },
+          "purposes": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "type": "string", "enum": ["ack", "rules", "checkpoint"] } }
+        }
+      }
+    },
+    "ingest": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "max_body_bytes": { "type": "integer", "minimum": 1024, "maximum": 1048576, "default": 262144 },
+        "max_envelopes": { "type": "integer", "minimum": 1, "maximum": 64, "default": 64 },
+        "rate_per_client_per_min": { "type": "integer", "minimum": 1, "maximum": 100000, "default": 600 },
+        "queue_max_depth": { "type": "integer", "minimum": 100, "maximum": 100000000, "default": 1000000 },
+        "retry_after_ms": { "type": "integer", "minimum": 1, "maximum": 600000, "default": 5000 },
+        "max_clock_skew_s": { "type": "integer", "minimum": 0, "maximum": 600, "default": 120 },
+        "max_signal_age_s": { "type": "integer", "minimum": 300, "maximum": 172800, "default": 86400 },
+        "replay_window_s": { "type": "integer", "minimum": 300, "maximum": 172800, "default": 86400 }
+      }
+    },
+    "issuers": {
+      "description": "Guarantors (G2/G7). Counting is per issuer, never per client key.",
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 10000,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id"],
+        "properties": {
+          "id": { "$ref": "../common.schema.json#/$defs/id" },
+          "quota_per_day": { "type": "integer", "minimum": 0, "maximum": 100000000, "default": 100000 },
+          "revoked": { "type": "boolean", "default": false }
+        }
+      }
+    },
+    "clients": {
+      "description": "Per-site keys admitted to this lab (prototype and alpha; replaced by tokens in v1).",
+      "type": "array",
+      "maxItems": 100000,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["keyid", "public_key", "issuer"],
+        "properties": {
+          "keyid": { "$ref": "../common.schema.json#/$defs/keyid" },
+          "public_key": { "$ref": "../common.schema.json#/$defs/publicKey" },
+          "issuer": { "$ref": "../common.schema.json#/$defs/id" },
+          "quota_per_day": { "type": "integer", "minimum": 0, "maximum": 1000000, "default": 500 },
+          "revoked": { "type": "boolean", "default": false }
+        }
+      }
+    },
+    "scoring": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "min_issuers": { "type": "integer", "minimum": 3, "maximum": 1000, "default": 3 },
+        "max_issuer_share": { "type": "number", "exclusiveMinimum": 0, "maximum": 0.34, "default": 0.34 },
+        "window_minutes": { "type": "integer", "minimum": 5, "maximum": 10080, "default": 1440 },
+        "min_score": { "type": "integer", "minimum": 0, "maximum": 100, "default": 40 }
+      }
+    },
+    "publish": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "bundle_validity_hours": { "type": "integer", "minimum": 1, "maximum": 744, "default": 168 },
+        "checkpoint_interval_s": { "type": "integer", "minimum": 5, "maximum": 300, "default": 60 },
+        "checkpoint_ttl_s": { "type": "integer", "minimum": 30, "maximum": 600, "default": 180 },
+        "require_human_approval": { "const": true }
+      }
+    },
+    "peers": {
+      "type": "array",
+      "maxItems": 64,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["lab", "operator", "endpoint", "keys"],
+        "properties": {
+          "lab": { "$ref": "../common.schema.json#/$defs/id" },
+          "operator": { "$ref": "../common.schema.json#/$defs/id" },
+          "endpoint": { "type": "string", "pattern": "^https://[A-Za-z0-9.:\\[\\]-]{1,255}(/[ -~]*)?$" },
+          "keys": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 8,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["keyid", "public_key", "purposes"],
+              "properties": {
+                "keyid": { "$ref": "../common.schema.json#/$defs/keyid" },
+                "public_key": { "$ref": "../common.schema.json#/$defs/publicKey" },
+                "purposes": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "type": "string", "enum": ["ack", "rules", "checkpoint"] } }
+              }
+            }
+          },
+          "accept_from": { "type": "boolean", "default": true },
+          "share_with": { "type": "boolean", "default": false },
+          "trust_weight": { "type": "number", "minimum": 0, "maximum": 1, "default": 0.5 },
+          "observe_only": { "type": "boolean", "default": false }
+        }
+      }
+    },
+    "storage": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": { "path": { "$ref": "#/$defs/path", "default": "/var/lib/schild-lab" } }
+    },
+    "retention": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "signals_days": { "type": "integer", "minimum": 1, "maximum": 30, "default": 30 },
+        "aggregates_days": { "type": "integer", "minimum": 1, "maximum": 3650, "default": 365 }
+      }
+    },
+    "dashboard": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "enabled": { "type": "boolean", "default": true },
+        "session_ttl_minutes": { "type": "integer", "minimum": 5, "maximum": 1440, "default": 480 }
+      }
+    }
+  },
+  "$defs": {
+    "hostport": { "type": "string", "pattern": "^([A-Za-z0-9.-]{1,253}|\\[[0-9A-Fa-f:.]{2,45}\\])?:[0-9]{1,5}$" },
+    "path": { "type": "string", "pattern": "^/[A-Za-z0-9._/-]{0,511}$" }
+  }
+}

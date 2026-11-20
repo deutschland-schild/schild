@@ -1,0 +1,21 @@
+{
+  "contract": "rule-effect",
+  "description": "crowdsec:write is gone.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"op\":\"agent_write\",\"operation\":\"updateAgentRuleRepository\",\"scope\":\"crowdsec:write\"}",
+  "input_decoded": {
+    "op": "agent_write",
+    "operation": "updateAgentRuleRepository",
+    "scope": "crowdsec:write"
+  },
+  "expect": {
+    "valid": true,
+    "result": {
+      "allowed": false,
+      "status": 403,
+      "code": "scope_required"
+    }
+  }
+}

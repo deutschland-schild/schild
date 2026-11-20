@@ -1,0 +1,12 @@
+{
+  "contract": "config/lab",
+  "description": "Broken JSON.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"identity\":",
+  "expect": {
+    "valid": false,
+    "error": "malformed"
+  }
+}

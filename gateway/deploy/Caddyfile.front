@@ -1,0 +1,68 @@
+# Caddy in front of schild: fail-open ONLY when schild refuses the connection,
+# 503 on timeout.
+#
+#   visitor -> Caddy :443 -> schild 127.0.0.1:8080 -> app 127.0.0.1:8081
+#
+# Caddy's reverse_proxy returns 502 when dialing fails and 504 when the
+# response does not arrive in time. handle_errors maps them.
+#
+# Client address: schild uses X-Forwarded-For only from a peer in
+# ingress.trusted_proxies (default 127.0.0.1/32 and ::1/128, so Caddy on the
+# same host). If Caddy runs elsewhere, add its address there, never a broad
+# range. On one host bind schild to loopback (listen.proxy "127.0.0.1:8080";
+# the default 0.0.0.0:8080 is meant for containers), so nobody reaches it
+# around Caddy.
+
+shop.example {
+	reverse_proxy 127.0.0.1:8080 {
+		# Replace, never append a client's chain; drop the client's own
+		# address headers (they count if ingress.client_ip_headers names them).
+		header_up X-Forwarded-For {remote_host}
+		header_up X-Real-IP {remote_host}
+		header_up -Forwarded
+		transport http {
+			dial_timeout 1s
+			response_header_timeout 35s
+		}
+		# no lb_try_duration / retries: never retry a request
+	}
+
+	handle_errors 502 {
+		# Access lock (D56): while schild keeps <storage>/access/active, a
+		# website or some of its paths are locked; no fail-open then. Caddy
+		# needs read access to that path. D71: schild writes
+		# <storage>/access/active.json at every start; while Caddy cannot see
+		# it the lock state is unknown, which counts as a lock.
+		@access_locked file {
+			root /var/lib/schild/access
+			try_files active
+		}
+		@access_unknown not file {
+			root /var/lib/schild/access
+			try_files active.json
+		}
+		handle @access_locked {
+			header Retry-After 60
+			header Cache-Control no-store
+			respond "Wir sind gleich wieder da. Bitte versuch es später noch einmal." 503
+		}
+		handle @access_unknown {
+			header Retry-After 60
+			header Cache-Control no-store
+			respond "Wir sind gleich wieder da. Bitte versuch es später noch einmal." 503
+		}
+		# schild refused the connection (down): fail-open to the application
+		handle {
+			reverse_proxy 127.0.0.1:8081
+			header X-Schild-Bypass 1
+		}
+	}
+
+	handle_errors 504 {
+		header Retry-After 5
+		respond "Die Prüfung dauert gerade zu lange. Bitte versuch es gleich noch einmal." 503
+	}
+}
+
+# Note: handle_errors 502 also catches other dial errors (for example a reset
+# before the response). For strict classification use `schild front`.

@@ -1,0 +1,24 @@
+{
+  "contract": "rule-effect",
+  "description": "Off to detect loads the rules: a rebuild.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"config\":\"off\",\"op\":\"switch\",\"repository\":\"crowdsec\",\"requested\":\"detect\"}",
+  "input_decoded": {
+    "config": "off",
+    "op": "switch",
+    "repository": "crowdsec",
+    "requested": "detect"
+  },
+  "expect": {
+    "valid": true,
+    "result": {
+      "state": "detect",
+      "source": "dashboard",
+      "changed": true,
+      "rebuild": true,
+      "differs": true
+    }
+  }
+}

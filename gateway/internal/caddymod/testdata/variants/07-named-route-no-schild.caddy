@@ -1,0 +1,8 @@
+# unprotected: []
+# expect: refuse
+&(app) {
+	reverse_proxy 127.0.0.1:18081
+}
+http://a.example.test:18080 {
+	invoke app
+}

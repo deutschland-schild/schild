@@ -1,0 +1,27 @@
+{
+  "contract": "body-limits",
+  "description": "D46: proxy is required: a default of false would refuse on a proxy's address.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"conn_limits\":{\"max_open\":16384,\"max_per_client\":2048,\"max_per_network\":8192},\"conn_state\":{\"client\":0,\"network\":0,\"open\":0},\"net_class\":\"unknown\",\"op\":\"conn_admit\",\"peer_known\":false}",
+  "input_decoded": {
+    "conn_limits": {
+      "max_open": 16384,
+      "max_per_client": 2048,
+      "max_per_network": 8192
+    },
+    "conn_state": {
+      "client": 0,
+      "network": 0,
+      "open": 0
+    },
+    "net_class": "unknown",
+    "op": "conn_admit",
+    "peer_known": false
+  },
+  "expect": {
+    "valid": false,
+    "error": "schema"
+  }
+}

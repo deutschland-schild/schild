@@ -1,0 +1,43 @@
+[build]
+  base = "site"
+  command = "npm run generate"
+  publish = ".output/public"  # fully static (nitro preset "static" in nuxt.config.ts)
+  # Build only when the website changed (site/, docs/, the agent API document, this file); runs in the base directory.
+  ignore = "bash ./scripts/netlify-ignore.sh"
+
+# Security headers. The site loads nothing from other hosts: fonts, scripts and images are bundled.
+[[headers]]
+  for = "/*"
+  [headers.values]
+    Strict-Transport-Security = "max-age=31536000; includeSubDomains"
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+    Permissions-Policy = "camera=(), microphone=(), geolocation=()"
+    Content-Security-Policy = "default-src 'self'; script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; connect-src 'self'; frame-src 'none'; object-src 'none'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'"
+
+# Concept 23 was renamed on 2026-11-05; the old URL keeps working.
+[[redirects]]
+  from = "/doku/konzept/23-mvp-verifikation"
+  to = "/doku/konzept/23-verifikation"
+  status = 301
+
+# The pages for operators, security nerds and supporters were folded into the start page and the docs on 2026-11-05.
+[[redirects]]
+  from = "/betreiber"
+  to = "/#installieren"
+  status = 301
+
+[[redirects]]
+  from = "/nerds"
+  to = "/doku"
+  status = 301
+
+[[redirects]]
+  from = "/unterstuetzer"
+  to = "/#kontakt"
+  status = 301
+
+[[redirects]]
+  from = "/foerderer"
+  to = "/#kontakt"
+  status = 301

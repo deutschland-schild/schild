@@ -1,0 +1,27 @@
+{
+  "contract": "config/schild",
+  "description": "v0.5 MVP-22: 24 h, 1 GB (D63: raw_paths removed, real paths always).",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"config_version\":0,\"mode\":\"autoblock\",\"monitoring\":{\"requests\":{\"enabled\":true,\"keep_hours\":24,\"max_size_mb\":1024}},\"node_name\":\"web-1\",\"profile\":\"production\",\"upstream\":{\"url\":\"http://app:80\"}}",
+  "input_decoded": {
+    "config_version": 0,
+    "mode": "autoblock",
+    "monitoring": {
+      "requests": {
+        "enabled": true,
+        "keep_hours": 24,
+        "max_size_mb": 1024
+      }
+    },
+    "node_name": "web-1",
+    "profile": "production",
+    "upstream": {
+      "url": "http://app:80"
+    }
+  },
+  "expect": {
+    "valid": true
+  }
+}

@@ -1,0 +1,64 @@
+{
+  "contract": "storage-bounds",
+  "description": "D38: a request-limit block has the rule key limit:<code>, apart from WAF rules.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"max_open\":65536,\"op\":\"incident_aggregate\",\"requests\":[{\"client\":\"c1\",\"draw\":\"K7QM-4XWD\",\"limit\":\"body_size\",\"t\":1793016000000},{\"client\":\"c1\",\"draw\":\"A2BC-3DEF\",\"limit\":\"body_size\",\"t\":1793016000010},{\"client\":\"c1\",\"draw\":\"H4JK-5LMN\",\"rules\":[\"942100\"],\"t\":1793016000020}]}",
+  "input_decoded": {
+    "max_open": 65536,
+    "op": "incident_aggregate",
+    "requests": [
+      {
+        "client": "c1",
+        "draw": "K7QM-4XWD",
+        "limit": "body_size",
+        "t": 1793016000000
+      },
+      {
+        "client": "c1",
+        "draw": "A2BC-3DEF",
+        "limit": "body_size",
+        "t": 1793016000010
+      },
+      {
+        "client": "c1",
+        "draw": "H4JK-5LMN",
+        "rules": [
+          "942100"
+        ],
+        "t": 1793016000020
+      }
+    ]
+  },
+  "expect": {
+    "valid": true,
+    "result": {
+      "numbers": [
+        "K7QM-4XWD",
+        "K7QM-4XWD",
+        "H4JK-5LMN"
+      ],
+      "incidents": [
+        {
+          "incident": "K7QM-4XWD",
+          "client": "c1",
+          "rule_key": "limit:body_size",
+          "minute_ms": 1793016000000,
+          "count": 2,
+          "first_ms": 1793016000000,
+          "last_ms": 1793016000010
+        },
+        {
+          "incident": "H4JK-5LMN",
+          "client": "c1",
+          "rule_key": "942100",
+          "minute_ms": 1793016000000,
+          "count": 1,
+          "first_ms": 1793016000020,
+          "last_ms": 1793016000020
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,36 @@
+{
+  "contract": "config/schild",
+  "description": "v0.4: the start page alone is not the whole site; 24h is the longest period.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"behaviour\":{\"rate_limits\":[{\"limit\":30,\"per\":\"1s\",\"route\":\"/\"},{\"limit\":20,\"methods\":[\"GET\"],\"per\":\"24h\",\"route\":\"/search\"}]},\"config_version\":0,\"mode\":\"observe\",\"node_name\":\"web-1\",\"upstream\":{\"url\":\"http://app:80\"}}",
+  "input_decoded": {
+    "behaviour": {
+      "rate_limits": [
+        {
+          "limit": 30,
+          "per": "1s",
+          "route": "/"
+        },
+        {
+          "limit": 20,
+          "methods": [
+            "GET"
+          ],
+          "per": "24h",
+          "route": "/search"
+        }
+      ]
+    },
+    "config_version": 0,
+    "mode": "observe",
+    "node_name": "web-1",
+    "upstream": {
+      "url": "http://app:80"
+    }
+  },
+  "expect": {
+    "valid": true
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "contract": "body-limits",
+  "description": "D46: a client that left is not blocked.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"end\":\"client_left\",\"op\":\"read_outcome\"}",
+  "input_decoded": {
+    "end": "client_left",
+    "op": "read_outcome"
+  },
+  "expect": {
+    "valid": true,
+    "result": {
+      "outcome": "client_gone"
+    }
+  }
+}

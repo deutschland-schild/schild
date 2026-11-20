@@ -1,0 +1,36 @@
+{
+  "contract": "website-status",
+  "description": "D36: no requests in 5 minutes: still ok (a quiet website is no problem).",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"monitoring\":true,\"protection\":\"protected\",\"servers\":[{\"baseline_protection\":\"active\",\"hints\":[],\"node\":\"web-1\",\"state\":\"ok\"}],\"tracked\":true,\"traffic\":{\"fail_closed\":0,\"forwarded\":0,\"requests\":0,\"status_5xx\":0,\"upstream_errors\":0,\"upstream_timeouts\":0}}",
+  "input_decoded": {
+    "monitoring": true,
+    "protection": "protected",
+    "servers": [
+      {
+        "baseline_protection": "active",
+        "hints": [],
+        "node": "web-1",
+        "state": "ok"
+      }
+    ],
+    "tracked": true,
+    "traffic": {
+      "fail_closed": 0,
+      "forwarded": 0,
+      "requests": 0,
+      "status_5xx": 0,
+      "upstream_errors": 0,
+      "upstream_timeouts": 0
+    }
+  },
+  "expect": {
+    "valid": true,
+    "result": {
+      "reasons": [],
+      "status": "ok"
+    }
+  }
+}

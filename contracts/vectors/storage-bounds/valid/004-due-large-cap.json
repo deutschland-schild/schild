@@ -1,0 +1,20 @@
+{
+  "contract": "storage-bounds",
+  "description": "D38: with the largest cap (100000 MB) the byte step is 10000 MiB; 9 GiB written within 2 minutes is not due yet.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"elapsed_s\":120,\"max_size_mb\":100000,\"op\":\"check_due\",\"written_bytes\":9663676416}",
+  "input_decoded": {
+    "elapsed_s": 120,
+    "max_size_mb": 100000,
+    "op": "check_due",
+    "written_bytes": 9663676416
+  },
+  "expect": {
+    "valid": true,
+    "result": {
+      "due": false
+    }
+  }
+}

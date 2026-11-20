@@ -1,0 +1,12 @@
+{
+  "incident": "K7QM-4XWD",
+  "status": "blocked",
+  "time": "2026-10-28T11:58:12.412Z",
+  "event_id": "6f1c2b7e-1d4a-4c8e-9b2f-6a5d4e3c2b13",
+  "client_pseudonym": "p1-5f0c2a9e41b7d368",
+  "client_net": "203.0.113.0/24",
+  "reason": "942100, 949110 SQL Injection Attack Detected via libinjection",
+  "sources": [
+    "crs"
+  ]
+}

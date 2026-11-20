@@ -1,0 +1,15 @@
+{
+	admin off
+}
+
+full.example.org {
+	handle_path /api/* {
+		schild
+		reverse_proxy 127.0.0.1:19101
+	}
+	handle {
+		schild
+		reverse_proxy 127.0.0.1:19101
+	}
+}
+

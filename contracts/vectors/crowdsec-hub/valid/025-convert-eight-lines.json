@@ -1,0 +1,41 @@
+{
+  "contract": "crowdsec-hub",
+  "description": "Bound: 8 lines of one chain is the hub maximum of 2026-10-30 and the limit of the hub profile (the subset allows 4).",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"content\":\"name: crowdsecurity/vpatch-CVE-2026-1207\\ndescription: 'Rewritten test rule.'\\nrules:\\n  - and:\\n      - zones:\\n          - URI\\n        transform:\\n          - lowercase\\n        match:\\n          type: contains\\n          value: /wp-json/example/v1/\\n      - zones:\\n          - METHOD\\n        match:\\n          type: equals\\n          value: POST\\n      - zones:\\n          - ARGS\\n        variables:\\n          - 'a'\\n        match:\\n          type: contains\\n          value: a\\n      - zones:\\n          - ARGS\\n        variables:\\n          - 'b'\\n        match:\\n          type: contains\\n          value: b\\n      - zones:\\n          - ARGS\\n        variables:\\n          - 'c'\\n        match:\\n          type: contains\\n          value: c\\n      - zones:\\n          - ARGS\\n        variables:\\n          - 'd'\\n        match:\\n          type: contains\\n          value: d\\n      - zones:\\n          - ARGS\\n        variables:\\n          - 'e'\\n        match:\\n          type: contains\\n          value: e\\n      - zones:\\n          - ARGS\\n        variables:\\n          - 'f'\\n        match:\\n          type: contains\\n          value: f\\nlabels:\\n  type: exploit\\n  confidence: 3\\n  spoofable: 0\\n  label: Example - RCE\\n  classification:\\n    - cve.CVE-2026-1207\\n    - attack.T1190\\n    - cwe.CWE-89\\n\",\"name\":\"crowdsecurity/vpatch-CVE-2026-1207\",\"op\":\"convert\",\"version\":\"0.2\"}",
+  "input_decoded": {
+    "content": "name: crowdsecurity/vpatch-CVE-2026-1207\ndescription: 'Rewritten test rule.'\nrules:\n  - and:\n      - zones:\n          - URI\n        transform:\n          - lowercase\n        match:\n          type: contains\n          value: /wp-json/example/v1/\n      - zones:\n          - METHOD\n        match:\n          type: equals\n          value: POST\n      - zones:\n          - ARGS\n        variables:\n          - 'a'\n        match:\n          type: contains\n          value: a\n      - zones:\n          - ARGS\n        variables:\n          - 'b'\n        match:\n          type: contains\n          value: b\n      - zones:\n          - ARGS\n        variables:\n          - 'c'\n        match:\n          type: contains\n          value: c\n      - zones:\n          - ARGS\n        variables:\n          - 'd'\n        match:\n          type: contains\n          value: d\n      - zones:\n          - ARGS\n        variables:\n          - 'e'\n        match:\n          type: contains\n          value: e\n      - zones:\n          - ARGS\n        variables:\n          - 'f'\n        match:\n          type: contains\n          value: f\nlabels:\n  type: exploit\n  confidence: 3\n  spoofable: 0\n  label: Example - RCE\n  classification:\n    - cve.CVE-2026-1207\n    - attack.T1190\n    - cwe.CWE-89\n",
+    "name": "crowdsecurity/vpatch-CVE-2026-1207",
+    "op": "convert",
+    "version": "0.2"
+  },
+  "expect": {
+    "valid": true,
+    "result": {
+      "outcome": "converted",
+      "rule": {
+        "name": "crowdsecurity/vpatch-CVE-2026-1207",
+        "version": "0.2",
+        "digest": "0e19d273b81cc64d83ed2d07b4b20bdfde9f284f192017f004ef87fc019cb97a",
+        "base_id": 62846312,
+        "seclang": [
+          "SecRule REQUEST_FILENAME \"@contains /wp-json/example/v1/\" \"id:62846312,phase:2,pass,t:none,t:lowercase,severity:CRITICAL,msg:'crowdsec hub crowdsecurity/vpatch-CVE-2026-1207',tag:crowdsec_hub,chain\"\nSecRule REQUEST_METHOD \"@streq POST\" \"t:none,chain\"\nSecRule ARGS_GET:a \"@contains a\" \"t:none,chain\"\nSecRule ARGS_GET:b \"@contains b\" \"t:none,chain\"\nSecRule ARGS_GET:c \"@contains c\" \"t:none,chain\"\nSecRule ARGS_GET:d \"@contains d\" \"t:none,chain\"\nSecRule ARGS_GET:e \"@contains e\" \"t:none,chain\"\nSecRule ARGS_GET:f \"@contains f\" \"t:none\""
+        ],
+        "label": "Example - RCE",
+        "description": "Rewritten test rule.",
+        "cves": [
+          "CVE-2026-1207"
+        ],
+        "cwes": [
+          "CWE-89"
+        ],
+        "attack": [
+          "T1190"
+        ],
+        "notes": []
+      }
+    }
+  }
+}

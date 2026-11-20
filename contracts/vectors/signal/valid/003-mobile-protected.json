@@ -1,0 +1,48 @@
+{
+  "contract": "signal",
+  "description": "Mobile network behind a trusted proxy, sender on the protection list.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z",
+    "trust": [
+      "site-a",
+      "site-b",
+      "site-c",
+      "lab-a",
+      "lab-a2",
+      "lab-b",
+      "lab-c",
+      "lab-d"
+    ]
+  },
+  "input_raw": "{\"payloadType\":\"application/vnd.schild.signal.v0+json\",\"payload\":\"eyJhY3Rpb25fc2lnIjoic3FsaS9yZXN0LWFwaSIsImFnZW50Ijp7ImJvdCI6ZmFsc2UsImZhbWlseSI6ImNocm9tZSIsIm1ham9yIjoxMzB9LCJjYXRlZ29yeSI6InNxbC1pbmplY3Rpb24iLCJpZCI6IjlhOGIyODhmLTEwMWUtNGQyOC1hMWI3LTgxYzdiMTUzZDg0MiIsImtpbmQiOiJ0aXAiLCJvcmlnaW4iOnsiYXNuIjozMzIwLCJhdHRyaWJ1dGlvbiI6InRydXN0ZWRfcHJveHkiLCJjb3VudHJ5IjoiREUiLCJuZXRfY2xhc3MiOiJtb2JpbGUiLCJwcm90ZWN0ZWQiOnRydWV9LCJyZXF1ZXN0X3NpZyI6InNoYTI1NjphMDcxODdmMWM3ZDFjNTY0M2IwMmNlNzMwYmVmM2Q3YmM1NzAwYTViZWUwYjM4MzNkMTNmMjgxOWYxZTJiZTgxIiwic2NoZW1hIjoic2NoaWxkLnNpZ25hbC8wLjMiLCJzY29yZSI6MTAwLCJ0aW1lX2J1Y2tldCI6IjIwMjYtMTAtMjZUMTE6NDU6MDBaIiwid2FmX3J1bGVzIjpbOTQyMTAwXX0=\",\"signatures\":[{\"keyid\":\"test-site-c\",\"sig\":\"khhWj+90k/C6mnAuSLFVwyV6nnAzNJVXWUmJif6tpiLGh0KHvjepoVpi19A/BSXS+UNO9tEGOVmQjhKPMp/HAA==\"}]}",
+  "input_decoded": {
+    "payload": {
+      "action_sig": "sqli/rest-api",
+      "agent": {
+        "bot": false,
+        "family": "chrome",
+        "major": 130
+      },
+      "category": "sql-injection",
+      "id": "9a8b288f-101e-4d28-a1b7-81c7b153d842",
+      "kind": "tip",
+      "origin": {
+        "asn": 3320,
+        "attribution": "trusted_proxy",
+        "country": "DE",
+        "net_class": "mobile",
+        "protected": true
+      },
+      "request_sig": "sha256:a07187f1c7d1c5643b02ce730bef3d7bc5700a5bee0b3833d13f2819f1e2be81",
+      "schema": "schild.signal/0.3",
+      "score": 100,
+      "time_bucket": "2026-10-26T11:45:00Z",
+      "waf_rules": [
+        942100
+      ]
+    }
+  },
+  "expect": {
+    "valid": true
+  }
+}

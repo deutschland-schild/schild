@@ -1,0 +1,19 @@
+{
+  "contract": "rule-effect",
+  "description": "Detect in the test profile stays detect.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"mode\":\"observe\",\"op\":\"repository\",\"state\":\"detect\"}",
+  "input_decoded": {
+    "mode": "observe",
+    "op": "repository",
+    "state": "detect"
+  },
+  "expect": {
+    "valid": true,
+    "result": {
+      "effect": "detect"
+    }
+  }
+}

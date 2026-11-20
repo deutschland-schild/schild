@@ -1,0 +1,19 @@
+{
+  "contract": "rule-effect",
+  "description": "A repository in block blocks; settling updates are rules, not the repository.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"mode\":\"autoblock\",\"op\":\"repository\",\"state\":\"block\"}",
+  "input_decoded": {
+    "mode": "autoblock",
+    "op": "repository",
+    "state": "block"
+  },
+  "expect": {
+    "valid": true,
+    "result": {
+      "effect": "block"
+    }
+  }
+}

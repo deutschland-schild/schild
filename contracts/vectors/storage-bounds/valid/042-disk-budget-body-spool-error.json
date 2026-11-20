@@ -1,0 +1,27 @@
+{
+  "contract": "storage-bounds",
+  "description": "D41: a disk smaller than the budget refuses the start; lower waf.body.max_in_flight_bytes.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"body_spool_bytes\":4294967296,\"fs_avail_bytes\":3221225472,\"fs_total_bytes\":4294967296,\"max_size_mb\":100,\"metrics_bound_bytes\":0,\"op\":\"disk_budget\",\"requests_max_size_mb\":0,\"schild_used_bytes\":0}",
+  "input_decoded": {
+    "body_spool_bytes": 4294967296,
+    "fs_avail_bytes": 3221225472,
+    "fs_total_bytes": 4294967296,
+    "max_size_mb": 100,
+    "metrics_bound_bytes": 0,
+    "op": "disk_budget",
+    "requests_max_size_mb": 0,
+    "schild_used_bytes": 0
+  },
+  "expect": {
+    "valid": true,
+    "result": {
+      "budget_bytes": 4544528384,
+      "need_bytes": 4544528384,
+      "reserve_bytes": 1073741824,
+      "verdict": "error"
+    }
+  }
+}

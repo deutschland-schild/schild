@@ -1,0 +1,24 @@
+{
+  "contract": "body-limits",
+  "description": "D41, E2: an open body is measured up to now, so a running body shows before it ends.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"arrivals\":[],\"end_ms\":60000,\"op\":\"rate\"}",
+  "input_decoded": {
+    "arrivals": [],
+    "end_ms": 60000,
+    "op": "rate"
+  },
+  "expect": {
+    "valid": true,
+    "result": {
+      "below_min": true,
+      "first_below": 0,
+      "windows": [
+        0,
+        0
+      ]
+    }
+  }
+}

@@ -1,0 +1,35 @@
+{
+  "contract": "stream",
+  "description": "Checkpoints are always inline.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z",
+    "trust": [
+      "site-a",
+      "site-b",
+      "site-c",
+      "lab-a",
+      "lab-a2",
+      "lab-b",
+      "lab-c",
+      "lab-d"
+    ],
+    "threshold": 2,
+    "channel": "schild-main"
+  },
+  "input_raw": "{\"id\":\"r1a-4\",\"ref\":{\"bundle_id\":\"schild-main\",\"sha256\":\"sha256:4c503ca67761e5c4aaecfe996244c25d8c0b40902d1085c85b4468bd567548c6\",\"size\":240000,\"url_path\":\"/v0/bundles/schild-main/42.json\",\"version\":42},\"type\":\"schild.dist.checkpoint.v1\"}",
+  "input_decoded": {
+    "id": "r1a-4",
+    "ref": {
+      "bundle_id": "schild-main",
+      "sha256": "sha256:4c503ca67761e5c4aaecfe996244c25d8c0b40902d1085c85b4468bd567548c6",
+      "size": 240000,
+      "url_path": "/v0/bundles/schild-main/42.json",
+      "version": 42
+    },
+    "type": "schild.dist.checkpoint.v1"
+  },
+  "expect": {
+    "valid": false,
+    "error": "schema"
+  }
+}

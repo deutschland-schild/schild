@@ -1,0 +1,34 @@
+---
+meta:
+  author: "schild-testlab"
+  description: "Security scanner user agent (REQUEST-913). Schild test-lab regression subset in go-ftw format (written for this lab, not copied from CRS)."
+rule_id: 913100
+tests:
+  - test_id: 1
+    desc: "Nikto user agent on an ordinary path"
+    stages:
+      - input:
+          dest_addr: "127.0.0.1"
+          port: 80
+          method: "GET"
+          uri: '/api/items'
+          headers:
+            Host: 'shop.example'
+            User-Agent: 'Mozilla/5.00 (Nikto/2.5.0) (Evasions:None) (Test:000001)'
+            Accept: '*/*'
+        output:
+          status: 403
+  - test_id: 2
+    desc: "sqlmap user agent on an ordinary path"
+    stages:
+      - input:
+          dest_addr: "127.0.0.1"
+          port: 80
+          method: "GET"
+          uri: '/api/items'
+          headers:
+            Host: 'shop.example'
+            User-Agent: 'sqlmap/1.8.11#stable (https://sqlmap.org)'
+            Accept: '*/*'
+        output:
+          status: 403

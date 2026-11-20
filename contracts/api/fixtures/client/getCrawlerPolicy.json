@@ -1,0 +1,23 @@
+{
+  "website": "musterverein.example",
+  "policy": {
+    "categories": { "ai_training": "block" },
+    "bots": { "ccbot": "allow" },
+    "impersonators": "block"
+  },
+  "updated_at": "2026-11-02T10:15:00.000Z",
+  "actor": "dashboard",
+  "catalogue_version": "2026-10-26.1",
+  "crawlers": [
+    { "id": "googlebot", "name": "Googlebot", "operator": "Google", "category": "search_engine", "verifiable": true },
+    { "id": "bingbot", "name": "Bingbot", "operator": "Microsoft", "category": "search_engine", "verifiable": true },
+    { "id": "gptbot", "name": "GPTBot", "operator": "OpenAI", "category": "ai_training", "verifiable": true },
+    { "id": "ccbot", "name": "CCBot", "operator": "Common Crawl", "category": "ai_training", "verifiable": false },
+    { "id": "claudebot", "name": "ClaudeBot", "operator": "Anthropic", "category": "ai_training", "verifiable": false },
+    { "id": "chatgpt-user", "name": "ChatGPT-User", "operator": "OpenAI", "category": "ai_assistant", "verifiable": true },
+    { "id": "perplexitybot", "name": "PerplexityBot", "operator": "Perplexity", "category": "ai_search", "verifiable": true },
+    { "id": "ahrefsbot", "name": "AhrefsBot", "operator": "Ahrefs", "category": "seo_tool", "verifiable": false },
+    { "id": "curl", "name": "curl", "operator": "curl project", "category": "tool_library", "verifiable": false }
+  ],
+  "presets": ["block_ai_training"]
+}

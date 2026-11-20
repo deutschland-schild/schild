@@ -1,0 +1,34 @@
+{
+  "contract": "events",
+  "description": "v0.4 MVP-18: fresh install, still learning: shown as would have responded.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"data\":{\"action\":\"observe\",\"baseline\":2.5,\"count\":380,\"detector\":\"route_wave\",\"host\":\"verein.example\",\"mode\":\"respond\",\"reason\":\"learning\",\"response\":\"route_tighten\",\"route\":\"/wp-login.php\",\"senders\":380,\"threshold\":20,\"wave_id\":\"c83ff94c-538e-4e32-a122-9866586e0868\",\"window_s\":300},\"datacontenttype\":\"application/json\",\"id\":\"45db6219-e0b8-49eb-9a62-ae0fced26213\",\"source\":\"schild://web-1\",\"specversion\":\"1.0\",\"time\":\"2026-10-26T11:59:58.123Z\",\"type\":\"schild.distributed.detected.v1\"}",
+  "input_decoded": {
+    "data": {
+      "action": "observe",
+      "baseline": 2.5,
+      "count": 380,
+      "detector": "route_wave",
+      "host": "verein.example",
+      "mode": "respond",
+      "reason": "learning",
+      "response": "route_tighten",
+      "route": "/wp-login.php",
+      "senders": 380,
+      "threshold": 20,
+      "wave_id": "c83ff94c-538e-4e32-a122-9866586e0868",
+      "window_s": 300
+    },
+    "datacontenttype": "application/json",
+    "id": "45db6219-e0b8-49eb-9a62-ae0fced26213",
+    "source": "schild://web-1",
+    "specversion": "1.0",
+    "time": "2026-10-26T11:59:58.123Z",
+    "type": "schild.distributed.detected.v1"
+  },
+  "expect": {
+    "valid": true
+  }
+}

@@ -1,0 +1,109 @@
+{
+  "contract": "ingress-order",
+  "description": "D40: Refused: the restore sits in a named route reached through invoke.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"caddyfile\":\"&(app) {\\n\\treverse_proxy 127.0.0.1:18082 {\\n\\t\\theader_up Cookie {vars.c}\\n\\t}\\n}\\nhttp://a.example.test {\\n\\troute {\\n\\t\\trequest_header -Cookie\\n\\t\\tschild\\n\\t\\tinvoke app\\n\\t}\\n}\\n\",\"servers\":{\"srv0\":{\"listen\":[\":80\"],\"named_routes\":{\"app\":{\"handle\":[{\"handler\":\"reverse_proxy\",\"headers\":{\"request\":{\"set\":{\"Cookie\":[\"{http.vars.c}\"]}}},\"upstreams\":[{\"dial\":\"127.0.0.1:18082\"}]}]}},\"routes\":[{\"handle\":[{\"handler\":\"subroute\",\"routes\":[{\"handle\":[{\"handler\":\"subroute\",\"routes\":[{\"handle\":[{\"handler\":\"headers\",\"request\":{\"delete\":[\"Cookie\"]}},{\"handler\":\"schild\"},{\"handler\":\"invoke\",\"name\":\"app\"}]}]}]}]}],\"match\":[{\"host\":[\"a.example.test\"]}],\"terminal\":true}]}}}",
+  "input_decoded": {
+    "caddyfile": "&(app) {\n\treverse_proxy 127.0.0.1:18082 {\n\t\theader_up Cookie {vars.c}\n\t}\n}\nhttp://a.example.test {\n\troute {\n\t\trequest_header -Cookie\n\t\tschild\n\t\tinvoke app\n\t}\n}\n",
+    "servers": {
+      "srv0": {
+        "listen": [
+          ":80"
+        ],
+        "named_routes": {
+          "app": {
+            "handle": [
+              {
+                "handler": "reverse_proxy",
+                "headers": {
+                  "request": {
+                    "set": {
+                      "Cookie": [
+                        "{http.vars.c}"
+                      ]
+                    }
+                  }
+                },
+                "upstreams": [
+                  {
+                    "dial": "127.0.0.1:18082"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        "routes": [
+          {
+            "handle": [
+              {
+                "handler": "subroute",
+                "routes": [
+                  {
+                    "handle": [
+                      {
+                        "handler": "subroute",
+                        "routes": [
+                          {
+                            "handle": [
+                              {
+                                "handler": "headers",
+                                "request": {
+                                  "delete": [
+                                    "Cookie"
+                                  ]
+                                }
+                              },
+                              {
+                                "handler": "schild"
+                              },
+                              {
+                                "handler": "invoke",
+                                "name": "app"
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ],
+            "match": [
+              {
+                "host": [
+                  "a.example.test"
+                ]
+              }
+            ],
+            "terminal": true
+          }
+        ]
+      }
+    }
+  },
+  "expect": {
+    "valid": true,
+    "result": {
+      "findings": [
+        {
+          "code": "header_hidden_from_schild",
+          "msg_key": "ingress.err.header_hidden_from_schild",
+          "server": "srv0",
+          "route": "/routes/0",
+          "hosts": [
+            "a.example.test"
+          ],
+          "directive": "request_header",
+          "hide": "/routes/0/handle/0/routes/0/handle/0/routes/0/handle/0",
+          "schild": "/routes/0/handle/0/routes/0/handle/0/routes/0/handle/1",
+          "restore": "/named_routes/app/handle/0",
+          "header": "cookie"
+        }
+      ]
+    }
+  }
+}

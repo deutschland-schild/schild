@@ -1,0 +1,12 @@
+{
+  "contract": "seclang",
+  "description": "SecLang subset case referer-detect-only (max_action block).",
+  "context": {
+    "now": "2026-10-26T12:00:00Z",
+    "max_action": "block"
+  },
+  "input_raw": "SecRule REQUEST_HEADERS:Referer|REQUEST_HEADERS:Origin \"@detectSQLi\" \"id:7700100,phase:1,deny,severity:CRITICAL,msg:'SQL injection in Referer or Origin'\"",
+  "expect": {
+    "valid": true
+  }
+}

@@ -1,0 +1,34 @@
+{
+  "contract": "storage-bounds",
+  "description": "D38: drawn incident numbers are unique.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"max_open\":16,\"op\":\"incident_aggregate\",\"requests\":[{\"client\":\"c1\",\"draw\":\"K7QM-4XWD\",\"rules\":[\"942100\"],\"t\":1793016000000},{\"client\":\"c2\",\"draw\":\"K7QM-4XWD\",\"rules\":[\"942100\"],\"t\":1793016000001}]}",
+  "input_decoded": {
+    "max_open": 16,
+    "op": "incident_aggregate",
+    "requests": [
+      {
+        "client": "c1",
+        "draw": "K7QM-4XWD",
+        "rules": [
+          "942100"
+        ],
+        "t": 1793016000000
+      },
+      {
+        "client": "c2",
+        "draw": "K7QM-4XWD",
+        "rules": [
+          "942100"
+        ],
+        "t": 1793016000001
+      }
+    ]
+  },
+  "expect": {
+    "valid": false,
+    "error": "schema"
+  }
+}

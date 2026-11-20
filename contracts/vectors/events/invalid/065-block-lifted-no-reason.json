@@ -1,0 +1,26 @@
+{
+  "contract": "events",
+  "description": "D42: a reason is required.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"data\":{\"incident\":\"K7QM-4XWD\",\"source\":\"agent:tok_000000000001\",\"token_id\":\"tok_000000000001\",\"token_label\":\"Local agent\"},\"datacontenttype\":\"application/json\",\"id\":\"bfdd8fa7-838c-4a9c-b1cf-78c80d70475a\",\"source\":\"schild://web-1\",\"specversion\":\"1.0\",\"time\":\"2026-10-26T11:59:58.123Z\",\"type\":\"schild.block.lifted.v1\"}",
+  "input_decoded": {
+    "data": {
+      "incident": "K7QM-4XWD",
+      "source": "agent:tok_000000000001",
+      "token_id": "tok_000000000001",
+      "token_label": "Local agent"
+    },
+    "datacontenttype": "application/json",
+    "id": "bfdd8fa7-838c-4a9c-b1cf-78c80d70475a",
+    "source": "schild://web-1",
+    "specversion": "1.0",
+    "time": "2026-10-26T11:59:58.123Z",
+    "type": "schild.block.lifted.v1"
+  },
+  "expect": {
+    "valid": false,
+    "error": "schema"
+  }
+}

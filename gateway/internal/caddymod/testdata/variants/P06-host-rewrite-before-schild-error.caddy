@@ -1,0 +1,16 @@
+# unprotected: []
+# expect: pass
+# request_header Host before schild, error, handle_errors with schild; Caddy does not restore the Host, so what schild saw is what the backend gets.
+http://a.example.test:18080 {
+	route {
+		request_header Host clean.example.test
+		schild
+		error "boom" 500
+	}
+	handle_errors {
+		import schild
+		reverse_proxy 127.0.0.1:18082 {
+			header_up X-Orig-Host {http.request.orig_uri}
+		}
+	}
+}

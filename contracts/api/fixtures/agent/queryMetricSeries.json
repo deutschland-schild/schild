@@ -1,0 +1,48 @@
+{
+  "from": "2026-10-28T11:00:00Z",
+  "to": "2026-10-28T11:03:00Z",
+  "resolution": "1m",
+  "step_s": 60,
+  "points": 3,
+  "series": [
+    {
+      "metric": "traffic.requests",
+      "stat": "rate",
+      "kind": "counter",
+      "unit": "requests",
+      "exact": true,
+      "values": [
+        38.2,
+        null,
+        41.0
+      ]
+    },
+    {
+      "metric": "traffic.latency_overhead",
+      "stat": "p95",
+      "kind": "histogram",
+      "unit": "ms",
+      "exact": false,
+      "error_bound": 0.25,
+      "values": [
+        1.16,
+        1.45,
+        1.16
+      ]
+    },
+    {
+      "metric": "server.disk_used_ratio",
+      "stat": "max",
+      "kind": "gauge",
+      "unit": "ratio",
+      "exact": true,
+      "object": "/",
+      "values": [
+        0.72,
+        0.72,
+        0.72
+      ]
+    }
+  ],
+  "restarts": []
+}

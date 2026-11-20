@@ -1,0 +1,20 @@
+{
+  "contract": "crowdsec-hub",
+  "description": "select needs both candidates.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"op\":\"select\",\"state\":\"detect\",\"stored\":{\"present\":false,\"valid\":false}}",
+  "input_decoded": {
+    "op": "select",
+    "state": "detect",
+    "stored": {
+      "present": false,
+      "valid": false
+    }
+  },
+  "expect": {
+    "valid": false,
+    "error": "schema"
+  }
+}

@@ -1,0 +1,22 @@
+{
+  "contract": "signal",
+  "description": "Escaped lone UTF-16 surrogate in a string.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z",
+    "trust": [
+      "site-a",
+      "site-b",
+      "site-c",
+      "lab-a",
+      "lab-a2",
+      "lab-b",
+      "lab-c",
+      "lab-d"
+    ]
+  },
+  "input_raw": "{\"payloadType\":\"application/vnd.schild.signal.v0+json\",\"payload\":\"eyJhY3Rpb25fc2lnIjoibG9naW4tYnVyc3Qvd3AtYWRtaW4iLCJhZ2VudCI6eyJib3QiOmZhbHNlLCJmYW1pbHkiOiJweXRob24tcmVxdWVzdHMiLCJtYWpvciI6Mn0sImNhdGVnb3J5IjoieFx1ZDgwMCIsImlkIjoiODY4MGI4ZTMtOTc1Ni00MWY0LWJhY2ItOTRmNGQyNzYzZDc3Iiwia2luZCI6InRpcCIsIm9yaWdpbiI6eyJhc24iOjE0MDYxLCJhdHRyaWJ1dGlvbiI6InRjcF9wZWVyIiwiY291bnRyeSI6Ik5MIiwibmV0X2NsYXNzIjoiaG9zdGluZyIsInByb3RlY3RlZCI6ZmFsc2V9LCJyZXF1ZXN0X3NpZyI6InNoYTI1NjphMDcxODdmMWM3ZDFjNTY0M2IwMmNlNzMwYmVmM2Q3YmM1NzAwYTViZWUwYjM4MzNkMTNmMjgxOWYxZTJiZTgxIiwic2NoZW1hIjoic2NoaWxkLnNpZ25hbC8wLjMiLCJzY29yZSI6NzIsInRpbWVfYnVja2V0IjoiMjAyNi0xMC0yNlQxMTo1NTowMFoiLCJ3YWZfcnVsZXMiOls5MzAxMjAsOTQ5MTEwXX0=\",\"signatures\":[{\"keyid\":\"test-site-a\",\"sig\":\"HaOHkCSP8+Xj2zsx70MYtfTG44vI01RLJ8ovU47FFxKWHP+jKUKFX3ohxcexZeCEDwVj17fCRgegsn7tk0cxBA==\"}]}",
+  "expect": {
+    "valid": false,
+    "error": "malformed"
+  }
+}

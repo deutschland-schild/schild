@@ -1,0 +1,37 @@
+# Starter configuration of the Schild Gateway for the Docker quickstart
+# "schild as your Caddy" (compose.yaml next to this file, or docker run).
+# schild loads your Caddyfile, listens on ports 80 and 443 as the Caddyfile
+# says and passes requests on as the Caddyfile says. Nothing to edit here for
+# a first start.
+#
+# All keys: https://deutschland-schild.de/doku
+config_version: 0
+
+# Every rule repository has its own switch: off, detect (record only) or
+# block. By default the OWASP CRS and your own rules block, CrowdSec rules
+# only detect. For a careful start with a sensitive application, let the
+# CRS only detect for a few days and switch it to block in the dashboard:
+#
+# rules:
+#   crs:
+#     state: detect
+
+# The name of this gateway in the dashboard and in the logs.
+node_name: quickstart
+
+ingress:
+  # Your Caddyfile, mounted read-only into the container. Every site that
+  # reaches a backend needs the line "import schild"; schild refuses to start
+  # otherwise. "schild ingress validate" lists the sites.
+  caddyfile: /etc/caddy/Caddyfile
+  # Certificates and the ACME account, in schild's own volume. It starts as
+  # a copy of Caddy's storage (/data/caddy of the caddy image), so nothing is
+  # issued again and Caddy's volume stays as it is for the way back.
+  storage: /var/lib/schild/caddy
+
+listen:
+  # Inside a container the dashboard has to listen on all interfaces of the
+  # container, otherwise the published port reaches nothing. The quickstart
+  # publishes it on the host's 127.0.0.1 only. Keep it that way: never
+  # publish port 8788 on a public address.
+  dashboard: "0.0.0.0:8788"

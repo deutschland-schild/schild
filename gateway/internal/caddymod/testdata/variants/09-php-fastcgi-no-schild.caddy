@@ -1,0 +1,6 @@
+# unprotected: []
+# expect: refuse
+http://a.example.test:18080 {
+	root * /tmp
+	php_fastcgi 127.0.0.1:9000
+}

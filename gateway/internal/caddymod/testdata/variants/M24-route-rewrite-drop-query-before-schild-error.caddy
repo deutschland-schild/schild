@@ -1,0 +1,15 @@
+# unprotected: []
+# expect: refuse
+# Fix round 3: accepted; the pass marker is bound to the inspected method and URI, so schild in handle_errors inspects the restored original URI again (TestIngressPassMarkBoundToURI).
+# route rewrites away the query before schild; error after schild; Caddy runs handle_errors with the original URI and the marker skips the second evaluation.
+http://a.example.test:18080 {
+	route {
+		rewrite * /hidden?
+		schild
+		error "boom" 500
+	}
+	handle_errors {
+		import schild
+		reverse_proxy 127.0.0.1:18081
+	}
+}

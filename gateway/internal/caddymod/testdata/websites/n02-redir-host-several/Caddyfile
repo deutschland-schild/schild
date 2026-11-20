@@ -1,0 +1,23 @@
+{
+	admin off
+}
+
+http://a.example.org, http://b.example.org, http://c.example.org {
+	redir https://{host}{uri} permanent
+}
+
+a.example.org {
+	schild
+	reverse_proxy 127.0.0.1:19101
+}
+
+b.example.org {
+	schild
+	reverse_proxy 127.0.0.1:19101
+}
+
+c.example.org {
+	schild
+	reverse_proxy 127.0.0.1:19101
+}
+

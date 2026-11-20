@@ -1,0 +1,65 @@
+{
+  "contract": "website-derive",
+  "description": "D36: blocks without a host are the website _any; every host no other block names resolves to it, also a missing or malformed Host.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"blocks\":[{\"addresses\":[\"example.org\"],\"proxies\":true,\"schild\":true},{\"addresses\":[\":8080\",\"http://\"],\"proxies\":true,\"schild\":true}],\"mode\":\"ingress\",\"resolve\":[\"Example.ORG:443\",\"unknown.example.net\",\"[2001:db8::7]:80\",\"\",\"bad host\"]}",
+  "input_decoded": {
+    "blocks": [
+      {
+        "addresses": [
+          "example.org"
+        ],
+        "proxies": true,
+        "schild": true
+      },
+      {
+        "addresses": [
+          ":8080",
+          "http://"
+        ],
+        "proxies": true,
+        "schild": true
+      }
+    ],
+    "mode": "ingress",
+    "resolve": [
+      "Example.ORG:443",
+      "unknown.example.net",
+      "[2001:db8::7]:80",
+      "",
+      "bad host"
+    ]
+  },
+  "expect": {
+    "valid": true,
+    "result": {
+      "resolved": [
+        "example.org",
+        "_any",
+        "_any",
+        "_any",
+        "_any"
+      ],
+      "websites": [
+        {
+          "hosts": [
+            "example.org"
+          ],
+          "id": "example.org",
+          "label": "example.org",
+          "protection": "protected",
+          "tracked": true
+        },
+        {
+          "hosts": [],
+          "id": "_any",
+          "label": "_any",
+          "protection": "protected",
+          "tracked": true
+        }
+      ]
+    }
+  }
+}

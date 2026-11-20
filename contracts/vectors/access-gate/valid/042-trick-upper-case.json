@@ -1,0 +1,33 @@
+{
+  "contract": "access-gate",
+  "description": "D56 path trick: ASCII upper case folds to lower case.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"allowlisted\":false,\"path\":\"/WP-ADMIN/\",\"protection\":{\"own_networks\":false,\"password\":true,\"paths\":[\"/wp-admin/*\",\"/wp-login.php\"],\"scope\":\"paths\",\"website\":\"musterverein.example\"},\"session\":\"none\"}",
+  "input_decoded": {
+    "allowlisted": false,
+    "path": "/WP-ADMIN/",
+    "protection": {
+      "own_networks": false,
+      "password": true,
+      "paths": [
+        "/wp-admin/*",
+        "/wp-login.php"
+      ],
+      "scope": "paths",
+      "website": "musterverein.example"
+    },
+    "session": "none"
+  },
+  "expect": {
+    "valid": true,
+    "result": {
+      "answer": "login",
+      "canonical_path": "/wp-admin",
+      "login_form": true,
+      "reason": "locked",
+      "status": 403
+    }
+  }
+}

@@ -1,0 +1,25 @@
+{
+  "contract": "events",
+  "description": "Plugin update; never leaves the server.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"data\":{\"from_version\":\"2.4.0\",\"kind\":\"plugin\",\"name\":\"gallery\",\"to_version\":\"2.4.1\"},\"datacontenttype\":\"application/json\",\"id\":\"993afe77-ed4a-4ad0-87d8-7f003a0da397\",\"source\":\"schild://web-1\",\"specversion\":\"1.0\",\"time\":\"2026-10-26T11:59:58.123Z\",\"type\":\"schild.environment.changed.v1\"}",
+  "input_decoded": {
+    "data": {
+      "from_version": "2.4.0",
+      "kind": "plugin",
+      "name": "gallery",
+      "to_version": "2.4.1"
+    },
+    "datacontenttype": "application/json",
+    "id": "993afe77-ed4a-4ad0-87d8-7f003a0da397",
+    "source": "schild://web-1",
+    "specversion": "1.0",
+    "time": "2026-10-26T11:59:58.123Z",
+    "type": "schild.environment.changed.v1"
+  },
+  "expect": {
+    "valid": true
+  }
+}

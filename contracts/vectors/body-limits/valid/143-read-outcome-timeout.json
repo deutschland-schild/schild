@@ -1,0 +1,18 @@
+{
+  "contract": "body-limits",
+  "description": "D46: a stalled body is not blocked, in any mode. Takes back that part of D45.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"end\":\"timeout\",\"op\":\"read_outcome\"}",
+  "input_decoded": {
+    "end": "timeout",
+    "op": "read_outcome"
+  },
+  "expect": {
+    "valid": true,
+    "result": {
+      "outcome": "client_gone"
+    }
+  }
+}

@@ -1,0 +1,38 @@
+{
+  "contract": "withdrawal",
+  "description": "Same seq and digest again: idempotent.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z",
+    "trust": [
+      "site-a",
+      "site-b",
+      "site-c",
+      "lab-a",
+      "lab-a2",
+      "lab-b",
+      "lab-c",
+      "lab-d"
+    ],
+    "threshold": 2,
+    "channel": "schild-main",
+    "state": {
+      "withdrawal_seq": 4,
+      "withdrawal_digest": "sha256:3c50e8188961f3222ea7c4d8c31c79c0aec802826edbcf9319e34efe3b2c6a66"
+    }
+  },
+  "input_raw": "{\"payloadType\":\"application/vnd.schild.withdrawal.v0+json\",\"payload\":\"eyJidW5kbGVfaWQiOiJzY2hpbGQtbWFpbiIsImlzc3VlZF9hdCI6IjIwMjYtMTAtMjZUMTE6NTk6MDBaIiwicmVhc29uIjoiZW1lcmdlbmN5X3N0b3AiLCJzY2hlbWEiOiJzY2hpbGQud2l0aGRyYXdhbC8wLjEiLCJzY29wZSI6ImFsbCIsInNlcSI6NCwidXBfdG9fdmVyc2lvbiI6NDJ9\",\"signatures\":[{\"keyid\":\"test-lab-a\",\"sig\":\"ZVVQsifs6E8skkQI6d2mz+gwpIPKNmHbkg7OuFRC0lUFGzBMrg+w4erRYnBTqPFuf4wmU2My3vt/Gczer6iZBw==\"},{\"keyid\":\"test-lab-b\",\"sig\":\"eJ26YYOpwcOU5HC8RRCaimgc5NTJhGel0LE/529fnsU4Wxwv/nzcJCnJ6a4EaUH25TPMIGOO2nSNlCMYVjHoDw==\"}]}",
+  "input_decoded": {
+    "payload": {
+      "bundle_id": "schild-main",
+      "issued_at": "2026-10-26T11:59:00Z",
+      "reason": "emergency_stop",
+      "schema": "schild.withdrawal/0.1",
+      "scope": "all",
+      "seq": 4,
+      "up_to_version": 42
+    }
+  },
+  "expect": {
+    "valid": true
+  }
+}

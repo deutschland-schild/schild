@@ -1,0 +1,117 @@
+{
+  "generated_at": "2026-10-26T12:00:00Z",
+  "profile": "test",
+  "baseline": {
+    "state": "active",
+    "reasons": []
+  },
+  "counters_24h": {
+    "requests": 48213,
+    "evaluated": 48213,
+    "blocked": 0,
+    "would_block": 131,
+    "incidents": 0,
+    "p95_overhead_ms": 1.8
+  },
+  "rules": {
+    "crs_version": "4.8.0"
+  },
+  "geo_db": {
+    "source": "dbip-country-asn-lite-2026-10",
+    "built_at": "2026-10-01T00:00:00Z"
+  },
+  "version": "schild 0.1.0-alpha",
+  "series_24h": {
+    "requests": [
+      1890,
+      1702,
+      1655,
+      1544,
+      1490,
+      1512,
+      1630,
+      1820,
+      2050,
+      2240,
+      2310,
+      2295,
+      2280,
+      2260,
+      2190,
+      2150,
+      2120,
+      2100,
+      2080,
+      2010,
+      1990,
+      1950,
+      1890,
+      3055
+    ],
+    "blocked": [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+    ],
+    "would_block": [
+      4,
+      3,
+      5,
+      2,
+      6,
+      4,
+      7,
+      5,
+      6,
+      8,
+      9,
+      5,
+      4,
+      6,
+      7,
+      5,
+      6,
+      8,
+      5,
+      4,
+      5,
+      6,
+      4,
+      7
+    ]
+  },
+  "servers": {
+    "hosts": 4,
+    "findings": {
+      "critical": 0,
+      "high": 5,
+      "medium": 5,
+      "low": 3,
+      "info": 1
+    },
+    "silent": 1,
+    "unreadable": 2,
+    "pending_agents": 1
+  }
+}

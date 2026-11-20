@@ -1,0 +1,15 @@
+# unprotected: []
+# expect: pass
+# Try to forge the passed marker with vars in a site without schild, then raise an error into a guarded handle_errors.
+http://:18080 {
+	import schild
+	reverse_proxy 127.0.0.1:18081
+	handle_errors {
+		import schild
+		reverse_proxy 127.0.0.1:18081
+	}
+}
+http://b.example.test:18080 {
+	vars schild.passed true
+	error "boom" 500
+}

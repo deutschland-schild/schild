@@ -1,0 +1,29 @@
+# schild.yaml for site "dvwa" in the test lab, profile t1. TEST ONLY: public
+# test keys (contracts/testkeys); release builds refuse them and the test profile.
+# Heavier site (compose profile full, pulls a third-party image).
+config_version: 0
+profile: production
+node_name: site-dvwa
+listen:
+  proxy: "0.0.0.0:8080"
+  dashboard: "0.0.0.0:8788"   # inside the container; published only via the gateway on 127.0.0.1
+  metrics: "0.0.0.0:9101"
+upstream:
+  url: "http://app-dvwa:80"
+  timeout_ms: 30000
+ingress:
+  # The label stripper in front of this site (10.66.17.8/32, fixed address) and the
+  # test-lab load generators (10.66.20.0/28 on inet, fixed addresses) act like a CDN:
+  # their X-Forwarded-For carries the simulated visitor address (documentation ranges).
+  trusted_proxies: ["10.66.17.8/32", "10.66.20.0/28"]
+  client_ip_headers: [X-Forwarded-For]
+rules:
+  crs: { state: block, paranoia_level: 1, inbound_anomaly_threshold: 5 }
+waf:
+  request_body_limit_bytes: 13107200
+  eval_timeout_ms: 1000
+geo: { db_path: /usr/share/schild/geo-fixture/geo.mmdb }   # schild geo-fixture (TEST ONLY)
+storage: { path: /var/lib/schild }
+retention:
+  raw_ip_days: 7
+  events_days: 14

@@ -1,0 +1,84 @@
+{
+  "contract": "rule-bundle",
+  "description": "Bundle of another channel.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z",
+    "trust": [
+      "site-a",
+      "site-b",
+      "site-c",
+      "lab-a",
+      "lab-a2",
+      "lab-b",
+      "lab-c",
+      "lab-d"
+    ],
+    "threshold": 2,
+    "channel": "schild-main"
+  },
+  "input_raw": "{\"payloadType\":\"application/vnd.schild.rule-bundle.v0+json\",\"payload\":\"eyJidW5kbGVfaWQiOiJzY2hpbGQtb3RoZXIiLCJleHBpcmVzIjoiMjAyNi0xMS0wOVQxMjowMDowMFoiLCJpc3N1ZWRfYXQiOiIyMDI2LTEwLTI2VDExOjAwOjAwWiIsInJ1bGVzIjpbeyJjbGFzcyI6InZpcnR1YWxfcGF0Y2giLCJldmlkZW5jZSI6eyJodW1hbl9hcHByb3ZhbF9vcmdzIjoyLCJtYXhfaXNzdWVyX3NoYXJlIjowLjI5LCJuZWdhdGl2ZV9jb3JwdXMiOiJjb3JwdXMtMjAyNi4xMCIsInJlcHJvZHVjZWRfYnkiOlsibGFiLWEiLCJsYWItYiJdLCJyZXByb2R1Y2VkX29wZXJhdG9ycyI6Miwic2Vuc29yX29wZXJhdG9ycyI6MSwidGlwX2lzc3VlcnMiOjd9LCJmZWVkYmFja19wb2xpY3kiOiJuYXJyb3dfb25seSIsIm1heF9hY3Rpb24iOiJibG9jayIsIm1heF9hY3Rpb25fdW50aWwiOiIyMDI2LTExLTA1VDEyOjAwOjAwWiIsIm1heF9tYXRjaF9zaGFyZSI6MC4wMSwicnVsZV9pZCI6InNjaGlsZC0yMDI2LTA0MTIiLCJzZWNsYW5nIjoiU2VjUnVsZSBBUkdTIFwiQGRldGVjdFNRTGlcIiBcImlkOjc3MDAwMDEscGhhc2U6MixkZW55LHN0YXR1czo0MDMsc2V2ZXJpdHk6Q1JJVElDQUwsbXNnOidTUUwgaW5qZWN0aW9uIGluIGFyZ3VtZW50cycsdGFnOidzY2hpbGQtcmVtb3RlJyx0Om5vbmUsdDp1cmxEZWNvZGVVbmlcIiIsInN0YWdlIjoiZ2VuZXJhbCIsInRhcmdldCI6eyJjdmUiOlsiQ1ZFLTIwMjYtMTIzNDUiXSwic29mdHdhcmUiOiJ3cC1wbHVnaW4vZ2FsbGVyeSIsInZlcnNpb25zIjoiPDIuNC4xIn19LHsiY2xhc3MiOiJiZWhhdmlvcmFsIiwiZXZpZGVuY2UiOnsiaHVtYW5fYXBwcm92YWxfb3JncyI6MCwibWF4X2lzc3Vlcl9zaGFyZSI6MC4yLCJyZXByb2R1Y2VkX29wZXJhdG9ycyI6MCwic2Vuc29yX29wZXJhdG9ycyI6MCwidGlwX2lzc3VlcnMiOjV9LCJmZWVkYmFja19wb2xpY3kiOiJhdXRvX2Rvd25ncmFkZSIsIm1heF9hY3Rpb24iOiJvYnNlcnZlIiwibWF4X21hdGNoX3NoYXJlIjowLjAwMSwicnVsZV9pZCI6InNjaGlsZC0yMDI2LTA0MTMiLCJzZWNsYW5nIjoiU2VjUnVsZSBSRVFVRVNUX0hFQURFUlM6VXNlci1BZ2VudCBcIkBwbSBzcWxtYXAgbmlrdG8gbnVjbGVpXCIgXCJpZDo3NzAwMDAzLHBoYXNlOjEscGFzcyxsb2csc2V2ZXJpdHk6Tk9USUNFLG1zZzonc2Nhbm5lciB1c2VyIGFnZW50J1wiIiwic3RhZ2UiOiJzaGFkb3ciLCJ0YXJnZXQiOnsic29mdHdhcmUiOiJ3b3JkcHJlc3MiLCJ2ZXJzaW9ucyI6IioifX1dLCJzY2hlbWEiOiJzY2hpbGQucnVsZS1idW5kbGUvMC4xIiwidmVyc2lvbiI6NDJ9\",\"signatures\":[{\"keyid\":\"test-lab-a\",\"sig\":\"umCYGZNGYXOOOUPY6Dxi+Og8FrqTjU+WdwOLJIrXkb61FKAtVzbsC5XWt+kq0ZrsnvNUxwHuo+6Ss0GZ9xuQBQ==\"},{\"keyid\":\"test-lab-b\",\"sig\":\"bUjMp2HdqGMDJyzuU8yydwvMRQc6uPjx1iR9tnIXiVteC6AYQg7Zkq5U0SEqXuPnStJko5GqySrod301WtyZBQ==\"}]}",
+  "input_decoded": {
+    "payload": {
+      "bundle_id": "schild-other",
+      "expires": "2026-11-09T12:00:00Z",
+      "issued_at": "2026-10-26T11:00:00Z",
+      "rules": [
+        {
+          "class": "virtual_patch",
+          "evidence": {
+            "human_approval_orgs": 2,
+            "max_issuer_share": 0.29,
+            "negative_corpus": "corpus-2026.10",
+            "reproduced_by": [
+              "lab-a",
+              "lab-b"
+            ],
+            "reproduced_operators": 2,
+            "sensor_operators": 1,
+            "tip_issuers": 7
+          },
+          "feedback_policy": "narrow_only",
+          "max_action": "block",
+          "max_action_until": "2026-11-05T12:00:00Z",
+          "max_match_share": 0.01,
+          "rule_id": "schild-2026-0412",
+          "seclang": "SecRule ARGS \"@detectSQLi\" \"id:7700001,phase:2,deny,status:403,severity:CRITICAL,msg:'SQL injection in arguments',tag:'schild-remote',t:none,t:urlDecodeUni\"",
+          "stage": "general",
+          "target": {
+            "cve": [
+              "CVE-2026-12345"
+            ],
+            "software": "wp-plugin/gallery",
+            "versions": "<2.4.1"
+          }
+        },
+        {
+          "class": "behavioral",
+          "evidence": {
+            "human_approval_orgs": 0,
+            "max_issuer_share": 0.2,
+            "reproduced_operators": 0,
+            "sensor_operators": 0,
+            "tip_issuers": 5
+          },
+          "feedback_policy": "auto_downgrade",
+          "max_action": "observe",
+          "max_match_share": 0.001,
+          "rule_id": "schild-2026-0413",
+          "seclang": "SecRule REQUEST_HEADERS:User-Agent \"@pm sqlmap nikto nuclei\" \"id:7700003,phase:1,pass,log,severity:NOTICE,msg:'scanner user agent'\"",
+          "stage": "shadow",
+          "target": {
+            "software": "wordpress",
+            "versions": "*"
+          }
+        }
+      ],
+      "schema": "schild.rule-bundle/0.1",
+      "version": 42
+    }
+  },
+  "expect": {
+    "valid": false,
+    "error": "channel"
+  }
+}

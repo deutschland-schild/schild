@@ -1,0 +1,31 @@
+# TEST ONLY: D36 website-first dashboard measurement, 4 apps behind one schild (native macOS, monitoring off instance, evening measurement 2026-10-29 commit c54de1b, ports 23000-23999)
+{
+	admin off
+	http_port 23080
+	https_port 23083
+	auto_https off
+}
+
+(schild) {
+	schild
+}
+
+http://shop.test:23080, http://www.shop.test:23080 {
+	import schild
+	reverse_proxy 127.0.0.1:23099
+}
+
+http://blog.test:23080 {
+	import schild
+	reverse_proxy 127.0.0.1:23099
+}
+
+http://api.test:23080 {
+	import schild
+	reverse_proxy 127.0.0.1:23099
+}
+
+http://status.test:23080 {
+	import schild
+	reverse_proxy 127.0.0.1:23099
+}

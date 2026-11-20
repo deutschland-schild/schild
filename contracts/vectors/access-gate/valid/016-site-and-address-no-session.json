@@ -1,0 +1,33 @@
+{
+  "contract": "access-gate",
+  "description": "D58: password and address: the listed address without a session gets the login form.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"allowlisted\":false,\"client_ip\":\"203.0.113.7\",\"path\":\"/\",\"protection\":{\"addresses\":[\"203.0.113.7\"],\"own_networks\":false,\"password\":true,\"scope\":\"site\",\"website\":\"musterverein.example\"},\"session\":\"none\"}",
+  "input_decoded": {
+    "allowlisted": false,
+    "client_ip": "203.0.113.7",
+    "path": "/",
+    "protection": {
+      "addresses": [
+        "203.0.113.7"
+      ],
+      "own_networks": false,
+      "password": true,
+      "scope": "site",
+      "website": "musterverein.example"
+    },
+    "session": "none"
+  },
+  "expect": {
+    "valid": true,
+    "result": {
+      "answer": "maintenance",
+      "canonical_path": "/",
+      "login_form": true,
+      "reason": "locked",
+      "status": 503
+    }
+  }
+}

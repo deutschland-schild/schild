@@ -1,0 +1,104 @@
+id: MVP-30
+# Direction by the initiator 2026-11-03 (DECISIONS D62, ENTWURF): the dashboard gets one start page per instance with a
+# "Posteingang" of things to decide, a sidebar that shows instance > websites / servers as a tree, and no labs
+# features in v1. A clickable mock exists in the client dashboard (mock builds only, /#/draft/inbox,
+# lib/draft-nav.ts, lib/inbox-draft.ts, views/InboxDraftView.vue); this spec is what it takes to make it real.
+# The initiator chose "erst D62 und Contracts": the inbox needs its own API with actions before it is built.
+# Checked against the code of 2026-11-03:
+# - built and usable as sources: listFalsePositiveHints (per website, D36), getOverview (baseline reasons, mode,
+#   observe_until, rules.network_suspended, servers), listWebsites (status and reasons), listHosts (findings),
+#   updateRule (disable and enable a rule, D73), the D54 exception writer (agent API only, rule_exceptions_v1 in schild.db).
+# - not built: an exception write or list in the dashboard API (D54 "Open"), unknown hosts in the dashboard API
+#   (MVP-16 names them, only the local event schild.host.unknown.v1 exists), any stored state of the dashboard
+#   about what a person has already looked at.
+title: "Übersicht mit Posteingang: one start page per instance with the open decisions, a sidebar tree instance > websites / servers, dashboard writes for rule exceptions, no labs features in v1"
+ships: false                        # draft; nothing built beyond the mock
+status: ENTWURF
+image: schild                       # same binary, built-in dashboard
+hypotheses: [D1, D3]
+refs: [MVP-09, MVP-11, MVP-13, MVP-16, MVP-19, MVP-20, MVP-22, MVP-27, MVP-28, DECISIONS-D32, DECISIONS-D36, DECISIONS-D53, DECISIONS-D54, DECISIONS-D62]
+depends_on: [MVP-16, MVP-22]
+why: >-
+  The built-in dashboard spreads what needs a person over many pages: approvals under Einstellungen > Verbund, the
+  attention list under Einstellungen > Schutzstatus, false-positive hints under each website's Ausnahmen, findings under
+  Server-Check. The start page "Alle Websites" shows none of it. The initiator: "Eigentlich braucht es eine Art
+  Dashboard mit einfachem Posteingang mit ToDos/Entscheidungen". One list, most urgent first, one default action per
+  item, the rest one click deeper.
+
+terms:
+  instance: 'one gateway, or one HA group (MVP-27): the unit with one schild.yaml; rules, blocks, limits, own IPs and the inbox belong to it'
+  item: 'one thing a person should decide or look at; computed by the gateway from its own state, never typed in'
+
+information_architecture:           # the mock is the reference
+  - 'start page "Übersicht" (route /): status line (Grundschutz, mode, stopped today), "Zu entscheiden" (the inbox), "Was passiert ist" (waves and incidents across websites, no action), websites, servers'
+  - 'gone as pages of their own: "Alle Websites" (now the Übersicht), Einstellungen > Schutzstatus (status line on the Übersicht, details under Allgemein), the server Überblick (server cards on the Übersicht), Verbund > Freigaben and Signale (no labs in v1)'
+  - 'sidebar: Übersicht (badge: open items) · Websites (click on the name = Überblick of the website; the open website lists Zugriffe, Angriffe, Ausnahmen, Zugriffsschutz, KI-Crawler) · Server (click = the server; the open one lists Auslastung, Server-Check) · Schutz: Regeln (OWASP CRS, CrowdSec, Eigene Regeln as sub-pages with own paths), Verhalten & Limits, Eigene IPs · Einstellungen: Allgemein, Datenschutz'
+  - 'no instance select with one instance; the instance name is the first breadcrumb. A plain select box above the sidebar only in a dashboard with several instances (MVP-20)'
+  - 'many websites: up to 8 the sidebar lists all; from 9 only those with status attention or disrupted (at most 6, worst first) and the open one, then "Alle N Websites" (the list on the Übersicht, with search); ⌘K finds every website'
+  - 'no requests per second in the sidebar: status dot and open items only'
+  - 'badges: count in the sand tone (secondary), rounded-md, never blue'
+  - 'old paths redirect (/status, /websites, /server overview, /einstellungen/verbund/*, /regeln?quelle=)'
+
+inbox:
+  kinds:                            # v1; more kinds append
+    false_positive: 'from listFalsePositiveHints, per website, rule and page (and field); default action "Ausnahme anlegen" (narrow exception, D54 shape); second action "Kein Fehlalarm" (dismiss)'
+    unknown_host: 'a host seen in traffic that belongs to no website (schild.host.unknown.v1), per host; default action "Weiter abweisen" (dismiss); the YAML lines for sites[].domains.aliases to copy; assigning it in the dashboard is open (see open)'
+    observe_ending: 'mode observe ends within 3 days (gateway or a website in site_observe); action "So lassen" (dismiss), link to Allgemein'
+    rule_suspended: 'a rule a person suspended at least 7 days ago; actions "Wieder einschalten" (updateRule with disabled false) or "Ausgesetzt lassen" (dismiss)'
+    server_findings: 'server check findings of severity urgent or high on a server of the instance; one item per server; link to its Server-Check, no dismiss (it ends when the findings do)'
+    baseline: 'every baseline reason of getOverview that names something to do (today REASONS in lib/summary.ts); one item per reason code, link as today'
+  rules:
+    - 'computed by the gateway on request from its own state; an item exists while its condition holds; nothing is created by hand'
+    - 'item id: stable, derived from kind and subject (hint: site, rule, path, target; host; rule id; server id; reason code), so a dismissal keeps holding for the same subject'
+    - 'order: server_findings and baseline with severity danger first, then false_positive, rule_suspended, observe_ending, unknown_host; inside a kind the newest first'
+    - 'dismiss: stored in schild.db (row inbox_dismissed_v1: id, kind, at, user, reason); a dismissed item stays away while its subject stays the same; a false_positive comes back when its detections grow by 4x over the dismissed count; a dismissed unknown_host comes back after 30 days'
+    - 'no "später" and no snooze in v1 (the mock had it, the initiator found it too complicated)'
+    - 'every action is one call, in force before the answer, with undo where the write has one (exception remove, rule suspend); the dashboard shows a toast with "Rückgängig"'
+    - 'no item text from the gateway: kinds and fields only; the dashboard writes the German copy (one place, humanizer rules); attacker-controlled fields (path, host, target) stay marked untrusted and escaped'
+    - 'a website item belongs to its website; server_findings and baseline items belong to the instance and show under every website filter'
+  scale:
+    - 'GET /inbox pages with cursor, limit 1..50 (default 20); counts come with every page: total and per website, so the sidebar badges and the website list need no second call'
+    - 'filter ?site=; the dashboard shows the filter only from 9 items on'
+    - 'at 500 websites and 1000 open items: GET /inbox p95 under 50 ms on the first own server, computed from in-memory state and the hint cache, no event scan'
+
+dashboard_api:                      # proposal for the contracts agent; contracts version after v0.5
+  new:
+    - 'GET /inbox (listInbox): query site, cursor, limit; answer InboxPage {items[], next_cursor, counts {total, sites {<website id>: n}}}'
+    - 'InboxItem {id, kind, site?, since, severity (danger | warning | neutral), subject: one of FalsePositiveHint (existing schema), UnknownHostItem {host, requests_24h, first_seen, last_seen, suggest_site?, aliases_yaml}, ObserveEndingItem {site?, until, would_block}, RuleSuspendedItem {rule_id, source, suspended_at, would_block_since}, ServerFindingsItem {host_id, hostname, urgent, high}, BaselineItem {code}}'
+    - 'POST /inbox/{id}/dismiss (dismissInbox): body {reason: not_false_positive | keep_rejecting | keep_suspended | keep_mode}; 404 for an id that is not open; session and CSRF header, no password (D40, no extra password prompt)'
+    - 'GET /websites/{website}/exceptions (listExceptions), POST /websites/{website}/exceptions (createException: path, target, rules[], reason), DELETE /websites/{website}/exceptions/{id} (removeException): the D54 writer and its checks (no ARGS, no *, no website without hosts, unknown_rule, exception_cap 256), shared with the agent API; the event schild.rule.exception_set.v1 / exception_removed.v1 names the dashboard user instead of a token'
+  unchanged:
+    - 'listFalsePositiveHints, updateRule, getOverview, listWebsites, listHosts keep their shape; the inbox reuses them'
+    - 'review, signals and bundle operations are gone from the API (D72); the gateway has no network side'
+  events:
+    - 'schild.inbox.dismissed.v1 {id, kind, site?, reason, user} for the audit, local only'
+
+no_labs_in_v1:                      # D62
+  - 'dashboard: no Verbund, Freigaben, Signale, Labs, Relays, network rules or "Aus dem Netz" anywhere, also not in the mode texts'
+  - 'gateway: decided by D72: the network code is removed, not locked; the config keys of the network (network, labs, relays, signals, site_key, ...) are refused as unknown keys'
+  - 'modes: the three modes stay (D72): observe (Beobachten), review (Freigeben): new or changed CrowdSec Hub rules only detect until the operator switches to autoblock (Automatisch sperren)'
+
+must:
+  - 'every item names exactly one subject and its action changes only that subject (one website, one rule on one page and field, one host, one rule id)'
+  - 'an item whose condition holds is listed unless it was dismissed for that same subject; nothing is lost between pages of the cursor'
+  - 'counts and items agree (same snapshot per call)'
+  - 'an exception from the dashboard and one from the agent API are the same record, render the same rule and show in both lists'
+  - 'with one website and nothing open the Übersicht says "Nichts zu tun. Grundschutz aktiv." and nothing else in that section'
+  - 'German copy, du-form, calm, attempts worded as attempts ("Versuchter Dateizugriff"), labels name the mechanism'
+measure:                            # by an independent agent, not the builder
+  - 'testlab with 4 websites, a false-positive replay on one page, an unknown host and a suspended rule: each shows as one item, its action works in one click, and the item is gone after it'
+  - 'scale: gateway with 500 websites and 1000 items (synthetic state): GET /inbox p95 and the Übersicht render time; sidebar keeps Schutz and Einstellungen visible at 1280x800'
+  - 'usability (5 tasks, 3 people who did not build it): find what needs you, add the exception for a false positive, find one website among 50, find where a rule source is set, get back to the start page; each under 30 s'
+  - 'e2e (Playwright, mock mode) for sidebar, inbox paging and filter, exception create and undo, dismiss'
+kill_if: "proposal for the initiator: an inbox action changes something outside its one subject OR an open condition is missing from the inbox OR the Übersicht needs more than one call to show counts and the first page"
+done: "make contracts-test && make test && (cd ui && pnpm check)"
+open:
+  - 'unknown_host: assigning a host to a website from the dashboard would take back D32 for websites as D54 did for exceptions (alias stored in schild.db, rendered at start); it also needs a certificate for the new name wherever TLS ends. v1 proposal: dismiss and copy the YAML only'
+  - 'HA group (MVP-27): dismissals and dashboard exceptions need record classes in Valkey, else they hold on one node only (D54 names the same gap for exceptions)'
+  - 'central dashboard (MVP-20): one inbox over several instances, the same item on several instances grouped, and whether the central dashboard may act on items (today it may only block addresses)'
+  # closed by D72: no labs in v1 (code removed), the three modes stay (see no_labs_in_v1)
+out_of_scope:
+  - 'approvals of network recommendations and anything else of the labs (later, with the lab integration)'
+  - 'per-website approval of rules (needed only with network rules)'
+  - 'notifications by mail or push about new items'
+  - 'items typed in by a person (a to-do list)'

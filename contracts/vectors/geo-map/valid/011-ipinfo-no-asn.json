@@ -1,0 +1,23 @@
+{
+  "contract": "geo-map",
+  "description": "v0.5 MVP-22: IPinfo writes an empty asn for unannounced ranges: null.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"provider\":\"ipinfo\",\"record\":{\"as_name\":\"\",\"asn\":\"\",\"country_code\":\"US\"}}",
+  "input_decoded": {
+    "provider": "ipinfo",
+    "record": {
+      "as_name": "",
+      "asn": "",
+      "country_code": "US"
+    }
+  },
+  "expect": {
+    "valid": true,
+    "result": {
+      "asn": null,
+      "country": "US"
+    }
+  }
+}

@@ -1,0 +1,346 @@
+{
+  "results_version": 0,
+  "spec": "MVP-11",
+  "run_id": "MVP-11-slowloris-remeasure-t1-20261027",
+  "started_at": "2026-10-27T11:33:00Z",
+  "finished_at": "2026-10-27T12:39:00Z",
+  "seed": 42,
+  "profile": "t1",
+  "git_rev": "929c3ee",
+  "host": {
+    "os": "darwin",
+    "arch": "arm64",
+    "cpus": 12,
+    "mem_mb": 65536
+  },
+  "images": [
+    {
+      "name": "schild:mvp",
+      "digest": "sha256:40321b1942635a5d1bb43ce6e1aa71d9f9fb75bd424791e0530ffd968e670405"
+    },
+    {
+      "name": "schild-lab:mvp",
+      "digest": "sha256:2407dc6a5319e3004c46fe512ebc618c0d544263ba00b4c4f5b9b7d3f127edbb"
+    },
+    {
+      "name": "schild-relay:mvp",
+      "digest": "sha256:dec4e0ddb1718687005babbd1209e1602e6ade7592b85957844801a14126ae98"
+    },
+    {
+      "name": "schild-testlab:mvp",
+      "digest": "sha256:3aa8e585f01e48d89133f2d816cde36b768a6de132d1427976b5ba9d85da99f8"
+    },
+    {
+      "name": "schild-testlab-app-vm:mvp",
+      "digest": "sha256:ac11ea0ea2a7b9519597707e8100f20df70a365be1a78fb510caaa02d0bb4582"
+    },
+    {
+      "name": "schild-adversary:mvp",
+      "digest": "sha256:5f9891add9ce551d728f702e9e176fc57f6caed966868d1f3ebdbcc6b44d9c7a"
+    }
+  ],
+  "hypotheses": [
+    "D3"
+  ],
+  "metrics": [
+    {
+      "name": "baseline_healthz_fresh_ok",
+      "value": 20,
+      "unit": "count",
+      "samples": 20,
+      "labels": {
+        "attack": "none",
+        "of": "20"
+      }
+    },
+    {
+      "name": "baseline_site_failed",
+      "value": 0,
+      "unit": "count",
+      "samples": 1840,
+      "labels": {
+        "rps": "40"
+      }
+    },
+    {
+      "name": "baseline_site_p99",
+      "value": 6.19,
+      "unit": "ms"
+    },
+    {
+      "name": "baseline_api_mem_peak",
+      "value": 100873011,
+      "unit": "bytes",
+      "labels": {
+        "note": "MiB; docker stats RSS; 96.2_mib_process_rss"
+      }
+    },
+    {
+      "name": "slowloris_healthz_fresh_ok",
+      "value": 20,
+      "unit": "count",
+      "samples": 20,
+      "labels": {
+        "attack": "slowloris_70x8_560conn",
+        "of": "20",
+        "runs": "5",
+        "result": "20_20_each"
+      }
+    },
+    {
+      "name": "slowloris_agent_once_accepted",
+      "value": 1,
+      "unit": "bool",
+      "labels": {
+        "runs": "5",
+        "seconds": "1"
+      }
+    },
+    {
+      "name": "slowloris_site_failed",
+      "value": 0,
+      "unit": "count",
+      "labels": {
+        "runs": "5",
+        "rps": "40"
+      }
+    },
+    {
+      "name": "slowloris_site_p99_min",
+      "value": 5.89,
+      "unit": "ms",
+      "labels": {
+        "runs": "5"
+      }
+    },
+    {
+      "name": "slowloris_site_p99_max",
+      "value": 7.35,
+      "unit": "ms",
+      "labels": {
+        "runs": "5"
+      }
+    },
+    {
+      "name": "slowloris_api_restarts",
+      "value": 0,
+      "unit": "count",
+      "labels": {
+        "runs": "5"
+      }
+    },
+    {
+      "name": "slowloris_api_mem_peak",
+      "value": 152672666,
+      "unit": "bytes",
+      "labels": {
+        "note": "MiB; full-metric run; 145.6_mib_process_rss"
+      }
+    },
+    {
+      "name": "slowbodymin_healthz_fresh_ok",
+      "value": 20,
+      "unit": "count",
+      "samples": 24,
+      "labels": {
+        "attack": "slowbody_min_70x8",
+        "of": "24"
+      }
+    },
+    {
+      "name": "slowbodymin_agent_once_accepted",
+      "value": 1,
+      "unit": "bool"
+    },
+    {
+      "name": "slowbodymin_site_failed",
+      "value": 0,
+      "unit": "count",
+      "samples": 2639
+    },
+    {
+      "name": "slowbodymin_site_p99",
+      "value": 5.39,
+      "unit": "ms"
+    },
+    {
+      "name": "slowbodymin_api_mem_peak",
+      "value": 166513869,
+      "unit": "bytes",
+      "labels": {
+        "note": "MiB; highest observed; 158.8_mib_process_rss"
+      }
+    },
+    {
+      "name": "mixed_slow_churn_healthz_fresh_ok",
+      "value": 24,
+      "unit": "count",
+      "samples": 24,
+      "labels": {
+        "attack": "slowloris40x8_plus_churn30x16",
+        "of": "24"
+      }
+    },
+    {
+      "name": "mixed_slow_churn_site_failed",
+      "value": 0,
+      "unit": "count",
+      "samples": 2640
+    },
+    {
+      "name": "mixed_slow_churn_api_restarts",
+      "value": 0,
+      "unit": "count"
+    },
+    {
+      "name": "manyaddr_slowloris_healthz_fresh_ok",
+      "value": 24,
+      "unit": "count",
+      "samples": 24,
+      "labels": {
+        "attack": "slowloris_130addr_x5",
+        "of": "24",
+        "distinct_ips": "130"
+      }
+    },
+    {
+      "name": "manyaddr_slowloris_site_failed",
+      "value": 0,
+      "unit": "count",
+      "samples": 2640
+    },
+    {
+      "name": "manyaddr_keepyoung_healthz_fresh_ok",
+      "value": 24,
+      "unit": "count",
+      "samples": 24,
+      "labels": {
+        "attack": "keepyoung_130addr_x5",
+        "of": "24",
+        "distinct_ips": "130",
+        "note": "missed_saturation_window"
+      }
+    },
+    {
+      "name": "keepyoung_healthz_fresh_ok",
+      "value": 12,
+      "unit": "count",
+      "samples": 24,
+      "labels": {
+        "attack": "keepyoung_70x8_run1",
+        "of": "24",
+        "window": "first_12_refused"
+      }
+    },
+    {
+      "name": "keepyoung_healthz_fresh_ok",
+      "value": 19,
+      "unit": "count",
+      "samples": 60,
+      "labels": {
+        "attack": "keepyoung_70x8_run2",
+        "of": "60",
+        "window": "first_41_refused"
+      }
+    },
+    {
+      "name": "keepyoung_agent_once_accepted",
+      "value": 1,
+      "unit": "bool",
+      "labels": {
+        "note": "ran_after_lockout_window"
+      }
+    },
+    {
+      "name": "keepyoung_site_failed",
+      "value": 0,
+      "unit": "count",
+      "samples": 3840,
+      "labels": {
+        "note": "site_listener_8080_unaffected"
+      }
+    },
+    {
+      "name": "keepyoung_api_restarts",
+      "value": 0,
+      "unit": "count"
+    },
+    {
+      "name": "keepyoung_api_mem_peak",
+      "value": 138516890,
+      "unit": "bytes",
+      "labels": {
+        "note": "MiB; 132.1_mib_process_rss"
+      }
+    },
+    {
+      "name": "evictlegit_delayed_healthz_ok",
+      "value": 23,
+      "unit": "count",
+      "samples": 24,
+      "labels": {
+        "attack": "512slow_plus_churn",
+        "delay_ms": "300",
+        "of": "24"
+      }
+    },
+    {
+      "name": "evictlegit_agent_once_accepted",
+      "value": 1,
+      "unit": "bool"
+    },
+    {
+      "name": "smoke_agent_steps_pass",
+      "value": 24,
+      "unit": "count",
+      "labels": {
+        "runs": "2",
+        "fail": "0",
+        "pending": "0",
+        "skipped": "1"
+      }
+    }
+  ],
+  "kill_criteria": [
+    {
+      "expr": "distributed slow-header (slowloris 70x8=560 conn) locks out fresh-address healthz on the agent listener",
+      "hit": false,
+      "observed": "20/20 fresh healthz in every one of 5 documented runs (builder's 12/20 before the fix reproduced as improved); 24/24 in the full-metric run"
+    },
+    {
+      "expr": "enrolled agent delivery rejected or locked out during a distributed slow-header attack",
+      "hit": false,
+      "observed": "schild-testlab-agent once accepted on attempt 1 (<=1 s) in all slowloris/slowbody/mixed/many-addr runs"
+    },
+    {
+      "expr": "protected site request handling (40 rps via :8080) degraded or failing under any agent-listener attack (MVP-11 kill criterion d)",
+      "hit": false,
+      "observed": "0/>=1840 failed in every run; site p99 4.8-7.4 ms; site listener never touched by any shape"
+    },
+    {
+      "expr": "schild-api crashes or restarts under attack",
+      "hit": false,
+      "observed": "0 restarts in every run; memory peak 96-159 MiB (whole process incl. WAF/site proxy), bounded, no OOM"
+    },
+    {
+      "expr": "eviction closes a legitimate slow in-flight connection on a congested (300 ms-delayed) link",
+      "hit": false,
+      "observed": "23/24 delayed-link healthz succeeded while 512 slow conns + churn forced continuous eviction; slow-but-legit connection is not the eviction victim"
+    },
+    {
+      "expr": "a keep-young / active-keep-alive flood (connections completing cheap requests with a <500 ms gap, so never older than evictMinAge and never half-open) locks out fresh connections to the agent listener :8790",
+      "hit": true,
+      "observed": "NEW FINDING: 70x8 keep-young refused 100% of fresh connections for ~12 s (run1, 12/24) and ~41 s (run2, 19/60) before recovering; eviction by design skips young/busy connections so finds no victim. Agent channel only; site, agent-delivery-with-retry and stability unaffected. Outside the fix's stated half-open-slowloris scope."
+    }
+  ],
+  "verdict": "pass",
+  "notes": "Unabhaengige Nachmessung des Listener-Fixes aus 946996f (mvp/client/internal/hosts/listener.go) durch einen anderen Agenten als den Erbauer. Kein Produktcode (client/contract/contracts/ui) geaendert; nur Messskripte unter adversaries/mvp11 (newshapes um keep-young/slowbody-min erweitert, Harness, Validator). Produktimages aus sauberem HEAD 929c3ee. Testfixture .env (gitignored, in frischem Worktree fehlend) aus der Hauptarbeitskopie nachgelegt, sonst scheitert TestAgentOverlayWiring / app-vm-Image. ARM64, BUILDX_BUILDER=desktop-linux. Urteil: Der Fix haelt fuer verteiltes Slowloris (sein Zweck) - 5/5 Laeufe 20/20 statt der 12/20 davor, Agent liefert, Seite 0 Fehler, keine Restarts, Speicher beschraenkt. NEUER BEFUND (kein Regress, kein gerissenes eingefrorenes Kill-Kriterium a-e): Ein keep-young-Angriff (vollstaendige, billige keep-alive-Requests mit <500 ms Luecke) haelt Slots, die die Eviction absichtlich nie schliesst (busy oder juenger als evictMinAge), und sperrt fremde Verbindungen zum Agent-Listener :8790 fuer ~12-41 s komplett aus. Der Kommentar im Listener verallgemeinert auf 'distributed slowloris kann Agenten nicht aussperren' - das gilt nur fuer half-open-Verbindungen; keep-young faellt unter das dokumentierte 'ein Request mit vollstaendigen Headern wird nie evakuiert' und ist damit dokumentiertes Verhalten, aber ein real erreichbares Rest-DoS auf den Agent-Kanal. Mensch entscheidet, ob das Rest-DoS adressiert werden muss (z. B. Reserve-Slots fuer eingeschriebene Agenten, oder Eviction auch von busy-Slots jenseits eines Alters). IPv6 nicht gemessen: schild-api haengt in t1 nur an sites+federation, beide ohne IPv6; ein Test erforderte das Umverdrahten des Gateways (Veraenderung der Messumgebung).",
+  "artifacts": [
+    "results/MVP-11-slowloris-remeasure.md",
+    "adversaries/mvp11/remeasure-run.sh",
+    "adversaries/mvp11/evict-legit.sh",
+    "adversaries/mvp11/run-doc5.sh",
+    "adversaries/mvp11/run-variations.sh",
+    "adversaries/mvp11/newshapes/main.go"
+  ]
+}

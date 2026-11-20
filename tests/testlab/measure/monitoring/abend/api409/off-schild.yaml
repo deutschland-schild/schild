@@ -1,0 +1,27 @@
+# TEST ONLY: abend api409 measurement, monitoring off (request ring: not configurable, MVP-22 absent -> always off)
+config_version: 0
+profile: production
+mode: autoblock
+node_name: web-1
+network:
+  enabled: false
+ingress:
+  caddyfile: /tmp/abend/dd/off/Caddyfile
+  storage: /tmp/abend/dd/off/caddy
+  trusted_proxies: ["127.0.0.1/32"]
+  client_ip_headers: ["X-Forwarded-For"]
+listen:
+  dashboard: "127.0.0.1:22689"
+  metrics: "127.0.0.1:22621"
+geo:
+  db_path: /tmp/abend/dd/off/geo.mmdb
+storage:
+  path: /tmp/abend/dd/off/data
+monitoring:
+  enabled: false
+behaviour:
+  presets: [generic]
+  preset_limits: observe
+  scenarios:
+    path_probing: { mode: block }
+    waf_repeat: { mode: block }

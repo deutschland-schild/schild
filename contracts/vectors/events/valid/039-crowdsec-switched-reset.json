@@ -1,0 +1,29 @@
+{
+  "contract": "events",
+  "description": "D39 amendment: reset_state: schild.yaml counts again.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"data\":{\"actor\":\"agent\",\"from\":\"off\",\"repository\":\"crowdsec\",\"reset\":true,\"state_source\":\"config\",\"to\":\"detect\",\"token_id\":\"tok_000000000001\",\"token_label\":\"Local agent\"},\"datacontenttype\":\"application/json\",\"id\":\"274c1369-adad-4e9d-b71f-119cb2736a77\",\"source\":\"schild://web-1\",\"specversion\":\"1.0\",\"time\":\"2026-10-26T11:59:58.123Z\",\"type\":\"schild.rule.repository_switched.v1\"}",
+  "input_decoded": {
+    "data": {
+      "actor": "agent",
+      "from": "off",
+      "repository": "crowdsec",
+      "reset": true,
+      "state_source": "config",
+      "to": "detect",
+      "token_id": "tok_000000000001",
+      "token_label": "Local agent"
+    },
+    "datacontenttype": "application/json",
+    "id": "274c1369-adad-4e9d-b71f-119cb2736a77",
+    "source": "schild://web-1",
+    "specversion": "1.0",
+    "time": "2026-10-26T11:59:58.123Z",
+    "type": "schild.rule.repository_switched.v1"
+  },
+  "expect": {
+    "valid": true
+  }
+}

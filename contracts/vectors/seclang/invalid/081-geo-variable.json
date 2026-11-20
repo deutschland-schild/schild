@@ -1,0 +1,13 @@
+{
+  "contract": "seclang",
+  "description": "SecLang subset case geo-variable (max_action block).",
+  "context": {
+    "now": "2026-10-26T12:00:00Z",
+    "max_action": "block"
+  },
+  "input_raw": "SecRule GEO:COUNTRY_CODE \"@streq NL\" \"id:7700144,phase:1,deny,severity:CRITICAL,msg:'x'\"",
+  "expect": {
+    "valid": false,
+    "error": "seclang"
+  }
+}

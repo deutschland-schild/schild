@@ -1,0 +1,14 @@
+# unprotected: []
+# expect: pass
+# N01 after the validator's advice: schild inside handle_errors; second site raises 500 without schild.
+http://:18080 {
+	import schild
+	reverse_proxy 127.0.0.1:18081
+	handle_errors {
+		import schild
+		reverse_proxy 127.0.0.1:18081
+	}
+}
+http://b.example.test:18080 {
+	error "boom" 500
+}

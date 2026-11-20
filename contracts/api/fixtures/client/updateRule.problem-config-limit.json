@@ -1,0 +1,7 @@
+{
+  "type": "about:blank",
+  "title": "Conflict",
+  "status": 409,
+  "code": "config_limit",
+  "detail": "Diese Regel ist in schild.yaml ausgeschaltet und lässt sich nur dort wieder einschalten."
+}

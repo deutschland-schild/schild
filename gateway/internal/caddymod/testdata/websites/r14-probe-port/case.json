@@ -1,0 +1,22 @@
+{
+ "resolve": [
+  "app.example.org",
+  "other.example"
+ ],
+ "blocks": [
+  {
+   "Addresses": [
+    ":19198"
+   ],
+   "Schild": false,
+   "Proxies": false
+  },
+  {
+   "Addresses": [
+    "app.example.org"
+   ],
+   "Schild": true,
+   "Proxies": true
+  }
+ ]
+}

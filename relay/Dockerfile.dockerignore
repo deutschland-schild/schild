@@ -1,0 +1,8 @@
+# Build context is the repository root; the relay image needs contract/ and relay/ only.
+*
+!contract/
+!relay/
+**/node_modules
+**/*_test.go
+contract/vectors/
+**/*.key

@@ -1,0 +1,26 @@
+{
+  "contract": "storage-bounds",
+  "description": "D38: a 10 GB cap on a 20 GiB disk with 9 GiB free: growing to the caps would leave less than the 1 GiB reserve: hint storage_budget.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"fs_avail_bytes\":9663676416,\"fs_total_bytes\":21474836480,\"max_size_mb\":10000,\"metrics_bound_bytes\":82837504,\"op\":\"disk_budget\",\"requests_max_size_mb\":512,\"schild_used_bytes\":1073741824}",
+  "input_decoded": {
+    "fs_avail_bytes": 9663676416,
+    "fs_total_bytes": 21474836480,
+    "max_size_mb": 10000,
+    "metrics_bound_bytes": 82837504,
+    "op": "disk_budget",
+    "requests_max_size_mb": 512,
+    "schild_used_bytes": 1073741824
+  },
+  "expect": {
+    "valid": true,
+    "result": {
+      "budget_bytes": 12288262144,
+      "need_bytes": 11214520320,
+      "reserve_bytes": 1073741824,
+      "verdict": "hint"
+    }
+  }
+}

@@ -1,0 +1,86 @@
+{
+  "contract": "website-derive",
+  "description": "D36: a block listed in ingress.unprotected_sites is an unprotected website (listed, never tracked: schild sees none of its requests); a static block without schild is no website.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"blocks\":[{\"addresses\":[\"example.org\"],\"proxies\":true,\"schild\":true},{\"addresses\":[\"legacy.example.org\"],\"proxies\":true,\"schild\":false},{\"addresses\":[\"static.example.org\"],\"proxies\":false,\"schild\":false},{\"addresses\":[\"verein.example\"],\"proxies\":true,\"schild\":true}],\"mode\":\"ingress\",\"resolve\":[\"legacy.example.org\",\"static.example.org\"],\"unprotected_sites\":[\"legacy.example.org\"]}",
+  "input_decoded": {
+    "blocks": [
+      {
+        "addresses": [
+          "example.org"
+        ],
+        "proxies": true,
+        "schild": true
+      },
+      {
+        "addresses": [
+          "legacy.example.org"
+        ],
+        "proxies": true,
+        "schild": false
+      },
+      {
+        "addresses": [
+          "static.example.org"
+        ],
+        "proxies": false,
+        "schild": false
+      },
+      {
+        "addresses": [
+          "verein.example"
+        ],
+        "proxies": true,
+        "schild": true
+      }
+    ],
+    "mode": "ingress",
+    "resolve": [
+      "legacy.example.org",
+      "static.example.org"
+    ],
+    "unprotected_sites": [
+      "legacy.example.org"
+    ]
+  },
+  "expect": {
+    "valid": true,
+    "result": {
+      "resolved": [
+        "legacy.example.org",
+        null
+      ],
+      "websites": [
+        {
+          "hosts": [
+            "example.org"
+          ],
+          "id": "example.org",
+          "label": "example.org",
+          "protection": "protected",
+          "tracked": true
+        },
+        {
+          "hosts": [
+            "legacy.example.org"
+          ],
+          "id": "legacy.example.org",
+          "label": "legacy.example.org",
+          "protection": "unprotected",
+          "tracked": false
+        },
+        {
+          "hosts": [
+            "verein.example"
+          ],
+          "id": "verein.example",
+          "label": "verein.example",
+          "protection": "protected",
+          "tracked": true
+        }
+      ]
+    }
+  }
+}

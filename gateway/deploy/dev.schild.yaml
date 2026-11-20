@@ -1,0 +1,19 @@
+# Local development config for `make gateway-run` (TEST ONLY: test profile,
+# nothing is blocked). schild protects with CRS, CrowdSec Hub and local rules.
+config_version: 0
+profile: test
+node_name: dev
+listen:
+  proxy: "127.0.0.1:8080"
+  dashboard: "127.0.0.1:8788"
+  metrics: "127.0.0.1:9101"
+upstream:
+  url: "http://127.0.0.1:8081"
+geo:
+  db_path: /tmp/schild-dev/geo/geo.mmdb
+storage:
+  path: /tmp/schild-dev/data
+rules:
+  local: { dir: /tmp/schild-dev/rules.d }   # make gateway-run copies deploy/rules.d here
+allowlist:
+  - { ip: 192.0.2.10, label: "Dev admin", level: no_block, expires: never }

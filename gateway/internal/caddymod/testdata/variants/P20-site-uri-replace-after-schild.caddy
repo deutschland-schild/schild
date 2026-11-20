@@ -1,0 +1,12 @@
+# unprotected: []
+# expect: refuse
+# Hide with rewrite before schild, restore with a different directive (uri) after it - no nested route needed.
+http://a.example.test:18080 {
+	route {
+		vars saved {query}
+		rewrite * /hidden?
+		schild
+		uri replace /hidden /hidden?{vars.saved}
+		reverse_proxy 127.0.0.1:18082
+	}
+}

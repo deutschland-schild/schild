@@ -1,0 +1,64 @@
+{
+  "contract": "rule-bundle",
+  "description": "Only virtual patches can reach block.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z",
+    "trust": [
+      "site-a",
+      "site-b",
+      "site-c",
+      "lab-a",
+      "lab-a2",
+      "lab-b",
+      "lab-c",
+      "lab-d"
+    ],
+    "threshold": 2,
+    "channel": "schild-main"
+  },
+  "input_raw": "{\"payloadType\":\"application/vnd.schild.rule-bundle.v0+json\",\"payload\":\"eyJidW5kbGVfaWQiOiJzY2hpbGQtbWFpbiIsImV4cGlyZXMiOiIyMDI2LTExLTA5VDEyOjAwOjAwWiIsImlzc3VlZF9hdCI6IjIwMjYtMTAtMjZUMTE6MDA6MDBaIiwicnVsZXMiOlt7ImNsYXNzIjoiaGV1cmlzdGljIiwiZXZpZGVuY2UiOnsiaHVtYW5fYXBwcm92YWxfb3JncyI6MiwibWF4X2lzc3Vlcl9zaGFyZSI6MC4yOSwibmVnYXRpdmVfY29ycHVzIjoiY29ycHVzLTIwMjYuMTAiLCJyZXByb2R1Y2VkX2J5IjpbImxhYi1hIiwibGFiLWIiXSwicmVwcm9kdWNlZF9vcGVyYXRvcnMiOjIsInNlbnNvcl9vcGVyYXRvcnMiOjEsInRpcF9pc3N1ZXJzIjo3fSwiZmVlZGJhY2tfcG9saWN5IjoiYXV0b19kb3duZ3JhZGUiLCJtYXhfYWN0aW9uIjoiYmxvY2siLCJtYXhfYWN0aW9uX3VudGlsIjoiMjAyNi0xMS0wNVQxMjowMDowMFoiLCJtYXhfbWF0Y2hfc2hhcmUiOjAuMDEsInJ1bGVfaWQiOiJzY2hpbGQtMjAyNi0wNDI0Iiwic2VjbGFuZyI6IlNlY1J1bGUgQVJHUyBcIkBkZXRlY3RTUUxpXCIgXCJpZDo3NzAwMDAxLHBoYXNlOjIsZGVueSxzdGF0dXM6NDAzLHNldmVyaXR5OkNSSVRJQ0FMLG1zZzonU1FMIGluamVjdGlvbiBpbiBhcmd1bWVudHMnLHRhZzonc2NoaWxkLXJlbW90ZScsdDpub25lLHQ6dXJsRGVjb2RlVW5pXCIiLCJzdGFnZSI6ImdlbmVyYWwiLCJ0YXJnZXQiOnsiY3ZlIjpbIkNWRS0yMDI2LTEyMzQ1Il0sInNvZnR3YXJlIjoid3AtcGx1Z2luL2dhbGxlcnkiLCJ2ZXJzaW9ucyI6IjwyLjQuMSJ9fV0sInNjaGVtYSI6InNjaGlsZC5ydWxlLWJ1bmRsZS8wLjEiLCJ2ZXJzaW9uIjo0Mn0=\",\"signatures\":[{\"keyid\":\"test-lab-a\",\"sig\":\"iN3kBJKm+3BBJ3EHiT8UMVVDzq7tyysg+ApwQB04qrMiDRRF0yi1gaP59wu7pNBybuCYIs8UABrKli0X3iRaCg==\"},{\"keyid\":\"test-lab-b\",\"sig\":\"510tCkg8PZREgo0xGLLrQoKniDGNqCFuxFJavlVnB2nYeZZcmD/xqbf2OE7wlPeHvFDwqUx+L06hf3bNWIGACg==\"}]}",
+  "input_decoded": {
+    "payload": {
+      "bundle_id": "schild-main",
+      "expires": "2026-11-09T12:00:00Z",
+      "issued_at": "2026-10-26T11:00:00Z",
+      "rules": [
+        {
+          "class": "heuristic",
+          "evidence": {
+            "human_approval_orgs": 2,
+            "max_issuer_share": 0.29,
+            "negative_corpus": "corpus-2026.10",
+            "reproduced_by": [
+              "lab-a",
+              "lab-b"
+            ],
+            "reproduced_operators": 2,
+            "sensor_operators": 1,
+            "tip_issuers": 7
+          },
+          "feedback_policy": "auto_downgrade",
+          "max_action": "block",
+          "max_action_until": "2026-11-05T12:00:00Z",
+          "max_match_share": 0.01,
+          "rule_id": "schild-2026-0424",
+          "seclang": "SecRule ARGS \"@detectSQLi\" \"id:7700001,phase:2,deny,status:403,severity:CRITICAL,msg:'SQL injection in arguments',tag:'schild-remote',t:none,t:urlDecodeUni\"",
+          "stage": "general",
+          "target": {
+            "cve": [
+              "CVE-2026-12345"
+            ],
+            "software": "wp-plugin/gallery",
+            "versions": "<2.4.1"
+          }
+        }
+      ],
+      "schema": "schild.rule-bundle/0.1",
+      "version": 42
+    }
+  },
+  "expect": {
+    "valid": false,
+    "error": "evidence"
+  }
+}

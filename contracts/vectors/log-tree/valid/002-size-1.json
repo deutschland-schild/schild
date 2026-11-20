@@ -1,0 +1,11 @@
+{
+  "contract": "log-tree",
+  "description": "RFC 6962 tree hash over 1 leaves matches the signed head.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"entries\":[{\"digest\":\"sha256:079d41d13a22c06edcc9a4ac274c3d6462645c4ab5e1e5eaef694fff3c49e2e5\",\"envelope_sha256\":null,\"index\":0,\"kind\":\"proposal\",\"ref\":\"prop-0001\",\"summary\":\"proposal prop-0001 approved: rule schild-2026-0001 virtual_patch, max challenge, approvals from 2 organisations\",\"time\":\"2026-10-26T11:59:00Z\"}],\"head\":{\"root\":\"sha256:81fd2f244c6f8a84285ef2de775e89c75b72dc2a2d4479db047fc05edf097136\",\"size\":1}}",
+  "expect": {
+    "valid": true
+  }
+}

@@ -1,0 +1,2172 @@
+{
+  "results_version": 0,
+  "spec": "MVP-11",
+  "run_id": "MVP-11-remeasure-t1-20261027",
+  "started_at": "2026-10-27T06:42:00Z",
+  "finished_at": "2026-10-27T08:18:55Z",
+  "seed": 42,
+  "profile": "t1",
+  "git_rev": "8111351",
+  "host": {
+    "os": "darwin",
+    "arch": "arm64",
+    "cpus": 12,
+    "mem_mb": 65536
+  },
+  "images": [
+    {
+      "name": "schild:mvp",
+      "digest": "sha256:0fbc833a92ae286c6ef168e0ce68c7508b96fc5392dd41b4330b0fe968e23e08"
+    },
+    {
+      "name": "schild-lab:mvp",
+      "digest": "sha256:2407dc6a5319e3004c46fe512ebc618c0d544263ba00b4c4f5b9b7d3f127edbb"
+    },
+    {
+      "name": "schild-relay:mvp",
+      "digest": "sha256:dec4e0ddb1718687005babbd1209e1602e6ade7592b85957844801a14126ae98"
+    },
+    {
+      "name": "schild-testlab:mvp",
+      "digest": "sha256:aabc5a3587a851af1f63902eaddc0dfb5c9b175b4f41348bcab53d648eb85eb5"
+    },
+    {
+      "name": "schild-testlab-app-vm:mvp",
+      "digest": "sha256:240b1444ec26a8807707def02322111a12fb5e82f6e83cb8fa0c7cbe6955fda5"
+    }
+  ],
+  "hypotheses": [
+    "D3"
+  ],
+  "metrics": [
+    {
+      "name": "contract_vectors_go_python_agree",
+      "value": 572,
+      "unit": "count"
+    },
+    {
+      "name": "agent_smoke_steps",
+      "value": 25,
+      "unit": "count",
+      "labels": {
+        "status": "pass",
+        "silent_step": "pass"
+      }
+    },
+    {
+      "name": "agent_smoke_steps",
+      "value": 0,
+      "unit": "count",
+      "labels": {
+        "status": "fail",
+        "silent_step": "pass"
+      }
+    },
+    {
+      "name": "agent_smoke_steps",
+      "value": 0,
+      "unit": "count",
+      "labels": {
+        "status": "pending",
+        "silent_step": "pass"
+      }
+    },
+    {
+      "name": "agent_smoke_steps",
+      "value": 0,
+      "unit": "count",
+      "labels": {
+        "status": "skipped",
+        "silent_step": "pass"
+      }
+    },
+    {
+      "name": "smoke_steps",
+      "value": 16,
+      "unit": "count",
+      "labels": {
+        "profile": "t1",
+        "status": "pass"
+      }
+    },
+    {
+      "name": "readonly_proof_changes_outside_report_dir",
+      "value": 0,
+      "unit": "count",
+      "labels": {
+        "probe": "testlab-readonly-proof REQUIRE=1 (15763 entries)",
+        "runs": "root,nobody"
+      }
+    },
+    {
+      "name": "readonly_proof_changes_outside_report_dir",
+      "value": 0,
+      "unit": "count",
+      "labels": {
+        "probe": "readonly-distros.sh Rocky 9 + Debian 12 JRE",
+        "runs": "root,nobody"
+      }
+    },
+    {
+      "name": "ro_rootfs_check_write_errors",
+      "value": 0,
+      "unit": "count",
+      "labels": {
+        "probe": "ro-rootfs-probe.sh docker --read-only",
+        "distro": "rocky9",
+        "runs": "root,nobody",
+        "exit": "0,0"
+      }
+    },
+    {
+      "name": "ro_rootfs_check_write_errors",
+      "value": 0,
+      "unit": "count",
+      "labels": {
+        "probe": "ro-rootfs-probe.sh docker --read-only",
+        "distro": "alma9",
+        "runs": "root,nobody",
+        "exit": "0,0"
+      }
+    },
+    {
+      "name": "ro_rootfs_check_write_errors",
+      "value": 0,
+      "unit": "count",
+      "labels": {
+        "probe": "ro-rootfs-probe.sh docker --read-only",
+        "distro": "debian12",
+        "runs": "root,nobody",
+        "exit": "0,0"
+      }
+    },
+    {
+      "name": "ro_rootfs_check_write_errors",
+      "value": 0,
+      "unit": "count",
+      "labels": {
+        "probe": "ro-rootfs-probe.sh docker --read-only",
+        "distro": "ubuntu24",
+        "runs": "root,nobody",
+        "exit": "0,0"
+      }
+    },
+    {
+      "name": "ro_rootfs_check_write_errors",
+      "value": 0,
+      "unit": "count",
+      "labels": {
+        "probe": "ro-rootfs-probe.sh docker --read-only",
+        "distro": "ubuntu22",
+        "runs": "root,nobody",
+        "exit": "0,0"
+      }
+    },
+    {
+      "name": "secret_canaries_in_reports",
+      "value": 0,
+      "unit": "count",
+      "labels": {
+        "probe": "canary/run.sh",
+        "controls": "6/6"
+      }
+    },
+    {
+      "name": "secret_canaries_in_reports",
+      "value": 0,
+      "unit": "count",
+      "labels": {
+        "probe": "own: argv, sshd_config comment, wp-config",
+        "controls": "3/3"
+      }
+    },
+    {
+      "name": "flood_site_failed_requests",
+      "value": 0,
+      "unit": "count",
+      "labels": {
+        "requests": "2000",
+        "run": "base-1",
+        "mode": "baseline",
+        "generators_x_conns": "none",
+        "limit": "512MiB"
+      }
+    },
+    {
+      "name": "flood_site_latency_p99",
+      "value": 6.04,
+      "unit": "ms",
+      "labels": {
+        "p50": "2.85",
+        "p95": "4.61",
+        "max": "10.4",
+        "run": "base-1",
+        "mode": "baseline",
+        "generators_x_conns": "none",
+        "limit": "512MiB"
+      }
+    },
+    {
+      "name": "flood_schild_api_memory_peak",
+      "value": 87241523,
+      "unit": "bytes",
+      "labels": {
+        "shown_mib": "83.2",
+        "run": "base-1",
+        "mode": "baseline",
+        "generators_x_conns": "none",
+        "limit": "512MiB"
+      }
+    },
+    {
+      "name": "flood_schild_api_restarts",
+      "value": 0,
+      "unit": "count",
+      "labels": {
+        "run": "base-1",
+        "mode": "baseline",
+        "generators_x_conns": "none",
+        "limit": "512MiB"
+      }
+    },
+    {
+      "name": "flood_site_failed_requests",
+      "value": 0,
+      "unit": "count",
+      "labels": {
+        "requests": "1998",
+        "run": "base-2",
+        "mode": "baseline",
+        "generators_x_conns": "none",
+        "limit": "512MiB"
+      }
+    },
+    {
+      "name": "flood_site_latency_p99",
+      "value": 5.57,
+      "unit": "ms",
+      "labels": {
+        "p50": "2.77",
+        "p95": "4.5",
+        "max": "10.9",
+        "run": "base-2",
+        "mode": "baseline",
+        "generators_x_conns": "none",
+        "limit": "512MiB"
+      }
+    },
+    {
+      "name": "flood_schild_api_memory_peak",
+      "value": 86192947,
+      "unit": "bytes",
+      "labels": {
+        "shown_mib": "82.2",
+        "run": "base-2",
+        "mode": "baseline",
+        "generators_x_conns": "none",
+        "limit": "512MiB"
+      }
+    },
+    {
+      "name": "flood_schild_api_restarts",
+      "value": 0,
+      "unit": "count",
+      "labels": {
+        "run": "base-2",
+        "mode": "baseline",
+        "generators_x_conns": "none",
+        "limit": "512MiB"
+      }
+    },
+    {
+      "name": "flood_site_failed_requests",
+      "value": 0,
+      "unit": "count",
+      "labels": {
+        "requests": "2000",
+        "run": "base-3",
+        "mode": "baseline",
+        "generators_x_conns": "none",
+        "limit": "512MiB"
+      }
+    },
+    {
+      "name": "flood_site_latency_p99",
+      "value": 5.55,
+      "unit": "ms",
+      "labels": {
+        "p50": "2.76",
+        "p95": "4.36",
+        "max": "12.4",
+        "run": "base-3",
+        "mode": "baseline",
+        "generators_x_conns": "none",
+        "limit": "512MiB"
+      }
+    },
+    {
+      "name": "flood_schild_api_memory_peak",
+      "value": 86402662,
+      "unit": "bytes",
+      "labels": {
+        "shown_mib": "82.4",
+        "run": "base-3",
+        "mode": "baseline",
+        "generators_x_conns": "none",
+        "limit": "512MiB"
+      }
+    },
+    {
+      "name": "flood_schild_api_restarts",
+      "value": 0,
+      "unit": "count",
+      "labels": {
+        "run": "base-3",
+        "mode": "baseline",
+        "generators_x_conns": "none",
+        "limit": "512MiB"
+      }
+    },
+    {
+      "name": "flood_site_failed_requests",
+      "value": 0,
+      "unit": "count",
+      "labels": {
+        "requests": "2000",
+        "run": "base-4",
+        "mode": "baseline",
+        "generators_x_conns": "none",
+        "limit": "512MiB"
+      }
+    },
+    {
+      "name": "flood_site_latency_p99",
+      "value": 5.78,
+      "unit": "ms",
+      "labels": {
+        "p50": "2.9",
+        "p95": "4.48",
+        "max": "18.7",
+        "run": "base-4",
+        "mode": "baseline",
+        "generators_x_conns": "none",
+        "limit": "512MiB"
+      }
+    },
+    {
+      "name": "flood_schild_api_memory_peak",
+      "value": 86822092,
+      "unit": "bytes",
+      "labels": {
+        "shown_mib": "82.8",
+        "run": "base-4",
+        "mode": "baseline",
+        "generators_x_conns": "none",
+        "limit": "512MiB"
+      }
+    },
+    {
+      "name": "flood_schild_api_restarts",
+      "value": 0,
+      "unit": "count",
+      "labels": {
+        "run": "base-4",
+        "mode": "baseline",
+        "generators_x_conns": "none",
+        "limit": "512MiB"
+      }
+    },
+    {
+      "name": "flood_site_failed_requests",
+      "value": 0,
+      "unit": "count",
+      "labels": {
+        "requests": "2000",
+        "run": "base-5",
+        "mode": "baseline",
+        "generators_x_conns": "none",
+        "limit": "512MiB"
+      }
+    },
+    {
+      "name": "flood_site_latency_p99",
+      "value": 5.74,
+      "unit": "ms",
+      "labels": {
+        "p50": "2.95",
+        "p95": "4.72",
+        "max": "10.6",
+        "run": "base-5",
+        "mode": "baseline",
+        "generators_x_conns": "none",
+        "limit": "512MiB"
+      }
+    },
+    {
+      "name": "flood_schild_api_memory_peak",
+      "value": 88080384,
+      "unit": "bytes",
+      "labels": {
+        "shown_mib": "84.0",
+        "run": "base-5",
+        "mode": "baseline",
+        "generators_x_conns": "none",
+        "limit": "512MiB"
+      }
+    },
+    {
+      "name": "flood_schild_api_restarts",
+      "value": 0,
+      "unit": "count",
+      "labels": {
+        "run": "base-5",
+        "mode": "baseline",
+        "generators_x_conns": "none",
+        "limit": "512MiB"
+      }
+    },
+    {
+      "name": "flood_site_failed_requests",
+      "value": 0,
+      "unit": "count",
+      "labels": {
+        "requests": "2000",
+        "run": "base-6",
+        "mode": "baseline",
+        "generators_x_conns": "none",
+        "limit": "512MiB"
+      }
+    },
+    {
+      "name": "flood_site_latency_p99",
+      "value": 6.05,
+      "unit": "ms",
+      "labels": {
+        "p50": "2.81",
+        "p95": "4.84",
+        "max": "12.6",
+        "run": "base-6",
+        "mode": "baseline",
+        "generators_x_conns": "none",
+        "limit": "512MiB"
+      }
+    },
+    {
+      "name": "flood_schild_api_memory_peak",
+      "value": 86822092,
+      "unit": "bytes",
+      "labels": {
+        "shown_mib": "82.8",
+        "run": "base-6",
+        "mode": "baseline",
+        "generators_x_conns": "none",
+        "limit": "512MiB"
+      }
+    },
+    {
+      "name": "flood_schild_api_restarts",
+      "value": 0,
+      "unit": "count",
+      "labels": {
+        "run": "base-6",
+        "mode": "baseline",
+        "generators_x_conns": "none",
+        "limit": "512MiB"
+      }
+    },
+    {
+      "name": "flood_site_failed_requests",
+      "value": 0,
+      "unit": "count",
+      "labels": {
+        "requests": "2000",
+        "run": "base-7",
+        "mode": "baseline",
+        "generators_x_conns": "none",
+        "limit": "512MiB"
+      }
+    },
+    {
+      "name": "flood_site_latency_p99",
+      "value": 6.14,
+      "unit": "ms",
+      "labels": {
+        "p50": "2.97",
+        "p95": "4.66",
+        "max": "11.1",
+        "run": "base-7",
+        "mode": "baseline",
+        "generators_x_conns": "none",
+        "limit": "512MiB"
+      }
+    },
+    {
+      "name": "flood_schild_api_memory_peak",
+      "value": 96468992,
+      "unit": "bytes",
+      "labels": {
+        "shown_mib": "92.0",
+        "run": "base-7",
+        "mode": "baseline",
+        "generators_x_conns": "none",
+        "limit": "512MiB"
+      }
+    },
+    {
+      "name": "flood_schild_api_restarts",
+      "value": 0,
+      "unit": "count",
+      "labels": {
+        "run": "base-7",
+        "mode": "baseline",
+        "generators_x_conns": "none",
+        "limit": "512MiB"
+      }
+    },
+    {
+      "name": "flood_site_failed_requests",
+      "value": 0,
+      "unit": "count",
+      "labels": {
+        "requests": "2000",
+        "run": "base-8",
+        "mode": "baseline",
+        "generators_x_conns": "none",
+        "limit": "512MiB"
+      }
+    },
+    {
+      "name": "flood_site_latency_p99",
+      "value": 6.53,
+      "unit": "ms",
+      "labels": {
+        "p50": "2.93",
+        "p95": "4.99",
+        "max": "12.1",
+        "run": "base-8",
+        "mode": "baseline",
+        "generators_x_conns": "none",
+        "limit": "512MiB"
+      }
+    },
+    {
+      "name": "flood_schild_api_memory_peak",
+      "value": 86717235,
+      "unit": "bytes",
+      "labels": {
+        "shown_mib": "82.7",
+        "run": "base-8",
+        "mode": "baseline",
+        "generators_x_conns": "none",
+        "limit": "512MiB"
+      }
+    },
+    {
+      "name": "flood_schild_api_restarts",
+      "value": 0,
+      "unit": "count",
+      "labels": {
+        "run": "base-8",
+        "mode": "baseline",
+        "generators_x_conns": "none",
+        "limit": "512MiB"
+      }
+    },
+    {
+      "name": "flood_site_failed_requests",
+      "value": 0,
+      "unit": "count",
+      "labels": {
+        "requests": "2000",
+        "run": "base-9",
+        "mode": "baseline",
+        "generators_x_conns": "none",
+        "limit": "512MiB"
+      }
+    },
+    {
+      "name": "flood_site_latency_p99",
+      "value": 5.42,
+      "unit": "ms",
+      "labels": {
+        "p50": "2.84",
+        "p95": "4.46",
+        "max": "11.8",
+        "run": "base-9",
+        "mode": "baseline",
+        "generators_x_conns": "none",
+        "limit": "512MiB"
+      }
+    },
+    {
+      "name": "flood_schild_api_memory_peak",
+      "value": 85773516,
+      "unit": "bytes",
+      "labels": {
+        "shown_mib": "81.8",
+        "run": "base-9",
+        "mode": "baseline",
+        "generators_x_conns": "none",
+        "limit": "512MiB"
+      }
+    },
+    {
+      "name": "flood_schild_api_restarts",
+      "value": 0,
+      "unit": "count",
+      "labels": {
+        "run": "base-9",
+        "mode": "baseline",
+        "generators_x_conns": "none",
+        "limit": "512MiB"
+      }
+    },
+    {
+      "name": "flood_site_failed_requests",
+      "value": 0,
+      "unit": "count",
+      "labels": {
+        "requests": "2000",
+        "run": "base-10",
+        "mode": "baseline",
+        "generators_x_conns": "none",
+        "limit": "512MiB"
+      }
+    },
+    {
+      "name": "flood_site_latency_p99",
+      "value": 5.36,
+      "unit": "ms",
+      "labels": {
+        "p50": "3.06",
+        "p95": "4.6",
+        "max": "12.1",
+        "run": "base-10",
+        "mode": "baseline",
+        "generators_x_conns": "none",
+        "limit": "512MiB"
+      }
+    },
+    {
+      "name": "flood_schild_api_memory_peak",
+      "value": 88290099,
+      "unit": "bytes",
+      "labels": {
+        "shown_mib": "84.2",
+        "run": "base-10",
+        "mode": "baseline",
+        "generators_x_conns": "none",
+        "limit": "512MiB"
+      }
+    },
+    {
+      "name": "flood_schild_api_restarts",
+      "value": 0,
+      "unit": "count",
+      "labels": {
+        "run": "base-10",
+        "mode": "baseline",
+        "generators_x_conns": "none",
+        "limit": "512MiB"
+      }
+    },
+    {
+      "name": "flood_site_failed_requests",
+      "value": 0,
+      "unit": "count",
+      "labels": {
+        "requests": "2000",
+        "run": "hold4-1",
+        "mode": "hold",
+        "generators_x_conns": "4x100",
+        "limit": "512MiB"
+      }
+    },
+    {
+      "name": "flood_site_latency_p99",
+      "value": 4.98,
+      "unit": "ms",
+      "labels": {
+        "p50": "0.84",
+        "p95": "3.63",
+        "max": "9.4",
+        "run": "hold4-1",
+        "mode": "hold",
+        "generators_x_conns": "4x100",
+        "limit": "512MiB"
+      }
+    },
+    {
+      "name": "flood_schild_api_memory_peak",
+      "value": 113036492,
+      "unit": "bytes",
+      "labels": {
+        "shown_mib": "107.8",
+        "run": "hold4-1",
+        "mode": "hold",
+        "generators_x_conns": "4x100",
+        "limit": "512MiB"
+      }
+    },
+    {
+      "name": "flood_schild_api_restarts",
+      "value": 0,
+      "unit": "count",
+      "labels": {
+        "run": "hold4-1",
+        "mode": "hold",
+        "generators_x_conns": "4x100",
+        "limit": "512MiB"
+      }
+    },
+    {
+      "name": "flood_site_failed_requests",
+      "value": 0,
+      "unit": "count",
+      "labels": {
+        "requests": "2000",
+        "run": "hold4-2",
+        "mode": "hold",
+        "generators_x_conns": "4x100",
+        "limit": "512MiB"
+      }
+    },
+    {
+      "name": "flood_site_latency_p99",
+      "value": 4.39,
+      "unit": "ms",
+      "labels": {
+        "p50": "0.9",
+        "p95": "3.07",
+        "max": "10.5",
+        "run": "hold4-2",
+        "mode": "hold",
+        "generators_x_conns": "4x100",
+        "limit": "512MiB"
+      }
+    },
+    {
+      "name": "flood_schild_api_memory_peak",
+      "value": 106849894,
+      "unit": "bytes",
+      "labels": {
+        "shown_mib": "101.9",
+        "run": "hold4-2",
+        "mode": "hold",
+        "generators_x_conns": "4x100",
+        "limit": "512MiB"
+      }
+    },
+    {
+      "name": "flood_schild_api_restarts",
+      "value": 0,
+      "unit": "count",
+      "labels": {
+        "run": "hold4-2",
+        "mode": "hold",
+        "generators_x_conns": "4x100",
+        "limit": "512MiB"
+      }
+    },
+    {
+      "name": "flood_site_failed_requests",
+      "value": 0,
+      "unit": "count",
+      "labels": {
+        "requests": "2000",
+        "run": "hold4-3",
+        "mode": "hold",
+        "generators_x_conns": "4x100",
+        "limit": "512MiB"
+      }
+    },
+    {
+      "name": "flood_site_latency_p99",
+      "value": 4.59,
+      "unit": "ms",
+      "labels": {
+        "p50": "0.88",
+        "p95": "3.11",
+        "max": "11.4",
+        "run": "hold4-3",
+        "mode": "hold",
+        "generators_x_conns": "4x100",
+        "limit": "512MiB"
+      }
+    },
+    {
+      "name": "flood_schild_api_memory_peak",
+      "value": 104228454,
+      "unit": "bytes",
+      "labels": {
+        "shown_mib": "99.4",
+        "run": "hold4-3",
+        "mode": "hold",
+        "generators_x_conns": "4x100",
+        "limit": "512MiB"
+      }
+    },
+    {
+      "name": "flood_schild_api_restarts",
+      "value": 0,
+      "unit": "count",
+      "labels": {
+        "run": "hold4-3",
+        "mode": "hold",
+        "generators_x_conns": "4x100",
+        "limit": "512MiB"
+      }
+    },
+    {
+      "name": "flood_site_failed_requests",
+      "value": 0,
+      "unit": "count",
+      "labels": {
+        "requests": "2000",
+        "run": "hold4-4",
+        "mode": "hold",
+        "generators_x_conns": "4x100",
+        "limit": "512MiB"
+      }
+    },
+    {
+      "name": "flood_site_latency_p99",
+      "value": 4.81,
+      "unit": "ms",
+      "labels": {
+        "p50": "0.95",
+        "p95": "3.68",
+        "max": "16.2",
+        "run": "hold4-4",
+        "mode": "hold",
+        "generators_x_conns": "4x100",
+        "limit": "512MiB"
+      }
+    },
+    {
+      "name": "flood_schild_api_memory_peak",
+      "value": 108108185,
+      "unit": "bytes",
+      "labels": {
+        "shown_mib": "103.1",
+        "run": "hold4-4",
+        "mode": "hold",
+        "generators_x_conns": "4x100",
+        "limit": "512MiB"
+      }
+    },
+    {
+      "name": "flood_schild_api_restarts",
+      "value": 0,
+      "unit": "count",
+      "labels": {
+        "run": "hold4-4",
+        "mode": "hold",
+        "generators_x_conns": "4x100",
+        "limit": "512MiB"
+      }
+    },
+    {
+      "name": "flood_site_failed_requests",
+      "value": 0,
+      "unit": "count",
+      "labels": {
+        "requests": "2000",
+        "run": "hold4-5",
+        "mode": "hold",
+        "generators_x_conns": "4x100",
+        "limit": "512MiB"
+      }
+    },
+    {
+      "name": "flood_site_latency_p99",
+      "value": 4.67,
+      "unit": "ms",
+      "labels": {
+        "p50": "0.85",
+        "p95": "3.68",
+        "max": "31.2",
+        "run": "hold4-5",
+        "mode": "hold",
+        "generators_x_conns": "4x100",
+        "limit": "512MiB"
+      }
+    },
+    {
+      "name": "flood_schild_api_memory_peak",
+      "value": 111253913,
+      "unit": "bytes",
+      "labels": {
+        "shown_mib": "106.1",
+        "run": "hold4-5",
+        "mode": "hold",
+        "generators_x_conns": "4x100",
+        "limit": "512MiB"
+      }
+    },
+    {
+      "name": "flood_schild_api_restarts",
+      "value": 0,
+      "unit": "count",
+      "labels": {
+        "run": "hold4-5",
+        "mode": "hold",
+        "generators_x_conns": "4x100",
+        "limit": "512MiB"
+      }
+    },
+    {
+      "name": "flood_site_failed_requests",
+      "value": 0,
+      "unit": "count",
+      "labels": {
+        "requests": "2000",
+        "run": "hold4-6",
+        "mode": "hold",
+        "generators_x_conns": "4x100",
+        "limit": "512MiB"
+      }
+    },
+    {
+      "name": "flood_site_latency_p99",
+      "value": 4.77,
+      "unit": "ms",
+      "labels": {
+        "p50": "0.89",
+        "p95": "3.74",
+        "max": "10.3",
+        "run": "hold4-6",
+        "mode": "hold",
+        "generators_x_conns": "4x100",
+        "limit": "512MiB"
+      }
+    },
+    {
+      "name": "flood_schild_api_memory_peak",
+      "value": 108317900,
+      "unit": "bytes",
+      "labels": {
+        "shown_mib": "103.3",
+        "run": "hold4-6",
+        "mode": "hold",
+        "generators_x_conns": "4x100",
+        "limit": "512MiB"
+      }
+    },
+    {
+      "name": "flood_schild_api_restarts",
+      "value": 0,
+      "unit": "count",
+      "labels": {
+        "run": "hold4-6",
+        "mode": "hold",
+        "generators_x_conns": "4x100",
+        "limit": "512MiB"
+      }
+    },
+    {
+      "name": "flood_site_failed_requests",
+      "value": 0,
+      "unit": "count",
+      "labels": {
+        "requests": "1996",
+        "run": "hold4-7",
+        "mode": "hold",
+        "generators_x_conns": "4x100",
+        "limit": "512MiB"
+      }
+    },
+    {
+      "name": "flood_site_latency_p99",
+      "value": 6.45,
+      "unit": "ms",
+      "labels": {
+        "p50": "1.06",
+        "p95": "4.2",
+        "max": "105.6",
+        "run": "hold4-7",
+        "mode": "hold",
+        "generators_x_conns": "4x100",
+        "limit": "512MiB"
+      }
+    },
+    {
+      "name": "flood_schild_api_memory_peak",
+      "value": 106430464,
+      "unit": "bytes",
+      "labels": {
+        "shown_mib": "101.5",
+        "run": "hold4-7",
+        "mode": "hold",
+        "generators_x_conns": "4x100",
+        "limit": "512MiB"
+      }
+    },
+    {
+      "name": "flood_schild_api_restarts",
+      "value": 0,
+      "unit": "count",
+      "labels": {
+        "run": "hold4-7",
+        "mode": "hold",
+        "generators_x_conns": "4x100",
+        "limit": "512MiB"
+      }
+    },
+    {
+      "name": "flood_site_failed_requests",
+      "value": 0,
+      "unit": "count",
+      "labels": {
+        "requests": "2000",
+        "run": "hold4-8",
+        "mode": "hold",
+        "generators_x_conns": "4x100",
+        "limit": "512MiB"
+      }
+    },
+    {
+      "name": "flood_site_latency_p99",
+      "value": 5.25,
+      "unit": "ms",
+      "labels": {
+        "p50": "0.97",
+        "p95": "3.69",
+        "max": "23.5",
+        "run": "hold4-8",
+        "mode": "hold",
+        "generators_x_conns": "4x100",
+        "limit": "512MiB"
+      }
+    },
+    {
+      "name": "flood_schild_api_memory_peak",
+      "value": 106115891,
+      "unit": "bytes",
+      "labels": {
+        "shown_mib": "101.2",
+        "run": "hold4-8",
+        "mode": "hold",
+        "generators_x_conns": "4x100",
+        "limit": "512MiB"
+      }
+    },
+    {
+      "name": "flood_schild_api_restarts",
+      "value": 0,
+      "unit": "count",
+      "labels": {
+        "run": "hold4-8",
+        "mode": "hold",
+        "generators_x_conns": "4x100",
+        "limit": "512MiB"
+      }
+    },
+    {
+      "name": "flood_site_failed_requests",
+      "value": 0,
+      "unit": "count",
+      "labels": {
+        "requests": "2000",
+        "run": "hold4-9",
+        "mode": "hold",
+        "generators_x_conns": "4x100",
+        "limit": "512MiB"
+      }
+    },
+    {
+      "name": "flood_site_latency_p99",
+      "value": 4.51,
+      "unit": "ms",
+      "labels": {
+        "p50": "0.9",
+        "p95": "3.19",
+        "max": "9.1",
+        "run": "hold4-9",
+        "mode": "hold",
+        "generators_x_conns": "4x100",
+        "limit": "512MiB"
+      }
+    },
+    {
+      "name": "flood_schild_api_memory_peak",
+      "value": 105381888,
+      "unit": "bytes",
+      "labels": {
+        "shown_mib": "100.5",
+        "run": "hold4-9",
+        "mode": "hold",
+        "generators_x_conns": "4x100",
+        "limit": "512MiB"
+      }
+    },
+    {
+      "name": "flood_schild_api_restarts",
+      "value": 0,
+      "unit": "count",
+      "labels": {
+        "run": "hold4-9",
+        "mode": "hold",
+        "generators_x_conns": "4x100",
+        "limit": "512MiB"
+      }
+    },
+    {
+      "name": "flood_site_failed_requests",
+      "value": 0,
+      "unit": "count",
+      "labels": {
+        "requests": "2000",
+        "run": "hold4-10",
+        "mode": "hold",
+        "generators_x_conns": "4x100",
+        "limit": "512MiB"
+      }
+    },
+    {
+      "name": "flood_site_latency_p99",
+      "value": 4.85,
+      "unit": "ms",
+      "labels": {
+        "p50": "0.9",
+        "p95": "3.3",
+        "max": "19.8",
+        "run": "hold4-10",
+        "mode": "hold",
+        "generators_x_conns": "4x100",
+        "limit": "512MiB"
+      }
+    },
+    {
+      "name": "flood_schild_api_memory_peak",
+      "value": 108003328,
+      "unit": "bytes",
+      "labels": {
+        "shown_mib": "103.0",
+        "run": "hold4-10",
+        "mode": "hold",
+        "generators_x_conns": "4x100",
+        "limit": "512MiB"
+      }
+    },
+    {
+      "name": "flood_schild_api_restarts",
+      "value": 0,
+      "unit": "count",
+      "labels": {
+        "run": "hold4-10",
+        "mode": "hold",
+        "generators_x_conns": "4x100",
+        "limit": "512MiB"
+      }
+    },
+    {
+      "name": "flood_site_failed_requests",
+      "value": 0,
+      "unit": "count",
+      "labels": {
+        "requests": "2000",
+        "run": "hold6-1",
+        "mode": "hold",
+        "generators_x_conns": "6x100",
+        "limit": "512MiB"
+      }
+    },
+    {
+      "name": "flood_site_latency_p99",
+      "value": 5.49,
+      "unit": "ms",
+      "labels": {
+        "p50": "0.95",
+        "p95": "3.61",
+        "max": "16.9",
+        "run": "hold6-1",
+        "mode": "hold",
+        "generators_x_conns": "6x100",
+        "limit": "512MiB"
+      }
+    },
+    {
+      "name": "flood_schild_api_memory_peak",
+      "value": 107059609,
+      "unit": "bytes",
+      "labels": {
+        "shown_mib": "102.1",
+        "run": "hold6-1",
+        "mode": "hold",
+        "generators_x_conns": "6x100",
+        "limit": "512MiB"
+      }
+    },
+    {
+      "name": "flood_schild_api_restarts",
+      "value": 0,
+      "unit": "count",
+      "labels": {
+        "run": "hold6-1",
+        "mode": "hold",
+        "generators_x_conns": "6x100",
+        "limit": "512MiB"
+      }
+    },
+    {
+      "name": "flood_site_failed_requests",
+      "value": 0,
+      "unit": "count",
+      "labels": {
+        "requests": "2000",
+        "run": "hold6-2",
+        "mode": "hold",
+        "generators_x_conns": "6x100",
+        "limit": "512MiB"
+      }
+    },
+    {
+      "name": "flood_site_latency_p99",
+      "value": 6.29,
+      "unit": "ms",
+      "labels": {
+        "p50": "1.0",
+        "p95": "3.86",
+        "max": "33.2",
+        "run": "hold6-2",
+        "mode": "hold",
+        "generators_x_conns": "6x100",
+        "limit": "512MiB"
+      }
+    },
+    {
+      "name": "flood_schild_api_memory_peak",
+      "value": 112407347,
+      "unit": "bytes",
+      "labels": {
+        "shown_mib": "107.2",
+        "run": "hold6-2",
+        "mode": "hold",
+        "generators_x_conns": "6x100",
+        "limit": "512MiB"
+      }
+    },
+    {
+      "name": "flood_schild_api_restarts",
+      "value": 0,
+      "unit": "count",
+      "labels": {
+        "run": "hold6-2",
+        "mode": "hold",
+        "generators_x_conns": "6x100",
+        "limit": "512MiB"
+      }
+    },
+    {
+      "name": "flood_site_failed_requests",
+      "value": 0,
+      "unit": "count",
+      "labels": {
+        "requests": "2000",
+        "run": "hold6-3",
+        "mode": "hold",
+        "generators_x_conns": "6x100",
+        "limit": "512MiB"
+      }
+    },
+    {
+      "name": "flood_site_latency_p99",
+      "value": 5.39,
+      "unit": "ms",
+      "labels": {
+        "p50": "0.98",
+        "p95": "3.67",
+        "max": "14.0",
+        "run": "hold6-3",
+        "mode": "hold",
+        "generators_x_conns": "6x100",
+        "limit": "512MiB"
+      }
+    },
+    {
+      "name": "flood_schild_api_memory_peak",
+      "value": 107793612,
+      "unit": "bytes",
+      "labels": {
+        "shown_mib": "102.8",
+        "run": "hold6-3",
+        "mode": "hold",
+        "generators_x_conns": "6x100",
+        "limit": "512MiB"
+      }
+    },
+    {
+      "name": "flood_schild_api_restarts",
+      "value": 0,
+      "unit": "count",
+      "labels": {
+        "run": "hold6-3",
+        "mode": "hold",
+        "generators_x_conns": "6x100",
+        "limit": "512MiB"
+      }
+    },
+    {
+      "name": "flood_site_failed_requests",
+      "value": 0,
+      "unit": "count",
+      "labels": {
+        "requests": "2000",
+        "run": "hold6-4",
+        "mode": "hold",
+        "generators_x_conns": "6x100",
+        "limit": "512MiB"
+      }
+    },
+    {
+      "name": "flood_site_latency_p99",
+      "value": 5.92,
+      "unit": "ms",
+      "labels": {
+        "p50": "0.98",
+        "p95": "3.81",
+        "max": "53.3",
+        "run": "hold6-4",
+        "mode": "hold",
+        "generators_x_conns": "6x100",
+        "limit": "512MiB"
+      }
+    },
+    {
+      "name": "flood_schild_api_memory_peak",
+      "value": 107059609,
+      "unit": "bytes",
+      "labels": {
+        "shown_mib": "102.1",
+        "run": "hold6-4",
+        "mode": "hold",
+        "generators_x_conns": "6x100",
+        "limit": "512MiB"
+      }
+    },
+    {
+      "name": "flood_schild_api_restarts",
+      "value": 0,
+      "unit": "count",
+      "labels": {
+        "run": "hold6-4",
+        "mode": "hold",
+        "generators_x_conns": "6x100",
+        "limit": "512MiB"
+      }
+    },
+    {
+      "name": "flood_site_failed_requests",
+      "value": 0,
+      "unit": "count",
+      "labels": {
+        "requests": "2000",
+        "run": "hold6-5",
+        "mode": "hold",
+        "generators_x_conns": "6x100",
+        "limit": "512MiB"
+      }
+    },
+    {
+      "name": "flood_site_latency_p99",
+      "value": 6.47,
+      "unit": "ms",
+      "labels": {
+        "p50": "0.98",
+        "p95": "4.48",
+        "max": "30.7",
+        "run": "hold6-5",
+        "mode": "hold",
+        "generators_x_conns": "6x100",
+        "limit": "512MiB"
+      }
+    },
+    {
+      "name": "flood_schild_api_memory_peak",
+      "value": 111568486,
+      "unit": "bytes",
+      "labels": {
+        "shown_mib": "106.4",
+        "run": "hold6-5",
+        "mode": "hold",
+        "generators_x_conns": "6x100",
+        "limit": "512MiB"
+      }
+    },
+    {
+      "name": "flood_schild_api_restarts",
+      "value": 0,
+      "unit": "count",
+      "labels": {
+        "run": "hold6-5",
+        "mode": "hold",
+        "generators_x_conns": "6x100",
+        "limit": "512MiB"
+      }
+    },
+    {
+      "name": "flood_site_failed_requests",
+      "value": 0,
+      "unit": "count",
+      "labels": {
+        "requests": "2000",
+        "run": "hold6-6",
+        "mode": "hold",
+        "generators_x_conns": "6x100",
+        "limit": "512MiB"
+      }
+    },
+    {
+      "name": "flood_site_latency_p99",
+      "value": 5.61,
+      "unit": "ms",
+      "labels": {
+        "p50": "1.0",
+        "p95": "4.15",
+        "max": "20.6",
+        "run": "hold6-6",
+        "mode": "hold",
+        "generators_x_conns": "6x100",
+        "limit": "512MiB"
+      }
+    },
+    {
+      "name": "flood_schild_api_memory_peak",
+      "value": 108213043,
+      "unit": "bytes",
+      "labels": {
+        "shown_mib": "103.2",
+        "run": "hold6-6",
+        "mode": "hold",
+        "generators_x_conns": "6x100",
+        "limit": "512MiB"
+      }
+    },
+    {
+      "name": "flood_schild_api_restarts",
+      "value": 0,
+      "unit": "count",
+      "labels": {
+        "run": "hold6-6",
+        "mode": "hold",
+        "generators_x_conns": "6x100",
+        "limit": "512MiB"
+      }
+    },
+    {
+      "name": "flood_site_failed_requests",
+      "value": 0,
+      "unit": "count",
+      "labels": {
+        "requests": "1999",
+        "run": "hold6-7",
+        "mode": "hold",
+        "generators_x_conns": "6x100",
+        "limit": "512MiB"
+      }
+    },
+    {
+      "name": "flood_site_latency_p99",
+      "value": 6.17,
+      "unit": "ms",
+      "labels": {
+        "p50": "1.0",
+        "p95": "4.0",
+        "max": "16.6",
+        "run": "hold6-7",
+        "mode": "hold",
+        "generators_x_conns": "6x100",
+        "limit": "512MiB"
+      }
+    },
+    {
+      "name": "flood_schild_api_memory_peak",
+      "value": 114189926,
+      "unit": "bytes",
+      "labels": {
+        "shown_mib": "108.9",
+        "run": "hold6-7",
+        "mode": "hold",
+        "generators_x_conns": "6x100",
+        "limit": "512MiB"
+      }
+    },
+    {
+      "name": "flood_schild_api_restarts",
+      "value": 0,
+      "unit": "count",
+      "labels": {
+        "run": "hold6-7",
+        "mode": "hold",
+        "generators_x_conns": "6x100",
+        "limit": "512MiB"
+      }
+    },
+    {
+      "name": "flood_site_failed_requests",
+      "value": 0,
+      "unit": "count",
+      "labels": {
+        "requests": "1999",
+        "run": "hold6-8",
+        "mode": "hold",
+        "generators_x_conns": "6x100",
+        "limit": "512MiB"
+      }
+    },
+    {
+      "name": "flood_site_latency_p99",
+      "value": 5.55,
+      "unit": "ms",
+      "labels": {
+        "p50": "1.0",
+        "p95": "3.68",
+        "max": "12.3",
+        "run": "hold6-8",
+        "mode": "hold",
+        "generators_x_conns": "6x100",
+        "limit": "512MiB"
+      }
+    },
+    {
+      "name": "flood_schild_api_memory_peak",
+      "value": 109261619,
+      "unit": "bytes",
+      "labels": {
+        "shown_mib": "104.2",
+        "run": "hold6-8",
+        "mode": "hold",
+        "generators_x_conns": "6x100",
+        "limit": "512MiB"
+      }
+    },
+    {
+      "name": "flood_schild_api_restarts",
+      "value": 0,
+      "unit": "count",
+      "labels": {
+        "run": "hold6-8",
+        "mode": "hold",
+        "generators_x_conns": "6x100",
+        "limit": "512MiB"
+      }
+    },
+    {
+      "name": "flood_site_failed_requests",
+      "value": 0,
+      "unit": "count",
+      "labels": {
+        "requests": "2000",
+        "run": "hold6-9",
+        "mode": "hold",
+        "generators_x_conns": "6x100",
+        "limit": "512MiB"
+      }
+    },
+    {
+      "name": "flood_site_latency_p99",
+      "value": 5.17,
+      "unit": "ms",
+      "labels": {
+        "p50": "0.94",
+        "p95": "3.78",
+        "max": "34.0",
+        "run": "hold6-9",
+        "mode": "hold",
+        "generators_x_conns": "6x100",
+        "limit": "512MiB"
+      }
+    },
+    {
+      "name": "flood_schild_api_memory_peak",
+      "value": 109785907,
+      "unit": "bytes",
+      "labels": {
+        "shown_mib": "104.7",
+        "run": "hold6-9",
+        "mode": "hold",
+        "generators_x_conns": "6x100",
+        "limit": "512MiB"
+      }
+    },
+    {
+      "name": "flood_schild_api_restarts",
+      "value": 0,
+      "unit": "count",
+      "labels": {
+        "run": "hold6-9",
+        "mode": "hold",
+        "generators_x_conns": "6x100",
+        "limit": "512MiB"
+      }
+    },
+    {
+      "name": "flood_site_failed_requests",
+      "value": 0,
+      "unit": "count",
+      "labels": {
+        "requests": "1999",
+        "run": "hold6-10",
+        "mode": "hold",
+        "generators_x_conns": "6x100",
+        "limit": "512MiB"
+      }
+    },
+    {
+      "name": "flood_site_latency_p99",
+      "value": 5.36,
+      "unit": "ms",
+      "labels": {
+        "p50": "0.97",
+        "p95": "3.73",
+        "max": "37.5",
+        "run": "hold6-10",
+        "mode": "hold",
+        "generators_x_conns": "6x100",
+        "limit": "512MiB"
+      }
+    },
+    {
+      "name": "flood_schild_api_memory_peak",
+      "value": 111463628,
+      "unit": "bytes",
+      "labels": {
+        "shown_mib": "106.3",
+        "run": "hold6-10",
+        "mode": "hold",
+        "generators_x_conns": "6x100",
+        "limit": "512MiB"
+      }
+    },
+    {
+      "name": "flood_schild_api_restarts",
+      "value": 0,
+      "unit": "count",
+      "labels": {
+        "run": "hold6-10",
+        "mode": "hold",
+        "generators_x_conns": "6x100",
+        "limit": "512MiB"
+      }
+    },
+    {
+      "name": "flood_site_failed_requests",
+      "value": 0,
+      "unit": "count",
+      "labels": {
+        "requests": "1999",
+        "run": "signed-1",
+        "mode": "signed",
+        "generators_x_conns": "6x8",
+        "limit": "512MiB"
+      }
+    },
+    {
+      "name": "flood_site_latency_p99",
+      "value": 10.86,
+      "unit": "ms",
+      "labels": {
+        "p50": "1.46",
+        "p95": "5.88",
+        "max": "21.8",
+        "run": "signed-1",
+        "mode": "signed",
+        "generators_x_conns": "6x8",
+        "limit": "512MiB"
+      }
+    },
+    {
+      "name": "flood_schild_api_memory_peak",
+      "value": 162214707,
+      "unit": "bytes",
+      "labels": {
+        "shown_mib": "154.7",
+        "run": "signed-1",
+        "mode": "signed",
+        "generators_x_conns": "6x8",
+        "limit": "512MiB"
+      }
+    },
+    {
+      "name": "flood_schild_api_restarts",
+      "value": 0,
+      "unit": "count",
+      "labels": {
+        "run": "signed-1",
+        "mode": "signed",
+        "generators_x_conns": "6x8",
+        "limit": "512MiB"
+      }
+    },
+    {
+      "name": "flood_site_failed_requests",
+      "value": 0,
+      "unit": "count",
+      "labels": {
+        "requests": "1998",
+        "run": "signed-2",
+        "mode": "signed",
+        "generators_x_conns": "6x8",
+        "limit": "512MiB"
+      }
+    },
+    {
+      "name": "flood_site_latency_p99",
+      "value": 12.03,
+      "unit": "ms",
+      "labels": {
+        "p50": "1.42",
+        "p95": "5.94",
+        "max": "35.3",
+        "run": "signed-2",
+        "mode": "signed",
+        "generators_x_conns": "6x8",
+        "limit": "512MiB"
+      }
+    },
+    {
+      "name": "flood_schild_api_memory_peak",
+      "value": 159278694,
+      "unit": "bytes",
+      "labels": {
+        "shown_mib": "151.9",
+        "run": "signed-2",
+        "mode": "signed",
+        "generators_x_conns": "6x8",
+        "limit": "512MiB"
+      }
+    },
+    {
+      "name": "flood_schild_api_restarts",
+      "value": 0,
+      "unit": "count",
+      "labels": {
+        "run": "signed-2",
+        "mode": "signed",
+        "generators_x_conns": "6x8",
+        "limit": "512MiB"
+      }
+    },
+    {
+      "name": "flood_site_failed_requests",
+      "value": 0,
+      "unit": "count",
+      "labels": {
+        "requests": "2000",
+        "run": "signed-3",
+        "mode": "signed",
+        "generators_x_conns": "6x8",
+        "limit": "512MiB"
+      }
+    },
+    {
+      "name": "flood_site_latency_p99",
+      "value": 12.01,
+      "unit": "ms",
+      "labels": {
+        "p50": "1.3",
+        "p95": "5.49",
+        "max": "36.6",
+        "run": "signed-3",
+        "mode": "signed",
+        "generators_x_conns": "6x8",
+        "limit": "512MiB"
+      }
+    },
+    {
+      "name": "flood_schild_api_memory_peak",
+      "value": 174168473,
+      "unit": "bytes",
+      "labels": {
+        "shown_mib": "166.1",
+        "run": "signed-3",
+        "mode": "signed",
+        "generators_x_conns": "6x8",
+        "limit": "512MiB"
+      }
+    },
+    {
+      "name": "flood_schild_api_restarts",
+      "value": 0,
+      "unit": "count",
+      "labels": {
+        "run": "signed-3",
+        "mode": "signed",
+        "generators_x_conns": "6x8",
+        "limit": "512MiB"
+      }
+    },
+    {
+      "name": "flood_site_failed_requests",
+      "value": 0,
+      "unit": "count",
+      "labels": {
+        "requests": "2000",
+        "run": "signed-4",
+        "mode": "signed",
+        "generators_x_conns": "6x8",
+        "limit": "512MiB"
+      }
+    },
+    {
+      "name": "flood_site_latency_p99",
+      "value": 9.75,
+      "unit": "ms",
+      "labels": {
+        "p50": "1.39",
+        "p95": "6.14",
+        "max": "19.8",
+        "run": "signed-4",
+        "mode": "signed",
+        "generators_x_conns": "6x8",
+        "limit": "512MiB"
+      }
+    },
+    {
+      "name": "flood_schild_api_memory_peak",
+      "value": 163053568,
+      "unit": "bytes",
+      "labels": {
+        "shown_mib": "155.5",
+        "run": "signed-4",
+        "mode": "signed",
+        "generators_x_conns": "6x8",
+        "limit": "512MiB"
+      }
+    },
+    {
+      "name": "flood_schild_api_restarts",
+      "value": 0,
+      "unit": "count",
+      "labels": {
+        "run": "signed-4",
+        "mode": "signed",
+        "generators_x_conns": "6x8",
+        "limit": "512MiB"
+      }
+    },
+    {
+      "name": "flood_site_failed_requests",
+      "value": 0,
+      "unit": "count",
+      "labels": {
+        "requests": "2000",
+        "run": "signed-5",
+        "mode": "signed",
+        "generators_x_conns": "6x8",
+        "limit": "512MiB"
+      }
+    },
+    {
+      "name": "flood_site_latency_p99",
+      "value": 12.22,
+      "unit": "ms",
+      "labels": {
+        "p50": "1.31",
+        "p95": "6.51",
+        "max": "40.7",
+        "run": "signed-5",
+        "mode": "signed",
+        "generators_x_conns": "6x8",
+        "limit": "512MiB"
+      }
+    },
+    {
+      "name": "flood_schild_api_memory_peak",
+      "value": 165570150,
+      "unit": "bytes",
+      "labels": {
+        "shown_mib": "157.9",
+        "run": "signed-5",
+        "mode": "signed",
+        "generators_x_conns": "6x8",
+        "limit": "512MiB"
+      }
+    },
+    {
+      "name": "flood_schild_api_restarts",
+      "value": 0,
+      "unit": "count",
+      "labels": {
+        "run": "signed-5",
+        "mode": "signed",
+        "generators_x_conns": "6x8",
+        "limit": "512MiB"
+      }
+    },
+    {
+      "name": "flood_site_failed_requests",
+      "value": 0,
+      "unit": "count",
+      "labels": {
+        "requests": "2000",
+        "run": "shape-conn-churn",
+        "mode": "conn-churn",
+        "generators_x_conns": "4x64"
+      }
+    },
+    {
+      "name": "flood_site_latency_p99",
+      "value": 5.29,
+      "unit": "ms",
+      "labels": {
+        "max": "19.4",
+        "run": "shape-conn-churn",
+        "mode": "conn-churn",
+        "generators_x_conns": "4x64"
+      }
+    },
+    {
+      "name": "flood_schild_api_restarts",
+      "value": 0,
+      "unit": "count",
+      "labels": {
+        "run": "shape-conn-churn",
+        "mode": "conn-churn",
+        "generators_x_conns": "4x64"
+      }
+    },
+    {
+      "name": "flood_site_failed_requests",
+      "value": 0,
+      "unit": "count",
+      "labels": {
+        "requests": "2000",
+        "run": "shape-tls-flood",
+        "mode": "tls-flood",
+        "generators_x_conns": "4x64"
+      }
+    },
+    {
+      "name": "flood_site_latency_p99",
+      "value": 6.35,
+      "unit": "ms",
+      "labels": {
+        "max": "35.1",
+        "run": "shape-tls-flood",
+        "mode": "tls-flood",
+        "generators_x_conns": "4x64"
+      }
+    },
+    {
+      "name": "flood_schild_api_restarts",
+      "value": 0,
+      "unit": "count",
+      "labels": {
+        "run": "shape-tls-flood",
+        "mode": "tls-flood",
+        "generators_x_conns": "4x64"
+      }
+    },
+    {
+      "name": "flood_site_failed_requests",
+      "value": 0,
+      "unit": "count",
+      "labels": {
+        "requests": "2000",
+        "run": "shape-slowloris",
+        "mode": "slowloris",
+        "generators_x_conns": "4x64"
+      }
+    },
+    {
+      "name": "flood_site_latency_p99",
+      "value": 4.99,
+      "unit": "ms",
+      "labels": {
+        "max": "8.4",
+        "run": "shape-slowloris",
+        "mode": "slowloris",
+        "generators_x_conns": "4x64"
+      }
+    },
+    {
+      "name": "flood_schild_api_restarts",
+      "value": 0,
+      "unit": "count",
+      "labels": {
+        "run": "shape-slowloris",
+        "mode": "slowloris",
+        "generators_x_conns": "4x64"
+      }
+    },
+    {
+      "name": "flood_site_failed_requests",
+      "value": 0,
+      "unit": "count",
+      "labels": {
+        "requests": "2000",
+        "run": "shape-slowbody",
+        "mode": "slowbody",
+        "generators_x_conns": "4x64"
+      }
+    },
+    {
+      "name": "flood_site_latency_p99",
+      "value": 5.25,
+      "unit": "ms",
+      "labels": {
+        "max": "21.0",
+        "run": "shape-slowbody",
+        "mode": "slowbody",
+        "generators_x_conns": "4x64"
+      }
+    },
+    {
+      "name": "flood_schild_api_restarts",
+      "value": 0,
+      "unit": "count",
+      "labels": {
+        "run": "shape-slowbody",
+        "mode": "slowbody",
+        "generators_x_conns": "4x64"
+      }
+    },
+    {
+      "name": "flood_site_failed_requests",
+      "value": 0,
+      "unit": "count",
+      "labels": {
+        "requests": "2000",
+        "run": "shape-enrol",
+        "mode": "enrol",
+        "generators_x_conns": "4x16"
+      }
+    },
+    {
+      "name": "flood_site_latency_p99",
+      "value": 4.72,
+      "unit": "ms",
+      "labels": {
+        "max": "12.0",
+        "run": "shape-enrol",
+        "mode": "enrol",
+        "generators_x_conns": "4x16"
+      }
+    },
+    {
+      "name": "flood_schild_api_restarts",
+      "value": 0,
+      "unit": "count",
+      "labels": {
+        "run": "shape-enrol",
+        "mode": "enrol",
+        "generators_x_conns": "4x16"
+      }
+    },
+    {
+      "name": "flood_site_failed_requests",
+      "value": 0,
+      "unit": "count",
+      "labels": {
+        "run": "flood.sh-hold6",
+        "mode": "hold",
+        "generators_x_conns": "6x100",
+        "requests": "2000",
+        "p99": "5.53"
+      }
+    },
+    {
+      "name": "flood_site_failed_requests",
+      "value": 0,
+      "unit": "count",
+      "labels": {
+        "run": "shape-distributed-slowloris",
+        "mode": "slowloris",
+        "generators_x_conns": "70x8",
+        "requests": "2400",
+        "p99": "4.61"
+      }
+    },
+    {
+      "name": "agent_listener_healthz_ok",
+      "value": 12,
+      "unit": "count",
+      "labels": {
+        "run": "shape-distributed-slowloris",
+        "total": "20",
+        "phase": "during"
+      }
+    },
+    {
+      "name": "agent_listener_healthz_ok",
+      "value": 5,
+      "unit": "count",
+      "labels": {
+        "run": "shape-distributed-slowloris",
+        "total": "5",
+        "phase": "after"
+      }
+    },
+    {
+      "name": "flood_site_failed_requests",
+      "value": 0,
+      "unit": "count",
+      "labels": {
+        "run": "ipv6-slowloris",
+        "mode": "slowloris",
+        "generators_x_conns": "4x64 same /64",
+        "requests": "1800"
+      }
+    },
+    {
+      "name": "flood_site_failed_requests",
+      "value": 0,
+      "unit": "count",
+      "labels": {
+        "run": "ipv6-tls-flood",
+        "mode": "tls-flood",
+        "generators_x_conns": "4x64 same /64",
+        "requests": "1799"
+      }
+    },
+    {
+      "name": "site_p99_signed_vs_baseline_mannwhitney_p",
+      "value": 0.0022,
+      "unit": "ratio",
+      "labels": {
+        "median_base_ms": "5.76",
+        "median_signed_ms": "12.01"
+      }
+    }
+  ],
+  "kill_criteria": [
+    {
+      "expr": "(a) the check changes system state",
+      "hit": false,
+      "observed": "readonly-distros.sh Rocky 9 + Debian 12 JRE root/nobody: 0 new entries; testlab-readonly-proof REQUIRE=1 pass (15763 entries); own probe with docker --read-only rootfs on Rocky 9, Alma 9, Debian 12, Ubuntu 24.04, 22.04 (Java tarball, node, php, python): exit 0 root and nobody, valid reports, 0 write errors, 0 docker-diff entries."
+    },
+    {
+      "expr": "(b) a report leaks a secret",
+      "hit": false,
+      "observed": "canary/run.sh: 0 hits, 6/6 controls; own probe (argv --db-password of a listener, sshd_config comment, wp-config DB_PASSWORD): 0 hits, 3/3 controls; smoke t1: 0 secret canaries in 7 gateway files."
+    },
+    {
+      "expr": "(c) an unenrolled agent's report is accepted",
+      "hit": false,
+      "observed": "smoke t1 agent steps 25 pass, 0 fail: unenrolled rejected and not listed, revoked rejected."
+    },
+    {
+      "expr": "(d) agent/check failures affect request handling",
+      "hit": false,
+      "observed": "512 MiB: 0 failed of 19996 (hold 4x100, 10 runs), 19997 (hold 6x100, 10), 9997 (signed 6x8, 5) vs baseline 0/19998 (10); 0 restarts, peak 166 MiB; 7 new shapes + IPv6 0 failed. Signed flood raises site p99 5.8 -> 12.0 ms (p=0.002). Outlier not reproduced (max 106 ms)."
+    },
+    {
+      "expr": "(e) host report data reaches the labs",
+      "hit": false,
+      "observed": "smoke t1: host report canaries absent from 14 files (792364 bytes) of 6 labs' data and transparency logs and from every signal; egress check 0 findings."
+    }
+  ],
+  "verdict": "pass",
+  "notes": "Independent re-measure of 7164c6e (HEAD 8111351, product code unchanged since 7164c6e) by a separate measurer, as README rule 2 requires; nothing in client/, contract/, contracts/, ui/ was changed. Image digests are identical to MVP-11.json (reproducible build). Verified: make ui, make images (arm64, desktop-linux), make contracts-test (572, Go = Python), make test, make adversaries-test, readonly-distros.sh, testlab-readonly-proof REQUIRE=1, own read-only-rootfs probe (5 distros), canary/run.sh plus own leak probe, testlab-up t1 + smoke t1 (16 steps; agents 24 pass, 0 fail, 1 skipped), and on a fresh lab smoke t1 with SCHILD_AGENTS_SILENT=1 (see agent_smoke_steps with silent_step label). Kill (d): schild-api limited to 512 MiB; each run restarts schild-api (fresh rate counters), 40 s flood, 40 rps latency probe on the site for 50 s, memory sampled every 3 s. Baseline 10 runs without flood, hold 4x100 10, hold 6x100 10, signed 6x8 5, plus one run of the original flood.sh (hold 6x100 with control). New shapes (4 generators x 64 workers, 40 s): TCP connect/close churn (~93k connections), TLS handshake flood, slowloris, slow body just above MinBodyRate (80 KiB/s, 600 KiB), enrolment flood (~230k attempts); distributed slowloris from 70 addresses x 8 connections (saturates MaxConns 512); IPv6 slowloris and TLS flood over a temporary dual-stack network (4 containers in one /64). Result: 0 failed site requests in all 44 measured runs (34 under flood); 0 restarts; peak 166 MiB (signed). The 6x100 outlier of the original run (5/2121 503, ~1.3 s stall) did not reproduce in 11 hold-6x100 runs; the largest single-request latency in any run was 106 ms (hold4-7), baseline max 18.7 ms. Likely cause of the original outlier: a VM-wide stall of the Docker Desktop VM (the external docker-stats sampler also paused 4 s), i.e. host noise rather than schild; the 1 s eval_timeout turned it into 503s. That cannot be proven from here; with 0/11 the per-run rate of such stalls under 6x100 is below ~24 % (95 %). Observations, not kill hits: (1) the signed flood with a valid enrolled test key raises site p99 from a 5.8 ms median to 12.0 ms (Mann-Whitney p = 0.002, no failures), the CPU of 4 parallel verifications; (2) during the distributed slowloris a fresh address reached the agent listener only 12 of 20 times (afterwards 5/5): with >= 64 attacker addresses an attacker can delay agent deliveries (agents retry; sustained over 2x interval it would show \"meldet sich nicht\"); the docs already say to firewall the listener to the app VM network; (3) under load p50 drops below baseline (0.9 vs 2.9 ms) also in the control run against the sink: host CPU frequency, not schild. Harness note: agent-smoke.sh is not idempotent; a second run on the same lab fails 4 enrolment/retention steps (agent.json exists; host already at 30 reports). Not run: real non-container VMs, RHEL 8 / dnf5 paths, Ubuntu 22.04/24.04 and Alma with the gateway (only the check), x86_64.",
+  "artifacts": [
+    "results/runs/smoke-t1/agents.json",
+    "results/runs/smoke-t1/smoke.json",
+    "results/runs/readonly-proof/readonly-proof.json",
+    "adversaries/mvp11/readonly/ro-rootfs-probe.sh",
+    "adversaries/mvp11/flood-driver.sh",
+    "adversaries/mvp11/newshapes-run.sh",
+    "adversaries/mvp11/newshapes/main.go"
+  ]
+}

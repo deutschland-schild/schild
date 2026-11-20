@@ -1,0 +1,4 @@
+State      Recv-Q Send-Q Local Address:Port               Peer Address:Port
+LISTEN     0      128          *:22                       *:*                   users:(("sshd",pid=1000,fd=3))
+LISTEN     0      128          *:8080                     *:*                   users:(("java",pid=2000,fd=40))
+LISTEN     0      100    127.0.0.1:25                      *:*                   users:(("master",pid=1300,fd=13))

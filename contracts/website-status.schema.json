@@ -1,0 +1,76 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://contracts.schild.invalid/v0/website-status.schema.json",
+  "title": "Website status input (v0.5, D36)",
+  "description": "Input of the website status rules, used by the website-status vectors: what the gateway (or the MVP-20 central dashboard, merged over every gateway the website runs on) knows about one website over the last 5 minutes. The result is {status, reasons} (contract/websites.Status): status ok | attention (\"bitte ansehen\") | disrupted (\"gestört\") | unknown (\"keine Messwerte\"), reasons in a fixed order. Counts are exact counters of the monitoring rings (TrafficCounters); hints are HealthHints with their code and level.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["protection", "tracked", "monitoring", "servers"],
+  "properties": {
+    "protection": { "type": "string", "enum": ["protected", "partial", "unprotected"] },
+    "tracked": { "description": "The website has its own series (one of the first 32 websites); false: its traffic is only in _other.", "type": "boolean" },
+    "monitoring": { "description": "monitoring.enabled (on every gateway it runs on).", "type": "boolean" },
+    "traffic": {
+      "description": "Counters of the website over the last 5 minutes (sum over its gateways). Absent: no numbers (monitoring off or untracked).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["requests", "forwarded", "fail_closed", "upstream_errors", "upstream_timeouts", "status_5xx"],
+      "properties": {
+        "requests": { "type": "integer", "minimum": 0 },
+        "forwarded": { "type": "integer", "minimum": 0 },
+        "fail_closed": { "type": "integer", "minimum": 0 },
+        "upstream_errors": { "type": "integer", "minimum": 0 },
+        "upstream_timeouts": { "type": "integer", "minimum": 0 },
+        "status_5xx": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "site_hints": {
+      "description": "Hints computed for this website from its own counters (codes upstream_errors, upstream_slow, fail_closed, traffic_spike).",
+      "type": "array",
+      "maxItems": 32,
+      "items": { "$ref": "#/$defs/siteHint" }
+    },
+    "servers": {
+      "description": "Every gateway the website runs on (one on the built-in dashboard).",
+      "type": "array",
+      "maxItems": 64,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["node", "state", "baseline_protection", "hints"],
+        "properties": {
+          "node": { "$ref": "common.schema.json#/$defs/id" },
+          "state": { "description": "ok; not_ready: the gate is not ready or baseline protection is off, so schild answers 503 (fail closed); unreachable: the central dashboard has no answer from this gateway (MVP-20 only).", "type": "string", "enum": ["ok", "not_ready", "unreachable"] },
+          "baseline_protection": { "type": "string", "enum": ["active", "degraded", "off"] },
+          "hints": { "description": "Server-wide hints of this gateway (host codes and schild internals).", "type": "array", "maxItems": 32, "items": { "$ref": "#/$defs/serverHint" } }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "level": { "type": "string", "enum": ["info", "notice", "warning"] },
+    "object": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[A-Za-z0-9_.:@/-]{1,128}$" },
+    "siteHint": {
+      "description": "Website-scoped hint codes (HealthHint.site set).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["code", "level"],
+      "properties": {
+        "code": { "type": "string", "enum": ["upstream_errors", "upstream_slow", "fail_closed", "traffic_spike"] },
+        "level": { "$ref": "#/$defs/level" },
+        "object": { "$ref": "#/$defs/object" }
+      }
+    },
+    "serverHint": {
+      "description": "Server-wide hint codes: the host and schild's own shared resources. store_near_cap, store_cap_unreachable and storage_budget (schild's own event store) mark only the server and are no reason of a website (D36 open items, D38).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["code", "level"],
+      "properties": {
+        "code": { "type": "string", "enum": ["cpu_high", "cpu_throttled", "load_high", "memory_low", "swap_active", "oom_kill", "disk_full_soon", "disk_io_busy", "net_errors", "conntrack_high", "fd_high", "listen_drops", "waf_saturated", "events_dropped", "store_near_cap", "monitoring_degraded", "store_cap_unreachable", "storage_budget", "disk_fill_projection"] },
+        "level": { "$ref": "#/$defs/level" },
+        "object": { "$ref": "#/$defs/object" }
+      }
+    }
+  }
+}

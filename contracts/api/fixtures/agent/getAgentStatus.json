@@ -1,0 +1,75 @@
+{
+  "node_name": "web-1",
+  "overview": {
+    "generated_at": "2026-10-28T12:00:00Z",
+    "profile": "production",
+    "baseline": {
+      "state": "active",
+      "reasons": []
+    },
+    "counters_24h": {
+      "requests": 91200,
+      "evaluated": 91200,
+      "blocked": 370,
+      "would_block": 0,
+      "incidents": 370,
+      "p95_overhead_ms": 1.4
+    },
+    "rules": {
+      "crs_version": "4.8.0"
+    },
+    "version": "0.4.0"
+  },
+  "settings": {
+    "profile": "production",
+    "config_sha256": "3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f",
+    "retention": {
+      "raw_ip_days": 7,
+      "events_days": 14,
+      "max_size_mb": 100,
+      "summaries_days": 90
+    },
+    "waf": {
+      "crs_enabled": true,
+      "paranoia_level": 1,
+      "inbound_anomaly_threshold": 5,
+      "eval_timeout_ms": 1000,
+      "max_concurrent_evals": 4,
+      "queue_wait_ms": 100
+    },
+    "behaviour": {
+      "scenarios": {
+        "login_bruteforce": "block",
+        "credential_stuffing": "observe",
+        "path_probing": "block",
+        "aggressive_crawl": "observe",
+        "waf_repeat": "observe"
+      },
+      "scenarios_recommended": {
+        "login_bruteforce": "block",
+        "credential_stuffing": "block",
+        "path_probing": "block",
+        "aggressive_crawl": "observe",
+        "waf_repeat": "block"
+      },
+      "rate_limits": 7,
+      "learning_until": "2026-11-08T09:00:00Z"
+    },
+    "monitoring": {
+      "enabled": true,
+      "host": true,
+      "keep": {
+        "ten_seconds_hours": 6,
+        "minute_hours": 48,
+        "ten_minute_days": 14
+      }
+    },
+    "allowlist_entries": 2
+  },
+  "token": {
+    "id": "tok_4be1c09a77d2",
+    "scope": "agent:read",
+    "label": "Claude Code Laptop",
+    "expires_at": "2027-01-26T12:00:00Z"
+  }
+}

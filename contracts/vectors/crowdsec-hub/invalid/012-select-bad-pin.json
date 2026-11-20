@@ -1,0 +1,25 @@
+{
+  "contract": "crowdsec-hub",
+  "description": "A pin is a commit.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"image\":{\"present\":false,\"valid\":false},\"op\":\"select\",\"pin\":\"master\",\"state\":\"detect\",\"stored\":{\"present\":false,\"valid\":false}}",
+  "input_decoded": {
+    "image": {
+      "present": false,
+      "valid": false
+    },
+    "op": "select",
+    "pin": "master",
+    "state": "detect",
+    "stored": {
+      "present": false,
+      "valid": false
+    }
+  },
+  "expect": {
+    "valid": false,
+    "error": "schema"
+  }
+}

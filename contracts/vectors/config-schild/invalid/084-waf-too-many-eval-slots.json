@@ -1,0 +1,23 @@
+{
+  "contract": "config/schild",
+  "description": "v0.4 addendum: at most 1024 evaluation slots.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"config_version\":0,\"mode\":\"observe\",\"node_name\":\"web-1\",\"upstream\":{\"url\":\"http://app:80\"},\"waf\":{\"max_concurrent_evals\":1025}}",
+  "input_decoded": {
+    "config_version": 0,
+    "mode": "observe",
+    "node_name": "web-1",
+    "upstream": {
+      "url": "http://app:80"
+    },
+    "waf": {
+      "max_concurrent_evals": 1025
+    }
+  },
+  "expect": {
+    "valid": false,
+    "error": "schema"
+  }
+}

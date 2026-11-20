@@ -1,0 +1,18 @@
+# "Jetzt prüfen" in the dashboard (MVP-11, optional). Install next to
+# schild-check.service: `systemctl enable --now schild-check.path`.
+#
+# The schild container writes /run/schild-check/request (env
+# SCHILD_HOST_CHECK_TRIGGER, /run/schild-check mounted read-write, see
+# ../host-check-compose.yaml); this unit then starts schild-check.service,
+# which removes the file when it starts. The container never runs the check
+# itself and the request carries nothing: it only says "now". Without this
+# unit the dashboard explains that the timer runs daily (503 check_unavailable).
+[Unit]
+Description=Schild server check on request from the dashboard
+
+[Path]
+PathExists=/run/schild-check/request
+Unit=schild-check.service
+
+[Install]
+WantedBy=paths.target

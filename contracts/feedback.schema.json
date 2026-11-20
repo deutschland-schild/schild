@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://contracts.schild.invalid/v0/feedback.schema.json",
+  "title": "Feedback schild.feedback/0.2 (client -> lab)",
+  "description": "False-positive feedback about a network rule. Only sent after a human operator decided in the dashboard (K6). Carries the shape of the match, never its content. Positive list like the signal; unknown fields are rejected. DSSE payloadType application/vnd.schild.feedback.v0+json.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "id", "time_bucket", "rule_id", "bundle_version", "verdict", "decided_by", "local_action", "match_shape"],
+  "properties": {
+    "schema": { "const": "schild.feedback/0.2" },
+    "id": { "$ref": "common.schema.json#/$defs/uuid" },
+    "time_bucket": { "$ref": "common.schema.json#/$defs/timeBucket" },
+    "rule_id": { "$ref": "common.schema.json#/$defs/ruleId" },
+    "bundle_version": { "type": "integer", "minimum": 1, "maximum": 9007199254740991 },
+    "verdict": { "const": "false_positive" },
+    "decided_by": { "description": "Only a human operator can create feedback (K6).", "const": "operator" },
+    "local_action": { "type": "string", "enum": ["suspended", "shadow", "unchanged"] },
+    "match_shape": { "$ref": "common.schema.json#/$defs/matchShape" }
+  }
+}

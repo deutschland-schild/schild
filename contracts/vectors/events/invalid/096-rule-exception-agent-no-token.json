@@ -1,0 +1,32 @@
+{
+  "contract": "events",
+  "description": "D84: an agent as actor names its token.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"data\":{\"actor\":\"agent\",\"id\":1900000,\"path\":\"/livewire/update\",\"reason\":\"math text is blocked\",\"repository\":\"crs\",\"rules\":[\"933180\"],\"target\":\"ARGS:json.components.*.updates.body\",\"website\":\"app.example.org\"},\"datacontenttype\":\"application/json\",\"id\":\"48c85e43-8b79-474f-8643-ea393a9ed3ff\",\"source\":\"schild://web-1\",\"specversion\":\"1.0\",\"time\":\"2026-10-26T11:59:58.123Z\",\"type\":\"schild.rule.exception_set.v1\"}",
+  "input_decoded": {
+    "data": {
+      "actor": "agent",
+      "id": 1900000,
+      "path": "/livewire/update",
+      "reason": "math text is blocked",
+      "repository": "crs",
+      "rules": [
+        "933180"
+      ],
+      "target": "ARGS:json.components.*.updates.body",
+      "website": "app.example.org"
+    },
+    "datacontenttype": "application/json",
+    "id": "48c85e43-8b79-474f-8643-ea393a9ed3ff",
+    "source": "schild://web-1",
+    "specversion": "1.0",
+    "time": "2026-10-26T11:59:58.123Z",
+    "type": "schild.rule.exception_set.v1"
+  },
+  "expect": {
+    "valid": false,
+    "error": "schema"
+  }
+}

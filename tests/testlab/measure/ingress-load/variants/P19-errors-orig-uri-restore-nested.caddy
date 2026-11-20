@@ -1,0 +1,20 @@
+# unprotected: []
+# expect: refuse
+# Like P18 with {http.request.orig_uri} in the nested route, no vars.
+http://a.example.test:18080 {
+	route {
+		rewrite * /hidden?
+		schild
+		error "boom" 500
+	}
+	handle_errors {
+		route {
+			rewrite * /hidden?
+			schild
+			route {
+				rewrite * {http.request.orig_uri}
+			}
+			reverse_proxy 127.0.0.1:18082
+		}
+	}
+}

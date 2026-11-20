@@ -1,0 +1,31 @@
+{
+  "contract": "events",
+  "description": "D57: the event holds the whole policy.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"data\":{\"actor\":\"dashboard\",\"bots\":{\"gptbot\":\"allow\"},\"categories\":{\"ai_training\":\"block\"},\"user\":\"admin\",\"website\":\"musterverein.example\"},\"datacontenttype\":\"application/json\",\"id\":\"3ee81836-710a-40cf-bf77-8187780c49ad\",\"source\":\"schild://web-1\",\"specversion\":\"1.0\",\"time\":\"2026-10-26T11:59:58.123Z\",\"type\":\"schild.crawler.policy_set.v1\"}",
+  "input_decoded": {
+    "data": {
+      "actor": "dashboard",
+      "bots": {
+        "gptbot": "allow"
+      },
+      "categories": {
+        "ai_training": "block"
+      },
+      "user": "admin",
+      "website": "musterverein.example"
+    },
+    "datacontenttype": "application/json",
+    "id": "3ee81836-710a-40cf-bf77-8187780c49ad",
+    "source": "schild://web-1",
+    "specversion": "1.0",
+    "time": "2026-10-26T11:59:58.123Z",
+    "type": "schild.crawler.policy_set.v1"
+  },
+  "expect": {
+    "valid": false,
+    "error": "schema"
+  }
+}

@@ -1,0 +1,31 @@
+{
+  "contract": "website-derive",
+  "description": "D36: a block that reaches a backend without schild and is not listed is refused (MVP-19 validator).",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"blocks\":[{\"addresses\":[\"example.org\"],\"proxies\":true,\"schild\":true},{\"addresses\":[\"admin.example.org\"],\"proxies\":true,\"schild\":false}],\"mode\":\"ingress\"}",
+  "input_decoded": {
+    "blocks": [
+      {
+        "addresses": [
+          "example.org"
+        ],
+        "proxies": true,
+        "schild": true
+      },
+      {
+        "addresses": [
+          "admin.example.org"
+        ],
+        "proxies": true,
+        "schild": false
+      }
+    ],
+    "mode": "ingress"
+  },
+  "expect": {
+    "valid": false,
+    "error": "config"
+  }
+}

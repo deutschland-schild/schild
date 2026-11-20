@@ -1,0 +1,55 @@
+{
+  "contract": "config/lab",
+  "description": "Checkpoint TTL above 10 minutes.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"channel\":\"schild-main\",\"clients\":[{\"issuer\":\"issuer-test-1\",\"keyid\":\"test-site-a\",\"public_key\":\"ed25519:4HDXCYuKTC7or+jY5cfx0frqJsA5bTxnc1Ftu0gjb5w=\"},{\"issuer\":\"issuer-test-2\",\"keyid\":\"test-site-c\",\"public_key\":\"ed25519:kvgubTf561NxFRt6siZ7/yZx/rl/ZOv2gRyRTlfCybs=\",\"quota_per_day\":1000}],\"config_version\":0,\"identity\":{\"lab\":\"lab-a\",\"operator\":\"op-test-a\"},\"issuers\":[{\"id\":\"issuer-test-1\"},{\"id\":\"issuer-test-2\"}],\"keys\":[{\"keyid\":\"test-lab-a\",\"private_key_file\":\"/etc/schild-lab/keys/lab.key\",\"purposes\":[\"ack\",\"rules\",\"checkpoint\"]}],\"publish\":{\"checkpoint_ttl_s\":900}}",
+  "input_decoded": {
+    "channel": "schild-main",
+    "clients": [
+      {
+        "issuer": "issuer-test-1",
+        "keyid": "test-site-a",
+        "public_key": "ed25519:4HDXCYuKTC7or+jY5cfx0frqJsA5bTxnc1Ftu0gjb5w="
+      },
+      {
+        "issuer": "issuer-test-2",
+        "keyid": "test-site-c",
+        "public_key": "ed25519:kvgubTf561NxFRt6siZ7/yZx/rl/ZOv2gRyRTlfCybs=",
+        "quota_per_day": 1000
+      }
+    ],
+    "config_version": 0,
+    "identity": {
+      "lab": "lab-a",
+      "operator": "op-test-a"
+    },
+    "issuers": [
+      {
+        "id": "issuer-test-1"
+      },
+      {
+        "id": "issuer-test-2"
+      }
+    ],
+    "keys": [
+      {
+        "keyid": "test-lab-a",
+        "private_key_file": "/etc/schild-lab/keys/lab.key",
+        "purposes": [
+          "ack",
+          "rules",
+          "checkpoint"
+        ]
+      }
+    ],
+    "publish": {
+      "checkpoint_ttl_s": 900
+    }
+  },
+  "expect": {
+    "valid": false,
+    "error": "schema"
+  }
+}

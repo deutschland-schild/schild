@@ -1,0 +1,28 @@
+{
+  "contract": "geo-map",
+  "description": "v0.5 MVP-22: IPinfo Lite fields; country name and continent are ignored.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"provider\":\"ipinfo\",\"record\":{\"as_domain\":\"telekom.example\",\"as_name\":\"Example Telekom\",\"asn\":\"AS64496\",\"continent_code\":\"EU\",\"country\":\"Germany\",\"country_code\":\"DE\"}}",
+  "input_decoded": {
+    "provider": "ipinfo",
+    "record": {
+      "as_domain": "telekom.example",
+      "as_name": "Example Telekom",
+      "asn": "AS64496",
+      "continent_code": "EU",
+      "country": "Germany",
+      "country_code": "DE"
+    }
+  },
+  "expect": {
+    "valid": true,
+    "result": {
+      "as_domain": "telekom.example",
+      "as_name": "Example Telekom",
+      "asn": 64496,
+      "country": "DE"
+    }
+  }
+}

@@ -1,0 +1,18 @@
+# unprotected: []
+# expect: refuse
+# Site a hides the query from its schild and fails; a catch-all site's handle_errors (server-wide, no host matcher) runs schild and proxies.
+http://a.example.test:18080 {
+	route {
+		rewrite * /hidden?
+		schild
+		error "boom" 500
+	}
+}
+http://:18080 {
+	import schild
+	reverse_proxy 127.0.0.1:18082
+	handle_errors {
+		import schild
+		reverse_proxy 127.0.0.1:18082
+	}
+}

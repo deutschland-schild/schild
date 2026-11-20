@@ -1,0 +1,1243 @@
+openapi: 3.1.0
+info:
+  title: Schild lab dashboard API
+  version: 0.3.0
+  description: |
+    Local API of `schild-lab` for the lab dashboard. Served on the dashboard port
+    (default 127.0.0.1:8789) under /api/v0. A lab never receives visitor IPs, so nothing
+    here contains one. Same conventions as the client dashboard API: session cookie,
+    `X-CSRF-Token` on state changes, RFC 9457 problems, cursor pagination, RFC 3339 UTC.
+
+    Humans decide (concept 23 §5): proposals are approved by people, the emergency stop
+    needs a typed confirmation and k-of-n signatures of other operators.
+
+    Also: a live stream GET /events/stream, co-signing of bundles (POST /bundles/{version}/cosign),
+    Proposal.created_by (the author may not approve, problem code `self_approval`), typed
+    ProposalInput.target, Relay coverage (bundle_version, withdrawal_seq), and the public log root as
+    RFC 6962 tree hash (LogEntry.envelope_sha256, contracts/cosign.md).
+
+    Relay.kind tells relays and peer labs apart. The lab derives it from
+    its peer configuration (a stream subscription signed with Schild-Peer-Auth by a configured
+    peer's rules key), never from the self-reported subscriber name.
+  license:
+    name: see repository
+servers:
+  - url: /api/v0
+security:
+  - session: []
+tags:
+  - name: auth
+  - name: health
+  - name: patterns
+  - name: proposals
+  - name: bundles
+  - name: withdrawals
+  - name: network
+  - name: log
+  - name: clients
+  - name: settings
+paths:
+  /auth/session:
+    get:
+      tags: [auth]
+      operationId: getSession
+      security: []
+      responses:
+        default: { $ref: "#/components/responses/Problem" }
+        "200":
+          description: Session state.
+          content:
+            application/json:
+              schema: { $ref: "client-dashboard.openapi.yaml#/components/schemas/Session" }
+  /auth/setup:
+    post:
+      tags: [auth]
+      operationId: setupPassword
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "client-dashboard.openapi.yaml#/components/schemas/SetupRequest" }
+      responses:
+        default: { $ref: "#/components/responses/Problem" }
+        "200":
+          description: Password set.
+          content:
+            application/json:
+              schema: { $ref: "client-dashboard.openapi.yaml#/components/schemas/Session" }
+        "409": { $ref: "#/components/responses/Problem" }
+  /auth/login:
+    post:
+      tags: [auth]
+      operationId: login
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "client-dashboard.openapi.yaml#/components/schemas/LoginRequest" }
+      responses:
+        default: { $ref: "#/components/responses/Problem" }
+        "200":
+          description: Logged in.
+          content:
+            application/json:
+              schema: { $ref: "client-dashboard.openapi.yaml#/components/schemas/Session" }
+        "401": { $ref: "#/components/responses/Problem" }
+        "429": { $ref: "#/components/responses/Problem" }
+  /auth/logout:
+    post:
+      tags: [auth]
+      operationId: logout
+      parameters: [{ $ref: "#/components/parameters/CSRF" }]
+      responses:
+        default: { $ref: "#/components/responses/Problem" }
+        "204": { description: Logged out. }
+
+  /health:
+    get:
+      tags: [health]
+      operationId: getHealth
+      summary: Ingest rate, ack latency, queue depth by priority, workers, feed.
+      responses:
+        default: { $ref: "#/components/responses/Problem" }
+        "200":
+          description: Health.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/LabHealth" }
+
+  /events/stream:
+    get:
+      tags: [health]
+      operationId: streamEvents
+      summary: Live updates as SSE. The event name is the topic.
+      description: |
+        One stream per dashboard tab, never on the ingest path. `event:` names a topic, `data:` is one JSON
+        object: `health` carries a full LabHealth (sent at once and every 5 s), `signals` a ReceivedSignal,
+        `log` a LogEntry, every other topic (`patterns`, `proposals`, `bundles`, `withdrawals`, `network`,
+        `issuers`, `clients`, `settings`) a LiveNotice telling the UI which queries to refresh. A keep-alive
+        comment line every 15 s; `retry: 3000`. Events are not replayed: after a reconnect the UI refetches,
+        so Last-Event-ID is accepted and ignored. Slow connections lose events instead of buffering.
+      parameters:
+        - { name: Last-Event-ID, in: header, schema: { type: string, maxLength: 64 } }
+      responses:
+        default: { $ref: "#/components/responses/Problem" }
+        "200":
+          description: Event stream.
+          content:
+            text/event-stream:
+              schema: { type: string }
+
+  /patterns:
+    get:
+      tags: [patterns]
+      operationId: listPatterns
+      summary: Signals grouped by action_sig, counted by issuer (never by client key, G2).
+      parameters:
+        - { $ref: "#/components/parameters/From" }
+        - { $ref: "#/components/parameters/To" }
+        - { name: q, in: query, schema: { type: string, maxLength: 128 }, description: Substring of action_sig or category. }
+        - { name: category, in: query, schema: { type: string } }
+        - { name: country, in: query, schema: { type: string, pattern: "^[A-Z]{2}$" } }
+        - { name: asn, in: query, schema: { type: integer } }
+        - { name: min_issuers, in: query, schema: { type: integer, minimum: 0 } }
+        - { name: status, in: query, schema: { $ref: "#/components/schemas/PatternStatus" } }
+        - { name: sort, in: query, schema: { type: string, enum: [last_seen, signals, issuers, first_seen], default: last_seen } }
+        - { $ref: "#/components/parameters/Cursor" }
+        - { $ref: "#/components/parameters/Limit" }
+      responses:
+        default: { $ref: "#/components/responses/Problem" }
+        "200":
+          description: Page of patterns.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PatternPage" }
+  /patterns/{pattern_id}:
+    get:
+      tags: [patterns]
+      operationId: getPattern
+      parameters: [{ $ref: "#/components/parameters/PatternId" }]
+      responses:
+        default: { $ref: "#/components/responses/Problem" }
+        "200":
+          description: Pattern with timeline and sample signals.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PatternDetail" }
+        "404": { $ref: "#/components/responses/Problem" }
+  /signals:
+    get:
+      tags: [patterns]
+      operationId: listSignals
+      summary: Raw received signals (positive-list payloads plus issuer and receive time).
+      parameters:
+        - { $ref: "#/components/parameters/From" }
+        - { $ref: "#/components/parameters/To" }
+        - { name: pattern_id, in: query, schema: { type: string } }
+        - { name: issuer, in: query, schema: { type: string } }
+        - { $ref: "#/components/parameters/Cursor" }
+        - { $ref: "#/components/parameters/Limit" }
+      responses:
+        default: { $ref: "#/components/responses/Problem" }
+        "200":
+          description: Page of signals.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ReceivedSignalPage" }
+
+  /proposals:
+    get:
+      tags: [proposals]
+      operationId: listProposals
+      parameters:
+        - { name: status, in: query, schema: { $ref: "#/components/schemas/ProposalStatus" } }
+        - { $ref: "#/components/parameters/Cursor" }
+        - { $ref: "#/components/parameters/Limit" }
+      responses:
+        default: { $ref: "#/components/responses/Problem" }
+        "200":
+          description: Page of proposals.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ProposalPage" }
+    post:
+      tags: [proposals]
+      operationId: createProposal
+      summary: Draft a rule proposal, usually from a pattern. The SecLang text is validated against the subset at once.
+      parameters: [{ $ref: "#/components/parameters/CSRF" }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ProposalInput" }
+      responses:
+        default: { $ref: "#/components/responses/Problem" }
+        "201":
+          description: Draft created.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Proposal" }
+        "400": { $ref: "#/components/responses/Problem" }
+  /proposals/{id}:
+    get:
+      tags: [proposals]
+      operationId: getProposal
+      parameters: [{ $ref: "#/components/parameters/ProposalId" }]
+      responses:
+        default: { $ref: "#/components/responses/Problem" }
+        "200":
+          description: Proposal.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Proposal" }
+        "404": { $ref: "#/components/responses/Problem" }
+    patch:
+      tags: [proposals]
+      operationId: updateProposal
+      summary: Edit a draft (status draft or review only).
+      parameters: [{ $ref: "#/components/parameters/ProposalId" }, { $ref: "#/components/parameters/CSRF" }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ProposalInput" }
+      responses:
+        default: { $ref: "#/components/responses/Problem" }
+        "200":
+          description: Updated.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Proposal" }
+        "409": { $ref: "#/components/responses/Problem" }
+  /proposals/{id}/evidence:
+    post:
+      tags: [proposals]
+      operationId: addEvidence
+      summary: Attach a reproduction (reproducing request + target container version) or a sensor observation.
+      parameters: [{ $ref: "#/components/parameters/ProposalId" }, { $ref: "#/components/parameters/CSRF" }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/EvidenceInput" }
+      responses:
+        default: { $ref: "#/components/responses/Problem" }
+        "200":
+          description: Updated proposal with recomputed allowed max_action.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Proposal" }
+  /proposals/{id}/approve:
+    post:
+      tags: [proposals]
+      operationId: approveProposal
+      summary: "Human approval. max_action can never exceed what the evidence allows. The author of the proposal (created_by) may not approve it (403, code self_approval)."
+      parameters: [{ $ref: "#/components/parameters/ProposalId" }, { $ref: "#/components/parameters/CSRF" }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ApproveProposal" }
+      responses:
+        default: { $ref: "#/components/responses/Problem" }
+        "200":
+          description: Approved.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Proposal" }
+        "409": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+  /proposals/{id}/reject:
+    post:
+      tags: [proposals]
+      operationId: rejectProposal
+      parameters: [{ $ref: "#/components/parameters/ProposalId" }, { $ref: "#/components/parameters/CSRF" }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/RejectProposal" }
+      responses:
+        default: { $ref: "#/components/responses/Problem" }
+        "200":
+          description: Rejected.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Proposal" }
+
+  /bundles:
+    get:
+      tags: [bundles]
+      operationId: listBundles
+      parameters:
+        - { $ref: "#/components/parameters/Cursor" }
+        - { $ref: "#/components/parameters/Limit" }
+      responses:
+        default: { $ref: "#/components/responses/Problem" }
+        "200":
+          description: Bundles of the channel, newest first.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/BundlePage" }
+    post:
+      tags: [bundles]
+      operationId: assembleBundle
+      summary: Assemble the next bundle version from the current rules plus approved proposals and sign it with this lab's key. It is published once k operators signed.
+      parameters: [{ $ref: "#/components/parameters/CSRF" }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/AssembleBundle" }
+      responses:
+        default: { $ref: "#/components/responses/Problem" }
+        "201":
+          description: Bundle draft with this lab's signature.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Bundle" }
+        "400": { $ref: "#/components/responses/Problem" }
+  /bundles/{version}:
+    get:
+      tags: [bundles]
+      operationId: getBundle
+      parameters:
+        - { name: version, in: path, required: true, schema: { type: integer, minimum: 1 } }
+      responses:
+        default: { $ref: "#/components/responses/Problem" }
+        "200":
+          description: Bundle with rules and signatures.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Bundle" }
+        "404": { $ref: "#/components/responses/Problem" }
+
+  /bundles/{version}/cosign:
+    post:
+      tags: [bundles]
+      operationId: cosignBundle
+      summary: Co-sign a bundle proposed by another lab. Signs the same payload bytes with this lab's rules key after the password check and posts the signature to the proposing lab (cosign.md).
+      parameters:
+        - { name: version, in: path, required: true, schema: { type: integer, minimum: 1 } }
+        - { $ref: "#/components/parameters/CSRF" }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/Confirm" }
+      responses:
+        default: { $ref: "#/components/responses/Problem" }
+        "200":
+          description: Signed; the bundle with this lab's signature.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Bundle" }
+        "404": { $ref: "#/components/responses/Problem" }
+        "409": { $ref: "#/components/responses/Problem" }
+
+  /withdrawals:
+    get:
+      tags: [withdrawals]
+      operationId: listWithdrawals
+      parameters:
+        - { $ref: "#/components/parameters/Cursor" }
+        - { $ref: "#/components/parameters/Limit" }
+      responses:
+        default: { $ref: "#/components/responses/Problem" }
+        "200":
+          description: Withdrawals and emergency stops, newest first.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/WithdrawalPage" }
+    post:
+      tags: [withdrawals]
+      operationId: createWithdrawal
+      summary: Withdraw single rules. Signed by this lab; effective once k operators signed.
+      parameters: [{ $ref: "#/components/parameters/CSRF" }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/WithdrawalInput" }
+      responses:
+        default: { $ref: "#/components/responses/Problem" }
+        "201":
+          description: Withdrawal draft with this lab's signature.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Withdrawal" }
+  /emergency-stop:
+    post:
+      tags: [withdrawals]
+      operationId: emergencyStop
+      summary: Emergency stop - withdraw all network rules (local rules on every site stay). Requires the typed confirmation "NOT-AUS" and the password.
+      parameters: [{ $ref: "#/components/parameters/CSRF" }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/EmergencyStopInput" }
+      responses:
+        default: { $ref: "#/components/responses/Problem" }
+        "201":
+          description: Emergency stop signed by this lab, waiting for co-signatures.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Withdrawal" }
+        "400": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+  /withdrawals/{seq}/cosign:
+    post:
+      tags: [withdrawals]
+      operationId: cosignWithdrawal
+      summary: Co-sign a withdrawal proposed by another lab (shown in the list with status collecting).
+      parameters:
+        - { name: seq, in: path, required: true, schema: { type: integer, minimum: 1 } }
+        - { $ref: "#/components/parameters/CSRF" }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/Confirm" }
+      responses:
+        default: { $ref: "#/components/responses/Problem" }
+        "200":
+          description: Signed.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Withdrawal" }
+
+  /relays:
+    get:
+      tags: [network]
+      operationId: listRelays
+      responses:
+        default: { $ref: "#/components/responses/Problem" }
+        "200":
+          description: Subscribers of this lab's feed, relays and peer labs (Relay.kind).
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/RelayList" }
+  /peers:
+    get:
+      tags: [network]
+      operationId: listPeers
+      responses:
+        default: { $ref: "#/components/responses/Problem" }
+        "200":
+          description: Configured peers (concept 21 §4.2).
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PeerList" }
+
+  /log:
+    get:
+      tags: [log]
+      operationId: listLog
+      summary: The lab's public append-only log (proposals, bundles, withdrawals, checkpoints). Never contains client data.
+      parameters:
+        - { name: kind, in: query, schema: { type: string, enum: [proposal, bundle, withdrawal, checkpoint] } }
+        - { $ref: "#/components/parameters/Cursor" }
+        - { $ref: "#/components/parameters/Limit" }
+      responses:
+        default: { $ref: "#/components/responses/Problem" }
+        "200":
+          description: Page of log entries.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/LogPage" }
+  /log/{index}:
+    get:
+      tags: [log]
+      operationId: getLogEntry
+      parameters:
+        - { name: index, in: path, required: true, schema: { type: integer, minimum: 0 } }
+      responses:
+        default: { $ref: "#/components/responses/Problem" }
+        "200":
+          description: Entry with the signed envelope.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/LogEntry" }
+        "404": { $ref: "#/components/responses/Problem" }
+
+  /issuers:
+    get:
+      tags: [clients]
+      operationId: listIssuers
+      responses:
+        default: { $ref: "#/components/responses/Problem" }
+        "200":
+          description: Issuers (guarantors) with quota and usage.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/IssuerList" }
+  /issuers/{id}:
+    patch:
+      tags: [clients]
+      operationId: updateIssuer
+      parameters: [{ $ref: "#/components/parameters/IssuerId" }, { $ref: "#/components/parameters/CSRF" }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/QuotaPatch" }
+      responses:
+        default: { $ref: "#/components/responses/Problem" }
+        "200":
+          description: Updated.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Issuer" }
+  /issuers/{id}/revoke:
+    post:
+      tags: [clients]
+      operationId: revokeIssuer
+      summary: Revoke an issuer - all its clients stop counting at once.
+      parameters: [{ $ref: "#/components/parameters/IssuerId" }, { $ref: "#/components/parameters/CSRF" }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/Confirm" }
+      responses:
+        default: { $ref: "#/components/responses/Problem" }
+        "200":
+          description: Revoked.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Issuer" }
+  /clients:
+    get:
+      tags: [clients]
+      operationId: listClients
+      parameters:
+        - { name: issuer, in: query, schema: { type: string } }
+        - { $ref: "#/components/parameters/Cursor" }
+        - { $ref: "#/components/parameters/Limit" }
+      responses:
+        default: { $ref: "#/components/responses/Problem" }
+        "200":
+          description: Admitted site keys (prototype per-site key scheme).
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ClientPage" }
+  /clients/{keyid}:
+    patch:
+      tags: [clients]
+      operationId: updateClient
+      parameters: [{ $ref: "#/components/parameters/KeyId" }, { $ref: "#/components/parameters/CSRF" }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/QuotaPatch" }
+      responses:
+        default: { $ref: "#/components/responses/Problem" }
+        "200":
+          description: Updated.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Client" }
+  /clients/{keyid}/revoke:
+    post:
+      tags: [clients]
+      operationId: revokeClient
+      parameters: [{ $ref: "#/components/parameters/KeyId" }, { $ref: "#/components/parameters/CSRF" }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/Confirm" }
+      responses:
+        default: { $ref: "#/components/responses/Problem" }
+        "200":
+          description: Revoked.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Client" }
+
+  /settings:
+    get:
+      tags: [settings]
+      operationId: getSettings
+      responses:
+        default: { $ref: "#/components/responses/Problem" }
+        "200":
+          description: Settings.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/LabSettings" }
+    patch:
+      tags: [settings]
+      operationId: updateSettings
+      parameters: [{ $ref: "#/components/parameters/CSRF" }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/LabSettingsPatch" }
+      responses:
+        default: { $ref: "#/components/responses/Problem" }
+        "200":
+          description: Updated (written to lab.yaml, validated with the same validator).
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/LabSettings" }
+        "400": { $ref: "#/components/responses/Problem" }
+
+components:
+  securitySchemes:
+    session:
+      type: apiKey
+      in: cookie
+      name: schild_lab_session
+  parameters:
+    CSRF: { $ref: "client-dashboard.openapi.yaml#/components/parameters/CSRF" }
+    Cursor: { $ref: "client-dashboard.openapi.yaml#/components/parameters/Cursor" }
+    Limit: { $ref: "client-dashboard.openapi.yaml#/components/parameters/Limit" }
+    From: { $ref: "client-dashboard.openapi.yaml#/components/parameters/From" }
+    To: { $ref: "client-dashboard.openapi.yaml#/components/parameters/To" }
+    PatternId:
+      name: pattern_id
+      in: path
+      required: true
+      schema: { type: string, pattern: "^p_[0-9a-f]{16}$" }
+    ProposalId:
+      name: id
+      in: path
+      required: true
+      schema: { type: string, maxLength: 64 }
+    IssuerId:
+      name: id
+      in: path
+      required: true
+      schema: { type: string, maxLength: 63 }
+    KeyId:
+      name: keyid
+      in: path
+      required: true
+      schema: { type: string, maxLength: 128 }
+  responses:
+    Problem: { $ref: "client-dashboard.openapi.yaml#/components/responses/Problem" }
+  schemas:
+    Timestamp: { $ref: "client-dashboard.openapi.yaml#/components/schemas/Timestamp" }
+    NullableTimestamp: { $ref: "client-dashboard.openapi.yaml#/components/schemas/NullableTimestamp" }
+    MaxAction: { type: string, enum: [observe, challenge, block] }
+    PatternStatus: { type: string, enum: [new, watching, proposed, published, ignored] }
+    ProposalStatus: { type: string, enum: [draft, review, approved, rejected, published, withdrawn] }
+    Count:
+      type: object
+      additionalProperties: false
+      required: [key, count]
+      properties:
+        key: { type: [string, integer] }
+        count: { type: integer, minimum: 0 }
+
+    LabHealth:
+      type: object
+      additionalProperties: false
+      required: [lab, operator, generated_at, ingest, ack_ms, queue, workers, feed]
+      properties:
+        lab: { type: string }
+        operator: { type: string }
+        profile: { type: string, enum: [production, test] }
+        generated_at: { $ref: "#/components/schemas/Timestamp" }
+        ingest:
+          type: object
+          additionalProperties: false
+          required: [rate_per_s, accepted_24h, duplicate_24h, rejected_24h, rejected_by_reason]
+          properties:
+            rate_per_s: { type: number, minimum: 0 }
+            accepted_24h: { type: integer, minimum: 0 }
+            duplicate_24h: { type: integer, minimum: 0 }
+            rejected_24h: { type: integer, minimum: 0 }
+            rejected_by_reason: { type: object, additionalProperties: { type: integer, minimum: 0 } }
+            retry_after_sent_24h: { type: integer, minimum: 0 }
+        ack_ms:
+          type: object
+          additionalProperties: false
+          required: [p50, p99, window_s]
+          properties:
+            p50: { type: number, minimum: 0 }
+            p99: { type: number, minimum: 0, description: Target < 50 ms (M6). }
+            max: { type: number, minimum: 0 }
+            window_s: { type: integer, minimum: 1 }
+        queue:
+          type: object
+          additionalProperties: false
+          required: [depth, max_depth, full]
+          properties:
+            depth:
+              type: object
+              additionalProperties: false
+              required: [new_pattern, repeat, baseline]
+              properties:
+                new_pattern: { type: integer, minimum: 0 }
+                repeat: { type: integer, minimum: 0 }
+                baseline: { type: integer, minimum: 0 }
+            max_depth: { type: integer, minimum: 0 }
+            full: { type: boolean }
+            oldest_age_s: { type: number, minimum: 0 }
+        workers:
+          type: array
+          items:
+            type: object
+            additionalProperties: false
+            required: [name, status]
+            properties:
+              name: { type: string }
+              status: { type: string, enum: [running, idle, lagging, stopped, failed] }
+              processed_per_s: { type: number, minimum: 0 }
+              lag_s: { type: number, minimum: 0 }
+              last_error: { type: [string, "null"] }
+        feed:
+          type: object
+          additionalProperties: false
+          required: [subscribers, checkpoint_seq, bundle_version, withdrawal_seq]
+          properties:
+            subscribers: { type: integer, minimum: 0 }
+            checkpoint_seq: { type: integer, minimum: 0 }
+            last_checkpoint_at: { $ref: "#/components/schemas/NullableTimestamp" }
+            bundle_version: { type: integer, minimum: 0 }
+            withdrawal_seq: { type: integer, minimum: 0 }
+
+    PatternSummary:
+      type: object
+      additionalProperties: false
+      required: [pattern_id, action_sig, status, signals, issuers, max_issuer_share, first_seen, last_seen]
+      properties:
+        pattern_id: { type: string, pattern: "^p_[0-9a-f]{16}$" }
+        action_sig: { type: string }
+        categories: { type: array, items: { type: string } }
+        status: { $ref: "#/components/schemas/PatternStatus" }
+        signals: { type: integer, minimum: 0 }
+        issuers: { type: integer, minimum: 0, description: Distinct issuers - the unit of independence (G2). }
+        clients: { type: integer, minimum: 0, description: Distinct client keys (shown, never used in thresholds). }
+        max_issuer_share: { type: number, minimum: 0, maximum: 1 }
+        request_sigs: { type: integer, minimum: 0 }
+        score_avg: { type: number, minimum: 0, maximum: 100 }
+        top_countries: { type: array, items: { $ref: "#/components/schemas/Count" } }
+        top_asns: { type: array, items: { $ref: "#/components/schemas/Count" } }
+        first_seen: { $ref: "#/components/schemas/Timestamp" }
+        last_seen: { $ref: "#/components/schemas/Timestamp" }
+        proposal_id: { type: [string, "null"] }
+    PatternPage:
+      type: object
+      additionalProperties: false
+      required: [items, next_cursor]
+      properties:
+        items: { type: array, items: { $ref: "#/components/schemas/PatternSummary" } }
+        next_cursor: { type: [string, "null"] }
+    PatternDetail:
+      type: object
+      additionalProperties: false
+      required: [pattern, by_issuer, countries, asns, net_classes, agents, waf_rules, timeline]
+      properties:
+        pattern: { $ref: "#/components/schemas/PatternSummary" }
+        by_issuer: { type: array, items: { $ref: "#/components/schemas/Count" } }
+        by_operator:
+          type: array
+          description: Signals from federation peers, counted by their operator.
+          items: { $ref: "#/components/schemas/Count" }
+        countries: { type: array, items: { $ref: "#/components/schemas/Count" } }
+        asns: { type: array, items: { $ref: "#/components/schemas/Count" } }
+        net_classes: { type: array, items: { $ref: "#/components/schemas/Count" } }
+        agents: { type: array, items: { $ref: "#/components/schemas/Count" } }
+        waf_rules: { type: array, items: { $ref: "#/components/schemas/Count" } }
+        timeline:
+          type: array
+          items:
+            type: object
+            additionalProperties: false
+            required: [bucket, signals, issuers]
+            properties:
+              bucket: { $ref: "#/components/schemas/Timestamp" }
+              signals: { type: integer, minimum: 0 }
+              issuers: { type: integer, minimum: 0 }
+        samples: { type: array, maxItems: 20, items: { $ref: "#/components/schemas/ReceivedSignal" } }
+    ReceivedSignal:
+      type: object
+      additionalProperties: false
+      required: [received_at, issuer, payload]
+      properties:
+        received_at: { $ref: "#/components/schemas/Timestamp" }
+        issuer: { type: string }
+        keyid: { type: string, description: Prototype only (per-site key); absent with tokens in v1. }
+        pattern_id: { type: string }
+        payload: { $ref: "../signal.schema.json" }
+    ReceivedSignalPage:
+      type: object
+      additionalProperties: false
+      required: [items, next_cursor]
+      properties:
+        items: { type: array, items: { $ref: "#/components/schemas/ReceivedSignal" } }
+        next_cursor: { type: [string, "null"] }
+
+    Reproduction:
+      type: object
+      additionalProperties: false
+      required: [lab, operator, status, image, version]
+      properties:
+        lab: { type: string }
+        operator: { type: string }
+        status: { type: string, enum: [pending, reproduced, not_reproduced, error] }
+        image: { type: string, description: Target container image (for example wordpress:6.6.2 with plugin gallery 2.4.0). }
+        version: { type: string }
+        request_digest: { type: string, description: sha256 of the reproducing request (stored in the lab, not public). }
+        at: { $ref: "#/components/schemas/NullableTimestamp" }
+    Proposal:
+      type: object
+      additionalProperties: false
+      required: [id, rule_id, status, class, seclang, seclang_check, target, evidence, allowed_max_action, requested_max_action, approvals, created_at]
+      properties:
+        id: { type: string }
+        rule_id: { type: string, pattern: "^schild-20[0-9]{2}-[0-9]{4,6}$" }
+        status: { $ref: "#/components/schemas/ProposalStatus" }
+        pattern_id: { type: [string, "null"] }
+        class: { type: string, enum: [virtual_patch, heuristic, behavioral] }
+        stage: { type: string, enum: [shadow, canary, general] }
+        seclang: { type: string }
+        seclang_check:
+          type: object
+          additionalProperties: false
+          required: [valid]
+          properties:
+            valid: { type: boolean }
+            error: { type: string }
+        target: { $ref: "#/components/schemas/Target" }
+        evidence:
+          type: object
+          additionalProperties: false
+          required: [reproduced_operators, sensor_operators, tip_issuers, max_issuer_share, human_approval_orgs, reproductions]
+          properties:
+            reproduced_operators: { type: integer, minimum: 0 }
+            sensor_operators: { type: integer, minimum: 0 }
+            tip_issuers: { type: integer, minimum: 0 }
+            max_issuer_share: { type: number, minimum: 0, maximum: 1 }
+            human_approval_orgs: { type: integer, minimum: 0 }
+            negative_corpus: { type: object, additionalProperties: false, properties: { version: { type: string }, matches: { type: integer, minimum: 0 } } }
+            reproductions: { type: array, items: { $ref: "#/components/schemas/Reproduction" } }
+        allowed_max_action:
+          description: Highest action the evidence allows (G2); null when not even observe.
+          oneOf: [{ $ref: "#/components/schemas/MaxAction" }, { type: "null" }]
+        requested_max_action: { $ref: "#/components/schemas/MaxAction" }
+        max_action_until: { $ref: "#/components/schemas/NullableTimestamp" }
+        approvals:
+          type: array
+          items:
+            type: object
+            additionalProperties: false
+            required: [by, org, at]
+            properties:
+              by: { type: string }
+              org: { type: string }
+              at: { $ref: "#/components/schemas/Timestamp" }
+              max_action: { $ref: "#/components/schemas/MaxAction" }
+        rejected_reason: { type: [string, "null"] }
+        bundle_version: { type: [integer, "null"] }
+        created_by: { type: [string, "null"], description: "User who drafted the proposal; that person may not approve it (problem code self_approval). Null for drafts from a localhost session." }
+        created_at: { $ref: "#/components/schemas/Timestamp" }
+        updated_at: { $ref: "#/components/schemas/Timestamp" }
+    Target:
+      description: Software a rule protects.
+      type: object
+      additionalProperties: false
+      required: [software, versions]
+      properties:
+        software: { type: string, pattern: "^[a-z0-9][a-z0-9._/-]{0,127}$", description: Lower-case token such as wp-plugin/gallery or generic. }
+        versions: { type: string, pattern: "^[<>=!~^*0-9A-Za-z., -]{1,64}$", description: Version range such as <2.4.1 or *. }
+        cve: { type: array, maxItems: 16, items: { type: string, pattern: "^CVE-[0-9]{4}-[0-9]{4,7}$" } }
+    ProposalPage:
+      type: object
+      additionalProperties: false
+      required: [items, next_cursor]
+      properties:
+        items: { type: array, items: { $ref: "#/components/schemas/Proposal" } }
+        next_cursor: { type: [string, "null"] }
+    ProposalInput:
+      type: object
+      additionalProperties: false
+      properties:
+        pattern_id: { type: string }
+        class: { type: string, enum: [virtual_patch, heuristic, behavioral] }
+        seclang: { type: string, maxLength: 8192 }
+        target: { $ref: "#/components/schemas/Target" }
+        requested_max_action: { $ref: "#/components/schemas/MaxAction" }
+        max_action_until: { $ref: "#/components/schemas/Timestamp" }
+        stage: { type: string, enum: [shadow, canary, general] }
+    EvidenceInput:
+      type: object
+      additionalProperties: false
+      required: [kind]
+      properties:
+        kind: { type: string, enum: [reproduction, sensor, negative_corpus] }
+        image: { type: string }
+        version: { type: string }
+        request: { type: string, maxLength: 65536, description: Reproducing request (raw HTTP) - stored in the lab, hashed in the public log. }
+        result: { type: string, enum: [reproduced, not_reproduced] }
+        corpus_version: { type: string }
+        corpus_matches: { type: integer, minimum: 0 }
+    ApproveProposal:
+      type: object
+      additionalProperties: false
+      required: [max_action, org]
+      properties:
+        max_action: { $ref: "#/components/schemas/MaxAction" }
+        max_action_until: { $ref: "#/components/schemas/Timestamp" }
+        org: { type: string, maxLength: 64 }
+        note: { type: string, maxLength: 1000 }
+    RejectProposal:
+      type: object
+      additionalProperties: false
+      required: [reason]
+      properties:
+        reason: { type: string, minLength: 1, maxLength: 1000 }
+
+    Signature:
+      type: object
+      additionalProperties: false
+      required: [keyid, lab, operator, at]
+      properties:
+        keyid: { type: string }
+        lab: { type: string }
+        operator: { type: string }
+        at: { $ref: "#/components/schemas/Timestamp" }
+    Bundle:
+      type: object
+      additionalProperties: false
+      required: [channel, version, status, issued_at, expires, rules, signatures, threshold]
+      properties:
+        channel: { type: string }
+        version: { type: integer, minimum: 1 }
+        status: { type: string, enum: [collecting, published, superseded, expired] }
+        issued_at: { $ref: "#/components/schemas/Timestamp" }
+        expires: { $ref: "#/components/schemas/Timestamp" }
+        digest: { type: string }
+        rules:
+          type: array
+          items:
+            type: object
+            additionalProperties: false
+            required: [rule_id, class, max_action, stage]
+            properties:
+              rule_id: { type: string }
+              class: { type: string }
+              max_action: { $ref: "#/components/schemas/MaxAction" }
+              stage: { type: string }
+              change: { type: string, enum: [added, changed, unchanged] }
+        signatures: { type: array, items: { $ref: "#/components/schemas/Signature" } }
+        threshold: { type: integer, minimum: 2, description: Operators needed for clients with the default setting. }
+        proposed_by: { type: string, description: "Lab that assembled the bundle; another lab id means it waits for this lab's co-signature." }
+        envelope: { type: [object, "null"], description: The signed DSSE envelope once published. }
+    BundlePage:
+      type: object
+      additionalProperties: false
+      required: [items, next_cursor]
+      properties:
+        items: { type: array, items: { $ref: "#/components/schemas/Bundle" } }
+        next_cursor: { type: [string, "null"] }
+    AssembleBundle:
+      type: object
+      additionalProperties: false
+      required: [add, remove]
+      properties:
+        add: { type: array, items: { type: string }, description: Approved proposal ids. }
+        remove: { type: array, items: { type: string }, description: Rule ids to drop. }
+        validity_hours: { type: integer, minimum: 1, maximum: 744 }
+
+    Withdrawal:
+      type: object
+      additionalProperties: false
+      required: [seq, channel, scope, reason, up_to_version, status, signatures, threshold, created_at]
+      properties:
+        seq: { type: integer, minimum: 1 }
+        channel: { type: string }
+        scope: { type: string, enum: [all, rules] }
+        rule_ids: { type: array, items: { type: string } }
+        reason: { type: string, enum: [emergency_stop, false_positives, superseded, compromised_key, other] }
+        note: { type: string }
+        up_to_version: { type: integer, minimum: 1 }
+        status: { type: string, enum: [collecting, effective, superseded] }
+        signatures: { type: array, items: { $ref: "#/components/schemas/Signature" } }
+        threshold: { type: integer, minimum: 2 }
+        proposed_by: { type: string }
+        created_at: { $ref: "#/components/schemas/Timestamp" }
+        effective_at: { $ref: "#/components/schemas/NullableTimestamp" }
+    WithdrawalPage:
+      type: object
+      additionalProperties: false
+      required: [items, next_cursor]
+      properties:
+        items: { type: array, items: { $ref: "#/components/schemas/Withdrawal" } }
+        next_cursor: { type: [string, "null"] }
+    WithdrawalInput:
+      type: object
+      additionalProperties: false
+      required: [rule_ids, reason, confirm]
+      properties:
+        rule_ids: { type: array, minItems: 1, items: { type: string } }
+        reason: { type: string, enum: [false_positives, superseded, compromised_key, other] }
+        note: { type: string, maxLength: 280 }
+        confirm: { $ref: "#/components/schemas/Confirm" }
+    EmergencyStopInput:
+      type: object
+      additionalProperties: false
+      required: [confirm_text, password, reason]
+      properties:
+        confirm_text: { const: NOT-AUS, description: Typed by the operator. }
+        password: { type: string, maxLength: 256 }
+        reason: { type: string, enum: [emergency_stop, compromised_key] }
+        note: { type: string, maxLength: 280 }
+    Confirm:
+      type: object
+      additionalProperties: false
+      required: [password]
+      properties:
+        password: { type: string, maxLength: 256 }
+        note: { type: string, maxLength: 500 }
+
+    Relay:
+      type: object
+      additionalProperties: false
+      required: [id, kind, status]
+      properties:
+        id:
+          type: string
+          description: "Self-reported subscriber name (X-Schild-Relay) for relays; the verified peer lab id for peer labs."
+        kind:
+          type: string
+          enum: [relay, peer_lab]
+          description: >-
+            `peer_lab` when the stream subscription is signed (Schild-Peer-Auth, contracts/cosign.md)
+            by a rules key of a peer configured in lab.yaml; `relay` for every other subscriber, also one
+            whose self-reported name equals a peer lab id.
+        url: { type: string }
+        status: { type: string, enum: [connected, lagging, disconnected] }
+        connected_since: { $ref: "#/components/schemas/NullableTimestamp" }
+        last_event_id: { type: string }
+        lag_events: { type: integer, minimum: 0 }
+        bundle_version: { type: integer, minimum: 0, description: "Newest bundle version this lab delivered to the relay." }
+        withdrawal_seq: { type: integer, minimum: 0, description: "Newest withdrawal seq this lab delivered to the relay." }
+    RelayList:
+      type: object
+      additionalProperties: false
+      required: [items]
+      properties:
+        items: { type: array, items: { $ref: "#/components/schemas/Relay" } }
+    Peer:
+      type: object
+      additionalProperties: false
+      required: [lab, operator, endpoint, accept_from, share_with, trust_weight, observe_only, status]
+      properties:
+        lab: { type: string }
+        operator: { type: string }
+        endpoint: { type: string }
+        accept_from: { type: boolean }
+        share_with: { type: boolean }
+        trust_weight: { type: number, minimum: 0, maximum: 1 }
+        observe_only: { type: boolean }
+        status: { type: string, enum: [ok, slow, down, unknown] }
+        last_seen: { $ref: "#/components/schemas/NullableTimestamp" }
+        independent: { type: boolean, description: False when the peer has the same operator as this lab. }
+    PeerList:
+      type: object
+      additionalProperties: false
+      required: [items]
+      properties:
+        items: { type: array, items: { $ref: "#/components/schemas/Peer" } }
+
+    LogEntry:
+      type: object
+      additionalProperties: false
+      required: [index, time, kind, ref, digest, summary]
+      properties:
+        index: { type: integer, minimum: 0 }
+        time: { $ref: "#/components/schemas/Timestamp" }
+        kind: { type: string, enum: [proposal, bundle, withdrawal, checkpoint] }
+        ref: { type: string, description: Proposal id, bundle version, withdrawal seq or checkpoint seq. }
+        digest: { type: string }
+        summary: { type: string }
+        envelope_sha256:
+          description: "sha256 of the exact envelope bytes (bundle, withdrawal, checkpoint); null for proposals. Part of the leaf data of the RFC 6962 tree (cosign.md)."
+          oneOf: [{ type: string, pattern: "^sha256:[0-9a-f]{64}$" }, { type: "null" }]
+        envelope: { type: [object, "null"] }
+    LogPage:
+      type: object
+      additionalProperties: false
+      required: [items, next_cursor, head]
+      properties:
+        items: { type: array, items: { $ref: "#/components/schemas/LogEntry" } }
+        next_cursor: { type: [string, "null"] }
+        head:
+          type: object
+          additionalProperties: false
+          required: [size, root]
+          description: "Size and root signed by the checkpoint. Root is the RFC 6962 Merkle tree hash over the leaf data of entries 0..size-1 (cosign.md), so a client can recompute it from the entries."
+          properties:
+            size: { type: integer, minimum: 0 }
+            root: { type: string, pattern: "^sha256:[0-9a-f]{64}$" }
+
+    LiveNotice:
+      description: "Data of stream topics without their own body: refresh the queries of `topic`."
+      type: object
+      additionalProperties: false
+      required: [topic]
+      properties:
+        topic: { type: string, enum: [patterns, proposals, bundles, withdrawals, network, issuers, clients, settings] }
+        ref: { type: string, maxLength: 64, description: Id of the changed object (proposal id, bundle version, withdrawal seq). }
+
+    Issuer:
+      type: object
+      additionalProperties: false
+      required: [id, quota_per_day, used_24h, clients, revoked]
+      properties:
+        id: { type: string }
+        quota_per_day: { type: integer, minimum: 0 }
+        used_24h: { type: integer, minimum: 0 }
+        clients: { type: integer, minimum: 0 }
+        signals_24h: { type: integer, minimum: 0 }
+        rejected_24h: { type: integer, minimum: 0 }
+        patterns_24h: { type: integer, minimum: 0 }
+        revoked: { type: boolean }
+        revoked_at: { $ref: "#/components/schemas/NullableTimestamp" }
+    IssuerList:
+      type: object
+      additionalProperties: false
+      required: [items]
+      properties:
+        items: { type: array, items: { $ref: "#/components/schemas/Issuer" } }
+    Client:
+      type: object
+      additionalProperties: false
+      required: [keyid, issuer, quota_per_day, used_24h, revoked]
+      properties:
+        keyid: { type: string }
+        issuer: { type: string }
+        public_key: { type: string }
+        quota_per_day: { type: integer, minimum: 0 }
+        used_24h: { type: integer, minimum: 0 }
+        last_seen_bucket: { $ref: "#/components/schemas/NullableTimestamp" }
+        revoked: { type: boolean }
+        test_key: { type: boolean }
+    ClientPage:
+      type: object
+      additionalProperties: false
+      required: [items, next_cursor]
+      properties:
+        items: { type: array, items: { $ref: "#/components/schemas/Client" } }
+        next_cursor: { type: [string, "null"] }
+    QuotaPatch:
+      type: object
+      additionalProperties: false
+      required: [quota_per_day]
+      properties:
+        quota_per_day: { type: integer, minimum: 0, maximum: 100000000 }
+
+    LabSettings:
+      type: object
+      additionalProperties: false
+      required: [identity, channel, scoring, publish, ingest, retention]
+      properties:
+        identity: { type: object, additionalProperties: false, required: [operator, lab], properties: { operator: { type: string }, lab: { type: string } } }
+        profile: { type: string, enum: [production, test] }
+        channel: { type: string }
+        scoring:
+          type: object
+          additionalProperties: false
+          required: [min_issuers, max_issuer_share, window_minutes, min_score]
+          properties:
+            min_issuers: { type: integer, minimum: 3 }
+            max_issuer_share: { type: number, exclusiveMinimum: 0, maximum: 0.34 }
+            window_minutes: { type: integer, minimum: 5 }
+            min_score: { type: integer, minimum: 0, maximum: 100 }
+        publish:
+          type: object
+          additionalProperties: false
+          required: [bundle_validity_hours, checkpoint_interval_s, checkpoint_ttl_s, require_human_approval]
+          properties:
+            bundle_validity_hours: { type: integer, minimum: 1, maximum: 744 }
+            checkpoint_interval_s: { type: integer, minimum: 5, maximum: 300 }
+            checkpoint_ttl_s: { type: integer, minimum: 30, maximum: 600 }
+            require_human_approval: { const: true }
+        ingest:
+          type: object
+          additionalProperties: false
+          required: [rate_per_client_per_min, queue_max_depth, retry_after_ms]
+          properties:
+            rate_per_client_per_min: { type: integer, minimum: 1 }
+            queue_max_depth: { type: integer, minimum: 100 }
+            retry_after_ms: { type: integer, minimum: 1 }
+        retention:
+          type: object
+          additionalProperties: false
+          required: [signals_days, aggregates_days]
+          properties:
+            signals_days: { type: integer, minimum: 1, maximum: 30 }
+            aggregates_days: { type: integer, minimum: 1 }
+    LabSettingsPatch:
+      type: object
+      additionalProperties: false
+      properties:
+        scoring:
+          type: object
+          additionalProperties: false
+          properties:
+            min_issuers: { type: integer, minimum: 3 }
+            max_issuer_share: { type: number, exclusiveMinimum: 0, maximum: 0.34 }
+            window_minutes: { type: integer, minimum: 5 }
+            min_score: { type: integer, minimum: 0, maximum: 100 }
+        ingest:
+          type: object
+          additionalProperties: false
+          properties:
+            rate_per_client_per_min: { type: integer, minimum: 1 }
+            retry_after_ms: { type: integer, minimum: 1 }
+        retention:
+          type: object
+          additionalProperties: false
+          properties:
+            signals_days: { type: integer, minimum: 1, maximum: 30 }
+        confirm: { $ref: "#/components/schemas/Confirm" }

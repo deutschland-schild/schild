@@ -1,0 +1,32 @@
+{
+  "contract": "events",
+  "description": "D73: an exception for a crowdsec rule names the repository and the base id.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"data\":{\"id\":1900001,\"path\":\"/search\",\"reason\":\"search field\",\"repository\":\"crowdsec\",\"rules\":[\"62846312\"],\"target\":\"ARGS:q\",\"token_id\":\"tok_000000000001\",\"token_label\":\"Local agent\",\"website\":\"app.example.org\"},\"datacontenttype\":\"application/json\",\"id\":\"077f165b-1618-4bf2-8929-289155ad0f8b\",\"source\":\"schild://web-1\",\"specversion\":\"1.0\",\"time\":\"2026-10-26T11:59:58.123Z\",\"type\":\"schild.rule.exception_set.v1\"}",
+  "input_decoded": {
+    "data": {
+      "id": 1900001,
+      "path": "/search",
+      "reason": "search field",
+      "repository": "crowdsec",
+      "rules": [
+        "62846312"
+      ],
+      "target": "ARGS:q",
+      "token_id": "tok_000000000001",
+      "token_label": "Local agent",
+      "website": "app.example.org"
+    },
+    "datacontenttype": "application/json",
+    "id": "077f165b-1618-4bf2-8929-289155ad0f8b",
+    "source": "schild://web-1",
+    "specversion": "1.0",
+    "time": "2026-10-26T11:59:58.123Z",
+    "type": "schild.rule.exception_set.v1"
+  },
+  "expect": {
+    "valid": true
+  }
+}

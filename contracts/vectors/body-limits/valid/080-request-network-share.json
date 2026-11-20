@@ -1,0 +1,36 @@
+{
+  "contract": "body-limits",
+  "description": "D45: a network at its share: 429, scope network.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"client_known\":true,\"jitter_draw\":3,\"net_class\":\"business\",\"op\":\"request_admit\",\"request_limits\":{\"max_waiting\":8192,\"max_waiting_per_client\":1024,\"max_waiting_per_network\":4096},\"request_state\":{\"client_waiting\":10,\"network_waiting\":4096,\"waiting\":4096}}",
+  "input_decoded": {
+    "client_known": true,
+    "jitter_draw": 3,
+    "net_class": "business",
+    "op": "request_admit",
+    "request_limits": {
+      "max_waiting": 8192,
+      "max_waiting_per_client": 1024,
+      "max_waiting_per_network": 4096
+    },
+    "request_state": {
+      "client_waiting": 10,
+      "network_waiting": 4096,
+      "waiting": 4096
+    }
+  },
+  "expect": {
+    "valid": true,
+    "result": {
+      "admitted": false,
+      "class": "rejected_limit",
+      "code": "request_waiting_share",
+      "fail_closed": null,
+      "retry_after": 8,
+      "scope": "network",
+      "status": 429
+    }
+  }
+}

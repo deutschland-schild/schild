@@ -1,0 +1,70 @@
+id: MVP-09
+# Addendum (initiator, 2026-10-29): `schild dashboard reset-password` on the host only (CLI, no API): removes the
+# dashboard users and sessions, forces first-run setup with a new one-time setup code printed once, writes an audit
+# entry (who: host CLI, when), never touches events, settings or blocks; refused while another process holds the
+# store unless the running gateway is told through its local control path. Tests: old sessions invalid at once,
+# setup code required (also from localhost, D40), audit entry present.
+# Audit entry contracted (D38, contracts v0.5): the local event schild.dashboard.access_reset.v1 {via host_cli |
+# control_path, users_removed, sessions_ended, host_user?}; never a password, hash, setup code or session id; shown
+# in Ereignisse like other events; kept by the size cap as a record (deleted after waves and rule changes).
+title: "Gateway dashboard: what Schild sees and does on this server"
+ships: true
+image: schild                       # embedded via go:embed, served on the dashboard port
+hypotheses: [M2, D1, D3]
+refs: [E7, K6, T15, T16, T17, concept-03, concept-13-admin, concept-24, brand-02]
+depends_on: [MVP-01, MVP-02]
+contracts:
+  in:  [contracts/api/client-dashboard.openapi.yaml, contracts/api/fixtures/client/]
+  out: [ui/apps/client-dashboard (Vue 3 + TypeScript + Vite + Tailwind v4 + shadcn-vue), gateway/internal/webui (embed), client API handlers]
+build:
+  frontend: pnpm workspace in ui/, built with `make ui`, copied to gateway/internal/webui/dist
+  backend: client/ implements the API on 127.0.0.1:8788 by default
+screens:                            # German navigation labels
+  - 'Übersicht: mode, "Grundschutz aktiv" state with reasons, 24 h counters, rules'
+  - 'Ereignisse: list with filters (time, IP, country, ASN, path, rule, outcome, session), live view via SSE, detail'
+  - 'Vorfall: lookup by incident number, unblock, allow IP'   # D72: false-positive feedback to labs is lab later
+  - 'Regeln: CRS and local rules'
+  - 'Freischaltungen: own IPs, ranges, DynDNS names, expiry, "Meine IP freischalten"'
+  - 'Einstellungen: mode, retention'
+  - 'Datenschutz: search, export and delete everything stored about one IP'
+  - Anmeldung and Erstes Passwort
+must:
+  - reachable only on localhost or a VPN interface, or with login; first password needs the one-time setup code from the server log (D40: also from localhost)
+  - session cookie HttpOnly + SameSite=Strict, CSRF header on every change, strict CSP, no third-party requests at all (fonts and icons embedded), no telemetry
+  - full visitor IPs and locations are shown locally (E7)
+  - changing the mode needs the password again
+  - observe mode is visible on every screen; nothing suggests blocking while it only observes
+  - 'German UI copy, du-form, calm (docs/brand/01-marke.md#sprache): "Grundschutz aktiv", never "geschützt" or "sicher"; "pseudonym", never "anonym"; terms Anfrage, Ereignis, Regel'
+  - every error says what happened and the next step; empty states explain what will appear
+  - 'WCAG 2.2 AA: keyboard operable, visible focus, contrast, labels, no information by colour alone'
+  - lists use cursor pagination; the live view reconnects with Last-Event-ID; nothing polls faster than every 10 s
+  - works at 1280x800 and, for Übersicht and Vorfall, at 375 px width
+usability:                          # acceptance, measured with 5 people who run small sites (not developers), no help given
+  tasks:
+    - id: U1
+      task: "Ist der Grundschutz gerade aktiv? Läuft Schild nur im Beobachten-Modus?"
+      target: "correct answer within 10 s"
+    - id: U2
+      task: "Eine Besucherin meldet die Vorfallnummer K7QM-4XWD. Schalte sie frei und erlaube deine eigene IP für 7 Tage."
+      target: "within 2 min"
+    # U3 (what was sent to the labs) and U4 (approve a network recommendation in mode review): D72, lab later.
+    - id: U5
+      task: "Eine Person fragt, was über ihre IP 203.0.113.42 gespeichert ist. Exportiere es und lösche es danach."
+      target: "within 3 min"
+  pass: "each task solved by >= 4 of 5 people within its target; SUS >= 75; no person believes the site is fully safe after using the dashboard"
+measure:
+  - task success, time on task, SUS (done by the evaluator, not the builder)
+  - overview load < 1 s and list endpoints p95 < 200 ms on localhost with 1,000,000 stored events
+  - frontend bundle < 500 KB gzip
+  - 'egress capture while the dashboard is used: requests to anything but the dashboard origin'
+kill_if: "any dashboard request leaves the server (third-party asset, telemetry) OR a usability task is solved by fewer than 3 of 5 people"
+done: "make ui && make testlab-up && make eval SPEC=MVP-09"
+out_of_scope:
+  - passkeys (later)
+  - roles beyond admin and read-only
+  - hosted dashboard
+  - VPN setup
+  - server check UI
+  - forms and password protection UI
+  - English UI
+  - "D72: lab later: labs, relay and network rules on Übersicht and Regeln, bundle status, suspending network rules, the Gesendet view (transparency log of signals and feedback), the Prüfen queue of network recommendations, lab settings (labs, weights, min independent operators, signals), usability tasks U3 and U4"

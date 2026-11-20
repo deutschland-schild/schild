@@ -1,0 +1,68 @@
+# Fail-open front example for local development: front proxy -> schild -> app.
+# This is NOT the way to install schild: the quickstart for a first start is
+# deploy/quickstart (compose.yaml + schild.yaml, the published image). This
+# file shows the advanced setup in which `schild front` keeps a site reachable
+# when schild itself is down. It uses the local dev image schild:dev
+# (make gateway-image); replace it with the published image
+# ghcr.io/deutschland-schild/schild:<version> on a server.
+# Networks use the client's development subnet 10.66.32.0/24 (conventions.md §6).
+# Container logs are bounded (D38, storage-bounds.md section 5): at most
+# 5 files of 10 MB per service with the default json-file or local driver.
+# With the journald driver max-size and max-file do not apply; journald's
+# own limits (SystemMaxUse in journald.conf) bound the logs then.
+#
+# Put a schild.yaml next to this file:
+#
+#   config_version: 0
+#   node_name: dev
+#   upstream:
+#     url: "http://app:80"
+#   ingress:
+#     # the front container: only its X-Forwarded-For counts
+#     trusted_proxies: ["10.66.32.0/24"]
+#
+# Both schild containers run with a read-only root file system, no
+# capabilities and no-new-privileges; schild writes only to /var/lib/schild.
+name: schild-dev-client
+x-logging: &logging
+  options:
+    max-size: 10m
+    max-file: "5"
+x-hardening: &hardening
+  read_only: true
+  cap_drop: [ALL]
+  security_opt: ["no-new-privileges:true"]
+services:
+  app:
+    image: nginx:1.30.6-alpine
+    logging: *logging
+    networks: [site]
+  schild:
+    image: schild:dev
+    <<: *hardening
+    volumes:
+      - ./schild.yaml:/etc/schild/schild.yaml:ro
+      - schild-data:/var/lib/schild
+    logging: *logging
+    networks: [site]
+  front:
+    image: schild:dev
+    <<: *hardening
+    # The front reads schild's access lock state (D56, D71): without it, it
+    # never fails open.
+    command: ["front", "-listen", ":8000", "-schild", "http://schild:8080", "-app", "http://app:80", "-timeout", "35s", "-access-dir", "/var/lib/schild"]
+    volumes:
+      - schild-data:/var/lib/schild:ro
+    ports: ["127.0.0.1:8000:8000"]
+    # The image's health check asks schild's readyz on 127.0.0.1:9101, which
+    # does not exist in the front container.
+    healthcheck: { disable: true }
+    logging: *logging
+    networks: [site]
+networks:
+  site:
+    ipam:
+      config:
+        - subnet: 10.66.32.0/24
+volumes:
+  schild-data: {}

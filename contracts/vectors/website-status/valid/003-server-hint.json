@@ -1,0 +1,49 @@
+{
+  "contract": "website-status",
+  "description": "D36: a hint of the server it runs on: attention (\"bitte ansehen\"), shown as \"web-1: Platte fast voll\".",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"monitoring\":true,\"protection\":\"protected\",\"servers\":[{\"baseline_protection\":\"active\",\"hints\":[{\"code\":\"disk_full_soon\",\"level\":\"notice\",\"object\":\"/var/lib/docker\"}],\"node\":\"web-1\",\"state\":\"ok\"}],\"tracked\":true,\"traffic\":{\"fail_closed\":0,\"forwarded\":11900,\"requests\":12000,\"status_5xx\":4,\"upstream_errors\":3,\"upstream_timeouts\":0}}",
+  "input_decoded": {
+    "monitoring": true,
+    "protection": "protected",
+    "servers": [
+      {
+        "baseline_protection": "active",
+        "hints": [
+          {
+            "code": "disk_full_soon",
+            "level": "notice",
+            "object": "/var/lib/docker"
+          }
+        ],
+        "node": "web-1",
+        "state": "ok"
+      }
+    ],
+    "tracked": true,
+    "traffic": {
+      "fail_closed": 0,
+      "forwarded": 11900,
+      "requests": 12000,
+      "status_5xx": 4,
+      "upstream_errors": 3,
+      "upstream_timeouts": 0
+    }
+  },
+  "expect": {
+    "valid": true,
+    "result": {
+      "reasons": [
+        {
+          "code": "server_hint",
+          "hint": "disk_full_soon",
+          "node": "web-1",
+          "object": "/var/lib/docker"
+        }
+      ],
+      "status": "attention"
+    }
+  }
+}

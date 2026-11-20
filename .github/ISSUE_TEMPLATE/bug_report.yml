@@ -1,0 +1,42 @@
+name: Fehler melden
+description: Etwas funktioniert nicht wie beschrieben. Sicherheitslücken bitte nicht hier, siehe SECURITY.md.
+labels: [bug]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: Was ist passiert?
+      description: Was hast du erwartet, und was kam stattdessen?
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Schritte zum Nachstellen
+      placeholder: "1. schild run ...\n2. ..."
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Version oder Commit
+    validations:
+      required: true
+  - type: input
+    id: system
+    attributes:
+      label: System
+      placeholder: Debian 12, amd64, hinter nginx
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs
+      description: Bitte vorher IP-Adressen, Tokens und personenbezogene Daten entfernen.
+      render: text
+  - type: checkboxes
+    id: confirm
+    attributes:
+      label: Bestätigung
+      options:
+        - label: Das ist keine Sicherheitslücke, und die Logs enthalten keine vertraulichen Daten.
+          required: true

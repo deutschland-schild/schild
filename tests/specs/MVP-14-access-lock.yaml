@@ -1,0 +1,66 @@
+id: MVP-14
+# Direction decided by the initiator 2026-11-02 (DECISIONS D56): build step 1 now, the emergency case. "dieser
+# zusätzliche passwortschutz (wie bei netlify) wäre gold wert, um auch bei bekannten Lücken ohne Patch die seite
+# temporär zu schützen." and "Dort müsste man auch die Möglichkeit haben ganze Seiten oder Urls nur für eine IP
+# freizugeben." UI wording of the whole-site lock (2026-11-02): no "Nur für Interne" (people with the password need
+# not be staff); the UI says what it is by the ways in: "Nur mit Passwort erreichbar" and variants.
+# D58 (initiator 2026-11-02): "das muss UND sein, nicht OR" and "bau das zeitlimit aus. An oder aus": every condition
+# set must hold (password and address), and a protection has no end.
+# Step 1: scope site or paths, shared password, addresses of the protection, own networks, maintenance page,
+# dashboard module and `schild lock`, state in schild.db. Step 2: personal access entries with invite links, login log
+# in the dashboard, protection from schild.yaml, MVP-12 proof-of-work before the form, agent API.
+title: "Access lock: password-protect paths or switch a whole site to internal-only in one step (e.g. unpatched CVE), public sees a maintenance page"
+ships: false                        # draft
+status: ENTWURF
+image: schild                       # same binary; enforcement in the gate and in `schild front`
+hypotheses: [D3]
+refs: [concept-13-formulare-und-passwortschutz, concept-24, MVP-02, MVP-09, MVP-12, MVP-13]
+depends_on: [MVP-02, MVP-09]
+use_cases:
+  - 'Emergency: a CVE in the app (e.g. a WordPress plugin) has no patch yet; the operator switches the whole site to password only: everyone else gets a maintenance page, staff of the Verein keep working on the live site'
+  - 'Planned: staging, internal areas, board pages, an extra door in front of /wp-admin (path protection as in concept 13)'
+modes:
+  path: 'protect: [{path, auth, except, session}] — only matching paths need a login (concept 13)'
+  site: 'lock: whole site (/*) internal-only; the default scope of the emergency button; except-list empty by default'
+access:                             # one or more per protection; D58: every condition set must hold (addresses and own networks count as one)
+  - 'personal access: named entries (label, e.g. "Kasse", "Vorstand Anna") with their own password or a one-time invite link that sets it; revocable one by one; preferred because a leaked shared password locks everyone out at once'
+  - 'shared password: fastest option in an emergency; shown with a hint that it is not a user concept'
+  - 'addresses of this protection: IPs and networks, e.g. /wp-admin/* only for the office (D56); with a password as well both must hold and only these addresses get the form (D58); without a password the public gets no form'
+  - 'IP allowlist / VPN: own networks (any allowlist level, D56), one condition together with the addresses (D58)'
+  - 'later: OIDC (login via own provider) and passkeys (out of scope here)'
+contracts:
+  new:
+    - 'step 1 (D56): contract/access with the access-gate vectors (path comparison, who passes), state in schild.db; config keys protect[] and lock in schild.yaml are step 2'
+    - 'session cookie format (signed, no visitor id beyond the access entry id), login endpoint POST /.schild/access/login (D56; the MVP-12 prefix stays for MVP-12)'
+    - gateway dashboard API: lock on/off, access entries (create, invite link, revoke), login log
+    - lock state in the MVP-13 instance status (state only, no names)
+must:
+  - 'one step to lock: dashboard button and CLI `schild lock on [--message ...]` (CLI works when the dashboard is unreachable); unlock likewise; a lock is on until it is removed, no end date (D58)'
+  - 'unauthenticated requests never reach the app while locked: no forwarding, no app error pages, no asset passthrough; only explicit except paths (each shown with a warning that the app stays reachable there)'
+  - 'fail-closed while locked: if schild is down, `schild front` must not fail open to the app; it serves the maintenance page itself from a lock file written atomically by schild (lock state survives restarts); setups without `schild front` get a documented nginx/Caddy snippet that does the same'
+  - 'public answer: a calm maintenance page (customisable text and logo, default "Wir sind gleich wieder da"), status 503 with Retry-After so search engines keep the index; never mention a vulnerability or Schild internals; X-Robots-Tag noindex on the login page'
+  - 'login: own page in the website preview style (logo, text, color), not the Basic Auth dialog; Argon2id hashes only; rate limit per IP prefix and per access entry, short lockout after repeated failures, MVP-12 proof-of-work before the login form when available; no user enumeration'
+  - 'session: __Host- cookie, HttpOnly, Secure, SameSite=Lax, signed, ttl default 12 h; all sessions end on unlock, password change or revoke of the entry'
+  - 'honest limits shown in the dashboard: logged-in users still reach the vulnerable app, the WAF stays active for them; a shared password is not a user concept'
+  - 'the network (labs, relays) can never lock, unlock or change access; only the operator, locally or through the Schild Dashboard that manages this gateway (MVP-13)'
+  - 'login log stays local (entry label, time, IP prefix, success); retention 30 days; no export'
+  - 'German UI copy, du-form, calm, no fear wording'
+dashboard:
+  - 'One module "Passwortschutz" in Settings, as simple as Netlify''s Password Protection card: title, one line "Du kannst für diese Website unterschiedliche Schutzstufen festlegen.", two read-only rows and one button "Passwortschutz einrichten"'
+  - 'Row "Geschützt durch": Aus | Passwort (one shared password, the default and the "Basic protection" equivalent) | Persönliche Zugänge (named entries, invite links; step 2) | Nur bestimmte IPs (addresses of this protection) | Eigene IPs (allowlist/VPN); combinations allowed, every one must hold (D58), the row lists them ("Passwort und Eigene IPs")'
+  - 'Row "Gilt für": Ganze Website (public sees the maintenance page; the emergency case) | Nur bestimmte Bereiche (path list, e.g. /staging/*, /wp-admin/*)'
+  - 'The configure dialog: choose protection, set the password (or create entries), choose scope, maintenance text with preview; one primary button "Schutz aktivieren"'
+  - 'Overview: when the whole site is protected, a prominent card "Nur mit Passwort erreichbar" (wording by the conditions) with "Aufheben" (D58: no end, no "Verlängern")'
+  - 'Login log and access entries live under the module ("Zugänge", "Anmeldungen"), not on separate pages'
+  - 'Website preview (ManagePreview on /betreiber) and copy stay consistent with this module'
+measure:
+  - 'testlab: lock on t1 site; anonymous requests (all methods, assets, odd encodings, path tricks like //, %2e, ;, trailing dots, HEAD/OPTIONS, HTTP/1.0 without Host) get the maintenance page and 0 requests reach the app (app access log)'
+  - 'kill schild while locked: 0 requests reach the app via `schild front`; maintenance page still served'
+  - 'login works for each access type; revoke and unlock end sessions within one request'
+  - 'brute force: 10k guesses from many addresses lead to 0 logins, limits hold, the site stays up'
+  - 'M1: latency for logged-in users within the existing budget'
+kill_if: "while locked, an unauthenticated request reaches the app (including when schild is down) OR a revoked entry or ended lock still grants access OR anything outside the operator's local control can change the lock OR locking/unlocking breaks the site for logged-in users"
+done: "make contracts-test && make test && make testlab-up PROFILE=t1 && make smoke PROFILE=t1 (incl. lock steps)"
+out_of_scope: [OIDC and passkeys, e-mail delivery of invite links (dashboard shows the link to copy), per-user permissions inside the app, automatic lock on advisories (later: suggest the lock when MVP-11 inventory matches an advisory, never switch automatically)]
+open_questions:
+  - 'should except paths for webhooks (payment providers) be offered as presets, given they keep the vulnerable app reachable?'

@@ -1,0 +1,16 @@
+{
+  "contract": "website-visitor",
+  "description": "D36 amendment: all three fields are required.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"bot_category\":\"likely_browser\",\"ua_class\":\"browser\"}",
+  "input_decoded": {
+    "bot_category": "likely_browser",
+    "ua_class": "browser"
+  },
+  "expect": {
+    "valid": false,
+    "error": "schema"
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "contract": "body-limits",
+  "description": "D45: just under 85 %: still the first level.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"held_bytes\":1825361059,\"memory_bytes\":2147483648,\"op\":\"pressure\"}",
+  "input_decoded": {
+    "held_bytes": 1825361059,
+    "memory_bytes": 2147483648,
+    "op": "pressure"
+  },
+  "expect": {
+    "valid": true,
+    "result": {
+      "pressure": 1
+    }
+  }
+}

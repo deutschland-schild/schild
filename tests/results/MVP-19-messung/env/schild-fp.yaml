@@ -1,0 +1,22 @@
+# TEST ONLY: MVP-19 measurement, standalone ingress (network off)
+config_version: 0
+profile: production
+mode: autoblock
+node_name: m19-ingress
+network:
+  enabled: false
+ingress:
+  caddyfile: /etc/caddy/Caddyfile
+  storage: /data/caddy
+  # measurement only: the tools container sends X-Forwarded-For per simulated user
+  trusted_proxies: ["10.219.19.5/32"]
+  client_ip_headers: ["X-Forwarded-For"]
+listen:
+  dashboard: "127.0.0.1:8788"
+  metrics: "127.0.0.1:9101"
+storage:
+  path: /var/lib/schild
+behaviour:
+  presets: [laravel, generic]
+  distributed:
+    learning_days: 14

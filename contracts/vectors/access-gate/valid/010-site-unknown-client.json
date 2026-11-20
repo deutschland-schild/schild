@@ -1,0 +1,32 @@
+{
+  "contract": "access-gate",
+  "description": "D56, D58: without a resolved client address no address matches; a valid session does not make up for it.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"allowlisted\":false,\"path\":\"/\",\"protection\":{\"addresses\":[\"203.0.113.7\"],\"own_networks\":false,\"password\":true,\"scope\":\"site\",\"website\":\"musterverein.example\"},\"session\":\"valid\"}",
+  "input_decoded": {
+    "allowlisted": false,
+    "path": "/",
+    "protection": {
+      "addresses": [
+        "203.0.113.7"
+      ],
+      "own_networks": false,
+      "password": true,
+      "scope": "site",
+      "website": "musterverein.example"
+    },
+    "session": "valid"
+  },
+  "expect": {
+    "valid": true,
+    "result": {
+      "answer": "maintenance",
+      "canonical_path": "/",
+      "login_form": false,
+      "reason": "locked",
+      "status": 503
+    }
+  }
+}

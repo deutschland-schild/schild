@@ -1,0 +1,12 @@
+{
+  "contract": "log-tree",
+  "description": "A v0 hash-chain head is not the RFC 6962 root.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"entries\":[{\"digest\":\"sha256:079d41d13a22c06edcc9a4ac274c3d6462645c4ab5e1e5eaef694fff3c49e2e5\",\"envelope_sha256\":null,\"index\":0,\"kind\":\"proposal\",\"ref\":\"prop-0001\",\"summary\":\"proposal prop-0001 approved: rule schild-2026-0001 virtual_patch, max challenge, approvals from 2 organisations\",\"time\":\"2026-10-26T11:55:00Z\"},{\"digest\":\"sha256:885a22aad13269e040d3a45e825d9a7e0a71fb9ad79ea8354aa4fb990a6b8f4c\",\"envelope_sha256\":\"sha256:8b259e915027a046654a770aa94f503f62831cd7b012dc85105fac9e63a3773c\",\"index\":1,\"kind\":\"checkpoint\",\"ref\":\"2\",\"summary\":\"checkpoint 2: bundle 0, withdrawal 0\",\"time\":\"2026-10-26T11:56:00Z\"},{\"digest\":\"sha256:b6165e2b6d406eae915d7747745b097a5d15198f0b511c7b738b0ea5a6f27e5b\",\"envelope_sha256\":\"sha256:f14313e2cf031543eebf8f2ccb46699b2a64f8f7864074f145226fc932b0bfae\",\"index\":2,\"kind\":\"bundle\",\"ref\":\"3\",\"summary\":\"bundle 3 published: 1 rules, 3 operators\",\"time\":\"2026-10-26T11:57:00Z\"},{\"digest\":\"sha256:83dd3dc6c82ee9427bd2f777631c2e0a6d8408464cac5c95ebc42d01aa3cd457\",\"envelope_sha256\":\"sha256:2f944f31738e4676da1987d06e96329cad11f0c04d3afbb49151fccbef7a771c\",\"index\":3,\"kind\":\"withdrawal\",\"ref\":\"4\",\"summary\":\"withdrawal 4 effective: scope all, up to bundle 3\",\"time\":\"2026-10-26T11:58:00Z\"},{\"digest\":\"sha256:56b6e87f60b1d62765c9ce86fda9a2347da927fc4c37d5963c61c8ca7f1bb95e\",\"envelope_sha256\":null,\"index\":4,\"kind\":\"proposal\",\"ref\":\"prop-0005\",\"summary\":\"proposal prop-0005 approved: rule schild-2026-0005 virtual_patch, max challenge, approvals from 2 organisations\",\"time\":\"2026-10-26T11:59:00Z\"}],\"head\":{\"root\":\"sha256:a645091bd1c5c35ec08d5b4588ddd6c6711453f74a87ae8a33c7e679a0752cd0\",\"size\":5}}",
+  "expect": {
+    "valid": false,
+    "error": "log_root"
+  }
+}

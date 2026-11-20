@@ -1,0 +1,12 @@
+{
+ "resolve": [],
+ "blocks": [
+  {
+   "Addresses": [
+    "B\u00fccher.example"
+   ],
+   "Schild": true,
+   "Proxies": true
+  }
+ ]
+}

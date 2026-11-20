@@ -1,0 +1,12 @@
+{
+  "contract": "crowdsec-set",
+  "description": "D39: truncated file.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"schema\":",
+  "expect": {
+    "valid": false,
+    "error": "malformed"
+  }
+}

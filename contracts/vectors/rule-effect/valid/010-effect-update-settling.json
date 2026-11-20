@@ -1,0 +1,24 @@
+{
+  "contract": "rule-effect",
+  "description": "An update settles (settling) and only detects, one second before its end.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"mode\":\"autoblock\",\"now\":1086399,\"op\":\"effect\",\"origin\":\"update\",\"settling_until\":1086400,\"state\":\"block\"}",
+  "input_decoded": {
+    "mode": "autoblock",
+    "now": 1086399,
+    "op": "effect",
+    "origin": "update",
+    "settling_until": 1086400,
+    "state": "block"
+  },
+  "expect": {
+    "valid": true,
+    "result": {
+      "status": "settling",
+      "effect": "detect",
+      "limited_by": "settling"
+    }
+  }
+}

@@ -1,0 +1,55 @@
+{
+  "items": [
+    {
+      "seq": 4,
+      "channel": "schild-main",
+      "scope": "all",
+      "reason": "emergency_stop",
+      "note": "Fehlalarme im Checkout, Ursache unklar",
+      "up_to_version": 42,
+      "status": "collecting",
+      "signatures": [
+        {
+          "keyid": "test-lab-a",
+          "lab": "lab-a",
+          "operator": "op-test-a",
+          "at": "2026-10-26T11:58:00Z"
+        }
+      ],
+      "threshold": 2,
+      "proposed_by": "lab-a",
+      "created_at": "2026-10-26T11:58:00Z",
+      "effective_at": null
+    },
+    {
+      "seq": 3,
+      "channel": "schild-main",
+      "scope": "rules",
+      "rule_ids": [
+        "schild-2026-0399"
+      ],
+      "reason": "false_positives",
+      "up_to_version": 40,
+      "status": "effective",
+      "signatures": [
+        {
+          "keyid": "test-lab-a",
+          "lab": "lab-a",
+          "operator": "op-test-a",
+          "at": "2026-10-24T08:00:00Z"
+        },
+        {
+          "keyid": "test-lab-a2",
+          "lab": "lab-a2",
+          "operator": "op-test-a",
+          "at": "2026-10-24T08:01:00Z"
+        }
+      ],
+      "threshold": 2,
+      "proposed_by": "lab-a",
+      "created_at": "2026-10-24T08:00:00Z",
+      "effective_at": "2026-10-24T08:01:05Z"
+    }
+  ],
+  "next_cursor": null
+}

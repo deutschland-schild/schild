@@ -1,0 +1,12 @@
+{
+  "contract": "seclang",
+  "description": "SecLang subset case sqli-args-deny (max_action block).",
+  "context": {
+    "now": "2026-10-26T12:00:00Z",
+    "max_action": "block"
+  },
+  "input_raw": "SecRule ARGS \"@detectSQLi\" \"id:7700001,phase:2,deny,status:403,severity:CRITICAL,msg:'SQL injection in arguments',tag:'schild-remote',t:none,t:urlDecodeUni,setvar:tx.inbound_anomaly_score_pl1=+%{tx.critical_anomaly_score}\"",
+  "expect": {
+    "valid": true
+  }
+}

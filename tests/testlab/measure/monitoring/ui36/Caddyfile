@@ -1,0 +1,31 @@
+# TEST ONLY: D36 website-first dashboard measurement, 4 apps behind one schild (native macOS)
+{
+	admin off
+	http_port 19390
+	https_port 19393
+	auto_https off
+}
+
+(schild) {
+	schild
+}
+
+http://shop.test:19390, http://www.shop.test:19390 {
+	import schild
+	reverse_proxy 127.0.0.1:19399
+}
+
+http://blog.test:19390 {
+	import schild
+	reverse_proxy 127.0.0.1:19399
+}
+
+http://api.test:19390 {
+	import schild
+	reverse_proxy 127.0.0.1:19399
+}
+
+http://status.test:19390 {
+	import schild
+	reverse_proxy 127.0.0.1:19399
+}

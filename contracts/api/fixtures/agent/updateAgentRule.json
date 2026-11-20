@@ -1,0 +1,24 @@
+{
+  "repository": "crs",
+  "id": "942100",
+  "msg": "SQL Injection Attack Detected via libinjection",
+  "version": "4.20.0",
+  "origin": "release",
+  "status": "disabled",
+  "effect": "off",
+  "disabled_by": "agent",
+  "hits_24h": 0,
+  "paranoia_level": 1,
+  "decisions": [
+    {
+      "kind": "disabled",
+      "by": "agent",
+      "token": {
+        "token_id": "tok_000000000001",
+        "label": "coding-agent"
+      },
+      "note": "search field of the shop",
+      "at": "2026-11-06T11:05:00Z"
+    }
+  ]
+}

@@ -1,0 +1,60 @@
+{
+  "contract": "website-status",
+  "description": "D36: the deciding reasons come first, then the attention reasons (site hints before server hints).",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"monitoring\":true,\"protection\":\"protected\",\"servers\":[{\"baseline_protection\":\"active\",\"hints\":[{\"code\":\"waf_saturated\",\"level\":\"warning\"}],\"node\":\"web-1\",\"state\":\"ok\"}],\"site_hints\":[{\"code\":\"fail_closed\",\"level\":\"warning\"}],\"tracked\":true,\"traffic\":{\"fail_closed\":20,\"forwarded\":380,\"requests\":400,\"status_5xx\":20,\"upstream_errors\":0,\"upstream_timeouts\":0}}",
+  "input_decoded": {
+    "monitoring": true,
+    "protection": "protected",
+    "servers": [
+      {
+        "baseline_protection": "active",
+        "hints": [
+          {
+            "code": "waf_saturated",
+            "level": "warning"
+          }
+        ],
+        "node": "web-1",
+        "state": "ok"
+      }
+    ],
+    "site_hints": [
+      {
+        "code": "fail_closed",
+        "level": "warning"
+      }
+    ],
+    "tracked": true,
+    "traffic": {
+      "fail_closed": 20,
+      "forwarded": 380,
+      "requests": 400,
+      "status_5xx": 20,
+      "upstream_errors": 0,
+      "upstream_timeouts": 0
+    }
+  },
+  "expect": {
+    "valid": true,
+    "result": {
+      "reasons": [
+        {
+          "code": "fail_closed"
+        },
+        {
+          "code": "site_hint",
+          "hint": "fail_closed"
+        },
+        {
+          "code": "server_hint",
+          "hint": "waf_saturated",
+          "node": "web-1"
+        }
+      ],
+      "status": "disrupted"
+    }
+  }
+}

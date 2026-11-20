@@ -1,0 +1,17 @@
+# unprotected: []
+# expect: refuse
+# Two status-filtered handle_errors blocks; only the 404 block runs schild.
+http://:18080 {
+	import schild
+	reverse_proxy 127.0.0.1:18081
+	handle_errors 404 {
+		import schild
+		reverse_proxy 127.0.0.1:18081
+	}
+	handle_errors 5xx {
+		reverse_proxy 127.0.0.1:18081
+	}
+}
+http://b.example.test:18080 {
+	error "boom" 500
+}

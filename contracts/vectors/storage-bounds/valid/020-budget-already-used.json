@@ -1,0 +1,26 @@
+{
+  "contract": "storage-bounds",
+  "description": "D38: files that already use their caps need nothing more: the free space only has to cover the rest.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"fs_avail_bytes\":2147483648,\"fs_total_bytes\":10737418240,\"max_size_mb\":1000,\"metrics_bound_bytes\":82837504,\"op\":\"disk_budget\",\"requests_max_size_mb\":0,\"schild_used_bytes\":1363148800}",
+  "input_decoded": {
+    "fs_avail_bytes": 2147483648,
+    "fs_total_bytes": 10737418240,
+    "max_size_mb": 1000,
+    "metrics_bound_bytes": 82837504,
+    "op": "disk_budget",
+    "requests_max_size_mb": 0,
+    "schild_used_bytes": 1363148800
+  },
+  "expect": {
+    "valid": true,
+    "result": {
+      "budget_bytes": 1370488832,
+      "need_bytes": 7340032,
+      "reserve_bytes": 1073741824,
+      "verdict": "ok"
+    }
+  }
+}

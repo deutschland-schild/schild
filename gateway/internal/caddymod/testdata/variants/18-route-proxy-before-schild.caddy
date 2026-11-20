@@ -1,0 +1,9 @@
+# unprotected: []
+# expect: refuse
+http://a.example.test:18080 {
+	route {
+		reverse_proxy /api/* 127.0.0.1:18081
+		schild
+		respond 200
+	}
+}

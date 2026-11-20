@@ -1,0 +1,22 @@
+{
+  "contract": "config/schild",
+  "description": "D72: min_independent_operators is an unknown key.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"config_version\":0,\"min_independent_operators\":3,\"mode\":\"autoblock\",\"node_name\":\"web-1\",\"profile\":\"production\",\"upstream\":{\"url\":\"http://app:80\"}}",
+  "input_decoded": {
+    "config_version": 0,
+    "min_independent_operators": 3,
+    "mode": "autoblock",
+    "node_name": "web-1",
+    "profile": "production",
+    "upstream": {
+      "url": "http://app:80"
+    }
+  },
+  "expect": {
+    "valid": false,
+    "error": "schema"
+  }
+}

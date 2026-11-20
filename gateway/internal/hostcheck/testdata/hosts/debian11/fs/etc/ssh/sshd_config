@@ -1,0 +1,7 @@
+Include /etc/ssh/sshd_config.d/*.conf
+PermitRootLogin yes
+ChallengeResponseAuthentication no
+UsePAM yes
+
+Match User backup
+    PasswordAuthentication no

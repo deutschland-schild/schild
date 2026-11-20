@@ -1,0 +1,26 @@
+{
+  "contract": "storage-bounds",
+  "description": "2026-10-29: at exactly 400 GiB, 5 % equals the 20 GiB cap; 22 GiB free minus about 1.8 GiB of growth stays above it: ok.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"fs_avail_bytes\":23622320128,\"fs_total_bytes\":429496729600,\"max_size_mb\":1000,\"metrics_bound_bytes\":82837504,\"op\":\"disk_budget\",\"requests_max_size_mb\":512,\"schild_used_bytes\":0}",
+  "input_decoded": {
+    "fs_avail_bytes": 23622320128,
+    "fs_total_bytes": 429496729600,
+    "max_size_mb": 1000,
+    "metrics_bound_bytes": 82837504,
+    "op": "disk_budget",
+    "requests_max_size_mb": 512,
+    "schild_used_bytes": 0
+  },
+  "expect": {
+    "valid": true,
+    "result": {
+      "budget_bytes": 1907359744,
+      "need_bytes": 1907359744,
+      "reserve_bytes": 21474836480,
+      "verdict": "ok"
+    }
+  }
+}

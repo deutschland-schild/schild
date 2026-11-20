@@ -1,0 +1,41 @@
+{
+  "contract": "crowdsec-hub",
+  "description": "Mapping: a scalar stays the text it was written as: value: false is the string false, as yaml.v3 decodes it into CrowdSec's string field.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"content\":\"name: crowdsecurity/vpatch-CVE-2026-1207\\ndescription: 'Rewritten test rule.'\\nrules:\\n  - and:\\n      - zones:\\n          - URI\\n        transform:\\n          - lowercase\\n        match:\\n          type: contains\\n          value: /wp-json/example/v1/\\n      - zones:\\n          - HEADERS\\n        variables:\\n          - 'x-pan-authcheck'\\n        transform:\\n          - lowercase\\n        match:\\n          type: equals\\n          value: false\\nlabels:\\n  type: exploit\\n  confidence: 3\\n  spoofable: 0\\n  label: Example - RCE\\n  classification:\\n    - cve.CVE-2026-1207\\n    - attack.T1190\\n    - cwe.CWE-89\\n\",\"name\":\"crowdsecurity/vpatch-CVE-2026-1207\",\"op\":\"convert\",\"version\":\"0.2\"}",
+  "input_decoded": {
+    "content": "name: crowdsecurity/vpatch-CVE-2026-1207\ndescription: 'Rewritten test rule.'\nrules:\n  - and:\n      - zones:\n          - URI\n        transform:\n          - lowercase\n        match:\n          type: contains\n          value: /wp-json/example/v1/\n      - zones:\n          - HEADERS\n        variables:\n          - 'x-pan-authcheck'\n        transform:\n          - lowercase\n        match:\n          type: equals\n          value: false\nlabels:\n  type: exploit\n  confidence: 3\n  spoofable: 0\n  label: Example - RCE\n  classification:\n    - cve.CVE-2026-1207\n    - attack.T1190\n    - cwe.CWE-89\n",
+    "name": "crowdsecurity/vpatch-CVE-2026-1207",
+    "op": "convert",
+    "version": "0.2"
+  },
+  "expect": {
+    "valid": true,
+    "result": {
+      "outcome": "converted",
+      "rule": {
+        "name": "crowdsecurity/vpatch-CVE-2026-1207",
+        "version": "0.2",
+        "digest": "0c185ec20291b0cdcbd78d0724b248b286d8b1de5439459e74b71dbd75f52893",
+        "base_id": 62846312,
+        "seclang": [
+          "SecRule REQUEST_FILENAME \"@contains /wp-json/example/v1/\" \"id:62846312,phase:2,pass,t:none,t:lowercase,severity:CRITICAL,msg:'crowdsec hub crowdsecurity/vpatch-CVE-2026-1207',tag:crowdsec_hub,chain\"\nSecRule REQUEST_HEADERS:x-pan-authcheck \"@streq false\" \"t:none,t:lowercase\""
+        ],
+        "label": "Example - RCE",
+        "description": "Rewritten test rule.",
+        "cves": [
+          "CVE-2026-1207"
+        ],
+        "cwes": [
+          "CWE-89"
+        ],
+        "attack": [
+          "T1190"
+        ],
+        "notes": []
+      }
+    }
+  }
+}

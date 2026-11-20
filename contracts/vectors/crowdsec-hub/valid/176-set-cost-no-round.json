@@ -1,0 +1,24 @@
+{
+  "contract": "crowdsec-hub",
+  "description": "D43: a set that did not finish one round within the budget is refused.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"baseline_ns\":22000,\"candidate_ns\":0,\"op\":\"set_cost\",\"reference_ns\":94000,\"rounds\":0}",
+  "input_decoded": {
+    "baseline_ns": 22000,
+    "candidate_ns": 0,
+    "op": "set_cost",
+    "reference_ns": 94000,
+    "rounds": 0
+  },
+  "expect": {
+    "valid": true,
+    "result": {
+      "outcome": "refused",
+      "code": "set_too_costly",
+      "added_ns": 0,
+      "allowed_ns": 288000
+    }
+  }
+}

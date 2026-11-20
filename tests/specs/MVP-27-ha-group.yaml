@@ -1,0 +1,131 @@
+id: MVP-27
+# Direction decided by the initiator 2026-11-01 (DECISIONS D53): several gateways behind one load balancer share their
+# control state through Valkey, TLS stays on the gateways, active/active. Nothing in the request path waits for Valkey.
+# Checked against the code of 2026-11-01:
+# - the table `exceptions` holds IP exceptions with an expiry, set by a release in the dashboard
+#   (dashboard/api.go, dashboard/behaviour.go); it is no rule exception, so D32 is not touched by sharing it.
+# - settings changed in the dashboard live in the kv rows settings_overlay_v1 and behaviour_rate_limits_v1 and would
+#   drift between nodes; hence the read-only rule below.
+# - suspensions carry a reason: `operator` is a person's decision, `local_brake` a measurement of this one node.
+# - a Caddyfile can already set the proxy_protocol listener wrapper; caddymod/conns.go detects it, nothing checks its
+#   allow list.
+title: "HA group: several gateways behind one load balancer share blocks, certificates, access state and logins through Valkey, with a local copy on every node"
+ships: false                        # draft, nothing built, contracts not written
+status: ENTWURF
+image: schild                       # same binary; Valkey is run by the operator and is not part of the image
+hypotheses: [D3]
+refs: [MVP-17, MVP-19, MVP-20, MVP-21, MVP-26, DECISIONS-D29, DECISIONS-D32, DECISIONS-D36, DECISIONS-D38, DECISIONS-D42, DECISIONS-D46, DECISIONS-D49, DECISIONS-D51, DECISIONS-D53]
+depends_on: [MVP-17, MVP-19, MVP-21]
+why: >-
+  One website on several servers, so a server can fail or be updated without an outage. Today every gateway is alone: a
+  block on one node does nothing on the others, a release has to be repeated on each, ACME runs per node, and a login
+  holds on one node only. The balancer can send a request to any node, so these differences reach visitors.
+setup:
+  - 'Hetzner load balancer in TCP mode on 80 and 443 with the PROXY protocol, gateways active/active, TLS on the gateways; firewall lets 80 and 443 in only from the balancer'
+  - 'one Valkey instance in the private network, version 8 or newer, AOF on (appendfsync everysec), TLS and an ACL user of its own; one operator per group'
+  - 'identical schild.yaml, rules.d and Caddyfile on every node, deployed as code; capacity holds with one node missing'
+  - 'dashboard reached per node through an SSH tunnel as today; every node may run it'
+shared_state:                       # the only classes that leave a node
+  blocks: 'blocks in force: behaviour, rate limit and distributed blocks of autoblock, blocks of the dashboard and the agent API (D42), and their release'
+  certificates: 'Caddy storage: certificates, ACME accounts, challenge tokens and locks'
+  access: 'allowlist, IP exceptions, suspensions with reason operator, the rule_decisions table (D73), rule_exceptions_v2 (D54, D73)'
+  logins: 'users, sessions, agent tokens of every scope of agentapi.Scopes, the pseudonym key agent_pseudonym_key_v1 so one address has one pseudonym in the group'
+  erasure: 'one record per erased address, until every known node took it over or 14 days passed'
+stays_local:
+  - 'events, incidents, the request ring, metrics.db, summaries: their copy is MVP-20'
+  - 'rate limit counters and every behaviour counter: a limit acts per node, so a client can reach it up to n times over n nodes; the runbook says so'
+  - 'learning state, installed_at_v1, the ladder of a client (D72: suspensions with reason local_brake are gone with the network rules)'
+  - 'export:read tokens: one per gateway (D32)'
+  - 'mode, rate limits, rules, hub state and every other setting: they stay in schild.yaml and rules.d (D32)'
+behaviour:
+  request_path:
+    - 'the gate reads only its in-memory state, as today; no Valkey call runs inside a request, not even on a cache miss'
+    - 'a change goes to SQLite and memory first, then into a local outbox; a background writer sends it, with 1 s to connect and 500 ms per operation'
+  propagation:
+    - 'Pub/Sub carries the record id, so the other nodes fetch and apply it; a reconcile every 30 s compares a revision per class and catches lost messages'
+    - 'records are last-writer-wins per id under a hybrid logical clock; a delete is a tombstone, kept on every node and in Valkey for at least the longest lifetime of its class, at most 30 days'
+    - 'blocks are batched per second, at most 200 per second per node and 20 000 in Valkey; what is over goes unshared, stays local and is counted, it never queues without bound'
+  receiving_a_block:
+    - 'the receiving node decides again with its own allowlist, its exceptions and net class; cgnat, mobile and tor keep every exemption'
+    - 'mode gates it as a local block would: observe records would_action, autoblock acts; a node in its learning period applies a block of a node that is past it, because learning concerns detectors, not enforcement'
+    - 'only the node that decided writes the incident; requests answered by a shared block on another node carry origin_node, so a central dashboard does not count one block n times'
+  store_down:
+    - 'traffic runs on with the last state; blocks then act on their node only; the outbox keeps at most 64 MiB and drops the oldest blocks first, never access or erasure records'
+    - 'certificates are read from a local copy under ingress.storage, so a restart during the outage serves TLS; a renewal waits for the lock and is retried; a new domain waits'
+    - 'after 60 s the hint cluster_store_unreachable appears; on return the outbox is sent and the state reconciled'
+    - 'a node that never reached the store serves traffic but refuses the first-run setup: a second admin account must not appear'
+  store_replaced:
+    - 'a random generation id in Valkey shows an empty or restored store; the nodes then publish their local state again; an empty store never deletes anything on a node'
+    - 'a node offline for longer than tombstones live takes the store as truth for records older than its last reconcile and sends only its outbox'
+  leaving_the_group: 'cluster.enabled false and a restart: the node runs alone with its local copy; nothing is lost'
+  settings:
+    - 'with cluster.enabled every dashboard or agent write of a config-owned setting answers 409 cluster_managed, except rule exceptions of agents (D54): they travel as access state; the page shows the value read-only with the sentence that it is changed in schild.yaml'
+    - 'every node publishes a config version (hash of schild.yaml without cluster.node, rules.d, Caddyfile) with its heartbeat; a difference raises the hint cluster_config_drift'
+  logins:
+    - 'login, logout and password change act on the local copy and propagate like any record; a session ended on one node ends on a node cut off from the store once it reconciles or the session expires (accepted: the dashboard sits behind a tunnel)'
+    - 'the first node to set up claims it with SET NX; every later node reports first_run false after its first sync'
+  privacy:
+    - 'an erasure in the dashboard or CLI writes an erasure record; every node applies it to its own events, requests, incidents and blocks; PrivacyDeleteResult lists nodes reached and nodes still open'
+    - 'a record in Valkey never outlives the same data on a node: Valkey TTL = its until or expiry; IP-bearing records at most retention.raw_ip_days (D51)'
+    - 'the privacy text names Valkey as a place of processing for blocks; it is the operator''s own server'
+security:
+  - 'Valkey is a transport, not a trust root: every value is sealed (AEAD, 256-bit key from cluster.key_file) with cluster id, class, record id and version as associated data; Valkey sees no IP address, no password hash, no private key'
+  - 'key names hold no address: record ids of IP-bearing classes are keyed hashes'
+  - 'a record that does not open is dropped and counted (cluster_rejected), never applied; a write in Valkey without the key can neither allowlist an address nor lift a block'
+  - 'a holder of the Valkey password can only delete or replay; a node refuses a revision lower than it saw, and an empty store never deletes (see store_replaced)'
+  - 'cluster.key_file and cluster.store.password_file readable by the service user only; preflight refuses wider modes and refuses every TEST ONLY key; cluster.previous_key_file opens old records during a rotation'
+  - 'cleartext to Valkey is refused unless the address is loopback (testlab); no secret in schild.yaml itself'
+  - 'the validator refuses cluster.enabled when the Caddyfile has a proxy_protocol wrapper without an allow list or with a fallback that accepts senders outside it: otherwise anyone reaching the node chooses their address, and a block in the group follows it (G5)'
+  - 'D72: no network keys in schild.yaml at all, so nodes of one operator can never count as independent operators'
+ui:                                 # German, du-form, calm
+  - '/server gains the card "HA-Gruppe": nodes with status, version, last contact, config version; this node is marked'
+  - 'states: "Abgleich aktiv"; "Abgleich unterbrochen. Dieser Server arbeitet mit dem letzten Stand weiter."'
+  - 'other nodes appear in the server switcher only for status, with no link: their dashboard is another tunnel'
+  - 'a block taken over from another node shows "Von web-2 übernommen"; numbers stay per node and say so'
+  - 'schild cluster status | seed | rotate-key on the CLI; `seed` imports existing certificates from ingress.storage into the store without reissuing'
+contracts:
+  new:                              # proposal; the contracts agent owns schemas, Go types and vectors
+    - 'contracts/cluster.md: record classes, envelope, keys in Valkey, clock, tombstones, merge rules, what every node does on store loss and on a new generation'
+    - 'schild.yaml: cluster {enabled, id, node, store {address, tls {ca_file, server_name}, username, password_file}, key_file, previous_key_file}; validator rules above; default off, without it nothing changes'
+    - 'client dashboard API: GroupStatus, origin_node on blocks and events, hints cluster_store_unreachable and cluster_config_drift, problem code cluster_managed, nodes in PrivacyDeleteResult'
+    - 'events: origin_node on schild.block.set.v1 and schild.block.lifted.v1'
+    - 'Caddy storage module schild_cluster (certmagic.Storage with Lock and Unlock), write-through to the local file_system root; another storage module in the Caddyfile is refused with cluster.enabled'
+    - 'vectors: envelope valid/tampered/wrong class, merge order, tombstone beats older write, block over the caps, config valid/invalid (network keys refused as unknown since D72, proxy_protocol without allow, key file missing, cleartext to a remote address)'
+  version: 'next unreleased contracts version (backwards compatible addendum)'
+steps:                              # each is usable on its own
+  - '1 blocks and certificates: storage module, block records with their release, erasure, proxy_protocol check, cluster status, heartbeat and hints'
+  - '2 access state: allowlist, IP exceptions, operator suspensions, read-only settings'
+  - '3 logins: users, sessions, agent tokens, pseudonym key'
+must:
+  - 'a block set on one node acts on every reachable node within 2 s at p95, at the latest after one reconcile'
+  - 'with the store stopped, blackholed or answering slowly, no request waits and none fails because of it'
+  - 'a node restarted during a store outage serves its certificates and keeps its blocks, allowlist and logins'
+  - 'one renewal per certificate in the group; HTTP-01 and TLS-ALPN-01 work whichever node the balancer picks'
+  - 'existing certificates are carried over by seed; none is reissued'
+  - 'the allowlist of a node beats a received block; no exemption of D29 is weaker than on a single node'
+  - 'an erased address is gone from Valkey and from every reachable node within one reconcile, and a returning node does not bring it back'
+  - 'a single gateway without cluster behaves exactly as before; no new dependency is loaded and no connection opened'
+  - 'nodes of version N and N-1 run side by side during a rolling update; a record of an unknown version stays unread and is reported'
+  - 'schild cluster status reports a clock skew over 5 s against the store'
+  - 'driver pinned, Apache or BSD licence, no cgo; tested against Valkey only (Redis is not a promise)'
+measure:                            # by an independent agent, not the builder
+  - 'testlab profile ha: balancer with PROXY protocol, 3 gateways, Valkey, local ACME server (Pebble), all on internal networks'
+  - 'M1: latency at p50, p95 and p99 with cluster off, on, store stopped, store blackholed and store at 2 s per operation: on and off within noise, no failed request'
+  - 'chaos under load: kill a node, kill and restart Valkey, cut one node from Valkey, restore Valkey from an older AOF, empty Valkey: no lost allowlist entry, no block outliving its until, no erased address back'
+  - 'block flood from many addresses: the caps hold, Valkey memory stays bounded, request latency unchanged'
+  - 'tampering: a value edited, swapped between records or classes, or written without the key in Valkey is never applied; a dump of Valkey contains no IP address, password hash or private key'
+  - 'spoofing: a PROXY header from a sender outside the allow list is refused and blocks no third party'
+  - 'ACME: renewal under load at 3 nodes makes one order; a store outage across the renewal window causes no duplicate order after return'
+  - 'rolling update and rollback: mixed versions for one hour under load, then `cluster.enabled false` on one node'
+kill_if: "any request waits for Valkey or fails because of it OR a store loss, an empty store or a restore deletes or weakens local access state OR a value not sealed with the group key is applied OR an IP address, password hash or private key is readable in Valkey OR an erased address returns OR an address outside the proxy allow list can get another address blocked OR certificates are lost or reissued by the move into the group"
+done: "make contracts-test && make test && make testlab-up PROFILE=ha && make smoke PROFILE=ha"
+out_of_scope:
+  - 'a shared event or metrics store, and one view across nodes (MVP-20); shared rate limit counters'
+  - 'active/passive with a floating IP, DNS failover'
+  - 'Sentinel or a Valkey cluster as a tested setup, and running Valkey for the operator: the store is not on the traffic path, so a short outage costs only the sync'
+  - 'config distribution over Valkey: changes stay a deployment (D32)'
+  - 'gateways of different operators in one group; network mode in a group'
+  - 'scaling the group by itself; sticky sessions in the balancer'
+open_questions:
+  - 'the caps of 200 blocks per second and 20 000 records: confirm in the testlab'
+  - 'after MVP-20: does the central dashboard take over the group view, or stay beside it?'

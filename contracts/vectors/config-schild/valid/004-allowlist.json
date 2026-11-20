@@ -1,0 +1,45 @@
+{
+  "contract": "config/schild",
+  "description": "Own IPs, ranges and DynDNS names.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"allowlist\":[{\"expires\":\"never\",\"ip\":\"203.0.113.42\",\"label\":\"Office\",\"level\":\"no_block\"},{\"cidr\":\"198.51.100.0/24\",\"expires\":\"2026-11-30T00:00:00Z\",\"label\":\"Agency\",\"level\":\"no_block\"},{\"expires\":\"2026-11-02T00:00:00Z\",\"host\":\"home.example.net\",\"label\":\"Home office\",\"level\":\"bypass_waf\"},{\"expires\":\"never\",\"ip\":\"2001:db8::1\",\"label\":\"Admin IPv6\",\"level\":\"no_block\"}],\"config_version\":0,\"mode\":\"observe\",\"node_name\":\"web-1\",\"upstream\":{\"url\":\"http://app:80\"}}",
+  "input_decoded": {
+    "allowlist": [
+      {
+        "expires": "never",
+        "ip": "203.0.113.42",
+        "label": "Office",
+        "level": "no_block"
+      },
+      {
+        "cidr": "198.51.100.0/24",
+        "expires": "2026-11-30T00:00:00Z",
+        "label": "Agency",
+        "level": "no_block"
+      },
+      {
+        "expires": "2026-11-02T00:00:00Z",
+        "host": "home.example.net",
+        "label": "Home office",
+        "level": "bypass_waf"
+      },
+      {
+        "expires": "never",
+        "ip": "2001:db8::1",
+        "label": "Admin IPv6",
+        "level": "no_block"
+      }
+    ],
+    "config_version": 0,
+    "mode": "observe",
+    "node_name": "web-1",
+    "upstream": {
+      "url": "http://app:80"
+    }
+  },
+  "expect": {
+    "valid": true
+  }
+}

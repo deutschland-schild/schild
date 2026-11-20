@@ -1,0 +1,39 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://contracts.schild.invalid/v0/agent-ack.schema.json",
+  "title": "Gateway answer to an agent schild.agent_ack/0.1 (v0.3, MVP-11)",
+  "description": "The only thing the gateway ever sends back to an agent (POST /v0/agent/report and /v0/agent/enrol, TLS). It is an acknowledgement, never an instruction: there is no field for commands, intervals or configuration, and agents ignore everything but status, error and retry_after_s. Unsigned; the agent authenticates the gateway by its pinned TLS certificate. See host-check.md section 6.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "status", "nonce", "received_at", "error"],
+  "properties": {
+    "schema": { "const": "schild.agent_ack/0.1" },
+    "status": {
+      "description": "accepted: stored. duplicate: this nonce was already stored. pending: enrolment received, waits for confirmation in the dashboard. rejected: see error, do not resend the same message. retry: try again after retry_after_s (gateway busy).",
+      "type": "string",
+      "enum": ["accepted", "duplicate", "pending", "rejected", "retry"]
+    },
+    "nonce": { "description": "Nonce of the request this answers.", "type": "string", "pattern": "^[0-9a-f]{32}$" },
+    "received_at": { "$ref": "common.schema.json#/$defs/timestamp" },
+    "error": {
+      "description": "Contract error code when rejected, else null.",
+      "oneOf": [
+        { "type": "string", "enum": ["oversize", "malformed", "envelope", "payload_type", "signature", "revoked", "forbidden_field", "forbidden_content", "schema", "clock_skew", "expired", "channel", "replay", "enrolment_code", "test_key"] },
+        { "type": "null" }
+      ]
+    },
+    "retry_after_s": { "description": "Backoff hint for status retry only; agents cap it at 86400.", "type": "integer", "minimum": 1, "maximum": 86400 }
+  },
+  "allOf": [
+    {
+      "if": { "properties": { "status": { "const": "rejected" } } },
+      "then": { "properties": { "error": { "type": "string" } } },
+      "else": { "properties": { "error": { "type": "null" } } }
+    },
+    {
+      "if": { "properties": { "status": { "const": "retry" } } },
+      "then": { "required": ["retry_after_s"] },
+      "else": { "not": { "required": ["retry_after_s"] } }
+    }
+  ]
+}

@@ -1,0 +1,16 @@
+{
+  "items": [
+    {
+      "lab": "lab-a2",
+      "operator": "op-test-a",
+      "endpoint": "https://lab-a2.schild.test:7444",
+      "accept_from": true,
+      "share_with": true,
+      "trust_weight": 0.7,
+      "observe_only": false,
+      "status": "ok",
+      "last_seen": "2026-10-26T11:59:55Z",
+      "independent": false
+    }
+  ]
+}

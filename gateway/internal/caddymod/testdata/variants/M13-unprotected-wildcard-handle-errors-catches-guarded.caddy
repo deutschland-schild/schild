@@ -1,0 +1,16 @@
+# unprotected: ["*.example.test"]
+# expect: pass
+# Unprotected wildcard site with handle_errors proxy; host superset of guarded a, whose basic_auth 401 is an error. Accepting is fine only if a's errors cannot reach it uninspected.
+http://*.example.test:18080 {
+	reverse_proxy 127.0.0.1:18081
+	handle_errors {
+		reverse_proxy 127.0.0.1:18081
+	}
+}
+http://a.example.test:18080 {
+	import schild
+	basic_auth /adm* {
+		admin $2a$14$Zkx19XLiW6VYouLHR5NmfOFU0z2GTNmpkT/5qqR7hx4IjWJPDhjvG
+	}
+	reverse_proxy 127.0.0.1:18081
+}

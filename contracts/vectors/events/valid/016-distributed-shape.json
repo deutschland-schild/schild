@@ -1,0 +1,37 @@
+{
+  "contract": "events",
+  "description": "v0.4 MVP-18: one malicious request shape from many senders, blocked for any sender (here: gateway observes).",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"data\":{\"action\":\"observe\",\"count\":120,\"detector\":\"shape_wave\",\"mode\":\"respond\",\"reason\":\"gateway_observe\",\"request_sig\":\"sha256:abababababababababababababababababababababababababababababababab\",\"response\":\"shape_block\",\"route\":\"/wp-json/gallery/v1/upload\",\"senders\":120,\"threshold\":20,\"waf_rules\":[933100,949110],\"wave_id\":\"04f711a7-ee4d-4011-9ab5-c3e7db20f4b0\",\"window_s\":60},\"datacontenttype\":\"application/json\",\"id\":\"655f8589-40ed-4e60-9214-852851e2c172\",\"source\":\"schild://web-1\",\"specversion\":\"1.0\",\"time\":\"2026-10-26T11:59:58.123Z\",\"type\":\"schild.distributed.detected.v1\"}",
+  "input_decoded": {
+    "data": {
+      "action": "observe",
+      "count": 120,
+      "detector": "shape_wave",
+      "mode": "respond",
+      "reason": "gateway_observe",
+      "request_sig": "sha256:abababababababababababababababababababababababababababababababab",
+      "response": "shape_block",
+      "route": "/wp-json/gallery/v1/upload",
+      "senders": 120,
+      "threshold": 20,
+      "waf_rules": [
+        933100,
+        949110
+      ],
+      "wave_id": "04f711a7-ee4d-4011-9ab5-c3e7db20f4b0",
+      "window_s": 60
+    },
+    "datacontenttype": "application/json",
+    "id": "655f8589-40ed-4e60-9214-852851e2c172",
+    "source": "schild://web-1",
+    "specversion": "1.0",
+    "time": "2026-10-26T11:59:58.123Z",
+    "type": "schild.distributed.detected.v1"
+  },
+  "expect": {
+    "valid": true
+  }
+}

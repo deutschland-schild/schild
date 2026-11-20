@@ -1,0 +1,19 @@
+# TEST ONLY: MVP-19 measurement, standalone ingress (network off)
+config_version: 0
+profile: production
+mode: observe
+node_name: m19-ingress
+network:
+  enabled: false
+ingress:
+  caddyfile: /etc/caddy/Caddyfile
+  storage: /data/caddy
+listen:
+  dashboard: "127.0.0.1:8788"
+  metrics: "127.0.0.1:9101"
+storage:
+  path: /var/lib/schild
+behaviour:
+  presets: [laravel, generic]
+  distributed:
+    learning_days: 14

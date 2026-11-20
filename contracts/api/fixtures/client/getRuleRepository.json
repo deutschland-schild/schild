@@ -1,0 +1,51 @@
+{
+  "id": "crowdsec",
+  "name": "CrowdSec Hub",
+  "state": "block",
+  "config_state": "detect",
+  "state_source": "agent",
+  "state_set_at": "2026-11-06T09:12:00Z",
+  "state_set_by": {
+    "token_id": "tok_000000000001",
+    "label": "coding-agent"
+  },
+  "differs": true,
+  "effect": "block",
+  "origin": "remote",
+  "counts": {
+    "rules": 201,
+    "disabled": 1,
+    "settling": 3,
+    "skipped": 2
+  },
+  "last_change_at": "2026-11-06T07:31:18Z",
+  "licence": "MIT",
+  "crowdsec": {
+    "update_state": "current",
+    "auto_update": true,
+    "interval_s": 3600,
+    "settling_s": 86400,
+    "set_source": "stored",
+    "skipped": [
+      {
+        "name": "crowdsecurity/vpatch-CVE-2026-109618",
+        "version": "0.3",
+        "code": "raw_seclang"
+      },
+      {
+        "name": "crowdsecurity/vpatch-CVE-2024-2862",
+        "version": "0.1",
+        "code": "forbidden_header"
+      }
+    ],
+    "index_sha256": "86f5b58056aee781d9fd5e4d208211de9c0eea482e84ce70a5fb81293d7888d6",
+    "last_check_at": "2026-11-06T08:31:20Z",
+    "last_change": {
+      "added": 2,
+      "changed": 1,
+      "removed": 0
+    },
+    "snapshot_at": "2026-11-01T09:00:00Z",
+    "snapshot_age_days": 5
+  }
+}

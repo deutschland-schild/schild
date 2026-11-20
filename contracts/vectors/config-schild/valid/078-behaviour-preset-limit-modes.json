@@ -1,0 +1,26 @@
+{
+  "contract": "config/schild",
+  "description": "D95: a mode per preset limit, next to the one mode for the rest.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"behaviour\":{\"preset_limit_modes\":{\"preset-generic-api-write\":\"off\",\"preset-wordpress-login\":\"block\"},\"preset_limits\":\"observe\"},\"config_version\":0,\"mode\":\"observe\",\"node_name\":\"web-1\",\"upstream\":{\"url\":\"http://app:80\"}}",
+  "input_decoded": {
+    "behaviour": {
+      "preset_limit_modes": {
+        "preset-generic-api-write": "off",
+        "preset-wordpress-login": "block"
+      },
+      "preset_limits": "observe"
+    },
+    "config_version": 0,
+    "mode": "observe",
+    "node_name": "web-1",
+    "upstream": {
+      "url": "http://app:80"
+    }
+  },
+  "expect": {
+    "valid": true
+  }
+}

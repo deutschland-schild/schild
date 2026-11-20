@@ -1,0 +1,27 @@
+{
+  "contract": "events",
+  "description": "D43: an update was refused by the measured cost check.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"data\":{\"code\":\"set_too_costly\",\"outcome\":\"refused\",\"repository\":\"crowdsec\",\"rules_loaded\":201,\"rules_skipped\":5,\"set_source\":\"image\"},\"datacontenttype\":\"application/json\",\"id\":\"c93c481d-d42a-4c56-bb85-406ce39a0314\",\"source\":\"schild://web-1\",\"specversion\":\"1.0\",\"time\":\"2026-10-26T11:59:58.123Z\",\"type\":\"schild.rule.repository_updated.v1\"}",
+  "input_decoded": {
+    "data": {
+      "code": "set_too_costly",
+      "outcome": "refused",
+      "repository": "crowdsec",
+      "rules_loaded": 201,
+      "rules_skipped": 5,
+      "set_source": "image"
+    },
+    "datacontenttype": "application/json",
+    "id": "c93c481d-d42a-4c56-bb85-406ce39a0314",
+    "source": "schild://web-1",
+    "specversion": "1.0",
+    "time": "2026-10-26T11:59:58.123Z",
+    "type": "schild.rule.repository_updated.v1"
+  },
+  "expect": {
+    "valid": true
+  }
+}

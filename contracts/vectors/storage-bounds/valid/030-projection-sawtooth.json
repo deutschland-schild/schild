@@ -1,0 +1,52 @@
+{
+  "contract": "storage-bounds",
+  "description": "D38 (MVP-21): backups and log rotation make a daily sawtooth; the daily minima stay flat: no hint.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"days\":[{\"min_used_bytes\":64424509440,\"samples\":144},{\"min_used_bytes\":64434995200,\"samples\":144},{\"min_used_bytes\":64424509440,\"samples\":144},{\"min_used_bytes\":64429752320,\"samples\":144},{\"min_used_bytes\":64424509440,\"samples\":144},{\"min_used_bytes\":64445480960,\"samples\":144},{\"min_used_bytes\":64424509440,\"samples\":144}],\"op\":\"disk_projection\",\"total_bytes\":107374182400,\"used_bytes\":96636764160}",
+  "input_decoded": {
+    "days": [
+      {
+        "min_used_bytes": 64424509440,
+        "samples": 144
+      },
+      {
+        "min_used_bytes": 64434995200,
+        "samples": 144
+      },
+      {
+        "min_used_bytes": 64424509440,
+        "samples": 144
+      },
+      {
+        "min_used_bytes": 64429752320,
+        "samples": 144
+      },
+      {
+        "min_used_bytes": 64424509440,
+        "samples": 144
+      },
+      {
+        "min_used_bytes": 64445480960,
+        "samples": 144
+      },
+      {
+        "min_used_bytes": 64424509440,
+        "samples": 144
+      }
+    ],
+    "op": "disk_projection",
+    "total_bytes": 107374182400,
+    "used_bytes": 96636764160
+  },
+  "expect": {
+    "valid": true,
+    "result": {
+      "hint": false,
+      "level": null,
+      "days_left": null,
+      "rate_bytes_per_day": null
+    }
+  }
+}

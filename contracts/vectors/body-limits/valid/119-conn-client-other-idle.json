@@ -1,0 +1,34 @@
+{
+  "contract": "body-limits",
+  "description": "D46: an idle connection of another scope does not help a full client.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"conn_limits\":{\"max_open\":16384,\"max_per_client\":2048,\"max_per_network\":8192},\"conn_state\":{\"client\":2048,\"network\":2048,\"network_idle\":true,\"open\":2048,\"open_idle\":true},\"net_class\":\"residential\",\"op\":\"conn_admit\",\"peer_known\":true,\"proxy\":false}",
+  "input_decoded": {
+    "conn_limits": {
+      "max_open": 16384,
+      "max_per_client": 2048,
+      "max_per_network": 8192
+    },
+    "conn_state": {
+      "client": 2048,
+      "network": 2048,
+      "network_idle": true,
+      "open": 2048,
+      "open_idle": true
+    },
+    "net_class": "residential",
+    "op": "conn_admit",
+    "peer_known": true,
+    "proxy": false
+  },
+  "expect": {
+    "valid": true,
+    "result": {
+      "admitted": false,
+      "evict": null,
+      "refused": "client"
+    }
+  }
+}

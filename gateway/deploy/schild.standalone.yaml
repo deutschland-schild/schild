@@ -1,0 +1,38 @@
+# schild.yaml for one server with schild as the ingress (MVP-19, D31).
+# Decisions are local: the rule repositories crs, crowdsec and local (rules
+# block, D73), rule exceptions, behaviour and rate limits (MVP-17) and
+# distributed-attack responses (MVP-18, after learning_days).
+#
+# Every rule repository has its own switch (rules.<repository>.state: off,
+# detect or block). For a careful start let the CRS only detect for a few
+# days, add exceptions, then switch it to block (docs/gateway/02-betrieb.md,
+# "Regeln einstellen").
+config_version: 0
+profile: production
+node_name: web-1
+
+ingress:
+  # The operator's Caddyfile (example: deploy/Caddyfile.ingress).
+  caddyfile: /etc/caddy/Caddyfile
+  # Caddy storage root. Point it at the existing Caddy data directory
+  # (stock image: /data/caddy) so certificates are reused, not reissued.
+  storage: /data/caddy
+  # Sites that may serve without the schild directive (no backend here).
+  unprotected_sites:
+    - static.example.de
+  # schild terminates the connection: the client address is the TCP peer.
+  # Add ranges here only when a CDN or load balancer sits in front.
+  trusted_proxies: ["127.0.0.1/32", "::1/128"]
+
+listen:
+  # Loopback only; reach it with: ssh -L 8788:localhost:8788 <server>
+  dashboard: "127.0.0.1:8788"
+  metrics: "127.0.0.1:9101"
+
+storage:
+  path: /var/lib/schild
+
+behaviour:
+  presets: [laravel, generic]
+  distributed:
+    learning_days: 14

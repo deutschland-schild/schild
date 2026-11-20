@@ -1,0 +1,25 @@
+{
+  "contract": "rule-effect",
+  "description": "Repository detect (Erkennen): would_block with source_detect, the request passes, no behaviour counter sees it (D90).",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"mode\":\"autoblock\",\"now\":1000000,\"op\":\"request\",\"origin\":\"release\",\"state\":\"detect\"}",
+  "input_decoded": {
+    "mode": "autoblock",
+    "now": 1000000,
+    "op": "request",
+    "origin": "release",
+    "state": "detect"
+  },
+  "expect": {
+    "valid": true,
+    "result": {
+      "action": "would_block",
+      "outcome": "would_block",
+      "reason": "repository_detect",
+      "would_block_reason": "source_detect",
+      "counts_as_hit": false
+    }
+  }
+}

@@ -1,0 +1,30 @@
+{
+	admin off
+}
+
+(app) {
+	schild
+	header X-Frame-Options DENY
+	reverse_proxy 127.0.0.1:19101
+}
+
+(redirect) {
+	redir https://{host}{uri} permanent
+}
+
+http://shop.example.org {
+	import redirect
+}
+
+shop.example.org {
+	import app
+}
+
+http://blog.example.org {
+	import redirect
+}
+
+blog.example.org {
+	import app
+}
+

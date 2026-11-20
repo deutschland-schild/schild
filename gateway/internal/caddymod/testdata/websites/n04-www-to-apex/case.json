@@ -1,0 +1,30 @@
+{
+ "resolve": [
+  "www.example.org",
+  "example.org"
+ ],
+ "blocks": [
+  {
+   "Addresses": [
+    "http://www.example.org",
+    "http://example.org"
+   ],
+   "Schild": false,
+   "Proxies": false
+  },
+  {
+   "Addresses": [
+    "www.example.org"
+   ],
+   "Schild": false,
+   "Proxies": false
+  },
+  {
+   "Addresses": [
+    "example.org"
+   ],
+   "Schild": true,
+   "Proxies": true
+  }
+ ]
+}

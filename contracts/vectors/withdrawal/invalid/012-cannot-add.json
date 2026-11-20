@@ -1,0 +1,36 @@
+{
+  "contract": "withdrawal",
+  "description": "A withdrawal can never add anything.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z",
+    "trust": [
+      "site-a",
+      "site-b",
+      "site-c",
+      "lab-a",
+      "lab-a2",
+      "lab-b",
+      "lab-c",
+      "lab-d"
+    ],
+    "threshold": 2,
+    "channel": "schild-main"
+  },
+  "input_raw": "{\"payloadType\":\"application/vnd.schild.withdrawal.v0+json\",\"payload\":\"eyJhZGRfcnVsZXMiOltdLCJidW5kbGVfaWQiOiJzY2hpbGQtbWFpbiIsImlzc3VlZF9hdCI6IjIwMjYtMTAtMjZUMTE6NTk6MDBaIiwicmVhc29uIjoiZW1lcmdlbmN5X3N0b3AiLCJzY2hlbWEiOiJzY2hpbGQud2l0aGRyYXdhbC8wLjEiLCJzY29wZSI6ImFsbCIsInNlcSI6NCwidXBfdG9fdmVyc2lvbiI6NDJ9\",\"signatures\":[{\"keyid\":\"test-lab-a\",\"sig\":\"zn8L8nwDvdYpO0XMoaUUWFtOd8CKoG7MVf/38hbRj1sv9VSh2BxxNczrLSH+ZweN1ATs0hG+SDWrSLBYlO5hBQ==\"},{\"keyid\":\"test-lab-b\",\"sig\":\"4XKOtD0v/NKLDUVbE61XEaDzUbnwSv43YGHQQ+dK3KdyikiiD8SnqSBWPyevO8JpUBj5FL7vQOjQIvrRUhTEAw==\"}]}",
+  "input_decoded": {
+    "payload": {
+      "add_rules": [],
+      "bundle_id": "schild-main",
+      "issued_at": "2026-10-26T11:59:00Z",
+      "reason": "emergency_stop",
+      "schema": "schild.withdrawal/0.1",
+      "scope": "all",
+      "seq": 4,
+      "up_to_version": 42
+    }
+  },
+  "expect": {
+    "valid": false,
+    "error": "schema"
+  }
+}

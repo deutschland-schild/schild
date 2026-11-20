@@ -1,0 +1,23 @@
+{
+  "contract": "rule-effect",
+  "description": "Back to detect, the same.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"op\":\"switch\",\"repository\":\"crs\",\"requested\":\"detect\"}",
+  "input_decoded": {
+    "op": "switch",
+    "repository": "crs",
+    "requested": "detect"
+  },
+  "expect": {
+    "valid": true,
+    "result": {
+      "state": "detect",
+      "source": "dashboard",
+      "changed": true,
+      "rebuild": false,
+      "differs": true
+    }
+  }
+}

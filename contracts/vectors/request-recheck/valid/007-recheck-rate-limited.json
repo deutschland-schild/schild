@@ -1,0 +1,42 @@
+{
+  "contract": "request-recheck",
+  "description": "D33 amendment 2026-10-29: a stop by a request limit in the re-check.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"evaluations\":[{\"detection\":false,\"outcome\":\"passed\",\"path\":\"/x\",\"rules\":[],\"score\":0},{\"detection\":false,\"outcome\":\"rate_limited\",\"path\":\"/app/x\",\"rules\":[],\"score\":0}]}",
+  "input_decoded": {
+    "evaluations": [
+      {
+        "detection": false,
+        "outcome": "passed",
+        "path": "/x",
+        "rules": [],
+        "score": 0
+      },
+      {
+        "detection": false,
+        "outcome": "rate_limited",
+        "path": "/app/x",
+        "rules": [],
+        "score": 0
+      }
+    ]
+  },
+  "expect": {
+    "valid": true,
+    "result": {
+      "requests": 1,
+      "rechecked": true,
+      "outcome": "rate_limited",
+      "detection": false,
+      "path": "/app/x",
+      "checked_paths": [
+        "/x",
+        "/app/x"
+      ],
+      "rules": [],
+      "score": 0
+    }
+  }
+}

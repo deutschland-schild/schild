@@ -1,0 +1,36 @@
+{
+  "contract": "waiting-page",
+  "description": "D37: waf_timeout (evaluation over its budget) gets the waiting page too; English by Accept-Language; draw 7 gives the upper bound 8 s.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"enabled\":true,\"fail_closed\":\"waf_timeout\",\"headers\":{\"accept\":\"text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8\",\"accept_language\":\"en-US,en;q=0.5\",\"sec_fetch_dest\":\"document\",\"sec_fetch_mode\":\"navigate\"},\"host\":\"musterverein.example\",\"jitter_draw\":7,\"method\":\"GET\",\"website\":\"musterverein.example\"}",
+  "input_decoded": {
+    "enabled": true,
+    "fail_closed": "waf_timeout",
+    "headers": {
+      "accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+      "accept_language": "en-US,en;q=0.5",
+      "sec_fetch_dest": "document",
+      "sec_fetch_mode": "navigate"
+    },
+    "host": "musterverein.example",
+    "jitter_draw": 7,
+    "method": "GET",
+    "website": "musterverein.example"
+  },
+  "expect": {
+    "valid": true,
+    "result": {
+      "answer": "waiting_page",
+      "body": true,
+      "language": "en",
+      "marker": true,
+      "problem_code": null,
+      "refresh": 8,
+      "retry_after": 8,
+      "site_name": "musterverein.example",
+      "variant": "reload"
+    }
+  }
+}

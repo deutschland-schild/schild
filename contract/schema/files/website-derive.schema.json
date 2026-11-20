@@ -1,0 +1,53 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://contracts.schild.invalid/v0/website-derive.schema.json",
+  "title": "Website derivation input (v0.5, D36)",
+  "description": "Input of the website derivation as the gateway runs it at every config load, used by the website-derive vectors. A website is what the dashboard shows as one card. Ingress mode (MVP-19): `blocks` are the site blocks of the operator's Caddyfile in file order (imports expanded in place, environment variables substituted, global options, snippets and named routes left out), each with its addresses as written and two facts from the adapted config: `schild` (the block runs the schild handler in front of what it serves, caddymod.SiteCheck.Schild) and `proxies` (the block reaches a backend through reverse_proxy or php_fastcgi). `unprotected_sites` is ingress.unprotected_sites. Proxy mode: `site_hosts` is upstream.site_hosts. The result is {websites: [{id, label, hosts, protection, tracked}], resolved?, own?} (contract/websites.Derive, Set.Resolve and Set.OwnHost). Never sent anywhere.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["mode"],
+  "properties": {
+    "mode": { "type": "string", "enum": ["ingress", "proxy"] },
+    "blocks": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 500,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["addresses", "schild", "proxies"],
+        "properties": {
+          "addresses": {
+            "description": "Site addresses of the block as written: [scheme://][host][:port][/path]. Scheme http or https; host a name (ASCII or Unicode), a one-label wildcard `*`, an IPv4 address or a bracketed IPv6 address, or empty (every host).",
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 100,
+            "items": { "type": "string", "minLength": 1, "maxLength": 1024 }
+          },
+          "schild": { "type": "boolean" },
+          "proxies": { "type": "boolean" }
+        }
+      }
+    },
+    "unprotected_sites": { "type": "array", "maxItems": 256, "uniqueItems": true, "items": { "$ref": "config/schild.schema.json#/$defs/siteHost" } },
+    "site_hosts": { "type": "array", "minItems": 1, "maxItems": 100, "uniqueItems": true, "items": { "$ref": "config/schild.schema.json#/$defs/siteHost" } },
+    "resolve": {
+      "description": "Vector only: Host header values of requests to map to a website id (result `resolved`, null for none; contract/websites Set.Resolve).",
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 50,
+      "items": { "type": "string", "maxLength": 300 }
+    },
+    "own_hosts": {
+      "description": "Vector only (D36 amendment 2026-10-29): Referer host values (name or IP literal, optional port) to check against the hosts of every website of this gateway (result `own`, one boolean each; contract/websites Set.OwnHost): true for an exact or wildcard host of any website, protected or not, in proxy mode of upstream.site_hosts; never through the host-less catch-all. A Referer from an own host is the referrer key _intern.",
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 50,
+      "items": { "type": "string", "maxLength": 300 }
+    }
+  },
+  "allOf": [
+    { "if": { "properties": { "mode": { "const": "ingress" } } }, "then": { "required": ["blocks"], "not": { "required": ["site_hosts"] } } },
+    { "if": { "properties": { "mode": { "const": "proxy" } } }, "then": { "allOf": [ { "not": { "required": ["blocks"] } }, { "not": { "required": ["unprotected_sites"] } } ] } }
+  ]
+}

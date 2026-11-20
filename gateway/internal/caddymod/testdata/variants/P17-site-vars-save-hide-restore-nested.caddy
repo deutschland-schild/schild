@@ -1,0 +1,14 @@
+# unprotected: []
+# expect: refuse
+# P14 with the restoring rewrite in a nested route (Caddy groups sibling rewrites as mutually exclusive): hide the query from schild, restore after it, proxy. No error path, no marker involved.
+http://a.example.test:18080 {
+	route {
+		vars saved {uri}
+		rewrite * /hidden?
+		schild
+		route {
+			rewrite * {vars.saved}
+		}
+		reverse_proxy 127.0.0.1:18082
+	}
+}

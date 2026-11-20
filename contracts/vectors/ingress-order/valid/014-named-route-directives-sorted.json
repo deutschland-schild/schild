@@ -1,0 +1,90 @@
+{
+  "contract": "ingress-order",
+  "description": "D31 amendment 2026-10-29: Accepted: a named route (&(name)) is sorted by Caddy like a site block, so its schild runs before its rewrite whatever order the snippet lists them in; the walk follows the invoke.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"caddyfile\":\"&(app) {\\n\\trewrite * /hidden?\\n\\tschild\\n\\treverse_proxy 127.0.0.1:18082\\n}\\nhttp://a.example.test {\\n\\tinvoke app\\n}\\n\",\"servers\":{\"srv0\":{\"listen\":[\":80\"],\"named_routes\":{\"app\":{\"handle\":[{\"handler\":\"subroute\",\"routes\":[{\"handle\":[{\"handler\":\"schild\"}]},{\"group\":\"group0\",\"handle\":[{\"handler\":\"rewrite\",\"uri\":\"/hidden?\"}]},{\"handle\":[{\"handler\":\"reverse_proxy\",\"upstreams\":[{\"dial\":\"127.0.0.1:18082\"}]}]}]}]}},\"routes\":[{\"handle\":[{\"handler\":\"subroute\",\"routes\":[{\"handle\":[{\"handler\":\"invoke\",\"name\":\"app\"}]}]}],\"match\":[{\"host\":[\"a.example.test\"]}],\"terminal\":true}]}}}",
+  "input_decoded": {
+    "caddyfile": "&(app) {\n\trewrite * /hidden?\n\tschild\n\treverse_proxy 127.0.0.1:18082\n}\nhttp://a.example.test {\n\tinvoke app\n}\n",
+    "servers": {
+      "srv0": {
+        "listen": [
+          ":80"
+        ],
+        "named_routes": {
+          "app": {
+            "handle": [
+              {
+                "handler": "subroute",
+                "routes": [
+                  {
+                    "handle": [
+                      {
+                        "handler": "schild"
+                      }
+                    ]
+                  },
+                  {
+                    "group": "group0",
+                    "handle": [
+                      {
+                        "handler": "rewrite",
+                        "uri": "/hidden?"
+                      }
+                    ]
+                  },
+                  {
+                    "handle": [
+                      {
+                        "handler": "reverse_proxy",
+                        "upstreams": [
+                          {
+                            "dial": "127.0.0.1:18082"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        "routes": [
+          {
+            "handle": [
+              {
+                "handler": "subroute",
+                "routes": [
+                  {
+                    "handle": [
+                      {
+                        "handler": "invoke",
+                        "name": "app"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ],
+            "match": [
+              {
+                "host": [
+                  "a.example.test"
+                ]
+              }
+            ],
+            "terminal": true
+          }
+        ]
+      }
+    }
+  },
+  "expect": {
+    "valid": true,
+    "result": {
+      "findings": []
+    }
+  }
+}

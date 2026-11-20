@@ -1,0 +1,22 @@
+{
+  "contract": "config/schild",
+  "description": "D41: the first live config with 32 MiB bodies fits the default byte limit.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"config_version\":0,\"mode\":\"observe\",\"node_name\":\"web-1\",\"upstream\":{\"url\":\"http://app:80\"},\"waf\":{\"request_body_limit_bytes\":33554432}}",
+  "input_decoded": {
+    "config_version": 0,
+    "mode": "observe",
+    "node_name": "web-1",
+    "upstream": {
+      "url": "http://app:80"
+    },
+    "waf": {
+      "request_body_limit_bytes": 33554432
+    }
+  },
+  "expect": {
+    "valid": true
+  }
+}

@@ -1,0 +1,18 @@
+id: MVP-06
+title: "Traffic: legit users, attack suites, botnet simulation, replay"
+ships: false
+hypotheses: [M1, M3]
+refs: [concept-14-§3, T01-T05, T13, T14, T20, T21]
+depends_on: [MVP-01, MVP-05]
+builder_rule: "must be built by a different agent than MVP-02/03/04"
+must:
+  - legit traffic: Playwright browsers (incl. slow mobile, JS off), API clients, good bots with mock rDNS
+  - attack suites against own containers only: nuclei (curated, no external callbacks), sqlmap with tamper scripts, GoTestWAF, CRS regression tests (go-ftw), nikto, ffuf, credential stuffing with test lists
+  - botnet simulation from many IPv4/IPv6 addresses on the internal network: loud, low-and-slow, waves across sites
+  - replayer for HTTP requests extracted from datasets (JSONL/HAR), with rewritten host and source pool
+  - every generator sets the secret label header; seeds and datasets versioned with license noted
+measure:
+  - provided to the evaluator; this spec has no own kill criterion besides reproducibility
+kill_if: "two runs with the same seed differ in labelled request counts"
+done: "make traffic SCENARIO=T01..T05 SEED=42"
+out_of_scope: [targets outside the test lab, datasets without a checked license]

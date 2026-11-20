@@ -1,0 +1,155 @@
+{
+  "contract": "ingress-order",
+  "description": "D31 amendment 2026-10-29: Accepted (P08): handle_path strips its prefix before the schild inside it; that generated strip is exempt (the request is re-checked in handle_errors and counted once, request-recheck).",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"caddyfile\":\"http://a.example.test:18080 {\\n\\thandle_path /app/* {\\n\\t\\tschild\\n\\t\\terror \\\"boom\\\" 500\\n\\t}\\n\\thandle {\\n\\t\\tschild\\n\\t\\treverse_proxy 127.0.0.1:18082\\n\\t}\\n\\thandle_errors {\\n\\t\\tschild\\n\\t\\treverse_proxy 127.0.0.1:18082\\n\\t}\\n}\\n\",\"servers\":{\"srv0\":{\"automatic_https\":{\"skip\":[\"a.example.test\"]},\"errors\":{\"routes\":[{\"handle\":[{\"handler\":\"subroute\",\"routes\":[{\"handle\":[{\"handler\":\"subroute\",\"routes\":[{\"handle\":[{\"handler\":\"schild\"},{\"handler\":\"reverse_proxy\",\"upstreams\":[{\"dial\":\"127.0.0.1:18082\"}]}]}]}]}]}],\"match\":[{\"host\":[\"a.example.test\"]}],\"terminal\":true}]},\"listen\":[\":18080\"],\"routes\":[{\"handle\":[{\"handler\":\"subroute\",\"routes\":[{\"group\":\"group3\",\"handle\":[{\"handler\":\"subroute\",\"routes\":[{\"handle\":[{\"handler\":\"rewrite\",\"strip_path_prefix\":\"/app\"}]},{\"handle\":[{\"handler\":\"schild\"},{\"error\":\"boom\",\"handler\":\"error\",\"status_code\":500}]}]}],\"match\":[{\"path\":[\"/app/*\"]}]},{\"group\":\"group3\",\"handle\":[{\"handler\":\"subroute\",\"routes\":[{\"handle\":[{\"handler\":\"schild\"},{\"handler\":\"reverse_proxy\",\"upstreams\":[{\"dial\":\"127.0.0.1:18082\"}]}]}]}]}]}],\"match\":[{\"host\":[\"a.example.test\"]}],\"terminal\":true}]}}}",
+  "input_decoded": {
+    "caddyfile": "http://a.example.test:18080 {\n\thandle_path /app/* {\n\t\tschild\n\t\terror \"boom\" 500\n\t}\n\thandle {\n\t\tschild\n\t\treverse_proxy 127.0.0.1:18082\n\t}\n\thandle_errors {\n\t\tschild\n\t\treverse_proxy 127.0.0.1:18082\n\t}\n}\n",
+    "servers": {
+      "srv0": {
+        "automatic_https": {
+          "skip": [
+            "a.example.test"
+          ]
+        },
+        "errors": {
+          "routes": [
+            {
+              "handle": [
+                {
+                  "handler": "subroute",
+                  "routes": [
+                    {
+                      "handle": [
+                        {
+                          "handler": "subroute",
+                          "routes": [
+                            {
+                              "handle": [
+                                {
+                                  "handler": "schild"
+                                },
+                                {
+                                  "handler": "reverse_proxy",
+                                  "upstreams": [
+                                    {
+                                      "dial": "127.0.0.1:18082"
+                                    }
+                                  ]
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ],
+              "match": [
+                {
+                  "host": [
+                    "a.example.test"
+                  ]
+                }
+              ],
+              "terminal": true
+            }
+          ]
+        },
+        "listen": [
+          ":18080"
+        ],
+        "routes": [
+          {
+            "handle": [
+              {
+                "handler": "subroute",
+                "routes": [
+                  {
+                    "group": "group3",
+                    "handle": [
+                      {
+                        "handler": "subroute",
+                        "routes": [
+                          {
+                            "handle": [
+                              {
+                                "handler": "rewrite",
+                                "strip_path_prefix": "/app"
+                              }
+                            ]
+                          },
+                          {
+                            "handle": [
+                              {
+                                "handler": "schild"
+                              },
+                              {
+                                "error": "boom",
+                                "handler": "error",
+                                "status_code": 500
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ],
+                    "match": [
+                      {
+                        "path": [
+                          "/app/*"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "group": "group3",
+                    "handle": [
+                      {
+                        "handler": "subroute",
+                        "routes": [
+                          {
+                            "handle": [
+                              {
+                                "handler": "schild"
+                              },
+                              {
+                                "handler": "reverse_proxy",
+                                "upstreams": [
+                                  {
+                                    "dial": "127.0.0.1:18082"
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ],
+            "match": [
+              {
+                "host": [
+                  "a.example.test"
+                ]
+              }
+            ],
+            "terminal": true
+          }
+        ]
+      }
+    }
+  },
+  "expect": {
+    "valid": true,
+    "result": {
+      "findings": []
+    }
+  }
+}

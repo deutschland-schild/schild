@@ -1,0 +1,26 @@
+{
+  "contract": "config/schild",
+  "description": "v0.4: switch on one scenario, defaults for the rest.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"behaviour\":{\"scenarios\":{\"login_bruteforce\":{\"mode\":\"block\"}}},\"config_version\":0,\"mode\":\"observe\",\"node_name\":\"web-1\",\"upstream\":{\"url\":\"http://app:80\"}}",
+  "input_decoded": {
+    "behaviour": {
+      "scenarios": {
+        "login_bruteforce": {
+          "mode": "block"
+        }
+      }
+    },
+    "config_version": 0,
+    "mode": "observe",
+    "node_name": "web-1",
+    "upstream": {
+      "url": "http://app:80"
+    }
+  },
+  "expect": {
+    "valid": true
+  }
+}

@@ -1,0 +1,84 @@
+{
+  "contract": "website-derive",
+  "description": "D36: a wildcard label becomes _ in the id; an exact host beats a wildcard, fewer wildcard labels beat more; a wildcard covers exactly one label. D69: a request host with a * label matches a wildcard host like any other label, as in Caddy.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"blocks\":[{\"addresses\":[\"*.kunden.example.org\"],\"proxies\":true,\"schild\":true},{\"addresses\":[\"a.kunden.example.org\"],\"proxies\":true,\"schild\":true},{\"addresses\":[\"*.*.example.org\"],\"proxies\":true,\"schild\":true}],\"mode\":\"ingress\",\"resolve\":[\"a.kunden.example.org\",\"b.kunden.example.org\",\"x.y.kunden.example.org\",\"kunden.example.org\",\"b.c.example.org\",\"*.kunden.example.org\"]}",
+  "input_decoded": {
+    "blocks": [
+      {
+        "addresses": [
+          "*.kunden.example.org"
+        ],
+        "proxies": true,
+        "schild": true
+      },
+      {
+        "addresses": [
+          "a.kunden.example.org"
+        ],
+        "proxies": true,
+        "schild": true
+      },
+      {
+        "addresses": [
+          "*.*.example.org"
+        ],
+        "proxies": true,
+        "schild": true
+      }
+    ],
+    "mode": "ingress",
+    "resolve": [
+      "a.kunden.example.org",
+      "b.kunden.example.org",
+      "x.y.kunden.example.org",
+      "kunden.example.org",
+      "b.c.example.org",
+      "*.kunden.example.org"
+    ]
+  },
+  "expect": {
+    "valid": true,
+    "result": {
+      "resolved": [
+        "a.kunden.example.org",
+        "_.kunden.example.org",
+        null,
+        null,
+        "_._.example.org",
+        "_.kunden.example.org"
+      ],
+      "websites": [
+        {
+          "hosts": [
+            "*.kunden.example.org"
+          ],
+          "id": "_.kunden.example.org",
+          "label": "*.kunden.example.org",
+          "protection": "protected",
+          "tracked": true
+        },
+        {
+          "hosts": [
+            "a.kunden.example.org"
+          ],
+          "id": "a.kunden.example.org",
+          "label": "a.kunden.example.org",
+          "protection": "protected",
+          "tracked": true
+        },
+        {
+          "hosts": [
+            "*.*.example.org"
+          ],
+          "id": "_._.example.org",
+          "label": "*.*.example.org",
+          "protection": "protected",
+          "tracked": true
+        }
+      ]
+    }
+  }
+}

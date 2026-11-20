@@ -1,0 +1,24 @@
+{
+  "contract": "config/schild",
+  "description": "v0.4 addendum: 8 evaluation slots and 250 ms queue wait in schild.yaml.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"config_version\":0,\"mode\":\"observe\",\"node_name\":\"web-1\",\"upstream\":{\"url\":\"http://app:80\"},\"waf\":{\"eval_timeout_ms\":1000,\"max_concurrent_evals\":8,\"queue_wait_ms\":250}}",
+  "input_decoded": {
+    "config_version": 0,
+    "mode": "observe",
+    "node_name": "web-1",
+    "upstream": {
+      "url": "http://app:80"
+    },
+    "waf": {
+      "eval_timeout_ms": 1000,
+      "max_concurrent_evals": 8,
+      "queue_wait_ms": 250
+    }
+  },
+  "expect": {
+    "valid": true
+  }
+}

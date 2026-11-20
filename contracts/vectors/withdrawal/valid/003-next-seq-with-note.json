@@ -1,0 +1,43 @@
+{
+  "contract": "withdrawal",
+  "description": "Next seq over stored state, with a note.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z",
+    "trust": [
+      "site-a",
+      "site-b",
+      "site-c",
+      "lab-a",
+      "lab-a2",
+      "lab-b",
+      "lab-c",
+      "lab-d"
+    ],
+    "threshold": 2,
+    "channel": "schild-main",
+    "state": {
+      "withdrawal_seq": 4,
+      "withdrawal_digest": "sha256:879cc67a846b570c4241f1880f79e6ed1646abd9eca44882782cb6c8c568ab53"
+    }
+  },
+  "input_raw": "{\"payloadType\":\"application/vnd.schild.withdrawal.v0+json\",\"payload\":\"eyJidW5kbGVfaWQiOiJzY2hpbGQtbWFpbiIsImlzc3VlZF9hdCI6IjIwMjYtMTAtMjZUMTE6NTk6MDBaIiwibm90ZSI6IkJyZWFrcyB0aGUgY2hlY2tvdXQgb2YgcGx1Z2luIHgsIG5hcnJvd2luZyBmb2xsb3dzLiIsInJlYXNvbiI6ImZhbHNlX3Bvc2l0aXZlcyIsInJ1bGVfaWRzIjpbInNjaGlsZC0yMDI2LTA0MTIiLCJzY2hpbGQtMjAyNi0wNDEzIl0sInNjaGVtYSI6InNjaGlsZC53aXRoZHJhd2FsLzAuMSIsInNjb3BlIjoicnVsZXMiLCJzZXEiOjUsInVwX3RvX3ZlcnNpb24iOjQyfQ==\",\"signatures\":[{\"keyid\":\"test-lab-a\",\"sig\":\"ikXVj09PkAWyJ6n0eBvcPLRdwSFhTbdH6Is3ceE/ad65PBqZA6DZY2Jhp5GIL0rZFU+sVoRJAs6YnUjoM4yUBg==\"},{\"keyid\":\"test-lab-c\",\"sig\":\"Rt2vkBuwgKUO++pHYQfRQQ7jdmYOhTNF0zhWSvDvxUpWH6Vtq9qlxBrT6WnsF0P1owO/9KGuOvwji1AxL0xYBw==\"}]}",
+  "input_decoded": {
+    "payload": {
+      "bundle_id": "schild-main",
+      "issued_at": "2026-10-26T11:59:00Z",
+      "note": "Breaks the checkout of plugin x, narrowing follows.",
+      "reason": "false_positives",
+      "rule_ids": [
+        "schild-2026-0412",
+        "schild-2026-0413"
+      ],
+      "schema": "schild.withdrawal/0.1",
+      "scope": "rules",
+      "seq": 5,
+      "up_to_version": 42
+    }
+  },
+  "expect": {
+    "valid": true
+  }
+}

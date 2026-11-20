@@ -1,0 +1,18 @@
+# unprotected: []
+# expect: pass
+# Recommended form for several sites: shared error snippet with import schild inside.
+(errors) {
+	handle_errors {
+		import schild
+		reverse_proxy 127.0.0.1:18081
+	}
+}
+http://a.example.test:18080 {
+	import schild
+	reverse_proxy 127.0.0.1:18081
+	import errors
+}
+http://b.example.test:18080 {
+	root * /tmp/m19m3-empty
+	file_server
+}

@@ -1,0 +1,18 @@
+{
+  "contract": "geo-map",
+  "description": "v0.5 MVP-22: autonomous_system_number is an integer.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"provider\":\"maxmind\",\"record\":{\"autonomous_system_number\":\"64496\"}}",
+  "input_decoded": {
+    "provider": "maxmind",
+    "record": {
+      "autonomous_system_number": "64496"
+    }
+  },
+  "expect": {
+    "valid": false,
+    "error": "schema"
+  }
+}

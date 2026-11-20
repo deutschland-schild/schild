@@ -1,0 +1,12 @@
+{
+  "contract": "submission",
+  "description": "Duplicate request_id.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"request_id\":\"e0c90760-9938-4a8b-9a53-78bf5bae23f7\",\"envelopes\":[{\"payload\":\"eyJzY2hlbWEiOiJzY2hpbGQuc2lnbmFsLzAuMyIsImlkIjoiOTA5Y2U5YWMtYmMyYi00ZjEzLTg2ZmUtZjBmMzBjY2YxZTZkIiwia2luZCI6InRpcCIsInRpbWVfYnVja2V0IjoiMjAyNi0xMC0yNlQxMTo1NTowMFoiLCJhY3Rpb25fc2lnIjoibG9naW4tYnVyc3Qvd3AtYWRtaW4iLCJyZXF1ZXN0X3NpZyI6InNoYTI1NjphMDcxODdmMWM3ZDFjNTY0M2IwMmNlNzMwYmVmM2Q3YmM1NzAwYTViZWUwYjM4MzNkMTNmMjgxOWYxZTJiZTgxIiwid2FmX3J1bGVzIjpbOTMwMTIwLDk0OTExMF0sInNjb3JlIjo3MiwiY2F0ZWdvcnkiOiJ3b3JkcHJlc3MtbG9naW4tYnJ1dGVmb3JjZSIsIm9yaWdpbiI6eyJjb3VudHJ5IjoiTkwiLCJhc24iOjE0MDYxLCJuZXRfY2xhc3MiOiJob3N0aW5nIiwiYXR0cmlidXRpb24iOiJ0Y3BfcGVlciIsInByb3RlY3RlZCI6ZmFsc2V9LCJhZ2VudCI6eyJmYW1pbHkiOiJweXRob24tcmVxdWVzdHMiLCJtYWpvciI6MiwiYm90IjpmYWxzZX19\",\"payloadType\":\"application/vnd.schild.signal.v0+json\",\"signatures\":[{\"keyid\":\"test-site-a\",\"sig\":\"Cbx+wfEnYckGkuTd+eIaqo+zrUirrtI5k5MY7WeGeI2uPtk9izl0sIy5FtTcAGwNr4jScomnYgA4HalYnUdNBA==\"}]}],\"request_id\":\"31e93d6c-ddb2-40d8-a4a3-c523fc971092\"}",
+  "expect": {
+    "valid": false,
+    "error": "malformed"
+  }
+}

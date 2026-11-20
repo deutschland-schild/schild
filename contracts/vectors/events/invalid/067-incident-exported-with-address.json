@@ -1,0 +1,26 @@
+{
+  "contract": "events",
+  "description": "D51: the record never carries an address (closed object).",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"data\":{\"by\":\"admin\",\"events\":3,\"incident\":\"K7QM-4XWD\",\"ip\":\"203.0.113.9\"},\"datacontenttype\":\"application/json\",\"id\":\"857ed0db-7132-4ba1-ba1d-48841c2ec15e\",\"source\":\"schild://web-1\",\"specversion\":\"1.0\",\"time\":\"2026-10-26T11:59:58.123Z\",\"type\":\"schild.incident.exported.v1\"}",
+  "input_decoded": {
+    "data": {
+      "by": "admin",
+      "events": 3,
+      "incident": "K7QM-4XWD",
+      "ip": "203.0.113.9"
+    },
+    "datacontenttype": "application/json",
+    "id": "857ed0db-7132-4ba1-ba1d-48841c2ec15e",
+    "source": "schild://web-1",
+    "specversion": "1.0",
+    "time": "2026-10-26T11:59:58.123Z",
+    "type": "schild.incident.exported.v1"
+  },
+  "expect": {
+    "valid": false,
+    "error": "schema"
+  }
+}

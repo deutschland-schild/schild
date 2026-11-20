@@ -1,0 +1,23 @@
+{
+  "since": "2026-11-02T06:00:00.000Z",
+  "items": [
+    {
+      "website": "musterverein.example",
+      "policy": { "categories": { "ai_training": "block" }, "bots": { "ccbot": "allow" }, "impersonators": "block" },
+      "updated_at": "2026-11-02T10:15:00.000Z",
+      "actor": "agent",
+      "crawlers": [
+        { "bot": "gptbot", "name": "GPTBot", "category": "ai_training", "rule": "block", "blocked": 412, "would_block": 0 },
+        { "bot": "ccbot", "name": "CCBot", "category": "ai_training", "rule": "allow", "blocked": 0, "would_block": 0 },
+        { "bot": "googlebot", "name": "Googlebot", "category": "search_engine", "rule": "allow", "blocked": 37, "would_block": 0 }
+      ]
+    },
+    {
+      "website": "shop.example",
+      "policy": { "categories": {}, "bots": {}, "impersonators": "allow" },
+      "updated_at": null,
+      "actor": null,
+      "crawlers": []
+    }
+  ]
+}

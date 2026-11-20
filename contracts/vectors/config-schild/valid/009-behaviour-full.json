@@ -1,0 +1,98 @@
+{
+  "contract": "config/schild",
+  "description": "v0.4: scenarios with modes and thresholds, own rate limits with wildcards and a site.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"behaviour\":{\"preset_limits\":\"observe\",\"presets\":[\"wordpress\",\"generic\"],\"rate_limits\":[{\"burst\":10,\"id\":\"wp-login\",\"label\":\"WordPress Anmeldung\",\"limit\":10,\"methods\":[\"POST\"],\"mode\":\"block\",\"per\":\"1m\",\"route\":\"/wp-login.php\"},{\"limit\":3,\"methods\":[\"POST\"],\"per\":\"10m\",\"route\":\"/wp-json/contact-form-7/v1/contact-forms/*/feedback\",\"site\":\"verein.example\"},{\"burst\":120,\"limit\":60,\"methods\":[\"POST\",\"PUT\",\"PATCH\",\"DELETE\"],\"mode\":\"observe\",\"per\":\"1m\",\"route\":\"/api/**\"}],\"scenarios\":{\"aggressive_crawl\":{\"mode\":\"observe\",\"thresholds\":{\"baseline_factor\":10,\"count\":120,\"window_s\":60}},\"credential_stuffing\":{\"mode\":\"observe\",\"thresholds\":{\"count\":10,\"window_s\":600}},\"login_bruteforce\":{\"mode\":\"block\",\"thresholds\":{\"count\":5,\"slow_count\":30,\"slow_window_s\":3600,\"window_s\":60}},\"path_probing\":{\"mode\":\"challenge\",\"thresholds\":{\"count\":20,\"window_s\":60}},\"waf_repeat\":{\"mode\":\"off\"}}},\"config_version\":0,\"mode\":\"observe\",\"node_name\":\"web-1\",\"upstream\":{\"url\":\"http://app:80\"}}",
+  "input_decoded": {
+    "behaviour": {
+      "preset_limits": "observe",
+      "presets": [
+        "wordpress",
+        "generic"
+      ],
+      "rate_limits": [
+        {
+          "burst": 10,
+          "id": "wp-login",
+          "label": "WordPress Anmeldung",
+          "limit": 10,
+          "methods": [
+            "POST"
+          ],
+          "mode": "block",
+          "per": "1m",
+          "route": "/wp-login.php"
+        },
+        {
+          "limit": 3,
+          "methods": [
+            "POST"
+          ],
+          "per": "10m",
+          "route": "/wp-json/contact-form-7/v1/contact-forms/*/feedback",
+          "site": "verein.example"
+        },
+        {
+          "burst": 120,
+          "limit": 60,
+          "methods": [
+            "POST",
+            "PUT",
+            "PATCH",
+            "DELETE"
+          ],
+          "mode": "observe",
+          "per": "1m",
+          "route": "/api/**"
+        }
+      ],
+      "scenarios": {
+        "aggressive_crawl": {
+          "mode": "observe",
+          "thresholds": {
+            "baseline_factor": 10,
+            "count": 120,
+            "window_s": 60
+          }
+        },
+        "credential_stuffing": {
+          "mode": "observe",
+          "thresholds": {
+            "count": 10,
+            "window_s": 600
+          }
+        },
+        "login_bruteforce": {
+          "mode": "block",
+          "thresholds": {
+            "count": 5,
+            "slow_count": 30,
+            "slow_window_s": 3600,
+            "window_s": 60
+          }
+        },
+        "path_probing": {
+          "mode": "challenge",
+          "thresholds": {
+            "count": 20,
+            "window_s": 60
+          }
+        },
+        "waf_repeat": {
+          "mode": "off"
+        }
+      }
+    },
+    "config_version": 0,
+    "mode": "observe",
+    "node_name": "web-1",
+    "upstream": {
+      "url": "http://app:80"
+    }
+  },
+  "expect": {
+    "valid": true
+  }
+}

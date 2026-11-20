@@ -1,0 +1,106 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://contracts.schild.invalid/v0/crowdsec-hub.schema.json",
+  "title": "CrowdSec Hub conversion and update input (v0.5, D39; v0.6, D73)",
+  "description": "Input of the crowdsec-hub vectors: one decision of the CrowdSec Hub source (contract/crowdsec, rules in crowdsec-hub.md). Four ops: convert one hub rule, check one downloaded index, which set loads at start, the verdict on a measured set cost. The effect of a rule, the state switch and the scope checks are rule-effect vectors (D73).",
+  "oneOf": [
+    { "$ref": "#/$defs/convert" },
+    { "$ref": "#/$defs/update" },
+    { "$ref": "#/$defs/select" },
+    { "$ref": "#/$defs/setCost" }
+  ],
+  "$defs": {
+    "state": { "description": "The one switch of the source. off: no rules, no fetch. detect (the default, also in automatic blocking mode): rules run, nothing blocks. block: rules block in gateway mode autoblock, a new or changed rule stays in detect for the settling period.", "type": "string", "enum": ["off", "detect", "block"] },
+    "commit": { "description": "A hub git commit.", "type": "string", "pattern": "^[0-9a-f]{40}$" },
+    "digest": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+    "time": { "$ref": "common.schema.json#/$defs/timestamp" },
+    "unix": { "type": "integer", "minimum": 0, "maximum": 9007199254740991 },
+    "ns": { "type": "integer", "minimum": 0, "maximum": 9007199254740991 },
+    "setCost": {
+      "description": "D43: the verdict on one measured sample (crowdsec.CheckSetCost, section 6). The timing itself is the gateway's and not in the vectors.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["op", "baseline_ns", "reference_ns", "candidate_ns", "rounds"],
+      "properties": {
+        "op": { "const": "set_cost" },
+        "baseline_ns": { "description": "Nanoseconds per probe request without hub rules.", "$ref": "#/$defs/ns" },
+        "reference_ns": { "description": "With the image snapshot; equal to the baseline without a snapshot.", "$ref": "#/$defs/ns" },
+        "candidate_ns": { "description": "With the candidate set.", "$ref": "#/$defs/ns" },
+        "rounds": { "description": "Finished rounds of the probe set.", "type": "integer", "minimum": 0, "maximum": 1000 }
+      }
+    },
+    "convert": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["op", "name", "version", "content"],
+      "properties": {
+        "op": { "const": "convert" },
+        "name": { "description": "Hub item name as in the index. Not constrained here: a bad name is a refusal of the rule (bad_name), not a broken input.", "type": "string", "maxLength": 256 },
+        "version": { "type": "string", "maxLength": 32 },
+        "content": { "description": "The decoded YAML of the rule, as text.", "type": "string", "maxLength": 1048576 },
+        "description": { "description": "Description of the index, used when the YAML has none.", "type": "string", "maxLength": 4096 }
+      }
+    },
+    "update": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["op", "index", "now"],
+      "properties": {
+        "op": { "const": "update" },
+        "index": { "description": "The bytes of .index.json as text. Never validated by a schema: a broken index is a refusal with a code, not a broken input.", "type": "string", "maxLength": 1048576 },
+        "now": { "$ref": "#/$defs/time" },
+        "previous": {
+          "description": "The running set: what it knows about each rule. Absent: no set is running.",
+          "type": "object",
+          "maxProperties": 1000,
+          "additionalProperties": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["digest", "first_seen", "changed_at"],
+            "properties": {
+              "digest": { "$ref": "#/$defs/digest" },
+              "first_seen": { "$ref": "#/$defs/time" },
+              "changed_at": { "$ref": "#/$defs/time" }
+            }
+          }
+        },
+        "limits": {
+          "description": "Lower bounds for vectors only, so that they stay small. The gateway uses the defaults of crowdsec-hub.md section 6.",
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "index_bytes": { "type": "integer", "minimum": 1 },
+            "rules": { "type": "integer", "minimum": 1 },
+            "set_bytes": { "type": "integer", "minimum": 1 },
+            "set_lines": { "type": "integer", "minimum": 1 }
+          }
+        },
+        "shrink_base": { "description": "D43: the rule count a new set is held against: the image snapshot. Absent or 0: no snapshot, the running set counts. -1: no check, a pin.", "type": "integer", "minimum": -1, "maximum": 1000 }
+      }
+    },
+    "candidate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["present", "valid"],
+      "properties": {
+        "present": { "type": "boolean" },
+        "valid": { "description": "Parses, digests match, at least one rule loads and it compiles.", "type": "boolean" },
+        "commit": { "$ref": "#/$defs/commit" },
+        "time": { "description": "The date of the set (crowdsec.Set.Time). Not constrained here: absent, unreadable or too far in the future means no date, a rule of its own.", "type": "string", "maxLength": 64 }
+      }
+    },
+    "select": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["op", "state", "stored", "image", "now"],
+      "properties": {
+        "op": { "const": "select" },
+        "now": { "$ref": "#/$defs/time" },
+        "state": { "$ref": "#/$defs/state" },
+        "pin": { "$ref": "#/$defs/commit" },
+        "stored": { "$ref": "#/$defs/candidate" },
+        "image": { "$ref": "#/$defs/candidate" }
+      }
+    }
+  }
+}

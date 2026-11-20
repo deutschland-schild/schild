@@ -1,0 +1,22 @@
+{
+  "contract": "geo-map",
+  "description": "v0.5 MVP-22: AS0 is unknown.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"provider\":\"ipinfo\",\"record\":{\"asn\":\"AS0\",\"country_code\":\"US\"}}",
+  "input_decoded": {
+    "provider": "ipinfo",
+    "record": {
+      "asn": "AS0",
+      "country_code": "US"
+    }
+  },
+  "expect": {
+    "valid": true,
+    "result": {
+      "asn": null,
+      "country": "US"
+    }
+  }
+}

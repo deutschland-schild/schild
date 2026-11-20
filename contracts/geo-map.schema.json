@@ -1,0 +1,13 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://contracts.schild.invalid/v0/geo-map.schema.json",
+  "title": "Geo field mapping input (v0.5, MVP-22, D35)",
+  "description": "One record of a geo database as decoded from the MMDB file (JSON form) and the provider it came from, used by the geo-map vectors. The gateway maps every lookup with the same rules (contract/geo.Map) and runs them on sample lookups before it swaps in a downloaded database (sanity check); a mapping error rejects the download and keeps the last good database. Unknown fields are ignored. Rules: dbip and maxmind (same MMDB layout): country from country.iso_code, else registered_country.iso_code; asn from autonomous_system_number (integer); as_name from autonomous_system_organization; maxmind only (paid databases, top level or under traits): is_vpn from is_anonymous_vpn, is_proxy from is_public_proxy or is_residential_proxy, is_tor from is_tor_exit_node, is_hosting from is_hosting_provider, is_mobile from connection_type = Cellular, carrier from isp when mobile_network_code is present. ipinfo: country from country_code, asn from asn ('AS<n>', empty = unknown), as_name, as_domain; optional (paid tiers) is_vpn from is_vpn or vpn, is_proxy from is_proxy or proxy, is_tor from is_tor or tor, is_hosting from is_hosting or hosting, is_mobile from is_mobile, carrier from carrier_name or carrier.name. Normalisation: country two letters, upper-cased, absent = ZZ; asn 1..4294967295, absent or 0 = null; booleans are the OR of every source present; names (as_name, carrier) are kept when at most 256 bytes without control characters, else dropped; as_domain is kept when it is a lower-case host name, else dropped; a present source of the wrong type, a malformed country or a malformed asn is an error (code schema). net_class is derived from the flags in the order tor, vpn, proxy, mobile, hosting (first one true); absent when none is true (the ASN-based classification stays).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["provider", "record"],
+  "properties": {
+    "provider": { "type": "string", "enum": ["dbip", "ipinfo", "maxmind"] },
+    "record": { "description": "Decoded MMDB record; any fields.", "type": "object" }
+  }
+}

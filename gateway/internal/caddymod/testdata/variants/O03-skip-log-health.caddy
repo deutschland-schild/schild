@@ -1,0 +1,12 @@
+# unprotected: []
+# expect: pass
+http://a.example.test:18080 {
+	import schild
+	log_skip /health
+	log {
+		output stdout
+		format json
+	}
+	respond /health 200
+	reverse_proxy 127.0.0.1:18081
+}

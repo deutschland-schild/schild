@@ -1,0 +1,47 @@
+{
+  "contract": "results",
+  "description": "Contract test result (MVP-01).",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"finished_at\":\"2026-10-26T12:00:00Z\",\"git_rev\":\"642a7eb\",\"hypotheses\":[\"M1\",\"M2\",\"M3\",\"M4\",\"M5\",\"M6\",\"M7\"],\"images\":[],\"kill_criteria\":[{\"expr\":\"p95_overhead_ms > 5 at 500 rps\",\"hit\":false,\"observed\":\"1.9 ms\"}],\"metrics\":[{\"name\":\"vectors_disagreeing\",\"unit\":\"count\",\"value\":0}],\"profile\":\"unit\",\"results_version\":0,\"run_id\":\"2026-10-26T1200-t0-42\",\"scenarios\":[],\"seed\":42,\"spec\":\"MVP-01\",\"started_at\":\"2026-10-26T11:30:00Z\",\"verdict\":\"pass\"}",
+  "input_decoded": {
+    "finished_at": "2026-10-26T12:00:00Z",
+    "git_rev": "642a7eb",
+    "hypotheses": [
+      "M1",
+      "M2",
+      "M3",
+      "M4",
+      "M5",
+      "M6",
+      "M7"
+    ],
+    "images": [],
+    "kill_criteria": [
+      {
+        "expr": "p95_overhead_ms > 5 at 500 rps",
+        "hit": false,
+        "observed": "1.9 ms"
+      }
+    ],
+    "metrics": [
+      {
+        "name": "vectors_disagreeing",
+        "unit": "count",
+        "value": 0
+      }
+    ],
+    "profile": "unit",
+    "results_version": 0,
+    "run_id": "2026-10-26T1200-t0-42",
+    "scenarios": [],
+    "seed": 42,
+    "spec": "MVP-01",
+    "started_at": "2026-10-26T11:30:00Z",
+    "verdict": "pass"
+  },
+  "expect": {
+    "valid": true
+  }
+}

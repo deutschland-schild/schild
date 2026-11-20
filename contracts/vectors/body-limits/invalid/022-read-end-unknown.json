@@ -1,0 +1,16 @@
+{
+  "contract": "body-limits",
+  "description": "D45: three ends.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"end\":\"stalled\",\"op\":\"read_end\"}",
+  "input_decoded": {
+    "end": "stalled",
+    "op": "read_end"
+  },
+  "expect": {
+    "valid": false,
+    "error": "schema"
+  }
+}

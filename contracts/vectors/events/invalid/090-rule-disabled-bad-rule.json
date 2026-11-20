@@ -1,0 +1,25 @@
+{
+  "contract": "events",
+  "description": "D73: a rule is its SecRule id as a string.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"data\":{\"actor\":\"dashboard\",\"repository\":\"crs\",\"rule\":\"rule-1\"},\"datacontenttype\":\"application/json\",\"id\":\"352bb13f-7a3b-47a3-a2ac-91b96a314be1\",\"source\":\"schild://web-1\",\"specversion\":\"1.0\",\"time\":\"2026-10-26T11:59:58.123Z\",\"type\":\"schild.rule.disabled.v1\"}",
+  "input_decoded": {
+    "data": {
+      "actor": "dashboard",
+      "repository": "crs",
+      "rule": "rule-1"
+    },
+    "datacontenttype": "application/json",
+    "id": "352bb13f-7a3b-47a3-a2ac-91b96a314be1",
+    "source": "schild://web-1",
+    "specversion": "1.0",
+    "time": "2026-10-26T11:59:58.123Z",
+    "type": "schild.rule.disabled.v1"
+  },
+  "expect": {
+    "valid": false,
+    "error": "schema"
+  }
+}

@@ -1,0 +1,32 @@
+{
+  "contract": "body-limits",
+  "description": "D46: cgnat counts four times: 8191 of 8192, admitted.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"conn_limits\":{\"max_open\":16384,\"max_per_client\":2048,\"max_per_network\":8192},\"conn_state\":{\"client\":8191,\"network\":8191,\"open\":8191},\"net_class\":\"cgnat\",\"op\":\"conn_admit\",\"peer_known\":true,\"proxy\":false}",
+  "input_decoded": {
+    "conn_limits": {
+      "max_open": 16384,
+      "max_per_client": 2048,
+      "max_per_network": 8192
+    },
+    "conn_state": {
+      "client": 8191,
+      "network": 8191,
+      "open": 8191
+    },
+    "net_class": "cgnat",
+    "op": "conn_admit",
+    "peer_known": true,
+    "proxy": false
+  },
+  "expect": {
+    "valid": true,
+    "result": {
+      "admitted": true,
+      "evict": null,
+      "refused": null
+    }
+  }
+}

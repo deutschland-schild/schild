@@ -1,0 +1,18 @@
+{
+  "contract": "geo-map",
+  "description": "v0.5 MVP-22: AS numbers have 32 bits.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"provider\":\"dbip\",\"record\":{\"autonomous_system_number\":4294967296}}",
+  "input_decoded": {
+    "provider": "dbip",
+    "record": {
+      "autonomous_system_number": 4294967296
+    }
+  },
+  "expect": {
+    "valid": false,
+    "error": "schema"
+  }
+}

@@ -1,0 +1,31 @@
+{
+ "resolve": [
+  "a.example.org",
+  "b.example.org",
+  "other.example",
+  "a.example.org:80"
+ ],
+ "blocks": [
+  {
+   "Addresses": [
+    ":80"
+   ],
+   "Schild": false,
+   "Proxies": false
+  },
+  {
+   "Addresses": [
+    "a.example.org"
+   ],
+   "Schild": true,
+   "Proxies": true
+  },
+  {
+   "Addresses": [
+    "b.example.org"
+   ],
+   "Schild": true,
+   "Proxies": true
+  }
+ ]
+}

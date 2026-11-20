@@ -1,0 +1,35 @@
+{
+  "contract": "waiting-page",
+  "description": "D37: assets (image, script, style, font) get the problem.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"enabled\":true,\"fail_closed\":\"waf_busy\",\"headers\":{\"accept\":\"image/avif,image/webp,*/*;q=0.8\",\"sec_fetch_dest\":\"image\",\"sec_fetch_mode\":\"no-cors\"},\"host\":\"musterverein.example\",\"jitter_draw\":0,\"method\":\"GET\",\"website\":\"musterverein.example\"}",
+  "input_decoded": {
+    "enabled": true,
+    "fail_closed": "waf_busy",
+    "headers": {
+      "accept": "image/avif,image/webp,*/*;q=0.8",
+      "sec_fetch_dest": "image",
+      "sec_fetch_mode": "no-cors"
+    },
+    "host": "musterverein.example",
+    "jitter_draw": 0,
+    "method": "GET",
+    "website": "musterverein.example"
+  },
+  "expect": {
+    "valid": true,
+    "result": {
+      "answer": "problem",
+      "body": true,
+      "language": null,
+      "marker": true,
+      "problem_code": "waiting",
+      "refresh": null,
+      "retry_after": 5,
+      "site_name": null,
+      "variant": null
+    }
+  }
+}

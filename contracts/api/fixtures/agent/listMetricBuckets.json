@@ -1,0 +1,159 @@
+{
+  "resolution": "1m",
+  "next_cursor": "b1m.1761652860",
+  "items": [
+    {
+      "t": "2026-10-28T12:00:00Z",
+      "resolution": "1m",
+      "step_s": 60,
+      "partial": false,
+      "traffic": {
+        "requests": 1000,
+        "forwarded": 960,
+        "stopped": 38,
+        "blocked_waf": 20,
+        "blocked_behaviour": 5,
+        "rate_limited": 10,
+        "rejected_limit": 3,
+        "challenged": 0,
+        "fail_closed": 2,
+        "fail_closed_by": {
+          "waf_timeout": 0,
+          "waf_busy": 2,
+          "not_ready": 0,
+          "panic": 0
+        },
+        "would_block": 4,
+        "would_rate_limit": 0,
+        "page_views": 310,
+        "detections": 22,
+        "waiting_page_shown": 1,
+        "status": {
+          "s1xx": 0,
+          "s2xx": 900,
+          "s3xx": 40,
+          "s4xx": 52,
+          "s5xx": 8
+        },
+        "upstream_errors": 1,
+        "upstream_timeouts": 1,
+        "bytes_in": 12000,
+        "bytes_out": 48000000
+      },
+      "latency": {
+        "total": {
+          "scheme": "exp1.25-0.05ms",
+          "counts": {
+            "20": 700,
+            "31": 250,
+            "57": 3
+          }
+        },
+        "overhead": {
+          "scheme": "exp1.25-0.05ms",
+          "counts": {
+            "12": 960
+          }
+        },
+        "upstream": {
+          "scheme": "exp1.25-0.05ms",
+          "counts": {
+            "20": 700,
+            "31": 250,
+            "57": 3
+          }
+        }
+      },
+      "clients": {
+        "unique": 212,
+        "new": 37
+      },
+      "top": {
+        "path": [
+          {
+            "key": "/wp-login.php",
+            "requests": 120,
+            "stopped": 30,
+            "would_block": 0,
+            "detections": 18,
+            "error": 2
+          }
+        ],
+        "rule": [
+          {
+            "key": "942100",
+            "requests": 9,
+            "stopped": 8,
+            "would_block": 1,
+            "error": 0
+          }
+        ],
+        "bot_category": [
+          {
+            "key": "likely_browser",
+            "requests": 760,
+            "stopped": 0,
+            "would_block": 0,
+            "error": 0
+          },
+          {
+            "key": "ai_training",
+            "requests": 40,
+            "stopped": 0,
+            "would_block": 0,
+            "error": 0
+          }
+        ],
+        "country": [
+          {
+            "key": "DE",
+            "requests": 800,
+            "stopped": 10,
+            "would_block": 0,
+            "error": 0
+          }
+        ],
+        "ua_class": [
+          {
+            "key": "browser",
+            "requests": 700,
+            "stopped": 0,
+            "would_block": 0,
+            "error": 0
+          },
+          {
+            "key": "bot_unverified",
+            "requests": 50,
+            "stopped": 3,
+            "would_block": 0,
+            "error": 0
+          }
+        ]
+      },
+      "sites": [],
+      "values": {
+        "counters": {
+          "schild.events_dropped": 0
+        },
+        "gauges": {
+          "server.cpu_usage": {
+            "avg": 0.21,
+            "min": 0.12,
+            "max": 0.4
+          }
+        }
+      },
+      "objects": [
+        {
+          "object": "eth0",
+          "kind": "interface",
+          "values": {
+            "counters": {
+              "server.net_rx_bytes": 1200000000
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

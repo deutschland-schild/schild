@@ -1,0 +1,50 @@
+{
+  "contract": "signal",
+  "description": "203.0.113.7 written as an integer in the asn field.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z",
+    "trust": [
+      "site-a",
+      "site-b",
+      "site-c",
+      "lab-a",
+      "lab-a2",
+      "lab-b",
+      "lab-c",
+      "lab-d"
+    ]
+  },
+  "input_raw": "{\"payloadType\":\"application/vnd.schild.signal.v0+json\",\"payload\":\"eyJhY3Rpb25fc2lnIjoibG9naW4tYnVyc3Qvd3AtYWRtaW4iLCJhZ2VudCI6eyJib3QiOmZhbHNlLCJmYW1pbHkiOiJweXRob24tcmVxdWVzdHMiLCJtYWpvciI6Mn0sImNhdGVnb3J5Ijoid29yZHByZXNzLWxvZ2luLWJydXRlZm9yY2UiLCJpZCI6ImFhYWQ3YWM5LTM4ZGQtNGYxMS05MzRhLTkwM2VlOThkNGExMyIsImtpbmQiOiJ0aXAiLCJvcmlnaW4iOnsiYXNuIjozNDA1ODAzNzgzLCJhdHRyaWJ1dGlvbiI6InRjcF9wZWVyIiwiY291bnRyeSI6Ik5MIiwibmV0X2NsYXNzIjoiaG9zdGluZyIsInByb3RlY3RlZCI6ZmFsc2V9LCJyZXF1ZXN0X3NpZyI6InNoYTI1NjphMDcxODdmMWM3ZDFjNTY0M2IwMmNlNzMwYmVmM2Q3YmM1NzAwYTViZWUwYjM4MzNkMTNmMjgxOWYxZTJiZTgxIiwic2NoZW1hIjoic2NoaWxkLnNpZ25hbC8wLjMiLCJzY29yZSI6NzIsInRpbWVfYnVja2V0IjoiMjAyNi0xMC0yNlQxMTo1NTowMFoiLCJ3YWZfcnVsZXMiOls5MzAxMjAsOTQ5MTEwXX0=\",\"signatures\":[{\"keyid\":\"test-site-a\",\"sig\":\"NSfMhYqiuPASWjKwyjAHQ2+1upSMtD1dMUYuFTFoOj8DbH3wCws4CXeBiXrvYG/HbNOVyvJskvqp7q54TD/eCw==\"}]}",
+  "input_decoded": {
+    "payload": {
+      "action_sig": "login-burst/wp-admin",
+      "agent": {
+        "bot": false,
+        "family": "python-requests",
+        "major": 2
+      },
+      "category": "wordpress-login-bruteforce",
+      "id": "aaad7ac9-38dd-4f11-934a-903ee98d4a13",
+      "kind": "tip",
+      "origin": {
+        "asn": 3405803783,
+        "attribution": "tcp_peer",
+        "country": "NL",
+        "net_class": "hosting",
+        "protected": false
+      },
+      "request_sig": "sha256:a07187f1c7d1c5643b02ce730bef3d7bc5700a5bee0b3833d13f2819f1e2be81",
+      "schema": "schild.signal/0.3",
+      "score": 72,
+      "time_bucket": "2026-10-26T11:55:00Z",
+      "waf_rules": [
+        930120,
+        949110
+      ]
+    }
+  },
+  "expect": {
+    "valid": false,
+    "error": "schema"
+  }
+}

@@ -1,0 +1,20 @@
+{
+  "contract": "geo-map",
+  "description": "v0.5 MVP-22: as_domain is a string.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"provider\":\"ipinfo\",\"record\":{\"as_domain\":[\"telekom.example\"]}}",
+  "input_decoded": {
+    "provider": "ipinfo",
+    "record": {
+      "as_domain": [
+        "telekom.example"
+      ]
+    }
+  },
+  "expect": {
+    "valid": false,
+    "error": "schema"
+  }
+}

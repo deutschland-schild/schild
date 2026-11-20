@@ -1,0 +1,28 @@
+{
+  "contract": "events",
+  "description": "v0.4 MVP-18: a response lasts at most 2 hours.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"data\":{\"detector\":\"route_wave\",\"duration_s\":7201,\"reason\":\"expired\",\"route\":\"/login\",\"stopped\":0,\"wave_id\":\"8dcd0ce4-8aca-4e22-a765-534264671e66\"},\"datacontenttype\":\"application/json\",\"id\":\"76ef048f-2b1f-431a-b6c7-a369480422c2\",\"source\":\"schild://web-1\",\"specversion\":\"1.0\",\"time\":\"2026-10-26T11:59:58.123Z\",\"type\":\"schild.distributed.ended.v1\"}",
+  "input_decoded": {
+    "data": {
+      "detector": "route_wave",
+      "duration_s": 7201,
+      "reason": "expired",
+      "route": "/login",
+      "stopped": 0,
+      "wave_id": "8dcd0ce4-8aca-4e22-a765-534264671e66"
+    },
+    "datacontenttype": "application/json",
+    "id": "76ef048f-2b1f-431a-b6c7-a369480422c2",
+    "source": "schild://web-1",
+    "specversion": "1.0",
+    "time": "2026-10-26T11:59:58.123Z",
+    "type": "schild.distributed.ended.v1"
+  },
+  "expect": {
+    "valid": false,
+    "error": "schema"
+  }
+}

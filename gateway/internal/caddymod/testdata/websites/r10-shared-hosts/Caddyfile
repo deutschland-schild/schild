@@ -1,0 +1,31 @@
+{
+	admin off
+	http_port 19190
+	https_port 19143
+}
+
+a.example.org {
+	schild
+	reverse_proxy 127.0.0.1:19101
+}
+
+b.example.org {
+	schild
+	reverse_proxy 127.0.0.1:19101
+}
+
+b.example.org:8443, a.example.org:8443 {
+	schild
+	reverse_proxy 127.0.0.1:19101
+}
+
+c.example.org/api/* {
+	schild
+	reverse_proxy 127.0.0.1:19101
+}
+
+c.example.org {
+	schild
+	reverse_proxy 127.0.0.1:19101
+}
+

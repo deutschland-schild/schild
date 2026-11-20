@@ -1,0 +1,64 @@
+{
+  "contract": "events",
+  "description": "D33 amendment 2026-10-29: at most four paths (above four evaluations the first three and the last).",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"data\":{\"checked_paths\":[\"/1\",\"/2\",\"/3\",\"/5\"],\"client\":{\"attribution\":\"tcp_peer\",\"geo\":{\"as_org\":\"Example Hosting B.V.\",\"asn\":64500,\"city\":\"Amsterdam\",\"country\":\"NL\",\"net_class\":\"hosting\"},\"ip\":\"203.0.113.42\",\"port\":51234},\"duration_ms\":3.2,\"host\":\"shop.example\",\"method\":\"POST\",\"mode\":\"observe\",\"outcome\":\"would_block\",\"path\":\"/5\",\"protocol\":\"h2\",\"request_id\":\"req-recheck-four\",\"rules\":[{\"id\":930120,\"match_shape\":{\"content_type\":\"application/x-www-form-urlencoded\",\"len_bucket\":\"16-64\",\"location\":\"ARGS:log\"},\"msg\":\"OS File Access Attempt\",\"repository\":\"crs\",\"severity\":\"critical\"}],\"score\":72,\"status\":200,\"user_agent\":\"python-requests/2.31.0\",\"waf_ms\":0.8},\"datacontenttype\":\"application/json\",\"id\":\"6a23e5de-e5e3-4cc6-a238-fadf0c001b7b\",\"source\":\"schild://web-1\",\"specversion\":\"1.0\",\"time\":\"2026-10-26T11:59:58.123Z\",\"type\":\"schild.request.evaluated.v1\"}",
+  "input_decoded": {
+    "data": {
+      "checked_paths": [
+        "/1",
+        "/2",
+        "/3",
+        "/5"
+      ],
+      "client": {
+        "attribution": "tcp_peer",
+        "geo": {
+          "as_org": "Example Hosting B.V.",
+          "asn": 64500,
+          "city": "Amsterdam",
+          "country": "NL",
+          "net_class": "hosting"
+        },
+        "ip": "203.0.113.42",
+        "port": 51234
+      },
+      "duration_ms": 3.2,
+      "host": "shop.example",
+      "method": "POST",
+      "mode": "observe",
+      "outcome": "would_block",
+      "path": "/5",
+      "protocol": "h2",
+      "request_id": "req-recheck-four",
+      "rules": [
+        {
+          "id": 930120,
+          "match_shape": {
+            "content_type": "application/x-www-form-urlencoded",
+            "len_bucket": "16-64",
+            "location": "ARGS:log"
+          },
+          "msg": "OS File Access Attempt",
+          "repository": "crs",
+          "severity": "critical"
+        }
+      ],
+      "score": 72,
+      "status": 200,
+      "user_agent": "python-requests/2.31.0",
+      "waf_ms": 0.8
+    },
+    "datacontenttype": "application/json",
+    "id": "6a23e5de-e5e3-4cc6-a238-fadf0c001b7b",
+    "source": "schild://web-1",
+    "specversion": "1.0",
+    "time": "2026-10-26T11:59:58.123Z",
+    "type": "schild.request.evaluated.v1"
+  },
+  "expect": {
+    "valid": true
+  }
+}

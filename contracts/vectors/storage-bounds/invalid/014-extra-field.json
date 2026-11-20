@@ -1,0 +1,19 @@
+{
+  "contract": "storage-bounds",
+  "description": "D38: no unknown fields.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"elapsed_s\":0,\"force\":true,\"max_size_mb\":100,\"op\":\"check_due\",\"written_bytes\":0}",
+  "input_decoded": {
+    "elapsed_s": 0,
+    "force": true,
+    "max_size_mb": 100,
+    "op": "check_due",
+    "written_bytes": 0
+  },
+  "expect": {
+    "valid": false,
+    "error": "schema"
+  }
+}

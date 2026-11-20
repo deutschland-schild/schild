@@ -1,0 +1,16 @@
+{
+  "contract": "rule-effect",
+  "description": "The check names the operation.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"op\":\"agent_write\",\"scope\":\"rules:write\"}",
+  "input_decoded": {
+    "op": "agent_write",
+    "scope": "rules:write"
+  },
+  "expect": {
+    "valid": false,
+    "error": "schema"
+  }
+}

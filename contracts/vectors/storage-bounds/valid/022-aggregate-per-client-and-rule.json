@@ -1,0 +1,86 @@
+{
+  "contract": "storage-bounds",
+  "description": "D38: another client or another rule key is another incident.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"max_open\":65536,\"op\":\"incident_aggregate\",\"requests\":[{\"client\":\"c1\",\"draw\":\"K7QM-4XWD\",\"rules\":[\"942100\"],\"t\":1793016000000},{\"client\":\"c2\",\"draw\":\"A2BC-3DEF\",\"rules\":[\"942100\"],\"t\":1793016000001},{\"client\":\"c1\",\"draw\":\"H4JK-5LMN\",\"rules\":[\"941100\"],\"t\":1793016000002},{\"client\":\"c2\",\"draw\":\"P6QR-7STU\",\"rules\":[\"942100\"],\"t\":1793016000003}]}",
+  "input_decoded": {
+    "max_open": 65536,
+    "op": "incident_aggregate",
+    "requests": [
+      {
+        "client": "c1",
+        "draw": "K7QM-4XWD",
+        "rules": [
+          "942100"
+        ],
+        "t": 1793016000000
+      },
+      {
+        "client": "c2",
+        "draw": "A2BC-3DEF",
+        "rules": [
+          "942100"
+        ],
+        "t": 1793016000001
+      },
+      {
+        "client": "c1",
+        "draw": "H4JK-5LMN",
+        "rules": [
+          "941100"
+        ],
+        "t": 1793016000002
+      },
+      {
+        "client": "c2",
+        "draw": "P6QR-7STU",
+        "rules": [
+          "942100"
+        ],
+        "t": 1793016000003
+      }
+    ]
+  },
+  "expect": {
+    "valid": true,
+    "result": {
+      "numbers": [
+        "K7QM-4XWD",
+        "A2BC-3DEF",
+        "H4JK-5LMN",
+        "A2BC-3DEF"
+      ],
+      "incidents": [
+        {
+          "incident": "K7QM-4XWD",
+          "client": "c1",
+          "rule_key": "942100",
+          "minute_ms": 1793016000000,
+          "count": 1,
+          "first_ms": 1793016000000,
+          "last_ms": 1793016000000
+        },
+        {
+          "incident": "A2BC-3DEF",
+          "client": "c2",
+          "rule_key": "942100",
+          "minute_ms": 1793016000000,
+          "count": 2,
+          "first_ms": 1793016000001,
+          "last_ms": 1793016000003
+        },
+        {
+          "incident": "H4JK-5LMN",
+          "client": "c1",
+          "rule_key": "941100",
+          "minute_ms": 1793016000000,
+          "count": 1,
+          "first_ms": 1793016000002,
+          "last_ms": 1793016000002
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,46 @@
+{
+  "contract": "ack",
+  "description": "Unknown rejection reason.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z",
+    "trust": [
+      "site-a",
+      "site-b",
+      "site-c",
+      "lab-a",
+      "lab-a2",
+      "lab-b",
+      "lab-c",
+      "lab-d"
+    ]
+  },
+  "input_raw": "{\"payloadType\":\"application/vnd.schild.ack.v0+json\",\"payload\":\"eyJhY2NlcHRlZCI6WyI2M2YyZmE1OC1jNjg0LTQ3MzItOTExZC1jM2QyYTgzN2I1MWUiLCIyMTBlYzI5Zi00NjA3LTQwZmUtYTk3MS1lMDdlMDE3MTA1ZWQiXSwiY29udHJvbCI6eyJtYXhfYmF0Y2giOjY0LCJyZWFzb24iOiJvayIsInJldHJ5X2FmdGVyX21zIjowfSwiZHVwbGljYXRlIjpbXSwiaW5fcmVwbHlfdG8iOiI5NTFlMjg5NC1mNjE5LTQ1OTQtYmY4Zi0xYmQ4NThjYTc2NjkiLCJpc3N1ZWRfYXQiOiIyMDI2LTEwLTI2VDExOjU5OjU4WiIsImxhYiI6ImxhYi1hIiwicmVqZWN0ZWQiOlt7ImlkIjoiZTBjOTA3NjAtOTkzOC00YThiLTlhNTMtNzhiZjViYWUyM2Y3IiwicmVhc29uIjoiYmVjYXVzZSJ9XSwic2NoZW1hIjoic2NoaWxkLmFjay8wLjEifQ==\",\"signatures\":[{\"keyid\":\"test-lab-a\",\"sig\":\"IDwNlaUNw4jnmveX9nUudeZg0lYq+Dzc8dCyTy+q00/I76bwwpuwqc7PxxU/mNVHDWUjB+tTkLnuLurcuWEqAQ==\"}]}",
+  "input_decoded": {
+    "payload": {
+      "accepted": [
+        "63f2fa58-c684-4732-911d-c3d2a837b51e",
+        "210ec29f-4607-40fe-a971-e07e017105ed"
+      ],
+      "control": {
+        "max_batch": 64,
+        "reason": "ok",
+        "retry_after_ms": 0
+      },
+      "duplicate": [],
+      "in_reply_to": "951e2894-f619-4594-bf8f-1bd858ca7669",
+      "issued_at": "2026-10-26T11:59:58Z",
+      "lab": "lab-a",
+      "rejected": [
+        {
+          "id": "e0c90760-9938-4a8b-9a53-78bf5bae23f7",
+          "reason": "because"
+        }
+      ],
+      "schema": "schild.ack/0.1"
+    }
+  },
+  "expect": {
+    "valid": false,
+    "error": "schema"
+  }
+}

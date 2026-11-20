@@ -1,0 +1,64 @@
+{
+  "contract": "rule-bundle",
+  "description": "Rule matches every request (@rx .): rejected by the catch-all check.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z",
+    "trust": [
+      "site-a",
+      "site-b",
+      "site-c",
+      "lab-a",
+      "lab-a2",
+      "lab-b",
+      "lab-c",
+      "lab-d"
+    ],
+    "threshold": 2,
+    "channel": "schild-main"
+  },
+  "input_raw": "{\"payloadType\":\"application/vnd.schild.rule-bundle.v0+json\",\"payload\":\"eyJidW5kbGVfaWQiOiJzY2hpbGQtbWFpbiIsImV4cGlyZXMiOiIyMDI2LTExLTA5VDEyOjAwOjAwWiIsImlzc3VlZF9hdCI6IjIwMjYtMTAtMjZUMTE6MDA6MDBaIiwicnVsZXMiOlt7ImNsYXNzIjoidmlydHVhbF9wYXRjaCIsImV2aWRlbmNlIjp7Imh1bWFuX2FwcHJvdmFsX29yZ3MiOjIsIm1heF9pc3N1ZXJfc2hhcmUiOjAuMjksIm5lZ2F0aXZlX2NvcnB1cyI6ImNvcnB1cy0yMDI2LjEwIiwicmVwcm9kdWNlZF9ieSI6WyJsYWItYSIsImxhYi1iIl0sInJlcHJvZHVjZWRfb3BlcmF0b3JzIjoyLCJzZW5zb3Jfb3BlcmF0b3JzIjoxLCJ0aXBfaXNzdWVycyI6N30sImZlZWRiYWNrX3BvbGljeSI6Im5hcnJvd19vbmx5IiwibWF4X2FjdGlvbiI6ImJsb2NrIiwibWF4X2FjdGlvbl91bnRpbCI6IjIwMjYtMTEtMDVUMTI6MDA6MDBaIiwibWF4X21hdGNoX3NoYXJlIjowLjAxLCJydWxlX2lkIjoic2NoaWxkLTIwMjYtMDQyNCIsInNlY2xhbmciOiJTZWNSdWxlIFJFUVVFU1RfVVJJIFwiQHJ4IC5cIiBcImlkOjc3MDAxMTcscGhhc2U6MSxkZW55LHNldmVyaXR5OkNSSVRJQ0FMLG1zZzoneCdcIiIsInN0YWdlIjoiZ2VuZXJhbCIsInRhcmdldCI6eyJjdmUiOlsiQ1ZFLTIwMjYtMTIzNDUiXSwic29mdHdhcmUiOiJ3cC1wbHVnaW4vZ2FsbGVyeSIsInZlcnNpb25zIjoiPDIuNC4xIn19XSwic2NoZW1hIjoic2NoaWxkLnJ1bGUtYnVuZGxlLzAuMSIsInZlcnNpb24iOjQyfQ==\",\"signatures\":[{\"keyid\":\"test-lab-a\",\"sig\":\"+5N1AKcsHKc56TFlMfDzgf8cVVO8na01RkbT/r/7QsLnEjQdqGptAdNVRSaIB4dwSA5Tv04E/pqRQNbKF/ZOBw==\"},{\"keyid\":\"test-lab-b\",\"sig\":\"YXYBojoWhI4zG2y3T9HM9QaVD3DnBdk3nOHZZKEd9inK9eaOT+2cAnVUIKf4TEOqjbv75/AubCY32umIiMvXBQ==\"}]}",
+  "input_decoded": {
+    "payload": {
+      "bundle_id": "schild-main",
+      "expires": "2026-11-09T12:00:00Z",
+      "issued_at": "2026-10-26T11:00:00Z",
+      "rules": [
+        {
+          "class": "virtual_patch",
+          "evidence": {
+            "human_approval_orgs": 2,
+            "max_issuer_share": 0.29,
+            "negative_corpus": "corpus-2026.10",
+            "reproduced_by": [
+              "lab-a",
+              "lab-b"
+            ],
+            "reproduced_operators": 2,
+            "sensor_operators": 1,
+            "tip_issuers": 7
+          },
+          "feedback_policy": "narrow_only",
+          "max_action": "block",
+          "max_action_until": "2026-11-05T12:00:00Z",
+          "max_match_share": 0.01,
+          "rule_id": "schild-2026-0424",
+          "seclang": "SecRule REQUEST_URI \"@rx .\" \"id:7700117,phase:1,deny,severity:CRITICAL,msg:'x'\"",
+          "stage": "general",
+          "target": {
+            "cve": [
+              "CVE-2026-12345"
+            ],
+            "software": "wp-plugin/gallery",
+            "versions": "<2.4.1"
+          }
+        }
+      ],
+      "schema": "schild.rule-bundle/0.1",
+      "version": 42
+    }
+  },
+  "expect": {
+    "valid": false,
+    "error": "seclang"
+  }
+}

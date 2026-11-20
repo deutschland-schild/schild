@@ -1,0 +1,92 @@
+{
+  "detectors": [
+    {
+      "id": "route_wave",
+      "mode": "respond",
+      "effective_mode": "respond",
+      "thresholds": {
+        "count": 30,
+        "window_s": 60,
+        "factor": 5
+      },
+      "defaults": {
+        "count": 30,
+        "window_s": 60,
+        "factor": 5
+      },
+      "waves_24h": 1
+    },
+    {
+      "id": "account_wave",
+      "mode": "respond",
+      "effective_mode": "respond",
+      "thresholds": {
+        "count": 10,
+        "window_s": 600
+      },
+      "defaults": {
+        "count": 10,
+        "window_s": 600
+      },
+      "waves_24h": 1
+    },
+    {
+      "id": "shape_wave",
+      "mode": "observe",
+      "effective_mode": "observe",
+      "thresholds": {
+        "count": 20,
+        "window_s": 60
+      },
+      "defaults": {
+        "count": 20,
+        "window_s": 60
+      },
+      "waves_24h": 1
+    },
+    {
+      "id": "fingerprint_cluster",
+      "mode": "respond",
+      "effective_mode": "respond",
+      "thresholds": {
+        "count": 20,
+        "window_s": 300
+      },
+      "defaults": {
+        "count": 20,
+        "window_s": 300
+      },
+      "waves_24h": 1
+    },
+    {
+      "id": "inconsistency",
+      "mode": "observe",
+      "effective_mode": "observe",
+      "thresholds": {
+        "count": 20,
+        "window_s": 300
+      },
+      "defaults": {
+        "count": 20,
+        "window_s": 300
+      },
+      "waves_24h": 0
+    }
+  ],
+  "learning_days": 14,
+  "learning_until": "2026-10-14T10:00:00Z",
+  "gateway_observe": false,
+  "route_tighten": {
+    "minutes": 20,
+    "max_minutes": 120,
+    "limit_per_minute": 10
+  },
+  "account_slowdown": {
+    "start_s": 5,
+    "max_s": 60
+  },
+  "routes": [
+    "/checkout/**"
+  ],
+  "fingerprint_kind": "headers"
+}

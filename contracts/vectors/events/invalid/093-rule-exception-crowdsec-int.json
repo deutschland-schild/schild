@@ -1,0 +1,33 @@
+{
+  "contract": "events",
+  "description": "D73: exception rules are id strings.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"data\":{\"id\":1900001,\"path\":\"/search\",\"reason\":\"search field\",\"repository\":\"crowdsec\",\"rules\":[62846312],\"target\":\"ARGS:q\",\"token_id\":\"tok_000000000001\",\"token_label\":\"Local agent\",\"website\":\"app.example.org\"},\"datacontenttype\":\"application/json\",\"id\":\"aca6aa46-2b13-488a-a79a-c17cbf3c791f\",\"source\":\"schild://web-1\",\"specversion\":\"1.0\",\"time\":\"2026-10-26T11:59:58.123Z\",\"type\":\"schild.rule.exception_set.v1\"}",
+  "input_decoded": {
+    "data": {
+      "id": 1900001,
+      "path": "/search",
+      "reason": "search field",
+      "repository": "crowdsec",
+      "rules": [
+        62846312
+      ],
+      "target": "ARGS:q",
+      "token_id": "tok_000000000001",
+      "token_label": "Local agent",
+      "website": "app.example.org"
+    },
+    "datacontenttype": "application/json",
+    "id": "aca6aa46-2b13-488a-a79a-c17cbf3c791f",
+    "source": "schild://web-1",
+    "specversion": "1.0",
+    "time": "2026-10-26T11:59:58.123Z",
+    "type": "schild.rule.exception_set.v1"
+  },
+  "expect": {
+    "valid": false,
+    "error": "schema"
+  }
+}

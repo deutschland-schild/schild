@@ -1,0 +1,1351 @@
+{
+  "results_version": 0,
+  "spec": "MVP-02",
+  "run_id": "stage3-B01-t0-b18f9b2",
+  "started_at": "2026-10-26T22:43:45Z",
+  "finished_at": "2026-10-26T22:53:23Z",
+  "seed": 42,
+  "profile": "t0",
+  "git_rev": "b18f9b21ef924a22a45b254d16a5b7307bb48a03",
+  "host": {
+    "os": "darwin",
+    "arch": "arm64",
+    "cpus": 12,
+    "mem_mb": 65536
+  },
+  "images": [
+    {
+      "name": "schild:mvp",
+      "digest": "sha256:18af479c587178ba35322ad447d1267d0b53c87bb4e25cea7a679397fd7a9de6"
+    },
+    {
+      "name": "schild-lab:mvp",
+      "digest": "sha256:be7fad6d1f41b0a17172d81f014ecdd8c9c96683b88f75e89b75cf37ade4c866"
+    },
+    {
+      "name": "schild-relay:mvp",
+      "digest": "sha256:acee0669843d56cbd176234e93593375df732bafbf3319d208e6ba0f81176c47"
+    },
+    {
+      "name": "schild-testlab:mvp",
+      "digest": "sha256:0e690e7d2561e564b814930f5207192059a48fd653fb04d93105d03157b4fdae"
+    }
+  ],
+  "scenarios": [
+    "B01",
+    "T20"
+  ],
+  "hypotheses": [
+    "M1"
+  ],
+  "metrics": [
+    {
+      "name": "latency_p50",
+      "value": 0.497,
+      "unit": "ms",
+      "labels": {
+        "variant": "no_schild",
+        "rps": "50",
+        "rep": "1"
+      },
+      "samples": 1000
+    },
+    {
+      "name": "latency_p95",
+      "value": 1.102,
+      "unit": "ms",
+      "labels": {
+        "variant": "no_schild",
+        "rps": "50",
+        "rep": "1"
+      },
+      "samples": 1000
+    },
+    {
+      "name": "latency_p99",
+      "value": 1.743,
+      "unit": "ms",
+      "labels": {
+        "variant": "no_schild",
+        "rps": "50",
+        "rep": "1"
+      },
+      "samples": 1000
+    },
+    {
+      "name": "request_errors",
+      "value": 0,
+      "unit": "count",
+      "labels": {
+        "variant": "no_schild",
+        "rps": "50",
+        "rep": "1"
+      }
+    },
+    {
+      "name": "achieved_rps",
+      "value": 50.0433,
+      "unit": "rps",
+      "labels": {
+        "variant": "no_schild",
+        "rps": "50",
+        "rep": "1"
+      }
+    },
+    {
+      "name": "latency_p50",
+      "value": 2.385,
+      "unit": "ms",
+      "labels": {
+        "variant": "with_schild",
+        "rps": "50",
+        "rep": "1"
+      },
+      "samples": 1000
+    },
+    {
+      "name": "latency_p95",
+      "value": 5.672,
+      "unit": "ms",
+      "labels": {
+        "variant": "with_schild",
+        "rps": "50",
+        "rep": "1"
+      },
+      "samples": 1000
+    },
+    {
+      "name": "latency_p99",
+      "value": 7.385,
+      "unit": "ms",
+      "labels": {
+        "variant": "with_schild",
+        "rps": "50",
+        "rep": "1"
+      },
+      "samples": 1000
+    },
+    {
+      "name": "request_errors",
+      "value": 0,
+      "unit": "count",
+      "labels": {
+        "variant": "with_schild",
+        "rps": "50",
+        "rep": "1"
+      }
+    },
+    {
+      "name": "achieved_rps",
+      "value": 50.0421,
+      "unit": "rps",
+      "labels": {
+        "variant": "with_schild",
+        "rps": "50",
+        "rep": "1"
+      }
+    },
+    {
+      "name": "overhead_p50_ms",
+      "value": 1.888,
+      "unit": "ms",
+      "labels": {
+        "rps": "50",
+        "rep": "1"
+      }
+    },
+    {
+      "name": "overhead_p95_ms",
+      "value": 4.57,
+      "unit": "ms",
+      "labels": {
+        "rps": "50",
+        "rep": "1"
+      }
+    },
+    {
+      "name": "overhead_p99_ms",
+      "value": 5.642,
+      "unit": "ms",
+      "labels": {
+        "rps": "50",
+        "rep": "1"
+      }
+    },
+    {
+      "name": "latency_p50",
+      "value": 0.597,
+      "unit": "ms",
+      "labels": {
+        "variant": "no_schild",
+        "rps": "50",
+        "rep": "2"
+      },
+      "samples": 1000
+    },
+    {
+      "name": "latency_p95",
+      "value": 1.146,
+      "unit": "ms",
+      "labels": {
+        "variant": "no_schild",
+        "rps": "50",
+        "rep": "2"
+      },
+      "samples": 1000
+    },
+    {
+      "name": "latency_p99",
+      "value": 1.505,
+      "unit": "ms",
+      "labels": {
+        "variant": "no_schild",
+        "rps": "50",
+        "rep": "2"
+      },
+      "samples": 1000
+    },
+    {
+      "name": "request_errors",
+      "value": 0,
+      "unit": "count",
+      "labels": {
+        "variant": "no_schild",
+        "rps": "50",
+        "rep": "2"
+      }
+    },
+    {
+      "name": "achieved_rps",
+      "value": 50.0419,
+      "unit": "rps",
+      "labels": {
+        "variant": "no_schild",
+        "rps": "50",
+        "rep": "2"
+      }
+    },
+    {
+      "name": "latency_p50",
+      "value": 3.048,
+      "unit": "ms",
+      "labels": {
+        "variant": "with_schild",
+        "rps": "50",
+        "rep": "2"
+      },
+      "samples": 1000
+    },
+    {
+      "name": "latency_p95",
+      "value": 5.602,
+      "unit": "ms",
+      "labels": {
+        "variant": "with_schild",
+        "rps": "50",
+        "rep": "2"
+      },
+      "samples": 1000
+    },
+    {
+      "name": "latency_p99",
+      "value": 7.185,
+      "unit": "ms",
+      "labels": {
+        "variant": "with_schild",
+        "rps": "50",
+        "rep": "2"
+      },
+      "samples": 1000
+    },
+    {
+      "name": "request_errors",
+      "value": 0,
+      "unit": "count",
+      "labels": {
+        "variant": "with_schild",
+        "rps": "50",
+        "rep": "2"
+      }
+    },
+    {
+      "name": "achieved_rps",
+      "value": 50.0381,
+      "unit": "rps",
+      "labels": {
+        "variant": "with_schild",
+        "rps": "50",
+        "rep": "2"
+      }
+    },
+    {
+      "name": "overhead_p50_ms",
+      "value": 2.451,
+      "unit": "ms",
+      "labels": {
+        "rps": "50",
+        "rep": "2"
+      }
+    },
+    {
+      "name": "overhead_p95_ms",
+      "value": 4.456,
+      "unit": "ms",
+      "labels": {
+        "rps": "50",
+        "rep": "2"
+      }
+    },
+    {
+      "name": "overhead_p99_ms",
+      "value": 5.68,
+      "unit": "ms",
+      "labels": {
+        "rps": "50",
+        "rep": "2"
+      }
+    },
+    {
+      "name": "latency_p50",
+      "value": 0.564,
+      "unit": "ms",
+      "labels": {
+        "variant": "no_schild",
+        "rps": "50",
+        "rep": "3"
+      },
+      "samples": 1000
+    },
+    {
+      "name": "latency_p95",
+      "value": 1.194,
+      "unit": "ms",
+      "labels": {
+        "variant": "no_schild",
+        "rps": "50",
+        "rep": "3"
+      },
+      "samples": 1000
+    },
+    {
+      "name": "latency_p99",
+      "value": 1.762,
+      "unit": "ms",
+      "labels": {
+        "variant": "no_schild",
+        "rps": "50",
+        "rep": "3"
+      },
+      "samples": 1000
+    },
+    {
+      "name": "request_errors",
+      "value": 0,
+      "unit": "count",
+      "labels": {
+        "variant": "no_schild",
+        "rps": "50",
+        "rep": "3"
+      }
+    },
+    {
+      "name": "achieved_rps",
+      "value": 50.0418,
+      "unit": "rps",
+      "labels": {
+        "variant": "no_schild",
+        "rps": "50",
+        "rep": "3"
+      }
+    },
+    {
+      "name": "latency_p50",
+      "value": 2.868,
+      "unit": "ms",
+      "labels": {
+        "variant": "with_schild",
+        "rps": "50",
+        "rep": "3"
+      },
+      "samples": 1000
+    },
+    {
+      "name": "latency_p95",
+      "value": 5.864,
+      "unit": "ms",
+      "labels": {
+        "variant": "with_schild",
+        "rps": "50",
+        "rep": "3"
+      },
+      "samples": 1000
+    },
+    {
+      "name": "latency_p99",
+      "value": 7.142,
+      "unit": "ms",
+      "labels": {
+        "variant": "with_schild",
+        "rps": "50",
+        "rep": "3"
+      },
+      "samples": 1000
+    },
+    {
+      "name": "request_errors",
+      "value": 0,
+      "unit": "count",
+      "labels": {
+        "variant": "with_schild",
+        "rps": "50",
+        "rep": "3"
+      }
+    },
+    {
+      "name": "achieved_rps",
+      "value": 50.0408,
+      "unit": "rps",
+      "labels": {
+        "variant": "with_schild",
+        "rps": "50",
+        "rep": "3"
+      }
+    },
+    {
+      "name": "overhead_p50_ms",
+      "value": 2.304,
+      "unit": "ms",
+      "labels": {
+        "rps": "50",
+        "rep": "3"
+      }
+    },
+    {
+      "name": "overhead_p95_ms",
+      "value": 4.67,
+      "unit": "ms",
+      "labels": {
+        "rps": "50",
+        "rep": "3"
+      }
+    },
+    {
+      "name": "overhead_p99_ms",
+      "value": 5.38,
+      "unit": "ms",
+      "labels": {
+        "rps": "50",
+        "rep": "3"
+      }
+    },
+    {
+      "name": "overhead_p50_ms",
+      "value": 2.304,
+      "unit": "ms",
+      "labels": {
+        "rps": "50",
+        "stat": "median_of_3"
+      }
+    },
+    {
+      "name": "overhead_p95_ms",
+      "value": 4.57,
+      "unit": "ms",
+      "labels": {
+        "rps": "50",
+        "stat": "median_of_3"
+      }
+    },
+    {
+      "name": "overhead_p99_ms",
+      "value": 5.642,
+      "unit": "ms",
+      "labels": {
+        "rps": "50",
+        "stat": "median_of_3"
+      }
+    },
+    {
+      "name": "latency_p50",
+      "value": 0.29,
+      "unit": "ms",
+      "labels": {
+        "variant": "no_schild",
+        "rps": "500",
+        "rep": "1"
+      },
+      "samples": 10000
+    },
+    {
+      "name": "latency_p95",
+      "value": 1.187,
+      "unit": "ms",
+      "labels": {
+        "variant": "no_schild",
+        "rps": "500",
+        "rep": "1"
+      },
+      "samples": 10000
+    },
+    {
+      "name": "latency_p99",
+      "value": 1.908,
+      "unit": "ms",
+      "labels": {
+        "variant": "no_schild",
+        "rps": "500",
+        "rep": "1"
+      },
+      "samples": 10000
+    },
+    {
+      "name": "request_errors",
+      "value": 0,
+      "unit": "count",
+      "labels": {
+        "variant": "no_schild",
+        "rps": "500",
+        "rep": "1"
+      }
+    },
+    {
+      "name": "achieved_rps",
+      "value": 500.0301,
+      "unit": "rps",
+      "labels": {
+        "variant": "no_schild",
+        "rps": "500",
+        "rep": "1"
+      }
+    },
+    {
+      "name": "latency_p50",
+      "value": 0.952,
+      "unit": "ms",
+      "labels": {
+        "variant": "with_schild",
+        "rps": "500",
+        "rep": "1"
+      },
+      "samples": 10000
+    },
+    {
+      "name": "latency_p95",
+      "value": 1.514,
+      "unit": "ms",
+      "labels": {
+        "variant": "with_schild",
+        "rps": "500",
+        "rep": "1"
+      },
+      "samples": 10000
+    },
+    {
+      "name": "latency_p99",
+      "value": 2.956,
+      "unit": "ms",
+      "labels": {
+        "variant": "with_schild",
+        "rps": "500",
+        "rep": "1"
+      },
+      "samples": 10000
+    },
+    {
+      "name": "request_errors",
+      "value": 0,
+      "unit": "count",
+      "labels": {
+        "variant": "with_schild",
+        "rps": "500",
+        "rep": "1"
+      }
+    },
+    {
+      "name": "achieved_rps",
+      "value": 499.993,
+      "unit": "rps",
+      "labels": {
+        "variant": "with_schild",
+        "rps": "500",
+        "rep": "1"
+      }
+    },
+    {
+      "name": "overhead_p50_ms",
+      "value": 0.662,
+      "unit": "ms",
+      "labels": {
+        "rps": "500",
+        "rep": "1"
+      }
+    },
+    {
+      "name": "overhead_p95_ms",
+      "value": 0.327,
+      "unit": "ms",
+      "labels": {
+        "rps": "500",
+        "rep": "1"
+      }
+    },
+    {
+      "name": "overhead_p99_ms",
+      "value": 1.048,
+      "unit": "ms",
+      "labels": {
+        "rps": "500",
+        "rep": "1"
+      }
+    },
+    {
+      "name": "latency_p50",
+      "value": 0.301,
+      "unit": "ms",
+      "labels": {
+        "variant": "no_schild",
+        "rps": "500",
+        "rep": "2"
+      },
+      "samples": 10000
+    },
+    {
+      "name": "latency_p95",
+      "value": 1.226,
+      "unit": "ms",
+      "labels": {
+        "variant": "no_schild",
+        "rps": "500",
+        "rep": "2"
+      },
+      "samples": 10000
+    },
+    {
+      "name": "latency_p99",
+      "value": 1.975,
+      "unit": "ms",
+      "labels": {
+        "variant": "no_schild",
+        "rps": "500",
+        "rep": "2"
+      },
+      "samples": 10000
+    },
+    {
+      "name": "request_errors",
+      "value": 0,
+      "unit": "count",
+      "labels": {
+        "variant": "no_schild",
+        "rps": "500",
+        "rep": "2"
+      }
+    },
+    {
+      "name": "achieved_rps",
+      "value": 500.0169,
+      "unit": "rps",
+      "labels": {
+        "variant": "no_schild",
+        "rps": "500",
+        "rep": "2"
+      }
+    },
+    {
+      "name": "latency_p50",
+      "value": 0.942,
+      "unit": "ms",
+      "labels": {
+        "variant": "with_schild",
+        "rps": "500",
+        "rep": "2"
+      },
+      "samples": 10000
+    },
+    {
+      "name": "latency_p95",
+      "value": 1.526,
+      "unit": "ms",
+      "labels": {
+        "variant": "with_schild",
+        "rps": "500",
+        "rep": "2"
+      },
+      "samples": 10000
+    },
+    {
+      "name": "latency_p99",
+      "value": 2.974,
+      "unit": "ms",
+      "labels": {
+        "variant": "with_schild",
+        "rps": "500",
+        "rep": "2"
+      },
+      "samples": 10000
+    },
+    {
+      "name": "request_errors",
+      "value": 0,
+      "unit": "count",
+      "labels": {
+        "variant": "with_schild",
+        "rps": "500",
+        "rep": "2"
+      }
+    },
+    {
+      "name": "achieved_rps",
+      "value": 499.9899,
+      "unit": "rps",
+      "labels": {
+        "variant": "with_schild",
+        "rps": "500",
+        "rep": "2"
+      }
+    },
+    {
+      "name": "overhead_p50_ms",
+      "value": 0.641,
+      "unit": "ms",
+      "labels": {
+        "rps": "500",
+        "rep": "2"
+      }
+    },
+    {
+      "name": "overhead_p95_ms",
+      "value": 0.3,
+      "unit": "ms",
+      "labels": {
+        "rps": "500",
+        "rep": "2"
+      }
+    },
+    {
+      "name": "overhead_p99_ms",
+      "value": 0.999,
+      "unit": "ms",
+      "labels": {
+        "rps": "500",
+        "rep": "2"
+      }
+    },
+    {
+      "name": "latency_p50",
+      "value": 0.313,
+      "unit": "ms",
+      "labels": {
+        "variant": "no_schild",
+        "rps": "500",
+        "rep": "3"
+      },
+      "samples": 10000
+    },
+    {
+      "name": "latency_p95",
+      "value": 1.317,
+      "unit": "ms",
+      "labels": {
+        "variant": "no_schild",
+        "rps": "500",
+        "rep": "3"
+      },
+      "samples": 10000
+    },
+    {
+      "name": "latency_p99",
+      "value": 2.817,
+      "unit": "ms",
+      "labels": {
+        "variant": "no_schild",
+        "rps": "500",
+        "rep": "3"
+      },
+      "samples": 10000
+    },
+    {
+      "name": "request_errors",
+      "value": 0,
+      "unit": "count",
+      "labels": {
+        "variant": "no_schild",
+        "rps": "500",
+        "rep": "3"
+      }
+    },
+    {
+      "name": "achieved_rps",
+      "value": 500.0132,
+      "unit": "rps",
+      "labels": {
+        "variant": "no_schild",
+        "rps": "500",
+        "rep": "3"
+      }
+    },
+    {
+      "name": "latency_p50",
+      "value": 0.957,
+      "unit": "ms",
+      "labels": {
+        "variant": "with_schild",
+        "rps": "500",
+        "rep": "3"
+      },
+      "samples": 10000
+    },
+    {
+      "name": "latency_p95",
+      "value": 1.622,
+      "unit": "ms",
+      "labels": {
+        "variant": "with_schild",
+        "rps": "500",
+        "rep": "3"
+      },
+      "samples": 10000
+    },
+    {
+      "name": "latency_p99",
+      "value": 3.081,
+      "unit": "ms",
+      "labels": {
+        "variant": "with_schild",
+        "rps": "500",
+        "rep": "3"
+      },
+      "samples": 10000
+    },
+    {
+      "name": "request_errors",
+      "value": 0,
+      "unit": "count",
+      "labels": {
+        "variant": "with_schild",
+        "rps": "500",
+        "rep": "3"
+      }
+    },
+    {
+      "name": "achieved_rps",
+      "value": 499.9942,
+      "unit": "rps",
+      "labels": {
+        "variant": "with_schild",
+        "rps": "500",
+        "rep": "3"
+      }
+    },
+    {
+      "name": "overhead_p50_ms",
+      "value": 0.644,
+      "unit": "ms",
+      "labels": {
+        "rps": "500",
+        "rep": "3"
+      }
+    },
+    {
+      "name": "overhead_p95_ms",
+      "value": 0.305,
+      "unit": "ms",
+      "labels": {
+        "rps": "500",
+        "rep": "3"
+      }
+    },
+    {
+      "name": "overhead_p99_ms",
+      "value": 0.264,
+      "unit": "ms",
+      "labels": {
+        "rps": "500",
+        "rep": "3"
+      }
+    },
+    {
+      "name": "overhead_p50_ms",
+      "value": 0.644,
+      "unit": "ms",
+      "labels": {
+        "rps": "500",
+        "stat": "median_of_3"
+      }
+    },
+    {
+      "name": "overhead_p95_ms",
+      "value": 0.305,
+      "unit": "ms",
+      "labels": {
+        "rps": "500",
+        "stat": "median_of_3"
+      }
+    },
+    {
+      "name": "overhead_p99_ms",
+      "value": 0.999,
+      "unit": "ms",
+      "labels": {
+        "rps": "500",
+        "stat": "median_of_3"
+      }
+    },
+    {
+      "name": "latency_p50",
+      "value": 0.196,
+      "unit": "ms",
+      "labels": {
+        "variant": "no_schild",
+        "rps": "2000",
+        "rep": "1"
+      },
+      "samples": 40000
+    },
+    {
+      "name": "latency_p95",
+      "value": 1.812,
+      "unit": "ms",
+      "labels": {
+        "variant": "no_schild",
+        "rps": "2000",
+        "rep": "1"
+      },
+      "samples": 40000
+    },
+    {
+      "name": "latency_p99",
+      "value": 2.874,
+      "unit": "ms",
+      "labels": {
+        "variant": "no_schild",
+        "rps": "2000",
+        "rep": "1"
+      },
+      "samples": 40000
+    },
+    {
+      "name": "request_errors",
+      "value": 0,
+      "unit": "count",
+      "labels": {
+        "variant": "no_schild",
+        "rps": "2000",
+        "rep": "1"
+      }
+    },
+    {
+      "name": "achieved_rps",
+      "value": 1999.9221,
+      "unit": "rps",
+      "labels": {
+        "variant": "no_schild",
+        "rps": "2000",
+        "rep": "1"
+      }
+    },
+    {
+      "name": "latency_p50",
+      "value": 0.945,
+      "unit": "ms",
+      "labels": {
+        "variant": "with_schild",
+        "rps": "2000",
+        "rep": "1"
+      },
+      "samples": 40000
+    },
+    {
+      "name": "latency_p95",
+      "value": 3.128,
+      "unit": "ms",
+      "labels": {
+        "variant": "with_schild",
+        "rps": "2000",
+        "rep": "1"
+      },
+      "samples": 40000
+    },
+    {
+      "name": "latency_p99",
+      "value": 16.989,
+      "unit": "ms",
+      "labels": {
+        "variant": "with_schild",
+        "rps": "2000",
+        "rep": "1"
+      },
+      "samples": 40000
+    },
+    {
+      "name": "request_errors",
+      "value": 0,
+      "unit": "count",
+      "labels": {
+        "variant": "with_schild",
+        "rps": "2000",
+        "rep": "1"
+      }
+    },
+    {
+      "name": "achieved_rps",
+      "value": 1999.8572,
+      "unit": "rps",
+      "labels": {
+        "variant": "with_schild",
+        "rps": "2000",
+        "rep": "1"
+      }
+    },
+    {
+      "name": "overhead_p50_ms",
+      "value": 0.749,
+      "unit": "ms",
+      "labels": {
+        "rps": "2000",
+        "rep": "1"
+      }
+    },
+    {
+      "name": "overhead_p95_ms",
+      "value": 1.316,
+      "unit": "ms",
+      "labels": {
+        "rps": "2000",
+        "rep": "1"
+      }
+    },
+    {
+      "name": "overhead_p99_ms",
+      "value": 14.115,
+      "unit": "ms",
+      "labels": {
+        "rps": "2000",
+        "rep": "1"
+      }
+    },
+    {
+      "name": "latency_p50",
+      "value": 0.184,
+      "unit": "ms",
+      "labels": {
+        "variant": "no_schild",
+        "rps": "2000",
+        "rep": "2"
+      },
+      "samples": 40000
+    },
+    {
+      "name": "latency_p95",
+      "value": 1.738,
+      "unit": "ms",
+      "labels": {
+        "variant": "no_schild",
+        "rps": "2000",
+        "rep": "2"
+      },
+      "samples": 40000
+    },
+    {
+      "name": "latency_p99",
+      "value": 3.066,
+      "unit": "ms",
+      "labels": {
+        "variant": "no_schild",
+        "rps": "2000",
+        "rep": "2"
+      },
+      "samples": 40000
+    },
+    {
+      "name": "request_errors",
+      "value": 0,
+      "unit": "count",
+      "labels": {
+        "variant": "no_schild",
+        "rps": "2000",
+        "rep": "2"
+      }
+    },
+    {
+      "name": "achieved_rps",
+      "value": 2000.0002,
+      "unit": "rps",
+      "labels": {
+        "variant": "no_schild",
+        "rps": "2000",
+        "rep": "2"
+      }
+    },
+    {
+      "name": "latency_p50",
+      "value": 1.006,
+      "unit": "ms",
+      "labels": {
+        "variant": "with_schild",
+        "rps": "2000",
+        "rep": "2"
+      },
+      "samples": 40000
+    },
+    {
+      "name": "latency_p95",
+      "value": 3.537,
+      "unit": "ms",
+      "labels": {
+        "variant": "with_schild",
+        "rps": "2000",
+        "rep": "2"
+      },
+      "samples": 40000
+    },
+    {
+      "name": "latency_p99",
+      "value": 10.133,
+      "unit": "ms",
+      "labels": {
+        "variant": "with_schild",
+        "rps": "2000",
+        "rep": "2"
+      },
+      "samples": 40000
+    },
+    {
+      "name": "request_errors",
+      "value": 0,
+      "unit": "count",
+      "labels": {
+        "variant": "with_schild",
+        "rps": "2000",
+        "rep": "2"
+      }
+    },
+    {
+      "name": "achieved_rps",
+      "value": 1999.8991,
+      "unit": "rps",
+      "labels": {
+        "variant": "with_schild",
+        "rps": "2000",
+        "rep": "2"
+      }
+    },
+    {
+      "name": "overhead_p50_ms",
+      "value": 0.822,
+      "unit": "ms",
+      "labels": {
+        "rps": "2000",
+        "rep": "2"
+      }
+    },
+    {
+      "name": "overhead_p95_ms",
+      "value": 1.799,
+      "unit": "ms",
+      "labels": {
+        "rps": "2000",
+        "rep": "2"
+      }
+    },
+    {
+      "name": "overhead_p99_ms",
+      "value": 7.067,
+      "unit": "ms",
+      "labels": {
+        "rps": "2000",
+        "rep": "2"
+      }
+    },
+    {
+      "name": "latency_p50",
+      "value": 0.21,
+      "unit": "ms",
+      "labels": {
+        "variant": "no_schild",
+        "rps": "2000",
+        "rep": "3"
+      },
+      "samples": 40000
+    },
+    {
+      "name": "latency_p95",
+      "value": 1.772,
+      "unit": "ms",
+      "labels": {
+        "variant": "no_schild",
+        "rps": "2000",
+        "rep": "3"
+      },
+      "samples": 40000
+    },
+    {
+      "name": "latency_p99",
+      "value": 2.934,
+      "unit": "ms",
+      "labels": {
+        "variant": "no_schild",
+        "rps": "2000",
+        "rep": "3"
+      },
+      "samples": 40000
+    },
+    {
+      "name": "request_errors",
+      "value": 0,
+      "unit": "count",
+      "labels": {
+        "variant": "no_schild",
+        "rps": "2000",
+        "rep": "3"
+      }
+    },
+    {
+      "name": "achieved_rps",
+      "value": 1999.9989,
+      "unit": "rps",
+      "labels": {
+        "variant": "no_schild",
+        "rps": "2000",
+        "rep": "3"
+      }
+    },
+    {
+      "name": "latency_p50",
+      "value": 0.909,
+      "unit": "ms",
+      "labels": {
+        "variant": "with_schild",
+        "rps": "2000",
+        "rep": "3"
+      },
+      "samples": 40000
+    },
+    {
+      "name": "latency_p95",
+      "value": 2.76,
+      "unit": "ms",
+      "labels": {
+        "variant": "with_schild",
+        "rps": "2000",
+        "rep": "3"
+      },
+      "samples": 40000
+    },
+    {
+      "name": "latency_p99",
+      "value": 5.699,
+      "unit": "ms",
+      "labels": {
+        "variant": "with_schild",
+        "rps": "2000",
+        "rep": "3"
+      },
+      "samples": 40000
+    },
+    {
+      "name": "request_errors",
+      "value": 0,
+      "unit": "count",
+      "labels": {
+        "variant": "with_schild",
+        "rps": "2000",
+        "rep": "3"
+      }
+    },
+    {
+      "name": "achieved_rps",
+      "value": 1999.8376,
+      "unit": "rps",
+      "labels": {
+        "variant": "with_schild",
+        "rps": "2000",
+        "rep": "3"
+      }
+    },
+    {
+      "name": "overhead_p50_ms",
+      "value": 0.699,
+      "unit": "ms",
+      "labels": {
+        "rps": "2000",
+        "rep": "3"
+      }
+    },
+    {
+      "name": "overhead_p95_ms",
+      "value": 0.988,
+      "unit": "ms",
+      "labels": {
+        "rps": "2000",
+        "rep": "3"
+      }
+    },
+    {
+      "name": "overhead_p99_ms",
+      "value": 2.765,
+      "unit": "ms",
+      "labels": {
+        "rps": "2000",
+        "rep": "3"
+      }
+    },
+    {
+      "name": "overhead_p50_ms",
+      "value": 0.749,
+      "unit": "ms",
+      "labels": {
+        "rps": "2000",
+        "stat": "median_of_3"
+      }
+    },
+    {
+      "name": "overhead_p95_ms",
+      "value": 1.316,
+      "unit": "ms",
+      "labels": {
+        "rps": "2000",
+        "stat": "median_of_3"
+      }
+    },
+    {
+      "name": "overhead_p99_ms",
+      "value": 7.067,
+      "unit": "ms",
+      "labels": {
+        "rps": "2000",
+        "stat": "median_of_3"
+      }
+    }
+  ],
+  "kill_criteria": [
+    {
+      "expr": "p95 overhead > 5 ms at 500 rps",
+      "hit": false,
+      "observed": "p95 overhead at 500 rps: +0.33, +0.30, +0.31 ms (3 paired runs, fresh backend each run); max +0.33 ms"
+    }
+  ],
+  "verdict": "pass",
+  "notes": "Independent re-run on images built from clean commit b18f9b2. measure latency, 20 s + 3 s warmup, open loop, 512 workers, sites network; no_schild = site-api direct, with_schild = schild-api -> site-api. site-api restarted before every single run because its POST endpoint appends to an in-memory list that GET /api/items returns in full (the page parameter is ignored), so response size grows with every run; runs without the restart (raw/b01-drift) drift upward and collapse at 2000 rps with schild (p95 274/582 ms) - a test-harness artefact, see README. Order of no/with alternated per repetition. Shared macOS laptop with ~30 unrelated containers: deltas are the load-bearing figures. At 50 rps the p95 overhead is +4.5 to +4.7 ms (p50 +1.9 to +2.5 ms), larger than at 500 rps; not a kill criterion (defined at 500 rps) but close to 5 ms - see README.",
+  "artifacts": [
+    "raw/b01/no_schild_50_r1.json",
+    "raw/b01/with_schild_50_r1.json",
+    "raw/b01/no_schild_50_r2.json",
+    "raw/b01/with_schild_50_r2.json",
+    "raw/b01/no_schild_50_r3.json",
+    "raw/b01/with_schild_50_r3.json",
+    "raw/b01/no_schild_500_r1.json",
+    "raw/b01/with_schild_500_r1.json",
+    "raw/b01/no_schild_500_r2.json",
+    "raw/b01/with_schild_500_r2.json",
+    "raw/b01/no_schild_500_r3.json",
+    "raw/b01/with_schild_500_r3.json",
+    "raw/b01/no_schild_2000_r1.json",
+    "raw/b01/with_schild_2000_r1.json",
+    "raw/b01/no_schild_2000_r2.json",
+    "raw/b01/with_schild_2000_r2.json",
+    "raw/b01/no_schild_2000_r3.json",
+    "raw/b01/with_schild_2000_r3.json",
+    "raw/b01/run.log"
+  ]
+}

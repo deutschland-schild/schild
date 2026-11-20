@@ -1,0 +1,12 @@
+{
+  "contract": "seclang",
+  "description": "SecLang subset case plugin-path-rx (max_action challenge).",
+  "context": {
+    "now": "2026-10-26T12:00:00Z",
+    "max_action": "challenge"
+  },
+  "input_raw": "SecRule REQUEST_FILENAME \"@rx ^/wp-content/plugins/gallery/upload\\.php$\" \"id:7700002,phase:1,block,severity:ERROR,msg:'gallery upload exploit path',chain\"\nSecRule ARGS:file \"@rx \\.(php|phtml|phar)$\" \"t:none,t:lowercase\"",
+  "expect": {
+    "valid": true
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "contract": "agent-enrolment",
+  "description": "Top level must be an object.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z",
+    "seen_ids": [
+      "e19b3beff9689ce22935775df4d7debe"
+    ],
+    "gateway": "gw-1"
+  },
+  "input_raw": "[]",
+  "expect": {
+    "valid": false,
+    "error": "malformed"
+  }
+}

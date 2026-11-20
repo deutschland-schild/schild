@@ -1,0 +1,24 @@
+{
+  "contract": "request-recheck",
+  "description": "D33 amendment 2026-10-29: no other fields (no address).",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"evaluations\":[{\"client_ip\":\"192.0.2.1\",\"detection\":false,\"outcome\":\"passed\",\"path\":\"/x\",\"rules\":[],\"score\":0}]}",
+  "input_decoded": {
+    "evaluations": [
+      {
+        "client_ip": "192.0.2.1",
+        "detection": false,
+        "outcome": "passed",
+        "path": "/x",
+        "rules": [],
+        "score": 0
+      }
+    ]
+  },
+  "expect": {
+    "valid": false,
+    "error": "schema"
+  }
+}

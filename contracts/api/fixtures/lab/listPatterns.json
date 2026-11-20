@@ -1,0 +1,87 @@
+{
+  "items": [
+    {
+      "pattern_id": "p_3c9d0e1f2a3b4c5d",
+      "action_sig": "login-burst/wp-admin",
+      "categories": [
+        "wordpress-login-bruteforce"
+      ],
+      "status": "watching",
+      "signals": 1840,
+      "issuers": 4,
+      "clients": 31,
+      "max_issuer_share": 0.31,
+      "request_sigs": 3,
+      "score_avg": 71.5,
+      "top_countries": [
+        {
+          "key": "NL",
+          "count": 820
+        },
+        {
+          "key": "US",
+          "count": 411
+        },
+        {
+          "key": "DE",
+          "count": 97
+        }
+      ],
+      "top_asns": [
+        {
+          "key": 64500,
+          "count": 790
+        },
+        {
+          "key": 64511,
+          "count": 300
+        }
+      ],
+      "first_seen": "2026-10-25T03:10:00Z",
+      "last_seen": "2026-10-26T11:55:00Z",
+      "proposal_id": null
+    },
+    {
+      "pattern_id": "p_7a8b9c0d1e2f3a4b",
+      "action_sig": "sqli/rest-api",
+      "categories": [
+        "sql-injection"
+      ],
+      "status": "proposed",
+      "signals": 212,
+      "issuers": 3,
+      "clients": 9,
+      "max_issuer_share": 0.33,
+      "request_sigs": 11,
+      "score_avg": 88.0,
+      "top_countries": [
+        {
+          "key": "NL",
+          "count": 820
+        },
+        {
+          "key": "US",
+          "count": 411
+        },
+        {
+          "key": "DE",
+          "count": 97
+        }
+      ],
+      "top_asns": [
+        {
+          "key": 64500,
+          "count": 790
+        },
+        {
+          "key": 64511,
+          "count": 300
+        }
+      ],
+      "first_seen": "2026-10-25T03:10:00Z",
+      "last_seen": "2026-10-26T11:55:00Z",
+      "proposal_id": "prop-0007"
+    }
+  ],
+  "next_cursor": null
+}

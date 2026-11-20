@@ -1,0 +1,44 @@
+{
+  "contract": "body-limits",
+  "description": "D44: the gateway at max_waiting_bytes: 503 body_busy for a client within its share.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"client_known\":true,\"jitter_draw\":0,\"limits\":{\"max_in_flight\":1024,\"max_in_flight_bytes\":4294967296,\"max_per_client\":8,\"max_per_network\":32,\"max_waiting_bytes\":536870912,\"max_waiting_bytes_per_client\":67108864,\"max_waiting_bytes_per_network\":268435456},\"net_class\":\"residential\",\"op\":\"admit\",\"state\":{\"client\":0,\"client_waiting_bytes\":0,\"in_flight\":0,\"in_flight_bytes\":0,\"network\":0,\"network_waiting_bytes\":0,\"waiting_bytes\":536870912}}",
+  "input_decoded": {
+    "client_known": true,
+    "jitter_draw": 0,
+    "limits": {
+      "max_in_flight": 1024,
+      "max_in_flight_bytes": 4294967296,
+      "max_per_client": 8,
+      "max_per_network": 32,
+      "max_waiting_bytes": 536870912,
+      "max_waiting_bytes_per_client": 67108864,
+      "max_waiting_bytes_per_network": 268435456
+    },
+    "net_class": "residential",
+    "op": "admit",
+    "state": {
+      "client": 0,
+      "client_waiting_bytes": 0,
+      "in_flight": 0,
+      "in_flight_bytes": 0,
+      "network": 0,
+      "network_waiting_bytes": 0,
+      "waiting_bytes": 536870912
+    }
+  },
+  "expect": {
+    "valid": true,
+    "result": {
+      "admitted": false,
+      "class": "fail_closed",
+      "code": "body_busy",
+      "fail_closed": "body_busy",
+      "retry_after": null,
+      "scope": "gateway",
+      "status": 503
+    }
+  }
+}

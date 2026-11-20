@@ -1,0 +1,59 @@
+{
+  "contract": "storage-bounds",
+  "description": "D38: a behaviour or rate-limit event that only observed (action observe) is would_block class and goes before an enforced one; a flagged session is logged class.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"base_bytes\":0,\"floor_rows\":0,\"max_size_mb\":10,\"op\":\"cap_pass\",\"rows\":[{\"action\":\"block\",\"bytes\":4194304,\"id\":\"ratelimit-block\",\"kind\":\"event\",\"t\":1793016000000,\"type\":\"schild.ratelimit.exceeded.v1\"},{\"action\":\"observe\",\"bytes\":4194304,\"id\":\"behaviour-observe\",\"kind\":\"event\",\"t\":1793016000001,\"type\":\"schild.behaviour.triggered.v1\"},{\"bytes\":4194304,\"id\":\"session\",\"kind\":\"event\",\"t\":1793016000002,\"type\":\"schild.session.flagged.v1\"},{\"bytes\":4194304,\"id\":\"reset\",\"kind\":\"event\",\"t\":1793016000003,\"type\":\"schild.dashboard.access_reset.v1\"}],\"wal_bytes\":0}",
+  "input_decoded": {
+    "base_bytes": 0,
+    "floor_rows": 0,
+    "max_size_mb": 10,
+    "op": "cap_pass",
+    "rows": [
+      {
+        "action": "block",
+        "bytes": 4194304,
+        "id": "ratelimit-block",
+        "kind": "event",
+        "t": 1793016000000,
+        "type": "schild.ratelimit.exceeded.v1"
+      },
+      {
+        "action": "observe",
+        "bytes": 4194304,
+        "id": "behaviour-observe",
+        "kind": "event",
+        "t": 1793016000001,
+        "type": "schild.behaviour.triggered.v1"
+      },
+      {
+        "bytes": 4194304,
+        "id": "session",
+        "kind": "event",
+        "t": 1793016000002,
+        "type": "schild.session.flagged.v1"
+      },
+      {
+        "bytes": 4194304,
+        "id": "reset",
+        "kind": "event",
+        "t": 1793016000003,
+        "type": "schild.dashboard.access_reset.v1"
+      }
+    ],
+    "wal_bytes": 0
+  },
+  "expect": {
+    "valid": true,
+    "result": {
+      "used_before": 16777216,
+      "deleted": [
+        "session",
+        "behaviour-observe"
+      ],
+      "used_after": 8388608,
+      "unreachable": false
+    }
+  }
+}

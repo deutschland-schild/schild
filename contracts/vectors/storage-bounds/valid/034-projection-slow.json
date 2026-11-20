@@ -1,0 +1,52 @@
+{
+  "contract": "storage-bounds",
+  "description": "D38 (MVP-21): 1 GiB a day with 40 GiB left: 40 days, no hint.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"days\":[{\"min_used_bytes\":56908316672,\"samples\":144},{\"min_used_bytes\":57982058496,\"samples\":144},{\"min_used_bytes\":59055800320,\"samples\":144},{\"min_used_bytes\":60129542144,\"samples\":144},{\"min_used_bytes\":61203283968,\"samples\":144},{\"min_used_bytes\":62277025792,\"samples\":144},{\"min_used_bytes\":63350767616,\"samples\":144}],\"op\":\"disk_projection\",\"total_bytes\":107374182400,\"used_bytes\":64424509440}",
+  "input_decoded": {
+    "days": [
+      {
+        "min_used_bytes": 56908316672,
+        "samples": 144
+      },
+      {
+        "min_used_bytes": 57982058496,
+        "samples": 144
+      },
+      {
+        "min_used_bytes": 59055800320,
+        "samples": 144
+      },
+      {
+        "min_used_bytes": 60129542144,
+        "samples": 144
+      },
+      {
+        "min_used_bytes": 61203283968,
+        "samples": 144
+      },
+      {
+        "min_used_bytes": 62277025792,
+        "samples": 144
+      },
+      {
+        "min_used_bytes": 63350767616,
+        "samples": 144
+      }
+    ],
+    "op": "disk_projection",
+    "total_bytes": 107374182400,
+    "used_bytes": 64424509440
+  },
+  "expect": {
+    "valid": true,
+    "result": {
+      "hint": false,
+      "level": null,
+      "days_left": null,
+      "rate_bytes_per_day": null
+    }
+  }
+}

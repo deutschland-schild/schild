@@ -1,0 +1,43 @@
+id: MVP-01
+title: Contracts and golden test vectors
+ships: true
+hypotheses: [M1, M2, M3, M4, M5, M6, M7]
+refs: [concept-21-§5, concept-21-§12, concept-20, concept-18-§4.2, concept-13, E1, E2, E3, E4, E5, E7]
+depends_on: [decisions E1-E6]
+deliverables:
+  - contracts/envelope.md            # DSSE + Ed25519, payload types, domain separation, key ids, clock skew
+  - contracts/signal.schema.json     # client -> lab, see signal_fields below; never a visitor IP
+  - contracts/auth.md                # pluggable sender auth: per-site key (prototype, alpha) | Privacy Pass/ARC token (v1+)
+  - contracts/ack.schema.json        # lab -> client: accepted/rejected ids, retry_after_ms
+  - contracts/feedback.schema.json   # client -> lab: false-positive feedback (operator-approved only, K6)
+  - contracts/rule-bundle.schema.json # signed rule bundle: version, expires, threshold signatures, SecLang subset
+  - contracts/seclang-subset.md      # allowlist of operators/actions/variables for remote rules (K7)
+  - contracts/stream.md              # SSE events: checkpoint, bundle, withdrawal, heartbeat; Last-Event-ID resume
+  - contracts/events.schema.json     # local schild.<thing>.<verb>.v1 events (concept 21 §2.1)
+  - contracts/config/schild.schema.json # schild.yaml incl. test profile (E5); D72: min_independent_operators and every other network key removed
+  - contracts/config/lab.schema.json
+  - contracts/results.schema.json    # common output of every measurement
+  - contracts/vectors/               # valid + invalid examples per schema, signed with fixed test keys
+signal_fields:                       # decision E4 (2026-10-26): positive list, nothing else
+  - time_bucket                      # rounded to 5-15 min
+  - action_sig
+  - request_sig
+  - waf_rules
+  - score
+  - category
+  - origin: { country, asn, net_class, attribution, protected }
+  - agent: { family, major, bot }
+  - ja4                              # optional; prototype/alpha only, coarse or absent from v1
+forbidden_fields: [ip, ip_prefix, ip_hash, oprf, full user agent, url with query, headers, cookies, body, hostname of the site]
+must:
+  - signal payload is independent of the auth scheme and of the transport (HTTPS now, OHTTP from v1)
+  - no site identifier anywhere in the signal payload
+  - every schema has at least 5 valid and 10 invalid vectors (oversize, wrong type, replay, expired, wrong key, wrong payload type)
+  - signal schema is a positive list; unknown fields are rejected, never ignored
+  - test keys are clearly marked and rejected by release builds
+  - a contract test runner validates all vectors: make contracts-test
+measure:
+  - all vectors validate as expected in Go and in one second language (Python) to catch ambiguity
+kill_if: "a vector validates differently in the two implementations"
+done: "make contracts-test"
+out_of_scope: [OHTTP and Privacy Pass implementation (v1, but the interface is defined here), OPRF (dropped), scoring subscription, lab-to-lab federation]

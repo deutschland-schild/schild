@@ -1,0 +1,11 @@
+# unprotected: []
+# expect: refuse
+# Like P02 with {http.request.orig_uri.path}?{http.request.orig_uri.query}.
+http://a.example.test:18080 {
+	route {
+		rewrite * /hidden?
+		schild
+		rewrite * {http.request.orig_uri.path}?{http.request.orig_uri.query}
+		reverse_proxy 127.0.0.1:18082
+	}
+}

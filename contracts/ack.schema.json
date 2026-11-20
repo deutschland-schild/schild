@@ -1,0 +1,150 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://contracts.schild.invalid/v0/ack.schema.json",
+  "title": "Ack schild.ack/0.1 (lab -> client), with flow control",
+  "description": "Answer to one submission. accepted means durably queued, not scored (concept 21 §5). A full queue answers at once with control.retry_after_ms > 0, never with a timeout. DSSE payloadType application/vnd.schild.ack.v0+json, signed by the lab.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "lab",
+    "issued_at",
+    "in_reply_to",
+    "accepted",
+    "duplicate",
+    "rejected",
+    "control"
+  ],
+  "properties": {
+    "schema": {
+      "const": "schild.ack/0.1"
+    },
+    "lab": {
+      "$ref": "common.schema.json#/$defs/id",
+      "description": "Lab that answers; at least one valid signature must come from a key of this lab (code signature otherwise)."
+    },
+    "issued_at": {
+      "$ref": "common.schema.json#/$defs/timestamp"
+    },
+    "in_reply_to": {
+      "description": "submission.request_id",
+      "$ref": "common.schema.json#/$defs/uuid"
+    },
+    "accepted": {
+      "type": "array",
+      "maxItems": 256,
+      "uniqueItems": true,
+      "items": {
+        "$ref": "common.schema.json#/$defs/uuid"
+      }
+    },
+    "duplicate": {
+      "type": "array",
+      "maxItems": 256,
+      "uniqueItems": true,
+      "items": {
+        "$ref": "common.schema.json#/$defs/uuid"
+      }
+    },
+    "rejected": {
+      "type": "array",
+      "maxItems": 256,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "reason"
+        ],
+        "properties": {
+          "id": {
+            "description": "Message id, or the nil UUID replacement 00000000-0000-4000-8000-000000000000 when the envelope could not be parsed.",
+            "$ref": "common.schema.json#/$defs/uuid"
+          },
+          "reason": {
+            "type": "string",
+            "enum": [
+              "oversize",
+              "malformed",
+              "envelope",
+              "payload_type",
+              "signature",
+              "forbidden_field",
+              "schema",
+              "clock_skew",
+              "expired",
+              "replay",
+              "test_key",
+              "quota",
+              "revoked"
+            ]
+          }
+        }
+      }
+    },
+    "control": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "retry_after_ms",
+        "max_batch",
+        "reason"
+      ],
+      "properties": {
+        "retry_after_ms": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 600000
+        },
+        "max_batch": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 256
+        },
+        "reason": {
+          "type": "string",
+          "enum": [
+            "ok",
+            "queue_full",
+            "rate_limited",
+            "quota",
+            "maintenance"
+          ]
+        }
+      }
+    }
+  },
+  "if": {
+    "properties": {
+      "control": {
+        "properties": {
+          "reason": {
+            "const": "ok"
+          }
+        }
+      }
+    }
+  },
+  "then": {
+    "properties": {
+      "control": {
+        "properties": {
+          "retry_after_ms": {
+            "const": 0
+          }
+        }
+      }
+    }
+  },
+  "else": {
+    "properties": {
+      "control": {
+        "properties": {
+          "retry_after_ms": {
+            "minimum": 1
+          }
+        }
+      }
+    }
+  }
+}

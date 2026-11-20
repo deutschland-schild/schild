@@ -1,0 +1,43 @@
+{
+  "contract": "agent-block",
+  "description": "D42: the defaults leave room for a wave: 599 writes within a minute, the last place of 2000.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"budget\":{\"max_blocks\":2000,\"oldest_write_age_s\":40,\"running\":1999,\"writes_per_hour\":600,\"writes_used\":599},\"duration_s\":3600,\"mode\":\"autoblock\",\"op\":\"create\",\"reason\":\"credential stuffing from this client\",\"scope\":\"blocks:write\",\"target\":{\"address\":\"203.0.113.7\",\"attribution\":\"tcp_peer\",\"exists\":true,\"net_class\":\"residential\"}}",
+  "input_decoded": {
+    "budget": {
+      "max_blocks": 2000,
+      "oldest_write_age_s": 40,
+      "running": 1999,
+      "writes_per_hour": 600,
+      "writes_used": 599
+    },
+    "duration_s": 3600,
+    "mode": "autoblock",
+    "op": "create",
+    "reason": "credential stuffing from this client",
+    "scope": "blocks:write",
+    "target": {
+      "address": "203.0.113.7",
+      "attribution": "tcp_peer",
+      "exists": true,
+      "net_class": "residential"
+    }
+  },
+  "expect": {
+    "valid": true,
+    "result": {
+      "allowed": true,
+      "changed": true,
+      "code": null,
+      "counts_budget": true,
+      "effect": "block",
+      "limited_by": null,
+      "max_duration_s": null,
+      "persisted": false,
+      "retry_after": null,
+      "status": 200
+    }
+  }
+}

@@ -1,0 +1,26 @@
+{
+  "contract": "submission",
+  "description": "The submission schema does not verify signatures; the lab rejects that envelope in the ack.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"envelopes\":[{\"payload\":\"eyJzY2hlbWEiOiJzY2hpbGQuc2lnbmFsLzAuMyIsImlkIjoiODI5YjQ5ZDktOGM0NC00OTE1LTgzZjYtNmZiYmIwYjA5MWU0Iiwia2luZCI6InRpcCIsInRpbWVfYnVja2V0IjoiMjAyNi0xMC0yNlQxMTo1NTowMFoiLCJhY3Rpb25fc2lnIjoibG9naW4tYnVyc3Qvd3AtYWRtaW4iLCJyZXF1ZXN0X3NpZyI6InNoYTI1NjphMDcxODdmMWM3ZDFjNTY0M2IwMmNlNzMwYmVmM2Q3YmM1NzAwYTViZWUwYjM4MzNkMTNmMjgxOWYxZTJiZTgxIiwid2FmX3J1bGVzIjpbOTMwMTIwLDk0OTExMF0sInNjb3JlIjo3MiwiY2F0ZWdvcnkiOiJ3b3JkcHJlc3MtbG9naW4tYnJ1dGVmb3JjZSIsIm9yaWdpbiI6eyJjb3VudHJ5IjoiTkwiLCJhc24iOjE0MDYxLCJuZXRfY2xhc3MiOiJob3N0aW5nIiwiYXR0cmlidXRpb24iOiJ0Y3BfcGVlciIsInByb3RlY3RlZCI6ZmFsc2V9LCJhZ2VudCI6eyJmYW1pbHkiOiJweXRob24tcmVxdWVzdHMiLCJtYWpvciI6MiwiYm90IjpmYWxzZX19\",\"payloadType\":\"application/vnd.schild.signal.v0+json\",\"signatures\":[{\"keyid\":\"test-evil\",\"sig\":\"g7glqTZVCRpoh0P80IIo+TaNTdnzIZRNSeOPddzSjf1t7z7n2RzU1bXx+Gpa+P9OR0eUnfrTdpnfolkZoeF6Bg==\"}]}],\"request_id\":\"6c601ac0-f57f-4a18-a555-7f5797055cc1\"}",
+  "input_decoded": {
+    "envelopes": [
+      {
+        "payload": "eyJzY2hlbWEiOiJzY2hpbGQuc2lnbmFsLzAuMyIsImlkIjoiODI5YjQ5ZDktOGM0NC00OTE1LTgzZjYtNmZiYmIwYjA5MWU0Iiwia2luZCI6InRpcCIsInRpbWVfYnVja2V0IjoiMjAyNi0xMC0yNlQxMTo1NTowMFoiLCJhY3Rpb25fc2lnIjoibG9naW4tYnVyc3Qvd3AtYWRtaW4iLCJyZXF1ZXN0X3NpZyI6InNoYTI1NjphMDcxODdmMWM3ZDFjNTY0M2IwMmNlNzMwYmVmM2Q3YmM1NzAwYTViZWUwYjM4MzNkMTNmMjgxOWYxZTJiZTgxIiwid2FmX3J1bGVzIjpbOTMwMTIwLDk0OTExMF0sInNjb3JlIjo3MiwiY2F0ZWdvcnkiOiJ3b3JkcHJlc3MtbG9naW4tYnJ1dGVmb3JjZSIsIm9yaWdpbiI6eyJjb3VudHJ5IjoiTkwiLCJhc24iOjE0MDYxLCJuZXRfY2xhc3MiOiJob3N0aW5nIiwiYXR0cmlidXRpb24iOiJ0Y3BfcGVlciIsInByb3RlY3RlZCI6ZmFsc2V9LCJhZ2VudCI6eyJmYW1pbHkiOiJweXRob24tcmVxdWVzdHMiLCJtYWpvciI6MiwiYm90IjpmYWxzZX19",
+        "payloadType": "application/vnd.schild.signal.v0+json",
+        "signatures": [
+          {
+            "keyid": "test-evil",
+            "sig": "g7glqTZVCRpoh0P80IIo+TaNTdnzIZRNSeOPddzSjf1t7z7n2RzU1bXx+Gpa+P9OR0eUnfrTdpnfolkZoeF6Bg=="
+          }
+        ]
+      }
+    ],
+    "request_id": "6c601ac0-f57f-4a18-a555-7f5797055cc1"
+  },
+  "expect": {
+    "valid": true
+  }
+}

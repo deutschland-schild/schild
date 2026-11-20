@@ -1,0 +1,38 @@
+{
+  "contract": "events",
+  "description": "v0.4: a limit is always per client key.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"data\":{\"action\":\"block\",\"burst\":10,\"count\":14,\"host\":\"verein.example\",\"key_bits\":32,\"limit\":10,\"limit_id\":\"preset-wordpress-login\",\"methods\":[\"POST\"],\"mode\":\"block\",\"path\":\"/wp-login.php\",\"per_s\":60,\"retry_after_s\":6,\"route\":\"/wp-login.php\",\"source\":\"preset\"},\"datacontenttype\":\"application/json\",\"id\":\"d193ac46-22a0-4601-a6bc-a5b6e0c60518\",\"source\":\"schild://web-1\",\"specversion\":\"1.0\",\"time\":\"2026-10-26T11:59:58.123Z\",\"type\":\"schild.ratelimit.exceeded.v1\"}",
+  "input_decoded": {
+    "data": {
+      "action": "block",
+      "burst": 10,
+      "count": 14,
+      "host": "verein.example",
+      "key_bits": 32,
+      "limit": 10,
+      "limit_id": "preset-wordpress-login",
+      "methods": [
+        "POST"
+      ],
+      "mode": "block",
+      "path": "/wp-login.php",
+      "per_s": 60,
+      "retry_after_s": 6,
+      "route": "/wp-login.php",
+      "source": "preset"
+    },
+    "datacontenttype": "application/json",
+    "id": "d193ac46-22a0-4601-a6bc-a5b6e0c60518",
+    "source": "schild://web-1",
+    "specversion": "1.0",
+    "time": "2026-10-26T11:59:58.123Z",
+    "type": "schild.ratelimit.exceeded.v1"
+  },
+  "expect": {
+    "valid": false,
+    "error": "schema"
+  }
+}

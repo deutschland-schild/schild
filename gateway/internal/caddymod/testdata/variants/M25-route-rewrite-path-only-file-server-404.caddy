@@ -1,0 +1,16 @@
+# unprotected: []
+# expect: refuse
+# Fix round 3: accepted; the pass marker is bound to the inspected method and URI, so schild in handle_errors inspects the restored original URI again (TestIngressPassMarkBoundToURI).
+# Static route that drops the query before schild (rewrite * {path}?), file_server 404 for missing files, handle_errors proxies to the app with schild.
+http://a.example.test:18080 {
+	route {
+		rewrite * {path}?
+		schild
+		root * /tmp/m19m3-empty
+		file_server
+	}
+	handle_errors {
+		import schild
+		reverse_proxy 127.0.0.1:18081
+	}
+}

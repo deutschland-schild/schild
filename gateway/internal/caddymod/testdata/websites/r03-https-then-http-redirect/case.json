@@ -1,0 +1,21 @@
+{
+ "resolve": [
+  "shop.example.org"
+ ],
+ "blocks": [
+  {
+   "Addresses": [
+    "shop.example.org"
+   ],
+   "Schild": true,
+   "Proxies": true
+  },
+  {
+   "Addresses": [
+    "http://shop.example.org"
+   ],
+   "Schild": false,
+   "Proxies": false
+  }
+ ]
+}

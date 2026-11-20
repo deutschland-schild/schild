@@ -1,0 +1,24 @@
+{
+  "contract": "rule-effect",
+  "description": "An exception is named before the test profile.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"excepted\":true,\"mode\":\"observe\",\"now\":1000000,\"op\":\"request\",\"origin\":\"release\",\"state\":\"block\"}",
+  "input_decoded": {
+    "excepted": true,
+    "mode": "observe",
+    "now": 1000000,
+    "op": "request",
+    "origin": "release",
+    "state": "block"
+  },
+  "expect": {
+    "valid": true,
+    "result": {
+      "action": "excepted",
+      "outcome": "logged",
+      "counts_as_hit": false
+    }
+  }
+}

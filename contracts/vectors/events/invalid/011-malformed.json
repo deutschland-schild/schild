@@ -1,0 +1,12 @@
+{
+  "contract": "events",
+  "description": "Broken JSON.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"specversion\":\"1.0\"",
+  "expect": {
+    "valid": false,
+    "error": "malformed"
+  }
+}

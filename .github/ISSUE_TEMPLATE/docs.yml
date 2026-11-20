@@ -1,0 +1,21 @@
+name: Doku oder Konzept
+description: Fehler, Lücke oder Einwand zu einer Datei unter docs/
+labels: [documentation]
+body:
+  - type: input
+    id: file
+    attributes:
+      label: Datei oder Seite
+      placeholder: docs/concept/13-technik-kompakt.md
+    validations:
+      required: true
+  - type: textarea
+    id: change
+    attributes:
+      label: Was stimmt nicht, oder was fehlt?
+    validations:
+      required: true
+  - type: input
+    id: source
+    attributes:
+      label: Quelle oder Beleg

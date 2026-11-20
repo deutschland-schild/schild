@@ -1,0 +1,30 @@
+{
+  "contract": "website-derive",
+  "description": "D36: proxy mode with a wildcard first host.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"mode\":\"proxy\",\"site_hosts\":[\"*.example.org\"]}",
+  "input_decoded": {
+    "mode": "proxy",
+    "site_hosts": [
+      "*.example.org"
+    ]
+  },
+  "expect": {
+    "valid": true,
+    "result": {
+      "websites": [
+        {
+          "hosts": [
+            "*.example.org"
+          ],
+          "id": "_.example.org",
+          "label": "*.example.org",
+          "protection": "protected",
+          "tracked": true
+        }
+      ]
+    }
+  }
+}

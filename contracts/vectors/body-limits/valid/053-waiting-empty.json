@@ -1,0 +1,19 @@
+{
+  "contract": "body-limits",
+  "description": "D44: a request waiting costs its overhead without a byte of body.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"bytes\":0,\"op\":\"waiting\"}",
+  "input_decoded": {
+    "bytes": 0,
+    "op": "waiting"
+  },
+  "expect": {
+    "valid": true,
+    "result": {
+      "in_memory": true,
+      "waiting_bytes": 131072
+    }
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "contract": "geo-map",
+  "description": "v0.5 MVP-22: connection_type is a string.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"provider\":\"maxmind\",\"record\":{\"connection_type\":3}}",
+  "input_decoded": {
+    "provider": "maxmind",
+    "record": {
+      "connection_type": 3
+    }
+  },
+  "expect": {
+    "valid": false,
+    "error": "schema"
+  }
+}

@@ -1,0 +1,6 @@
+[
+  {"name": "api",   "base_url": "http://stripper-api:8080",   "host": "api.example",   "mode": "observe"},
+  {"name": "wp",    "base_url": "http://stripper-wp:8080",    "host": "wp.example",    "mode": "review"},
+  {"name": "dvwa",  "base_url": "http://stripper-dvwa:8080",  "host": "dvwa.example",  "mode": "autoblock"},
+  {"name": "juice", "base_url": "http://stripper-juice:8080", "host": "juice.example", "mode": "autoblock"}
+]

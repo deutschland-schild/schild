@@ -1,0 +1,14 @@
+# unprotected: []
+# expect: refuse
+# handle_errors with an explicit route: proxy before schild.
+http://a.example.test:18080 {
+	import schild
+	reverse_proxy 127.0.0.1:18081
+	handle_errors {
+		route {
+			reverse_proxy /x* 127.0.0.1:18081
+			schild
+			reverse_proxy 127.0.0.1:18081
+		}
+	}
+}

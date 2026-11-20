@@ -1,0 +1,18 @@
+# Default rules plus the files that hold fake secrets on purpose: TEST ONLY
+# canaries of the test lab and invalid PEM vectors the contracts must refuse.
+[extend]
+useDefault = true
+
+[allowlist]
+description = "TEST ONLY canaries and invalid contract vectors"
+paths = [
+  '''^tests/adversaries/host-check/canary/run\.sh$''',
+  '''^gateway/internal/hostcheck/review_hostcheck_test\.go$''',
+  '''^contract/hostcheck/hostcheck_test\.go$''',
+  '''^contracts/vectors/[a-z-]+/invalid/[0-9]+-[a-z-]*(pem|private-key)[a-z-]*\.json$''',
+  '''^lab/README\.md$''',
+  '''^tests/testlab/compose/docker-compose\.t1\.agents\.yaml$''',
+  '''^tests/testlab/dockerfiles/app-vm/rootfs/var/www/html/wp-config\.php$''',
+  '''^tests/testlab/internal/hostcanary/hostcanary\.go$''',
+  '''^tests/testlab/scripts/readonly-proof\.sh$''',
+]

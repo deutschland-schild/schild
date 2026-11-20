@@ -1,0 +1,80 @@
+# schild check: read-only host findings of the gateway (MVP-11, contracts/host-check.md).
+# Install: /etc/systemd/system/schild-check.service, together with schild-check.timer,
+# schild-check.path ("Jetzt prüfen", optional) and schild-host-check.tmpfiles.conf
+# (gateway/README.md, "Server check").
+#
+# Runs as root inside a tight sandbox: root only to read what an unprivileged
+# user cannot (sshd -T, nft ruleset, /var/log/auth.log); the capability
+# bounding set leaves nothing that could change the system beyond the report
+# dir. Without a right, a check reports "nicht lesbar" instead of failing.
+#
+# `schild check -h` lists the flags: -app PATH (repeatable) inventories the
+# applications under that path only (WordPress, TYPO3, Laravel, Nextcloud),
+# -cert GLOB the site certificates (default: the usual Caddy, Let's Encrypt and
+# schild stores). `schild check -privileges` prints what each check reads.
+[Unit]
+Description=Schild server check (read-only host findings)
+Documentation=https://deutschland-schild.de/doku
+After=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/schild check -dir /var/lib/schild/host-check
+# "Jetzt prüfen": the run removes the request file the dashboard wrote
+# (schild-check.path starts this unit when it appears).
+Environment=SCHILD_HOST_CHECK_TRIGGER=/run/schild-check/request
+# Findings with -fail-on are no unit failure.
+SuccessExitStatus=3
+# Reports 0640, group 65532 via the setgid dir (tmpfiles), readable by the
+# schild container (uid/gid 65532), by nobody else.
+UMask=0027
+Nice=10
+IOSchedulingClass=idle
+TimeoutStartSec=10min
+
+# --- rights: only reading -----------------------------------------------------
+# CAP_DAC_READ_SEARCH  read config and logs regardless of mode (sshd_config.d, auth.log)
+# CAP_NET_ADMIN        `nft list ruleset` / iptables-save, ip6tables-save (firewall check)
+# CAP_SYS_PTRACE       process names of listening sockets (ss -p); drop it and the
+#                      ports check reports addresses and ports without process
+# CAP_SETUID/SETGID    only to start the package database queries (rpm, dpkg-query,
+#                      the dnf metadata reader) and the runtime version probes as
+#                      nobody (65534): the kernel then refuses any write they try.
+#                      Drop them and those checks report "nicht lesbar"; they are
+#                      never run as root instead.
+CapabilityBoundingSet=CAP_DAC_READ_SEARCH CAP_NET_ADMIN CAP_SYS_PTRACE CAP_SETUID CAP_SETGID
+AmbientCapabilities=
+NoNewPrivileges=yes
+
+# --- filesystem: everything read-only except the report dir ---------------------
+ProtectSystem=strict
+ReadWritePaths=/var/lib/schild/host-check -/run/schild-check
+ProtectHome=read-only
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectKernelLogs=yes
+ProtectControlGroups=yes
+ProtectClock=yes
+ProtectHostname=yes
+
+# --- network: none ------------------------------------------------------------
+# The check opens no connection (certificate expiry is read from the files).
+# Not PrivateNetwork: the ports check must see the host's sockets (ss uses
+# netlink, which IPAddressDeny does not touch).
+RestrictAddressFamilies=AF_UNIX AF_NETLINK AF_INET AF_INET6
+IPAddressDeny=any
+
+# --- the rest of the usual hardening -------------------------------------------
+RestrictNamespaces=yes
+RestrictRealtime=yes
+RestrictSUIDSGID=yes
+LockPersonality=yes
+# Java's version comes from <java home>/release (a JVM cannot start under
+# MemoryDenyWriteExecute; without a release file Java is left out of the
+# inventory). node, php and python3 --version work under it.
+MemoryDenyWriteExecute=yes
+SystemCallArchitectures=native
+SystemCallFilter=@system-service
+SystemCallFilter=~@mount @swap @reboot @module @raw-io @clock @cpu-emulation @obsolete

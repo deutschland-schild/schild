@@ -1,0 +1,23 @@
+{
+  "contract": "envelope",
+  "description": "payloadType outside the Schild namespace.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z",
+    "kind": "signal",
+    "trust": [
+      "site-a",
+      "site-b",
+      "site-c",
+      "lab-a",
+      "lab-a2",
+      "lab-b",
+      "lab-c",
+      "lab-d"
+    ]
+  },
+  "input_raw": "{\"payloadType\":\"application/json\",\"payload\":\"eyJzY2hlbWEiOiJzY2hpbGQuc2lnbmFsLzAuMyIsImlkIjoiZTVhOGI2MTQtOGE5YS00OWFlLWIyZDAtMTZkY2Y5OTFjZjNkIiwia2luZCI6InRpcCIsInRpbWVfYnVja2V0IjoiMjAyNi0xMC0yNlQxMTo1NTowMFoiLCJhY3Rpb25fc2lnIjoibG9naW4tYnVyc3Qvd3AtYWRtaW4iLCJyZXF1ZXN0X3NpZyI6InNoYTI1NjphMDcxODdmMWM3ZDFjNTY0M2IwMmNlNzMwYmVmM2Q3YmM1NzAwYTViZWUwYjM4MzNkMTNmMjgxOWYxZTJiZTgxIiwid2FmX3J1bGVzIjpbOTMwMTIwLDk0OTExMF0sInNjb3JlIjo3MiwiY2F0ZWdvcnkiOiJ3b3JkcHJlc3MtbG9naW4tYnJ1dGVmb3JjZSIsIm9yaWdpbiI6eyJjb3VudHJ5IjoiTkwiLCJhc24iOjE0MDYxLCJuZXRfY2xhc3MiOiJob3N0aW5nIiwiYXR0cmlidXRpb24iOiJ0Y3BfcGVlciIsInByb3RlY3RlZCI6ZmFsc2V9LCJhZ2VudCI6eyJmYW1pbHkiOiJweXRob24tcmVxdWVzdHMiLCJtYWpvciI6MiwiYm90IjpmYWxzZX19\",\"signatures\":[{\"keyid\":\"test-site-a\",\"sig\":\"+uy8EPKZMVyQNkt3xQMScQcc6vfMKLmDqNurkB4PNNeEcCkt2x7AGLuVpuE3dn3Sf2zjGHvc4VEf5VHEvB1xDw==\"}]}",
+  "expect": {
+    "valid": false,
+    "error": "envelope"
+  }
+}

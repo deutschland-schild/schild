@@ -1,0 +1,13 @@
+# unprotected: []
+# expect: refuse
+# Guarded site a+b with handle_errors proxy; a path site on b without schild raises an error.
+http://a.example.test:18080, http://b.example.test:18080 {
+	import schild
+	reverse_proxy 127.0.0.1:18081
+	handle_errors {
+		reverse_proxy 127.0.0.1:18081
+	}
+}
+http://b.example.test:18080/x/* {
+	error "boom" 500
+}

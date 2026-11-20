@@ -1,0 +1,82 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://contracts.schild.invalid/v0/results.schema.json",
+  "title": "Measurement result (results/<spec>.json)",
+  "description": "Common output of every measurement (evaluator, benchmarks, contract tests). Written by the measuring agent, never by the builder of the measured component. Humans decide what a hit kill criterion means.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["results_version", "spec", "run_id", "started_at", "finished_at", "seed", "profile", "images", "metrics", "kill_criteria", "verdict"],
+  "properties": {
+    "results_version": { "const": 0 },
+    "spec": { "type": "string", "pattern": "^MVP-[0-9]{2}$" },
+    "run_id": { "type": "string", "pattern": "^[A-Za-z0-9._-]{1,64}$" },
+    "started_at": { "$ref": "common.schema.json#/$defs/timestamp" },
+    "finished_at": { "$ref": "common.schema.json#/$defs/timestamp" },
+    "seed": { "type": "integer", "minimum": 0, "maximum": 9007199254740991 },
+    "profile": { "type": "string", "enum": ["t0", "t1", "live", "unit"] },
+    "git_rev": { "type": "string", "pattern": "^[0-9a-f]{7,40}(-dirty)?$" },
+    "host": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "os": { "type": "string", "maxLength": 64 },
+        "arch": { "type": "string", "maxLength": 32 },
+        "cpus": { "type": "integer", "minimum": 1 },
+        "mem_mb": { "type": "integer", "minimum": 1 }
+      }
+    },
+    "images": {
+      "type": "array",
+      "maxItems": 128,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["name", "digest"],
+        "properties": {
+          "name": { "type": "string", "pattern": "^[a-z0-9][a-z0-9._/-]{0,127}(:[A-Za-z0-9._-]{1,128})?$" },
+          "digest": { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" }
+        }
+      }
+    },
+    "scenarios": { "type": "array", "maxItems": 256, "uniqueItems": true, "items": { "type": "string", "pattern": "^[TB][0-9]{2}$" } },
+    "hypotheses": { "type": "array", "maxItems": 16, "uniqueItems": true, "items": { "type": "string", "pattern": "^[MD][0-9]$" } },
+    "metrics": {
+      "type": "array",
+      "maxItems": 1024,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["name", "value", "unit"],
+        "properties": {
+          "name": { "type": "string", "pattern": "^[a-z][a-z0-9_]{0,63}$" },
+          "value": { "type": "number" },
+          "unit": { "type": "string", "enum": ["ms", "s", "count", "ratio", "rps", "bytes", "percent", "bool"] },
+          "labels": {
+            "type": "object",
+            "maxProperties": 16,
+            "propertyNames": { "pattern": "^[a-z][a-z0-9_]{0,31}$" },
+            "additionalProperties": { "type": "string", "maxLength": 128 }
+          },
+          "samples": { "type": "integer", "minimum": 0 }
+        }
+      }
+    },
+    "kill_criteria": {
+      "type": "array",
+      "maxItems": 64,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["expr", "hit"],
+        "properties": {
+          "expr": { "type": "string", "minLength": 1, "maxLength": 512 },
+          "hit": { "type": "boolean" },
+          "observed": { "type": "string", "maxLength": 512 }
+        }
+      }
+    },
+    "verdict": { "type": "string", "enum": ["pass", "fail", "inconclusive", "error"] },
+    "notes": { "type": "string", "maxLength": 8192 },
+    "artifacts": { "type": "array", "maxItems": 256, "items": { "type": "string", "pattern": "^[A-Za-z0-9._/-]{1,256}$" } }
+  }
+}

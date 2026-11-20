@@ -1,0 +1,93 @@
+{
+  "contract": "storage-bounds",
+  "description": "D38: deletion by value, not by age: sampled requests, then logged, then would_block, then blocked, then incidents, then records last, each class oldest first. The blocked request is the oldest row and still goes after every cheaper class.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"base_bytes\":0,\"floor_rows\":0,\"max_size_mb\":10,\"op\":\"cap_pass\",\"rows\":[{\"bytes\":2097152,\"id\":\"blocked-old\",\"kind\":\"event\",\"outcome\":\"blocked\",\"t\":1793016000000,\"type\":\"schild.request.blocked.v1\"},{\"action\":\"observe\",\"bytes\":2097152,\"id\":\"wave\",\"kind\":\"event\",\"t\":1793016000001,\"type\":\"schild.distributed.detected.v1\"},{\"bytes\":2097152,\"id\":\"incident-1\",\"kind\":\"incident\",\"t\":1793016000002},{\"bytes\":2097152,\"id\":\"rule-change\",\"kind\":\"event\",\"t\":1793016000003,\"type\":\"schild.rule.repository_updated.v1\"},{\"bytes\":2097152,\"id\":\"would-1\",\"kind\":\"event\",\"outcome\":\"would_block\",\"t\":1793016000004,\"type\":\"schild.request.evaluated.v1\"},{\"bytes\":2097152,\"id\":\"logged-1\",\"kind\":\"event\",\"outcome\":\"logged\",\"t\":1793016000005,\"type\":\"schild.request.evaluated.v1\"},{\"bytes\":2097152,\"id\":\"sampled-1\",\"kind\":\"event\",\"outcome\":\"passed\",\"sampled\":true,\"t\":1793016000006,\"type\":\"schild.request.evaluated.v1\"},{\"bytes\":2097152,\"id\":\"blocked-new\",\"kind\":\"event\",\"outcome\":\"blocked\",\"t\":1793016000007,\"type\":\"schild.request.blocked.v1\"}],\"wal_bytes\":0}",
+  "input_decoded": {
+    "base_bytes": 0,
+    "floor_rows": 0,
+    "max_size_mb": 10,
+    "op": "cap_pass",
+    "rows": [
+      {
+        "bytes": 2097152,
+        "id": "blocked-old",
+        "kind": "event",
+        "outcome": "blocked",
+        "t": 1793016000000,
+        "type": "schild.request.blocked.v1"
+      },
+      {
+        "action": "observe",
+        "bytes": 2097152,
+        "id": "wave",
+        "kind": "event",
+        "t": 1793016000001,
+        "type": "schild.distributed.detected.v1"
+      },
+      {
+        "bytes": 2097152,
+        "id": "incident-1",
+        "kind": "incident",
+        "t": 1793016000002
+      },
+      {
+        "bytes": 2097152,
+        "id": "rule-change",
+        "kind": "event",
+        "t": 1793016000003,
+        "type": "schild.rule.repository_updated.v1"
+      },
+      {
+        "bytes": 2097152,
+        "id": "would-1",
+        "kind": "event",
+        "outcome": "would_block",
+        "t": 1793016000004,
+        "type": "schild.request.evaluated.v1"
+      },
+      {
+        "bytes": 2097152,
+        "id": "logged-1",
+        "kind": "event",
+        "outcome": "logged",
+        "t": 1793016000005,
+        "type": "schild.request.evaluated.v1"
+      },
+      {
+        "bytes": 2097152,
+        "id": "sampled-1",
+        "kind": "event",
+        "outcome": "passed",
+        "sampled": true,
+        "t": 1793016000006,
+        "type": "schild.request.evaluated.v1"
+      },
+      {
+        "bytes": 2097152,
+        "id": "blocked-new",
+        "kind": "event",
+        "outcome": "blocked",
+        "t": 1793016000007,
+        "type": "schild.request.blocked.v1"
+      }
+    ],
+    "wal_bytes": 0
+  },
+  "expect": {
+    "valid": true,
+    "result": {
+      "used_before": 16777216,
+      "deleted": [
+        "sampled-1",
+        "logged-1",
+        "would-1",
+        "blocked-old"
+      ],
+      "used_after": 8388608,
+      "unreachable": false
+    }
+  }
+}

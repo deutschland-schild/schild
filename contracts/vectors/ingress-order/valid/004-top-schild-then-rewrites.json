@@ -1,0 +1,145 @@
+{
+  "contract": "ingress-order",
+  "description": "D31 amendment 2026-10-29: Accepted: everything after an unconditional schild may rewrite (rewrite, try_files, handle_path, uri strip_suffix in a route).",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"caddyfile\":\"http://a.example.test {\\n\\tschild\\n\\trewrite /old /new\\n\\ttry_files {path} /index.php\\n\\thandle_path /api/* {\\n\\t\\treverse_proxy 127.0.0.1:18081\\n\\t}\\n\\troute {\\n\\t\\turi strip_suffix /\\n\\t\\treverse_proxy 127.0.0.1:18082\\n\\t}\\n}\\n\",\"servers\":{\"srv0\":{\"listen\":[\":80\"],\"routes\":[{\"handle\":[{\"handler\":\"subroute\",\"routes\":[{\"handle\":[{\"handler\":\"schild\"}]},{\"group\":\"group2\",\"handle\":[{\"handler\":\"rewrite\",\"uri\":\"/new\"}],\"match\":[{\"path\":[\"/old\"]}]},{\"handle\":[{\"handler\":\"rewrite\",\"uri\":\"{http.matchers.file.relative}\"}],\"match\":[{\"file\":{\"try_files\":[\"{http.request.uri.path}\",\"/index.php\"]}}]},{\"handle\":[{\"handler\":\"subroute\",\"routes\":[{\"handle\":[{\"handler\":\"rewrite\",\"strip_path_prefix\":\"/api\"}]},{\"handle\":[{\"handler\":\"reverse_proxy\",\"upstreams\":[{\"dial\":\"127.0.0.1:18081\"}]}]}]}],\"match\":[{\"path\":[\"/api/*\"]}]},{\"handle\":[{\"handler\":\"subroute\",\"routes\":[{\"handle\":[{\"handler\":\"rewrite\",\"strip_path_suffix\":\"/\"},{\"handler\":\"reverse_proxy\",\"upstreams\":[{\"dial\":\"127.0.0.1:18082\"}]}]}]}]}]}],\"match\":[{\"host\":[\"a.example.test\"]}],\"terminal\":true}]}}}",
+  "input_decoded": {
+    "caddyfile": "http://a.example.test {\n\tschild\n\trewrite /old /new\n\ttry_files {path} /index.php\n\thandle_path /api/* {\n\t\treverse_proxy 127.0.0.1:18081\n\t}\n\troute {\n\t\turi strip_suffix /\n\t\treverse_proxy 127.0.0.1:18082\n\t}\n}\n",
+    "servers": {
+      "srv0": {
+        "listen": [
+          ":80"
+        ],
+        "routes": [
+          {
+            "handle": [
+              {
+                "handler": "subroute",
+                "routes": [
+                  {
+                    "handle": [
+                      {
+                        "handler": "schild"
+                      }
+                    ]
+                  },
+                  {
+                    "group": "group2",
+                    "handle": [
+                      {
+                        "handler": "rewrite",
+                        "uri": "/new"
+                      }
+                    ],
+                    "match": [
+                      {
+                        "path": [
+                          "/old"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "handle": [
+                      {
+                        "handler": "rewrite",
+                        "uri": "{http.matchers.file.relative}"
+                      }
+                    ],
+                    "match": [
+                      {
+                        "file": {
+                          "try_files": [
+                            "{http.request.uri.path}",
+                            "/index.php"
+                          ]
+                        }
+                      }
+                    ]
+                  },
+                  {
+                    "handle": [
+                      {
+                        "handler": "subroute",
+                        "routes": [
+                          {
+                            "handle": [
+                              {
+                                "handler": "rewrite",
+                                "strip_path_prefix": "/api"
+                              }
+                            ]
+                          },
+                          {
+                            "handle": [
+                              {
+                                "handler": "reverse_proxy",
+                                "upstreams": [
+                                  {
+                                    "dial": "127.0.0.1:18081"
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ],
+                    "match": [
+                      {
+                        "path": [
+                          "/api/*"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "handle": [
+                      {
+                        "handler": "subroute",
+                        "routes": [
+                          {
+                            "handle": [
+                              {
+                                "handler": "rewrite",
+                                "strip_path_suffix": "/"
+                              },
+                              {
+                                "handler": "reverse_proxy",
+                                "upstreams": [
+                                  {
+                                    "dial": "127.0.0.1:18082"
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ],
+            "match": [
+              {
+                "host": [
+                  "a.example.test"
+                ]
+              }
+            ],
+            "terminal": true
+          }
+        ]
+      }
+    }
+  },
+  "expect": {
+    "valid": true,
+    "result": {
+      "findings": []
+    }
+  }
+}

@@ -1,0 +1,29 @@
+{
+  "identity": {
+    "operator": "op-test-a",
+    "lab": "lab-a"
+  },
+  "profile": "test",
+  "channel": "schild-main",
+  "scoring": {
+    "min_issuers": 3,
+    "max_issuer_share": 0.34,
+    "window_minutes": 1440,
+    "min_score": 40
+  },
+  "publish": {
+    "bundle_validity_hours": 168,
+    "checkpoint_interval_s": 60,
+    "checkpoint_ttl_s": 180,
+    "require_human_approval": true
+  },
+  "ingest": {
+    "rate_per_client_per_min": 600,
+    "queue_max_depth": 1000000,
+    "retry_after_ms": 5000
+  },
+  "retention": {
+    "signals_days": 30,
+    "aggregates_days": 365
+  }
+}

@@ -1,0 +1,42 @@
+{
+  "contract": "request-recheck",
+  "description": "D33 amendment 2026-10-29: the same path checked twice (another method or host after a rewrite) is listed twice: checked_paths lists evaluations, not distinct paths.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"evaluations\":[{\"detection\":false,\"outcome\":\"passed\",\"path\":\"/x\",\"rules\":[],\"score\":0},{\"detection\":false,\"outcome\":\"passed\",\"path\":\"/x\",\"rules\":[],\"score\":0}]}",
+  "input_decoded": {
+    "evaluations": [
+      {
+        "detection": false,
+        "outcome": "passed",
+        "path": "/x",
+        "rules": [],
+        "score": 0
+      },
+      {
+        "detection": false,
+        "outcome": "passed",
+        "path": "/x",
+        "rules": [],
+        "score": 0
+      }
+    ]
+  },
+  "expect": {
+    "valid": true,
+    "result": {
+      "requests": 1,
+      "rechecked": true,
+      "outcome": "passed",
+      "detection": false,
+      "path": "/x",
+      "checked_paths": [
+        "/x",
+        "/x"
+      ],
+      "rules": [],
+      "score": 0
+    }
+  }
+}

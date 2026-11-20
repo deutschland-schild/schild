@@ -1,0 +1,28 @@
+{
+  "contract": "agent-enrolment",
+  "description": "A private key never travels, not even by mistake.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z",
+    "seen_ids": [
+      "e19b3beff9689ce22935775df4d7debe"
+    ],
+    "gateway": "gw-1"
+  },
+  "input_raw": "{\"payloadType\":\"application/vnd.schild.agent-enrolment.v0+json\",\"payload\":\"eyJjb2RlIjoiSzdRTS0yWFJQLTlIV0QtVDROQSIsImdhdGV3YXkiOiJndy0xIiwiaG9zdG5hbWUiOiItLS0tLUJFR0lOIFBSSVZBVEUgS0VZLS0tLS0iLCJpc3N1ZWRfYXQiOiIyMDI2LTEwLTI2VDEyOjAwOjAwWiIsImtleWlkIjoidGVzdC1hZ2VudC1hIiwibm9uY2UiOiIwNmZhMjQxMDhlODk0NDcyYjg5NmI2MDQ1N2JlZDhhMyIsInB1YmxpY19rZXkiOiJlZDI1NTE5Oms0Sm8yaTB0MWpNL3lwUThxZEc3bTdtanVqL3ZBdDZTV3RkYzB0VHIzUk09Iiwic2NoZW1hIjoic2NoaWxkLmFnZW50X2Vucm9sbWVudC8wLjEifQ==\",\"signatures\":[{\"keyid\":\"test-agent-a\",\"sig\":\"z04/nTG7n/RYglXDpybYbLgU0r0/L1qQzscBuKpBguXzcFlBFUH+81ojroyYpMEMd6iO/Uzh0s8CCXYLzOGdAg==\"}]}",
+  "input_decoded": {
+    "payload": {
+      "code": "K7QM-2XRP-9HWD-T4NA",
+      "gateway": "gw-1",
+      "hostname": "-----BEGIN PRIVATE KEY-----",
+      "issued_at": "2026-10-26T12:00:00Z",
+      "keyid": "test-agent-a",
+      "nonce": "06fa24108e894472b896b60457bed8a3",
+      "public_key": "ed25519:k4Jo2i0t1jM/ypQ8qdG7m7mjuj/vAt6SWtdc0tTr3RM=",
+      "schema": "schild.agent_enrolment/0.1"
+    }
+  },
+  "expect": {
+    "valid": false,
+    "error": "forbidden_content"
+  }
+}

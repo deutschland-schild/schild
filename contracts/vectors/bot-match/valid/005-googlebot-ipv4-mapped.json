@@ -1,0 +1,23 @@
+{
+  "contract": "bot-match",
+  "description": "v0.5 MVP-22: an IPv4-mapped IPv6 client address is unmapped before the check.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"catalogue\":{\"automation_tokens\":[\"bot\",\"crawl\",\"spider\",\"scrape\",\"headless\",\"python\",\"curl\"],\"bots\":[{\"category\":\"search_engine\",\"id\":\"googlebot-image\",\"name\":\"Googlebot-Image\",\"operator\":\"Google\",\"robots_token\":\"Googlebot-Image\",\"ua_match\":[\"Googlebot-Image\"],\"verify\":{\"ranges\":\"googlebot\",\"rdns_suffixes\":[\"googlebot.com\",\"google.com\"]}},{\"category\":\"search_engine\",\"id\":\"googlebot\",\"name\":\"Googlebot\",\"operator\":\"Google\",\"robots_token\":\"Googlebot\",\"ua_match\":[\"Googlebot\"],\"verify\":{\"ranges\":\"googlebot\",\"rdns_suffixes\":[\"googlebot.com\",\"google.com\"]}},{\"category\":\"ai_training\",\"id\":\"gptbot\",\"name\":\"GPTBot\",\"operator\":\"OpenAI\",\"robots_token\":\"GPTBot\",\"source\":\"ai-robots-txt\",\"ua_match\":[\"GPTBot\"],\"verify\":{\"ranges\":\"gptbot\"}},{\"category\":\"ai_assistant\",\"id\":\"chatgpt-user\",\"name\":\"ChatGPT-User\",\"operator\":\"OpenAI\",\"robots_token\":\"ChatGPT-User\",\"source\":\"ai-robots-txt\",\"ua_match\":[\"ChatGPT-User\"],\"verify\":{}},{\"category\":\"search_engine\",\"id\":\"bingbot\",\"name\":\"Bingbot\",\"operator\":\"Microsoft\",\"robots_token\":\"bingbot\",\"ua_match\":[\"bingbot\"],\"verify\":{\"ranges\":\"bingbot\"}},{\"category\":\"seo_tool\",\"id\":\"examplebot\",\"name\":\"ExampleBot\",\"operator\":\"Example Search\",\"ua_match\":[\"ExampleBot\"],\"verify\":{\"rdns_suffixes\":[\"crawl.example.net\"]}},{\"category\":\"tool_library\",\"id\":\"curl\",\"name\":\"curl\",\"operator\":\"curl project\",\"ua_match\":[\"curl/\"],\"verify\":{}}],\"generated_at\":\"2026-10-20T12:00:00Z\",\"ranges\":[{\"fetched_at\":\"2026-10-20T00:00:00Z\",\"id\":\"googlebot\",\"operator\":\"Google\",\"prefixes\":[\"192.0.2.0/27\",\"2001:db8:4860::/48\"],\"url\":\"https://developers.google.com/static/search/apis/ipranges/googlebot.json\"},{\"fetched_at\":\"2026-09-01T00:00:00Z\",\"id\":\"gptbot\",\"operator\":\"OpenAI\",\"prefixes\":[\"198.51.100.0/28\"],\"url\":\"https://openai.com/gptbot.json\"},{\"fetched_at\":\"2026-09-26T12:00:00Z\",\"id\":\"bingbot\",\"operator\":\"Microsoft\",\"prefixes\":[\"203.0.113.0/26\"],\"url\":\"https://www.bing.com/toolbox/bingbot.json\"}],\"schema\":\"schild.bot_catalogue/0.1\",\"sources\":[{\"id\":\"ai-robots-txt\",\"license\":\"MIT\",\"url\":\"https://github.com/ai-robots-txt/ai.robots.txt\"}],\"version\":\"2026-10-26.1\"},\"request\":{\"ip\":\"::ffff:192.0.2.12\",\"user_agent\":\"Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)\"}}",
+  "input_decoded": {
+    "options": null,
+    "request": {
+      "ip": "::ffff:192.0.2.12",
+      "user_agent": "Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)"
+    }
+  },
+  "expect": {
+    "valid": true,
+    "result": {
+      "bot": "googlebot",
+      "category": "search_engine",
+      "verification": "verified"
+    }
+  }
+}

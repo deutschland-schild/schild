@@ -1,0 +1,32 @@
+{
+  "contract": "body-limits",
+  "description": "D46: without a peer address only the gateway limit applies.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"conn_limits\":{\"max_open\":16384,\"max_per_client\":2048,\"max_per_network\":8192},\"conn_state\":{\"client\":9000,\"network\":9000,\"open\":9000},\"net_class\":\"unknown\",\"op\":\"conn_admit\",\"peer_known\":false,\"proxy\":false}",
+  "input_decoded": {
+    "conn_limits": {
+      "max_open": 16384,
+      "max_per_client": 2048,
+      "max_per_network": 8192
+    },
+    "conn_state": {
+      "client": 9000,
+      "network": 9000,
+      "open": 9000
+    },
+    "net_class": "unknown",
+    "op": "conn_admit",
+    "peer_known": false,
+    "proxy": false
+  },
+  "expect": {
+    "valid": true,
+    "result": {
+      "admitted": true,
+      "evict": null,
+      "refused": null
+    }
+  }
+}

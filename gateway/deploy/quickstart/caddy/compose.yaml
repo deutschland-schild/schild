@@ -1,0 +1,142 @@
+# Schild Gateway quickstart: schild runs as your Caddy, in place of the stock Caddy container.
+# It loads the same Caddyfile and starts with a copy of Caddy's certificates.
+#
+#   1. Put this file and schild.yaml into a folder of their own and say in a
+#      file .env next to them where your Caddyfile is and what the volume is
+#      called that your Caddy container mounts at /data ("docker volume ls"):
+#        CADDYFILE=/path/to/your/Caddyfile
+#        CADDY_DATA_VOLUME=caddy_data
+#   2. docker compose run --rm --no-deps schild ingress validate -adapt-only
+#      lists your sites and the lines your Caddyfile still needs
+#      ("import schild" in every site that reaches a backend). Add them.
+#      Nothing is copied yet (--no-deps).
+#   3. docker compose run --rm schild ingress validate
+#      copies Caddy's certificates and checks Caddyfile, copy and file
+#      access together. When it ends with "result: PASS", stop your Caddy
+#      container and run: docker compose up -d
+#   4. docker compose exec schild schild dashboard setup-code
+#      (one-time code for the first login; the log has it too: setup_code)
+#   5. Open http://127.0.0.1:8788 on the server itself, or from your machine
+#      through a tunnel: ssh -N -L 8788:127.0.0.1:8788 you@your-server
+#
+# The OWASP CRS and your own rules block known attacks from the start;
+# CrowdSec rules, scenarios and limits only record. schild is your web
+# server now: while it is down, your sites are down.
+#
+# The way back: docker compose down, put a "#" in front of the line "schild"
+# in the (schild) snippet of the Caddyfile (stock Caddy does not know the
+# directive) and start your Caddy container again. "docker ps" shows whether
+# it stays up: "docker start" reports no error when Caddy exits at once.
+#
+# Optional, later: blocked addresses also in the server's firewall (D87). See
+# the service "firewall" below; it starts only with --profile firewall.
+#
+# Docs: https://deutschland-schild.de/doku
+name: schild
+services:
+  # Runs before schild: copies Caddy's storage (certificates, ACME account)
+  # into schild's volume, unless a copy is there already (later schild renews
+  # in its copy, which must not be overwritten), and hands the volume to the
+  # user schild runs as (65532). Caddy's volume is mounted read-only and
+  # never changed. The copy is made by the first command that starts this
+  # service, so do step 3 right before the swap.
+  certificates:
+    image: ${CADDY_IMAGE:-caddy:2}
+    restart: "no"
+    network_mode: none
+    volumes:
+      - caddy-data:/from:ro
+      - schild-data:/to
+    command:
+      - sh
+      - -c
+      - |
+        if [ -d /from/caddy ] && [ ! -d /to/caddy ]; then
+          mkdir -p /to/caddy && cp -a /from/caddy/. /to/caddy/ && chmod 700 /to/caddy
+        fi
+        chown -R 65532:65532 /to
+  schild:
+    # A fixed version, never "latest": you decide when to update.
+    image: ${SCHILD_IMAGE:-ghcr.io/deutschland-schild/schild:0.1.0-alpha.1}
+    restart: unless-stopped
+    depends_on:
+      certificates:
+        condition: service_completed_successfully
+    # Locked down: read-only root file system, no capabilities, no new
+    # privileges. schild runs as an unprivileged user (65532) and writes only
+    # to the volume below. Ports 80 and 443 need no capability: Docker lets
+    # every user of a container bind them.
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    ports:
+      - "80:80"
+      # No "443:443/udp": that is the port of HTTP/3, which stays closed for
+      # now (HTTP/3 ignores the read_body timeout). schild still announces
+      # HTTP/3 (alt-svc), browsers cannot reach it and stay on HTTP/2.
+      - "443:443"
+      # The dashboard, on this host's loopback only. Do not remove 127.0.0.1.
+      - "127.0.0.1:8788:8788"
+    extra_hosts:
+      # Lets the Caddyfile reach an application that listens on the Docker host.
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - ./schild.yaml:/etc/schild/schild.yaml:ro
+      # The Caddyfile your Caddy container used.
+      - ${CADDYFILE:-./Caddyfile}:/etc/caddy/Caddyfile:ro
+      - schild-data:/var/lib/schild
+    # Does your Caddyfile name other containers (reverse_proxy app:3000)? Then
+    # schild has to join their network, as your Caddy container did:
+    # networks: [default, apps]
+    # Container logs stay bounded: at most 5 files of 10 MB.
+    logging:
+      options:
+        max-size: 10m
+        max-file: "5"
+  # Optional (D87): puts the addresses schild blocks into the firewall, so
+  # they no longer reach the ports 80 and 443 at all, until each block ends.
+  # The same image, as its own small container with the one right it needs.
+  #   1. In schild.yaml: agent_api: { enabled: true }, then docker compose up -d
+  #   2. docker compose exec schild schild token add --scope firewall:sync --expires 365d --label firewall
+  #      and put the token into .env: SCHILD_FIREWALL_TOKEN=sat1_...
+  #   3. docker compose --profile firewall up -d
+  # It shares schild's network, so it reaches the agent API on loopback and
+  # its table filters the traffic to schild. Stopping it removes the table.
+  # Note on IPv6: with Docker's default bridge network and userland-proxy,
+  # IPv6 traffic often arrives inside the container with the bridge gateway IP
+  # instead of the visitor's IPv6 address (then blocked6 and WAF IP attribution
+  # cannot match it). For real IPv6 filtering use network_mode: host or native
+  # Docker IPv6 routing without userland-proxy.
+  firewall:
+    image: ${SCHILD_IMAGE:-ghcr.io/deutschland-schild/schild:0.1.0-alpha.1}
+    profiles: [firewall]
+    command: ["firewall", "run"]
+    restart: unless-stopped
+    depends_on: [schild]
+    network_mode: "service:schild"
+    # nftables needs NET_ADMIN, and Docker gives an added capability to root
+    # only. Nothing else: read-only, no other capability.
+    user: "0:0"
+    read_only: true
+    cap_drop: [ALL]
+    cap_add: [NET_ADMIN]
+    security_opt: ["no-new-privileges:true"]
+    healthcheck:
+      disable: true
+    environment:
+      SCHILD_FIREWALL_TOKEN: ${SCHILD_FIREWALL_TOKEN:-}
+    logging:
+      options:
+        max-size: 10m
+        max-file: "5"
+volumes:
+  schild-data: {}
+  # The volume your Caddy container mounts at /data. "docker volume ls" shows
+  # its name; set CADDY_DATA_VOLUME when it is not "caddy_data".
+  caddy-data:
+    external: true
+    name: ${CADDY_DATA_VOLUME:-caddy_data}
+# networks:
+#   apps:
+#     external: true
+#     name: the-network-of-your-applications

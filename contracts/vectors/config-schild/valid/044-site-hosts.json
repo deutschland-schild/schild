@@ -1,0 +1,23 @@
+{
+  "contract": "config/schild",
+  "description": "D36: proxy mode names its one website after the first of upstream.site_hosts.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"config_version\":0,\"mode\":\"observe\",\"node_name\":\"web-1\",\"upstream\":{\"site_hosts\":[\"verein.example\",\"www.verein.example\"],\"url\":\"http://app:80\"}}",
+  "input_decoded": {
+    "config_version": 0,
+    "mode": "observe",
+    "node_name": "web-1",
+    "upstream": {
+      "site_hosts": [
+        "verein.example",
+        "www.verein.example"
+      ],
+      "url": "http://app:80"
+    }
+  },
+  "expect": {
+    "valid": true
+  }
+}

@@ -1,0 +1,103 @@
+{
+  "contract": "ingress-order",
+  "description": "D31 amendment 2026-10-29: Accepted: the uri strip_prefix sits in a handle branch that serves files and is mutually exclusive with the handle branch that runs schild (same group): it never runs before that schild.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"caddyfile\":\"http://a.example.test {\\n\\thandle /assets/* {\\n\\t\\turi strip_prefix /assets\\n\\t\\troot * /srv/assets\\n\\t\\tfile_server\\n\\t}\\n\\thandle {\\n\\t\\tschild\\n\\t\\treverse_proxy 127.0.0.1:18082\\n\\t}\\n}\\n\",\"servers\":{\"srv0\":{\"listen\":[\":80\"],\"routes\":[{\"handle\":[{\"handler\":\"subroute\",\"routes\":[{\"group\":\"group2\",\"handle\":[{\"handler\":\"subroute\",\"routes\":[{\"handle\":[{\"handler\":\"vars\",\"root\":\"/srv/assets\"},{\"handler\":\"rewrite\",\"strip_path_prefix\":\"/assets\"},{\"handler\":\"file_server\",\"hide\":[\"/tmp/ingcases/in/p08-exclusive-handle-branches.caddy\"]}]}]}],\"match\":[{\"path\":[\"/assets/*\"]}]},{\"group\":\"group2\",\"handle\":[{\"handler\":\"subroute\",\"routes\":[{\"handle\":[{\"handler\":\"schild\"},{\"handler\":\"reverse_proxy\",\"upstreams\":[{\"dial\":\"127.0.0.1:18082\"}]}]}]}]}]}],\"match\":[{\"host\":[\"a.example.test\"]}],\"terminal\":true}]}}}",
+  "input_decoded": {
+    "caddyfile": "http://a.example.test {\n\thandle /assets/* {\n\t\turi strip_prefix /assets\n\t\troot * /srv/assets\n\t\tfile_server\n\t}\n\thandle {\n\t\tschild\n\t\treverse_proxy 127.0.0.1:18082\n\t}\n}\n",
+    "servers": {
+      "srv0": {
+        "listen": [
+          ":80"
+        ],
+        "routes": [
+          {
+            "handle": [
+              {
+                "handler": "subroute",
+                "routes": [
+                  {
+                    "group": "group2",
+                    "handle": [
+                      {
+                        "handler": "subroute",
+                        "routes": [
+                          {
+                            "handle": [
+                              {
+                                "handler": "vars",
+                                "root": "/srv/assets"
+                              },
+                              {
+                                "handler": "rewrite",
+                                "strip_path_prefix": "/assets"
+                              },
+                              {
+                                "handler": "file_server",
+                                "hide": [
+                                  "/tmp/ingcases/in/p08-exclusive-handle-branches.caddy"
+                                ]
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ],
+                    "match": [
+                      {
+                        "path": [
+                          "/assets/*"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "group": "group2",
+                    "handle": [
+                      {
+                        "handler": "subroute",
+                        "routes": [
+                          {
+                            "handle": [
+                              {
+                                "handler": "schild"
+                              },
+                              {
+                                "handler": "reverse_proxy",
+                                "upstreams": [
+                                  {
+                                    "dial": "127.0.0.1:18082"
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ],
+            "match": [
+              {
+                "host": [
+                  "a.example.test"
+                ]
+              }
+            ],
+            "terminal": true
+          }
+        ]
+      }
+    }
+  },
+  "expect": {
+    "valid": true,
+    "result": {
+      "findings": []
+    }
+  }
+}

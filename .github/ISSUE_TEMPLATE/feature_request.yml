@@ -1,0 +1,20 @@
+name: Idee vorschlagen
+description: Eine neue Funktion oder eine Änderung am Verhalten
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Welches Problem löst das?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Dein Vorschlag
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternativen und Risiken

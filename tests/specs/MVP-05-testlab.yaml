@@ -1,0 +1,19 @@
+id: MVP-05
+title: "Test lab: sites, label stripper, ground truth, evaluator, egress capture"
+ships: false
+hypotheses: [M1, M2, M3, M4, M5, M6, M7]
+refs: [concept-14-§2, concept-14-§4, concept-14-§7]
+depends_on: [MVP-01]
+builder_rule: "must be built by a different agent than MVP-02/03/04"
+must:
+  - compose profiles t0 (1 lab) and t1 (5 labs incl. one malicious, 2 relays), internal networks only, no route out
+  - sites: WordPress with outdated plugins, DVWA, Juice Shop, one REST API, each behind schild in its own mode
+  - label stripper removes the secret test label header, sets a random X-Request-Id, writes request_id -> label to ground truth
+  - evaluator joins events with ground truth and writes results/<spec>.json per contracts/results.schema.json
+  - egress capture of every schild container; TLS to labs via test CA so payloads are readable (T19; D72: the gateway sends nothing, the capture of its signals is lab later)
+  - Prometheus/Grafana for metrics; fixed seeds; pinned image digests
+measure:
+  - self-test: evaluator detects deliberately injected faults (a planted canary, a planted bypass, a planted false block)
+kill_if: "evaluator misses a planted fault"
+done: "make testlab-up && make testlab-selftest"
+out_of_scope: [research ranges, AI, egress proxy for apps (T3)]

@@ -1,0 +1,25 @@
+{
+  "contract": "rule-effect",
+  "description": "A disabled rule: nothing.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"disabled\":true,\"disabled_by\":\"config\",\"mode\":\"autoblock\",\"now\":1000000,\"op\":\"request\",\"origin\":\"release\",\"state\":\"block\"}",
+  "input_decoded": {
+    "disabled": true,
+    "disabled_by": "config",
+    "mode": "autoblock",
+    "now": 1000000,
+    "op": "request",
+    "origin": "release",
+    "state": "block"
+  },
+  "expect": {
+    "valid": true,
+    "result": {
+      "action": "none",
+      "outcome": "passed",
+      "counts_as_hit": false
+    }
+  }
+}

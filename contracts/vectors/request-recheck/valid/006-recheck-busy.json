@@ -1,0 +1,42 @@
+{
+  "contract": "request-recheck",
+  "description": "D33 amendment 2026-10-29: the re-check found no evaluation slot: fail_closed (waf_busy) is the outcome of the request.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"evaluations\":[{\"detection\":false,\"outcome\":\"passed\",\"path\":\"/x\",\"rules\":[],\"score\":0},{\"detection\":false,\"outcome\":\"fail_closed\",\"path\":\"/app/x\",\"rules\":[],\"score\":0}]}",
+  "input_decoded": {
+    "evaluations": [
+      {
+        "detection": false,
+        "outcome": "passed",
+        "path": "/x",
+        "rules": [],
+        "score": 0
+      },
+      {
+        "detection": false,
+        "outcome": "fail_closed",
+        "path": "/app/x",
+        "rules": [],
+        "score": 0
+      }
+    ]
+  },
+  "expect": {
+    "valid": true,
+    "result": {
+      "requests": 1,
+      "rechecked": true,
+      "outcome": "fail_closed",
+      "detection": false,
+      "path": "/app/x",
+      "checked_paths": [
+        "/x",
+        "/app/x"
+      ],
+      "rules": [],
+      "score": 0
+    }
+  }
+}

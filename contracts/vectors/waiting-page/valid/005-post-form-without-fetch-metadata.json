@@ -1,0 +1,33 @@
+{
+  "contract": "waiting-page",
+  "description": "D37: a form submit of a browser without Fetch Metadata (Accept naming text/html) gets the form variant too.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"enabled\":true,\"fail_closed\":\"waf_timeout\",\"headers\":{\"accept\":\"text/html,application/xhtml+xml,*/*;q=0.8\"},\"host\":\"musterverein.example\",\"jitter_draw\":3,\"method\":\"POST\",\"website\":\"musterverein.example\"}",
+  "input_decoded": {
+    "enabled": true,
+    "fail_closed": "waf_timeout",
+    "headers": {
+      "accept": "text/html,application/xhtml+xml,*/*;q=0.8"
+    },
+    "host": "musterverein.example",
+    "jitter_draw": 3,
+    "method": "POST",
+    "website": "musterverein.example"
+  },
+  "expect": {
+    "valid": true,
+    "result": {
+      "answer": "waiting_page",
+      "body": true,
+      "language": "de",
+      "marker": true,
+      "problem_code": null,
+      "refresh": null,
+      "retry_after": 8,
+      "site_name": "musterverein.example",
+      "variant": "form"
+    }
+  }
+}

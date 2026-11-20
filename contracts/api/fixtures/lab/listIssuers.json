@@ -1,0 +1,37 @@
+{
+  "items": [
+    {
+      "id": "issuer-test-1",
+      "quota_per_day": 100000,
+      "used_24h": 5120,
+      "clients": 2,
+      "signals_24h": 5120,
+      "rejected_24h": 3,
+      "patterns_24h": 14,
+      "revoked": false,
+      "revoked_at": null
+    },
+    {
+      "id": "issuer-test-2",
+      "quota_per_day": 50000,
+      "used_24h": 2210,
+      "clients": 1,
+      "signals_24h": 2210,
+      "rejected_24h": 0,
+      "patterns_24h": 9,
+      "revoked": false,
+      "revoked_at": null
+    },
+    {
+      "id": "issuer-test-evil",
+      "quota_per_day": 0,
+      "used_24h": 0,
+      "clients": 500,
+      "signals_24h": 0,
+      "rejected_24h": 40211,
+      "patterns_24h": 0,
+      "revoked": true,
+      "revoked_at": "2026-10-25T18:00:00Z"
+    }
+  ]
+}

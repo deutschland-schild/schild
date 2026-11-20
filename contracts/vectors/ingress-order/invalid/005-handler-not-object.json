@@ -1,0 +1,25 @@
+{
+  "contract": "ingress-order",
+  "description": "D31 amendment 2026-10-29: a handler is an object.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"servers\":{\"srv0\":{\"routes\":[{\"handle\":[\"schild\"]}]}}}",
+  "input_decoded": {
+    "servers": {
+      "srv0": {
+        "routes": [
+          {
+            "handle": [
+              "schild"
+            ]
+          }
+        ]
+      }
+    }
+  },
+  "expect": {
+    "valid": false,
+    "error": "schema"
+  }
+}

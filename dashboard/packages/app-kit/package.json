@@ -1,0 +1,35 @@
+{
+  "name": "@schild/app-kit",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Shared app plumbing for the Schild dashboards: typed API client, vue-query setup, router-aware shell, shared Vite config",
+  "exports": {
+    ".": "./src/index.ts",
+    "./vite-config": "./vite-config.ts",
+    "./*": "./src/*"
+  },
+  "scripts": {
+    "typecheck": "vue-tsc --noEmit -p tsconfig.json"
+  },
+  "peerDependencies": {
+    "vue": "^3.5.0",
+    "vue-router": "^5.4.0"
+  },
+  "dependencies": {
+    "@lucide/vue": "^1.75.0",
+    "@schild/ui": "workspace:*",
+    "@tanstack/vue-query": "^5.108.0",
+    "openapi-fetch": "^0.17.0"
+  },
+  "devDependencies": {
+    "@tailwindcss/vite": "^4.3.5",
+    "@types/node": "^26.6.6",
+    "@vitejs/plugin-vue": "^6.0.11",
+    "typescript": "~6.0.3",
+    "vite": "^8.3.8",
+    "vue": "^3.5.45",
+    "vue-router": "^5.5.1",
+    "vue-tsc": "3.3.13"
+  }
+}

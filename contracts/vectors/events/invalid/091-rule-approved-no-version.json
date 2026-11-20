@@ -1,0 +1,25 @@
+{
+  "contract": "events",
+  "description": "D73: an approval is for one version.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"data\":{\"actor\":\"dashboard\",\"repository\":\"crowdsec\",\"rule\":\"62846312\"},\"datacontenttype\":\"application/json\",\"id\":\"020aa8d7-93df-4fde-8eba-e23d6eead2b2\",\"source\":\"schild://web-1\",\"specversion\":\"1.0\",\"time\":\"2026-10-26T11:59:58.123Z\",\"type\":\"schild.rule.approved.v1\"}",
+  "input_decoded": {
+    "data": {
+      "actor": "dashboard",
+      "repository": "crowdsec",
+      "rule": "62846312"
+    },
+    "datacontenttype": "application/json",
+    "id": "020aa8d7-93df-4fde-8eba-e23d6eead2b2",
+    "source": "schild://web-1",
+    "specversion": "1.0",
+    "time": "2026-10-26T11:59:58.123Z",
+    "type": "schild.rule.approved.v1"
+  },
+  "expect": {
+    "valid": false,
+    "error": "schema"
+  }
+}

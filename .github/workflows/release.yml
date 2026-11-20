@@ -1,0 +1,328 @@
+name: Release
+
+# A tag v<version> (e.g. v0.1.0-alpha.1) publishes the Schild Gateway:
+#   - ghcr.io/deutschland-schild/schild:<version> for linux/amd64 and linux/arm64, signed with cosign (keyless),
+#     with SBOM and build provenance; `latest` only for versions without a pre-release suffix
+#   - a GitHub release with schild_<version>_linux_{amd64,arm64}.tar.gz and checksums.txt
+# Both come from gateway/Dockerfile (release build, dashboard built in the image, DB-IP data checked by sha256),
+# each architecture on its own runner. Nothing is pushed before the image passed the quickstart smoke test.
+# Checklist for the maintainer: docs/ops/release.md.
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions: {}
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  IMAGE: ghcr.io/deutschland-schild/schild
+  # Pinned by digest; bump on purpose.
+  BUILDKIT_IMAGE: moby/buildkit:v0.34.2@sha256:c5f8862f52499773af85bc07695b2379ef08e8002352b0df2c4864c91d78dabe
+  SBOM_SCANNER_IMAGE: docker/buildkit-syft-scanner:stable-1@sha256:873a7458c3c8ac8e32c7b796c10e1600b07b963d2aa000a72a2d97aaaa2d6315
+  COSIGN_VERSION: 3.1.4
+  COSIGN_SHA256: 424e2c97d0b45fd7a6b608a87f090f35633f4c23ece5f092d48bba11aaf4bbfa
+
+jobs:
+  check:
+    name: check
+    if: github.repository == 'deutschland-schild/schild'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      prerelease: ${{ steps.version.outputs.prerelease }}
+      epoch: ${{ steps.version.outputs.epoch }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Version from the tag
+        id: version
+        env:
+          TAG: ${{ github.ref_name }}
+        run: |
+          if ! [[ "$TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-(alpha|beta|rc)\.[0-9]+)?$ ]]; then
+            echo "::error::Tag $TAG is not v<major>.<minor>.<patch> with an optional -alpha.N, -beta.N or -rc.N"
+            exit 1
+          fi
+          version=${TAG#v}
+          prerelease=false
+          if [[ "$version" == *-* ]]; then prerelease=true; fi
+          {
+            echo "version=$version"
+            echo "prerelease=$prerelease"
+            echo "epoch=$(git log -1 --format=%ct)"
+          } >> "$GITHUB_OUTPUT"
+      - name: The tagged commit is on main
+        run: |
+          git fetch --no-tags origin main
+          if ! git merge-base --is-ancestor "$GITHUB_SHA" FETCH_HEAD; then
+            echo "::error::The tagged commit is not on main."
+            exit 1
+          fi
+      - name: The quickstart names this version
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          for f in gateway/deploy/quickstart/compose.yaml gateway/deploy/quickstart/caddy/compose.yaml; do
+            if ! grep -qF "${IMAGE}:${VERSION}}" "$f"; then
+              echo "::error::$f does not name ${IMAGE}:${VERSION}."
+              exit 1
+            fi
+          done
+      - name: Release notes from CHANGELOG.md
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          heading=$(grep -m1 -E "^## ${VERSION//./\\.}( |$)" CHANGELOG.md || true)
+          if [ -z "$heading" ]; then
+            echo "::error::CHANGELOG.md has no section \"## ${VERSION}\"."
+            exit 1
+          fi
+          awk -v h="$heading" '$0 == h { on = 1; next } on && /^## / { exit } on { print }' CHANGELOG.md > notes.md
+          if ! grep -q '[^[:space:]]' notes.md; then
+            echo "::error::The CHANGELOG.md section of ${VERSION} is empty."
+            exit 1
+          fi
+          cat notes.md
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: notes
+          path: notes.md
+          if-no-files-found: error
+          retention-days: 7
+
+  test:
+    name: test
+    needs: check
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: go.work
+          # No cache in the workflow that publishes.
+          cache: false
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.13"
+      - run: make contracts-test gateway-test
+
+  build:
+    name: build (${{ matrix.arch }})
+    needs: [check, test]
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 45
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      fail-fast: true
+      matrix:
+        include:
+          - arch: amd64
+            runner: ubuntu-24.04
+          - arch: arm64
+            runner: ubuntu-24.04-arm
+    env:
+      VERSION: ${{ needs.check.outputs.version }}
+      ARCH: ${{ matrix.arch }}
+      # Same timestamps in every layer and archive: the time of the tagged commit.
+      SOURCE_DATE_EPOCH: ${{ needs.check.outputs.epoch }}
+      BUILDX_BUILDER: release
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Builder
+        run: docker buildx create --name "$BUILDX_BUILDER" --driver docker-container --driver-opt "image=${BUILDKIT_IMAGE}" --bootstrap
+      - name: Build the image (release build, dashboard, DB-IP data checked by sha256)
+        run: |
+          docker buildx build -f gateway/Dockerfile --platform "linux/${ARCH}" \
+            --build-arg TAGS=release --build-arg GEO=dbip --build-arg "VERSION=${VERSION}" \
+            --provenance=false --sbom=false \
+            --load -t schild:candidate .
+      - name: Smoke test with the quickstart, before anything is pushed
+        run: EXPECT_VERSION="$VERSION" gateway/deploy/release/smoke.sh schild:candidate
+      - name: Tarball (the binary of the image)
+        run: |
+          gateway/deploy/release/tarball.sh "$VERSION" "$ARCH" "$RUNNER_TEMP/dist" --build-arg GEO=dbip
+          mkdir "$RUNNER_TEMP/unpacked"
+          tar -xzf "$RUNNER_TEMP/dist/schild_${VERSION}_linux_${ARCH}.tar.gz" -C "$RUNNER_TEMP/unpacked"
+          got=$("$RUNNER_TEMP/unpacked/schild" version | head -n 1)
+          if [ "$got" != "schild ${VERSION} (release)" ]; then
+            echo "::error::The binary in the tarball reports \"$got\"."
+            exit 1
+          fi
+      - name: Log in to ghcr.io
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_ACTOR: ${{ github.actor }}
+        run: docker login ghcr.io -u "$GH_ACTOR" --password-stdin <<<"$GH_TOKEN"
+      - name: Push the image by digest, with SBOM and provenance
+        run: |
+          docker buildx build -f gateway/Dockerfile --platform "linux/${ARCH}" \
+            --build-arg TAGS=release --build-arg GEO=dbip --build-arg "VERSION=${VERSION}" \
+            --label "org.opencontainers.image.revision=${GITHUB_SHA}" \
+            --label "org.opencontainers.image.created=$(date -u -d "@${SOURCE_DATE_EPOCH}" +%Y-%m-%dT%H:%M:%SZ)" \
+            --attest "type=sbom,generator=${SBOM_SCANNER_IMAGE}" \
+            --attest type=provenance,mode=max \
+            --output "type=image,name=${IMAGE},push-by-digest=true,name-canonical=true,push=true" \
+            --metadata-file "$RUNNER_TEMP/metadata.json" .
+          digest=$(jq -er '."containerimage.digest"' "$RUNNER_TEMP/metadata.json")
+          mkdir "$RUNNER_TEMP/digests"
+          echo "$digest" > "$RUNNER_TEMP/digests/${ARCH}"
+          echo "linux/${ARCH}: ${IMAGE}@${digest}"
+      - name: Log out
+        if: always()
+        run: docker logout ghcr.io
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: digest-${{ matrix.arch }}
+          path: ${{ runner.temp }}/digests/${{ matrix.arch }}
+          if-no-files-found: error
+          retention-days: 7
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: tarball-${{ matrix.arch }}
+          path: ${{ runner.temp }}/dist/*.tar.gz
+          if-no-files-found: error
+          retention-days: 7
+
+  publish:
+    name: publish
+    needs: [check, build]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      packages: write
+      # cosign keyless and the attestation sign with the workflow's OIDC identity.
+      id-token: write
+      attestations: write
+    env:
+      VERSION: ${{ needs.check.outputs.version }}
+      PRERELEASE: ${{ needs.check.outputs.prerelease }}
+    outputs:
+      digest: ${{ steps.manifest.outputs.digest }}
+    steps:
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          pattern: digest-*
+          path: ${{ runner.temp }}/digests
+          merge-multiple: true
+      - name: Install cosign
+        run: |
+          curl -fsSL -o "$RUNNER_TEMP/cosign" "https://github.com/sigstore/cosign/releases/download/v${COSIGN_VERSION}/cosign-linux-amd64"
+          echo "${COSIGN_SHA256}  $RUNNER_TEMP/cosign" | sha256sum -c -
+          chmod +x "$RUNNER_TEMP/cosign"
+      - name: Log in to ghcr.io
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_ACTOR: ${{ github.actor }}
+        run: docker login ghcr.io -u "$GH_ACTOR" --password-stdin <<<"$GH_TOKEN"
+      - name: Multi-arch manifest under the version tag
+        id: manifest
+        run: |
+          amd64=$(cat "$RUNNER_TEMP/digests/amd64")
+          arm64=$(cat "$RUNNER_TEMP/digests/arm64")
+          tags=(-t "${IMAGE}:${VERSION}")
+          # No latest for pre-releases.
+          if [ "$PRERELEASE" = false ]; then tags+=(-t "${IMAGE}:latest"); fi
+          docker buildx imagetools create "${tags[@]}" "${IMAGE}@${amd64}" "${IMAGE}@${arm64}"
+          digest=$(docker buildx imagetools inspect "${IMAGE}:${VERSION}" --format '{{.Manifest.Digest}}')
+          if ! [[ "$digest" =~ ^sha256:[0-9a-f]{64}$ ]]; then
+            echo "::error::No digest for ${IMAGE}:${VERSION}."
+            exit 1
+          fi
+          docker buildx imagetools inspect "${IMAGE}:${VERSION}"
+          echo "digest=$digest" >> "$GITHUB_OUTPUT"
+      - name: Sign the image (cosign keyless)
+        env:
+          DIGEST: ${{ steps.manifest.outputs.digest }}
+        run: '"$RUNNER_TEMP/cosign" sign --yes --recursive "${IMAGE}@${DIGEST}"'
+      - uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
+        with:
+          subject-name: ${{ env.IMAGE }}
+          subject-digest: ${{ steps.manifest.outputs.digest }}
+          push-to-registry: true
+      - name: Log out
+        if: always()
+        run: docker logout ghcr.io
+
+  release:
+    name: release
+    needs: [check, publish]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      # Creates the GitHub release.
+      contents: write
+      id-token: write
+      attestations: write
+    env:
+      VERSION: ${{ needs.check.outputs.version }}
+      PRERELEASE: ${{ needs.check.outputs.prerelease }}
+      DIGEST: ${{ needs.publish.outputs.digest }}
+    steps:
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          pattern: tarball-*
+          path: dist
+          merge-multiple: true
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: notes
+          path: ${{ runner.temp }}/notes
+      - name: checksums.txt
+        working-directory: dist
+        run: |
+          for arch in amd64 arm64; do test -s "schild_${VERSION}_linux_${arch}.tar.gz"; done
+          sha256sum "schild_${VERSION}_linux_amd64.tar.gz" "schild_${VERSION}_linux_arm64.tar.gz" > checksums.txt
+          cat checksums.txt
+      - uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
+        with:
+          subject-checksums: dist/checksums.txt
+      - name: Create the GitHub release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          notes="$RUNNER_TEMP/notes/notes.md"
+          {
+            echo
+            echo "## Downloads"
+            echo
+            echo "- Image: \`${IMAGE}:${VERSION}\` (linux/amd64, linux/arm64), digest \`${DIGEST}\`"
+            echo "- Binaries: \`schild_${VERSION}_linux_amd64.tar.gz\`, \`schild_${VERSION}_linux_arm64.tar.gz\`, sha256 in \`checksums.txt\`"
+            echo
+            echo "Verify:"
+            echo
+            echo '```sh'
+            echo "sha256sum -c --ignore-missing checksums.txt"
+            echo "gh attestation verify schild_${VERSION}_linux_amd64.tar.gz --repo ${GH_REPO}"
+            echo "gh attestation verify oci://${IMAGE}:${VERSION} --repo ${GH_REPO}"
+            echo "cosign verify ${IMAGE}:${VERSION} \\"
+            echo "  --certificate-identity https://github.com/${GH_REPO}/.github/workflows/release.yml@refs/tags/${TAG} \\"
+            echo "  --certificate-oidc-issuer https://token.actions.githubusercontent.com"
+            echo '```'
+          } >> "$notes"
+          flags=(--verify-tag --title "Schild Gateway ${VERSION}" --notes-file "$notes")
+          if [ "$PRERELEASE" = true ]; then flags+=(--prerelease); else flags+=(--latest); fi
+          gh release create "$TAG" "${flags[@]}" \
+            "dist/schild_${VERSION}_linux_amd64.tar.gz" \
+            "dist/schild_${VERSION}_linux_arm64.tar.gz" \
+            dist/checksums.txt

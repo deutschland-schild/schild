@@ -1,0 +1,35 @@
+{
+  "channel": "schild-main",
+  "version": 43,
+  "status": "collecting",
+  "issued_at": "2026-10-26T12:00:00Z",
+  "expires": "2026-11-02T12:00:00Z",
+  "rules": [
+    {
+      "rule_id": "schild-2026-0412",
+      "class": "virtual_patch",
+      "max_action": "challenge",
+      "stage": "canary",
+      "change": "changed"
+    },
+    {
+      "rule_id": "schild-2026-0413",
+      "class": "behavioral",
+      "max_action": "observe",
+      "stage": "shadow",
+      "change": "unchanged"
+    }
+  ],
+  "signatures": [
+    {
+      "keyid": "test-lab-b",
+      "lab": "lab-b",
+      "operator": "op-test-b",
+      "at": "2026-10-26T12:00:00Z"
+    }
+  ],
+  "threshold": 3,
+  "envelope": null,
+  "proposed_by": "lab-b",
+  "digest": "sha256:255de261671034e858c3380a108d70cb598bd1b8367165d0c015901a4a087181"
+}

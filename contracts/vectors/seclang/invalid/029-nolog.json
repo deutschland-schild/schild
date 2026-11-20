@@ -1,0 +1,13 @@
+{
+  "contract": "seclang",
+  "description": "SecLang subset case nolog (max_action block).",
+  "context": {
+    "now": "2026-10-26T12:00:00Z",
+    "max_action": "block"
+  },
+  "input_raw": "SecRule ARGS \"@rx x\" \"id:7700048,phase:2,deny,severity:CRITICAL,msg:'x',nolog\"",
+  "expect": {
+    "valid": false,
+    "error": "seclang"
+  }
+}

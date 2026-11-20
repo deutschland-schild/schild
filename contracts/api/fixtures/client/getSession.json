@@ -1,0 +1,9 @@
+{
+  "authenticated": true,
+  "first_run": false,
+  "user": "admin",
+  "role": "admin",
+  "csrf_token": "q8F2nW5xT0a7LmZ1cV9rB3yK",
+  "expires_at": "2026-10-27T00:00:00Z",
+  "via": "password"
+}

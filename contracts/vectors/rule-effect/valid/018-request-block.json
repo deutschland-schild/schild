@@ -1,0 +1,23 @@
+{
+  "contract": "rule-effect",
+  "description": "A block that happened: the only case that counts as a WAF hit.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"mode\":\"autoblock\",\"now\":1000000,\"op\":\"request\",\"origin\":\"release\",\"state\":\"block\"}",
+  "input_decoded": {
+    "mode": "autoblock",
+    "now": 1000000,
+    "op": "request",
+    "origin": "release",
+    "state": "block"
+  },
+  "expect": {
+    "valid": true,
+    "result": {
+      "action": "block",
+      "outcome": "blocked",
+      "counts_as_hit": true
+    }
+  }
+}

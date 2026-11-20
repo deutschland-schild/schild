@@ -1,0 +1,33 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://contracts.schild.invalid/v0/ingress-order.schema.json",
+  "title": "Ingress order rule input (v0.5, D31 amendment 2026-10-29, MVP-19)",
+  "description": "Input of the ingress-order vectors: apps.http.servers of the Caddy JSON that Caddy's stock Caddyfile adapter produces from the operator's Caddyfile (as `schild ingress validate` reads it), plus the optional source text (informative: the gateway's test adapts it and compares with servers; the rule never reads it). Routes, matchers and handlers are checked by contract/ingress.Check (route fields group, match, handle, terminal only; every handler an object with a non-empty string handler; an invoke names a named route of its server; no invoke cycle; route lists nested at most 32 deep), every violation is `schema`. The result is {findings} with at most one finding per site route and handle_errors route (rules in ingress-order.md). Never sent anywhere.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["servers"],
+  "properties": {
+    "caddyfile": { "description": "The Caddyfile the servers were adapted from (informative).", "type": "string", "maxLength": 65536 },
+    "servers": {
+      "type": "object",
+      "minProperties": 1,
+      "maxProperties": 64,
+      "propertyNames": { "type": "string", "minLength": 1, "maxLength": 128 },
+      "additionalProperties": { "$ref": "#/$defs/server" }
+    }
+  },
+  "$defs": {
+    "server": {
+      "description": "One Caddy HTTP server (listener). Fields other than routes, errors and named_routes (listen, automatic_https, logs, ...) are allowed and ignored.",
+      "type": "object",
+      "properties": {
+        "routes": { "type": "array", "maxItems": 4096 },
+        "errors": {
+          "type": "object",
+          "properties": { "routes": { "type": "array", "maxItems": 4096 } }
+        },
+        "named_routes": { "type": "object", "maxProperties": 1024 }
+      }
+    }
+  }
+}

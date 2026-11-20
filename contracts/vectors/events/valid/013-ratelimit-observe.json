@@ -1,0 +1,48 @@
+{
+  "contract": "events",
+  "description": "v0.4: own limit in observe (\"hätte begrenzt\").",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"data\":{\"action\":\"observe\",\"burst\":10,\"client\":{\"attribution\":\"tcp_peer\",\"geo\":{\"as_org\":\"Example Hosting B.V.\",\"asn\":64500,\"city\":\"Amsterdam\",\"country\":\"NL\",\"net_class\":\"hosting\"},\"ip\":\"203.0.113.42\",\"port\":51234},\"count\":14,\"host\":\"verein.example\",\"key_bits\":32,\"limit\":10,\"limit_id\":\"contact-form\",\"methods\":[\"POST\"],\"mode\":\"observe\",\"path\":\"/wp-login.php\",\"per_s\":60,\"route\":\"/wp-login.php\",\"source\":\"dashboard\"},\"datacontenttype\":\"application/json\",\"id\":\"e568c902-ece3-4089-8867-59d305336910\",\"source\":\"schild://web-1\",\"specversion\":\"1.0\",\"time\":\"2026-10-26T11:59:58.123Z\",\"type\":\"schild.ratelimit.exceeded.v1\"}",
+  "input_decoded": {
+    "data": {
+      "action": "observe",
+      "burst": 10,
+      "client": {
+        "attribution": "tcp_peer",
+        "geo": {
+          "as_org": "Example Hosting B.V.",
+          "asn": 64500,
+          "city": "Amsterdam",
+          "country": "NL",
+          "net_class": "hosting"
+        },
+        "ip": "203.0.113.42",
+        "port": 51234
+      },
+      "count": 14,
+      "host": "verein.example",
+      "key_bits": 32,
+      "limit": 10,
+      "limit_id": "contact-form",
+      "methods": [
+        "POST"
+      ],
+      "mode": "observe",
+      "path": "/wp-login.php",
+      "per_s": 60,
+      "route": "/wp-login.php",
+      "source": "dashboard"
+    },
+    "datacontenttype": "application/json",
+    "id": "e568c902-ece3-4089-8867-59d305336910",
+    "source": "schild://web-1",
+    "specversion": "1.0",
+    "time": "2026-10-26T11:59:58.123Z",
+    "type": "schild.ratelimit.exceeded.v1"
+  },
+  "expect": {
+    "valid": true
+  }
+}

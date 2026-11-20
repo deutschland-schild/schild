@@ -1,0 +1,31 @@
+{
+ "resolve": [
+  "[2001:db8::a]",
+  "[2001:db8::b]",
+  "[2001:db8::c]"
+ ],
+ "blocks": [
+  {
+   "Addresses": [
+    "[2001:db8::a]"
+   ],
+   "Schild": true,
+   "Proxies": true
+  },
+  {
+   "Addresses": [
+    "[2001:0DB8:0:0:0:0:0:B]"
+   ],
+   "Schild": true,
+   "Proxies": true
+  },
+  {
+   "Addresses": [
+    "http://[2001:db8:0::a]",
+    "http://[2001:db8::b]"
+   ],
+   "Schild": false,
+   "Proxies": false
+  }
+ ]
+}

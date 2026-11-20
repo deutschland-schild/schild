@@ -1,0 +1,11 @@
+table ip nat {
+	chain DOCKER {
+	}
+}
+table ip filter {
+	chain INPUT {
+		type filter hook input priority filter; policy accept;
+	}
+	chain DOCKER {
+	}
+}

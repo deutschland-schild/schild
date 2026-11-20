@@ -1,0 +1,26 @@
+{
+  "host": {
+    "id": "app-3",
+    "hostname": "app-3.example",
+    "role": "agent",
+    "agent_id": "app-3",
+    "status": "waiting",
+    "silent": false,
+    "last_report_at": null,
+    "received_at": null,
+    "interval_minutes": 1440,
+    "duration_ms": null,
+    "counts": {
+      "critical": 0,
+      "high": 0,
+      "medium": 0,
+      "low": 0,
+      "info": 0
+    },
+    "unreadable": 0,
+    "os": null
+  },
+  "report": null,
+  "history": [],
+  "last_rejected": null
+}

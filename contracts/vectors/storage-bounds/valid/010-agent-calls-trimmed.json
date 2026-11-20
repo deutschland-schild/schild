@@ -1,0 +1,144 @@
+{
+  "contract": "storage-bounds",
+  "description": "D38: the agent API call log is trimmed (oldest first, at most its older half per pass) before any event goes, instead of being wiped.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"base_bytes\":0,\"floor_rows\":0,\"max_size_mb\":10,\"op\":\"cap_pass\",\"rows\":[{\"bytes\":524288,\"id\":\"call-00\",\"kind\":\"agent_call\",\"t\":1793016000000},{\"bytes\":524288,\"id\":\"call-01\",\"kind\":\"agent_call\",\"t\":1793016000001},{\"bytes\":524288,\"id\":\"call-02\",\"kind\":\"agent_call\",\"t\":1793016000002},{\"bytes\":524288,\"id\":\"call-03\",\"kind\":\"agent_call\",\"t\":1793016000003},{\"bytes\":524288,\"id\":\"call-04\",\"kind\":\"agent_call\",\"t\":1793016000004},{\"bytes\":524288,\"id\":\"call-05\",\"kind\":\"agent_call\",\"t\":1793016000005},{\"bytes\":524288,\"id\":\"call-06\",\"kind\":\"agent_call\",\"t\":1793016000006},{\"bytes\":524288,\"id\":\"call-07\",\"kind\":\"agent_call\",\"t\":1793016000007},{\"bytes\":524288,\"id\":\"call-08\",\"kind\":\"agent_call\",\"t\":1793016000008},{\"bytes\":524288,\"id\":\"call-09\",\"kind\":\"agent_call\",\"t\":1793016000009},{\"bytes\":1048576,\"id\":\"sample-0\",\"kind\":\"event\",\"outcome\":\"passed\",\"sampled\":true,\"t\":1793015999900,\"type\":\"schild.request.evaluated.v1\"},{\"bytes\":1048576,\"id\":\"sample-1\",\"kind\":\"event\",\"outcome\":\"passed\",\"sampled\":true,\"t\":1793015999901,\"type\":\"schild.request.evaluated.v1\"},{\"bytes\":1048576,\"id\":\"sample-2\",\"kind\":\"event\",\"outcome\":\"passed\",\"sampled\":true,\"t\":1793015999902,\"type\":\"schild.request.evaluated.v1\"},{\"bytes\":1048576,\"id\":\"sample-3\",\"kind\":\"event\",\"outcome\":\"passed\",\"sampled\":true,\"t\":1793015999903,\"type\":\"schild.request.evaluated.v1\"},{\"bytes\":1048576,\"id\":\"sample-4\",\"kind\":\"event\",\"outcome\":\"passed\",\"sampled\":true,\"t\":1793015999904,\"type\":\"schild.request.evaluated.v1\"},{\"bytes\":1048576,\"id\":\"sample-5\",\"kind\":\"event\",\"outcome\":\"passed\",\"sampled\":true,\"t\":1793015999905,\"type\":\"schild.request.evaluated.v1\"}],\"wal_bytes\":0}",
+  "input_decoded": {
+    "base_bytes": 0,
+    "floor_rows": 0,
+    "max_size_mb": 10,
+    "op": "cap_pass",
+    "rows": [
+      {
+        "bytes": 524288,
+        "id": "call-00",
+        "kind": "agent_call",
+        "t": 1793016000000
+      },
+      {
+        "bytes": 524288,
+        "id": "call-01",
+        "kind": "agent_call",
+        "t": 1793016000001
+      },
+      {
+        "bytes": 524288,
+        "id": "call-02",
+        "kind": "agent_call",
+        "t": 1793016000002
+      },
+      {
+        "bytes": 524288,
+        "id": "call-03",
+        "kind": "agent_call",
+        "t": 1793016000003
+      },
+      {
+        "bytes": 524288,
+        "id": "call-04",
+        "kind": "agent_call",
+        "t": 1793016000004
+      },
+      {
+        "bytes": 524288,
+        "id": "call-05",
+        "kind": "agent_call",
+        "t": 1793016000005
+      },
+      {
+        "bytes": 524288,
+        "id": "call-06",
+        "kind": "agent_call",
+        "t": 1793016000006
+      },
+      {
+        "bytes": 524288,
+        "id": "call-07",
+        "kind": "agent_call",
+        "t": 1793016000007
+      },
+      {
+        "bytes": 524288,
+        "id": "call-08",
+        "kind": "agent_call",
+        "t": 1793016000008
+      },
+      {
+        "bytes": 524288,
+        "id": "call-09",
+        "kind": "agent_call",
+        "t": 1793016000009
+      },
+      {
+        "bytes": 1048576,
+        "id": "sample-0",
+        "kind": "event",
+        "outcome": "passed",
+        "sampled": true,
+        "t": 1793015999900,
+        "type": "schild.request.evaluated.v1"
+      },
+      {
+        "bytes": 1048576,
+        "id": "sample-1",
+        "kind": "event",
+        "outcome": "passed",
+        "sampled": true,
+        "t": 1793015999901,
+        "type": "schild.request.evaluated.v1"
+      },
+      {
+        "bytes": 1048576,
+        "id": "sample-2",
+        "kind": "event",
+        "outcome": "passed",
+        "sampled": true,
+        "t": 1793015999902,
+        "type": "schild.request.evaluated.v1"
+      },
+      {
+        "bytes": 1048576,
+        "id": "sample-3",
+        "kind": "event",
+        "outcome": "passed",
+        "sampled": true,
+        "t": 1793015999903,
+        "type": "schild.request.evaluated.v1"
+      },
+      {
+        "bytes": 1048576,
+        "id": "sample-4",
+        "kind": "event",
+        "outcome": "passed",
+        "sampled": true,
+        "t": 1793015999904,
+        "type": "schild.request.evaluated.v1"
+      },
+      {
+        "bytes": 1048576,
+        "id": "sample-5",
+        "kind": "event",
+        "outcome": "passed",
+        "sampled": true,
+        "t": 1793015999905,
+        "type": "schild.request.evaluated.v1"
+      }
+    ],
+    "wal_bytes": 0
+  },
+  "expect": {
+    "valid": true,
+    "result": {
+      "used_before": 11534336,
+      "deleted": [
+        "call-00",
+        "call-01",
+        "call-02"
+      ],
+      "used_after": 9961472,
+      "unreachable": false
+    }
+  }
+}

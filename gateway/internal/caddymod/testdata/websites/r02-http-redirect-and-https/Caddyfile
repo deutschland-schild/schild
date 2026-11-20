@@ -1,0 +1,15 @@
+{
+	admin off
+	http_port 19190
+	https_port 19143
+}
+
+http://shop.example.org {
+	redir https://shop.example.org{uri} 308
+}
+
+shop.example.org {
+	schild
+	reverse_proxy 127.0.0.1:19101
+}
+

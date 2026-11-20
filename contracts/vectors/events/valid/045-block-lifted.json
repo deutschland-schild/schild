@@ -1,0 +1,26 @@
+{
+  "contract": "events",
+  "description": "D42: an agent ended a block.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"data\":{\"incident\":\"K7QM-4XWD\",\"reason\":\"false positive\",\"source\":\"agent:tok_000000000001\",\"token_id\":\"tok_000000000001\",\"token_label\":\"Local agent\"},\"datacontenttype\":\"application/json\",\"id\":\"f9a856aa-992a-4419-9b0b-2cec2a44aa4d\",\"source\":\"schild://web-1\",\"specversion\":\"1.0\",\"time\":\"2026-10-26T11:59:58.123Z\",\"type\":\"schild.block.lifted.v1\"}",
+  "input_decoded": {
+    "data": {
+      "incident": "K7QM-4XWD",
+      "reason": "false positive",
+      "source": "agent:tok_000000000001",
+      "token_id": "tok_000000000001",
+      "token_label": "Local agent"
+    },
+    "datacontenttype": "application/json",
+    "id": "f9a856aa-992a-4419-9b0b-2cec2a44aa4d",
+    "source": "schild://web-1",
+    "specversion": "1.0",
+    "time": "2026-10-26T11:59:58.123Z",
+    "type": "schild.block.lifted.v1"
+  },
+  "expect": {
+    "valid": true
+  }
+}

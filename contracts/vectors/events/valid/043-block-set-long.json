@@ -1,0 +1,42 @@
+{
+  "contract": "events",
+  "description": "D42: 7 days for a data-centre address, kept in schild.db. No ladder step.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"data\":{\"client\":{\"allowlisted\":false,\"attribution\":\"tcp_peer\",\"geo\":{\"asn\":64496,\"country\":\"DE\",\"net_class\":\"hosting\"},\"ip\":\"203.0.113.7\"},\"duration_s\":500000,\"effect\":\"block\",\"evidence_event_id\":\"6f1c2b7e-1d4a-4c8e-9b2f-6a5d4e3c2b16\",\"incident\":\"K7QM-4XWD\",\"key_bits\":32,\"persisted\":true,\"reason\":\"scanner, 40 probes in a minute\",\"target_kind\":\"event\",\"token_id\":\"tok_000000000001\",\"token_label\":\"Local agent\",\"until\":\"2026-10-26T13:00:00Z\"},\"datacontenttype\":\"application/json\",\"id\":\"3a9b929d-f6f3-4d5d-9070-09e5280388f9\",\"source\":\"schild://web-1\",\"specversion\":\"1.0\",\"time\":\"2026-10-26T11:59:58.123Z\",\"type\":\"schild.block.set.v1\"}",
+  "input_decoded": {
+    "data": {
+      "client": {
+        "allowlisted": false,
+        "attribution": "tcp_peer",
+        "geo": {
+          "asn": 64496,
+          "country": "DE",
+          "net_class": "hosting"
+        },
+        "ip": "203.0.113.7"
+      },
+      "duration_s": 500000,
+      "effect": "block",
+      "evidence_event_id": "6f1c2b7e-1d4a-4c8e-9b2f-6a5d4e3c2b16",
+      "incident": "K7QM-4XWD",
+      "key_bits": 32,
+      "persisted": true,
+      "reason": "scanner, 40 probes in a minute",
+      "target_kind": "event",
+      "token_id": "tok_000000000001",
+      "token_label": "Local agent",
+      "until": "2026-10-26T13:00:00Z"
+    },
+    "datacontenttype": "application/json",
+    "id": "3a9b929d-f6f3-4d5d-9070-09e5280388f9",
+    "source": "schild://web-1",
+    "specversion": "1.0",
+    "time": "2026-10-26T11:59:58.123Z",
+    "type": "schild.block.set.v1"
+  },
+  "expect": {
+    "valid": true
+  }
+}

@@ -1,0 +1,6 @@
+# schild.yaml for a live site (stage 3: own projects), with schild as a plain
+# proxy in front of the app. Addresses are placeholders.
+config_version: 0
+node_name: web-1
+upstream:
+  url: "http://127.0.0.1:8081"

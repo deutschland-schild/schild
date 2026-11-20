@@ -1,0 +1,14 @@
+# unprotected: []
+# expect: refuse
+# Global handle_errors proxy in a site using a host matcher list that overlaps a site without schild on a second address form.
+http://a.example.test:18080, http://b.example.test:18080 {
+	import schild
+	reverse_proxy 127.0.0.1:18081
+	handle_errors {
+		reverse_proxy 127.0.0.1:18081
+	}
+}
+http://b.example.test:18080/static/* {
+	root * /tmp/m19m3-empty
+	file_server
+}

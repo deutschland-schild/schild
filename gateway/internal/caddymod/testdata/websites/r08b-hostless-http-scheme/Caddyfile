@@ -1,0 +1,11 @@
+{
+	admin off
+	http_port 19190
+	https_port 19143
+}
+
+http:// {
+	schild
+	reverse_proxy 127.0.0.1:19101
+}
+

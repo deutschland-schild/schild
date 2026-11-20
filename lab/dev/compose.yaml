@@ -1,0 +1,62 @@
+# Development compose of the lab agent: three labs (three operators), one
+# relay, and two one-shot helpers (profile smoke). TEST ONLY keys and CA.
+# Network: internal (no route out), subnet 10.66.33.0/24 (conventions §6).
+# Nothing is published to the host; data lives in tmpfs.
+#
+#   lab/dev/smoke-docker.sh      # builds images if needed, runs everything, cleans up
+name: schild-dev-lab
+
+x-lab: &lab
+  image: schild-lab:dev
+  environment: &labenv
+    SCHILD_TEST_CA: /etc/schild-ca/ca.pem
+    SCHILD_ALLOW_TEST_KEYS: "1"            # TEST LAB ONLY: start with test keys and the test CA (D24 preflight)
+    SCHILD_LOG_FORMAT: json
+    SCHILD_LOG_LEVEL: info
+  tmpfs: ["/var/lib/schild-lab:uid=65532,gid=65532,mode=0700"]
+  networks: [dev]
+  restart: "no"
+
+services:
+  lab-a:
+    <<: *lab
+    hostname: lab-a
+    volumes: ["${SCHILD_DEV_CFG:?}/lab-a:/etc/schild-lab:ro", "${SCHILD_DEV_CFG:?}/ca.pem:/etc/schild-ca/ca.pem:ro"]
+  lab-b:
+    <<: *lab
+    hostname: lab-b
+    volumes: ["${SCHILD_DEV_CFG:?}/lab-b:/etc/schild-lab:ro", "${SCHILD_DEV_CFG:?}/ca.pem:/etc/schild-ca/ca.pem:ro"]
+  lab-c:
+    <<: *lab
+    hostname: lab-c
+    volumes: ["${SCHILD_DEV_CFG:?}/lab-c:/etc/schild-lab:ro", "${SCHILD_DEV_CFG:?}/ca.pem:/etc/schild-ca/ca.pem:ro"]
+  relay-1:
+    image: schild-relay:dev
+    hostname: relay-1
+    environment:
+      SCHILD_RELAY_ID: relay-1
+      SCHILD_RELAY_UPSTREAMS: https://lab-a:7444,https://lab-b:7444,https://lab-c:7444
+      SCHILD_TEST_CA: /etc/schild-ca/ca.pem
+      SCHILD_ALLOW_TEST_KEYS: "1"            # TEST LAB ONLY: start with test keys and the test CA (D24 preflight)
+    volumes: ["${SCHILD_DEV_CFG:?}/ca.pem:/etc/schild-ca/ca.pem:ro"]
+    networks: [dev]
+    depends_on: [lab-a, lab-b, lab-c]
+  send:
+    image: schild-lab:dev
+    profiles: [smoke]
+    entrypoint: ["/usr/local/bin/schild-lab", "dev-send", "-url", "https://lab-a:7443", "-lab", "lab-a", "-site", "site-a", "-n", "8"]
+    environment: { SCHILD_TEST_CA: /etc/schild-ca/ca.pem, SCHILD_ALLOW_TEST_KEYS: "1" }
+    volumes: ["${SCHILD_DEV_CFG:?}/ca.pem:/etc/schild-ca/ca.pem:ro"]
+    networks: [dev]
+  watch:
+    image: schild-relay:dev
+    profiles: [smoke]
+    entrypoint: ["/usr/local/bin/schild-relay", "watch", "-url", "http://relay-1:7480", "-test-keys", "lab-a,lab-b,lab-c", "-for", "12s"]
+    networks: [dev]
+
+networks:
+  dev:
+    internal: true
+    ipam:
+      config:
+        - subnet: 10.66.33.0/24

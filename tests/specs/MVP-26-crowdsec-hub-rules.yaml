@@ -1,0 +1,92 @@
+id: MVP-26
+# Initiator decision (2026-10-30): the mutual sign-off of two lab operators applies in the lab context only. The gateway,
+# also in standalone mode, has to be pragmatic and follow best practice, so a CrowdSec module with automatic updates
+# makes sense: "Das gateway (z.B. auch im standalone mode) muss pragmatisch und best practice sein. Deshalb Crowdsec modul
+# mit automatischen updates total sinnvoll." This replaces the earlier "no CrowdSec on the server" for the rules only:
+# no IP lists, no account, no Central API, nothing is sent to CrowdSec.
+# Amended 2026-11-06 (D73): the source is the rule repository crowdsec beside crs and local; switch, effect, API,
+# scopes, events and config follow D73 (see contracts.amended); the lines below that name the D39 forms are history.
+title: "CrowdSec Hub rules in the gateway: the public virtual patches as a built-in rule source next to the OWASP CRS, with automatic updates, without an account and without sharing data"
+ships: false                        # contracts written and gateway and UI built 2026-10-30 (D39, contracts/crowdsec-hub.md); ENTWURF until the measurement is decided
+status: ENTWURF
+image: schild                       # same binary; a pinned snapshot of the rules ships in the image
+hypotheses: [M2, D1]
+refs: [MVP-19, MVP-21, concept-22, concept-04]
+depends_on: [MVP-19]
+why: >-
+  CrowdSec publishes free virtual patches for over 200 commonly exploited CVEs under MIT, and it reacts fast (php2shell:
+  rule online about three hours before the CVE records, by its own account). A gateway without labs has no way to get
+  such patches today. The engine is Coraza in both cases. Standalone users should get this without any setup.
+
+source:
+  - 'public hub repository (crowdsecurity/hub), the index .index.json carries every item with path, version and content; one GET with ETag is enough'
+  - 'no CrowdSec account, no Central API, no Console, no telemetry; a plain HTTPS GET, the only thing the host learns is the address of the server'
+  - 'only appsec-rules items that are members of the collection crowdsecurity/appsec-virtual-patching (D39: the hub keeps rules out of it on purpose); no scenarios, no IP lists, no blocklists'
+  - 'a pinned snapshot ships in the image (make crowdsec-snapshot), so the rules work offline and from the first start'
+
+conversion:
+  - 'hub YAML to SecLang inside the gateway; schild does not run the CrowdSec engine'
+  - 'unconvertible rules are skipped and listed, never loaded partly; rules with embedded raw SecLang go through the same validation'
+  - 'own SecRule id range; the CRS score stays computed from CRS rules only (internal/waf)'
+
+updates:
+  - 'automatic by default; check every hour with ETag (default to be confirmed by the measurement; CrowdSec packages check daily)'
+  - 'a new set builds in the background and swaps atomically (Engine.Swap); requests in flight keep their instance'
+  - 'a set that fails to parse, compile or pass the bounds is refused; the last good set stays active'
+  - 'at start the newer of stored set and image snapshot runs, whatever auto_update says (initiator 2026-10-30); a pin wins over that; a stored set that fails to load falls back to the image; date, tie and no date: contracts/crowdsec-hub.md section 6'
+  - 'bounds: maximum download size, rule count, rule length, compile time, and a cost check per rule before a set goes live'
+  - 'D43: a set with new or changed rules is timed on a fixed probe set against the image snapshot before it goes live, in the background, refused above 4 times what the snapshot adds (set_too_costly); shrink compares with the image snapshot; a pin skips shrink; a reset in the dashboard and on the host goes back to the image snapshot; off keeps the stored set'
+  - 'a change is logged with hub commit or index digest, added, changed and removed rules; the dashboard shows the state and the date of the last update'
+  - 'operators can switch off updates or pin a version in schild.yaml'
+  - 'its own switch: the hub rules are not part of the lab network (D72: the gateway has no lab network at all)'
+
+modes:
+  default: 'source enabled, effect Erkannt (never blocks), also in automatic blocking mode (confirmed by the initiator, 2026-10-30); blocking is the later target once the measurement and real traffic fit'
+  switch: 'one simple switch for the whole source, initiator 2026-10-30: "muss einfach zu aktivieren/deaktivieren sein (z.B. alle crowdsec livepatches an/aus)". Three states: aus, Erkannt, sperren. In the dashboard with one click, in schild.yaml and through the agent API; takes effect without a restart (atomic swap); no per-rule work needed'
+  password: 'none on any transition, also to block; session and CSRF stay. Initiator 2026-10-30: "das wäre schlechte usability"'
+  agent: 'writable through the agent API, initiator 2026-10-30: "Auch über die API muss man sperren dürfen (z.B. mit einem lokalen agent)". updateAgentCrowdsecHub and MCP tool schild_crowdsec_hub_set, only for scope crowdsec:write (default stays agent:read, existing tokens stay read only, others get 403 scope_required), state_source agent, every write in the call log and in the change history with the token name. The source switch only'
+  gateway_mode: 'the source blocks only with state block AND gateway mode autoblock (initiator 2026-10-30). In review it acts as detect (reason gateway_review), because that mode promises new rules act only after the operator agrees; observe, of the gateway or a website, stays would_block. Updates arrive in every mode. gateway_effect and limited_by explain it in the status. Per-rule approvals: later idea, out of scope (D72: there is no Freigaben page)'
+  blocking: 'when the source blocks, a new or changed rule still starts as Erkannt for a settling period (default 24 h); a single rule can be disabled by id'
+
+ui:
+  - 'label "Regel aus dem CrowdSec Hub, MIT", CVE number and description in event and incident details; no logo, nothing that looks like a partnership'
+  - 'Regeln page: the source switch (aus, Erkannt, sperren) at the top, with count, state, last update, skipped rules; a rule can be disabled'
+
+licence:
+  - 'MIT licence text and copyright go with the rules (NOTICE); source and version per rule in the rule data'
+
+contracts:
+  new:                              # written 2026-10-30, D39
+    - 'contracts/crowdsec-hub.md: switch, agent write, mapping, refusal codes, ids, updates, bounds, start precedence, read fields, effect'
+    - 'contract/crowdsec, crowdsec-hub and crowdsec-set vectors, hub profile of contract/seclang'
+    - 'schild.yaml crowdsec_hub (state, auto_update, interval_s, pin, disabled_rules, settling_s)'
+    - 'rule source crowdsec_hub in events and incidents, getCrowdsecHub, updateCrowdsecHub, getAgentCrowdsecHub, updateAgentCrowdsecHub, event schild.rule.hub_switched.v1, annotation crowdsec_hub_changed; the disabled list lives in the store row crowdsec_hub_disabled_v1'
+  version: 'v0.5 (unreleased, backwards compatible)'
+  amended:                          # 2026-11-06, D73, contracts v0.6
+    - 'schild.yaml rules.crowdsec (state, auto_update, interval_s, pin, settling_s, disabled_rules) replaces crowdsec_hub'
+    - 'the effect is contract/rules (rule-effect vectors): in review the image snapshot blocks and updates wait for approval, in autoblock updates settle'
+    - 'both APIs: /rule-repositories/crowdsec (state, sync, reset) and /rules/crowdsec/{base id} (disable, approve, reject); scopes rules:write and rules:approve'
+    - 'events: matchedRule.repository crowdsec, schild.rule.repository_updated.v1, schild.rule.repository_switched.v1, annotation rule_repository_changed; decisions in the rule_decisions table'
+
+must:
+  - 'never send data to CrowdSec beyond the HTTP request for the public file'
+  - 'a broken, huge or hostile update never stops request handling and never removes the running rules'
+  - 'the source can never raise the CRS anomaly score and never block while its effect is Erkannt'
+  - 'works with no outgoing network (image snapshot) and says so calmly'
+measure:                            # by an independent agent
+  - 'conversion coverage of the current hub; list of skipped rules with reasons'
+  - 'semantics: for a sample of rules, a CrowdSec engine and schild agree on matching and benign requests'
+  - 'cost per request and memory with and without the source, at the MVP-21 mix'
+  - 'false positives on the replay traffic and on real observe traffic'
+  - 'detection: exploit requests for a sample of CVEs, including chunked bodies'
+  - 'update safety: broken index, truncated download, huge file, slow server, expensive regex, unreachable host, rule removed; no effect on requests'
+kill_if: "an update can stop or slow request handling OR the source blocks while set to Erkannt OR any data beyond the HTTP request reaches CrowdSec OR the cost per request rises beyond the noise plus an agreed margin"
+out_of_scope:
+  - 'the CrowdSec engine, bouncers, scenarios, Central API, Console, IP blocklists'
+  - 'contributing rules back to the hub (concept 22, open)'
+  - 'changing the lab rule flow: rules sent by labs keep the sign-off of at least two lab operators'
+open_questions:
+  - 'signature: the hub signs nothing; HTTPS, index digests, bounds and the settling period are the protection. Enough?'
+  - 'default check interval: hourly or daily?'
+  - 'when does the default effect move from Erkannt to blocking?'
+  - 'does the image snapshot need a minimum age warning when updates are off?'

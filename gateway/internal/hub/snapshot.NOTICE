@@ -1,0 +1,16 @@
+CrowdSec Hub snapshot
+
+Source: https://github.com/crowdsecurity/hub
+Commit: 95237c159ca80ac30f97b6b6a6fd5ab4a35a2b8d (2026-10-30T06:02:31Z)
+Index SHA-256: 86f5b58056aee781d9fd5e4d208211de9c0eea482e84ce70a5fb81293d7888d6
+Fetched: 2026-10-30T09:25:43Z
+Rules: 206 selected, 201 load, 5 skipped, 30 not selected
+
+Skipped rules:
+  crowdsecurity/vpatch-CVE-2023-6000 0.2: catch_all
+  crowdsecurity/vpatch-CVE-2024-27956 0.2: value_chars
+  crowdsecurity/vpatch-CVE-2024-2862 0.1: forbidden_header
+  crowdsecurity/vpatch-CVE-2025-34291 0.1: forbidden_header
+  crowdsecurity/vpatch-CVE-2026-109618 0.4: raw_seclang
+
+The rules are licensed under the MIT License; client/NOTICE carries the text.

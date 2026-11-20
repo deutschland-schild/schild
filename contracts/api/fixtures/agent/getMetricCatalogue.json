@@ -1,0 +1,92 @@
+{
+  "resolutions": [
+    {
+      "resolution": "10s",
+      "step_s": 10,
+      "keep_s": 21600,
+      "slots": 2160,
+      "oldest": "2026-10-28T08:00:00Z"
+    },
+    {
+      "resolution": "1m",
+      "step_s": 60,
+      "keep_s": 172800,
+      "slots": 2880
+    },
+    {
+      "resolution": "10m",
+      "step_s": 600,
+      "keep_s": 1209600,
+      "slots": 2016
+    }
+  ],
+  "max_points": 1000,
+  "max_series": 16,
+  "metrics": [
+    {
+      "id": "traffic.requests",
+      "kind": "counter",
+      "unit": "requests",
+      "scope": "traffic",
+      "exact": true,
+      "stats": [
+        "rate",
+        "sum"
+      ],
+      "default_stat": "rate",
+      "per_object": "none",
+      "site_aware": true,
+      "available": true
+    },
+    {
+      "id": "traffic.latency_total",
+      "kind": "histogram",
+      "unit": "ms",
+      "scope": "traffic",
+      "exact": false,
+      "stats": [
+        "p95",
+        "p50",
+        "p99"
+      ],
+      "default_stat": "p95",
+      "per_object": "none",
+      "site_aware": true,
+      "available": true,
+      "error_bound": 0.25
+    },
+    {
+      "id": "server.disk_used_ratio",
+      "kind": "gauge",
+      "unit": "ratio",
+      "scope": "host",
+      "exact": true,
+      "stats": [
+        "avg",
+        "min",
+        "max"
+      ],
+      "default_stat": "avg",
+      "per_object": "mount",
+      "site_aware": false,
+      "available": true
+    },
+    {
+      "id": "server.conntrack_used_ratio",
+      "kind": "gauge",
+      "unit": "ratio",
+      "scope": "host",
+      "exact": true,
+      "stats": [
+        "avg",
+        "min",
+        "max"
+      ],
+      "default_stat": "avg",
+      "per_object": "none",
+      "site_aware": false,
+      "available": false,
+      "reason": "container_hidden"
+    }
+  ]
+}

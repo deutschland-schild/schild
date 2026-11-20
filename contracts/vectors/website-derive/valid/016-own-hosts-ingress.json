@@ -1,0 +1,129 @@
+{
+  "contract": "website-derive",
+  "description": "D36 amendment: a Referer host of any website of the gateway is _intern - exact hosts (case, trailing dot and port ignored), wildcard hosts (one label), unprotected websites too; the parent domain, other subdomains, the host-less catch-all, an empty, wildcard or malformed host are not own.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"blocks\":[{\"addresses\":[\"shop.example.org\",\"www.shop.example.org\"],\"proxies\":true,\"schild\":true},{\"addresses\":[\"*.kunden.example.org\"],\"proxies\":true,\"schild\":true},{\"addresses\":[\"legacy.example.org\"],\"proxies\":true,\"schild\":false},{\"addresses\":[\"verein.example\"],\"proxies\":true,\"schild\":true},{\"addresses\":[\":8080\"],\"proxies\":true,\"schild\":true}],\"mode\":\"ingress\",\"own_hosts\":[\"verein.example\",\"WWW.Shop.Example.ORG.\",\"shop.example.org:8443\",\"a.kunden.example.org\",\"kunden.example.org\",\"legacy.example.org\",\"example.org\",\"blog.verein.example\",\"\",\"*.kunden.example.org\",\"bad host\"],\"unprotected_sites\":[\"legacy.example.org\"]}",
+  "input_decoded": {
+    "blocks": [
+      {
+        "addresses": [
+          "shop.example.org",
+          "www.shop.example.org"
+        ],
+        "proxies": true,
+        "schild": true
+      },
+      {
+        "addresses": [
+          "*.kunden.example.org"
+        ],
+        "proxies": true,
+        "schild": true
+      },
+      {
+        "addresses": [
+          "legacy.example.org"
+        ],
+        "proxies": true,
+        "schild": false
+      },
+      {
+        "addresses": [
+          "verein.example"
+        ],
+        "proxies": true,
+        "schild": true
+      },
+      {
+        "addresses": [
+          ":8080"
+        ],
+        "proxies": true,
+        "schild": true
+      }
+    ],
+    "mode": "ingress",
+    "own_hosts": [
+      "verein.example",
+      "WWW.Shop.Example.ORG.",
+      "shop.example.org:8443",
+      "a.kunden.example.org",
+      "kunden.example.org",
+      "legacy.example.org",
+      "example.org",
+      "blog.verein.example",
+      "",
+      "*.kunden.example.org",
+      "bad host"
+    ],
+    "unprotected_sites": [
+      "legacy.example.org"
+    ]
+  },
+  "expect": {
+    "valid": true,
+    "result": {
+      "own": [
+        true,
+        true,
+        true,
+        true,
+        false,
+        true,
+        false,
+        false,
+        false,
+        false,
+        false
+      ],
+      "websites": [
+        {
+          "hosts": [
+            "shop.example.org",
+            "www.shop.example.org"
+          ],
+          "id": "shop.example.org",
+          "label": "shop.example.org",
+          "protection": "protected",
+          "tracked": true
+        },
+        {
+          "hosts": [
+            "*.kunden.example.org"
+          ],
+          "id": "_.kunden.example.org",
+          "label": "*.kunden.example.org",
+          "protection": "protected",
+          "tracked": true
+        },
+        {
+          "hosts": [
+            "legacy.example.org"
+          ],
+          "id": "legacy.example.org",
+          "label": "legacy.example.org",
+          "protection": "unprotected",
+          "tracked": false
+        },
+        {
+          "hosts": [
+            "verein.example"
+          ],
+          "id": "verein.example",
+          "label": "verein.example",
+          "protection": "protected",
+          "tracked": true
+        },
+        {
+          "hosts": [],
+          "id": "_any",
+          "label": "_any",
+          "protection": "protected",
+          "tracked": true
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,26 @@
+{
+  "contract": "access-gate",
+  "description": "D56: IPv6 networks up to /32.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"allowlisted\":false,\"path\":\"/\",\"protection\":{\"addresses\":[\"2001:d00::/24\"],\"own_networks\":false,\"password\":true,\"scope\":\"site\",\"website\":\"musterverein.example\"},\"session\":\"none\"}",
+  "input_decoded": {
+    "allowlisted": false,
+    "path": "/",
+    "protection": {
+      "addresses": [
+        "2001:d00::/24"
+      ],
+      "own_networks": false,
+      "password": true,
+      "scope": "site",
+      "website": "musterverein.example"
+    },
+    "session": "none"
+  },
+  "expect": {
+    "valid": false,
+    "error": "schema"
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "contract": "ingress-order",
+  "description": "D31 amendment 2026-10-29: a server's routes is an array.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"servers\":{\"srv0\":{\"routes\":{}}}}",
+  "input_decoded": {
+    "servers": {
+      "srv0": {
+        "routes": {}
+      }
+    }
+  },
+  "expect": {
+    "valid": false,
+    "error": "schema"
+  }
+}

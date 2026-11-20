@@ -1,0 +1,27 @@
+{
+  "contract": "config/schild",
+  "description": "D63: raw_paths is gone, also with a path in it.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"config_version\":0,\"mode\":\"observe\",\"monitoring\":{\"requests\":{\"raw_paths\":[\"/blog\"]}},\"node_name\":\"web-1\",\"upstream\":{\"url\":\"http://app:80\"}}",
+  "input_decoded": {
+    "config_version": 0,
+    "mode": "observe",
+    "monitoring": {
+      "requests": {
+        "raw_paths": [
+          "/blog"
+        ]
+      }
+    },
+    "node_name": "web-1",
+    "upstream": {
+      "url": "http://app:80"
+    }
+  },
+  "expect": {
+    "valid": false,
+    "error": "schema"
+  }
+}

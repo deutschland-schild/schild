@@ -1,0 +1,26 @@
+{
+  "contract": "config/schild",
+  "description": "D92: the old mode challenge still loads; the gateway reads it as observe and warns.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"behaviour\":{\"scenarios\":{\"path_probing\":{\"mode\":\"challenge\"}}},\"config_version\":0,\"mode\":\"observe\",\"node_name\":\"web-1\",\"upstream\":{\"url\":\"http://app:80\"}}",
+  "input_decoded": {
+    "behaviour": {
+      "scenarios": {
+        "path_probing": {
+          "mode": "challenge"
+        }
+      }
+    },
+    "config_version": 0,
+    "mode": "observe",
+    "node_name": "web-1",
+    "upstream": {
+      "url": "http://app:80"
+    }
+  },
+  "expect": {
+    "valid": true
+  }
+}

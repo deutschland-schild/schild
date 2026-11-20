@@ -1,0 +1,200 @@
+{
+  "pattern": {
+    "pattern_id": "p_3c9d0e1f2a3b4c5d",
+    "action_sig": "login-burst/wp-admin",
+    "categories": [
+      "wordpress-login-bruteforce"
+    ],
+    "status": "watching",
+    "signals": 1840,
+    "issuers": 4,
+    "clients": 31,
+    "max_issuer_share": 0.31,
+    "request_sigs": 3,
+    "score_avg": 71.5,
+    "top_countries": [
+      {
+        "key": "NL",
+        "count": 820
+      },
+      {
+        "key": "US",
+        "count": 411
+      },
+      {
+        "key": "DE",
+        "count": 97
+      }
+    ],
+    "top_asns": [
+      {
+        "key": 64500,
+        "count": 790
+      },
+      {
+        "key": 64511,
+        "count": 300
+      }
+    ],
+    "first_seen": "2026-10-25T03:10:00Z",
+    "last_seen": "2026-10-26T11:55:00Z",
+    "proposal_id": null
+  },
+  "by_issuer": [
+    {
+      "key": "issuer-test-1",
+      "count": 570
+    },
+    {
+      "key": "issuer-test-2",
+      "count": 520
+    },
+    {
+      "key": "issuer-test-3",
+      "count": 400
+    },
+    {
+      "key": "issuer-test-4",
+      "count": 350
+    }
+  ],
+  "by_operator": [],
+  "countries": [
+    {
+      "key": "NL",
+      "count": 820
+    },
+    {
+      "key": "US",
+      "count": 411
+    },
+    {
+      "key": "DE",
+      "count": 97
+    }
+  ],
+  "asns": [
+    {
+      "key": 64500,
+      "count": 790
+    },
+    {
+      "key": 64511,
+      "count": 300
+    }
+  ],
+  "net_classes": [
+    {
+      "key": "hosting",
+      "count": 1500
+    },
+    {
+      "key": "residential",
+      "count": 340
+    }
+  ],
+  "agents": [
+    {
+      "key": "python-requests/2",
+      "count": 1200
+    },
+    {
+      "key": "chrome/130",
+      "count": 640
+    }
+  ],
+  "waf_rules": [
+    {
+      "key": 930120,
+      "count": 1840
+    },
+    {
+      "key": 949110,
+      "count": 1840
+    }
+  ],
+  "timeline": [
+    {
+      "bucket": "2026-10-26T11:45:00Z",
+      "signals": 61,
+      "issuers": 3
+    },
+    {
+      "bucket": "2026-10-26T11:50:00Z",
+      "signals": 74,
+      "issuers": 4
+    },
+    {
+      "bucket": "2026-10-26T11:55:00Z",
+      "signals": 52,
+      "issuers": 4
+    }
+  ],
+  "samples": [
+    {
+      "received_at": "2026-10-26T12:00:01Z",
+      "issuer": "issuer-test-1",
+      "keyid": "test-site-a",
+      "pattern_id": "p_3c9d0e1f2a3b4c5d",
+      "payload": {
+        "action_sig": "login-burst/wp-admin",
+        "agent": {
+          "bot": false,
+          "family": "python-requests",
+          "major": 2
+        },
+        "category": "wordpress-login-bruteforce",
+        "id": "65d5559f-81e1-4937-b533-d2a60218c658",
+        "kind": "tip",
+        "origin": {
+          "asn": 14061,
+          "attribution": "tcp_peer",
+          "country": "NL",
+          "net_class": "hosting",
+          "protected": false
+        },
+        "request_sig": "sha256:a07187f1c7d1c5643b02ce730bef3d7bc5700a5bee0b3833d13f2819f1e2be81",
+        "schema": "schild.signal/0.3",
+        "score": 72,
+        "time_bucket": "2026-10-26T11:55:00Z",
+        "waf_rules": [
+          930120,
+          949110
+        ]
+      }
+    },
+    {
+      "received_at": "2026-10-26T11:55:02Z",
+      "issuer": "issuer-test-1",
+      "keyid": "test-site-a",
+      "pattern_id": "p_3c9d0e1f2a3b4c5d",
+      "payload": {
+        "action_sig": "login-burst/wp-admin",
+        "agent": {
+          "bot": false,
+          "family": "python-requests",
+          "major": 2
+        },
+        "category": "wordpress-login-bruteforce",
+        "id": "239c184b-cf1e-481e-98d1-bd96ff1c02a3",
+        "ja4": "t13d1516h2_8daaf6152771_e5627efa2ab1",
+        "kind": "tip",
+        "origin": {
+          "asn": 14061,
+          "attribution": "tcp_peer",
+          "country": "NL",
+          "net_class": "hosting",
+          "protected": false
+        },
+        "request_sig": "sha256:a07187f1c7d1c5643b02ce730bef3d7bc5700a5bee0b3833d13f2819f1e2be81",
+        "schema": "schild.signal/0.3",
+        "score": 72,
+        "time_bucket": "2026-10-26T11:55:00Z",
+        "waf_rules": [
+          930120,
+          949110
+        ]
+      }
+    }
+  ]
+}

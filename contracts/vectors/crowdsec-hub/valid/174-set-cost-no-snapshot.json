@@ -1,0 +1,23 @@
+{
+  "contract": "crowdsec-hub",
+  "description": "D43: without a snapshot the reference is the baseline, and the real set still fits.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"baseline_ns\":22000,\"candidate_ns\":94000,\"op\":\"set_cost\",\"reference_ns\":22000,\"rounds\":16}",
+  "input_decoded": {
+    "baseline_ns": 22000,
+    "candidate_ns": 94000,
+    "op": "set_cost",
+    "reference_ns": 22000,
+    "rounds": 16
+  },
+  "expect": {
+    "valid": true,
+    "result": {
+      "outcome": "accepted",
+      "added_ns": 72000,
+      "allowed_ns": 176000
+    }
+  }
+}

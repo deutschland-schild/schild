@@ -1,0 +1,21 @@
+# TEST ONLY: MVP-19 measurement 3, standalone ingress (network off), load runs.
+# Same as nachmessung/schild-n.yaml plus the tools container as trusted proxy,
+# so load runs can simulate many clients with X-Forwarded-For.
+config_version: 0
+profile: production
+mode: observe
+node_name: m19-ingress
+ingress:
+  caddyfile: /etc/caddy/Caddyfile
+  storage: /data/caddy
+  trusted_proxies: ["10.219.19.5/32"]
+  client_ip_headers: ["X-Forwarded-For"]
+listen:
+  dashboard: "127.0.0.1:18788"
+  metrics: "127.0.0.1:19101"
+storage:
+  path: /var/lib/schild
+behaviour:
+  presets: [laravel, generic]
+  distributed:
+    learning_days: 14

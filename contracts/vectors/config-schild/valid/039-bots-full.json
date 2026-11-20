@@ -1,0 +1,27 @@
+{
+  "contract": "config/schild",
+  "description": "v0.5 MVP-22: FCrDNS and the direct range fetch switched on by the operator.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"bots\":{\"ranges_fetch\":true,\"verify\":{\"fcrdns\":true,\"ranges\":true}},\"config_version\":0,\"mode\":\"autoblock\",\"node_name\":\"web-1\",\"profile\":\"production\",\"upstream\":{\"url\":\"http://app:80\"}}",
+  "input_decoded": {
+    "bots": {
+      "ranges_fetch": true,
+      "verify": {
+        "fcrdns": true,
+        "ranges": true
+      }
+    },
+    "config_version": 0,
+    "mode": "autoblock",
+    "node_name": "web-1",
+    "profile": "production",
+    "upstream": {
+      "url": "http://app:80"
+    }
+  },
+  "expect": {
+    "valid": true
+  }
+}

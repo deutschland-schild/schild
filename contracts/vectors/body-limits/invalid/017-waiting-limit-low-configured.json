@@ -1,0 +1,17 @@
+{
+  "contract": "body-limits",
+  "description": "D44: a configured value is at least 1 MiB.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"configured_bytes\":1024,\"memory_bytes\":1073741824,\"op\":\"waiting_limit\"}",
+  "input_decoded": {
+    "configured_bytes": 1024,
+    "memory_bytes": 1073741824,
+    "op": "waiting_limit"
+  },
+  "expect": {
+    "valid": false,
+    "error": "schema"
+  }
+}

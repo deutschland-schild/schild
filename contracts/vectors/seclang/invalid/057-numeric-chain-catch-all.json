@@ -1,0 +1,13 @@
+{
+  "contract": "seclang",
+  "description": "SecLang subset case numeric-chain-catch-all (max_action block).",
+  "context": {
+    "now": "2026-10-26T12:00:00Z",
+    "max_action": "block"
+  },
+  "input_raw": "SecRule REQUEST_METHOD \"@within GET POST\" \"id:7700123,phase:2,deny,severity:CRITICAL,msg:'x',chain\"\nSecRule &ARGS \"@ge 0\" \"t:none\"",
+  "expect": {
+    "valid": false,
+    "error": "seclang"
+  }
+}

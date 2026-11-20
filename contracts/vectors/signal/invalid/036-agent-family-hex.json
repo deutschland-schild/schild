@@ -1,0 +1,50 @@
+{
+  "contract": "signal",
+  "description": "Hex blob as agent family.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z",
+    "trust": [
+      "site-a",
+      "site-b",
+      "site-c",
+      "lab-a",
+      "lab-a2",
+      "lab-b",
+      "lab-c",
+      "lab-d"
+    ]
+  },
+  "input_raw": "{\"payloadType\":\"application/vnd.schild.signal.v0+json\",\"payload\":\"eyJhY3Rpb25fc2lnIjoibG9naW4tYnVyc3Qvd3AtYWRtaW4iLCJhZ2VudCI6eyJib3QiOmZhbHNlLCJmYW1pbHkiOiJjMGE4MDAwMWZmIiwibWFqb3IiOjJ9LCJjYXRlZ29yeSI6IndvcmRwcmVzcy1sb2dpbi1icnV0ZWZvcmNlIiwiaWQiOiJhNTE0Y2QxYS0wNzE4LTRjMzctYjkzZS05MDcxNWFlMzQ1NWEiLCJraW5kIjoidGlwIiwib3JpZ2luIjp7ImFzbiI6MTQwNjEsImF0dHJpYnV0aW9uIjoidGNwX3BlZXIiLCJjb3VudHJ5IjoiTkwiLCJuZXRfY2xhc3MiOiJob3N0aW5nIiwicHJvdGVjdGVkIjpmYWxzZX0sInJlcXVlc3Rfc2lnIjoic2hhMjU2OmEwNzE4N2YxYzdkMWM1NjQzYjAyY2U3MzBiZWYzZDdiYzU3MDBhNWJlZTBiMzgzM2QxM2YyODE5ZjFlMmJlODEiLCJzY2hlbWEiOiJzY2hpbGQuc2lnbmFsLzAuMyIsInNjb3JlIjo3MiwidGltZV9idWNrZXQiOiIyMDI2LTEwLTI2VDExOjU1OjAwWiIsIndhZl9ydWxlcyI6WzkzMDEyMCw5NDkxMTBdfQ==\",\"signatures\":[{\"keyid\":\"test-site-a\",\"sig\":\"OgYvgeqUP6xyGeDDdcZuQptHCEQ6I0ocKLcoj3pAHdO6xS6y1F+X22gD9FqTu7dCahsSMA5pVqwHOOzuHeWuCg==\"}]}",
+  "input_decoded": {
+    "payload": {
+      "action_sig": "login-burst/wp-admin",
+      "agent": {
+        "bot": false,
+        "family": "c0a80001ff",
+        "major": 2
+      },
+      "category": "wordpress-login-bruteforce",
+      "id": "a514cd1a-0718-4c37-b93e-90715ae3455a",
+      "kind": "tip",
+      "origin": {
+        "asn": 14061,
+        "attribution": "tcp_peer",
+        "country": "NL",
+        "net_class": "hosting",
+        "protected": false
+      },
+      "request_sig": "sha256:a07187f1c7d1c5643b02ce730bef3d7bc5700a5bee0b3833d13f2819f1e2be81",
+      "schema": "schild.signal/0.3",
+      "score": 72,
+      "time_bucket": "2026-10-26T11:55:00Z",
+      "waf_rules": [
+        930120,
+        949110
+      ]
+    }
+  },
+  "expect": {
+    "valid": false,
+    "error": "schema"
+  }
+}

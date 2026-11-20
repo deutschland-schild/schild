@@ -1,0 +1,12 @@
+{
+  "context": {
+    "now": "2026-11-19T12:00:00Z"
+  },
+  "contract": "human-check",
+  "description": "malformed JSON",
+  "expect": {
+    "error": "malformed",
+    "valid": false
+  },
+  "input_raw": "{not json"
+}

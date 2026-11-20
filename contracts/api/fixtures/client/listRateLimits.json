@@ -1,0 +1,74 @@
+{
+  "items": [
+    {
+      "id": "preset-wordpress-login",
+      "label": "WordPress Anmeldung",
+      "route": "/wp-login.php",
+      "methods": [
+        "POST"
+      ],
+      "limit": 10,
+      "per": "1m",
+      "burst": 10,
+      "mode": "observe",
+      "preset": "wordpress",
+      "recommended": "block",
+      "source": "preset",
+      "matched_24h": 222,
+      "exceeded_24h": 37,
+      "clients_24h": 1
+    },
+    {
+      "id": "preset-wordpress-xmlrpc",
+      "label": "WordPress XML-RPC",
+      "route": "/xmlrpc.php",
+      "methods": [
+        "POST"
+      ],
+      "limit": 10,
+      "per": "1m",
+      "burst": 10,
+      "mode": "observe",
+      "preset": "wordpress",
+      "recommended": "block",
+      "source": "preset",
+      "matched_24h": 310,
+      "exceeded_24h": 48,
+      "clients_24h": 2
+    },
+    {
+      "id": "config-1",
+      "label": "Suche",
+      "route": "/search",
+      "methods": [
+        "GET"
+      ],
+      "limit": 30,
+      "per": "1m",
+      "burst": 30,
+      "mode": "block",
+      "source": "config",
+      "matched_24h": 40,
+      "exceeded_24h": 0,
+      "clients_24h": 0
+    },
+    {
+      "id": "contact-form",
+      "label": "Kontaktformular",
+      "route": "/wp-json/contact-form-7/v1/contact-forms/*/feedback",
+      "methods": [
+        "POST"
+      ],
+      "limit": 3,
+      "per": "10m",
+      "burst": 3,
+      "mode": "block",
+      "site": "verein.example",
+      "source": "dashboard",
+      "matched_24h": 40,
+      "exceeded_24h": 2,
+      "clients_24h": 1
+    }
+  ],
+  "next_cursor": null
+}

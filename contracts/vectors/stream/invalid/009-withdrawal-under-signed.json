@@ -1,0 +1,38 @@
+{
+  "contract": "stream",
+  "description": "Single-lab emergency stop.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z",
+    "trust": [
+      "site-a",
+      "site-b",
+      "site-c",
+      "lab-a",
+      "lab-a2",
+      "lab-b",
+      "lab-c",
+      "lab-d"
+    ],
+    "threshold": 2,
+    "channel": "schild-main"
+  },
+  "input_raw": "{\"envelope\":{\"payload\":\"eyJidW5kbGVfaWQiOiJzY2hpbGQtbWFpbiIsImlzc3VlZF9hdCI6IjIwMjYtMTAtMjZUMTE6NTk6MDBaIiwicmVhc29uIjoiZW1lcmdlbmN5X3N0b3AiLCJzY2hlbWEiOiJzY2hpbGQud2l0aGRyYXdhbC8wLjEiLCJzY29wZSI6ImFsbCIsInNlcSI6NCwidXBfdG9fdmVyc2lvbiI6NDJ9\",\"payloadType\":\"application/vnd.schild.withdrawal.v0+json\",\"signatures\":[{\"keyid\":\"test-lab-a\",\"sig\":\"ZVVQsifs6E8skkQI6d2mz+gwpIPKNmHbkg7OuFRC0lUFGzBMrg+w4erRYnBTqPFuf4wmU2My3vt/Gczer6iZBw==\"}]},\"id\":\"r1a-8\",\"type\":\"schild.dist.withdrawal.v1\"}",
+  "input_decoded": {
+    "envelope": {
+      "payload": "eyJidW5kbGVfaWQiOiJzY2hpbGQtbWFpbiIsImlzc3VlZF9hdCI6IjIwMjYtMTAtMjZUMTE6NTk6MDBaIiwicmVhc29uIjoiZW1lcmdlbmN5X3N0b3AiLCJzY2hlbWEiOiJzY2hpbGQud2l0aGRyYXdhbC8wLjEiLCJzY29wZSI6ImFsbCIsInNlcSI6NCwidXBfdG9fdmVyc2lvbiI6NDJ9",
+      "payloadType": "application/vnd.schild.withdrawal.v0+json",
+      "signatures": [
+        {
+          "keyid": "test-lab-a",
+          "sig": "ZVVQsifs6E8skkQI6d2mz+gwpIPKNmHbkg7OuFRC0lUFGzBMrg+w4erRYnBTqPFuf4wmU2My3vt/Gczer6iZBw=="
+        }
+      ]
+    },
+    "id": "r1a-8",
+    "type": "schild.dist.withdrawal.v1"
+  },
+  "expect": {
+    "valid": false,
+    "error": "threshold"
+  }
+}

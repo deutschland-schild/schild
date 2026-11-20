@@ -1,0 +1,97 @@
+package store
+
+import (
+	"context"
+	"database/sql"
+	"net/netip"
+	"time"
+
+	"github.com/deutschland-schild/schild/contract/events"
+)
+
+// D29 amendment (2026-10-29): behaviour blocks over 24 h (7 days for
+// data-centre addresses that come back) are kept here with their expiry and
+// reloaded at start, so a restart never ends them early. Rows are removed
+// when the block ends, is released, the address is deleted (Art. 17) or
+// allowlisted.
+
+const blocksSchema = `
+CREATE TABLE kept_blocks (
+  client_key TEXT PRIMARY KEY,
+  key_bits INTEGER NOT NULL,
+  net_class TEXT NOT NULL,
+  source TEXT NOT NULL,
+  level INTEGER NOT NULL,
+  duration_s INTEGER NOT NULL,
+  since_ms INTEGER NOT NULL,
+  until_ms INTEGER NOT NULL,
+  incident TEXT NOT NULL DEFAULT ''
+);
+`
+
+// PutBlock keeps (or replaces) the block of one client key.
+func (s *Store) PutBlock(ctx context.Context, b events.ActiveBlock) error {
+	since, err := time.Parse(time.RFC3339, b.Since)
+	if err != nil {
+		return err
+	}
+	until, err := time.Parse(time.RFC3339, b.Until)
+	if err != nil {
+		return err
+	}
+	_, err = s.db.ExecContext(ctx, `INSERT OR REPLACE INTO kept_blocks(client_key, key_bits, net_class, source, level, duration_s, since_ms, until_ms, incident)
+VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?)`, b.ClientKey, b.KeyBits, b.NetClass, b.Source, b.Level, b.DurationS, ms(since), ms(until), b.Incident)
+	return err
+}
+
+// DeleteBlock removes the kept block of a client key.
+func (s *Store) DeleteBlock(ctx context.Context, clientKey string) error {
+	_, err := s.db.ExecContext(ctx, `DELETE FROM kept_blocks WHERE client_key = ?`, clientKey)
+	return err
+}
+
+// ListBlocks returns every kept block (also ended ones; the caller drops
+// those).
+func (s *Store) ListBlocks(ctx context.Context) ([]events.ActiveBlock, error) {
+	rows, err := s.db.QueryContext(ctx, `SELECT client_key, key_bits, net_class, source, level, duration_s, since_ms, until_ms, incident FROM kept_blocks ORDER BY until_ms`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var out []events.ActiveBlock
+	for rows.Next() {
+		var b events.ActiveBlock
+		var since, until int64
+		if err := rows.Scan(&b.ClientKey, &b.KeyBits, &b.NetClass, &b.Source, &b.Level, &b.DurationS, &since, &until, &b.Incident); err != nil {
+			return nil, err
+		}
+		b.Since = time.UnixMilli(since).UTC().Format(time.RFC3339)
+		b.Until = time.UnixMilli(until).UTC().Format(time.RFC3339)
+		out = append(out, b)
+	}
+	return out, rows.Err()
+}
+
+// blockKeyOf is the client key of a kept block for ip: the address for
+// IPv4, the first address of the /64 for IPv6.
+func blockKeyOf(ip string) string {
+	a, err := netip.ParseAddr(ip)
+	if err != nil {
+		return ""
+	}
+	a = a.Unmap()
+	if a.Is4() {
+		return a.String()
+	}
+	p, _ := a.WithZone("").Prefix(64)
+	return p.Addr().String()
+}
+
+func deleteBlockTx(ctx context.Context, tx *sql.Tx, ip string) error {
+	k := blockKeyOf(ip)
+	if k == "" {
+		return nil
+	}
+	_, err := tx.ExecContext(ctx, `DELETE FROM kept_blocks WHERE client_key = ?`, k)
+	return err
+}

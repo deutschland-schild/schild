@@ -1,0 +1,20 @@
+# schild.yaml for a gateway that is the ingress (MVP-19, D31): the operator's
+# Caddyfile with the `schild` directive per site; distributed-attack responses
+# after the learning period. Paths are placeholders.
+config_version: 0
+profile: production
+node_name: web-1
+ingress:
+  caddyfile: /etc/caddy/Caddyfile
+  storage: /data/caddy
+  unprotected_sites:
+    - static.example.net
+listen:
+  dashboard: "127.0.0.1:8788"
+
+# The rule repositories: OWASP CRS, CrowdSec Hub virtual patches, own rules.
+# Each has one state: off | detect | block. Nothing is sent to CrowdSec.
+rules:
+  crs: { state: block, paranoia_level: 1 }
+  crowdsec: { state: detect }
+  local: { state: block, dir: /etc/schild/rules.d }

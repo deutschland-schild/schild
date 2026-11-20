@@ -1,0 +1,26 @@
+{
+  "contract": "storage-bounds",
+  "description": "D38: defaults (100 MB cap, metrics.db bound 79 MiB without websites, request ring 512 MB) on a 40 GiB disk with 30 GiB free: ok.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"fs_avail_bytes\":32212254720,\"fs_total_bytes\":42949672960,\"max_size_mb\":100,\"metrics_bound_bytes\":82837504,\"op\":\"disk_budget\",\"requests_max_size_mb\":512,\"schild_used_bytes\":52428800}",
+  "input_decoded": {
+    "fs_avail_bytes": 32212254720,
+    "fs_total_bytes": 42949672960,
+    "max_size_mb": 100,
+    "metrics_bound_bytes": 82837504,
+    "op": "disk_budget",
+    "requests_max_size_mb": 512,
+    "schild_used_bytes": 52428800
+  },
+  "expect": {
+    "valid": true,
+    "result": {
+      "budget_bytes": 869269504,
+      "need_bytes": 816840704,
+      "reserve_bytes": 2147483648,
+      "verdict": "ok"
+    }
+  }
+}

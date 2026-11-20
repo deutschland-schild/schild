@@ -1,0 +1,29 @@
+{
+  "contract": "geo-map",
+  "description": "v0.5 MVP-22: MaxMind GeoLite2 Country and ASN merged.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"provider\":\"maxmind\",\"record\":{\"autonomous_system_number\":64500,\"autonomous_system_organization\":\"Example Kabel\",\"country\":{\"iso_code\":\"AT\"},\"registered_country\":{\"iso_code\":\"DE\"}}}",
+  "input_decoded": {
+    "provider": "maxmind",
+    "record": {
+      "autonomous_system_number": 64500,
+      "autonomous_system_organization": "Example Kabel",
+      "country": {
+        "iso_code": "AT"
+      },
+      "registered_country": {
+        "iso_code": "DE"
+      }
+    }
+  },
+  "expect": {
+    "valid": true,
+    "result": {
+      "as_name": "Example Kabel",
+      "asn": 64500,
+      "country": "AT"
+    }
+  }
+}

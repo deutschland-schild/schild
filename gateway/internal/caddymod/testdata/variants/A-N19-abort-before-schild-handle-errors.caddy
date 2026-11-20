@@ -1,0 +1,14 @@
+# unprotected: []
+# expect: pass
+# abort in a route before schild plus handle_errors proxy (abort raises no handled error). Refusal = over-rejection.
+http://a.example.test:18080 {
+	route {
+		abort /blocked/*
+		schild
+		reverse_proxy 127.0.0.1:18081
+	}
+	handle_errors {
+		import schild
+		reverse_proxy 127.0.0.1:18081
+	}
+}

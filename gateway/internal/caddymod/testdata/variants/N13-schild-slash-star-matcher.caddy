@@ -1,0 +1,8 @@
+# unprotected: []
+# expect: refuse
+# Fix round 2: still refused on purpose. The path matcher /* does not match the request target * (OPTIONS *), so such a request would skip schild.
+# schild with path /* (matches every path in practice). Refusal = over-rejection (minor).
+http://a.example.test:18080 {
+	schild /*
+	reverse_proxy 127.0.0.1:18081
+}

@@ -1,0 +1,28 @@
+{
+  "contract": "geo-map",
+  "description": "v0.5 MVP-22: a residential proxy counts as proxy (MVP-18).",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"provider\":\"maxmind\",\"record\":{\"country\":{\"iso_code\":\"DE\"},\"traits\":{\"is_residential_proxy\":true}}}",
+  "input_decoded": {
+    "provider": "maxmind",
+    "record": {
+      "country": {
+        "iso_code": "DE"
+      },
+      "traits": {
+        "is_residential_proxy": true
+      }
+    }
+  },
+  "expect": {
+    "valid": true,
+    "result": {
+      "asn": null,
+      "country": "DE",
+      "is_proxy": true,
+      "net_class": "proxy"
+    }
+  }
+}

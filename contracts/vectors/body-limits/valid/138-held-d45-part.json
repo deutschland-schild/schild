@@ -1,0 +1,24 @@
+{
+  "contract": "body-limits",
+  "description": "D46: what D45 counted still counts.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"op\":\"held\",\"stat\":{\"anon\":104857600,\"file_dirty\":3145728,\"file_writeback\":4194304,\"sock\":20971520}}",
+  "input_decoded": {
+    "op": "held",
+    "stat": {
+      "anon": 104857600,
+      "file_dirty": 3145728,
+      "file_writeback": 4194304,
+      "sock": 20971520
+    }
+  },
+  "expect": {
+    "valid": true,
+    "result": {
+      "held_bytes": 133169152,
+      "outside_bytes": 28311552
+    }
+  }
+}

@@ -1,0 +1,15 @@
+go 1.27.4
+
+toolchain go1.27.4
+
+// All Go modules. Components import github.com/deutschland-schild/schild/contract;
+// inside this workspace the import resolves to ./contract. Component go.mod
+// files never carry replace directives (see contracts/conventions.md).
+use (
+	./contract
+	./gateway
+	./lab
+	./relay
+	./tests/adversaries
+	./tests/testlab
+)

@@ -1,0 +1,15 @@
+# unprotected: []
+# expect: refuse
+# M18 shape: handle_errors runs schild (original URI) then restores orig_uri; schild must have inspected the original.
+http://a.example.test:18080 {
+	route {
+		rewrite * /hidden?
+		schild
+		error "boom" 500
+	}
+	handle_errors {
+		import schild
+		rewrite * {http.request.orig_uri}
+		reverse_proxy 127.0.0.1:18082
+	}
+}

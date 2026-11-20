@@ -1,0 +1,61 @@
+{
+  "contract": "config/schild",
+  "description": "Every section set explicitly.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"config_version\":0,\"dashboard\":{\"enabled\":true,\"session_ttl_minutes\":720},\"geo\":{\"db_path\":\"/var/lib/schild/geo/geo.mmdb\"},\"ingress\":{\"client_ip_headers\":[\"X-Forwarded-For\"],\"trusted_proxies\":[\"127.0.0.1/32\",\"::1/128\"]},\"listen\":{\"dashboard\":\"127.0.0.1:8788\",\"metrics\":\"127.0.0.1:9101\",\"proxy\":\":8080\"},\"mode\":\"review\",\"node_name\":\"web-1\",\"profile\":\"production\",\"retention\":{\"events_days\":14,\"max_size_mb\":100,\"raw_ip_days\":7,\"summaries_days\":90},\"rules\":{\"crs\":{\"inbound_anomaly_threshold\":5,\"paranoia_level\":1,\"state\":\"block\"}},\"storage\":{\"path\":\"/var/lib/schild\"},\"upstream\":{\"url\":\"http://app:80\"},\"waf\":{\"eval_timeout_ms\":1000,\"request_body_limit_bytes\":13107200}}",
+  "input_decoded": {
+    "config_version": 0,
+    "dashboard": {
+      "enabled": true,
+      "session_ttl_minutes": 720
+    },
+    "geo": {
+      "db_path": "/var/lib/schild/geo/geo.mmdb"
+    },
+    "ingress": {
+      "client_ip_headers": [
+        "X-Forwarded-For"
+      ],
+      "trusted_proxies": [
+        "127.0.0.1/32",
+        "::1/128"
+      ]
+    },
+    "listen": {
+      "dashboard": "127.0.0.1:8788",
+      "metrics": "127.0.0.1:9101",
+      "proxy": ":8080"
+    },
+    "mode": "review",
+    "node_name": "web-1",
+    "profile": "production",
+    "retention": {
+      "events_days": 14,
+      "max_size_mb": 100,
+      "raw_ip_days": 7,
+      "summaries_days": 90
+    },
+    "rules": {
+      "crs": {
+        "inbound_anomaly_threshold": 5,
+        "paranoia_level": 1,
+        "state": "block"
+      }
+    },
+    "storage": {
+      "path": "/var/lib/schild"
+    },
+    "upstream": {
+      "url": "http://app:80"
+    },
+    "waf": {
+      "eval_timeout_ms": 1000,
+      "request_body_limit_bytes": 13107200
+    }
+  },
+  "expect": {
+    "valid": true
+  }
+}
