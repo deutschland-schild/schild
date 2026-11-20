@@ -19,7 +19,7 @@ name: schild
 services:
   schild:
     # A fixed version, never "latest": you decide when to update.
-    image: ${SCHILD_IMAGE:-ghcr.io/deutschland-schild/schild:0.1.0-alpha.1}
+    image: ${SCHILD_IMAGE:-ghcr.io/deutschland-schild/schild:0.1.0-alpha.2}
     restart: unless-stopped
     # Locked down: read-only root file system, no capabilities, no new
     # privileges. schild runs as an unprivileged user (65532) and writes only

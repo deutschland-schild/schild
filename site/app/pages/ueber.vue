@@ -70,6 +70,9 @@ const fmt = (d: string) => new Date(`${d}T00:00:00Z`).toLocaleDateString('de-DE'
             <ul class="mt-2 max-w-3xl space-y-1.5 text-sm leading-relaxed text-slate">
               <li v-for="i in e.items" :key="i">{{ i }}</li>
             </ul>
+            <p v-if="e.link" class="mt-2 text-sm">
+              <a :href="e.link.href" target="_blank" rel="noopener" class="font-semibold text-link hover:underline">{{ e.link.label }}</a>
+            </p>
           </li>
         </ol>
       </div>
