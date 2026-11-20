@@ -88,6 +88,10 @@ jobs:
         run: |
           gateway/deploy/release/tarball.sh 0.0.0-ci amd64 "$RUNNER_TEMP/dist" --build-arg GEO=fixture
           tar -tzf "$RUNNER_TEMP/dist/schild_0.0.0-ci_linux_amd64.tar.gz"
+      - name: Debian package, apt repository (TEST ONLY key) and installer on Debian 12, 13, Ubuntu 22.04, 24.04
+        run: |
+          shellcheck gateway/deploy/release/*.sh gateway/deploy/release/pkgtest/steps.sh gateway/deploy/release/deb/*
+          gateway/deploy/release/pkgtest.sh "$RUNNER_TEMP/dist/schild_0.0.0-ci_linux_amd64.tar.gz"
 
   dashboards:
     name: dashboards

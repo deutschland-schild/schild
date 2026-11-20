@@ -14,6 +14,9 @@
 #   make gateway-smoke       the quickstart (deploy/quickstart) against schild:$(TAG): hardened start, health,
 #                           dashboard on 127.0.0.1:8788 (needs the host ports 8080 and 8788)
 #   make gateway-tarball     the release tarball of the builder's platform into bin/ (as the release workflow builds it)
+#   make gateway-deb         the Debian package of that tarball into bin/ (needs make gateway-tarball first)
+#   make gateway-pkgtest     package, apt repository (TEST ONLY key) and installer in containers of Debian 12 and 13,
+#                           Ubuntu 22.04 and 24.04: install, upgrade, changed signature, channel, remove, purge
 #   make gateway-geo-pin     print the sha256 of DB-IP Lite GEO_MONTH=YYYY-MM for the pins in gateway/Dockerfile
 #   make gateway-agent       bin/schild-agent only (GOOS/GOARCH as usual, e.g. GOOS=linux GOARCH=arm64)
 #   make gateway-agent-deps  prove schild-agent links no Caddy, Coraza, WAF or dashboard (go list -deps)
@@ -31,7 +34,7 @@ GATEWAY_GEO ?= fixture
 # a remote or docker-container builder). Empty: docker's default.
 GATEWAY_BUILDER ?= $(BUILDX_BUILDER)
 
-.PHONY: gateway-smoke gateway-tarball gateway-geo-pin
+.PHONY: gateway-smoke gateway-tarball gateway-deb gateway-pkgtest gateway-geo-pin
 .PHONY: gateway-test gateway-race gateway-bench gateway-coraza gateway-run gateway-image gateway-agent gateway-agent-deps gateway-bot-snapshot bot-snapshot gateway-crowdsec-snapshot crowdsec-snapshot
 
 gateway-test:
@@ -75,6 +78,12 @@ gateway-smoke:
 
 gateway-tarball:
 	$(if $(GATEWAY_BUILDER),BUILDX_BUILDER=$(GATEWAY_BUILDER) )gateway/deploy/release/tarball.sh $(VERSION) $$($(DOCKER) version -f '{{.Server.Arch}}') $(BIN_DIR) --build-arg GEO=$(GATEWAY_GEO)
+
+gateway-deb:
+	arch=$$($(DOCKER) version -f '{{.Server.Arch}}'); gateway/deploy/release/deb.sh $(VERSION) $$arch $(BIN_DIR)/schild_$(VERSION)_linux_$$arch.tar.gz $(BIN_DIR)
+
+gateway-pkgtest:
+	arch=$$($(DOCKER) version -f '{{.Server.Arch}}'); PKGTEST_TMPDIR=$${PKGTEST_TMPDIR:-$(CURDIR)/$(BIN_DIR)} gateway/deploy/release/pkgtest.sh $(BIN_DIR)/schild_$(VERSION)_linux_$$arch.tar.gz
 
 GEO_MONTH ?=
 gateway-geo-pin:

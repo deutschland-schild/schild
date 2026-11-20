@@ -3,7 +3,10 @@ name: Release
 # A tag v<version> (e.g. v0.1.0-alpha.1) publishes the Schild Gateway:
 #   - ghcr.io/deutschland-schild/schild:<version> for linux/amd64 and linux/arm64, signed with cosign (keyless),
 #     with SBOM and build provenance; `latest` only for versions without a pre-release suffix
-#   - a GitHub release with schild_<version>_linux_{amd64,arm64}.tar.gz and checksums.txt
+#   - a GitHub release with schild_<version>_linux_{amd64,arm64}.tar.gz, the Debian packages
+#     schild_<version>_linux_{amd64,arm64}.deb and checksums.txt
+#   - with the repository variable PACKAGES_ENABLED=true: the signed apt repository on GitHub Pages, rebuilt from
+#     the packages of the releases (jobs repository and pages)
 # Both come from gateway/Dockerfile (release build, dashboard built in the image, DB-IP data checked by sha256),
 # each architecture on its own runner. Nothing is pushed before the image passed the quickstart smoke test.
 # Checklist for the maintainer: docs/ops/release.md.
@@ -166,6 +169,10 @@ jobs:
             echo "::error::The binary in the tarball reports \"$got\"."
             exit 1
           fi
+      - name: Debian package (the files of the tarball), tested before anything is pushed
+        run: |
+          gateway/deploy/release/deb.sh "$VERSION" "$ARCH" "$RUNNER_TEMP/dist/schild_${VERSION}_linux_${ARCH}.tar.gz" "$RUNNER_TEMP/dist"
+          gateway/deploy/release/pkgtest.sh "$RUNNER_TEMP/dist/schild_${VERSION}_linux_${ARCH}.tar.gz"
       - name: Log in to ghcr.io
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -197,7 +204,9 @@ jobs:
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: tarball-${{ matrix.arch }}
-          path: ${{ runner.temp }}/dist/*.tar.gz
+          path: |
+            ${{ runner.temp }}/dist/*.tar.gz
+            ${{ runner.temp }}/dist/*.deb
           if-no-files-found: error
           retention-days: 7
 
@@ -289,8 +298,12 @@ jobs:
       - name: checksums.txt
         working-directory: dist
         run: |
-          for arch in amd64 arm64; do test -s "schild_${VERSION}_linux_${arch}.tar.gz"; done
-          sha256sum "schild_${VERSION}_linux_amd64.tar.gz" "schild_${VERSION}_linux_arm64.tar.gz" > checksums.txt
+          for arch in amd64 arm64; do
+            test -s "schild_${VERSION}_linux_${arch}.tar.gz"
+            test -s "schild_${VERSION}_linux_${arch}.deb"
+          done
+          sha256sum "schild_${VERSION}_linux_amd64.tar.gz" "schild_${VERSION}_linux_arm64.tar.gz" \
+            "schild_${VERSION}_linux_amd64.deb" "schild_${VERSION}_linux_arm64.deb" > checksums.txt
           cat checksums.txt
       - uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
         with:
@@ -308,6 +321,7 @@ jobs:
             echo
             echo "- Image: \`${IMAGE}:${VERSION}\` (linux/amd64, linux/arm64), digest \`${DIGEST}\`"
             echo "- Binaries: \`schild_${VERSION}_linux_amd64.tar.gz\`, \`schild_${VERSION}_linux_arm64.tar.gz\`, sha256 in \`checksums.txt\`"
+            echo "- Debian and Ubuntu packages: \`schild_${VERSION}_linux_amd64.deb\`, \`schild_${VERSION}_linux_arm64.deb\`, sha256 in \`checksums.txt\`"
             echo
             echo "Verify:"
             echo
@@ -325,4 +339,94 @@ jobs:
           gh release create "$TAG" "${flags[@]}" \
             "dist/schild_${VERSION}_linux_amd64.tar.gz" \
             "dist/schild_${VERSION}_linux_arm64.tar.gz" \
+            "dist/schild_${VERSION}_linux_amd64.deb" \
+            "dist/schild_${VERSION}_linux_arm64.deb" \
             dist/checksums.txt
+
+  # The apt repository is a function of the releases: the packages of the newest releases, the index files and one
+  # signature. Nothing is kept between runs. Off until the maintainer has set it up (docs/ops/release.md).
+  repository:
+    name: repository
+    needs: [check, release]
+    if: vars.PACKAGES_ENABLED == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    # Holds the signing key; a reviewer has to approve every run.
+    environment: packages
+    permissions:
+      contents: read
+      # gh attestation verify reads the attestations of the packages.
+      attestations: read
+    env:
+      VERSION: ${{ needs.check.outputs.version }}
+      # Releases kept in the repository; older packages stay on their release.
+      KEEP: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Packages of the newest releases, checked against their attestation
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          debs="$RUNNER_TEMP/debs"
+          mkdir "$debs"
+          kept=0
+          stable=false
+          while IFS=$'\t' read -r tag prerelease; do
+            # Beyond KEEP only the newest release without a pre-release suffix is still taken.
+            if [ "$kept" -ge "$KEEP" ] && { [ "$prerelease" = true ] || [ "$stable" = true ]; }; then continue; fi
+            one=$(mktemp -d -p "$RUNNER_TEMP")
+            gh release download "$tag" --pattern '*.deb' --dir "$one" || true
+            found=false
+            for deb in "$one"/*.deb; do
+              [ -e "$deb" ] || continue
+              gh attestation verify "$deb" --repo "$GH_REPO" >/dev/null
+              mv "$deb" "$debs/"
+              found=true
+            done
+            if [ "$found" = true ]; then
+              kept=$((kept + 1))
+              if [ "$prerelease" = false ]; then stable=true; fi
+            fi
+          done < <(gh release list --limit 100 --exclude-drafts --json tagName,isPrerelease --jq '.[] | [.tagName, .isPrerelease] | @tsv')
+          ls -l "$debs"
+          test -s "$debs/schild_${VERSION}_linux_amd64.deb"
+          test -s "$debs/schild_${VERSION}_linux_arm64.deb"
+      - name: Sign and build the repository
+        env:
+          APT_SIGNING_KEY: ${{ secrets.APT_SIGNING_KEY }}
+          SCHILD_REPO_PASSPHRASE: ${{ secrets.APT_SIGNING_PASSPHRASE }}
+        run: |
+          sudo apt-get install -y -qq apt-utils gnupg >/dev/null
+          export GNUPGHOME="$RUNNER_TEMP/gnupg"
+          mkdir -m 0700 "$GNUPGHOME"
+          fingerprint() { gpg --batch --show-keys --with-colons "$1" | awk -F: '$1 == "fpr" { print $10; exit }'; }
+          # The public key in the repository is the one users are told to trust; the secret has to belong to it.
+          want=$(fingerprint gateway/deploy/release/apt/archive-key.asc)
+          gpg --batch --quiet --import <<<"$APT_SIGNING_KEY"
+          SCHILD_REPO_KEY=$want gateway/deploy/release/repo.sh "$RUNNER_TEMP/site" "$RUNNER_TEMP/debs"/*.deb
+          if [ "$(fingerprint "$RUNNER_TEMP/site/key.asc")" != "$want" ]; then
+            echo "::error::The published key is not gateway/deploy/release/apt/archive-key.asc."
+            exit 1
+          fi
+          gpgconf --kill gpg-agent
+      - uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
+        with:
+          path: ${{ runner.temp }}/site
+
+  pages:
+    name: pages
+    needs: repository
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    permissions:
+      pages: write
+      id-token: write
+    steps:
+      - uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346 # v5.0.1
+        id: deploy

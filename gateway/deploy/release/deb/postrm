@@ -1,0 +1,22 @@
+#!/bin/sh
+# schild: after removal. "remove" keeps /etc/schild and /var/lib/schild
+# (settings, database, the copy of the certificates). "purge" deletes both;
+# the user "schild" stays, as files elsewhere may still belong to it.
+set -e
+
+case "$1" in
+remove)
+	if [ -d /run/systemd/system ]; then
+		systemctl daemon-reload >/dev/null 2>&1 || true
+	fi
+	;;
+purge)
+	rm -rf /etc/schild /var/lib/schild
+	rm -rf /etc/systemd/system/schild.service.d /etc/systemd/system/schild-firewall.service.d
+	if [ -d /run/systemd/system ]; then
+		systemctl daemon-reload >/dev/null 2>&1 || true
+	fi
+	;;
+esac
+
+exit 0

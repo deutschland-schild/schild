@@ -1,0 +1,78 @@
+id: MVP-31
+# Direction given by the initiator 2026-11-20: installing and updating should be as short as with other tools that
+# ship an apt repository and an installer script. Decided there: a Debian package, an own apt repository, an
+# installer script next to the steps by hand, the domain pkg.deutschland-schild.de. No DECISIONS entry yet; the
+# points under `open` are the initiator's.
+# Checked against the code of 2026-11-20:
+# - the binary is static (modernc.org/sqlite, no cgo), so one package per architecture serves every release.
+# - schild.service has ConditionPathExists=/etc/schild/schild.yaml: an installed unit starts nothing before
+#   `schild init` has run.
+# - no Go code names the path of the binary; the units, the docs and two dashboard hints name /usr/local/bin/schild.
+# - a restart is a gap on ports 80 and 443 when schild runs as the Caddy of the host, and it runs the store
+#   migration (D75). Blocks up to 24 hours live in memory and end with it.
+title: "Debian and Ubuntu packages: schild from an own signed apt repository, installed in one step and updated with apt, without a restart the admin did not ask for"
+ships: false                        # built and tested in containers; no key, no domain, nothing published yet
+status: ENTWURF
+image: schild                       # same binary as the image and the tarball
+hypotheses: [D3]
+refs: [MVP-19, DECISIONS-D75, DECISIONS-D78, DECISIONS-D79]
+depends_on: [MVP-19]
+why: >-
+  The way without Docker takes about ten commands until `schild init`, and every update repeats most of them by
+  hand. Servers that run Caddy from the distribution package are the main case of the Caddy swap, and their admins
+  update with apt. A package cuts the install to one step and makes an update the command they already use.
+package:
+  name: 'schild, one per architecture (amd64, arm64), built from the files of the release tarball (deploy/release/deb.sh)'
+  version: 'a pre-release 0.1.0-alpha.1 is 0.1.0~alpha.1 inside the package, so apt sorts it before 0.1.0; the file keeps the tag version: schild_<version>_linux_<arch>.deb'
+  files:
+    - '/usr/bin/schild'
+    - '/usr/lib/systemd/system/schild.service and schild-firewall.service, with ExecStart=/usr/bin/schild'
+    - '/usr/share/schild/geo/ (DB-IP Lite with its attribution)'
+    - '/usr/share/doc/schild/: copyright, NOTICE, THIRD_PARTY_LICENSES'
+  install: 'creates the system user and group schild and /var/lib/schild (schild:schild, 0750); enables and starts nothing; prints the two `schild init` commands'
+  upgrade: 'replaces the files and never restarts: when the service runs it says that the running process is the old version and names `sudo systemctl restart schild`'
+  remove: 'stops and disables both units; /etc/schild and /var/lib/schild stay'
+  purge: 'deletes /etc/schild, /var/lib/schild and drop-ins of the two units; the user schild stays'
+  never: 'no Conflicts with caddy (both stay installed, that is the way back); no change to a Caddyfile; no conffile (schild.yaml is written by `schild init`)'
+repository:
+  layout: 'static files: apt/pool, apt/dists/<channel>, key.asc, install.sh (deploy/release/repo.sh)'
+  channels: 'alpha holds every version; stable holds versions without a pre-release suffix and exists empty before the first one'
+  source: 'a function of the GitHub releases: each release run rebuilds it from the packages of the newest 5 releases plus the newest stable one; older packages stay on their release'
+  hosting: 'GitHub Pages of this repository under pkg.deutschland-schild.de, deployed by GitHub-owned actions; the own domain keeps the place exchangeable'
+  client: 'a deb822 source with Signed-By and the key in /etc/apt/keyrings; never apt-key, never a key trusted for other repositories'
+installer:
+  - 'deploy/release/install.sh, served next to the repository: `curl -fsSL https://pkg.deutschland-schild.de/install.sh | sudo sh -s -- alpha`'
+  - 'it writes the key and the source, runs apt-get update and apt-get install schild, and nothing else'
+  - 'the same three steps by hand stand before it in the docs'
+  - 'it refuses another system than apt, another architecture than amd64 and arm64, an unknown channel, and names alpha when stable is still empty'
+security:
+  - 'one new secret: the signing key. Primary key offline with the maintainer; a signing subkey with an expiry and its passphrase as the secrets APT_SIGNING_KEY and APT_SIGNING_PASSPHRASE of the environment `packages`, which needs a reviewer for every run and takes release tags only'
+  - 'the public key is a file in this repository (deploy/release/apt/archive-key.asc); the release run refuses a secret that does not belong to it'
+  - 'a key whose name says TEST ONLY never signs a published repository (repo.sh refuses it without SCHILD_REPO_TEST=1)'
+  - 'the release run takes a package into the repository only after `gh attestation verify` passed for it: a file swapped on a release does not reach apt'
+  - 'the packages are in checksums.txt and carry the same build provenance as the tarballs'
+  - 'the repository job is off until the repository variable PACKAGES_ENABLED is true'
+open:                               # the initiator decides
+  - 'restart on upgrade: off in this spec. A switch for single servers once a restart leaves no gap (socket activation); never in an HA group (MVP-27), where the deployment updates node by node'
+  - 'Valid-Until in the Release file: without it a mirror can serve an old signed state forever; with it the repository has to be signed again on a schedule, also without a release'
+  - 'the two dashboard hints still name /usr/local/bin/schild; with the package it is /usr/bin/schild and plain `sudo schild` works'
+  - 'the public docs (docs/gateway/00-installieren.md, 02-betrieb.md "Aktualisieren", the planned list in 01-funktionen.md) change with the first release that carries packages, not before'
+  - 'dnf and rpm: not in this spec'
+must:
+  - 'on Debian 12 and 13 and Ubuntu 22.04 and 24.04, amd64 and arm64, the installer ends with schild installed and nothing running'
+  - 'an install or upgrade never starts, restarts, enables or stops the service, and never changes /etc/schild or /var/lib/schild'
+  - 'apt sorts every pre-release before its release; the stable channel never offers a pre-release'
+  - 'apt refuses a repository whose signed index was changed'
+  - 'the binary in the package is the file of the tarball of the same release'
+  - 'a release without the repository set up publishes exactly what it published before, plus the two package files'
+measure:                            # by an independent agent, not the builder
+  - 'test lab host with systemd and a Caddy from the distribution package: installer, `schild init -caddyfile`, the swap as the docs write it, then an upgrade through apt while requests run: count failed requests and confirm the running process is the old binary until the restart'
+  - 'the same host: `systemd-analyze verify` of both packaged units, and `schild ingress validate` as the user schild'
+  - 'remove and purge on that host: what is left on disk, and that Caddy starts again as the way back describes'
+  - 'a repository built by the release workflow in a fork with a test key: the installer against it from all four releases'
+kill_if: "proposal for the initiator: an install or an upgrade through apt changes what answers on ports 80 and 443 without a command of the admin OR apt installs a package whose signature or attestation does not hold"
+done: "make gateway-tarball VERSION=0.1.0-alpha.1 && make gateway-pkgtest VERSION=0.1.0-alpha.1"
+out_of_scope:
+  - 'zero-downtime restart and a config reload without a restart: specs of their own'
+  - 'rpm packages, a Homebrew tap, a snap'
+  - 'unattended upgrades: the docs say what apt does by default, the package configures nothing'

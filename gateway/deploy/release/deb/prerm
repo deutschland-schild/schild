@@ -1,0 +1,15 @@
+#!/bin/sh
+# schild: before removal. An upgrade leaves the running service alone; a
+# removal stops and disables both units.
+set -e
+
+case "$1" in
+remove)
+	if [ -d /run/systemd/system ]; then
+		systemctl disable --now schild-firewall.service >/dev/null 2>&1 || true
+		systemctl disable --now schild.service >/dev/null 2>&1 || true
+	fi
+	;;
+esac
+
+exit 0
