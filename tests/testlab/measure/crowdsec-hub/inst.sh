@@ -87,7 +87,7 @@ EOF
   wait_ready ${P}88 || { echo "not ready"; tail -3 "$D/schild-1.log"; exit 1; }
   CODE=$(grep -ho '"setup_code":"[^"]*"' "$D"/schild-*.log | tail -1 | cut -d'"' -f4)
   curl -s -o /dev/null -c "$D/cj" -X POST -H 'Content-Type: application/json' -d "{\"password\":\"$PW\",\"setup_code\":\"$CODE\"}" http://127.0.0.1:${P}88/api/v0/auth/setup
-  curl -s -b "$D/cj" http://127.0.0.1:${P}88/api/v0/auth/session | python3 -c 'import json,sys;print(json.load(sys.stdin)["csrf_token"])' > "$D/csrf"
+  python3 -c 'import json,sys;print(json.load(sys.stdin)["csrf_token"])' <<<"$(curl -s -b "$D/cj" http://127.0.0.1:${P}88/api/v0/auth/session)" > "$D/csrf"
   echo "instance $NAME up, schild $(cat "$D/schild.pid"), ports ${P}xx"
   ;;
 restart)
@@ -95,7 +95,7 @@ restart)
   stop_pid "$D/schild.pid"
   run_schild "$D" "$D/schild-r$(date +%s).log"
   wait_ready ${P}88 || { echo "not ready"; exit 1; }
-  curl -s -b "$D/cj" http://127.0.0.1:${P}88/api/v0/auth/session | python3 -c 'import json,sys;print(json.load(sys.stdin).get("csrf_token",""))' > "$D/csrf"
+  python3 -c 'import json,sys;print(json.load(sys.stdin).get("csrf_token",""))' <<<"$(curl -s -b "$D/cj" http://127.0.0.1:${P}88/api/v0/auth/session)" > "$D/csrf"
   ;;
 stop)
   D=/tmp/m26/i/$2

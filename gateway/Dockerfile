@@ -64,8 +64,10 @@ COPY dashboard/apps/client-dashboard/package.json apps/client-dashboard/
 COPY dashboard/apps/lab-dashboard/package.json apps/lab-dashboard/
 COPY dashboard/packages/app-kit/package.json packages/app-kit/
 COPY dashboard/packages/ui/package.json packages/ui/
-# pnpm in the version package.json names (packageManager).
-RUN npm install -g --no-fund --no-audit "$(node -p 'require("./package.json").packageManager')" \
+# pnpm in the version package.json names (packageManager), fetched by corepack, which checks the npm registry
+# signature.
+ENV COREPACK_ENABLE_DOWNLOAD_PROMPT=0
+RUN corepack enable pnpm \
  && pnpm install --frozen-lockfile --filter '@schild/client-dashboard...'
 COPY dashboard/ ./
 RUN pnpm --filter @schild/client-dashboard build \

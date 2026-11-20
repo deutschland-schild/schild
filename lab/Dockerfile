@@ -8,7 +8,7 @@
 # Mount /etc/schild-lab (lab.yaml, keys/, tls/) read-only and a volume on /var/lib/schild-lab.
 
 ARG GO_IMAGE=golang:1.27.4-alpine@sha256:70bd7ddea8b6cbe5d6943cde279d6b67feb10cc924fb9100d1d8757c1575b280
-ARG RUN_IMAGE=gcr.io/distroless/static-debian13:nonroot
+ARG RUN_IMAGE=gcr.io/distroless/static-debian13:nonroot@sha256:aafe993665bf6200db38a02c11a9351e782a84b6a45e7f33b6695638c88e3931
 
 FROM ${GO_IMAGE} AS build
 ARG TAGS=

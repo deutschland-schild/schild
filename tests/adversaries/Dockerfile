@@ -12,7 +12,7 @@ COPY relay/go.mod relay/go.mod
 COPY tests/testlab/go.mod tests/testlab/go.mod
 RUN cd tests/adversaries && CGO_ENABLED=0 go build -trimpath -o /out/ ./cmd/...
 
-FROM gcr.io/distroless/static-debian13:nonroot
+FROM gcr.io/distroless/static-debian13:nonroot@sha256:aafe993665bf6200db38a02c11a9351e782a84b6a45e7f33b6695638c88e3931
 COPY --from=build /out/ /usr/local/bin/
 # Default entrypoint is the scenario runner; compose overrides the command for
 # the misbehaving lab and the Sybil tool.

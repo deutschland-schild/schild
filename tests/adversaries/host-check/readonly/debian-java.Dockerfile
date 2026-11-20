@@ -2,7 +2,7 @@
 # manager (like a tarball JDK under /opt, linked into /usr/local/bin), so the
 # check runs `java -version`; plus PHP, Node, Python; warm apt lists, docker
 # apt tweaks removed like on a VM, /tmp empty.
-FROM debian:12
+FROM debian:12@sha256:268fb24c39bca92d326dd83ea3abebe4a3f7751c804ffef23bb6d857dd343ff8
 ENV DEBIAN_FRONTEND=noninteractive
 RUN rm -f /etc/apt/apt.conf.d/docker-clean /etc/apt/apt.conf.d/docker-gzip-indexes && \
     apt-get update && \
