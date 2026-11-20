@@ -3,7 +3,7 @@
 Checklist for maintainers. A tag `v<version>` on `main` starts [.github/workflows/release.yml](../../.github/workflows/release.yml), which publishes:
 
 - `ghcr.io/deutschland-schild/schild:<version>` (linux/amd64, linux/arm64; `latest` only without a pre-release suffix), signed with cosign, with SBOM and provenance
-- a GitHub release with `schild_<version>_linux_amd64.tar.gz`, `schild_<version>_linux_arm64.tar.gz`, the Debian packages `schild_<version>_linux_amd64.deb` and `schild_<version>_linux_arm64.deb`, and `checksums.txt` (marked pre-release for `-alpha.N`, `-beta.N`, `-rc.N`)
+- a GitHub release with `schild_<version>_linux_amd64.tar.gz`, `schild_<version>_linux_arm64.tar.gz`, the Debian packages `schild_<version>_linux_amd64.deb` and `schild_<version>_linux_arm64.deb`, `checksums.txt` with its cosign signature `checksums.txt.sigstore.json` (keyless), and the build provenance as a Sigstore bundle `provenance.sigstore.json` (marked pre-release for `-alpha.N`, `-beta.N`, `-rc.N`)
 - the apt repository on GitHub Pages, once it is set up ([below](#once-for-the-apt-repository)); until then the jobs `repository` and `pages` are skipped
 
 Nothing else publishes: local builds are test images.

@@ -32,7 +32,7 @@ Quellcode und Releases liegen auf GitHub: [github.com/deutschland-schild/schild]
 | **Binary mit systemd** | andere Linux-Server ohne Docker | ein Archiv mit dem Binary `schild`, den systemd-Units `schild.service` und `schild-firewall.service`, den Geodaten für die Länderanzeige (`geo/`), einer kurzen `README.txt` und den Lizenztexten (`LICENSE`, `NOTICE`, `THIRD_PARTY_LICENSES`) |
 | **Docker Compose** | Entwicklungsrechner und Setups, die schon mit Compose laufen | zwei Dateien aus `gateway/deploy/quickstart/`: `compose.yaml` und `schild.yaml`. Die Fassung für den Wechsel von Caddy liegt in `gateway/deploy/quickstart/caddy/` |
 
-Das Image ist mit cosign signiert und bringt eine Stückliste (SBOM) mit. Für die Archive und Pakete hängen die Prüfsummen am Release (`checksums.txt`, SHA-256). Das apt-Repository ist signiert, apt prüft das bei jedem Abruf. Zu Image, Archiven und Paketen gibt es einen signierten Herkunftsnachweis, den `gh attestation verify` prüft. Wie du Signatur und Nachweis prüfst, steht in den Hinweisen zum [Release](https://github.com/deutschland-schild/schild/releases).
+Das Image ist mit cosign signiert und bringt eine Stückliste (SBOM) mit. Für die Archive und Pakete hängen die Prüfsummen am Release (`checksums.txt`, SHA-256), mit cosign signiert (`checksums.txt.sigstore.json`). Das apt-Repository ist signiert, apt prüft das bei jedem Abruf. Zu Image, Archiven und Paketen gibt es einen signierten Herkunftsnachweis, den `gh attestation verify` prüft. Wie du Signatur und Nachweis prüfst, steht in den Hinweisen zum [Release](https://github.com/deutschland-schild/schild/releases).
 
 Pakete für dnf gibt es noch nicht, sie sind [geplant](01-funktionen.md#geplant-noch-nicht-gebaut).
 

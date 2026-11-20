@@ -134,5 +134,8 @@ Check and stop
 Verify the download
 -------------------
 
+  cosign verify-blob --bundle checksums.txt.sigstore.json \
+    --certificate-identity-regexp '^https://github.com/deutschland-schild/schild/.github/workflows/release.yml@refs/tags/v' \
+    --certificate-oidc-issuer https://token.actions.githubusercontent.com checksums.txt
   sha256sum -c --ignore-missing checksums.txt
   gh attestation verify schild_*_linux_*.tar.gz --repo deutschland-schild/schild
