@@ -170,7 +170,7 @@ const faqMore = [
             Die kostenlose Firewall für deine Website.
           </h1>
           <p class="mx-auto mt-5 max-w-2xl text-lg leading-relaxed text-pretty text-slate sm:text-xl">
-            Open Source auf deinem eigenen Server: Schild prüft jede Anfrage vor deiner Anwendung und zeigt dir im Dashboard, was auf deinen Websites los ist. Dein Traffic bleibt bei dir.
+            Open Source auf deinem eigenen Server: Schild prüft jede Anfrage vor deiner Anwendung und zeigt dir im Dashboard, was auf deinen Websites los ist. Deine Daten bleiben bei dir.
           </p>
           <div class="mt-7">
             <NuxtLink to="#installieren" class="btn-primary">Schild Gateway installieren</NuxtLink>
