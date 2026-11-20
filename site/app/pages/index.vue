@@ -19,27 +19,26 @@ const whyNow = [
 
 // Two figures with sources, shown with the comparison.
 const figures = [
-  { figure: '+71 %', text: 'mehr tatsächlich ausgenutzte Lücken pro Monat (2026 gegenüber 2025)', src: 'https://cloud.google.com/blog/topics/threat-intelligence/vulnerability-discovery-and-exploitation-trends-in-the-ai-era' },
-  { figure: '1 von 3', text: 'PHP-Websites läuft auf PHP 7 oder älter, ohne Sicherheitsupdates', src: 'https://w3techs.com/technologies/details/pl-php' },
+  { figure: '+71 %', text: 'mehr tatsächlich ausgenutzte Lücken pro Monat (Januar bis August 2026 gegenüber 2025)', src: 'https://cloud.google.com/blog/topics/threat-intelligence/vulnerability-discovery-and-exploitation-trends-in-the-ai-era' },
+  { figure: '1 von 3', text: 'PHP-Websites läuft auf PHP 7 oder älter, ohne Sicherheitsupdates vom PHP-Projekt', src: 'https://w3techs.com/technologies/details/pl-php' },
 ]
 
 // Comparison columns: fail2ban, CrowdSec, Cloudflare WAF, Schild. Fair; claims about others link to `compareSources`.
+// The Schild column names only what the released gateway does (D72): no planned parts.
 const compare = [
-  ['Läuft', 'auf deinem Server', 'auf deinem Server (Engine, Bouncer), dazu der zentrale Dienst der Firma', 'beim Anbieter: dein Traffic läuft über ihn, DNS zieht um', 'auf deinem Server, vor deiner Anwendung'],
-  ['Sieht', 'Logzeilen, nachträglich', 'Logzeilen; mit der AppSec-Komponente auch Anfragen', 'jede Anfrage, entschlüsselt beim Anbieter', 'jede Anfrage samt Inhalt, nur auf deinem Server'],
-  ['Teilt', 'nichts', 'angreifende IP-Adressen an die Firma', 'nichts extra, der Traffic läuft ohnehin über den Anbieter', 'nichts aus deinem Traffic; mit Labs (geplant) nur IP-freie Muster'],
-  ['Bekommt aus dem Netz', 'nichts', 'IP-Blocklisten (gratis nur eine kleine), virtuelle Patches aus dem Hub der Firma (AppSec)', 'gratis nur der kleine Free Managed Ruleset; Cloudflare Managed Ruleset und OWASP Core Rule Set ab Pro', 'öffentliche CrowdSec-Regeln; mit Labs (geplant) auch geprüfte virtuelle Patches'],
-  ['Selbst anpassen', 'ja, Konfigurationsdateien', 'ja, Szenarien und Regeln (YAML)', 'gratis nur 5 eigene Regeln, ohne Regex (Regex ab Business)', 'ja, eigene lokale Regeln'],
-  ['Wer entscheidet', 'du', 'die Firma', 'der Anbieter', 'du; bei Regeln aus dem Netz (geplant) mehrere unabhängige Labs'],
-  ['Kosten', 'frei', 'kommerzielle Firma; Software und virtuelle Patches frei, volle IP-Blocklisten gegen Daten oder Geld', 'kommerzielle Firma; gratis nur ein Teil der Regeln, voller Satz ab Pro-Tarif', 'kostenlos für alle, gemeinnützig'],
-  ['Sitz', 'Open-Source-Projekt, keine Firma', 'Frankreich (FR)', 'USA (US), CLOUD Act', 'Deutschland (DE)'],
+  ['Läuft', 'auf deinem Server', 'auf deinem Server, ab Werk verbunden mit dem Dienst der Firma', 'beim Anbieter, dein Traffic läuft über ihn', 'auf deinem Server, vor deiner Anwendung'],
+  ['Prüft', 'Logzeilen, nach der Anfrage', 'Logzeilen; mit der AppSec-Komponente auch die Anfrage', 'jede Anfrage, beim Anbieter entschlüsselt', 'jede Anfrage, bevor sie deine Anwendung erreicht'],
+  ['Verlässt den Server', 'ab Werk nichts', 'ab Werk Meldungen mit angreifender IP-Adresse, Szenario und Zeit; abschaltbar', 'der gesamte Traffic', 'nichts aus deinem Traffic'],
+  ['Regeln von außen', 'keine', 'IP-Blocklisten (gratis 3.000 bis 15.000 Adressen) und virtuelle Patches aus dem Hub', 'im Free-Tarif das Free Managed Ruleset; der volle Satz und das OWASP Core Ruleset ab Pro', 'OWASP Core Rule Set eingebaut; dazu virtuelle Patches aus dem öffentlichen CrowdSec Hub, ab Werk auf „Erkennen“'],
+  ['Selbst anpassen', 'Konfigurationsdateien', 'Szenarien und Regeln (YAML)', 'im Free-Tarif 5 eigene Regeln, Regex ab Business', 'eigene Regeln als Datei; Ausnahmen, Schwellen und Limits im Dashboard'],
 ]
 const compareSources = [
+  ['fail2ban, Projektseite', 'https://github.com/fail2ban/fail2ban'],
   ['CrowdSec Docs, AppSec-Komponente', 'https://docs.crowdsec.net/docs/next/appsec/intro'],
   ['CrowdSec Hub, AppSec-Regeln (vpatch-*)', 'https://github.com/crowdsecurity/hub/tree/master/appsec-rules/crowdsecurity'],
-  ['CrowdSec-Blog, virtuelle Patches frei, Blocklist kostenpflichtig', 'https://www.crowdsec.net/blog/php2shell-virtual-patching'],
   ['CrowdSec Docs, Central API (was die Engine sendet)', 'https://docs.crowdsec.net/docs/next/central_api/intro'],
   ['CrowdSec Docs, Community Blocklist (Lite und Community)', 'https://docs.crowdsec.net/docs/next/central_api/community_blocklist'],
+  ['Cloudflare Docs, wie Cloudflare arbeitet (Proxy)', 'https://developers.cloudflare.com/fundamentals/concepts/how-cloudflare-works/'],
   ['Cloudflare Docs, Managed Rules (voller Managed Ruleset ab Pro-Tarif)', 'https://developers.cloudflare.com/waf/managed-rules/'],
   ['Cloudflare Docs, Custom Rules (Limits je Tarif)', 'https://developers.cloudflare.com/waf/custom-rules/'],
 ]
@@ -332,8 +331,8 @@ const faqMore = [
         <h2 id="cmp-title" class="text-2xl font-bold tracking-tight sm:text-3xl">Warum Schild, und warum nicht fail2ban, CrowdSec oder Cloudflare?</h2>
         <div class="mt-3 grid gap-10 lg:grid-cols-[1.2fr_0.8fr]">
           <p class="max-w-2xl leading-relaxed text-slate">
-            fail2ban liest Logs erst nachträglich. CrowdSec teilt IP-Adressen über eine Firma. Bei Cloudflare läuft dein Traffic über den Anbieter und wird dort entschlüsselt.
-            Schild prüft jede Anfrage auf deinem Server, und dein Traffic bleibt dort.
+            fail2ban wertet Logs aus, also erst nach der Anfrage. CrowdSec meldet ab Werk angreifende IP-Adressen an den Dienst der Firma, bei Cloudflare läuft dein Traffic über den Anbieter und wird dort entschlüsselt.
+            Schild ist Open Source und kostenlos, prüft jede Anfrage auf deinem Server, und deine Daten bleiben dort.
           </p>
           <dl class="grid gap-x-8 gap-y-6 sm:grid-cols-2">
             <div v-for="f in figures" :key="f.figure" class="border-t border-line pt-4">
