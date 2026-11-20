@@ -17,7 +17,7 @@
     "vue-router": "^5.4.0"
   },
   "dependencies": {
-    "@lucide/vue": "^1.75.0",
+    "@lucide/vue": "^1.76.0",
     "@schild/ui": "workspace:*",
     "@tanstack/vue-query": "^5.108.0",
     "openapi-fetch": "^0.17.0"
