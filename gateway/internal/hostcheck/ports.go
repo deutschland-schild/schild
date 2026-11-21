@@ -213,13 +213,15 @@ func (c *checker) checkPorts() {
 		if processRe.MatchString(l.Process) {
 			ev.Process = l.Process
 		}
-		where := "auf allen Netzwerkschnittstellen, also auch von außen"
+		where := "auf allen Netzwerkschnittstellen, also auch auf der öffentlichen"
 		if ex == exposePublic {
 			where = "auf einer öffentlichen Adresse"
 		} else if ex == exposeInternal {
 			where = "nur im internen Netz"
 		}
-		fwNote := " Ob eine Firewall davor filtert, steht im Bereich Firewall."
+		// The check sees the listening socket, not what reaches it: a firewall on
+		// the host or at the provider may close the port.
+		fwNote := " Ob der Port von außen wirklich offen ist, sieht der Check vom Server aus nicht: Eine Firewall auf dem Server oder bei deinem Hoster kann ihn sperren. Prüf das. Ist der Port von außen zu, kannst du den Befund im Dashboard als akzeptiert markieren."
 		fix := c.portFix(p, l.Process)
 		switch cl.kind {
 		case "docker", "docker_tls":
@@ -235,7 +237,7 @@ func (c *checker) checkPorts() {
 			case ex == exposeInternal:
 				sev = "high"
 			}
-			c.add(sub(finding("ports.docker_api", area, sev, "Docker-Schnittstelle ist erreichbar", expl+
+			c.add(sub(finding("ports.docker_api", area, sev, "Docker-Schnittstelle lauscht im Netz", expl+
 				" Docker braucht dafür keinen TCP-Port; der lokale Socket reicht. Entferne den tcp-Eintrag unter hosts in /etc/docker/daemon.json oder die Option -H tcp://... im systemd-Override von docker und starte Docker neu."+fwNote,
 				"", ev), subject))
 		case "admin":
@@ -244,7 +246,7 @@ func (c *checker) checkPorts() {
 				c.add(sub(ok("ports.admin_panel", area, cl.name+" nur im internen Netz", "Auf Port "+strconv.Itoa(p)+" lauscht vermutlich "+cl.name+", aber nur im internen Netz.", ev), subject))
 				continue
 			}
-			c.add(sub(finding("ports.admin_panel", area, "medium", cl.name+" ist von außen erreichbar",
+			c.add(sub(finding("ports.admin_panel", area, "medium", cl.name+" könnte von außen erreichbar sein",
 				"Auf Port "+strconv.Itoa(p)+" lauscht vermutlich "+cl.name+" "+where+". Verwaltungsoberflächen sind ein beliebtes Ziel für Passwort-Raten und bekannte Lücken. Besser nur über SSH-Tunnel oder VPN erreichbar machen."+fwNote, fix, ev), subject))
 		case "db":
 			public++
@@ -257,7 +259,7 @@ func (c *checker) checkPorts() {
 			if l.Process == "docker-proxy" {
 				expl += " Der Port wird von Docker veröffentlicht; trag in der Port-Zuordnung 127.0.0.1 davor ein (zum Beispiel 127.0.0.1:" + strconv.Itoa(p) + ":" + strconv.Itoa(p) + ")."
 			}
-			c.add(sub(finding("ports.public_service", area, "high", cl.name+" ist von außen erreichbar", expl+fwNote, fix, ev), subject))
+			c.add(sub(finding("ports.public_service", area, "high", cl.name+" könnte von außen erreichbar sein", expl+fwNote, fix, ev), subject))
 		case "expected":
 			public++
 			c.add(sub(ok("ports.public_service", area, cl.name+" ist erreichbar", cl.name+" auf Port "+strconv.Itoa(p)+" ist "+where+" erreichbar. Das ist für diesen Dienst üblich.", ev), subject))
@@ -267,12 +269,12 @@ func (c *checker) checkPorts() {
 				c.add(sub(ok("ports.public_service", area, "Port "+strconv.Itoa(p)+" nur im internen Netz", "Auf Port "+strconv.Itoa(p)+" lauscht ein Dienst nur im internen Netz.", ev), subject))
 				continue
 			}
-			c.add(sub(finding("ports.public_service", area, "low", "Port "+strconv.Itoa(p)+" ist von außen erreichbar",
+			c.add(sub(finding("ports.public_service", area, "low", "Port "+strconv.Itoa(p)+" könnte von außen erreichbar sein",
 				"Auf Port "+strconv.Itoa(p)+" lauscht ein Dienst "+where+". Wenn ihn niemand von außen braucht, binde ihn an 127.0.0.1 oder sperr den Port in der Firewall."+fwNote, fix, ev), subject))
 		}
 	}
 	if public == 0 {
-		c.add(ok("ports.public_service", area, "Keine Dienste von außen erreichbar", "Alle lauschenden Dienste sind nur lokal (127.0.0.1) erreichbar.", hc.Evidence{Source: src}))
+		c.add(ok("ports.public_service", area, "Kein Dienst lauscht im Netz", "Alle lauschenden Dienste sind nur lokal (127.0.0.1) erreichbar.", hc.Evidence{Source: src}))
 	}
 	if docker == 0 {
 		c.add(ok("ports.docker_api", area, "Docker-Schnittstelle nicht im Netz", "Keine Docker-Schnittstelle lauscht auf einem Netzwerk-Port.", hc.Evidence{Source: src}))

@@ -23,6 +23,9 @@ import { evidenceItems, fixConfigApply, needsText, SEVERITY, UNREADABLE_REASON }
  * example when a firewall in front of the server closes a port the check sees as open. `accepted`
  * given: the finding is shown as accepted, with the note and the way back. The check itself and
  * its report stay as they are.
+ *
+ * `flat`: the detail of a row in the findings list. The row already shows state and title, so the
+ * heading and the card frame are left out here.
  */
 const props = defineProps<{
   finding: HostFinding
@@ -34,6 +37,8 @@ const props = defineProps<{
   acceptable?: boolean
   /** A change for this finding is on its way. */
   busy?: boolean
+  /** Detail under a list row: no heading, no card frame. */
+  flat?: boolean
 }>()
 const emit = defineEmits<{ accept: [note: string], reopen: [] }>()
 const asking = ref(false)
@@ -69,9 +74,9 @@ const unreadable = computed(() => {
 
 <template>
   <div v-if="f.status === 'ok'" class="flex gap-2.5 py-2" data-testid="finding-ok">
-    <CircleCheck class="mt-0.5 size-4 shrink-0 text-status-success" aria-hidden="true" />
+    <CircleCheck v-if="!flat" class="mt-0.5 size-4 shrink-0 text-status-success" aria-hidden="true" />
     <div class="min-w-0">
-      <p class="font-semibold">
+      <p v-if="!flat" class="font-semibold">
         <span class="sr-only">In Ordnung: </span>{{ title }}
       </p>
       <p v-if="!agentText" class="text-muted-foreground">
@@ -85,9 +90,9 @@ const unreadable = computed(() => {
   </div>
 
   <div v-else-if="accepted" class="flex gap-2.5 py-2" data-testid="finding-accepted">
-    <CircleSlash class="mt-0.5 size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+    <CircleSlash v-if="!flat" class="mt-0.5 size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
     <div class="min-w-0 flex-1">
-      <p class="font-semibold">
+      <p v-if="!flat" class="font-semibold">
         <span class="sr-only">Akzeptiert: </span>{{ title }}
         <Tag tone="neutral" class="ml-1 align-middle">
           <span class="sr-only">Stufe: </span>{{ SEVERITY[f.severity].label }}
@@ -108,21 +113,23 @@ const unreadable = computed(() => {
 
   <article
     v-else
-    class="min-w-0 space-y-2 rounded-xl border bg-card p-3.5"
+    :class="['min-w-0 space-y-2', flat ? 'py-1' : 'rounded-xl border bg-card p-3.5']"
     :data-testid="f.status === 'unreadable' ? 'finding-unreadable' : 'finding'"
     :data-severity="f.severity"
     :aria-label="title"
   >
-    <div class="flex flex-wrap items-start gap-x-2 gap-y-1">
-      <Tag v-if="f.status === 'unreadable'" tone="neutral" class="mt-0.5">
-        Nicht lesbar
-      </Tag>
-      <Tag v-else :tone="SEVERITY[f.severity].tone" class="mt-0.5">
-        <span class="sr-only">Stufe: </span>{{ SEVERITY[f.severity].label }}
-      </Tag>
-      <h4 class="min-w-0 flex-1 basis-48 font-semibold">
-        {{ title }}
-      </h4>
+    <div v-if="!flat || (fromAgent && !annotation?.title)" class="flex flex-wrap items-start gap-x-2 gap-y-1">
+      <template v-if="!flat">
+        <Tag v-if="f.status === 'unreadable'" tone="neutral" class="mt-0.5">
+          Nicht lesbar
+        </Tag>
+        <Tag v-else :tone="SEVERITY[f.severity].tone" class="mt-0.5">
+          <span class="sr-only">Stufe: </span>{{ SEVERITY[f.severity].label }}
+        </Tag>
+        <h4 class="min-w-0 flex-1 basis-48 font-semibold">
+          {{ title }}
+        </h4>
+      </template>
       <Tag v-if="fromAgent && !annotation?.title" tone="neutral" class="mt-0.5" data-testid="agent-tag">
         vom Agent gemeldet
       </Tag>

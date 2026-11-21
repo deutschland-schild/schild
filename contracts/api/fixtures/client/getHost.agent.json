@@ -256,8 +256,8 @@
     {
       "id": "ports.public_service",
       "subject": "tcp/3306",
-      "title": "Dienst von außen erreichbar",
-      "explanation": "Der Check listet Dienste, die auf einer Netzwerkadresse statt nur lokal lauschen. Was niemand von außen braucht, gehört an localhost oder hinter die Firewall.",
+      "title": "Dienst könnte von außen erreichbar sein",
+      "explanation": "Der Check listet Dienste, die auf einer Netzwerkadresse statt nur lokal lauschen. Ob eine Firewall davor sie von außen sperrt, sieht er vom Server aus nicht. Was niemand von außen braucht, gehört an localhost oder hinter die Firewall.",
       "fix_verified": true
     },
     {

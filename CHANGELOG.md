@@ -14,11 +14,13 @@ The section of a version becomes the text of its GitHub release, so its heading 
 
 - `schild check install` sets the server check up with one command (D100): as root on the host it writes the systemd units from the binary, enables the daily run and "Jetzt prüfen" and runs the first check. For a gateway in Docker: `docker cp <container>:/usr/local/bin/schild /tmp/schild && sudo /tmp/schild check install`. `schild check uninstall` removes the units. The docs describe it under "Server-Check einrichten".
 - "Jetzt prüfen" no longer gets stuck when `schild.yaml` does not load: the check removes the request before it reads the config.
-- A server without any firewall rule and without iptables is reported as "Keine Firewall aktiv" instead of "nicht lesbar".
+- A server without any firewall rule and without iptables is reported as "Keine Firewall auf dem Server aktiv" instead of "nicht lesbar".
 - The dashboard names the install command where the server check is not set up yet, and the overview shows the Server card only once a report exists.
 - Findings can be marked as accepted in the dashboard, with a note (D102): for example an open port that a firewall in front of the server closes. An accepted finding no longer counts as open, stays listed and can be opened again; it is open by itself when the check reports it with a higher severity.
 - `schild init` and the quickstart files turn the Server section on (`host_check: {}`); the compose templates carry the mounts of the server check as comments.
 - A report written in the same second as the one before is no longer skipped by the gateway.
+- Findings about open ports say what the check can know: a service listens on a public interface and "könnte von außen erreichbar sein". Whether a firewall on the server or at the hoster closes the port, the check cannot see from inside; the text says so and points to accepting the finding. "Keine Firewall auf dem Server aktiv" names the firewall of the hoster the same way.
+- The results of the server check are one list in the dashboard: one line per check with level, title, area and the main fact, the detail opens on click. The list can be searched (title, explanation, port, package, path) and filtered by state (open, not readable, accepted, in order) and area. The installed software has its own section.
 
 ## 0.1.0-alpha.4
 
