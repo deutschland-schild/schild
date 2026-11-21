@@ -9,6 +9,8 @@ export interface DashboardShot {
   text: string
   benefit?: string
   alt: string
+  // Label of the window bar when the shot is not a dashboard view (block page, login page): the address a visitor sees.
+  frame?: string
 }
 
 const WIDTHS = [720, 1100, 1600]
@@ -18,16 +20,25 @@ const SIZES = '(min-width: 1152px) 1086px, (min-width: 640px) calc(100vw - 66px)
 const props = defineProps<{ shots: DashboardShot[], label: string, caption?: string, eager?: boolean }>()
 const active = ref(0)
 const current = computed(() => props.shots[active.value]!)
+const frame = computed(() => current.value.frame ?? `Schild Dashboard · ${current.value.title}`)
 const uid = useId()
+
+// Phones: keep the active tab visible in the sideways scrolling row (also for the arrow keys).
+watch(active, i => nextTick(() => {
+  const tab = document.getElementById(`${uid}-tab-${i}`)
+  tab?.focus({ preventScroll: true })
+  tab?.scrollIntoView({ block: 'nearest', inline: 'nearest', behavior: 'smooth' })
+}))
 </script>
 
 <template>
   <figure class="min-w-0">
-    <div role="tablist" :aria-label="label" class="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+    <!-- Phones: one row of compact tabs that scrolls sideways, so the screenshot stays near the top. -->
+    <div role="tablist" :aria-label="label" class="flex gap-2 overflow-x-auto [scrollbar-width:none] max-sm:-mx-5 max-sm:px-5 max-sm:pb-1 sm:grid sm:gap-3" :class="shots.length === 3 ? 'sm:grid-cols-3' : 'sm:grid-cols-2 lg:grid-cols-4'">
       <button
         v-for="(s, i) in shots" :id="`${uid}-tab-${i}`" :key="s.src" role="tab" type="button"
         :aria-selected="active === i" :aria-controls="`${uid}-panel`" :tabindex="active === i ? 0 : -1"
-        class="rounded-xl border p-4 text-left transition"
+        class="shrink-0 rounded-full border px-3.5 py-2 text-left whitespace-nowrap transition sm:rounded-xl sm:p-4 sm:whitespace-normal"
         :class="active === i ? 'border-ink bg-ink text-white shadow-sm' : 'border-line bg-white text-ink hover:border-ink/40'"
         @click="active = i"
         @keydown.right.prevent="active = (i + 1) % shots.length"
@@ -36,23 +47,23 @@ const uid = useId()
         <span class="block text-sm font-semibold">{{ s.title }}</span>
         <span
           v-if="s.summary"
-          class="mt-1 block text-xs leading-snug"
+          class="mt-1 block text-xs leading-snug max-sm:hidden"
           :class="active === i ? 'text-white/80' : 'text-slate'"
         >{{ s.summary }}</span>
       </button>
     </div>
 
-    <div :id="`${uid}-panel`" role="tabpanel" :aria-labelledby="`${uid}-tab-${active}`" class="mt-5 overflow-hidden rounded-xl border border-line bg-white shadow-lg">
+    <div :id="`${uid}-panel`" role="tabpanel" :aria-labelledby="`${uid}-tab-${active}`" class="mt-4 overflow-hidden rounded-xl sm:mt-5 border border-line bg-white shadow-lg">
       <div class="flex items-center justify-between gap-3 border-b border-line bg-mist px-4 py-2.5">
-        <div class="flex items-center gap-2">
+        <div class="flex min-w-0 items-center gap-2">
           <span class="flex items-center gap-1.5" aria-hidden="true">
             <span class="size-2.5 rounded-full bg-line" />
             <span class="size-2.5 rounded-full bg-line" />
             <span class="size-2.5 rounded-full bg-line" />
           </span>
-          <span class="ml-2 text-xs font-medium text-slate">Schild Dashboard · {{ current.title }}</span>
+          <span class="ml-2 truncate text-xs font-medium text-slate">{{ frame }}</span>
         </div>
-        <a :href="current.src" target="_blank" rel="noopener" class="text-xs font-semibold text-link hover:underline">
+        <a :href="current.src" target="_blank" rel="noopener" class="shrink-0 text-xs font-semibold text-link hover:underline">
           Vollbild <span aria-hidden="true">↗</span>
         </a>
       </div>

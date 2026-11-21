@@ -1,0 +1,171 @@
+<script setup lang="ts">
+import type { DashboardShot } from '~/components/DashboardShots.vue'
+
+// Features shown as worked examples: what a visitor sees, what the operator sees, with real screenshots. Two groups:
+// what the gateway does on its own ("Schild wehrt ab") and what the operator switches on ("Du stellst ein").
+// This page shows; how to set things up lives in docs/gateway/01-funktionen.md, and every example links there.
+// Every claim has to hold for the gateway as built, without labs.
+// Screenshots: dashboard in mock mode (`pnpm dev:mock:client`, scenario default) at 1440×900; block page and login
+// page are the HTML the gateway serves (gateway/internal/blockpage, gateway/internal/accesslock). IP addresses are
+// blurred at capture time: they are documentation addresses, but a reader cannot tell that from the picture.
+
+useHead({ title: 'Funktionen – Deutschland-Schild' })
+useSeoMeta({ description: 'Was das Schild Gateway abwehrt und was du selbst einstellst, an Beispielen mit Screenshots: ein gestoppter SQL-Injection-Versuch und ein Admin-Bereich hinter Passwort und eigenen IPs.' })
+
+const DOCS = '/doku/gateway/01-funktionen'
+
+const sqliShots: DashboardShot[] = [
+  {
+    src: '/img/dashboards/funktionen-sqli-blockpage.webp',
+    title: '1. Sperrseite',
+    summary: 'Was der Absender zu sehen bekommt',
+    frame: 'blog.example/produkte/',
+    text: 'Schild beantwortet die Anfrage selbst mit dem Code 403 und einer Vorfallnummer. Deine Anwendung bekommt die Anfrage nicht zu sehen.',
+    benefit: 'Trifft es einmal eine echte Person, nennt sie dir die Nummer, und du findest den Vorfall sofort.',
+    alt: 'Sperrseite des Schild Gateway: Fehlercode 403, Anfrage angehalten, Vorfallnummer RN9T-F36Q und der Hinweis, die Nummer bei einem Irrtum an die Betreiber:innen der Website zu schicken. Testdaten.',
+  },
+  {
+    src: '/img/dashboards/funktionen-sqli-event.webp',
+    title: '2. Ereignis',
+    summary: 'Wer es war und was geschickt wurde',
+    text: 'Im Dashboard steht dieselbe Vorfallnummer am Ereignis: Herkunft, Netzart, die Anfrage im Wortlaut und das Programm, das sie geschickt hat.',
+    benefit: 'Von hier aus lässt du die Anfrage durch oder sperrst die Adresse für 7 Tage.',
+    alt: 'Schild Dashboard, Ereignis mit Vorfallnummer RN9T-F36Q: gesperrte Anfrage an /produkte/ auf blog.example aus einem Rechenzentrum in Singapur, IP-Adresse unkenntlich gemacht, Anfragezeile mit SQL-Injection im Parameter id, Programm sqlmap, Knöpfe Durchlassen, Kontext und IP für 7 Tage sperren. Testdaten.',
+  },
+  {
+    src: '/img/dashboards/funktionen-sqli-why.webp',
+    title: '3. Begründung',
+    summary: 'Welche Regel angeschlagen hat',
+    text: 'Unter „Warum“ steht die Regel aus dem OWASP Core Rule Set, das Feld, in dem sie etwas gefunden hat, und wie die Punkte zur Sperre geführt haben.',
+    benefit: 'War es ein Fehlalarm, legst du gleich daneben eine Ausnahme nur für dieses Feld an.',
+    alt: 'Schild Dashboard, Ereignis, Abschnitt Warum: Versuchter Datenbank-Angriff (SQL-Injection), OWASP CRS Regel 942100, gefunden im Feld id, Knopf Ausnahme anlegen, darunter die Entscheidung mit Score 85 von 100 über der Sperrschwelle von 40 und der Verlauf der Sitzung. Testdaten.',
+  },
+]
+
+const adminShots: DashboardShot[] = [
+  {
+    src: '/img/dashboards/funktionen-admin-dialog.webp',
+    title: '1. Einrichten',
+    summary: 'Pfade und Zugang im Dashboard wählen',
+    text: 'Unter „Zugriffsschutz“ trägst du die Pfade ein und hakst an, was gelten soll: ein gemeinsames Passwort, bestimmte Adressen, deine eigenen IPs.',
+    benefit: 'Hakst du mehreres an, muss alles zutreffen. Der Rest der Website bleibt offen.',
+    alt: 'Schild Dashboard, Dialog Zugriffsschutz für verein.example: Nur bestimmte Bereiche, Pfade /wp-admin/* und /wp-login.php, Zugang mit Passwort und Eigene IPs angehakt, Knopf Schutz aktivieren. Testdaten.',
+  },
+  {
+    src: '/img/dashboards/funktionen-admin-active.webp',
+    title: '2. Aktiv',
+    summary: 'Der Schutz gilt sofort',
+    text: 'Das Dashboard zeigt, welche Pfade wie geschlossen sind. Der Schutz bleibt an, bis du ihn aufhebst.',
+    benefit: 'Hast du dich ausgesperrt, hebt „schild lock“ auf dem Server den Schutz wieder auf.',
+    alt: 'Schild Dashboard, Zugriffsschutz für verein.example: Zugang Passwort und Eigene IPs, gilt für /wp-admin/* und /wp-login.php, Knöpfe Ändern und Aufheben, Meldung „Zugriffsschutz für verein.example ist aktiv“. Testdaten.',
+  },
+  {
+    src: '/img/dashboards/funktionen-admin-login.webp',
+    title: '3. Anmeldeseite',
+    summary: 'Was vor dem Admin-Bereich steht',
+    frame: 'verein.example/wp-admin/',
+    text: 'Wer von einer deiner Adressen kommt, sieht diese Seite und kommt mit dem Passwort weiter. Erst danach erreicht die Anfrage die Anmeldung deiner Anwendung.',
+    benefit: 'Alle anderen sehen nur „Kein Zugriff“, ohne Formular.',
+    alt: 'Anmeldeseite des Schild Gateway: Anmeldung nötig, für diesen Bereich brauchst du ein Passwort, Feld Passwort und Knopf Anmelden.',
+  },
+]
+
+// Built features without a worked example yet; each links to its section in the docs.
+const more = [
+  { title: 'Login-Schutz', text: 'Erkennt massenhafte Login-Versuche und sperrt nach 14 Tagen Lernzeit von selbst.', to: `${DOCS}#szenarien-und-limits` },
+  { title: 'Ausnahmen bei Fehlalarm', text: 'Eng begrenzt auf einzelne Regeln und ein Feld auf einer Seite.', to: `${DOCS}#ausnahmen` },
+  { title: 'KI-Crawler', text: 'Pro Website festlegen, welche Crawler deine Seiten abrufen dürfen.', to: `${DOCS}#bots-und-ki-crawler` },
+  { title: 'Eigene IPs', text: 'Dich und dein Team freischalten, dauerhaft oder befristet.', to: `${DOCS}#eigene-ips` },
+  { title: 'Wartungsmodus', text: 'Alle sehen eine Wartungsseite, nur deine eigenen IPs kommen durch.', to: `${DOCS}#zugriffsschutz-mit-passwort-und-eigenen-ips` },
+  { title: 'Server-Check', text: 'Prüft Updates, offene Ports, Firewall, SSH und Zertifikate, ohne etwas zu ändern.', to: `${DOCS}#server-check` },
+]
+</script>
+
+<template>
+  <div class="bg-white">
+    <section class="border-b border-line bg-mist" aria-labelledby="funktionen-title">
+      <div class="mx-auto max-w-6xl px-5 py-14 sm:px-8 md:py-20">
+        <p class="kicker">Funktionen</p>
+        <h1 id="funktionen-title" class="mt-3 max-w-3xl text-4xl leading-[1.05] font-bold tracking-tight text-balance sm:text-5xl">
+          Was Schild abwehrt und was du selbst einstellst.
+        </h1>
+        <p class="mt-5 max-w-2xl text-lg leading-relaxed text-pretty text-slate">
+          Zwei Beispiele, Schritt für Schritt: was ein Angreifer zu sehen bekommt, was du im Dashboard siehst und was du mit ein paar Klicks einstellst.
+        </p>
+        <ul class="mt-8 grid gap-3 sm:grid-cols-2">
+          <li>
+            <a href="#sql-injection" class="block rounded-xl bg-white p-5 shadow-sm ring-1 ring-mist-line transition hover:ring-ink/30">
+              <span class="kicker">Schild wehrt ab</span>
+              <span class="mt-1 block font-semibold">Ein SQL-Injection-Versuch wird gestoppt</span>
+            </a>
+          </li>
+          <li>
+            <a href="#admin-bereich" class="block rounded-xl bg-white p-5 shadow-sm ring-1 ring-mist-line transition hover:ring-ink/30">
+              <span class="kicker">Du stellst ein</span>
+              <span class="mt-1 block font-semibold">Den Admin-Bereich zusätzlich absichern</span>
+            </a>
+          </li>
+        </ul>
+      </div>
+    </section>
+
+    <section id="sql-injection" class="scroll-mt-16 border-b border-line" aria-labelledby="sqli-title">
+      <div class="mx-auto max-w-6xl px-5 py-20 sm:px-8 lg:py-24">
+        <p class="kicker">Schild wehrt ab</p>
+        <h2 id="sqli-title" class="h2 mt-3">Ein SQL-Injection-Versuch wird gestoppt.</h2>
+        <div class="mt-4 grid gap-6 lg:grid-cols-[1.1fr_0.9fr] lg:gap-10">
+          <p class="leading-relaxed text-slate">
+            Ein Programm probiert automatisch aus, ob sich über die Adresszeile Befehle an deine Datenbank schicken lassen. Solche Anfragen kommen ungefragt, auch bei kleinen Websites. Das OWASP Core Rule Set im Gateway erkennt das Muster, und Schild stoppt die Anfrage, bevor sie deine Anwendung erreicht. Einstellen musst du dafür nichts.
+          </p>
+          <div>
+            <p class="text-sm font-semibold">Die Anfrage</p>
+            <pre class="codeblock mt-2 overflow-x-auto px-4 py-3 font-mono text-sm text-ink"><code>GET /produkte/?id=1' OR 1=1--</code></pre>
+            <p class="mt-2 text-sm leading-relaxed text-slate">
+              Geschickt vom Werkzeug sqlmap aus einem Rechenzentrum. Der Teil nach <span class="code">id=</span> soll die Abfrage deiner Datenbank verändern.
+            </p>
+          </div>
+        </div>
+        <DashboardShots class="mt-10" label="Ein gestoppter SQL-Injection-Versuch in drei Schritten" :shots="sqliShots" eager caption="Echte Screenshots vom 21.11.2026 mit Testdaten, IP-Adresse unkenntlich gemacht. Die Sperrseite ist die Seite, die das Gateway ausliefert." />
+        <p class="mt-6 text-sm text-slate">
+          Einrichtung und Details:
+          <NuxtLink :to="`${DOCS}#regeln`" class="font-semibold text-link hover:underline">Regeln <span aria-hidden="true">→</span></NuxtLink>
+          <span class="mx-2" aria-hidden="true">·</span>
+          <NuxtLink :to="`${DOCS}#sperrseite-und-warteseite`" class="font-semibold text-link hover:underline">Sperrseite <span aria-hidden="true">→</span></NuxtLink>
+        </p>
+      </div>
+    </section>
+
+    <section id="admin-bereich" class="scroll-mt-16 border-b border-line bg-mist" aria-labelledby="admin-title">
+      <div class="mx-auto max-w-6xl px-5 py-20 sm:px-8 lg:py-24">
+        <p class="kicker">Du stellst ein</p>
+        <h2 id="admin-title" class="h2 mt-3">Den Admin-Bereich zusätzlich absichern.</h2>
+        <p class="mt-4 max-w-2xl leading-relaxed text-slate">
+          Die Anmeldung deines CMS ist für alle im Internet erreichbar. Mit dem Zugriffsschutz stellst du eine zweite Tür davor: Pfade wie <span class="code">/wp-admin/*</span> öffnen sich nur mit einem gemeinsamen Passwort, nur von deinen Adressen aus oder nur mit beidem. Schild speichert vom Passwort nur einen Hash.
+        </p>
+        <DashboardShots class="mt-10" label="Admin-Bereich absichern in drei Schritten" :shots="adminShots" caption="Echte Screenshots vom 21.11.2026 mit Testdaten. Die Anmeldeseite ist die Seite, die das Gateway ausliefert." />
+        <p class="mt-6 text-sm text-slate">
+          Einrichtung und Details:
+          <NuxtLink :to="`${DOCS}#zugriffsschutz-mit-passwort-und-eigenen-ips`" class="font-semibold text-link hover:underline">Zugriffsschutz mit Passwort und eigenen IPs <span aria-hidden="true">→</span></NuxtLink>
+        </p>
+      </div>
+    </section>
+
+    <section class="border-b border-line" aria-labelledby="mehr-title">
+      <div class="mx-auto max-w-6xl px-5 py-20 sm:px-8 lg:py-24">
+        <h2 id="mehr-title" class="text-2xl font-bold tracking-tight sm:text-3xl">Was das Gateway außerdem kann</h2>
+        <ul class="mt-8 grid gap-x-10 gap-y-6 md:grid-cols-2 lg:grid-cols-3">
+          <li v-for="m in more" :key="m.title" class="border-t border-line pt-4">
+            <h3 class="font-semibold">
+              <NuxtLink :to="m.to" class="hover:underline">{{ m.title }} <span aria-hidden="true">→</span></NuxtLink>
+            </h3>
+            <p class="mt-1 text-sm leading-relaxed text-slate">{{ m.text }}</p>
+          </li>
+        </ul>
+        <div class="mt-10 flex flex-wrap items-center gap-x-6 gap-y-3">
+          <NuxtLink to="/#installieren" class="btn-primary">Schild Gateway installieren</NuxtLink>
+          <NuxtLink :to="DOCS" class="text-sm font-semibold text-link hover:underline">Alle Funktionen in der Dokumentation <span aria-hidden="true">→</span></NuxtLink>
+        </div>
+      </div>
+    </section>
+  </div>
+</template>

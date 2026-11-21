@@ -48,20 +48,20 @@ watch(() => route.path, () => nextTick(revealActive))
         <NuxtLink to="/doku" class="flex min-w-0 items-center gap-2.5" aria-label="Dokumentation – Überblick">
           <BrandMark class="size-7 shrink-0" />
           <span class="truncate text-sm font-bold tracking-tight text-ink max-sm:hidden">Deutschland-Schild</span>
-          <AlphaBadge />
+          <AlphaBadge class="max-sm:hidden" />
           <span class="h-4 w-px bg-line max-sm:hidden" aria-hidden="true" />
-          <span class="text-sm font-semibold text-slate">Dokumentation</span>
+          <span class="truncate text-sm font-semibold text-slate">Dokumentation</span>
         </NuxtLink>
-        <div class="ml-auto flex items-center gap-2">
+        <div class="ml-auto flex shrink-0 items-center gap-1 whitespace-nowrap sm:gap-2 max-sm:-mr-2">
           <button
-            class="flex items-center gap-2 rounded-lg border border-line px-2.5 py-1.5 text-sm text-slate transition hover:border-ink hover:text-ink"
+            class="flex items-center gap-2 rounded-lg border border-line px-2.5 py-2 text-sm text-slate transition hover:border-ink hover:text-ink sm:py-1.5"
             aria-label="Dokumentation durchsuchen" @click="searchOpen = true"
           >
             <svg class="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><circle cx="11" cy="11" r="7" /><path d="m20 20-3.5-3.5" /></svg>
             <span class="max-md:hidden">Suchen</span>
             <kbd class="rounded border border-line px-1 font-mono text-[11px] max-md:hidden">/</kbd>
           </button>
-          <NuxtLink to="/api" class="rounded-lg px-2.5 py-1.5 text-sm font-semibold text-ink hover:bg-mist">API</NuxtLink>
+          <NuxtLink to="/api" class="rounded-lg px-2.5 py-1.5 text-sm font-semibold text-ink hover:bg-mist max-sm:hidden">API</NuxtLink>
           <NuxtLink to="/" class="rounded-lg px-2.5 py-1.5 text-sm font-semibold text-ink hover:bg-mist">
             <span aria-hidden="true">←</span> <span class="max-sm:hidden">Zur </span>Website
           </NuxtLink>
@@ -80,7 +80,7 @@ watch(() => route.path, () => nextTick(revealActive))
 
     <footer class="border-t border-line text-sm text-slate">
       <div class="mx-auto flex max-w-[90rem] flex-wrap items-center gap-x-5 gap-y-2 px-4 py-6 sm:px-6 lg:px-8">
-        <span>Deutschland-Schild · Dokumentation (Entwurf)</span>
+        <span>Deutschland-Schild · Dokumentation</span>
         <NuxtLink to="/impressum" class="ml-auto hover:text-ink">Impressum</NuxtLink>
         <NuxtLink to="/datenschutz" class="hover:text-ink">Datenschutz</NuxtLink>
       </div>
@@ -97,6 +97,10 @@ watch(() => route.path, () => nextTick(revealActive))
           </button>
         </div>
         <div class="flex-1 overflow-y-auto overscroll-contain px-4 py-6"><DokuNav /></div>
+        <div class="flex shrink-0 gap-2 border-t border-line px-4 py-3 text-sm font-semibold sm:hidden">
+          <NuxtLink to="/api" class="rounded-lg px-2.5 py-2 text-ink hover:bg-mist">Gateway API</NuxtLink>
+          <NuxtLink to="/" class="rounded-lg px-2.5 py-2 text-ink hover:bg-mist"><span aria-hidden="true">←</span> Zur Website</NuxtLink>
+        </div>
       </div>
     </div>
 

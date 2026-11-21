@@ -4,7 +4,7 @@ useSeoMeta({ description: 'Welche Daten diese Website verarbeitet: Server-Logs b
 </script>
 
 <template>
-  <div class="prose prose-lg prose-slate mx-auto max-w-3xl px-5 py-16 sm:py-24 prose-headings:text-ink prose-h1:font-bold prose-h1:tracking-tight prose-h1:text-4xl prose-h2:text-2xl prose-a:text-link">
+  <div class="prose prose-lg prose-slate mx-auto max-w-3xl px-5 py-16 sm:py-24 prose-headings:text-ink prose-h1:font-bold prose-h1:tracking-tight prose-h1:text-3xl sm:prose-h1:text-4xl prose-h2:text-2xl prose-a:text-link">
     <h1>Datenschutzerklärung</h1>
 
     <h2>Verantwortliche Stelle</h2>

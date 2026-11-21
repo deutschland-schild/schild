@@ -32,6 +32,9 @@ const compare = [
   ['Regeln von außen', 'keine', 'IP-Blocklisten (gratis 3.000 bis 15.000 Adressen) und virtuelle Patches aus dem Hub', 'im Free-Tarif das Free Managed Ruleset; der volle Satz und das OWASP Core Ruleset ab Pro', 'OWASP Core Rule Set eingebaut; dazu virtuelle Patches aus dem öffentlichen CrowdSec Hub, ab Werk auf „Erkennen“'],
   ['Selbst anpassen', 'Konfigurationsdateien', 'Szenarien und Regeln (YAML)', 'im Free-Tarif 5 eigene Regeln, Regex ab Business', 'eigene Regeln als Datei; Ausnahmen, Schwellen und Limits im Dashboard'],
 ]
+const compareTools = ['fail2ban', 'CrowdSec', 'Cloudflare WAF', 'Schild']
+// Phones get one card per tool instead of a five-column table.
+const compareCards = compareTools.map((name, i) => ({ name, rows: compare.map(row => [row[0], row[i + 1]] as const) }))
 const compareSources = [
   ['fail2ban, Projektseite', 'https://github.com/fail2ban/fail2ban'],
   ['CrowdSec Docs, AppSec-Komponente', 'https://docs.crowdsec.net/docs/next/appsec/intro'],
@@ -278,6 +281,8 @@ const faqMore = [
           </li>
         </ul>
         <p class="mt-8 text-sm text-slate">
+          <NuxtLink to="/funktionen" class="font-semibold text-link hover:underline">Funktionen an Beispielen ansehen <span aria-hidden="true">→</span></NuxtLink>
+          <span class="mx-2" aria-hidden="true">·</span>
           Alle Funktionen im Detail:
           <NuxtLink to="/doku/gateway/01-funktionen" class="font-semibold text-link hover:underline">Dokumentation zum Gateway <span aria-hidden="true">→</span></NuxtLink>
         </p>
@@ -343,7 +348,21 @@ const faqMore = [
             </div>
           </dl>
         </div>
-        <div class="mt-8 overflow-x-auto">
+        <ul class="mt-8 grid gap-4 md:hidden">
+          <li
+            v-for="c in compareCards" :key="c.name" class="rounded-xl border bg-white p-4"
+            :class="c.name === 'Schild' ? 'border-ink' : 'border-line'"
+          >
+            <h3 class="font-semibold" :class="c.name === 'Schild' ? 'text-signal-deep' : 'text-ink'">{{ c.name }}</h3>
+            <dl class="mt-2 space-y-2 text-sm">
+              <div v-for="[label, value] in c.rows" :key="label">
+                <dt class="font-semibold text-ink">{{ label }}</dt>
+                <dd :class="c.name === 'Schild' ? 'text-ink' : 'text-slate'">{{ value }}</dd>
+              </div>
+            </dl>
+          </li>
+        </ul>
+        <div class="mt-8 overflow-x-auto max-md:hidden">
           <table class="w-full min-w-[56rem] text-left text-sm">
             <thead>
               <tr class="text-slate">
