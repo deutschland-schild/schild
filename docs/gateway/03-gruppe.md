@@ -5,7 +5,7 @@ description: "Mehrere Schild Gateways als Gruppe betreiben: was sie teilen, wie 
 
 # Mehrere Gateways als Gruppe betreiben
 
-**Status:** experimentell, noch in keinem Release enthalten · Stand 21.11.2026 · technische Quelle: [contracts/cluster.md](../../contracts/cluster.md) · nicht unabhängig gemessen
+**Status:** experimentell, noch in keinem Release enthalten · Stand 22.11.2026 · technische Quelle: [contracts/cluster.md](../../contracts/cluster.md) · unabhängig gemessen am 21.11.2026 mit drei Servern auf einem Rechner ([Bericht](../../tests/results/MVP-27-group-measurement.md)); was dort durchfiel, ist behoben, aber noch nicht nachgemessen
 
 **Kurz:**
 
@@ -92,9 +92,9 @@ sudo systemctl restart schild
 
 ## Server mit unterschiedlichen Einstellungen zusammenführen
 
-Tritt ein Server einer Gruppe bei, übernimmt er die Einstellungen, eigenen Adressen und Logins der Gruppe. Was er vorher selbst hatte, wird nicht dazugemischt. Schild bewahrt es auf dem Server auf und nennt es in `schild cluster status`.
+Tritt ein Server einer Gruppe bei, bringt er mit, was er hat. Seine eigenen Adressen, Freigaben, Limits und Einstellungen kommen zur Gruppe dazu, und er übernimmt, was die Gruppe hat.
 
-Hatten deine Server bisher verschiedene Einstellungen, nimm sie deshalb nacheinander in die Gruppe: zuerst den Server, dessen Stand gelten soll, dann die anderen.
+Nur wenn beide Seiten denselben Eintrag haben, etwa denselben Schalter mit verschiedenen Werten, gilt der Wert der Gruppe. Was der Server dazu selbst hatte, bewahrt Schild auf dem Server auf und nennt es in `schild cluster status`.
 
 ## Was der Loadbalancer braucht
 
@@ -145,7 +145,7 @@ Eine Edge lässt sich nur mit einem Code aufnehmen, nie mit dem Gruppen-Geheimni
 - Sperren, Einstellungen, Logins und Zertifikate liegen auf jedem Server. Es geht nichts verloren.
 - Was der ausgefallene Server an Ereignissen und Vorfällen geschrieben hat, zeigen die anderen weiter an, bis auf die letzte Sekunde vor dem Ausfall.
 
-Kommt der Server zurück, holt er Sperren, Einstellungen, Ereignisse und Vorfälle nach. Erst danach meldet er sich beim Balancer als bereit.
+Kommt der Server zurück, holt er Sperren, Einstellungen, eigene Adressen, Logins und Löschungen nach. Erst danach meldet er sich beim Balancer als bereit. Ereignisse und Vorfälle der anderen folgen in den Sekunden danach.
 
 ## Einen Server geplant anhalten
 
@@ -195,8 +195,8 @@ Jeder Server speichert damit, was die ganze Gruppe aufzeichnet. In einer großen
 
 ## Grenzen
 
-- **Nicht unabhängig gemessen.** Verhalten unter Last, bei Netztrennung und bei gemischten Versionen ist nur durch die Tests der Entwickler belegt.
-- **Zwei Änderungen zur selben Sekunde.** Ändert jemand dieselbe Einstellung auf zwei Servern gleichzeitig, gilt überall die spätere. Die andere wird nicht eingemischt.
+- **Nur im Kleinen gemessen.** Eine unabhängige Messung lief mit drei Servern auf einem Rechner. Ein echter Loadbalancer, zehn Server, Zertifikate, gemischte Versionen und Lastspitzen sind nicht gemessen.
+- **Dieselbe Einstellung auf zwei Servern geändert.** Änderst du denselben Schalter oder denselben Eintrag gleichzeitig auf zwei Servern, gilt überall die spätere Änderung. Verschiedene Einträge derselben Liste bleiben beide erhalten, auch wenn sich die Server zwischendurch nicht erreicht haben.
 - **Limits mit Verzug.** Ein Client, der seine Anfragen über die Server verteilt, kommt um das hinaus, was die Server in einer Sekunde annehmen.
 - **Einzelne Anfragen sind kein lückenloses Archiv.** Sie werden einmal pro Sekunde weitergegeben und nicht wiederholt. War ein Server aus, fehlen ihm die Anfragen, die die anderen in dieser Zeit bedient haben. Die anderen haben sie.
 - **Pro Server bleiben** die Zähler der Übersicht, die Server-Diagramme und die Erkennung verteilter Angriffe.

@@ -17,6 +17,7 @@ import (
 	"github.com/deutschland-schild/schild/gateway/internal/apptest"
 	"github.com/deutschland-schild/schild/gateway/internal/behaviour"
 	"github.com/deutschland-schild/schild/gateway/internal/cluster"
+	"github.com/deutschland-schild/schild/gateway/internal/dashboard"
 	"github.com/deutschland-schild/schild/gateway/internal/ruleset"
 	"github.com/deutschland-schild/schild/gateway/internal/store"
 )
@@ -286,7 +287,9 @@ func TestGroupErasesAnAddressOnEveryNode(t *testing.T) {
 	b.h.WaitFor("web-2 erased after its return", func() bool { return eventsOf(t, b, late) == 0 })
 }
 
-func TestJoiningNodeTakesTheGroupsValuesAndKeepsItsOwn(t *testing.T) {
+// A gateway that ran alone brings what it holds into the group it joins:
+// its entries are added, the group's stay, nothing is lost on either side.
+func TestJoiningNodeAddsWhatItHoldsToTheGroup(t *testing.T) {
 	a := &groupNode{dir: t.TempDir(), addr: apptest.FreeAddr(t), name: "web-1"}
 	b := &groupNode{dir: t.TempDir(), addr: apptest.FreeAddr(t), name: "web-2"}
 	ctx := context.Background()
@@ -305,7 +308,6 @@ func TestJoiningNodeTakesTheGroupsValuesAndKeepsItsOwn(t *testing.T) {
 	if err := solo.Stop(); err != nil {
 		t.Fatal(err)
 	}
-	time.Sleep(1200 * time.Millisecond) // web-1 published its list
 	a.h.WaitFor("the mesh of web-1 listens", func() bool { return a.h.App.Cluster.Addr() != "" })
 	code, _, err := cluster.Invite(a.clusterDir(), nil)
 	if err != nil {
@@ -315,18 +317,10 @@ func TestJoiningNodeTakesTheGroupsValuesAndKeepsItsOwn(t *testing.T) {
 		t.Fatal(err)
 	}
 	b.start(t)
-	b.h.WaitFor("web-2 took the allowlist of the group", func() bool { return allowed(b, "198.51.100.1") })
-	if allowed(b, "198.51.100.2") {
-		t.Error("the list of a joining node was merged, not replaced")
-	}
-	// The group's list did not change by the join, and the own one is kept.
-	time.Sleep(1500 * time.Millisecond)
-	if !allowed(a, "198.51.100.1") || allowed(a, "198.51.100.2") {
-		t.Error("a joining node changed the allowlist of the group")
-	}
-	st, err := cluster.ReadStatus(b.clusterDir(), nil)
-	if err != nil || st.Replaced == 0 {
-		t.Errorf("what web-2 held before is not kept: %d, %v", st.Replaced, err)
+	for _, g := range []*groupNode{a, b} {
+		g.h.WaitFor(g.name+" allows the address of the group and the one web-2 brought", func() bool {
+			return allowed(g, "198.51.100.1") && allowed(g, "198.51.100.2")
+		})
 	}
 }
 
@@ -589,4 +583,122 @@ func TestGroupBlockFloodArrivesInRounds(t *testing.T) {
 		}
 		return true
 	})
+}
+
+// Two entries added to the same list on two nodes at the same moment: both
+// stay, on both nodes (the measurement of 2026-11-21 lost the first).
+func TestGroupKeepsBothOfTwoChangesToOneList(t *testing.T) {
+	a, b := pair(t)
+	ctx := context.Background()
+	for i := 0; i < 10; i++ {
+		x, y := fmt.Sprintf("198.51.101.%d", i+1), fmt.Sprintf("198.51.102.%d", i+1)
+		if err := a.h.App.Store.AddAllow(ctx, &store.AllowEntry{IP: x, Label: "a", Level: "no_block", Expires: "never", CreatedAt: time.Now(), Source: "dashboard"}); err != nil {
+			t.Fatal(err)
+		}
+		if err := b.h.App.Store.AddAllow(ctx, &store.AllowEntry{IP: y, Label: "b", Level: "no_block", Expires: "never", CreatedAt: time.Now(), Source: "dashboard"}); err != nil {
+			t.Fatal(err)
+		}
+	}
+	for _, g := range []*groupNode{a, b} {
+		g.h.WaitFor(g.name+" allows all twenty addresses", func() bool {
+			for i := 0; i < 10; i++ {
+				if !allowed(g, fmt.Sprintf("198.51.101.%d", i+1)) || !allowed(g, fmt.Sprintf("198.51.102.%d", i+1)) {
+					return false
+				}
+			}
+			return true
+		})
+	}
+}
+
+// A cut, a change on each side, the cut healed: what either side added
+// holds on both, a login of either side holds, and two settings changed on
+// different sides both stand (the kill criterion the measurement hit).
+func TestGroupMergesBothSidesOfACut(t *testing.T) {
+	a, b := pair(t)
+	ctx := context.Background()
+	a.h.Login()
+	b.h.WaitFor("web-2 knows the user", func() bool { return b.h.App.Store.HasUsers(ctx) })
+	if err := cluster.Pause(b.clusterDir(), true, nil); err != nil {
+		t.Fatal(err)
+	}
+	b.h.WaitFor("web-2 is cut off", func() bool { return b.h.App.Cluster.Paused() })
+	add := func(g *groupNode, ip string) {
+		if err := g.h.App.Store.AddAllow(ctx, &store.AllowEntry{IP: ip, Label: g.name, Level: "no_block", Expires: "never", CreatedAt: time.Now(), Source: "dashboard"}); err != nil {
+			t.Fatal(err)
+		}
+	}
+	days := func(g *groupNode, events, summaries *int) {
+		if _, err := g.h.App.Apply(ctx, dashboard.SettingsPatch{Retention: &dashboard.RetentionPatch{EventsDays: events, SummariesDays: summaries}}); err != nil {
+			t.Fatal(err)
+		}
+	}
+	n := func(v int) *int { return &v }
+	add(a, "203.0.113.53")
+	days(a, n(11), nil)
+	time.Sleep(1200 * time.Millisecond)
+	add(b, "203.0.113.54")
+	days(b, nil, n(200))
+	// A second login, on the side that is cut off.
+	b.h.Login()
+	if err := cluster.Pause(b.clusterDir(), false, nil); err != nil {
+		t.Fatal(err)
+	}
+	for _, g := range []*groupNode{a, b} {
+		g.h.WaitFor(g.name+" allows the addresses of both sides", func() bool { return allowed(g, "203.0.113.53") && allowed(g, "203.0.113.54") })
+		g.h.WaitFor(g.name+" holds the settings of both sides", func() bool {
+			r := g.h.App.Config().Retention
+			return r.EventsDays == 11 && r.SummariesDays == 200
+		})
+	}
+	// Both sessions hold on both nodes.
+	for _, who := range []*groupNode{a, b} {
+		for _, on := range []*groupNode{a, b} {
+			on.h.WaitFor("the session of "+who.name+" holds on "+on.name, func() bool {
+				req, _ := http.NewRequest("GET", on.h.Dash.URL+"/api/v0/overview", nil)
+				for _, c := range who.h.Client.Jar.Cookies(mustURL(who.h.Dash.URL)) {
+					req.AddCookie(c)
+				}
+				resp, err := http.DefaultClient.Do(req)
+				if err != nil {
+					return false
+				}
+				resp.Body.Close()
+				return resp.StatusCode == 200
+			})
+		}
+	}
+}
+
+// Fresh nodes set up by configuration and started together: the first
+// password, set on one of them right away, stays (the measurement saw it
+// thrown away a second later).
+func TestFreshGroupKeepsAWriteMadeRightAfterStart(t *testing.T) {
+	secretFile := filepath.Join(t.TempDir(), "cluster.secret")
+	secret, _ := cluster.NewSecret()
+	if err := os.WriteFile(secretFile, []byte(secret), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	a := &groupNode{dir: t.TempDir(), addr: apptest.FreeAddr(t), name: "web-1"}
+	b := &groupNode{dir: t.TempDir(), addr: apptest.FreeAddr(t), name: "web-2"}
+	start := func(g *groupNode) {
+		g.h = apptest.New(t, apptest.Options{Dir: g.dir, Extra: fmt.Sprintf("cluster: {enabled: true, listen: %q, secret_file: %q, peers: [%q, %q]}\n", g.addr, secretFile, a.addr, b.addr)})
+	}
+	start(a)
+	// Before web-2 exists and before any sync: a node with named peers that
+	// reached none does not hold itself for the whole group.
+	if a.h.App.Cluster.Synced() {
+		t.Error("a node that reached none of its named peers says it is in step with the group")
+	}
+	a.h.Login()
+	start(b)
+	ctx := context.Background()
+	b.h.WaitFor("web-2 knows the user set on web-1", func() bool { return b.h.App.Store.HasUsers(ctx) })
+	time.Sleep(2 * time.Second)
+	if !a.h.App.Store.HasUsers(ctx) || !b.h.App.Store.HasUsers(ctx) {
+		t.Fatal("the first password is gone")
+	}
+	if code, body := a.h.API("GET", "/overview", nil); code != 200 {
+		t.Errorf("the session of the setup no longer holds on web-1: %d %s", code, body)
+	}
 }

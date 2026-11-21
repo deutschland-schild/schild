@@ -214,8 +214,20 @@ func (n *Node) Synced() bool {
 	}
 	n.rmu.RLock()
 	defer n.rmu.RUnlock()
+	own := ""
 	for _, e := range n.roster.Members() {
 		if !e.Removed && e.ID != n.id && e.Member.Role == contract.RoleGateway {
+			return false
+		}
+		if e.ID == n.id {
+			own = e.Member.Address
+		}
+	}
+	// A node set up by configuration that knows no member yet is not alone:
+	// its peers are named, it has only not reached one. Until it does, it
+	// does not know what the group holds.
+	for _, p := range n.opts.Peers {
+		if p != own {
 			return false
 		}
 	}

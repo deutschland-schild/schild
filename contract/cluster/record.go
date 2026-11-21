@@ -17,6 +17,7 @@ import (
 	"errors"
 	"fmt"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -41,9 +42,11 @@ const (
 	ClassCertificates = "certificates"
 )
 
-// Things of the classes settings, access and logins: each is one value that
-// is replaced as a whole. The names of settings are the keys the gateway
-// stores them under.
+// Things of the classes settings, access and logins. Each is a set of
+// entries (a row of a list, one setting, the policy of one website), and
+// every entry is a record of its own: two nodes that change different
+// entries of one thing both keep their change. The names of settings are
+// the keys the gateway stores them under.
 var things = map[string][]string{
 	ClassSettings: {"settings_overlay_v1", "behaviour_rate_limits_v1", "rules_state_by_v1", "crawler_policies_v1", "access_protections_v1",
 		"human_check_v1", "rule_exceptions_v2", "agent_pseudonym_key_v1"},
@@ -51,16 +54,33 @@ var things = map[string][]string{
 	ClassLogins: {"users", "sessions", "agent_tokens"},
 }
 
-// Things returns the ids of a class of whole values.
+// Things returns the things of a class.
 func Things(class string) []string { return things[class] }
 
-func knownThing(class, id string) bool {
+// MaxEntryKey bounds the key of one entry.
+const MaxEntryKey = 1024
+
+// EntryID is the record id of one entry of a thing: the thing, a slash and
+// the first 16 bytes, in hex, of SHA-256 over the entry's key. The key
+// itself travels in the data.
+func EntryID(thing, key string) string {
+	h := sha256.Sum256([]byte(key))
+	return thing + "/" + hex.EncodeToString(h[:16])
+}
+
+// ThingOf returns the thing a record id of the classes settings, access and
+// logins names; ok false: the id is none of that class.
+func ThingOf(class, id string) (thing string, ok bool) {
+	i := strings.LastIndexByte(id, '/')
+	if i < 0 || len(id)-i-1 != 32 {
+		return "", false
+	}
 	for _, t := range things[class] {
-		if t == id {
-			return true
+		if t == id[:i] {
+			return t, true
 		}
 	}
-	return false
+	return "", false
 }
 
 // Limits of one record and of the clock.
@@ -206,7 +226,7 @@ func (r *Record) shape() error {
 	switch r.Class {
 	case ClassMembers, ClassBlocks, ClassErasure, ClassCertificates:
 	case ClassSettings, ClassAccess, ClassLogins:
-		if !knownThing(r.Class, r.ID) || r.Deleted {
+		if _, ok := ThingOf(r.Class, r.ID); !ok {
 			return ErrSchema
 		}
 	default:

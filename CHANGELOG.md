@@ -19,7 +19,12 @@ How to run it is described in German under [docs/gateway/03-gruppe.md](docs/gate
 - In a group every node keeps the events, incidents and single requests of every node (`cluster.share_data`, default on): each dashboard shows the group in its lists, searches, request charts and the live view, also what a node recorded that is gone, and a node that was away catches up on events and incidents. An erased address stays erased. Each node then stores what the whole group records; `share_data: false` keeps events and requests per node.
 - Blocks in front of the gateways: a balancer VM joins the group as an edge (`schild cluster invite -role edge`, then on the VM `schild cluster join ADDRESS CODE -edge -name NAME -data DIR` and `schild firewall run -group -data DIR`) and keeps the group's blocks in its nftables table. An edge gets the block list and the member list and nothing else. Behind a balancer that sends the PROXY protocol this is where a drop belongs: the firewall on a gateway's own host sees the balancer as the sender there.
 - `schild cluster pause` and `resume`: a node serves on, takes nothing from the group and hands nothing over, for the day a wrong change travels. A group takes at most 16 gateways and 8 edges, and a flood of blocks leaves a node in rounds of 200 a second.
+- An independent measurement with three gateways on one machine ([report](tests/results/MVP-27-group-measurement.md)) passed 84 of 97 checks. What it found is fixed and not measured again yet: lists and settings are shared entry by entry, so two nodes that change different entries of one list both keep their change, also across a cut, and a gateway that joins a group adds what it holds; a fresh node set up by configuration is not ready before it reached a peer; a limit in a group is no longer stricter than on one gateway for a client that keeps asking.
 - Per node in a group for now: the counters of the overview, the server charts and the detectors of distributed attacks.
+
+### Blocks
+
+- A block set by hand in the dashboard or by an agent for less than 7 days ended within a minute, at the engine's next sweep. It now runs until its end.
 
 ### Rules
 

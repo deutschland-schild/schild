@@ -177,6 +177,12 @@ type App struct {
 	// sharedMu around taking and publishing them.
 	shared   []sharedThing
 	sharedMu sync.Mutex
+	// sharedPending: entries other nodes changed, per thing, waiting for
+	// the loop; sharedMarks: what this node last brought in step, per thing
+	// and entry; sharedCaught: things whose group entries were taken once.
+	sharedPending map[string]map[string]pendingEntry
+	sharedMarks   map[string]map[string]string
+	sharedCaught  map[string]bool
 	// edges: what the edges of the group said in their last calls.
 	edgeMu sync.Mutex
 	edges  map[string]edgeReport

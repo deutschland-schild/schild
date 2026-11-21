@@ -9,7 +9,6 @@ import (
 	"fmt"
 	"net/netip"
 	"reflect"
-	"strings"
 	"time"
 
 	contractapi "github.com/deutschland-schild/schild/contract/agentapi"
@@ -26,20 +25,25 @@ import (
 // The group of MVP-27 (D103): what the dashboard and the agent API set, who
 // passes and who may sign in hold on every node.
 //
-// Each of these things is one value in schild.db that is replaced as a
-// whole (a row of kv, or a small table). Nothing that writes them knows the
-// group: a loop compares every value with what this node last brought in
-// step with the group and publishes a value that changed here; a value of
-// another node is written to schild.db and swapped into memory the way the
-// start loads it. So a change in the dashboard of one node holds on every
-// node within about a second, and none of the many places that store a
-// setting had to change.
+// Each of these things is a value in schild.db (a row of kv, or a small
+// table) made of entries: the rows of a list, the single settings of the
+// overlay, the policy of one website. Nothing that writes them knows the
+// group. A loop cuts every value into its entries (cluster_entries.go),
+// compares each with what this node last brought in step with the group,
+// and publishes an entry that changed here as a record of its own; an entry
+// of another node is put into the value and the value made effective the
+// way the start loads it. So a change in the dashboard of one node holds on
+// every node within about a second, and none of the many places that store
+// a setting had to change.
 //
-// Two changes of the same thing on two nodes within that second: the later
-// one stands, on every node.
+// Two nodes that change different entries of one thing both keep their
+// change, also when they could not reach each other meanwhile. Two changes
+// of the very same entry settle by the later clock, on every node the same.
 
 type sharedThing struct {
 	class, id string
+	// codec cuts the value into entries and puts entries back.
+	codec entryCodec
 	// read returns the value as schild.db holds it; empty: none.
 	read func(ctx context.Context) ([]byte, error)
 	// write stores a value of another node and makes it effective.
@@ -53,8 +57,8 @@ func sum(b []byte) string {
 	return hex.EncodeToString(h[:])
 }
 
-func (a *App) kvThing(id string, apply func(ctx context.Context, v []byte) error) sharedThing {
-	return sharedThing{class: contract.ClassSettings, id: id,
+func (a *App) kvThing(id string, codec entryCodec, apply func(ctx context.Context, v []byte) error) sharedThing {
+	return sharedThing{class: contract.ClassSettings, id: id, codec: codec,
 		read: func(ctx context.Context) ([]byte, error) {
 			v, err := a.Store.Get(ctx, id)
 			if errors.Is(err, store.ErrNotFound) {
@@ -77,8 +81,8 @@ func (a *App) putKV(ctx context.Context, id string, v []byte) error {
 	return a.Store.Put(ctx, id, v)
 }
 
-func (a *App) tableThing(class, id string, after func(ctx context.Context)) sharedThing {
-	return sharedThing{class: class, id: id,
+func (a *App) tableThing(class, id string, pk int, after func(ctx context.Context)) sharedThing {
+	return sharedThing{class: class, id: id, codec: tableCodec{pk: pk},
 		read: func(ctx context.Context) ([]byte, error) { return a.Store.DumpShared(ctx, id) },
 		write: func(ctx context.Context, v []byte) error {
 			if err := a.Store.RestoreShared(ctx, id, v); err != nil {
@@ -94,35 +98,37 @@ func (a *App) tableThing(class, id string, after func(ctx context.Context)) shar
 // sharedThings lists what the group shares as whole values, in the order a
 // node takes them at its first sync: settings before what rests on them.
 func (a *App) sharedThings() []sharedThing {
+	site := objectCodec{depth: 2} // one entry per website, one per other field
 	return []sharedThing{
-		a.kvThing(dashLimitsKey, a.takeStoredSettings(dashLimitsKey)),
-		a.kvThing(overlayKey, a.takeStoredSettings(overlayKey)),
-		a.kvThing(ownersKey, nil),
-		a.kvThing(crawlers.StoreKey, a.takeCrawlers),
-		a.kvThing(accesslock.StoreKey, a.takeAccess),
-		a.kvThing(humancheck.StoreKey, a.takeHumanCheck),
-		a.kvThing(ruleExceptionsKey, a.takeRuleExceptions),
+		a.kvThing(dashLimitsKey, listCodec{id: "id"}, a.takeStoredSettings(dashLimitsKey)),
+		a.kvThing(overlayKey, objectCodec{depth: 8}, a.takeStoredSettings(overlayKey)),
+		a.kvThing(ownersKey, objectCodec{depth: 1}, nil),
+		a.kvThing(crawlers.StoreKey, site, a.takeCrawlers),
+		a.kvThing(accesslock.StoreKey, site, a.takeAccess),
+		a.kvThing(humancheck.StoreKey, site, a.takeHumanCheck),
+		a.kvThing(ruleExceptionsKey, listCodec{id: "id"}, a.takeRuleExceptions),
 		// The agent API reads this key at its first call: a node that
 		// served agents before it joined names clients its own way until
 		// its next start.
-		a.kvThing("agent_pseudonym_key_v1", nil),
-		a.tableThing(contract.ClassAccess, "allowlist", func(ctx context.Context) {
+		a.kvThing("agent_pseudonym_key_v1", wholeCodec{}, nil),
+		a.tableThing(contract.ClassAccess, "allowlist", 1, func(ctx context.Context) {
 			_ = a.ReloadAllow(ctx)
 			a.dropAllowlistedBlocks()
 		}),
-		a.tableThing(contract.ClassAccess, "ip_exceptions", func(ctx context.Context) {
+		// An exception is the same on every node by all it says.
+		a.tableThing(contract.ClassAccess, "ip_exceptions", 4, func(ctx context.Context) {
 			if xs, err := a.Store.ActiveExceptions(ctx, time.Now()); err == nil {
 				a.Gate.Exceptions.Load(xs)
 			}
 		}),
-		a.tableThing(contract.ClassAccess, "rule_decisions", func(ctx context.Context) {
+		a.tableThing(contract.ClassAccess, "rule_decisions", 3, func(ctx context.Context) {
 			if err := a.Repos.Reload(ctx); err != nil {
 				a.log.Error("cluster: rules not built again after a rule was disabled or enabled on another node; the running rules stay", "err", err)
 			}
 		}),
-		a.tableThing(contract.ClassLogins, "users", nil),
-		a.tableThing(contract.ClassLogins, "sessions", nil),
-		a.tableThing(contract.ClassLogins, "agent_tokens", nil),
+		a.tableThing(contract.ClassLogins, "users", 1, nil),
+		a.tableThing(contract.ClassLogins, "sessions", 1, nil),
+		a.tableThing(contract.ClassLogins, "agent_tokens", 1, nil),
 	}
 }
 
@@ -277,141 +283,242 @@ func (a *App) takeRuleExceptions(ctx context.Context, v []byte) error {
 	return nil
 }
 
-// startSharedState wires the whole values and erasures into the node.
+// startSharedState wires the shared things and erasures into the node.
 func (a *App) startSharedState(ctx context.Context) {
 	a.shared = a.sharedThings()
+	a.sharedPending = map[string]map[string]pendingEntry{}
+	a.sharedMarks = map[string]map[string]string{}
 	for _, class := range []string{contract.ClassSettings, contract.ClassAccess, contract.ClassLogins} {
-		a.Cluster.On(class, func(rec *contract.Record) { a.takeShared(context.Background(), rec) })
+		a.Cluster.On(class, a.noteShared)
 	}
 	a.Cluster.On(contract.ClassErasure, func(rec *contract.Record) { a.takeErasure(context.Background(), rec) })
 	a.Dashboard.Erased = a.publishErasure
-	a.goLoop(ctx, "cluster-state", tick(time.Second, func() { a.syncShared(ctx) }))
+	a.goLoop(ctx, "cluster-state", tick(250*time.Millisecond, func() { a.syncShared(ctx) }))
 }
 
-// takeShared applies a value another node published.
-func (a *App) takeShared(ctx context.Context, rec *contract.Record) {
+// pendingEntry is an entry another node changed, waiting to be put into
+// its value: v nil means it is gone.
+type pendingEntry struct {
+	v    []byte
+	node string
+}
+
+// entryTombstoneKeep is how long the record of a removed entry stays. A
+// node away for longer has to enter the group anew.
+const entryTombstoneKeep = 30 * 24 * time.Hour
+
+// maxEntryPublishes bounds the entries of one thing a node hands over per
+// round; the rest follows with the next.
+const maxEntryPublishes = 500
+
+// noteShared notes an entry another node published. It runs in the
+// goroutine of the sync and only notes: the loop puts the entries of a
+// thing into its value together, so ten changed rows are one write.
+func (a *App) noteShared(rec *contract.Record) {
 	v, err := contract.DecodeValue(rec)
 	if err != nil {
 		return
 	}
-	val, _ := v.Bytes()
-	a.sharedMu.Lock()
-	defer a.sharedMu.Unlock()
-	for _, t := range a.shared {
-		if t.class == rec.Class && t.id == rec.ID {
-			if m := a.Cluster.Mark(t.key()); m == "" || strings.HasPrefix(m, ownOnly) {
-				if local, err := t.read(ctx); err == nil {
-					a.keepReplaced(t, local, val)
-				}
-			}
-			a.writeShared(ctx, t, val, v.Node)
-			return
+	thing, ok := contract.ThingOf(rec.Class, rec.ID)
+	if !ok {
+		return
+	}
+	p := pendingEntry{node: v.Node}
+	if !rec.Deleted {
+		val, _ := v.Bytes()
+		if val == nil {
+			val = []byte{}
 		}
+		p.v = val
 	}
+	a.sharedMu.Lock()
+	if a.sharedPending[rec.Class+"/"+thing] == nil {
+		a.sharedPending[rec.Class+"/"+thing] = map[string]pendingEntry{}
+	}
+	a.sharedPending[rec.Class+"/"+thing][v.K] = p
+	a.sharedMu.Unlock()
 }
 
-// keepReplaced keeps what this node held of a thing before it takes the
-// group's value for the first time. Called with sharedMu held.
-func (a *App) keepReplaced(t sharedThing, local, group []byte) {
-	if len(local) == 0 || emptyDump(local) || sum(local) == sum(group) {
-		return
+// marks returns what this node last brought in step with the group of a
+// thing: entry key -> hash of its value. Called with sharedMu held.
+func (a *App) marksOf(t sharedThing) map[string]string {
+	if m, ok := a.sharedMarks[t.key()]; ok {
+		return m
 	}
-	if err := a.Cluster.Keep(t.key(), local); err != nil {
-		a.log.Error("cluster: what this node held before was not kept", "thing", t.key(), "err", err)
-		return
+	m := map[string]string{}
+	if raw := a.Cluster.Mark("entries:" + t.key()); raw != "" {
+		_ = json.Unmarshal([]byte(raw), &m)
 	}
-	a.log.Warn("cluster: this node takes the group's value at its first sync; what it held before is kept in cluster.db (table replaced)", "thing", t.key())
+	a.sharedMarks[t.key()] = m
+	return m
 }
 
-// writeShared stores a value of the group and notes that this node is in
-// step with it. Called with sharedMu held.
-func (a *App) writeShared(ctx context.Context, t sharedThing, val []byte, from string) bool {
-	if err := t.write(ctx, val); err != nil {
-		ratelog.Error(a.log, "cluster: a value of the group was not applied, this node keeps its own", "thing", t.key(), "from", from, "err", err)
-		return false
+func (a *App) saveMarks(t sharedThing) {
+	raw, err := json.Marshal(a.sharedMarks[t.key()])
+	if err == nil {
+		err = a.Cluster.SetMark("entries:"+t.key(), string(raw))
 	}
-	cur, err := t.read(ctx)
 	if err != nil {
-		return false
+		a.log.Warn("cluster: marks not written", "thing", t.key(), "err", err)
 	}
-	if err := a.Cluster.SetMark(t.key(), sum(cur)); err != nil {
-		a.log.Warn("cluster: mark not written", "thing", t.key(), "err", err)
-	}
-	a.log.Info("cluster: took a change of another node", "thing", t.key(), "from", from)
-	return true
 }
 
-// syncShared publishes every value that changed on this node since it was
-// last in step with the group. A node that was never in step (it just
-// joined) takes the group's value first, and keeps a copy of what it
-// replaces; only a thing the group does not hold yet is published from it.
+// syncShared brings every shared thing in step with the group: it puts the
+// entries other nodes changed into the value, and publishes the entries
+// that changed on this node.
 func (a *App) syncShared(ctx context.Context) {
 	node := a.Cluster
-	if node == nil || node.Removed() {
+	if node == nil || node.Removed() || node.Paused() {
 		return
 	}
 	a.sharedMu.Lock()
 	defer a.sharedMu.Unlock()
-	name := node.Name()
+	synced := node.Synced()
 	for _, t := range a.shared {
-		local, err := t.read(ctx)
-		if err != nil {
-			continue
+		a.syncThing(ctx, t, synced)
+	}
+}
+
+// syncThing is syncShared for one thing. Called with sharedMu held.
+func (a *App) syncThing(ctx context.Context, t sharedThing, synced bool) {
+	node := a.Cluster
+	blob, err := t.read(ctx)
+	if err != nil {
+		return
+	}
+	local, err := t.codec.split(blob)
+	if err != nil {
+		ratelog.Warn(a.log, "cluster: a value of this node is not read as entries, it is not shared", "thing", t.key(), "err", err)
+		return
+	}
+	marks := a.marksOf(t)
+	changed := false
+
+	// What other nodes changed since the last round.
+	pending := a.sharedPending[t.key()]
+	delete(a.sharedPending, t.key())
+	// The first time this node is in step with the group: take the entries
+	// the group holds and this node never saw. An entry both hold is the
+	// group's; what this node held of it is kept.
+	if synced && !a.sharedCaught[t.key()] {
+		if a.sharedCaught == nil {
+			a.sharedCaught = map[string]bool{}
 		}
-		h, seen := sum(local), node.Mark(t.key())
-		// Until this node took a value of the group for a thing once, its
-		// mark says so: what it then gives up is kept (keepReplaced).
-		own := seen == "" || strings.HasPrefix(seen, ownOnly)
-		if h == strings.TrimPrefix(seen, ownOnly) {
-			continue
-		}
-		if seen == "" {
-			if !node.Synced() {
-				continue
-			}
-			rec, err := node.Get(t.class, t.id)
-			if err != nil {
-				continue
-			}
-			if rec != nil {
+		a.sharedCaught[t.key()] = true
+		if recs, err := node.State(t.class); err == nil {
+			for _, rec := range recs {
+				if thing, ok := contract.ThingOf(rec.Class, rec.ID); !ok || thing != t.id || rec.Deleted {
+					continue
+				}
 				v, err := contract.DecodeValue(rec)
 				if err != nil {
 					continue
 				}
+				if _, seen := marks[v.K]; seen {
+					continue
+				}
+				if _, queued := pending[v.K]; queued {
+					continue
+				}
 				val, _ := v.Bytes()
-				a.keepReplaced(t, local, val)
-				a.writeShared(ctx, t, val, v.Node)
+				if cur, here := local[v.K]; here && sum(cur) != sum(val) {
+					if err := node.Keep(t.key()+" "+v.K, cur); err == nil {
+						a.log.Warn("cluster: this node takes the group's value of an entry both held; its own is kept in cluster.db (table replaced)", "thing", t.key(), "entry", v.K)
+					}
+				}
+				if pending == nil {
+					pending = map[string]pendingEntry{}
+				}
+				pending[v.K] = pendingEntry{v: val, node: v.Node}
+			}
+		}
+	}
+	if len(pending) > 0 {
+		set, del := map[string][]byte{}, []string{}
+		from := ""
+		for k, p := range pending {
+			from = p.node
+			if p.v == nil {
+				del = append(del, k)
+			} else {
+				set[k] = p.v
+			}
+		}
+		next, err := t.codec.join(blob, set, del)
+		if err == nil {
+			err = t.write(ctx, next)
+		}
+		if err != nil {
+			// The node keeps its own. It notes the entries as in step all
+			// the same: its own value of them must not go to the group as
+			// if it were a new change.
+			ratelog.Error(a.log, "cluster: a change of another node was not applied, this node keeps its own", "thing", t.key(), "from", from, "err", err)
+		} else {
+			a.log.Info("cluster: took a change of another node", "thing", t.key(), "from", from, "entries", len(pending))
+		}
+		if blob, err = t.read(ctx); err != nil {
+			return
+		}
+		if local, err = t.codec.split(blob); err != nil {
+			return
+		}
+		for k := range pending {
+			if cur, ok := local[k]; ok {
+				marks[k] = sum(cur)
+			} else {
+				delete(marks, k)
+			}
+		}
+		changed = true
+	}
+
+	// What changed on this node. Before its first sync a node publishes
+	// nothing: it does not know yet what the group holds.
+	if synced {
+		name := node.Name()
+		sent := 0
+		for k, v := range local {
+			h := sum(v)
+			if marks[k] == h {
 				continue
 			}
-			if len(local) == 0 {
-				continue // nothing here, nothing in the group
+			if sent >= maxEntryPublishes {
+				break
 			}
+			if len(k) > contract.MaxEntryKey || len(v) > contract.MaxData/4*3-2048 {
+				ratelog.Warn(a.log, "cluster: an entry is too large to share, it holds on this node only", "thing", t.key(), "bytes", len(v))
+				marks[k] = h
+				changed = true
+				continue
+			}
+			if _, err := node.Publish(t.class, contract.EntryID(t.id, k), contract.NewValue(k, v, name), false, time.Time{}); err != nil {
+				ratelog.Warn(a.log, "cluster: change not handed to the group (it holds on this node)", "thing", t.key(), "err", err)
+				break
+			}
+			marks[k] = h
+			changed = true
+			sent++
 		}
-		if len(local) > contract.MaxData/4*3-256 {
-			ratelog.Warn(a.log, "cluster: a value is too large to share, it holds on this node only", "thing", t.key(), "bytes", len(local))
-			continue
+		for k := range marks {
+			if _, ok := local[k]; ok {
+				continue
+			}
+			if sent >= maxEntryPublishes {
+				break
+			}
+			// Gone on this node: a tombstone, so it is gone on every node.
+			if _, err := node.Publish(t.class, contract.EntryID(t.id, k), &contract.Value{K: k, Node: name}, true, time.Now().Add(entryTombstoneKeep)); err != nil {
+				ratelog.Warn(a.log, "cluster: removal not handed to the group (it holds on this node)", "thing", t.key(), "err", err)
+				break
+			}
+			delete(marks, k)
+			changed = true
+			sent++
 		}
-		if _, err := node.Publish(t.class, t.id, contract.NewValue(local, name), false, time.Time{}); err != nil {
-			ratelog.Warn(a.log, "cluster: change not handed to the group (it holds on this node)", "thing", t.key(), "err", err)
-			continue
-		}
-		if own {
-			h = ownOnly + h
-		}
-		_ = node.SetMark(t.key(), h)
 	}
-}
-
-// ownOnly starts the mark of a thing this node published and never took
-// from the group.
-const ownOnly = "own:"
-
-// emptyDump reports whether a table dump holds no rows.
-func emptyDump(b []byte) bool {
-	var d struct {
-		Rows []json.RawMessage `json:"rows"`
+	if changed {
+		a.saveMarks(t)
 	}
-	return json.Unmarshal(b, &d) == nil && d.Rows != nil && len(d.Rows) == 0
 }
 
 // publishErasure tells the group that an address was erased here (Art. 17

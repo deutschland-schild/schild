@@ -100,11 +100,18 @@ func genClusterRecord(g *gen) {
 	taken("removed-member-before", "What a member signed before its removal stands: a node that joins later reads it the same.",
 		in(roster, block(cc, 1, h(20*time.Minute), "203.0.113.8"), nil), nil)
 	taken("member-removed", "The tombstone of a member keeps its data, with the key.", in([]*cluster.Record{founder, second, third}, thirdGone, nil), nil)
-	taken("settings", "A whole value of class settings.",
-		in(roster, rec(b, cluster.ClassSettings, "settings_overlay_v1", 3, h(42*time.Minute), false, "", cluster.NewValue([]byte(`{"rules":{"crs":{"state":"detect"}}}`), "web-2")), nil), nil)
-	taken("access-allowlist", "The allowlist as one value.",
-		in(roster, rec(b, cluster.ClassAccess, "allowlist", 4, h(42*time.Minute), false, "", cluster.NewValue([]byte(`{"columns":["id"],"rows":[]}`), "web-2")), nil), nil)
-	taken("logins-empty", "An empty value is a value.", in(roster, rec(b, cluster.ClassLogins, "users", 5, h(42*time.Minute), false, "", cluster.NewValue(nil, "web-2")), nil), nil)
+	entry := func(class, thing, key string, seq uint64, deleted bool, expires string, data any) *cluster.Record {
+		return rec(b, class, cluster.EntryID(thing, key), seq, h(42*time.Minute), deleted, expires, data)
+	}
+	gone := cluster.TimeText(Now.Add(30 * 24 * time.Hour))
+	taken("settings-entry", "One setting of the overlay is one record: its key names the path.",
+		in(roster, entry(cluster.ClassSettings, "settings_overlay_v1", `["rules","crs","state"]`, 3, false, "", cluster.NewValue(`["rules","crs","state"]`, []byte(`"detect"`), "web-2")), nil), nil)
+	taken("access-allowlist-row", "One row of the allowlist is one record.",
+		in(roster, entry(cluster.ClassAccess, "allowlist", `["al_1"]`, 4, false, "", cluster.NewValue(`["al_1"]`, []byte(`["al_1","203.0.113.7"]`), "web-2")), nil), nil)
+	taken("logins-row-removed", "A removed entry is a tombstone with its key, no value and an end.",
+		in(roster, entry(cluster.ClassLogins, "sessions", `["abc"]`, 5, true, gone, cluster.Value{K: `["abc"]`, Node: "web-2"}), nil), nil)
+	taken("settings-whole-value", "A value that is one piece has the key \"\".",
+		in(roster, entry(cluster.ClassSettings, "agent_pseudonym_key_v1", "", 6, false, "", cluster.NewValue("", []byte{1, 2, 3}, "web-2")), nil), nil)
 	taken("erasure", "An erased address, kept 31 days.",
 		in(roster, rec(b, cluster.ClassErasure, "203.0.113.7", 6, h(43*time.Minute), false, cluster.TimeText(Now.Add(31*24*time.Hour)), cluster.Erasure{IP: "203.0.113.7", Node: "web-2"}), nil), nil)
 	certDir := "certificates/acme-v02.api.letsencrypt.org-directory/shop.example"
@@ -195,8 +202,8 @@ func genClusterRecord(g *gen) {
 	swapped := block(b, 1, h(40*time.Minute), "203.0.113.7")
 	swapped.Sig = block(b, 2, h(40*time.Minute), "203.0.113.7").Sig
 	refused("signature", "signature-of-another-record", "The signature of the same data under another sequence number.", in(roster, swapped, nil))
-	moved := rec(b, cluster.ClassAccess, "allowlist", 4, h(42*time.Minute), false, "", cluster.NewValue([]byte(`{}`), "web-2"))
-	moved.Class, moved.ID = cluster.ClassLogins, "users"
+	moved := rec(b, cluster.ClassAccess, cluster.EntryID("allowlist", "x"), 4, h(42*time.Minute), false, "", cluster.NewValue("x", []byte(`{}`), "web-2"))
+	moved.Class, moved.ID = cluster.ClassLogins, cluster.EntryID("users", "x")
 	refused("signature", "moved-to-another-class", "A value moved to another class and thing.", in(roster, moved, nil))
 	later := block(b, 1, h(40*time.Minute), "203.0.113.7")
 	later.HLC++
@@ -235,10 +242,20 @@ func genClusterRecord(g *gen) {
 	half := member(x, "web-4", cluster.RoleGateway, "10.0.0.4:8790")
 	half.AdmitKey = base64.StdEncoding.EncodeToString(clusterPub(gk))
 	refused("schema", "member-half-an-admission", "admit_public_key and admit come both or not at all.", in(roster, mrec(a, x, 6, h(40*time.Minute), false, half), nil))
-	refused("schema", "value-unknown-thing", "A thing the class does not have.", in(roster, rec(b, cluster.ClassSettings, "installed_at_v1", 3, h(42*time.Minute), false, "", cluster.NewValue(nil, "web-2")), nil))
-	refused("schema", "value-thing-of-another-class", "users is of class logins.", in(roster, rec(b, cluster.ClassAccess, "users", 3, h(42*time.Minute), false, "", cluster.NewValue(nil, "web-2")), nil))
-	refused("schema", "value-deleted", "A whole value is replaced, never deleted.", in(roster, rec(b, cluster.ClassAccess, "allowlist", 3, h(42*time.Minute), true, "", cluster.NewValue(nil, "web-2")), nil))
-	refused("schema", "value-no-base64", "The value is standard base64.", in(roster, rec(b, cluster.ClassSettings, "human_check_v1", 3, h(42*time.Minute), false, "", m{"v": "%%%", "node": "web-2"}), nil))
+	refused("schema", "value-unknown-thing", "A thing the class does not have.",
+		in(roster, entry(cluster.ClassSettings, "installed_at_v1", "", 3, false, "", cluster.NewValue("", nil, "web-2")), nil))
+	refused("schema", "value-thing-of-another-class", "users is of class logins.",
+		in(roster, entry(cluster.ClassAccess, "users", `["admin"]`, 3, false, "", cluster.NewValue(`["admin"]`, nil, "web-2")), nil))
+	refused("schema", "value-whole-thing", "A thing is not one record: every entry is one.",
+		in(roster, rec(b, cluster.ClassAccess, "allowlist", 3, h(42*time.Minute), false, "", cluster.NewValue("", nil, "web-2")), nil))
+	refused("schema", "value-id-not-of-key", "The id of an entry is the hash of its key.",
+		in(roster, entry(cluster.ClassAccess, "allowlist", `["al_1"]`, 3, false, "", cluster.NewValue(`["al_2"]`, nil, "web-2")), nil))
+	refused("schema", "value-tombstone-with-value", "A tombstone has no value.",
+		in(roster, entry(cluster.ClassAccess, "allowlist", `["al_1"]`, 3, true, gone, cluster.NewValue(`["al_1"]`, []byte("x"), "web-2")), nil))
+	refused("schema", "value-tombstone-without-end", "A tombstone names when it is dropped.",
+		in(roster, entry(cluster.ClassAccess, "allowlist", `["al_1"]`, 3, true, "", cluster.Value{K: `["al_1"]`}), nil))
+	refused("schema", "value-no-base64", "The value is standard base64.",
+		in(roster, entry(cluster.ClassSettings, "human_check_v1", "a", 3, false, "", m{"key": "a", "value": "%%%", "node": "web-2"}), nil))
 	refused("schema", "erasure-of-another-address", "The id of an erasure is its address.",
 		in(roster, rec(b, cluster.ClassErasure, "203.0.113.7", 6, h(43*time.Minute), false, cluster.TimeText(Now.Add(time.Hour)), cluster.Erasure{IP: "203.0.113.8"}), nil))
 	refused("schema", "erasure-without-end", "An erasure names when it is dropped.", in(roster, rec(b, cluster.ClassErasure, "203.0.113.7", 6, h(43*time.Minute), false, "", cluster.Erasure{IP: "203.0.113.7"}), nil))

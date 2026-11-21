@@ -162,11 +162,13 @@ func decodeData(r *Record, v any) error {
 }
 
 // Value is the data of a record of the classes settings, access and logins:
-// the whole thing as the gateway stores it. A newer record replaces it as a
-// whole; a node keeps what it replaced on its first sync.
+// one entry of a thing. K is the entry's key, which the record id is the
+// hash of; V its value as the gateway stores it. A tombstone has K and no
+// V: the entry is gone.
 type Value struct {
+	K string `json:"key"`
 	// V is the value in standard base64.
-	V string `json:"v"`
+	V string `json:"value"`
 	// Node is the name of the node the change was made on.
 	Node string `json:"node"`
 }
@@ -176,17 +178,28 @@ func (v *Value) Bytes() ([]byte, error) {
 	return base64.StdEncoding.Strict().DecodeString(v.V)
 }
 
-// NewValue wraps a value.
-func NewValue(b []byte, node string) *Value {
-	return &Value{V: base64.StdEncoding.EncodeToString(b), Node: node}
+// NewValue wraps one entry.
+func NewValue(key string, b []byte, node string) *Value {
+	return &Value{K: key, V: base64.StdEncoding.EncodeToString(b), Node: node}
 }
 
-// DecodeValue returns the value of a record of class settings, access or
-// logins.
+// DecodeValue returns the entry of a record of class settings, access or
+// logins. The record names its thing and the hash of the entry's key; a
+// tombstone carries no value and says when it is dropped.
 func DecodeValue(r *Record) (*Value, error) {
 	var v Value
-	if err := decodeData(r, &v); err != nil || len(v.Node) > 63 {
+	if err := decodeData(r, &v); err != nil || len(v.Node) > 63 || len(v.K) > MaxEntryKey {
 		return nil, ErrSchema
+	}
+	thing, ok := ThingOf(r.Class, r.ID)
+	if !ok || EntryID(thing, v.K) != r.ID {
+		return nil, ErrSchema
+	}
+	if r.Deleted {
+		if v.V != "" || r.Expires == "" {
+			return nil, ErrSchema
+		}
+		return &v, nil
 	}
 	if _, err := v.Bytes(); err != nil {
 		return nil, ErrSchema

@@ -16,8 +16,10 @@ var sharedTables = map[string]struct {
 	cols  []string
 	order string
 }{
-	"allowlist":      {"allowlist", []string{"id", "ip", "cidr", "host", "label", "level", "expires", "created_ms", "source"}, "id"},
-	"ip_exceptions":  {"exceptions", []string{"id", "ip", "sources", "expires_ms", "incident"}, "id"},
+	"allowlist": {"allowlist", []string{"id", "ip", "cidr", "host", "label", "level", "expires", "created_ms", "source"}, "id"},
+	// Without the id: two nodes number their rows alone, and a row is the
+	// same exception on every node by what it says.
+	"ip_exceptions":  {"exceptions", []string{"ip", "sources", "expires_ms", "incident"}, "ip, sources, expires_ms, incident"},
 	"rule_decisions": {"rule_decisions", []string{"repository", "rule", "kind", "version", "by", "token_id", "token_label", "note", "at"}, "repository, rule, kind"},
 	"users":          {"users", []string{"name", "hash", "role", "created_ms"}, "name"},
 	"sessions":       {"sessions", []string{"token_hash", "user", "csrf", "created_ms", "expires_ms"}, "token_hash"},

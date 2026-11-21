@@ -75,23 +75,25 @@ A node that receives a block decides again with what it holds itself: an address
 
 ### settings, access, logins
 
-Things that are one value each, replaced as a whole. `id` names the thing; a record of another id is refused, and so is a tombstone.
+What the dashboard and the agent API set, who passes and who may sign in. Each thing is a set of entries, and every entry is a record of its own. So two nodes that change different entries of one thing both keep their change, also when they could not reach each other meanwhile, and a node that enters a group adds what it holds instead of losing it.
 
-| Class | `id` | What |
+| Class | Thing | One entry is |
 | --- | --- | --- |
-| `settings` | `settings_overlay_v1`, `behaviour_rate_limits_v1`, `rules_state_by_v1` | what the dashboard and the agent API changed of `schild.yaml`: switches of the sources, thresholds, CRS levels, rate limits, and who set a repository's state |
-| `settings` | `crawler_policies_v1`, `access_protections_v1`, `human_check_v1`, `rule_exceptions_v2` | crawler control, access lock and maintenance, browser check, rule exceptions |
-| `settings` | `agent_pseudonym_key_v1` | the key of client pseudonyms, so one address has one pseudonym in the group |
-| `access` | `allowlist`, `ip_exceptions`, `rule_decisions` | own addresses, released senders, disabled rules |
-| `logins` | `users`, `sessions`, `agent_tokens` | who may sign in to the dashboard and the agent API |
+| `settings` | `settings_overlay_v1` | one setting the dashboard or the agent API changed of `schild.yaml`: the key is its path, e.g. `["rules","crs","state"]` |
+| `settings` | `behaviour_rate_limits_v1`, `rule_exceptions_v2` | one rate limit, one rule exception, by its id |
+| `settings` | `rules_state_by_v1` | who set the state of one rule repository |
+| `settings` | `crawler_policies_v1`, `access_protections_v1`, `human_check_v1` | the policy of one website, and every other field of the state (the keys behind the cookies of visitors among them) |
+| `settings` | `agent_pseudonym_key_v1` | the key of client pseudonyms, one piece, key `""` |
+| `access` | `allowlist`, `rule_decisions` | one row, by its key columns |
+| `access` | `ip_exceptions` | one released sender, by all the row says (the row number stays on its node) |
+| `logins` | `users`, `sessions`, `agent_tokens` | one row, by its key column |
 
-Data: `v`, the value as the gateway stores it, in standard base64, and `node`, the name of the node the change was made on. For a table the value is `{"columns": [...], "rows": [[...]]}`, rows in the order of the key; a node refuses a table with other columns (another version of schild) and keeps its own.
-
-`access_protections_v1` and `human_check_v1` hold the keys behind the cookies of visitors, `users` the password hashes, `sessions` and `agent_tokens` hashes of tokens. They travel between gateways of one operator over the mesh and nowhere else.
-
-- A node publishes a value when it changed on that node since the node was last in step with the group. A value of another node is stored and made effective the way the start loads it: settings are validated with the node's own `schild.yaml`, rules are built again, and a value that does not fit (config drift) or does not build is not taken; the node keeps its own and says so.
-- Two changes of the same thing on two nodes within the second a change takes to travel: the later one stands, on every node. The other is not merged in.
-- A node that enters a group takes the group's value of every thing the group holds, and publishes only what the group does not hold yet. What it gives up the first time is kept on the node (`cluster.db`, table `replaced`) and named in its log and in `schild cluster status`. Nodes that hold different settings are therefore brought into a group one after the other: started at the same moment, each thing is settled by the later clock.
+- `id` is the thing, a slash and the first 16 bytes, in hex, of SHA-256 over the entry's key. A record of another thing, or whose id is not the hash of its key, is refused.
+- Data: `key`, the entry's key (at most 1024 bytes); `value`, its value as the gateway stores it, in standard base64; `node`, the name of the node the change was made on. A removed entry is a tombstone with `key`, no `value`, and `expires` 30 days after the removal; a node away for longer enters the group anew.
+- A node publishes an entry when it changed on that node since the node was last in step with the group. The entries other nodes changed of one thing are put into the value together and the value made effective the way the start loads it: settings are validated with the node's own `schild.yaml`, rules are built again, and what does not fit (config drift) or does not build is not taken; the node keeps its own and says so.
+- Two changes of the very same entry on two nodes: the later clock stands, on every node. Nothing else is settled by a clock.
+- A node that enters a group publishes the entries it holds and the group does not, and takes the entries the group holds. Only an entry both hold is the group's; what the node held of it is kept (`cluster.db`, table `replaced`) and named in its log and in `schild cluster status`. Before its first sync a node publishes nothing: it does not know yet what the group holds.
+- `access_protections_v1` and `human_check_v1` hold the keys behind the cookies of visitors, `users` the password hashes, `sessions` and `agent_tokens` hashes of tokens. They travel between gateways of one operator over the mesh and nowhere else.
 - Not shared: `schild.yaml`, `rules.d` and the Caddyfile (a deployment), the state of the CrowdSec Hub download, `installed_at_v1`, the first-run setup code.
 
 ### erasure
@@ -180,7 +182,7 @@ With `cluster.share_data` (default true) every node keeps the events, the incide
 
 ## 10. Readiness and stopping
 
-- `/.schild/readyz` on the web ports, the health check of the balancer, answers 503 on a node of a group until the node took the state of the group (or reached no member for 10 s), and while it drains.
+- `/.schild/readyz` on the web ports, the health check of the balancer, answers 503 on a node of a group until the node took the records of the group from a member once (blocks, settings, access, logins, erasures), or reached no member for 10 s, and while it drains. A node that was set up by configuration and reached none of its named peers yet is not in step. Events, incidents and requests of the others follow after it is ready.
 - A stop (SIGTERM, `schild cluster drain`) turns the answer to 503, serves on for `cluster.drain.delay_s` (default 15) so the balancer sends new connections elsewhere, then ends idle connections and lets running requests finish within `cluster.drain.grace_s` (default 30).
 
 ## 11. Edges

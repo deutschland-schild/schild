@@ -154,12 +154,12 @@ func TestGroupSharesBlocksAndLifts(t *testing.T) {
 	for _, n := range []*testNode{a, b} {
 		waitFor(t, n.name+" holds the lift of web-3", func() bool { return n.holds("203.0.113.7") == "lift" })
 	}
-	b.mu.Lock()
-	got := len(b.seen)
-	b.mu.Unlock()
-	if got != 2 {
-		t.Errorf("web-2 was told %d changes, want the block and the lift", got)
-	}
+	// The handler runs after the record is stored: wait for it.
+	waitFor(t, "web-2 was told the block and the lift", func() bool {
+		b.mu.Lock()
+		defer b.mu.Unlock()
+		return len(b.seen) == 2
+	})
 }
 
 func TestNodeCatchesUpAfterAnOutage(t *testing.T) {

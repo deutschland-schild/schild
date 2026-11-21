@@ -4238,6 +4238,14 @@ def cl_clean_path(p):
     return not any(el in ("", ".", "..") or "\\" in el or "\x00" in el for el in p.split("/"))
 
 
+def cl_thing_of(cls, rid):
+    """The thing a record id of settings, access or logins names, or None."""
+    i = rid.rfind("/")
+    if i < 0 or len(rid) - i - 1 != 32:
+        return None
+    return rid[:i] if rid[:i] in CL_THINGS[cls] else None
+
+
 def cl_class_rules(rec):
     cls, deleted, expires = rec["class"], bool(rec.get("deleted")), rec.get("expires", "")
     if cls == "members":
@@ -4257,8 +4265,17 @@ def cl_class_rules(rec):
         if not ok or expires != b["until"]:
             raise ClRefuse("schema")
     elif cls in CL_THINGS:
-        v = cl_decode(rec, {"v": "str", "node": "str"})
-        if cl_blen(v["node"]) > 63 or cl_b64(v["v"]) is None:
+        # One entry of a thing: the id is the thing and the hash of the key.
+        v = cl_decode(rec, {"key": "str", "value": "str", "node": "str"})
+        thing = cl_thing_of(cls, rec["id"])
+        if cl_blen(v["node"]) > 63 or cl_blen(v["key"]) > 1024 or thing is None:
+            raise ClRefuse("schema")
+        if thing + "/" + hashlib.sha256(v["key"].encode("utf-8", "surrogatepass")).hexdigest()[:32] != rec["id"]:
+            raise ClRefuse("schema")
+        if deleted:
+            if v["value"] != "" or expires == "":
+                raise ClRefuse("schema")
+        elif cl_b64(v["value"]) is None:
             raise ClRefuse("schema")
     elif cls == "erasure":
         e = cl_decode(rec, {"ip": "str", "keep_incidents": "bool", "node": "str"})
@@ -4295,7 +4312,7 @@ def cl_check(roster, group, rec, now):
     if rec["group"] == "" or rec["origin"] == "" or rec["id"] == "" or cl_blen(rec["id"]) > CL_MAX_ID or rec["seq"] == 0 or rec["hlc"] == 0:
         raise ClRefuse("schema")
     if cls in CL_THINGS:
-        if rec["id"] not in CL_THINGS[cls] or deleted:
+        if cl_thing_of(cls, rec["id"]) is None:
             raise ClRefuse("schema")
     elif cls not in ("members", "blocks", "erasure", "certificates"):
         raise ClRefuse("schema")
