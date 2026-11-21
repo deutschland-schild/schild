@@ -167,6 +167,10 @@ func printClusterStatus(out io.Writer, st *cluster.Status, cfg *config.Site, now
 		}
 	}
 	fmt.Fprintf(out, "Blocks of the group that run: %d\n", st.Records["blocks"])
+	fmt.Fprintf(out, "Shared: %d settings, %d lists of who passes, %d lists of who signs in\n", st.Records["settings"], st.Records["access"], st.Records["logins"])
+	if st.Replaced > 0 {
+		fmt.Fprintf(out, "At its first sync this node took %d values of the group in place of its own; the own ones are kept in cluster.db, table replaced.\n", st.Replaced)
+	}
 	if running {
 		fmt.Fprintf(out, "Since the start: %d records taken, %d refused, %d put off (clock or unknown origin), %d of a newer version unread\n",
 			st.Counters["applied"], st.Counters["rejected"], st.Counters["deferred"], st.Counters["unread"])

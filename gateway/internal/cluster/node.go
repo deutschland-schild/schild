@@ -7,6 +7,7 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"crypto/x509/pkix"
+	"database/sql"
 	"encoding/json"
 	"errors"
 	"log/slog"
@@ -64,6 +65,7 @@ type Node struct {
 	seeking atomic.Bool
 	// removed: a member answered that this node was removed.
 	removed atomic.Bool
+	synced  atomic.Bool
 }
 
 // Open loads the node of a data directory. ErrNoGroup: it belongs to none.
@@ -141,6 +143,70 @@ func (n *Node) Publish(class, id string, data any, deleted bool, expires time.Ti
 	}
 	n.wake()
 	return rec, nil
+}
+
+// Get returns the record that is the state of one thing; nil: none.
+func (n *Node) Get(class, id string) (*contract.Record, error) {
+	var raw []byte
+	err := n.db.QueryRow(`SELECT raw FROM records WHERE class = ? AND id = ? AND state = ?`, class, id, stateWinner).Scan(&raw)
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	var r contract.Record
+	if err := json.Unmarshal(raw, &r); err != nil {
+		return nil, err
+	}
+	return &r, nil
+}
+
+// Mark and SetMark keep a note per thing next to the records: what of the
+// local value this node last brought in step with the group.
+func (n *Node) Mark(key string) string {
+	v, _ := n.meta("mark:" + key)
+	return string(v)
+}
+
+func (n *Node) SetMark(key, value string) error {
+	n.wmu.Lock()
+	defer n.wmu.Unlock()
+	tx, err := n.db.Begin()
+	if err != nil {
+		return err
+	}
+	if err := setMeta(tx, "mark:"+key, []byte(value)); err != nil {
+		tx.Rollback()
+		return err
+	}
+	return tx.Commit()
+}
+
+// Keep stores what a value of the group replaced on this node, so that
+// nothing a node held before it joined is gone without a copy.
+func (n *Node) Keep(key string, value []byte) error {
+	n.wmu.Lock()
+	defer n.wmu.Unlock()
+	_, err := n.db.Exec(`INSERT INTO replaced(k, at_ms, v) VALUES(?, ?, ?)`, key, n.now().UnixMilli(), value)
+	return err
+}
+
+// Synced reports whether this node took everything a member had to give
+// since its start, or is the only gateway of its group. Before that it
+// does not know what the group holds.
+func (n *Node) Synced() bool {
+	if n.synced.Load() {
+		return true
+	}
+	n.rmu.RLock()
+	defer n.rmu.RUnlock()
+	for _, e := range n.roster.Members() {
+		if !e.Removed && e.ID != n.id && e.Member.Role == contract.RoleGateway {
+			return false
+		}
+	}
+	return true
 }
 
 // State returns the records that are the state of a class.

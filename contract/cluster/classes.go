@@ -160,3 +160,62 @@ func decodeData(r *Record, v any) error {
 	}
 	return nil
 }
+
+// Value is the data of a record of the classes settings, access and logins:
+// the whole thing as the gateway stores it. A newer record replaces it as a
+// whole; a node keeps what it replaced on its first sync.
+type Value struct {
+	// V is the value in standard base64.
+	V string `json:"v"`
+	// Node is the name of the node the change was made on.
+	Node string `json:"node"`
+}
+
+// Bytes returns the value.
+func (v *Value) Bytes() ([]byte, error) {
+	return base64.StdEncoding.Strict().DecodeString(v.V)
+}
+
+// NewValue wraps a value.
+func NewValue(b []byte, node string) *Value {
+	return &Value{V: base64.StdEncoding.EncodeToString(b), Node: node}
+}
+
+// DecodeValue returns the value of a record of class settings, access or
+// logins.
+func DecodeValue(r *Record) (*Value, error) {
+	var v Value
+	if err := decodeData(r, &v); err != nil || len(v.Node) > 63 {
+		return nil, ErrSchema
+	}
+	if _, err := v.Bytes(); err != nil {
+		return nil, ErrSchema
+	}
+	return &v, nil
+}
+
+// ErasureKeepS is how long the record of an erased address stays: longer
+// than any node keeps the data it erases (requests 30 days), so a node that
+// was away erases too. Then the record, and with it the address, is gone.
+const ErasureKeepS = 31 * 24 * 3600
+
+// Erasure is the data of a record of class erasure; its id is the address.
+type Erasure struct {
+	IP string `json:"ip"`
+	// KeepIncidents: incidents of the address stay, without the address.
+	KeepIncidents bool   `json:"keep_incidents"`
+	Node          string `json:"node"`
+}
+
+// DecodeErasure returns the erasure of a record of class erasure.
+func DecodeErasure(r *Record) (*Erasure, error) {
+	var e Erasure
+	if err := decodeData(r, &e); err != nil || len(e.Node) > 63 {
+		return nil, ErrSchema
+	}
+	a, err := netip.ParseAddr(e.IP)
+	if err != nil || a.String() != e.IP || e.IP != r.ID || r.Deleted || r.Expires == "" {
+		return nil, ErrSchema
+	}
+	return &e, nil
+}

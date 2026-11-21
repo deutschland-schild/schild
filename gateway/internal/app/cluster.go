@@ -80,6 +80,7 @@ func (a *App) startCluster(ctx context.Context) {
 		}
 	})
 	a.goLoop(ctx, "cluster-blocks", tick(250*time.Millisecond, a.publishGroupBlocks))
+	a.startSharedState(ctx)
 }
 
 // seedGroupBlocks applies the blocks of the group this node holds at its

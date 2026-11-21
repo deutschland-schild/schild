@@ -5,7 +5,9 @@ package app_test
 import (
 	"context"
 	"fmt"
+	"net/http"
 	"net/netip"
+	"net/url"
 	"os"
 	"path/filepath"
 	"testing"
@@ -15,6 +17,8 @@ import (
 	"github.com/deutschland-schild/schild/gateway/internal/apptest"
 	"github.com/deutschland-schild/schild/gateway/internal/behaviour"
 	"github.com/deutschland-schild/schild/gateway/internal/cluster"
+	"github.com/deutschland-schild/schild/gateway/internal/ruleset"
+	"github.com/deutschland-schild/schild/gateway/internal/store"
 )
 
 type groupNode struct {
@@ -181,4 +185,162 @@ func TestClusterWithUnreadableSecretRunsAlone(t *testing.T) {
 	if resp := h.Visit("GET", "/", "203.0.113.80", "", ""); resp.StatusCode != 200 {
 		t.Errorf("a gateway without its secret does not serve: %d", resp.StatusCode)
 	}
+}
+
+func allowed(g *groupNode, ip string) bool {
+	lvl, _ := g.h.App.Allow.Match(netip.MustParseAddr(ip), time.Now())
+	return lvl != ""
+}
+
+func TestGroupSharesSettingsAllowlistAndLogins(t *testing.T) {
+	a, b := pair(t)
+	ctx := context.Background()
+
+	// A scenario mode set in the dashboard of web-1 holds on web-2.
+	mode := "observe"
+	if b.h.App.Behaviour.Mode("path_probing") == mode {
+		mode = "block"
+	}
+	if _, err := a.h.App.ApplyBehaviour(ctx, map[string]string{"path_probing": mode}, nil, nil); err != nil {
+		t.Fatal(err)
+	}
+	b.h.WaitFor("web-2 took the scenario mode of web-1", func() bool { return b.h.App.Behaviour.Mode("path_probing") == mode })
+
+	// The CRS set to detect on web-2 detects on web-1.
+	if _, err := b.h.App.Repos.SetState(ctx, "crs", "detect", false, ruleset.Actor{Kind: "dashboard"}); err != nil {
+		t.Fatal(err)
+	}
+	a.h.WaitFor("web-1 took the CRS state of web-2", func() bool { return a.h.App.Config().Rules.CRS.State == "detect" })
+	// And the change of web-1 before stands on both: the later value holds
+	// the earlier one.
+	if a.h.App.Behaviour.Mode("path_probing") != mode || b.h.App.Behaviour.Mode("path_probing") != mode {
+		t.Error("the second change took the first one back")
+	}
+
+	// An own address added on web-1 passes on web-2.
+	if err := a.h.App.Store.AddAllow(ctx, &store.AllowEntry{IP: "198.51.100.77", Label: "office", Level: "no_block", Expires: "never", CreatedAt: time.Now(), Source: "dashboard"}); err != nil {
+		t.Fatal(err)
+	}
+	b.h.WaitFor("web-2 allows the address web-1 allowed", func() bool { return allowed(b, "198.51.100.77") })
+
+	// The first password is set on web-1; web-2 knows the user and the session.
+	a.h.Login()
+	b.h.WaitFor("web-2 knows the user of web-1", func() bool { return b.h.App.Store.HasUsers(ctx) })
+	b.h.Client, b.h.CSRF = a.h.Client, a.h.CSRF
+	b.h.WaitFor("the session of web-1 holds on web-2", func() bool {
+		req, _ := http.NewRequest("GET", b.h.Dash.URL+"/api/v0/overview", nil)
+		for _, c := range a.h.Client.Jar.Cookies(mustURL(a.h.Dash.URL)) {
+			req.AddCookie(c)
+		}
+		resp, err := http.DefaultClient.Do(req)
+		if err != nil {
+			return false
+		}
+		resp.Body.Close()
+		return resp.StatusCode == 200
+	})
+}
+
+func TestGroupErasesAnAddressOnEveryNode(t *testing.T) {
+	a, b := pair(t)
+	ctx := context.Background()
+	const ip = "203.0.113.120"
+	if err := b.h.App.Store.AddAllow(ctx, &store.AllowEntry{IP: "198.51.100.88", Label: "stays", Level: "no_block", Expires: "never", CreatedAt: time.Now(), Source: "dashboard"}); err != nil {
+		t.Fatal(err)
+	}
+	a.h.WaitFor("web-1 took the allowlist", func() bool { return allowed(a, "198.51.100.88") })
+	// web-2 has events of the address, and the block web-1 set.
+	b.h.Visit("GET", "/?q=<script>alert(1)</script>", ip, "", "")
+	b.h.Flush()
+	a.block(ip, "S-ERASE", 15*time.Minute)
+	b.h.WaitFor("web-2 blocks the address", func() bool { return b.blocked(ip) == "S-ERASE" })
+	if n := eventsOf(t, b, ip); n == 0 {
+		t.Fatal("web-2 holds no event of the address before the erasure")
+	}
+
+	a.h.Login()
+	if code, body := a.h.API("POST", "/privacy/delete", map[string]any{"ip": ip, "confirm": true}); code != 200 {
+		t.Fatalf("erasure on web-1: %d %s", code, body)
+	}
+	b.h.WaitFor("web-2 erased the events of the address", func() bool { return eventsOf(t, b, ip) == 0 })
+	b.h.WaitFor("web-2 ended the block of the address", func() bool { return b.blocked(ip) == "" })
+	// Nothing else went with it.
+	if !allowed(b, "198.51.100.88") || !allowed(a, "198.51.100.88") {
+		t.Error("the erasure took an allowlist entry of another address")
+	}
+	// A node that was away erases when it returns.
+	const late = "203.0.113.121"
+	b.h.Visit("GET", "/?q=<script>alert(2)</script>", late, "", "")
+	b.h.Flush()
+	if eventsOf(t, b, late) == 0 {
+		t.Fatal("no event of the second address")
+	}
+	if err := b.h.Stop(); err != nil {
+		t.Fatal(err)
+	}
+	if code, body := a.h.API("POST", "/privacy/delete", map[string]any{"ip": late, "confirm": true}); code != 200 {
+		t.Fatalf("erasure on web-1: %d %s", code, body)
+	}
+	b.start(t)
+	b.h.WaitFor("web-2 erased after its return", func() bool { return eventsOf(t, b, late) == 0 })
+}
+
+func TestJoiningNodeTakesTheGroupsValuesAndKeepsItsOwn(t *testing.T) {
+	a := &groupNode{dir: t.TempDir(), addr: apptest.FreeAddr(t), name: "web-1"}
+	b := &groupNode{dir: t.TempDir(), addr: apptest.FreeAddr(t), name: "web-2"}
+	ctx := context.Background()
+	if _, err := cluster.Init(a.clusterDir(), a.name, a.addr, nil); err != nil {
+		t.Fatal(err)
+	}
+	a.start(t)
+	if err := a.h.App.Store.AddAllow(ctx, &store.AllowEntry{IP: "198.51.100.1", Label: "of the group", Level: "no_block", Expires: "never", CreatedAt: time.Now(), Source: "dashboard"}); err != nil {
+		t.Fatal(err)
+	}
+	// web-2 ran alone before, with an allowlist of its own.
+	solo := apptest.New(t, apptest.Options{Dir: b.dir})
+	if err := solo.App.Store.AddAllow(ctx, &store.AllowEntry{IP: "198.51.100.2", Label: "of web-2 alone", Level: "no_block", Expires: "never", CreatedAt: time.Now(), Source: "dashboard"}); err != nil {
+		t.Fatal(err)
+	}
+	if err := solo.Stop(); err != nil {
+		t.Fatal(err)
+	}
+	time.Sleep(1200 * time.Millisecond) // web-1 published its list
+	code, _, err := cluster.Invite(a.clusterDir(), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, _, err := cluster.Join(ctx, b.clusterDir(), b.name, b.addr, a.addr, code, nil); err != nil {
+		t.Fatal(err)
+	}
+	b.start(t)
+	b.h.WaitFor("web-2 took the allowlist of the group", func() bool { return allowed(b, "198.51.100.1") })
+	if allowed(b, "198.51.100.2") {
+		t.Error("the list of a joining node was merged, not replaced")
+	}
+	// The group's list did not change by the join, and the own one is kept.
+	time.Sleep(1500 * time.Millisecond)
+	if !allowed(a, "198.51.100.1") || allowed(a, "198.51.100.2") {
+		t.Error("a joining node changed the allowlist of the group")
+	}
+	st, err := cluster.ReadStatus(b.clusterDir(), nil)
+	if err != nil || st.Replaced == 0 {
+		t.Errorf("what web-2 held before is not kept: %d, %v", st.Replaced, err)
+	}
+}
+
+func mustURL(s string) *url.URL {
+	u, err := url.Parse(s)
+	if err != nil {
+		panic(err)
+	}
+	return u
+}
+
+func eventsOf(t *testing.T, g *groupNode, ip string) int {
+	t.Helper()
+	rows, err := g.h.App.Store.EventsByIP(context.Background(), ip, 50)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return len(rows)
 }

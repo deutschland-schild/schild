@@ -23,7 +23,7 @@ One change of one thing, as a JSON object:
 | --- | --- |
 | `v` | 1. A record of another version stays unread and is passed on unchanged |
 | `group` | group id |
-| `class` | `members` or `blocks` |
+| `class` | `members`, `blocks`, `settings`, `access`, `logins` or `erasure` |
 | `id` | the thing within its class, at most 128 bytes |
 | `origin` | node id of the signer |
 | `seq` | counts the records of one origin, from 1 |
@@ -33,7 +33,7 @@ One change of one thing, as a JSON object:
 | `data` | standard base64 of the class's JSON object |
 | `sig` | standard base64 of the Ed25519 signature |
 
-The signature covers `schild-cluster-record-v1`, `v`, `group`, `class`, `id`, `origin`, `seq`, `hlc`, `deleted` (`1` or `0`), `expires` and the decoded bytes of `data`, in this order, each as its length in decimal, a space, the bytes and a space. Numbers are decimal text. One record is at most 32 KiB on the wire, its data at most 16 KiB.
+The signature covers `schild-cluster-record-v1`, `v`, `group`, `class`, `id`, `origin`, `seq`, `hlc`, `deleted` (`1` or `0`), `expires` and the decoded bytes of `data`, in this order, each as its length in decimal, a space, the bytes and a space. Numbers are decimal text. One record is at most 512 KiB on the wire, its data at most 256 KiB.
 
 ## 3. Which record is the state
 
@@ -72,6 +72,31 @@ Records a removed member signed before its removal stand: what it decided while 
 - A lift is a tombstone. Data: `incident` (the block it ends), `node`. Its `expires` lies 7 days and an hour after the lift, the longest any block from before could run.
 
 A node that receives a block decides again with what it holds itself: an address on its own allowlist is not blocked, the test profile blocks nothing, and a block of the same client that already runs there stands. Only the deciding node writes the event and the incident; the others show its incident number.
+
+### settings, access, logins
+
+Things that are one value each, replaced as a whole. `id` names the thing; a record of another id is refused, and so is a tombstone.
+
+| Class | `id` | What |
+| --- | --- | --- |
+| `settings` | `settings_overlay_v1`, `behaviour_rate_limits_v1`, `rules_state_by_v1` | what the dashboard and the agent API changed of `schild.yaml`: switches of the sources, thresholds, CRS levels, rate limits, and who set a repository's state |
+| `settings` | `crawler_policies_v1`, `access_protections_v1`, `human_check_v1`, `rule_exceptions_v2` | crawler control, access lock and maintenance, browser check, rule exceptions |
+| `settings` | `agent_pseudonym_key_v1` | the key of client pseudonyms, so one address has one pseudonym in the group |
+| `access` | `allowlist`, `ip_exceptions`, `rule_decisions` | own addresses, released senders, disabled rules |
+| `logins` | `users`, `sessions`, `agent_tokens` | who may sign in to the dashboard and the agent API |
+
+Data: `v`, the value as the gateway stores it, in standard base64, and `node`, the name of the node the change was made on. For a table the value is `{"columns": [...], "rows": [[...]]}`, rows in the order of the key; a node refuses a table with other columns (another version of schild) and keeps its own.
+
+`access_protections_v1` and `human_check_v1` hold the keys behind the cookies of visitors, `users` the password hashes, `sessions` and `agent_tokens` hashes of tokens. They travel between gateways of one operator over the mesh and nowhere else.
+
+- A node publishes a value when it changed on that node since the node was last in step with the group. A value of another node is stored and made effective the way the start loads it: settings are validated with the node's own `schild.yaml`, rules are built again, and a value that does not fit (config drift) or does not build is not taken; the node keeps its own and says so.
+- Two changes of the same thing on two nodes within the second a change takes to travel: the later one stands, on every node. The other is not merged in.
+- A node that enters a group takes the group's value of every thing the group holds, and publishes only what the group does not hold yet. What it gives up the first time is kept on the node (`cluster.db`, table `replaced`) and named in its log and in `schild cluster status`. Nodes that hold different settings are therefore brought into a group one after the other: started at the same moment, each thing is settled by the later clock.
+- Not shared: `schild.yaml`, `rules.d` and the Caddyfile (a deployment), the state of the CrowdSec Hub download, `installed_at_v1`, the first-run setup code.
+
+### erasure
+
+One erased address (Art. 17 GDPR). `id` is the address. Data: `ip` (equal to `id`), `keep_incidents`, `node`. `expires` lies 31 days after the erasure: longer than any node keeps what is erased, so a node that was away erases when it returns; then the record is gone, and the address with it. A node erases events, incidents, sessions, allowlist entries, exceptions, the running block and the requests of the address, as the dashboard does on its own node. The node that erases publishes after it erased.
 
 ## 6. Joining
 
@@ -117,4 +142,4 @@ A caller that was a member and was removed gets 410 on sync and hello, any other
 
 ## 8. Not built yet
 
-Of [MVP-27](../tests/specs/MVP-27-ha-group.yaml): the role edge, the classes access, settings, secrets, logins, certificates and erasure, counters across nodes, copies of events and requests and queries across the group, the readiness answer and the drain, the caps on what a node may send, the check of the PROXY protocol allow list, events and dashboard operations of the group.
+Of [MVP-27](../tests/specs/MVP-27-ha-group.yaml): the role edge, the class certificates, counters across nodes, copies of events and requests and queries across the group, the readiness answer and the drain, the caps on what a node may send, the nodes an erasure reached in `PrivacyDeleteResult`, events and dashboard operations of the group.

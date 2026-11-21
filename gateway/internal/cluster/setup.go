@@ -262,6 +262,9 @@ type Status struct {
 	Counters map[string]uint64
 	// Seen is when the running node last wrote its view; zero: it does not run.
 	Seen time.Time
+	// Replaced counts the values this node gave up for the group's at its
+	// first sync; they are kept in cluster.db.
+	Replaced int
 }
 
 // ReadStatus reads the state of the group from the data directory.
@@ -330,6 +333,7 @@ func ReadStatus(dir string, now func() time.Time) (*Status, error) {
 		}
 	}
 	rows.Close()
+	_ = s.db.QueryRow(`SELECT count(*) FROM replaced`).Scan(&st.Replaced)
 	var seen int64
 	if err := s.db.QueryRow(`SELECT CAST(v AS INTEGER) FROM meta WHERE k = 'status_ms'`).Scan(&seen); err == nil {
 		st.Seen = at(seen)

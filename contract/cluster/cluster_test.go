@@ -282,3 +282,43 @@ func TestAdmissionByTheGroupSecret(t *testing.T) {
 		t.Error("a removed node is active")
 	}
 }
+
+func TestValuesAndErasure(t *testing.T) {
+	ro, _, kb := group(t)
+	origin := NodeID(kb.Public().(ed25519.PublicKey))
+	rec := func(class, id string, data any, expires string) *Record {
+		r := &Record{V: Version, Group: ro.Group, Class: class, ID: id, Origin: origin, Seq: 1, HLC: HLCOf(t0), Expires: expires}
+		if err := r.Sign(kb, data); err != nil {
+			t.Fatal(err)
+		}
+		return r
+	}
+	good := []*Record{
+		rec(ClassAccess, "allowlist", NewValue([]byte(`{"rows":[]}`), "web-2"), ""),
+		rec(ClassSettings, "settings_overlay_v1", NewValue([]byte(`{}`), "web-2"), ""),
+		rec(ClassLogins, "users", NewValue(nil, "web-2"), ""),
+		rec(ClassErasure, "203.0.113.7", Erasure{IP: "203.0.113.7", Node: "web-2"}, TimeText(t0.Add(ErasureKeepS*time.Second))),
+	}
+	for _, r := range good {
+		if err := ro.Check(r, t0); err != nil {
+			t.Errorf("%s/%s: %v", r.Class, r.ID, err)
+		}
+	}
+	tomb := rec(ClassAccess, "allowlist", NewValue(nil, "web-2"), "")
+	tomb.Deleted = true
+	_ = tomb.Sign(kb, NewValue(nil, "web-2"))
+	bad := map[string]*Record{
+		"a thing the class does not have":   rec(ClassAccess, "users", NewValue(nil, "web-2"), ""),
+		"a setting nobody shares":           rec(ClassSettings, "installed_at_v1", NewValue(nil, "web-2"), ""),
+		"a whole value cannot be deleted":   tomb,
+		"value is no base64":                rec(ClassSettings, "human_check_v1", map[string]string{"v": "%%%", "node": "x"}, ""),
+		"erasure without an end":            rec(ClassErasure, "203.0.113.7", Erasure{IP: "203.0.113.7"}, ""),
+		"erasure of another address":        rec(ClassErasure, "203.0.113.7", Erasure{IP: "203.0.113.8"}, TimeText(t0.Add(time.Hour))),
+		"erasure of something that is none": rec(ClassErasure, "everything", Erasure{IP: "everything"}, TimeText(t0.Add(time.Hour))),
+	}
+	for name, r := range bad {
+		if err := ro.Check(r, t0); !errors.Is(err, ErrSchema) {
+			t.Errorf("%s: got %v", name, err)
+		}
+	}
+}

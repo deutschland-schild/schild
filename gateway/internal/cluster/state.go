@@ -69,7 +69,13 @@ CREATE TABLE IF NOT EXISTS invites (hash BLOB PRIMARY KEY, role TEXT NOT NULL, e
 -- What the running node last saw of each peer, for schild cluster status.
 CREATE TABLE IF NOT EXISTS peers (node TEXT PRIMARY KEY, out_ok_ms INTEGER NOT NULL, in_ok_ms INTEGER NOT NULL, error TEXT NOT NULL, behind INTEGER NOT NULL);
 CREATE TABLE IF NOT EXISTS counters (k TEXT PRIMARY KEY, n INTEGER NOT NULL);
+-- What a value of the group replaced on this node at its first sync.
+CREATE TABLE IF NOT EXISTS replaced (k TEXT NOT NULL, at_ms INTEGER NOT NULL, v BLOB NOT NULL);
 `
+
+// maxAnswer bounds the bytes of the records of one answer; one record over
+// it still goes alone.
+const maxAnswer = 4 << 20
 
 const (
 	stateWinner = 1
@@ -332,11 +338,12 @@ func (s *state) after(ctx context.Context, peer map[string]uint64, limit int) (r
 		return nil, nil, false, err
 	}
 	covered = map[string]uint64{}
+	size := 0
 	for origin, seq := range mine {
 		if seq <= peer[origin] {
 			continue
 		}
-		if len(recs) >= limit {
+		if len(recs) >= limit || size >= maxAnswer {
 			more = true
 			continue
 		}
@@ -352,11 +359,12 @@ func (s *state) after(ctx context.Context, peer map[string]uint64, limit int) (r
 				rows.Close()
 				return nil, nil, false, err
 			}
-			if len(recs) >= limit {
+			if len(recs) >= limit || (len(recs) > 0 && size+len(raw) > maxAnswer) {
 				cut = true
 				break
 			}
 			recs = append(recs, raw)
+			size += len(raw)
 			last = uint64(n)
 		}
 		rows.Close()

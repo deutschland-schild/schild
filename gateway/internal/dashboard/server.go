@@ -105,6 +105,9 @@ type Server struct {
 	Crawlers CrawlerFuncs
 	// Behaviour is MVP-17 (v0.4); nil disables the behaviour operations.
 	Behaviour *behaviour.Engine
+	// Erased is told an address this node erased (Art. 17), so a group of
+	// gateways erases it on every node (MVP-27); nil without a group.
+	Erased func(ip netip.Addr, keepIncidents bool)
 	// FirewallState is what `schild firewall run` said in its last call
 	// (D87); nil or ok false: no firewall has called.
 	FirewallState func() (firewall.Report, bool)

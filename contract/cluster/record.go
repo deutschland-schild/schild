@@ -28,14 +28,45 @@ const Version = 1
 const (
 	ClassMembers = "members"
 	ClassBlocks  = "blocks"
+	// ClassSettings is what the dashboard and the agent API set.
+	ClassSettings = "settings"
+	// ClassAccess is who passes: allowlist, IP exceptions, rule decisions.
+	ClassAccess = "access"
+	// ClassLogins is who may sign in: users, sessions, agent tokens.
+	ClassLogins = "logins"
+	// ClassErasure is one erased address (Art. 17 GDPR).
+	ClassErasure = "erasure"
 )
+
+// Things of the classes settings, access and logins: each is one value that
+// is replaced as a whole. The names of settings are the keys the gateway
+// stores them under.
+var things = map[string][]string{
+	ClassSettings: {"settings_overlay_v1", "behaviour_rate_limits_v1", "rules_state_by_v1", "crawler_policies_v1", "access_protections_v1",
+		"human_check_v1", "rule_exceptions_v2", "agent_pseudonym_key_v1"},
+	ClassAccess: {"allowlist", "ip_exceptions", "rule_decisions"},
+	ClassLogins: {"users", "sessions", "agent_tokens"},
+}
+
+// Things returns the ids of a class of whole values.
+func Things(class string) []string { return things[class] }
+
+func knownThing(class, id string) bool {
+	for _, t := range things[class] {
+		if t == id {
+			return true
+		}
+	}
+	return false
+}
 
 // Limits of one record and of the clock.
 const (
-	// MaxData bounds the decoded data of one record.
-	MaxData = 16 << 10
+	// MaxData bounds the decoded data of one record: a whole value of the
+	// classes settings, access and logins has to fit.
+	MaxData = 256 << 10
 	// MaxRecord bounds one record on the wire.
-	MaxRecord = 32 << 10
+	MaxRecord = 512 << 10
 	// MaxClockAhead: a record whose clock is further ahead of the receiver
 	// is not taken (yet).
 	MaxClockAhead = 60 * time.Second
@@ -168,7 +199,14 @@ func (r *Record) shape() error {
 		return ErrSchema
 	case r.Seq == 0 || r.HLC == 0:
 		return ErrSchema
-	case r.Class != ClassMembers && r.Class != ClassBlocks:
+	}
+	switch r.Class {
+	case ClassMembers, ClassBlocks, ClassErasure:
+	case ClassSettings, ClassAccess, ClassLogins:
+		if !knownThing(r.Class, r.ID) || r.Deleted {
+			return ErrSchema
+		}
+	default:
 		return ErrSchema
 	}
 	if r.Expires != "" {

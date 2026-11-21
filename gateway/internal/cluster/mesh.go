@@ -355,8 +355,7 @@ func postJSON(ctx context.Context, c *http.Client, url string, in, out any) erro
 		}
 		return fmt.Errorf("%s: %s", resp.Status, bytes.TrimSpace(msg))
 	}
-	// maxBatch records of at most MaxRecord bytes each.
-	return json.NewDecoder(io.LimitReader(resp.Body, maxBatch*contract.MaxRecord+maxBody)).Decode(out)
+	return json.NewDecoder(io.LimitReader(resp.Body, maxAnswer+contract.MaxRecord+maxBody)).Decode(out)
 }
 
 // peer is the outgoing side toward one member.
@@ -472,6 +471,9 @@ func (n *Node) runPeer(ctx context.Context, p *peer, key ed25519.PublicKey) {
 		}
 		backoff = 250 * time.Millisecond
 		applied, err := n.take(resp.Records, resp.Covered)
+		if err == nil && !resp.More {
+			n.synced.Store(true)
+		}
 		var behind uint64
 		for o, seq := range resp.Vector {
 			if mine := vec[o]; seq > mine {

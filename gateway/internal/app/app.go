@@ -173,6 +173,10 @@ type App struct {
 	// without cluster.enabled or before the node joined a group.
 	Cluster     *cluster.Node
 	groupBlocks groupBlocks
+	// shared are the whole values the group shares (cluster_state.go);
+	// sharedMu around taking and publishing them.
+	shared   []sharedThing
+	sharedMu sync.Mutex
 }
 
 const (

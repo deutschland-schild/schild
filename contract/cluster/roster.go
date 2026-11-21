@@ -148,6 +148,14 @@ func (ro *Roster) Check(r *Record, now time.Time) error {
 		} else if _, err := DecodeBlock(r); err != nil {
 			return err
 		}
+	case ClassSettings, ClassAccess, ClassLogins:
+		if _, err := DecodeValue(r); err != nil {
+			return err
+		}
+	case ClassErasure:
+		if _, err := DecodeErasure(r); err != nil {
+			return err
+		}
 	}
 	return nil
 }
