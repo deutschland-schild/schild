@@ -43,6 +43,9 @@ type Harness struct {
 	Hits    atomic.Int64
 	// Addresses in listener mode.
 	ProxyAddr, DashAddr, MetricsAddr string
+	// AgentAddr is the listener of the agent API with Listeners (D103: on
+	// by default, so every harness needs a port of its own).
+	AgentAddr string
 	// IngressAddr is 127.0.0.1:{port} of Options.Caddyfile.
 	IngressAddr string
 	done        chan error
@@ -106,6 +109,10 @@ func New(t testing.TB, o Options) *Harness {
 		proxyAddr, dashAddr, metricsAddr = FreeAddr(t), FreeAddr(t), FreeAddr(t)
 	}
 	h.ProxyAddr, h.DashAddr, h.MetricsAddr = proxyAddr, dashAddr, metricsAddr
+	if o.Listeners && !strings.Contains(o.Extra, "agent_api:") {
+		h.AgentAddr = FreeAddr(t)
+		o.Extra += fmt.Sprintf("agent_api: {listen: %q}\n", h.AgentAddr)
+	}
 	h.Backend = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		h.Hits.Add(1)
 		_, _ = io.Copy(io.Discard, r.Body)

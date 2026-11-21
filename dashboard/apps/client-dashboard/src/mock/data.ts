@@ -29,10 +29,12 @@ import overviewDegraded from '../../../../../contracts/api/fixtures/client/getOv
 import overviewNormal from '../../../../../contracts/api/fixtures/client/getOverview.json'
 import overviewStandalone from '../../../../../contracts/api/fixtures/client/getOverview.standalone.json'
 import settingsFixture from '../../../../../contracts/api/fixtures/client/getSettings.json'
+import type { AgentApiMock } from './agentapi'
 import type { BehaviourMock } from './behaviour'
 import type { HostMock } from './hosts'
 import type { MonitoringMock } from './monitoring'
 import type { RulesMock } from './rules'
+import { createAgentApiState } from './agentapi'
 import { createBehaviourState } from './behaviour'
 import { createHostState, serversSummary } from './hosts'
 import { seedWebsites } from './websites'
@@ -224,6 +226,8 @@ export interface MockState {
   manualBlocks: RunningBlock[]
   /** v0.4 traffic and server monitoring (mock/monitoring.ts, MVP-21). */
   monitoring: MonitoringMock
+  /** D103: the switch of the agent API and its tokens (mock/agentapi.ts). */
+  agentApi: AgentApiMock
 }
 
 const CSRF = 'mock-csrf-token-7f3a9c22b1e04d55'
@@ -447,6 +451,7 @@ export function createState(opts: CreateStateOptions = {}): MockState {
     firewall: { state: 'off', banned: [] },
     manualBlocks: [],
     monitoring: createMonitoringState(scenario, t0, mode === 'observe'),
+    agentApi: createAgentApiState(scenario, t0),
   }
   // MVP-22 (D35): which geo database is in use. The degraded gateway downloads IPinfo with the operator's
   // own key and its last download failed, so it keeps the previous database.

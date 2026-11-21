@@ -9,8 +9,8 @@ info:
 
     ## Access
 
-    http://127.0.0.1:8789/agent/v0 on the gateway host (schild.yaml agent_api.listen, loopback only, off by
-    default), from elsewhere through an SSH tunnel. Send `Authorization: Bearer sat1_...` on every call. A
+    http://127.0.0.1:8789/agent/v0 on the gateway host (schild.yaml agent_api.listen; on by default, the
+    operator can switch it off), from elsewhere through an SSH tunnel. Send `Authorization: Bearer sat1_...` on every call. A
     person creates the token on the host:
     `schild token add --scope exceptions:write --expires 90d --label coding-agent`.
 

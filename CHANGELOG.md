@@ -10,6 +10,14 @@ The section of a version becomes the text of its GitHub release, so its heading 
 
 - Strictness (paranoia level) and blocking threshold of the OWASP CRS are set in the dashboard (D101): "Strenge und Schwelle anpassen" on the page of the CRS. A change holds at once, without a restart, and wins over `schild.yaml`; "Werte aus schild.yaml einsetzen" gives both back to the file. A threshold above 5 points is named on the page, because a request with a single critical hit then passes.
 
+### Agent API
+
+- The agent API is on by default (D103). Without a token it answers every call with 401, and tokens are still created on the server only (`schild token add`). After the update an existing gateway listens on `127.0.0.1:8789`; `agent_api: {enabled: false}` in `schild.yaml` keeps it off, and the dashboard cannot switch it on against that. If the port is taken, only this listener does not start, requests are not affected.
+- The dashboard has a card "Agent-API" under Einstellungen: a switch that opens and closes the listener without a restart, the address, and the tokens with scope, expiry and last use. A value set there holds until "Wert aus schild.yaml einsetzen".
+- `schild token add` needs no flags: without them the token reads only and holds 90 days. `--expires` takes 1d to 365d as before.
+- Docker: the agent API can be reached from the host. `agent_api.listen` also takes `0.0.0.0:8789`, and the quickstart files publish the port on `127.0.0.1` of the host. Outside a container schild does not open a listener on every interface. An existing installation adds `agent_api: {listen: "0.0.0.0:8789"}` to `schild.yaml` and `"127.0.0.1:8789:8789"` to the ports in `compose.yaml`.
+- The docs describe the setup step by step under "Agent-API einrichten", and the features page says what an agent does with it.
+
 ### Server check
 
 - `schild check install` sets the server check up with one command (D100): as root on the host it writes the systemd units from the binary, enables the daily run and "Jetzt prüfen" and runs the first check. For a gateway in Docker: `docker cp <container>:/usr/local/bin/schild /tmp/schild && sudo /tmp/schild check install`. `schild check uninstall` removes the units. The docs describe it under "Server-Check einrichten".

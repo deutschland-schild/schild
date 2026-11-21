@@ -151,7 +151,8 @@ func TestWebsites(t *testing.T) {
 	expect(t, h, "GET", "/monitoring/series?metric=traffic.requests&site=shop.example&"+rng, nil, 200, "SeriesResult")
 	expect(t, h, "GET", "/monitoring/traffic/breakdown?by=path&site=shop.example&"+rng, nil, 200, "TrafficBreakdown")
 	cl := decode[dashboard.AgentCallLog](t, expect(t, h, "GET", "/agent-api/calls", nil, 200, "AgentCallLog"))
-	if cl.Enabled || len(cl.Tokens) != 0 {
+	// D103: the agent API is on by default.
+	if !cl.Enabled || len(cl.Tokens) != 0 {
 		t.Fatalf("call log: %+v", cl)
 	}
 }

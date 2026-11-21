@@ -23,8 +23,10 @@ func TestTokenCLI(t *testing.T) {
 		err := runToken(append(args, "-config", cfg, "-data", data), &out, time.Now)
 		return out.String(), err
 	}
-	if _, err := run("add", "--scope", "agent:read"); err == nil || !strings.Contains(err.Error(), "--expires") {
-		t.Errorf("expiry must be required: %v", err)
+	// D103: no flag needed. A token without flags reads only and holds 90 days.
+	until := time.Now().UTC().Add(90 * 24 * time.Hour).Format("2006-01-02")
+	if out, err := run("add"); err != nil || !strings.Contains(out, "scope agent:read, valid until "+until) {
+		t.Errorf("defaults: %v\n%s", err, out)
 	}
 	if _, err := run("add", "--scope", "agent:read", "--expires", "400d"); err == nil {
 		t.Error("400d accepted")

@@ -56,7 +56,7 @@ docker stop caddy
 docker run -d --name schild --restart unless-stopped \
   --read-only --cap-drop ALL --security-opt no-new-privileges:true \
   --add-host host.docker.internal:host-gateway \
-  -p 80:80 -p 443:443 -p 127.0.0.1:8788:8788 \
+  -p 80:80 -p 443:443 -p 127.0.0.1:8788:8788 -p 127.0.0.1:8789:8789 \
   -v "$PWD/schild.yaml:/etc/schild/schild.yaml:ro" -v "$PWD/Caddyfile:/etc/caddy/Caddyfile:ro" \
   -v schild-data:/var/lib/schild \
   ghcr.io/deutschland-schild/schild:0.1.0-alpha.1
@@ -356,7 +356,7 @@ Builder benchmarks (Apple M2 Max, `go test -run - -bench . ./internal/monitoring
 
 ## Agent API (internal/agentapi)
 
-Spec MVP-21. Off by default. With `agent_api.enabled: true` a second listener on `agent_api.listen` (loopback only, default `127.0.0.1:8789`) serves `/agent/v0` with bearer tokens only. It describes itself: `GET /agent/v0/openapi.json` is the whole OpenAPI document with a short guide for agents at the top (D61; bundled from `contracts/api/gateway-agent.openapi.yaml` by `make contracts-sync`). No MCP: an agent with a shell needs nothing but `curl` and this document.
+Spec MVP-21. On by default (D103): a second listener on `agent_api.listen` (default `127.0.0.1:8789`; loopback, or `0.0.0.0` in a container whose port is published on the host's loopback) serves `/agent/v0` with bearer tokens only, so without a token every call answers 401. `agent_api.enabled: false` or the switch under Einstellungen in the dashboard turns it off; the dashboard's value is stored in `schild.db`, holds until it is reset, and opens or closes the listener without a restart. `enabled: false` in the file is final, the dashboard cannot switch on against it. Outside a container (`/.dockerenv`, `/run/.containerenv`, `KUBERNETES_SERVICE_HOST`) a listener on every interface stays closed unless `SCHILD_AGENT_API_ANY_INTERFACE=1`. It describes itself: `GET /agent/v0/openapi.json` is the whole OpenAPI document with a short guide for agents at the top (D61; bundled from `contracts/api/gateway-agent.openapi.yaml` by `make contracts-sync`). No MCP: an agent with a shell needs nothing but `curl` and this document.
 
 ```sh
 schild token add --scope exceptions:write --expires 90d --label "coding-agent"     # token shown once

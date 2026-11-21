@@ -97,21 +97,51 @@ Befehle wie `schild allow` oder `schild token` stellen die Datenbank nie um. Tre
 
 Die Zugriffsliste und die Zahlen für die Diagramme (`metrics.db`) liegen in eigenen Dateien. Ändert sich ihr Format, beginnen sie leer. Einstellungen stehen dort keine.
 
-## Agent-API einschalten
+## Agent-API einrichten
 
-Über die [Agent-API](01-funktionen.md#agent-api-für-ki-agenten) fragt zum Beispiel der Coding-Agent deiner Website das Gateway ab. Sie ist ab Werk aus. Du schaltest sie in der `schild.yaml` ein, Schild liest die Einstellung beim Start:
+Über die [Agent-API](01-funktionen.md#agent-api-für-ki-agenten) arbeitet zum Beispiel der Coding-Agent deiner Website mit dem Gateway: Er liest, was die Firewall sieht, testet Anfragen gegen die Regeln und legt mit eigener Berechtigung Ausnahmen an. Sie ist ab Werk an, antwortet aber ohne Token auf nichts. Du brauchst zwei Schritte: ein Token anlegen und den Agenten verbinden.
+
+### Ein- und ausschalten
+
+Im Dashboard unter „Einstellungen“ steht die Karte „Agent-API“ mit dem Schalter, der Adresse und den Tokens. Der Schalter wirkt sofort, ohne Neustart, und gilt, bis du ihn mit „Wert aus schild.yaml einsetzen“ zurückgibst.
+
+Willst du sie fest aus haben, trägst du das in `schild.yaml` ein und startest Schild neu. Dann lässt sie sich auch im Dashboard nicht einschalten, nur wieder in der Datei:
 
 ```yaml
 agent_api:
-  enabled: true
-  listen: 127.0.0.1:8789   # nur Loopback: 127.x.x.x, [::1] oder localhost
+  enabled: false
 ```
 
-1. Schild neu starten. Im Log steht, auf welcher Adresse die API hört.
-2. Auf dem Server ein Token anlegen: `schild token add --expires 90d --label coding-agent`. Das Token wird nur dieses eine Mal angezeigt, Schild speichert nur seinen Hash.
-3. Dein Agent schickt das Token bei jedem Aufruf mit (`Authorization: Bearer sat1_…`). Als Einstieg reicht ihm `http://127.0.0.1:8789/agent/v0/openapi.json`, dort beschreibt sich die API selbst. Für Menschen steht dieselbe Beschreibung in der [API-Referenz](/api).
+Ob die API läuft, siehst du auf dem Server so:
 
-Was ein Token darf, legst du beim Anlegen mit `--scope` fest, ein Token hat genau einen Scope. Später lässt sich das nicht erweitern, du legst dann ein neues an.
+```bash
+curl -s -o /dev/null -w '%{http_code}\n' http://127.0.0.1:8789/agent/v0/status
+```
+
+`401` heißt: Sie läuft und wartet auf ein Token. Kommt keine Verbindung zustande, ist sie aus oder der Port 8789 war beim Start belegt. Dann zeigt die Karte „Nicht offen“, und du gibst ihr mit `agent_api.listen: 127.0.0.1:<port>` einen anderen. Läuft Schild in einem Container, lies [Agent-API mit Docker](#agent-api-mit-docker).
+
+Ist die Agent-API aus, holt auch `schild firewall run` keine Sperren mehr ab ([Sperren in der Firewall](#sperren-in-der-firewall)). Das Dashboard fragt deshalb nach, bevor es sie ausschaltet, wenn es ein Token für die Firewall gibt.
+
+### 1. Token anlegen
+
+Tokens legst du auf dem Server an, mit dem Befehl, der zu deiner Installation passt:
+
+```bash
+# Paket oder Binary mit systemd
+sudo schild token add --scope exceptions:write --label coding-agent
+
+# Docker Compose
+docker compose exec schild schild token add --scope exceptions:write --label coding-agent
+
+# Docker
+docker exec schild schild token add --scope exceptions:write --label coding-agent
+```
+
+Die erste Zeile der Ausgabe ist das Token, es beginnt mit `sat1_`. Schild zeigt es nur dieses eine Mal und speichert nur seinen Hash. Leg es dort ab, wo dein Agent seine Geheimnisse liest, zum Beispiel in einer Umgebungsvariable. In ein Repository gehört es nicht. Ist es weg, legst du ein neues an.
+
+- **`--scope`** legt fest, was das Token darf. Ohne die Angabe gilt `agent:read`. Ein Token hat genau einen Scope, und der lässt sich später nicht erweitern. Braucht dein Agent zwei Schreibrechte, bekommt er zwei Tokens.
+- **`--expires`** legt fest, wie lange das Token gilt: 1 bis 365 Tage (`1d` bis `365d`). Ohne die Angabe sind es 90 Tage. Danach lehnt Schild das Token ab.
+- **`--label`** ist bei jedem Schreibrecht Pflicht. Der Name steht bei jeder Änderung im Verlauf.
 
 | Scope | Erlaubt |
 | --- | --- |
@@ -123,17 +153,67 @@ Was ein Token darf, legst du beim Anlegen mit `--scope` fest, ein Token hat gena
 | `firewall:sync` | nur für `schild firewall run`: die gesperrten Adressen abholen, sonst nichts |
 | `export:read` | nur den Export für ein zentrales Dashboard |
 
-Ein Token mit Schreibrecht braucht ein `--label`, der Name steht bei jeder Änderung im Verlauf. `schild token list` zeigt alle Tokens, `schild token revoke <id>` widerruft eines, `schild token log` zeigt die letzten Aufrufe.
+Zum Ausprobieren reicht `agent:read`. Soll dein Agent die Firewall an deine Anwendung anpassen, nimmst du `exceptions:write`.
 
-**Von einem anderen Rechner aus** erreichst du die API über einen SSH-Tunnel, auch durch ein VPN:
+`schild token list` zeigt alle Tokens mit ID, Scope, Ablaufdatum und Name. `schild token revoke tok_…` widerruft eines, es gilt ab der nächsten Anfrage nicht mehr. `schild token log` zeigt die letzten Aufrufe.
+
+### 2. Agenten verbinden
+
+Läuft dein Agent auf dem Server, spricht er direkt mit `http://127.0.0.1:8789/agent/v0`. Von einem anderen Rechner aus baust du einen SSH-Tunnel auf, auch durch ein VPN:
 
 ```bash
 ssh -N -L 8789:127.0.0.1:8789 du@dein-server
 ```
 
-Danach spricht dein Agent mit `http://127.0.0.1:8789/agent/v0`, als liefe er auf dem Server. Andere Adressen als Loopback nimmt `agent_api.listen` nicht an, und Anfragen, die einen anderen Host nennen, lehnt Schild ab (Schutz gegen DNS-Rebinding). Einen direkten Zugang über die VPN-Adresse des Servers gibt es noch nicht.
+Lass den Port im Tunnel bei 8789. Schild lehnt Anfragen ab, die einen anderen Host oder Port nennen (Schutz gegen DNS-Rebinding). Eine Adresse aus deinem Netz nimmt `agent_api.listen` nicht an, und einen direkten Zugang über die VPN-Adresse des Servers gibt es noch nicht.
 
-**Mit Docker** zeigt `127.0.0.1` auf den Container selbst. Damit die API auf dem Server erreichbar ist, braucht der Container `network_mode: host`.
+Prüf den Zugang einmal von Hand:
+
+```bash
+export SCHILD_TOKEN=sat1_…
+curl -s -H "Authorization: Bearer $SCHILD_TOKEN" http://127.0.0.1:8789/agent/v0/status
+```
+
+Dann gibst du deinem Agenten drei Dinge: die Adresse, die Variable mit dem Token und den Hinweis, zuerst `http://127.0.0.1:8789/agent/v0/openapi.json` zu lesen. Dort beschreibt sich die API selbst, mit den typischen Aufgaben und den Aufrufen dafür. Für Menschen steht dieselbe Beschreibung in der [API-Referenz](/api). Ein Auftrag kann so aussehen:
+
+```text
+Unter http://127.0.0.1:8789/agent/v0 läuft die Agent-API meines Schild Gateways.
+Das Token steht in der Umgebungsvariable SCHILD_TOKEN. Lies zuerst /openapi.json.
+Teste dann die Formulare unserer Anwendung gegen die Regeln und schlag mir
+Ausnahmen vor, bevor du sie anlegst.
+```
+
+### Agent-API mit Docker
+
+Im Container zeigt `127.0.0.1` auf den Container selbst. Damit du die Agent-API vom Server aus erreichst, hört sie im Container auf allen Schnittstellen, und Docker veröffentlicht den Port nur auf `127.0.0.1` des Servers. Die Vorlagen `schild.yaml` und `compose.yaml` aus der Installation bringen beides mit. In einer älteren Installation trägst du es nach:
+
+```yaml
+# schild.yaml
+agent_api:
+  listen: "0.0.0.0:8789"
+```
+
+```yaml
+# compose.yaml, beim Dienst schild unter ports
+      - "127.0.0.1:8789:8789"
+```
+
+Mit `docker run` ist es `-p 127.0.0.1:8789:8789`. Danach `docker compose up -d`, und der SSH-Tunnel von oben funktioniert.
+
+- Das `127.0.0.1` vor dem Port muss bleiben. Ohne es wäre die Agent-API aus dem Internet erreichbar, und ein Token ginge im Klartext über die Leitung.
+- Die Portnummer bleibt auf beiden Seiten gleich, sonst lehnt Schild die Aufrufe ab.
+- `0.0.0.0` gilt nur im Container. Läuft Schild direkt auf dem Server, öffnet es die Agent-API mit dieser Adresse nicht, und die Karte im Dashboard nennt den Grund. Dort bleibt es bei `127.0.0.1`. Außer Loopback und „alle Schnittstellen“ nimmt `agent_api.listen` nichts an.
+- Mit `network_mode: host` brauchst du nichts davon: Dann ist `127.0.0.1:8789` schon die Adresse auf dem Server.
+
+### Wenn es nicht klappt
+
+| Antwort | Ursache |
+| --- | --- |
+| keine Verbindung | Agent-API ausgeschaltet, Port 8789 beim Start belegt, Tunnel nicht aufgebaut, Schild läuft im Container und der Port ist nicht veröffentlicht, oder `0.0.0.0` steht in der Datei, obwohl Schild nicht im Container läuft |
+| 401 `unauthenticated` | Token fehlt, ist abgelaufen oder widerrufen. `schild token list` zeigt den Stand |
+| 403 `forbidden` | Die Anfrage nennt einen anderen Host oder Port als `127.0.0.1:8789`, oder sie kommt aus einem Browser |
+| 403 `scope_required` | Das Token darf das nicht. Leg eines mit dem passenden Scope an |
+| 429 `rate_limited` | mehr als 120 Anfragen pro Minute oder mehr als 2 gleichzeitig je Token (`agent_api.requests_per_minute`, `max_concurrent`) |
 
 ## Was sperrt
 
@@ -191,12 +271,7 @@ Eine Sperre von Schild gilt in Schild: Die gesperrte Adresse bekommt auf jeder W
 
 Das übernimmt `schild firewall run`: dasselbe Image wie das Gateway, als eigener kleiner Container mit genau einem Recht, `NET_ADMIN`. Er fragt die Agent-API des Gateways nach den laufenden Sperren und trägt sie in eine eigene nftables-Tabelle `inet schild` ein, jede mit ihrer Restlaufzeit. Kommt eine Sperre dazu oder gibst du eine frei, erfährt er es sofort und ändert die Tabelle innerhalb einer Sekunde. Das Gateway selbst bekommt keine Rechte an der Firewall. So arbeiten auch die Firewall-Bouncer von CrowdSec.
 
-**Voraussetzungen:** Linux mit nftables im Kernel (Debian, Ubuntu, Alma, Rocky in aktuellen Versionen) und die Agent-API in `schild.yaml`:
-
-```yaml
-agent_api:
-  enabled: true
-```
+**Voraussetzungen:** Linux mit nftables im Kernel (Debian, Ubuntu, Alma, Rocky in aktuellen Versionen) und die [Agent-API](#agent-api-einrichten). Sie ist ab Werk an.
 
 Dann einen Token für die Firewall anlegen. Er darf nur die Sperren abholen, sonst nichts:
 
@@ -399,7 +474,7 @@ Für Alarme im Alltag sind besonders diese Metriken nützlich:
 | `schild check` | Server-Check auf diesem Server |
 | `schild check install`, `uninstall` | den täglichen Server-Check als systemd-Units einrichten oder wieder entfernen (siehe [Server-Check einrichten](#server-check-einrichten)) |
 | `schild firewall run`, `status`, `off` | Sperren von Schild in der Firewall halten, ansehen oder alle wieder herausnehmen (siehe [Sperren in der Firewall](#sperren-in-der-firewall)) |
-| `schild token …` | Tokens der [Agent-API](#agent-api-einschalten) anlegen, auflisten, widerrufen, Protokoll ansehen |
+| `schild token add`, `list`, `revoke`, `log` | Tokens der [Agent-API](#agent-api-einrichten) anlegen, auflisten, widerrufen, Protokoll ansehen |
 | `schild dashboard setup-code` | den Einmal-Code für die erste Anmeldung noch einmal anzeigen, solange kein Passwort gesetzt ist |
 | `schild dashboard reset-password` | Dashboard-Zugang zurücksetzen, neuer Einmal-Code |
 | `schild front` | kleiner Front-Proxy vor Schild, falls du keinen Webserver davor hast: reicht nur bei abgelehnter Verbindung direkt an die Anwendung durch, nie bei aktivem Zugriffsschutz |

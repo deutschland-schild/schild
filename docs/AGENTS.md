@@ -26,7 +26,7 @@ Unter **Allgemeines** (in der Seitenleiste zugeklappt, `general: true`):
 8. **Werte & Grundsätze** – concept 00, 01
 9. **Marke** – brand 01
 
-**Verfügbar oder geplant:** Jede Seite eines geplanten Abschnitts zeigt oben einen Hinweis, dass es diesen Teil noch nicht im Betrieb gibt, mit Link zum Gateway. In `gateway/` steht nur, was gebaut ist und ohne Labs läuft; Geplantes fürs Gateway nur im Abschnitt „Geplant, noch nicht gebaut“ von `gateway/01-funktionen.md`. Labs, Relays, Signale und Freigaben aus dem Netz gehören nicht in `gateway/`.
+**Verfügbar oder geplant:** Jede Seite eines geplanten Abschnitts zeigt oben einen Hinweis, dass es diesen Teil noch nicht im Betrieb gibt, mit Link zum Gateway. In `gateway/` steht nur, was gebaut ist und ohne Labs läuft. Geplantes fürs Gateway steht dort nicht, auch nicht als Liste: Sie veraltet zu schnell. Labs, Relays, Signale und Freigaben aus dem Netz gehören nicht in `gateway/`.
 
 Jede Konzeptdatei beginnt nach H1 und Statuszeile mit einem Block **Kurz:** (höchstens 5 Zeilen: was das Dokument festlegt oder beschreibt, was fest und was offen ist). Im Kurz-Block keine Status-Marker in Großbuchstaben – die stehen in der Statuszeile und würden sonst doppelt gezählt.
 

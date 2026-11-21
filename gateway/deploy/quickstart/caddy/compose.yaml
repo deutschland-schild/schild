@@ -79,6 +79,10 @@ services:
       - "443:443"
       # The dashboard, on this host's loopback only. Do not remove 127.0.0.1.
       - "127.0.0.1:8788:8788"
+      # The agent API for your AI agent, on this host's loopback only. Do not
+      # remove 127.0.0.1, and keep the port number: schild refuses calls that
+      # name another port.
+      - "127.0.0.1:8789:8789"
     extra_hosts:
       # Lets the Caddyfile reach an application that listens on the Docker host.
       - "host.docker.internal:host-gateway"
@@ -104,7 +108,8 @@ services:
   # Optional (D87): puts the addresses schild blocks into the firewall, so
   # they no longer reach the ports 80 and 443 at all, until each block ends.
   # The same image, as its own small container with the one right it needs.
-  #   1. In schild.yaml: agent_api: { enabled: true }, then docker compose up -d
+  #   1. The agent API has to be on (it is by default; Einstellungen in the
+  #      dashboard shows it).
   #   2. docker compose exec schild schild token add --scope firewall:sync --expires 365d --label firewall
   #      and put the token into .env: SCHILD_FIREWALL_TOKEN=sat1_...
   #   3. docker compose --profile firewall up -d
