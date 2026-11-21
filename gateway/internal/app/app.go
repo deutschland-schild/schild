@@ -177,6 +177,11 @@ type App struct {
 	// sharedMu around taking and publishing them.
 	shared   []sharedThing
 	sharedMu sync.Mutex
+	// draining: the node left traffic (readiness 503) and stops; drainCh
+	// is closed by Drain. started is when Run began to serve.
+	draining  atomic.Bool
+	drainCh   chan struct{}
+	drainOnce sync.Once
 	// GroupFiles shares the certificate storage with the group
 	// (cluster_files.go); nil without a group or without a Caddyfile.
 	GroupFiles *groupFiles
@@ -245,7 +250,7 @@ func New(ctx context.Context, opts Options) (*App, error) {
 	if err := CheckHostAgents(cfg, os.Getenv); err != nil {
 		return nil, err
 	}
-	a := &App{opts: opts, log: log, base: base, overlay: map[string]any{}, summaries: map[store.SummaryKey]int{}, started: time.Now().UTC()}
+	a := &App{opts: opts, log: log, base: base, overlay: map[string]any{}, summaries: map[store.SummaryKey]int{}, started: time.Now().UTC(), drainCh: make(chan struct{})}
 	a.dataDir = DataDir(cfg, opts.DataDir)
 	if opts.BodyTemp {
 		n, err := PrepareBodyTemp(a.dataDir)
@@ -744,7 +749,11 @@ func (a *App) Run(ctx context.Context) error {
 	if startErr == nil {
 		select {
 		case <-ctx.Done():
+		case <-a.drainCh:
 		case runErr = <-errc:
+		}
+		if runErr == nil {
+			a.leaveTraffic()
 		}
 		a.log.Info("schild stopping")
 	}
@@ -818,8 +827,12 @@ func (a *App) startCaddy(cfg *config.Site) error {
 	if a.proxiesTooBroad {
 		trusted = nil // Caddy believes no forwarding header either (D40)
 	}
+	var grace time.Duration
+	if cfg.Cluster.Enabled {
+		grace = cfg.Cluster.Drain.Grace()
+	}
 	if err := caddymod.Start(caddymod.Options{Listen: cfg.Listen.Proxy, Upstream: cfg.Upstream.URL, UpstreamTimeout: time.Duration(cfg.Upstream.TimeoutMS) * time.Millisecond,
-		TrustedProxies: trusted, DataDir: a.dataDir, LogLevel: os.Getenv("SCHILD_CADDY_LOG_LEVEL")}); err != nil {
+		TrustedProxies: trusted, DataDir: a.dataDir, LogLevel: os.Getenv("SCHILD_CADDY_LOG_LEVEL"), Grace: grace}); err != nil {
 		return fmt.Errorf("start proxy: %w", err)
 	}
 	a.log.Info("schild running", "profile", cfg.Profile, "proxy", cfg.Listen.Proxy, "upstream", cfg.Upstream.URL,
@@ -837,7 +850,7 @@ func (a *App) PrepareIngress() (*caddymod.Ingress, error) {
 func IngressFor(cfg *config.Site, dataDir string) (*caddymod.Ingress, error) {
 	return caddymod.PrepareIngress(caddymod.IngressOptions{Caddyfile: cfg.Ingress.Caddyfile, Storage: cfg.Ingress.CaddyStorage, ExposeServerHeaders: cfg.Ingress.ExposeServerHeaders,
 		DefaultStorage: caddymod.DefaultStorage(dataDir), Unprotected: cfg.Ingress.UnprotectedSites, TrustedProxies: cfg.Ingress.TrustedProxies,
-		Cluster: cfg.Cluster.Enabled})
+		Cluster: cfg.Cluster.Enabled, Grace: cfg.Cluster.Drain.Grace()})
 }
 
 func listen(s *http.Server, name string) error {

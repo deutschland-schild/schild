@@ -11,6 +11,7 @@ import (
 	"path/filepath"
 	"sort"
 	"strings"
+	"time"
 
 	"github.com/caddyserver/caddy/v2"
 	"github.com/caddyserver/caddy/v2/caddyconfig"
@@ -36,6 +37,9 @@ type IngressOptions struct {
 	// Cluster is cluster.enabled (MVP-27): the proxy protocol then needs
 	// an allow list (ProxyProtocolOpen).
 	Cluster bool
+	// Grace is cluster.drain.grace_s: how long a stop waits for running
+	// requests when the Caddyfile sets no grace_period.
+	Grace time.Duration
 	// TrustedProxies is ingress.trusted_proxies (a warning when Caddy does
 	// not share it, see TrustedProxiesWarning).
 	TrustedProxies []string
@@ -202,6 +206,13 @@ func PrepareIngress(o IngressOptions) (*Ingress, error) {
 		// The same files, and the group next to them (ClusterStorage).
 		m["storage"] = map[string]any{"module": clusterStorageName, "root": root}
 		shareTicketKeys(m)
+		if apps, _ := m["apps"].(map[string]any); apps != nil && o.Grace > 0 {
+			if h, _ := apps["http"].(map[string]any); h != nil {
+				if _, set := h["grace_period"]; !set {
+					h["grace_period"] = o.Grace.String()
+				}
+			}
+		}
 	}
 	ing.JSON, err = json.Marshal(m)
 	if err != nil {

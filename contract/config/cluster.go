@@ -2,6 +2,7 @@ package config
 
 import (
 	"net/netip"
+	"time"
 
 	"github.com/deutschland-schild/schild/contract"
 )
@@ -22,6 +23,30 @@ type Cluster struct {
 	// Peers are the mesh addresses of the other nodes, where a node that
 	// knows no member yet finds the group.
 	Peers []string `json:"peers"`
+	// Drain is how a node leaves traffic when it stops.
+	Drain ClusterDrain `json:"drain"`
+}
+
+// ClusterDrain: the readiness answer turns to 503, the node serves on for
+// DelayS, then lets running requests finish within GraceS.
+type ClusterDrain struct {
+	DelayS *int `json:"delay_s"`
+	GraceS *int `json:"grace_s"`
+}
+
+// Delay and Grace with their defaults (15 s, 30 s).
+func (d ClusterDrain) Delay() time.Duration {
+	if d.DelayS == nil {
+		return 15 * time.Second
+	}
+	return time.Duration(*d.DelayS) * time.Second
+}
+
+func (d ClusterDrain) Grace() time.Duration {
+	if d.GraceS == nil {
+		return 30 * time.Second
+	}
+	return time.Duration(*d.GraceS) * time.Second
 }
 
 // Address is what the other nodes dial: Advertise, else Listen.

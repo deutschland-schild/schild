@@ -47,6 +47,7 @@ func (a *App) startCluster(ctx context.Context) {
 	if !cfg.Cluster.Enabled {
 		return
 	}
+	a.Gate.InService = a.inService
 	dir := ClusterDir(a.dataDir)
 	if cfg.Cluster.SecretFile != "" {
 		// Set up by configuration: the node lets itself into the group of
@@ -218,4 +219,46 @@ func (a *App) publishGroupBlocks() {
 			ratelog.Warn(a.log, "cluster: lift not handed to the group (the block ended on this node)", "err", err)
 		}
 	}
+}
+
+// firstSyncWait is how long a node that reaches no member waits before it
+// says it is in service with the state it has.
+const firstSyncWait = 10 * time.Second
+
+// inService is the readiness of a node of a group, next to the gate's own
+// (/.schild/readyz, the health check of the balancer): not while it drains,
+// and not before it took the state of the group, so a node that just
+// started lets nobody pass whom the group blocks. A node that reaches no
+// member serves after ten seconds with the state it has.
+func (a *App) inService() bool {
+	if a.draining.Load() {
+		return false
+	}
+	node := a.Cluster
+	return node == nil || node.Synced() || time.Since(a.started) > firstSyncWait
+}
+
+// Drain takes this node out of traffic and stops it, like SIGTERM.
+func (a *App) Drain() { a.drainOnce.Do(func() { close(a.drainCh) }) }
+
+// Draining reports whether the node left traffic.
+func (a *App) Draining() bool { return a.draining.Load() }
+
+// leaveTraffic is the first part of a stop in a group: the readiness answer
+// turns to 503 and the node serves on for cluster.drain.delay_s, so the
+// balancer sees it and sends new connections elsewhere before a single one
+// is refused. Then the stop goes on; Caddy ends idle connections and lets
+// running requests finish within cluster.drain.grace_s.
+func (a *App) leaveTraffic() {
+	cfg := a.Config()
+	if !cfg.Cluster.Enabled || a.opts.NoListeners {
+		return
+	}
+	a.draining.Store(true)
+	d := cfg.Cluster.Drain.Delay()
+	if d <= 0 {
+		return
+	}
+	a.log.Info("cluster: this node left traffic (readiness 503), it stops when the balancer had time to see it", "delay", d.String(), "grace", cfg.Cluster.Drain.Grace().String())
+	time.Sleep(d)
 }

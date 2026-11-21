@@ -344,3 +344,62 @@ func eventsOf(t *testing.T, g *groupNode, ip string) int {
 	}
 	return len(rows)
 }
+
+// A node of a group answers the balancer's health check with 503 while it
+// drains, and still serves the requests that reach it; then it stops.
+func TestGroupNodeDrains(t *testing.T) {
+	addr := apptest.FreeAddr(t)
+	dir := t.TempDir()
+	if _, err := cluster.Init(app.ClusterDir(filepath.Join(dir, "data")), "web-1", addr, nil); err != nil {
+		t.Fatal(err)
+	}
+	h := apptest.New(t, apptest.Options{Dir: dir, Listeners: true, Extra: fmt.Sprintf("cluster: {enabled: true, listen: %q, drain: {delay_s: 2, grace_s: 5}}\n", addr)})
+	ready := func() int {
+		resp, err := http.Get("http://" + h.ProxyAddr + "/.schild/readyz")
+		if err != nil {
+			return 0
+		}
+		resp.Body.Close()
+		return resp.StatusCode
+	}
+	page := func() int {
+		req, _ := http.NewRequest("GET", "http://"+h.ProxyAddr+"/", nil)
+		req.Host = "shop.example"
+		resp, err := http.DefaultClient.Do(req)
+		if err != nil {
+			return 0
+		}
+		resp.Body.Close()
+		return resp.StatusCode
+	}
+	h.WaitFor("the node is in service", func() bool { return ready() == 200 })
+	h.App.Drain()
+	h.WaitFor("the readiness answer turns to 503", func() bool { return ready() == 503 })
+	if got := page(); got != 200 {
+		t.Errorf("a request during the drain delay: %d, want it served", got)
+	}
+	stopped := make(chan error, 1)
+	go func() { stopped <- h.Stop() }()
+	select {
+	case err := <-stopped:
+		if err != nil {
+			t.Errorf("stop after the drain: %v", err)
+		}
+	case <-time.After(20 * time.Second):
+		t.Fatal("the node did not stop after its drain delay")
+	}
+	if got := page(); got != 0 {
+		t.Errorf("the node still answers after it stopped: %d", got)
+	}
+}
+
+func TestSingleGatewayStopsWithoutDrainDelay(t *testing.T) {
+	h := apptest.New(t, apptest.Options{Listeners: true})
+	start := time.Now()
+	if err := h.Stop(); err != nil {
+		t.Fatal(err)
+	}
+	if d := time.Since(start); d > 8*time.Second {
+		t.Errorf("a single gateway took %s to stop", d)
+	}
+}

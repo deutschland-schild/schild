@@ -105,6 +105,10 @@ type RuleEffects interface {
 
 // Gate is the request handler.
 type Gate struct {
+	// InService, when set, also has to hold for ReadyPath to answer 200:
+	// a node of a group is out of service until its first sync and while
+	// it drains (MVP-27). Set before the gate serves.
+	InService  func() bool
 	Engine     *waf.Engine
 	Rules      RuleEffects // the rule repositories (D73); nil: every repository blocks, a crowdsec match only logs
 	Allow      *allowlist.List
@@ -196,7 +200,15 @@ func (g *Gate) Settings() Settings { return *g.settings.Load() }
 func (g *Gate) SetReady(v bool) { g.ready.Store(v) }
 
 // Ready reports readiness.
-func (g *Gate) Ready() bool { return g.ready.Load() && g.Engine != nil && g.Engine.Current() != nil }
+func (g *Gate) Ready() bool {
+	if !(g.ready.Load() && g.Engine != nil && g.Engine.Current() != nil) {
+		return false
+	}
+	if f := g.InService; f != nil {
+		return f()
+	}
+	return true
+}
 
 // RunIncidents writes incidents until ctx ends.
 func (g *Gate) RunIncidents(ctx context.Context, st *store.Store) {

@@ -13,6 +13,7 @@ import (
 	"github.com/deutschland-schild/schild/contract/config"
 	"github.com/deutschland-schild/schild/gateway/internal/app"
 	"github.com/deutschland-schild/schild/gateway/internal/cluster"
+	"github.com/deutschland-schild/schild/gateway/internal/control"
 )
 
 const clusterUsage = `schild cluster secret                  print a new group secret for cluster.secret_file
@@ -21,6 +22,8 @@ schild cluster invite                  print a join code of this node (one use, 
 schild cluster join ADDRESS CODE       join the group of the node at ADDRESS (its cluster.listen) with its code
 schild cluster status                  members, last contact, records held
 schild cluster remove NODE             end the membership of a node (name or id); no member talks to it afterwards
+schild cluster drain                   take this node out of traffic and stop it: the readiness answer turns to
+                                       503, it stops after cluster.drain.delay_s (as on systemctl stop)
 Common flags: -config FILE, -data DIR
 
 A group shares the address blocks of every node (MVP-27, first version). The
@@ -113,6 +116,17 @@ func runCluster(args []string, out io.Writer, now func() time.Time) error {
 			return err
 		}
 		fmt.Fprintf(out, "%s (%s) is no member any more. On that node: cluster.enabled false, and delete its cluster directory before it joins a group again.\n", e.Member.Name, e.ID)
+	case "drain":
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer cancel()
+		resp, err := control.Call(ctx, app.DataDir(cfg, *data), control.Request{Op: control.OpDrain})
+		if err != nil {
+			return fmt.Errorf("cluster drain: %w (does schild run here?)", err)
+		}
+		if !resp.OK {
+			return errors.New("cluster drain: " + resp.Error)
+		}
+		fmt.Fprintf(out, "%s left traffic: /.schild/readyz answers 503. It stops in %s, running requests get %s to finish.\n", cfg.NodeName, cfg.Cluster.Drain.Delay(), cfg.Cluster.Drain.Grace())
 	case "status":
 		st, err := cluster.ReadStatus(dir, now)
 		if err != nil {

@@ -251,6 +251,15 @@
         "listen": { "description": "host:port of the mesh listener (TLS 1.3, the node keys). The host is an IP address; it has to be a private or loopback address unless allow_public_listen is set (semantic check, code config). Required with enabled.", "type": "string", "pattern": "^([0-9]{1,3}(\\.[0-9]{1,3}){3}|\\[[0-9A-Fa-f:]+\\]):[0-9]{1,5}$" },
         "advertise": { "description": "host:port under which the other nodes reach this listener. Default: listen. Required when listen binds every address (0.0.0.0 or [::]).", "type": "string", "pattern": "^([0-9]{1,3}(\\.[0-9]{1,3}){3}|\\[[0-9A-Fa-f:]+\\]):[0-9]{1,5}$" },
         "allow_public_listen": { "description": "true: listen may be a public address. The mesh speaks to member keys only, but a private network or WireGuard between the nodes is the recommended place for it.", "type": "boolean", "default": false },
+        "drain": {
+          "description": "How a node leaves traffic when it stops (systemctl stop, a restart for an update, `schild cluster drain`): the readiness answer /.schild/readyz turns to 503, the node serves on for delay_s so the balancer sees it and sends new connections elsewhere, then it ends idle connections and lets running requests finish within grace_s.",
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "delay_s": { "description": "Longer than the health check interval of the balancer times the failures it counts.", "type": "integer", "minimum": 0, "maximum": 300, "default": 15 },
+            "grace_s": { "type": "integer", "minimum": 1, "maximum": 600, "default": 30 }
+          }
+        },
         "secret_file": { "description": "Sets the group up by configuration, for a deployment that writes the same files to every node: a file with the group secret (at least 32 bytes, `schild cluster secret` prints one), the same on every node, readable by the service user only. A node with it lets itself into the group at its start; `schild cluster init`, `invite` and `join` are not needed. The secret admits and nothing else: every node still signs with its own key, and a removed node stays removed. Another secret is another group.", "type": "string", "minLength": 1, "maxLength": 4096 },
         "peers": { "description": "host:port of the mesh listeners of the other nodes, where a node that knows no member yet finds the group. The node's own address may be in the list, so one list serves every node. Needs secret_file (semantic check, code config).", "type": "array", "maxItems": 32, "uniqueItems": true, "items": { "type": "string", "pattern": "^([0-9]{1,3}(\\.[0-9]{1,3}){3}|\\[[0-9A-Fa-f:]+\\]):[0-9]{1,5}$" } }
       }
