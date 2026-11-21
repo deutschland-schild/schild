@@ -29,7 +29,22 @@ Alle Funktionen im Detail: [docs/gateway/01-funktionen.md](docs/gateway/01-funkt
 
 ## Installieren
 
-Der kürzeste Weg: Schild als Container hinter deinem Webserver (nginx, Apache oder ein Load Balancer), mit Docker Compose.
+Der kürzeste Weg auf Debian 12 und 13 oder Ubuntu 22.04 und 24.04: das Paket `schild` aus dem eigenen apt-Repository, hinter deinem Webserver (nginx, Apache oder ein Load Balancer). Statt `3000` schreibst du den Port, auf dem deine Anwendung lauscht.
+
+```bash
+curl -fsSL https://pkg.deutschland-schild.de/install.sh | sudo sh -s -- alpha
+sudo schild init -upstream http://127.0.0.1:3000
+sudo systemctl enable --now schild
+sudo schild dashboard setup-code
+```
+
+Das Skript richtet das Repository ein und installiert das Paket, sonst nichts. Dieselben Schritte von Hand stehen in der [Installationsanleitung](docs/gateway/00-installieren.md#als-paket-unter-debian-und-ubuntu). Updates kommen über apt, wenn du sie einspielst.
+
+Die letzte Zeile zeigt den Einmal-Code für die erste Anmeldung. Das Dashboard hört nur auf dem Server selbst (`http://127.0.0.1:8788`), von außen kommst du per SSH-Tunnel hinein.
+
+Schild läuft jetzt auf `127.0.0.1:8080`. Traffic fließt erst hindurch, wenn du deinen Webserver dorthin weiterleitest. Deine Zertifikate bleiben beim Webserver. Wieder raus: Den Webserver wieder direkt auf die Anwendung zeigen lassen, dann `sudo systemctl disable --now schild`.
+
+Lieber als Container, oder ein anderes Linux? Dasselbe mit Docker Compose:
 
 ```bash
 mkdir schild && cd schild
@@ -40,18 +55,13 @@ docker compose up -d
 docker compose exec schild schild dashboard setup-code
 ```
 
-Die `compose.yaml` nennt eine feste Version des Images, nicht `latest`: Du entscheidest, wann du aktualisierst.
-
-Die letzte Zeile zeigt den Einmal-Code für die erste Anmeldung. Das Dashboard hört nur auf dem Server selbst (`http://127.0.0.1:8788`), von außen kommst du per SSH-Tunnel hinein.
-
-Schild läuft jetzt auf `127.0.0.1:8080`. Traffic fließt erst hindurch, wenn du deinen Webserver dorthin weiterleitest. Deine Zertifikate bleiben beim Webserver. Wieder raus: Den Webserver wieder direkt auf die Anwendung zeigen lassen, dann `docker compose down`.
+Die `compose.yaml` nennt eine feste Version des Images, nicht `latest`: Du entscheidest, wann du aktualisierst. Wieder raus: `docker compose down`.
 
 Ab dem Start sperrt das Core Rule Set bekannte Angriffe, und die Limits für Login, Passwort vergessen und `xmlrpc.php` begrenzen. Vier der fünf Szenarien sperren nach 14 Tagen Lernzeit. Alles Weitere zählt erst nur mit, bis du es im Dashboard umstellst.
 
 Die anderen Wege stehen in der [Installationsanleitung](docs/gateway/00-installieren.md):
 
 - **Du nutzt Caddy:** Schild ist eine Caddy-Distribution, lädt dein Caddyfile und ersetzt Caddy als Webserver.
-- **Debian und Ubuntu:** das Paket `schild` aus dem eigenen apt-Repository (Debian 12 und 13, Ubuntu 22.04 und 24.04). Updates kommen über apt.
 - **Andere Linux-Server ohne Docker:** ein statisches Linux-Binary (amd64, arm64) mit systemd-Unit.
 - **Den Webserver weiterleiten:** die Zeilen für nginx und Apache.
 
