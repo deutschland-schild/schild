@@ -291,6 +291,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/group": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Whether this gateway runs alone or as a node of a group (contracts/cluster.md), and the state of the group as this node sees it: the members with their last contact, what is shared, the edges, the counters of the sync and the members whose configuration differs. A gateway without `cluster.enabled` answers `mode: single` and nothing else. Read from the running node; nothing is asked of another node for this answer. */
+        get: operations["getGroupStatus"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/events": {
         parameters: {
             query?: never;
@@ -1865,6 +1882,100 @@ export interface components {
             deleted_allowlist_entries?: number;
             /** @description Records of the ring whose address was overwritten. */
             erased_requests?: number;
+            /** @description In a group (contracts/cluster.md): how far the erasure got when this answer was written, at most 2 s after the erasure on this node. Absent on a single gateway. A node under `open` erases when it reaches the group again; the erasure waits for it for 31 days. */
+            nodes?: {
+                /** @description Names of the gateways that hold the erasure, this node first. */
+                reached: string[];
+                /** @description Names of the gateways that have not said yet that they hold it: away, paused or slow. */
+                open: string[];
+            };
+        };
+        /** @description The mode this gateway runs in. `single`: alone; without `state` the gateway has no `cluster.enabled` and no other field is set. `group`: a node of a group, with everything below as this node sees it. */
+        GroupStatus: {
+            /** @enum {string} */
+            mode: "single" | "group";
+            /**
+             * @description Absent without `cluster.enabled`. no_group (mode single): `cluster.enabled` is set, but the node belongs to no group or could not be set up from schild.yaml; it runs alone. syncing: the node has not taken the state of the group since its start. active: it is in step with every gateway. degraded: at least one gateway is not reached, at least one is. interrupted: no other gateway is reached; the node serves with the state it has. paused: `schild cluster pause`; the node takes and hands over nothing. removed: a member said this node was removed; it serves with the state it has and shares nothing.
+             * @enum {string}
+             */
+            state?: "no_group" | "syncing" | "active" | "degraded" | "interrupted" | "paused" | "removed";
+            paused_since?: components["schemas"]["Timestamp"];
+            generated_at?: components["schemas"]["Timestamp"];
+            group?: string;
+            node?: components["schemas"]["GroupNode"];
+            /** @description Gateways first, then edges, then removed members; each by name. This node is one of them. */
+            members?: components["schemas"]["GroupMember"][];
+            /** @description What this node holds of the group's state. */
+            shared?: {
+                /** @description Address blocks of the group that run. */
+                blocks: number;
+                /** @description Things of class settings (contracts/cluster.md section 5). */
+                settings: number;
+                /** @description Lists of who passes: allowlist, released senders, disabled rules. */
+                access: number;
+                /** @description Lists of who signs in: users, sessions, agent tokens. */
+                logins: number;
+                /** @description cluster.share_data: every node keeps the events, incidents and requests of every node. */
+                share_data: boolean;
+            };
+            /** @description Records of other nodes since the start of this node. */
+            counters?: {
+                taken: number;
+                /** @description Failed signature, schema or membership; never applied. */
+                refused: number;
+                /** @description Put off and asked for again: clock ahead, or an origin not known yet. */
+                deferred: number;
+                /** @description Of a newer version; kept and passed on unread. */
+                unread: number;
+            };
+            /** @description Values this node gave up for the group's at its first sync; kept on the node. */
+            replaced?: number;
+            /** @description A hint, nothing is distributed: every gateway tells the others the version of its configuration (SHA-256 over schild.yaml without node_name, cluster.listen and cluster.advertise, and over rules.d). */
+            config?: {
+                /** @description Start of this node's config version. */
+                version: string;
+                /** @description Names of the gateways whose config version differs from this node's. */
+                differing: string[];
+            };
+        };
+        GroupNode: {
+            id: string;
+            name: string;
+            /** @enum {string} */
+            role: "gateway" | "edge";
+        };
+        GroupMember: {
+            id: string;
+            name: string;
+            /**
+             * @description edge: a balancer VM that holds the block list in its firewall and reads nothing else.
+             * @enum {string}
+             */
+            role: "gateway" | "edge";
+            /** @description Address of the mesh listener; absent for an edge, which calls and is never called. */
+            address?: string;
+            /**
+             * @description self: this node. ok: reached within the last 15 s (an edge: it asked this node within the last minute). unreachable: the last call to it failed. no_contact: no call to it succeeded yet, or none for 15 s. asks_elsewhere (edges only): it did not ask this node lately; an edge asks one gateway at a time. removed: its membership was ended.
+             * @enum {string}
+             */
+            state: "self" | "ok" | "unreachable" | "no_contact" | "asks_elsewhere" | "removed";
+            /** @description Last call of this node to the member that succeeded. */
+            last_out?: components["schemas"]["Timestamp"];
+            /** @description Last call of the member to this node. */
+            last_in?: components["schemas"]["Timestamp"];
+            /** @description Records the member has that this node lacks, at the last call. */
+            behind?: number;
+            /** @description The schild version the member told; absent until it did. */
+            version?: string;
+            /**
+             * @description Gateways only: its config version against this node's; unknown until it told one, or when the last word is older than a minute.
+             * @enum {string}
+             */
+            config?: "same" | "differs" | "unknown";
+            /** @description Why the last call failed, in one line. */
+            error?: string;
+            /** @description Edges only: clients its firewall held at its last call to this node. */
+            blocks_held?: number;
         };
         /** @description `local` is the gateway itself; agents have their agent id. */
         HostId: string;
@@ -2061,6 +2172,10 @@ export interface components {
             incident: string;
             /** @description Kept in schild.db (blocks over 24 h), survives a restart. */
             kept: boolean;
+            /** @description In a group: name of the node that decided the block (contracts/cluster.md, class blocks). Absent on a single gateway and while the group does not know the block yet. */
+            node?: string;
+            /** @description With node: true when this node decided the block. Nodes of one deployment may carry the same name. */
+            node_self?: boolean;
             /**
              * @description off: no firewall has called; stale: its last call is older than 2 minutes, or it reports an error; pending: it has not applied this block yet; banned: the nftables table inet schild holds the client.
              * @enum {string}
@@ -5502,6 +5617,28 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Overview"];
+                };
+            };
+            401: components["responses"]["Problem"];
+            default: components["responses"]["Problem"];
+        };
+    };
+    getGroupStatus: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Mode and group. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GroupStatus"];
                 };
             };
             401: components["responses"]["Problem"];

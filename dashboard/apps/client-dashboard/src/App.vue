@@ -9,7 +9,9 @@ import { computed, defineAsyncComponent, onBeforeUnmount, onMounted, ref, shallo
 import { useRoute, useRouter } from 'vue-router'
 import { api, csrf, errorMessage, session } from './api/client'
 import { deleteAllowlistEntry, keys, useAllowMyIp, useOverview } from './api/queries'
+import GroupModePill from './components/GroupModePill.vue'
 import TestProfileBanner from './components/TestProfileBanner.vue'
+import { useGroupStatus } from './api/group'
 import { useHosts } from './api/hosts'
 import { useWebsites } from './api/websites'
 import RequestContextSheet from './components/requests/RequestContextSheet.vue'
@@ -43,6 +45,9 @@ const authed = computed(() => !!session.value?.authenticated && !isPublic.value)
 
 const overview = useOverview(authed)
 const ov = computed(() => authed.value ? overview.data.value : undefined)
+// The mode this gateway runs in (alone or a node of a group, MVP-27), in the top bar of every page.
+const groupQ = useGroupStatus(authed)
+const group = computed(() => authed.value ? groupQ.data.value : undefined)
 // The running gateway's version at the foot of the sidebar: "0.1.0", a test build marked short, explained on hover.
 const version = computed(() => {
   const v = ov.value?.version ?? ''
@@ -212,6 +217,9 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKey))
           <component :is="InstanceSwitcher" v-if="InstanceSwitcher && multiInstance" :name="node || 'Instanz'" />
         </template>
         <WebsiteSwitcher v-else :websites="websites" :servers="servers" :site="held" :server="heldServer" :subpage="subpage" />
+      </template>
+      <template v-if="group" #status>
+        <GroupModePill :status="group" />
       </template>
       <template #sidebar-footer>
         <p v-if="version" class="truncate border-b px-2 pt-1 pb-2 text-xs text-muted-foreground group-data-[collapsible=icon]:hidden" data-testid="sidebar-version" :title="version.full">

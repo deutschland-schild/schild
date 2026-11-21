@@ -21,6 +21,7 @@ import UnblockDialog from '@/components/UnblockDialog.vue'
 import BlockAddressDialog from './BlockAddressDialog.vue'
 import { formatDuration } from '@/lib/behaviour'
 import { blockReason, BLOCKS_COPY as C, FIREWALL_ROW, firewallText, netClassText } from '@/lib/blocks'
+import { blockNodeText } from '@/lib/group'
 
 /**
  * Every address block that runs (D87): scenario or agent, since and until, and whether the host's firewall holds
@@ -107,6 +108,9 @@ function lifted() {
                     <template v-if="b.level > 1">
                       · {{ formatNumber(b.level) }}. Sperre in Folge
                     </template>
+                  </p>
+                  <p v-if="b.node" class="mt-0.5 text-xs text-muted-foreground" data-testid="block-node">
+                    {{ blockNodeText(b) }}
                   </p>
                 </td>
                 <td class="px-4 py-3 align-top">

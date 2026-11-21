@@ -185,6 +185,20 @@ schild cluster status
 
 Die Ausgabe nennt jedes Mitglied mit Rolle, Adresse, Zustand und letztem Kontakt, dazu die Zahl laufender Sperren und geteilter Einstellungen.
 
+Dasselbe zeigt das Dashboard. Oben auf jeder Seite steht, ob der Server allein läuft („Einzelner Server“) oder Teil einer Gruppe ist („Gruppe · 3 Server“). Die Karte „Gruppe“ auf der Server-Seite nennt den Zustand des Abgleichs und jedes Gateway mit letztem Kontakt, Rückstand, Version und Konfiguration. Balancer-VMs stehen darunter für sich.
+
+| Anzeige | Bedeutung |
+| --- | --- |
+| Abgleich aktiv | Der Server erreicht alle anderen Gateways. |
+| Abgleich eingeschränkt | Mindestens ein Gateway ist nicht erreichbar. Mit den übrigen läuft der Abgleich weiter. |
+| Abgleich unterbrochen | Der Server erreicht kein anderes Gateway und arbeitet mit dem letzten Stand weiter. |
+| Abgleich pausiert | Auf dem Server wurde `schild cluster pause` aufgerufen. |
+| Aus der Gruppe entfernt | Ein Mitglied hat dem Server gemeldet, dass er entfernt wurde. |
+
+**Unterschiedliche Konfiguration.** Jedes Gateway nennt den anderen alle fünf Sekunden eine Prüfsumme seiner Konfiguration: `schild.yaml` ohne `node_name`, `cluster.listen` und `cluster.advertise`, dazu `rules.d`. Weicht ein Server ab, steht das in der Karte. Das ist ein Hinweis. Schild verteilt keine Konfiguration, das bleibt Aufgabe deines Deployments. Das Caddyfile geht in die Prüfsumme noch nicht ein.
+
+In der Liste gesperrter Adressen steht bei jeder Sperre, welcher Server sie entschieden hat. Löschst du unter „Datenschutz“ eine Adresse, nennt das Dashboard die Server, die die Löschung schon erreicht hat, und die, bei denen sie noch aussteht.
+
 ## Daten und Datenschutz
 
 Eine Gruppe ist ein Betreiber. Mit `cluster.share_data` (ab Werk an) hält jeder Server auch die Ereignisse und Anfragen der anderen, mit den Adressen der Besucher:innen. Sie reisen nur zwischen deinen eigenen Servern, über die verschlüsselte Verbindung der Gruppe. Nenne in deiner Datenschutzerklärung jeden Server als Ort der Verarbeitung.

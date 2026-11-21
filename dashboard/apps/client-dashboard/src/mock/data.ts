@@ -21,11 +21,13 @@ import type {
 } from '@/api/types'
 import type { AccessProtection } from '@/api/access'
 import type { CrawlerPolicyState } from '@/api/crawlers'
+import type { GroupStatus } from '@/api/group'
 import allowlistFixture from '../../../../../contracts/api/fixtures/client/listAllowlist.json'
 import eventDetailFixture from '../../../../../contracts/api/fixtures/client/getEvent.json'
 import eventPageFixture from '../../../../../contracts/api/fixtures/client/listEvents.json'
 import myIpFixture from '../../../../../contracts/api/fixtures/client/getMyIP.json'
 import overviewDegraded from '../../../../../contracts/api/fixtures/client/getOverview.degraded.json'
+import groupFixture from '../../../../../contracts/api/fixtures/client/getGroupStatus.json'
 import overviewNormal from '../../../../../contracts/api/fixtures/client/getOverview.json'
 import overviewStandalone from '../../../../../contracts/api/fixtures/client/getOverview.standalone.json'
 import settingsFixture from '../../../../../contracts/api/fixtures/client/getSettings.json'
@@ -43,8 +45,8 @@ import { createRulesState } from './rules'
  * standalone: a gateway that started a few hours ago and cannot reach the CrowdSec Hub. observe: the test
  * profile, in which nothing is blocked (D89: there is no protection mode).
  */
-export type Scenario = 'default' | 'observe' | 'first-run' | 'login' | 'degraded' | 'empty' | 'error' | 'standalone'
-export const SCENARIOS: Scenario[] = ['default', 'observe', 'first-run', 'login', 'degraded', 'empty', 'error', 'standalone']
+export type Scenario = 'default' | 'observe' | 'first-run' | 'login' | 'degraded' | 'empty' | 'error' | 'standalone' | 'group'
+export const SCENARIOS: Scenario[] = ['default', 'observe', 'first-run', 'login', 'degraded', 'empty', 'error', 'standalone', 'group']
 
 /** What the gateway does with a decision, as the server derives it (D89): the test profile only observes. */
 export function gatewayMode(s: Pick<Settings, 'profile'>): Mode {
@@ -224,6 +226,8 @@ export interface MockState {
   manualBlocks: RunningBlock[]
   /** v0.4 traffic and server monitoring (mock/monitoring.ts, MVP-21). */
   monitoring: MonitoringMock
+  /** MVP-27: the mode this gateway runs in. A single gateway in every scenario but `group`. */
+  group: GroupStatus
 }
 
 const CSRF = 'mock-csrf-token-7f3a9c22b1e04d55'
@@ -447,6 +451,8 @@ export function createState(opts: CreateStateOptions = {}): MockState {
     firewall: { state: 'off', banned: [] },
     manualBlocks: [],
     monitoring: createMonitoringState(scenario, t0, mode === 'observe'),
+    // The fixture is written around 14:05:30 of its day; shifted so its contacts are seconds old.
+    group: scenario === 'group' ? shiftTimes(groupFixture as GroupStatus, t0 - Date.parse(groupFixture.generated_at)) : { mode: 'single' },
   }
   // MVP-22 (D35): which geo database is in use. The degraded gateway downloads IPinfo with the operator's
   // own key and its last download failed, so it keeps the previous database.
