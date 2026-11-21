@@ -20,6 +20,8 @@
       "crs": {
         "paranoia_level": 1,
         "inbound_anomaly_threshold": 5,
+        "config_paranoia_level": 1,
+        "config_inbound_anomaly_threshold": 5,
         "livewire_exception": true,
         "version": "4.20.0"
       }

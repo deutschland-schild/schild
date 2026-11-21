@@ -182,6 +182,7 @@ func (s *Server) Handler() http.Handler {
 	a("GET "+apiPrefix+"/rule-repositories", s.listRuleRepositories)
 	a("GET "+apiPrefix+"/rule-repositories/{repository}", s.getRuleRepository)
 	a("PATCH "+apiPrefix+"/rule-repositories/{repository}", s.updateRuleRepository)
+	a("PATCH "+apiPrefix+"/rule-repositories/{repository}/settings", s.updateRuleRepositorySettings)
 	a("POST "+apiPrefix+"/rule-repositories/{repository}/sync", s.syncRuleRepository)
 	a("POST "+apiPrefix+"/rule-repositories/{repository}/reset", s.resetRuleRepository)
 	a("GET "+apiPrefix+"/rule-exceptions", s.listRuleExceptions)

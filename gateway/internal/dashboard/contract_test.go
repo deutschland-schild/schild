@@ -143,7 +143,8 @@ func TestFixturesRoundTrip(t *testing.T) {
 		// v0.5 (D39, MVP-26)
 		// D73: rule repositories and rules.
 		"listRuleRepositories": {"RuleRepositoryList", dashboard.RuleRepositoryList{}}, "getRuleRepository": {"RuleRepository", dashboard.RuleRepository{}},
-		"updateRuleRepository": {"RuleRepository", dashboard.RuleRepository{}}, "syncRuleRepository": {"RuleRepository", dashboard.RuleRepository{}},
+		"updateRuleRepositorySettings": {"RuleRepository", dashboard.RuleRepository{}},
+		"updateRuleRepository":         {"RuleRepository", dashboard.RuleRepository{}}, "syncRuleRepository": {"RuleRepository", dashboard.RuleRepository{}},
 		"resetRuleRepository": {"RuleRepository", dashboard.RuleRepository{}}, "updateRule": {"RuleDetail", dashboard.RuleDetail{}},
 
 		// D83: the exceptions of the agent API, read only.

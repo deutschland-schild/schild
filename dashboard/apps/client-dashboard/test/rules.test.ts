@@ -75,7 +75,7 @@ describe('rule copy', () => {
     expect(effectText({ id: 'crowdsec', state: 'block', effect: 'block', crowdsec: { settling_s: 86400 } as RuleRepository['crowdsec'] })).toContain('24 Stunden lang nur')
     expect(effectText({ id: 'crowdsec', state: 'detect', effect: 'detect', crowdsec: { settling_s: 86400 } as RuleRepository['crowdsec'] })).toBeNull()
     expect(effectText({ id: 'crs', state: 'block', effect: 'block' })).toBeNull()
-    expect(stateExplain({ id: 'crs', state: 'block', crs: { paranoia_level: 1, inbound_anomaly_threshold: 5, livewire_exception: false, version: '4.30.0' } })).toContain('Ab 5 Punkten')
+    expect(stateExplain({ id: 'crs', state: 'block', crs: { paranoia_level: 1, inbound_anomaly_threshold: 5, config_paranoia_level: 1, config_inbound_anomaly_threshold: 5, livewire_exception: false, version: '4.30.0' } })).toContain('Ab 5 Punkten')
   })
 
   it('labels and links the annotation of a switch', () => {
@@ -358,6 +358,44 @@ describe('the switch of a repository', () => {
     await waitFor(() => !!byTestId('repository-effect'))
     expect(segment('Sperren').getAttribute('aria-checked')).toBe('true')
     expect(byTestId('repository-effect')!.textContent).toContain('Im Testprofil sperrt Schild nichts')
+    wrapper.unmount()
+  })
+
+  it('CRS: strictness and threshold are set in a dialog and go back to schild.yaml (D101)', async () => {
+    const { wrapper } = await mountApp('/settings/rules/crs')
+    await waitFor(() => !!byTestId('crs-settings-open'))
+    expect(byTestId('repository-threshold-hint')).toBeNull()
+    await click(byTestId('crs-settings-open'))
+    await waitFor(() => !!byTestId('crs-settings-form'))
+    expect(byTestId('crs-settings-config')!.textContent).toContain('In schild.yaml: Stufe 1, sperrt ab 5 Punkten')
+    expect(byTestId('crs-settings-reset')).toBeNull()
+    expect(byTestId('crs-settings-threshold-hint')).toBeNull()
+
+    // Out of bounds: said in the form, nothing sent.
+    await type(byTestId('crs-settings-threshold') as HTMLInputElement, '0')
+    await click(byTestId('crs-settings-submit'))
+    expect(bodyText()).toContain('Eine ganze Zahl zwischen 1 und 100.')
+    expect(repos().crs.crs!.inbound_anomaly_threshold).toBe(5)
+
+    await type(byTestId('crs-settings-threshold') as HTMLInputElement, '12')
+    await waitFor(() => !!byTestId('crs-settings-threshold-hint'))
+    await select(byTestId('crs-settings-level'), '2')
+    await waitFor(() => !!byTestId('crs-settings-level-hint')?.textContent?.includes('Ab Stufe 2'))
+    await click(byTestId('crs-settings-submit'))
+    await waitFor(() => repos().crs.crs!.inbound_anomaly_threshold === 12 && repos().crs.crs!.paranoia_level === 2)
+    await waitFor(() => !!byTestId('crs-threshold')?.textContent?.includes('angepasst'))
+    expect(byTestId('crs-level')!.textContent).toContain('Stufe 2 von 4')
+    expect(byTestId('crs-level')!.textContent).toContain('in schild.yaml: 1')
+    expect(byTestId('repository-threshold-hint')!.textContent).toContain('Schwelle von 12 Punkten')
+    expect(byTestId('repository-explain')!.textContent).toContain('Ab 12 Punkten')
+
+    await click(byTestId('crs-settings-open'))
+    await waitFor(() => !!byTestId('crs-settings-reset'))
+    await click(byTestId('crs-settings-reset'))
+    await click(byTestId('crs-settings-submit'))
+    await waitFor(() => repos().crs.crs!.inbound_anomaly_threshold === 5 && repos().crs.crs!.paranoia_level === 1)
+    await waitFor(() => !byTestId('crs-threshold')?.textContent?.includes('angepasst'))
+    expect(byTestId('repository-threshold-hint')).toBeNull()
     wrapper.unmount()
   })
 

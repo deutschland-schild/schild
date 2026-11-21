@@ -301,7 +301,7 @@ export function createRulesState(scenario: Scenario, t0: number): RulesMock {
         config_source: 'default',
         state_source: 'default',
         last_change_at: null,
-        crs: { paranoia_level: 1, inbound_anomaly_threshold: 5, livewire_exception: false, version: CRS_VERSION },
+        crs: { paranoia_level: 1, inbound_anomaly_threshold: 5, config_paranoia_level: 1, config_inbound_anomaly_threshold: 5, livewire_exception: false, version: CRS_VERSION },
       },
       crowdsec: standalone
         ? {
@@ -459,6 +459,19 @@ export function ruleHandlers(t: WebsiteHandlerTools): HttpHandler[] {
         if (!STATES.includes(body.state as RuleRepositoryState)) return problem(400, 'invalid', 'Ungültige Eingabe', [{ pointer: '/state', detail: 'off, detect or block' }])
         Object.assign(repo, { state: body.state, state_source: 'dashboard', state_set_at: now, state_set_by: undefined })
       }
+      return json(repositoryView(t.state(), repo.id))
+    })),
+    // D101: the body replaces what the dashboard set; a field left out falls back to schild.yaml.
+    http.patch(`${base}/rule-repositories/:repository/settings`, guard('write', async ({ params, request }) => {
+      const repo = repoOf(params.repository)
+      if (!repo) return notFound()
+      if (!repo.crs) return notSupported()
+      const body = await read(request)
+      const whole = (v: unknown, max: number) => v === undefined || (Number.isInteger(v) && (v as number) >= 1 && (v as number) <= max)
+      if (!whole(body.paranoia_level, 4)) return problem(400, 'invalid', 'Ungültige Eingabe', [{ pointer: '/paranoia_level', detail: 'eine ganze Zahl von 1 bis 4' }])
+      if (!whole(body.inbound_anomaly_threshold, 100)) return problem(400, 'invalid', 'Ungültige Eingabe', [{ pointer: '/inbound_anomaly_threshold', detail: 'eine ganze Zahl von 1 bis 100' }])
+      repo.crs.paranoia_level = (body.paranoia_level as number | undefined) ?? repo.crs.config_paranoia_level
+      repo.crs.inbound_anomaly_threshold = (body.inbound_anomaly_threshold as number | undefined) ?? repo.crs.config_inbound_anomaly_threshold
       return json(repositoryView(t.state(), repo.id))
     })),
     http.post(`${base}/rule-repositories/:repository/sync`, guard('write', ({ params }) => {

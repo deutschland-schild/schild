@@ -181,7 +181,7 @@ rules:
     disabled_rules: []            # Regelnummern
 ```
 
-Den Schalter eines Repositorys und einzelne Regeln kannst du auch im Dashboard unter „Regeln“ oder über die Agent-API ändern. Ein Wert von dort gilt vor `schild.yaml`, bis du ihn zurücksetzt. Eine Regel in `disabled_rules` bleibt aus, egal was dort eingestellt wird. Mit `rules.crowdsec.pin` (ein Commit des Hubs, 40 Zeichen) nagelst du die CrowdSec-Regeln auf einen Stand fest; dann holt Schild genau diesen einen Stand und keine Updates mehr.
+Den Schalter eines Repositorys und einzelne Regeln kannst du auch im Dashboard unter „Regeln“ oder über die Agent-API ändern. Ein Wert von dort gilt vor `schild.yaml`, bis du ihn zurücksetzt. Strenge und Schwelle des Core Rule Sets stellst du ebenfalls im Dashboard ein, unter „Regeln › OWASP CRS“ mit „Strenge und Schwelle anpassen“; die Agent-API liest beide Werte nur. Eine Regel in `disabled_rules` bleibt aus, egal was dort eingestellt wird. Mit `rules.crowdsec.pin` (ein Commit des Hubs, 40 Zeichen) nagelst du die CrowdSec-Regeln auf einen Stand fest; dann holt Schild genau diesen einen Stand und keine Updates mehr.
 
 ## Sperren in der Firewall
 

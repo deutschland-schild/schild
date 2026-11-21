@@ -377,3 +377,75 @@ func TestLocalRepository(t *testing.T) {
 		t.Fatal("local off still builds the rules")
 	}
 }
+
+// D101: paranoia level and blocking threshold of the CRS are set in the
+// dashboard, effective without a restart, and an empty body gives them back
+// to schild.yaml.
+func TestCRSSettings(t *testing.T) {
+	h := apptest.New(t, apptest.Options{})
+	h.Login()
+	const xss = "/?q=%3Cscript%3Ealert(1)%3C%2Fscript%3E"
+	set := func(body map[string]any) dashboard.RuleRepository {
+		t.Helper()
+		b := expect(t, h, "PATCH", "/rule-repositories/crs/settings", body, 200, "RuleRepository")
+		return decode[dashboard.RuleRepository](t, b)
+	}
+	before := repo(t, h, "crs")
+	if c := before.CRS; c.ParanoiaLevel != 1 || c.InboundAnomalyThreshold != 5 || c.ConfigParanoiaLevel != 1 || c.ConfigInboundAnomalyThreshold != 5 {
+		t.Fatalf("default: %+v", c)
+	}
+	if r := h.Visit("GET", xss, "203.0.113.20", "", ""); r.StatusCode != 403 {
+		t.Fatalf("threshold 5 answered %d", r.StatusCode)
+	}
+
+	// A threshold above the score of the request lets it through; the values
+	// of schild.yaml stay visible next to the ones that run.
+	v := set(map[string]any{"inbound_anomaly_threshold": 100})
+	if c := v.CRS; c.InboundAnomalyThreshold != 100 || c.ConfigInboundAnomalyThreshold != 5 || c.ParanoiaLevel != 1 || v.State != rules.StateBlock {
+		t.Fatalf("threshold 100: %+v", v)
+	}
+	if r := h.Visit("GET", xss, "203.0.113.21", "", ""); r.StatusCode != 200 {
+		t.Fatalf("threshold 100 answered %d", r.StatusCode)
+	}
+
+	// The body replaces what was set: the threshold falls back, the stricter
+	// level loads more rules.
+	v = set(map[string]any{"paranoia_level": 2})
+	if c := v.CRS; c.ParanoiaLevel != 2 || c.ConfigParanoiaLevel != 1 || c.InboundAnomalyThreshold != 5 || v.Counts.Rules <= before.Counts.Rules {
+		t.Fatalf("level 2: %+v (rules before: %d)", v, before.Counts.Rules)
+	}
+	if r := h.Visit("GET", xss, "203.0.113.22", "", ""); r.StatusCode != 403 {
+		t.Fatalf("threshold back at 5 answered %d", r.StatusCode)
+	}
+
+	// The state switch and the settings do not touch each other.
+	if s := setState(t, h, "crs", map[string]any{"state": "detect"}); s.CRS.ParanoiaLevel != 2 {
+		t.Fatalf("the switch dropped the level: %+v", s.CRS)
+	}
+	if v = set(map[string]any{"paranoia_level": 2, "inbound_anomaly_threshold": 7}); v.State != rules.StateDetect || v.CRS.InboundAnomalyThreshold != 7 {
+		t.Fatalf("the settings dropped the state: %+v", v)
+	}
+
+	// An empty body: schild.yaml and the defaults hold again.
+	v = set(map[string]any{})
+	if c := v.CRS; c.ParanoiaLevel != 1 || c.InboundAnomalyThreshold != 5 || v.Counts.Rules != before.Counts.Rules || v.State != rules.StateDetect {
+		t.Fatalf("reset: %+v", v)
+	}
+
+	for name, body := range map[string]map[string]any{
+		"level 0": {"paranoia_level": 0}, "level 5": {"paranoia_level": 5}, "threshold 0": {"inbound_anomaly_threshold": 0},
+		"threshold 101": {"inbound_anomaly_threshold": 101}, "unknown field": {"state": "off"},
+	} {
+		if code, b := h.API("PATCH", "/rule-repositories/crs/settings", body); code != 400 {
+			t.Errorf("%s: %d: %s", name, code, b)
+		}
+	}
+	if code, b := h.API("PATCH", "/rule-repositories/crs/settings", map[string]any{"paranoia_level": 5}); !strings.Contains(string(b), `/paranoia_level`) {
+		t.Errorf("no pointer: %d: %s", code, b)
+	}
+	for id, want := range map[string]int{"crowdsec": 409, "local": 409, "network": 404} {
+		if code, b := h.API("PATCH", "/rule-repositories/"+id+"/settings", map[string]any{"paranoia_level": 2}); code != want {
+			t.Errorf("%s: %d, want %d: %s", id, code, want, b)
+		}
+	}
+}

@@ -80,7 +80,7 @@ Die Bilder auf dieser Seite zeigen das Dashboard mit Testdaten. Dort stehen nur 
 
 ### OWASP Core Rule Set
 
-Das Core Rule Set erkennt typische Angriffsversuche: SQL-Injection, Cross-Site-Scripting, das Einschleusen von Befehlen oder PHP-Code, Zugriffe auf Dateien außerhalb der Website und Ähnliches. Jede Regel vergibt Punkte, ab einer Schwelle wird gesperrt. Strenge (Paranoia-Level) und Schwelle stellst du in `schild.yaml` unter `rules.crs` ein. Steht das Core Rule Set auf „Aus“ oder „Erkennen“, ist der Grundschutz eingeschränkt, und das Dashboard sagt es dir.
+Das Core Rule Set erkennt typische Angriffsversuche: SQL-Injection, Cross-Site-Scripting, das Einschleusen von Befehlen oder PHP-Code, Zugriffe auf Dateien außerhalb der Website und Ähnliches. Jede Regel vergibt Punkte, ab einer Schwelle wird gesperrt. Strenge (Paranoia-Level) und Schwelle stellst du im Dashboard unter „Regeln › OWASP CRS“ ein oder in `schild.yaml` unter `rules.crs`. Was du im Dashboard einstellst, gilt vor der Datei und sofort, ohne Neustart. Ein kritischer Treffer zählt 5 Punkte: Mit einer Schwelle über 5 kommt eine Anfrage mit einem einzelnen kritischen Treffer durch. Ab Stufe 2 laufen zusätzliche Regeln, die öfter bei normalen Anfragen anschlagen; stell das Core Rule Set dafür erst ein paar Tage auf „Erkennen“. Steht das Core Rule Set auf „Aus“ oder „Erkennen“, ist der Grundschutz eingeschränkt, und das Dashboard sagt es dir.
 
 ![Schild Dashboard, OWASP CRS: Schalter Aus, Erkennen, Sperren, Strenge und Sperrschwelle, darunter die Liste der Regeln mit Status, Wirkung und Treffern der letzten 24 Stunden. Testdaten.](../../site/public/img/dashboards/doku-crs.webp)
 

@@ -4519,7 +4519,20 @@
    "RuleRepositoryCRS": {
     "additionalProperties": false,
     "properties": {
+     "config_inbound_anomaly_threshold": {
+      "description": "The value of schild.yaml (or its default 5). Differs from inbound_anomaly_threshold when the dashboard set one (D101).",
+      "maximum": 100,
+      "minimum": 1,
+      "type": "integer"
+     },
+     "config_paranoia_level": {
+      "description": "The value of schild.yaml (or its default 1). Differs from paranoia_level when the dashboard set one (D101).",
+      "maximum": 4,
+      "minimum": 1,
+      "type": "integer"
+     },
      "inbound_anomaly_threshold": {
+      "description": "The threshold that runs: the value set in the dashboard, else config_inbound_anomaly_threshold.",
       "maximum": 100,
       "minimum": 1,
       "type": "integer"
@@ -4528,6 +4541,7 @@
       "type": "boolean"
      },
      "paranoia_level": {
+      "description": "The level that runs: the value set in the dashboard, else config_paranoia_level.",
       "maximum": 4,
       "minimum": 1,
       "type": "integer"
@@ -4541,6 +4555,8 @@
     "required": [
      "paranoia_level",
      "inbound_anomaly_threshold",
+     "config_paranoia_level",
+     "config_inbound_anomaly_threshold",
      "livewire_exception",
      "version"
     ],

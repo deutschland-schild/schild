@@ -15,6 +15,8 @@ Not backwards compatible with v0.5 for the gateway; nothing is installed outside
 
 **Agent API document shortened and brought up to the code (2026-11-20).** Every operation has a short `summary` as its title and a shorter `description`; the notes for builders are gone from `summary`. The document now names what the gateway serves: `filter` on `getTrafficBreakdown` and `queryMetricSeries`, the dimensions `ip` and `user_agent`, the codes `busy`, `no_snapshot` and `filter_unavailable`. No behaviour, config key or vector changes.
 
+**D101 (2026-11-21): paranoia level and blocking threshold of the CRS in the dashboard.** Client dashboard API: `PATCH /rule-repositories/{repository}/settings` (`updateRuleRepositorySettings`, `RuleRepositorySettingsPatch`); `RuleRepository.crs` gains `config_paranoia_level` and `config_inbound_anomaly_threshold` (required), fixtures updated, not backwards compatible for strict readers. Agent API: the same two fields on its repositories, no new operation; the bundled document is regenerated. No config key, no vector change.
+
 **D98 (2026-11-19): the maintenance mode is a switch of its own.** Client dashboard API: `PUT /websites/{website}/maintenance` (`setMaintenance`, `MaintenanceInput`), `AccessProtectionState.maintenance` (required, `MaintenanceMode`); not backwards compatible for strict readers. The decision is `access.Decide` unchanged. No config key, no vector change.
 
 **D97 (2026-11-19): thresholds of the wave detectors in the dashboard.** Additive. Client dashboard API: `DistributedSettingsPatch.thresholds` with the new schema `DetectorThresholdsPatch` per detector. No config key, no vector change.
