@@ -30,11 +30,18 @@ import (
 // records.
 func ClusterDir(dataDir string) string { return filepath.Join(dataDir, "cluster") }
 
+const (
+	groupBlocksPerTick = 50
+	groupBlocksMax     = 20000
+)
+
 // groupBlocks is what this node knows the group knows: per client key the
 // incident and the end of the block that runs.
 type groupBlocks struct {
 	mu    sync.Mutex
 	known map[behaviour.Key]groupBlock
+	// waiting counts blocks that had to wait for a later round.
+	waiting uint64
 }
 
 type groupBlock struct {
@@ -178,7 +185,7 @@ func (a *App) applyGroupLift(rec *contract.Record) {
 // node at the same second.
 func (a *App) publishGroupBlocks() {
 	node := a.Cluster
-	if node == nil {
+	if node == nil || node.Removed() {
 		return
 	}
 	now := time.Now()
@@ -187,11 +194,21 @@ func (a *App) publishGroupBlocks() {
 	defer a.groupBlocks.mu.Unlock()
 	seen := make(map[behaviour.Key]bool, len(running))
 	name := node.Name()
+	// A flood of blocks must not become a flood of records: at most
+	// groupBlocksPerTick leave per round (200 a second), and none while the
+	// group knows groupBlocksMax. What waits runs on this node all the same
+	// and leaves with a later round.
+	sent, room := 0, groupBlocksMax-len(a.groupBlocks.known)
 	for _, rb := range running {
 		seen[rb.Key] = true
 		if k, ok := a.groupBlocks.known[rb.Key]; ok && k.incident == rb.Incident {
 			continue
 		}
+		if sent >= groupBlocksPerTick || sent >= room {
+			a.groupBlocks.waiting++
+			continue
+		}
+		sent++
 		until := rb.Until.UTC().Truncate(time.Second)
 		blk := contract.Block{Client: rb.Key.Addr().String(), Bits: rb.Key.Bits(), Source: behaviour.BlockSource(rb.Scenario), Level: rb.Level,
 			Since: contract.TimeText(rb.Since), Until: contract.TimeText(until), DurationS: max(int(rb.Duration/time.Second), 1), Incident: rb.Incident, EventID: rb.EventID,

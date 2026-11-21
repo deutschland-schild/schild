@@ -148,6 +148,9 @@ func (n *Node) admit(key ed25519.PublicKey, secret []byte, name, address string)
 	if err := n.db.QueryRow(`SELECT role FROM invites WHERE hash = ? AND used_ms = 0 AND expires_ms > ?`, hash, now).Scan(&role); err != nil {
 		return nil, errInvite
 	}
+	if n.full(role) {
+		return nil, errFull
+	}
 	// The code says what it admits: a gateway, or an edge.
 	m, err := memberWith(name, address, role, key, n.now())
 	if err != nil {
@@ -336,6 +339,8 @@ type Status struct {
 	// Replaced counts the values this node gave up for the group's at its
 	// first sync; they are kept in cluster.db.
 	Replaced int
+	// Paused: since when the node is paused; "": it is not.
+	Paused string
 }
 
 // ReadStatus reads the state of the group from the data directory.
@@ -405,6 +410,9 @@ func ReadStatus(dir string, now func() time.Time) (*Status, error) {
 	}
 	rows.Close()
 	_ = s.db.QueryRow(`SELECT count(*) FROM replaced`).Scan(&st.Replaced)
+	if v, err := s.meta(metaPaused); err == nil {
+		st.Paused = string(v)
+	}
 	var seen int64
 	if err := s.db.QueryRow(`SELECT CAST(v AS INTEGER) FROM meta WHERE k = 'status_ms'`).Scan(&seen); err == nil {
 		st.Seen = at(seen)
@@ -526,4 +534,60 @@ func Identity(dir string) (id string, ok bool) {
 	}
 	defer s.close()
 	return s.id, s.group != ""
+}
+
+// Sizes a group of this version takes: a full mesh between the gateways,
+// tested with three. More are refused rather than tried.
+const (
+	MaxGateways = 16
+	MaxEdges    = 8
+)
+
+var errFull = errors.New("cluster: the group is full")
+
+// full reports whether the group holds as many members of a role as this
+// version takes.
+func (n *Node) full(role string) bool {
+	n.rmu.RLock()
+	defer n.rmu.RUnlock()
+	count := 0
+	for _, e := range n.roster.Members() {
+		if !e.Removed && e.Member.Role == role {
+			count++
+		}
+	}
+	if role == contract.RoleEdge {
+		return count >= MaxEdges
+	}
+	return count >= MaxGateways
+}
+
+const metaPaused = "paused"
+
+// Pause stops this node from taking and handing over anything, without
+// stopping it: it serves with the state it has. For the day a record that
+// should not be travels through the group. Resume ends it; the node then
+// takes what it missed.
+func Pause(dir string, on bool, now func() time.Time) error {
+	s, err := openState(dir, false, now)
+	if err != nil {
+		return err
+	}
+	defer s.close()
+	if s.group == "" {
+		return ErrNoGroup
+	}
+	tx, err := s.db.Begin()
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+	v := []byte{}
+	if on {
+		v = []byte(contract.TimeText(s.now()))
+	}
+	if err := setMeta(tx, metaPaused, v); err != nil {
+		return err
+	}
+	return tx.Commit()
 }

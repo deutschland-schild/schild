@@ -193,6 +193,12 @@ An edge is a member that only enforces: a balancer VM in front of the gateways t
 - **Whom it asks.** The gateways of the member list, one after the other until one answers; the one that answered last first. Every element of its table carries its end as the kernel timeout, so no block outlives its end when no gateway answers.
 - A removed edge is answered 410 and gets nothing more.
 
-## 12. Not built yet
+## 12. Bounds and the brake
 
-Of [MVP-27](../tests/specs/MVP-27-ha-group.yaml): where each block holds (edge, node firewall, gate) in the dashboard, a copy on some nodes instead of all and queries from node to node (for groups too large to keep everything everywhere), the counters of the overview and the server charts across nodes, counts of the distributed detectors, the cap on blocks a node may send, the nodes an erasure reached in `PrivacyDeleteResult`, events and dashboard operations of the group.
+- A group of this version takes at most 16 gateways and 8 edges; a join or a hello beyond that is answered 409.
+- A node hands at most 200 new blocks a second to the group, and none while it knows 20 000 that run. What waits runs on its node all the same and leaves with a later round.
+- `schild cluster pause` on a node: it serves with the state it has, answers sync with 503, takes no record and no count and hands none over, also from calls that were under way. What is written on it waits. `schild cluster resume` ends it; the node then takes what it missed. For the day a record that should not be travels through the group: a change reaches every node within a second, a wrong one too.
+
+## 13. Not built yet
+
+Of [MVP-27](../tests/specs/MVP-27-ha-group.yaml): where each block holds (edge, node firewall, gate) in the dashboard, a copy on some nodes instead of all and queries from node to node (for groups too large to keep everything everywhere), the counters of the overview and the server charts across nodes, counts of the distributed detectors, a hint when the configuration of the nodes differs, the nodes an erasure reached in `PrivacyDeleteResult`, events and dashboard operations of the group.

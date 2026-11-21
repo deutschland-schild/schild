@@ -167,6 +167,16 @@ schild cluster remove web-3
 
 Danach spricht kein Mitglied mehr mit diesem Server, und keines nimmt an, was er noch schickt. Das gilt auch, wenn der Server das Gruppen-Geheimnis hat. Der entfernte Server erfährt es und schreibt es in sein Log. Er bedient mit seinem letzten Stand weiter, bis du bei ihm `cluster.enabled: false` setzt oder ihn abschaltest.
 
+## Wenn in der Gruppe etwas Falsches unterwegs ist
+
+Eine Änderung erreicht jeden Server in etwa einer Sekunde, eine falsche auch. Für diesen Fall gibt es eine Notbremse:
+
+```bash
+schild cluster pause
+```
+
+Der Server bedient weiter mit dem Stand, den er hat. Er nimmt nichts mehr aus der Gruppe an und gibt nichts weiter. Was du währenddessen auf ihm änderst, wartet. Mit `schild cluster resume` nimmt er wieder teil und holt nach, was er verpasst hat.
+
 ## Den Stand prüfen
 
 ```bash
@@ -192,7 +202,7 @@ Jeder Server speichert damit, was die ganze Gruppe aufzeichnet. In einer großen
 - **Pro Server bleiben** die Zähler der Übersicht, die Server-Diagramme und die Erkennung verteilter Angriffe.
 - **Zertifikate bei Netztrennung.** Erreichen sich die Server nicht, kann jede Seite dasselbe Zertifikat bestellen. Das ist eine Bestellung zu viel, beide Zertifikate sind gültig.
 - **Neues Geheimnis heißt neue Gruppe.** Ist das Gruppen-Geheimnis bekannt geworden, verteilst du ein neues und lässt die Server mit leerem Verzeichnis `cluster` neu starten. Einen Wechsel im laufenden Betrieb gibt es noch nicht.
-- **Geprüft mit drei Servern.** Die Grenze von 16 Gateways aus dem Plan ist noch nicht eingebaut und nicht erprobt.
+- **Höchstens 16 Gateways und 8 Balancer-VMs.** Mehr lehnt die Gruppe ab. Im laufenden Betrieb erprobt sind bisher nur zwei und drei Gateways.
 
 ## Befehle
 
@@ -201,6 +211,7 @@ Jeder Server speichert damit, was die ganze Gruppe aufzeichnet. In einer großen
 | `schild cluster secret` | gibt ein neues Gruppen-Geheimnis aus |
 | `schild cluster status` | Mitglieder, letzter Kontakt, geteilter Stand |
 | `schild cluster drain` | nimmt diesen Server aus dem Traffic und hält ihn an |
+| `schild cluster pause` und `resume` | der Server bedient weiter, nimmt aber nichts aus der Gruppe an und gibt nichts weiter, bis du `resume` aufrufst |
 | `schild cluster remove NODE` | beendet die Mitgliedschaft eines Servers |
 | `schild cluster init` | macht diesen Server zum ersten einer neuen Gruppe (von Hand) |
 | `schild cluster invite [-role edge]` | gibt einen Beitrittscode aus, einmal gültig, eine Stunde lang |

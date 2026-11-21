@@ -572,3 +572,21 @@ func TestGroupKeepsDataPerNodeWhenToldSo(t *testing.T) {
 		t.Error("with share_data false web-2 holds events or requests of web-1")
 	}
 }
+
+// A flood of blocks leaves in rounds: every one reaches the other node, and
+// none is lost on the way.
+func TestGroupBlockFloodArrivesInRounds(t *testing.T) {
+	a, b := pair(t)
+	const n = 180
+	for i := 0; i < n; i++ {
+		a.block(fmt.Sprintf("198.18.%d.%d", i/200, i%200+1), fmt.Sprintf("S-FLOOD-%d", i), 15*time.Minute)
+	}
+	b.h.WaitFor("web-2 holds every block of the flood", func() bool {
+		for i := 0; i < n; i++ {
+			if b.blocked(fmt.Sprintf("198.18.%d.%d", i/200, i%200+1)) == "" {
+				return false
+			}
+		}
+		return true
+	})
+}

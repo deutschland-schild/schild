@@ -582,3 +582,60 @@ func TestEdgeReadsTheMemberListAndNothingElse(t *testing.T) {
 		t.Errorf("a gateway opened as an edge: %v", err)
 	}
 }
+
+// A paused node serves on, takes nothing and hands nothing over; what was
+// written meanwhile on either side arrives after resume.
+func TestPauseAndResume(t *testing.T) {
+	a, b, c := threeNodes(t)
+	a.publishBlock("203.0.113.1")
+	waitFor(t, "web-2 holds the first block", func() bool { return b.holds("203.0.113.1") == "block" })
+	if err := Pause(b.dir, true, nil); err != nil {
+		t.Fatal(err)
+	}
+	waitFor(t, "web-2 noticed that it is paused", func() bool { return b.node.Paused() })
+	a.publishBlock("203.0.113.2")
+	b.publishBlock("203.0.113.3")
+	waitFor(t, "web-3 holds the block of web-1", func() bool { return c.holds("203.0.113.2") == "block" })
+	time.Sleep(1500 * time.Millisecond)
+	if b.holds("203.0.113.2") != "" {
+		t.Error("a paused node took a record")
+	}
+	if a.holds("203.0.113.3") != "" || c.holds("203.0.113.3") != "" {
+		t.Error("a paused node handed a record over")
+	}
+	if b.holds("203.0.113.3") != "block" {
+		t.Error("a paused node lost what was written on it")
+	}
+	st, err := ReadStatus(b.dir, nil)
+	if err != nil || st.Paused == "" {
+		t.Errorf("status does not say paused: %+v, %v", st, err)
+	}
+	if err := Pause(b.dir, false, nil); err != nil {
+		t.Fatal(err)
+	}
+	waitFor(t, "after resume every node holds every block", func() bool {
+		return b.holds("203.0.113.2") == "block" && a.holds("203.0.113.3") == "block" && c.holds("203.0.113.3") == "block"
+	})
+}
+
+func TestGroupIsFullAtSixteenGateways(t *testing.T) {
+	a := newTestNode(t, "web-1")
+	if _, err := Init(a.dir, a.name, a.addr, nil); err != nil {
+		t.Fatal(err)
+	}
+	a.start()
+	for i := 2; i <= MaxGateways; i++ {
+		n := newTestNode(t, fmt.Sprintf("web-%d", i))
+		n.join(a)
+	}
+	code, _, _ := Invite(a.dir, nil)
+	extra := newTestNode(t, "web-17")
+	if _, _, err := Join(context.Background(), extra.dir, extra.name, extra.addr, a.addr, code, nil); err == nil || !strings.Contains(err.Error(), "the group is full") {
+		t.Fatalf("the seventeenth gateway: %v", err)
+	}
+	// An edge is another count.
+	ecode, _, _ := InviteRole(a.dir, contract.RoleEdge, nil)
+	if _, _, err := Join(context.Background(), filepath.Join(t.TempDir(), "cluster"), "lb-1", "", a.addr, ecode, nil); err != nil {
+		t.Errorf("an edge next to sixteen gateways: %v", err)
+	}
+}

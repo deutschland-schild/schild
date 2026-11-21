@@ -73,6 +73,8 @@ type Node struct {
 	// removed: a member answered that this node was removed.
 	removed atomic.Bool
 	synced  atomic.Bool
+	// paused: schild cluster pause (setup.go).
+	paused atomic.Bool
 }
 
 // Open loads the node of a data directory. ErrNoGroup: it belongs to none.
@@ -117,6 +119,10 @@ func (n *Node) Name() string {
 	}
 	return n.id
 }
+
+// Paused reports whether the node was paused on the host: it takes and
+// hands over nothing.
+func (n *Node) Paused() bool { return n.paused.Load() }
 
 // Removed reports whether a member told this node that it was removed from
 // the group. It then serves with the state it has and shares nothing.
@@ -296,6 +302,11 @@ func (n *Node) refuse(w http.ResponseWriter, pub ed25519.PublicKey) {
 // origin not known yet) holds the vector of its origin back, so it is asked
 // for again; a record that can never pass is counted and skipped.
 func (n *Node) take(raws []json.RawMessage, covered map[string]uint64) (applied int, err error) {
+	// A call that was under way when the node was paused brings its answer
+	// to a node that takes nothing: it is asked for again after resume.
+	if n.paused.Load() {
+		return 0, nil
+	}
 	type item struct {
 		rec contract.Record
 		raw []byte
@@ -481,6 +492,13 @@ func (n *Node) Run(ctx context.Context) error {
 			n.stopPeers()
 			return err
 		case <-tick.C:
+			if v, err := n.meta(metaPaused); err == nil && len(v) > 0 {
+				if n.paused.CompareAndSwap(false, true) {
+					n.log.Warn("cluster: paused. This node serves with the state it has; it takes and hands over nothing until schild cluster resume")
+				}
+			} else if n.paused.CompareAndSwap(true, false) {
+				n.log.Info("cluster: resumed, taking what the group has")
+			}
 			if err := n.reload(); err != nil {
 				n.log.Warn("cluster: member list not read", "err", err)
 			}

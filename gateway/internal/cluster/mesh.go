@@ -127,6 +127,10 @@ func (n *Node) serveSync(w http.ResponseWriter, r *http.Request) {
 	if !readJSON(w, r, &req) {
 		return
 	}
+	if n.paused.Load() && class == "" {
+		http.Error(w, "paused", http.StatusServiceUnavailable)
+		return
+	}
 	if req.Group != n.group {
 		http.Error(w, "another group", http.StatusForbidden)
 		return
@@ -137,6 +141,11 @@ func (n *Node) serveSync(w http.ResponseWriter, r *http.Request) {
 	defer deadline.Stop()
 	for {
 		news := n.waitNews()
+		if n.paused.Load() && class == "" {
+			// Paused while this call waited.
+			http.Error(w, "paused", http.StatusServiceUnavailable)
+			return
+		}
 		recs, covered, more, err := n.after(r.Context(), req.Vector, maxBatch, class)
 		if err != nil {
 			http.Error(w, "store", http.StatusInternalServerError)
@@ -194,6 +203,9 @@ func (n *Node) serveJoin(w http.ResponseWriter, r *http.Request) {
 	}
 	raws, err := n.admit(key, secret, req.Name, req.Address)
 	switch {
+	case errors.Is(err, errFull):
+		http.Error(w, "the group is full", http.StatusConflict)
+		return
 	case errors.Is(err, errInvite):
 		time.Sleep(500 * time.Millisecond) // a guess costs time
 		http.Error(w, "join code not valid", http.StatusForbidden)
@@ -240,6 +252,10 @@ func (n *Node) serveHello(w http.ResponseWriter, r *http.Request) {
 	id := contract.NodeID(key)
 	if len(req.Record) > contract.MaxRecord || json.Unmarshal(req.Record, &rec) != nil || rec.Class != contract.ClassMembers || rec.ID != id || rec.Origin != id || rec.Deleted {
 		http.Error(w, "bad request", http.StatusBadRequest)
+		return
+	}
+	if !n.IsMember(id) && n.full(contract.RoleGateway) {
+		http.Error(w, "the group is full", http.StatusConflict)
 		return
 	}
 	if _, err := n.take([]json.RawMessage{req.Record}, nil); err != nil {
@@ -481,6 +497,12 @@ func (n *Node) runPeer(ctx context.Context, p *peer, key ed25519.PublicKey) {
 		}
 	}
 	for ctx.Err() == nil {
+		if n.paused.Load() {
+			if !pause(time.Second) {
+				return
+			}
+			continue
+		}
 		vec, err := n.vector()
 		if err != nil {
 			if !pause(time.Second) {
@@ -611,7 +633,7 @@ func (n *Node) OnTell(kind string, f func(from string, body []byte)) {
 // own goroutine with one second to answer, and returns at once. A peer that
 // still works on the message before gets none.
 func (n *Node) Tell(ctx context.Context, kind string, body []byte) {
-	if len(body) > maxTell {
+	if len(body) > maxTell || n.paused.Load() {
 		return
 	}
 	n.pmu.Lock()
@@ -689,7 +711,7 @@ func (n *Node) serveTell(w http.ResponseWriter, r *http.Request) {
 	n.hmu.Lock()
 	f := n.tells[req.Kind]
 	n.hmu.Unlock()
-	if f != nil {
+	if f != nil && !n.paused.Load() {
 		f(id, req.Body)
 	}
 	w.Header().Set("Content-Type", "application/json")
