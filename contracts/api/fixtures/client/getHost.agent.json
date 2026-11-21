@@ -83,7 +83,7 @@
         "severity": "high",
         "status": "finding",
         "subject": "tcp/3306",
-        "title": "MySQL ist aus dem Netz erreichbar"
+        "title": "MySQL/MariaDB könnte von außen erreichbar sein"
       },
       {
         "area": "firewall",

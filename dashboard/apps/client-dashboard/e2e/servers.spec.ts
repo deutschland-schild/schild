@@ -21,7 +21,7 @@ test('MVP-11: findings by area of the gateway, EOL host and silent agent through
   await page.goto('./#/server/check')
   await expect(page.getByRole('heading', { level: 1, name: 'web-1' })).toBeVisible()
   await expect(page.getByTestId('host-item')).toHaveCount(0)
-  await expect(page.getByTestId('host-detail')).toContainText('Redis ist aus dem Netz erreichbar')
+  await expect(page.getByTestId('host-detail')).toContainText('Redis könnte von außen erreichbar sein')
   await expect(page.getByTestId('check-now')).toBeVisible()
   await page.getByTestId('website-switcher').click()
   await page.getByTestId('server-item').filter({ hasText: 'verein-alt.example' }).click()

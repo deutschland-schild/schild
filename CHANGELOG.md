@@ -4,7 +4,7 @@ Notable changes per release. Contract changes are in [contracts/CHANGELOG.md](co
 
 The section of a version becomes the text of its GitHub release, so its heading stays `## <version>`. The date of a release is the one GitHub shows.
 
-## Unreleased
+## 0.1.0-alpha.5
 
 ### Rules
 
@@ -29,6 +29,12 @@ The section of a version becomes the text of its GitHub release, so its heading 
 - A report written in the same second as the one before is no longer skipped by the gateway.
 - Findings about open ports say what the check can know: a service listens on a public interface and "könnte von außen erreichbar sein". Whether a firewall on the server or at the hoster closes the port, the check cannot see from inside; the text says so and points to accepting the finding. "Keine Firewall auf dem Server aktiv" names the firewall of the hoster the same way.
 - The results of the server check are one list in the dashboard: one line per check with level, title, area and the main fact, the detail opens on click. The list can be searched (title, explanation, port, package, path) and filtered by state (open, not readable, accepted, in order) and area. The installed software has its own section.
+
+### Upgrade
+
+- From 0.1.0-alpha.4: change the image tag, run `sudo apt update && sudo apt install schild` and `sudo systemctl restart schild`, or replace the binary and restart. `schild.yaml` and `schild.db` need no change.
+- After the update the agent API listens on `127.0.0.1:8789` and answers 401 without a token. `agent_api: {enabled: false}` in `schild.yaml` keeps it off.
+- The server check is new to set up: `sudo schild check install` on the host. With Docker, copy the binary out of the container first and add the two mounts and the variable the command prints; the docs describe it under "Server-Check einrichten". With the check set up by hand before, run the command once as well: it replaces the units.
 
 ## 0.1.0-alpha.4
 

@@ -1,7 +1,7 @@
 // The current release of the Schild Gateway. This is the ONE place for the version on the website: the install
 // commands (InstallPicker.vue), the changelog on /ueber and every link to the repository read it from here.
 // A new release is a change to RELEASE_VERSION, nothing else. The date of a release is the one GitHub shows.
-export const RELEASE_VERSION = '0.1.0-alpha.4'
+export const RELEASE_VERSION = '0.1.0-alpha.5'
 
 export const REPO_URL = 'https://github.com/deutschland-schild/schild'
 export const RELEASE_TAG = `v${RELEASE_VERSION}`

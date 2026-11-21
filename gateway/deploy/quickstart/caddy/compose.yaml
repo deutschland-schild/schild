@@ -59,7 +59,7 @@ services:
         chown -R 65532:65532 /to
   schild:
     # A fixed version, never "latest": you decide when to update.
-    image: ${SCHILD_IMAGE:-ghcr.io/deutschland-schild/schild:0.1.0-alpha.4}
+    image: ${SCHILD_IMAGE:-ghcr.io/deutschland-schild/schild:0.1.0-alpha.5}
     restart: unless-stopped
     depends_on:
       certificates:
@@ -121,7 +121,7 @@ services:
   # cannot match it). For real IPv6 filtering use network_mode: host or native
   # Docker IPv6 routing without userland-proxy.
   firewall:
-    image: ${SCHILD_IMAGE:-ghcr.io/deutschland-schild/schild:0.1.0-alpha.4}
+    image: ${SCHILD_IMAGE:-ghcr.io/deutschland-schild/schild:0.1.0-alpha.5}
     profiles: [firewall]
     command: ["firewall", "run"]
     restart: unless-stopped
