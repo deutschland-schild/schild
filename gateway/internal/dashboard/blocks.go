@@ -30,7 +30,11 @@ type RunningBlock struct {
 	NetClass  string `json:"net_class"`
 	Incident  string `json:"incident"`
 	Kept      bool   `json:"kept"`
-	Firewall  string `json:"firewall"` // off | stale | pending | banned
+	// Node is the node of the group that decided the block, NodeSelf whether
+	// that is this node; both absent on a single gateway.
+	Node     string `json:"node,omitempty"`
+	NodeSelf *bool  `json:"node_self,omitempty"`
+	Firewall string `json:"firewall"` // off | stale | pending | banned
 }
 
 // BlockFirewall is the handoff to the host's firewall as a whole.
@@ -93,6 +97,11 @@ func (s *Server) listBlocks(w http.ResponseWriter, r *http.Request) {
 			rb.Source = "dashboard"
 		} else {
 			rb.Source, rb.Scenario = "scenario", b.Scenario
+		}
+		if s.BlockNode != nil {
+			if name, self, ok := s.BlockNode(b.Key, b.Incident); ok {
+				rb.Node, rb.NodeSelf = name, &self
+			}
 		}
 		out.Items = append(out.Items, rb)
 	}

@@ -22,7 +22,7 @@ id: MVP-27
 #   the balancer, so the host firewall of D87 holds nothing there; see `enforcement`.
 # - /healthz and /readyz exist on the dashboard listener only; a balancer needs one on the web ports.
 title: "Group: several gateways share blocks, settings, certificates, logins, events and requests from node to node, as a pair of two or a fleet of ten, with no store beside them"
-ships: false                        # draft. Built 2026-11-21, a first part of step 1: the mesh, the classes members and blocks, the setup by cluster.secret_file and cluster.peers, schild cluster secret|status|remove|init|invite|join (contracts/cluster.md, its last section lists what is missing). Not measured
+ships: false                        # draft. Built 2026-11-21 (contracts/cluster.md; its last section lists what is missing): the mesh, every class of `control`, counts of limits and scenarios, events, incidents and requests on every node, edges, drain, pause, and of `ui`: GroupStatus (mode, members, config drift hint from schild.yaml and rules.d), the card "Gruppe", the deciding node of a block, nodes in PrivacyDeleteResult; single requests are asked for with a cursor per member from a bounded log in memory (the spec's sealed segments as files are not built); the wave and distributed detectors count for the group, deltas per second instead of the spec's aggregates of the last 10 s. Not measured
 status: ENTWURF
 image: schild                       # same binary on gateways and on balancer VMs (role edge); nothing else to install
 hypotheses: [D3]
@@ -259,3 +259,61 @@ open_questions:                     # for the initiator
   - '4 one copy of events and requests per node as the default, or none in a fleet where disk is the cost?'
   - '5 the caps (200 blocks per second, 2 000 hot keys, 20 000 running blocks, 131 072 addresses on an edge): confirm in the testlab'
   - '6 a block list as plain text for a hoster''s routers and appliances (as CrowdSec''s blocklist mirror), in a later step?'
+
+# ---------------------------------------------------------------------------------------------------------------
+# Designs for the two parts of this spec that are not built (written 2026-11-22 by the builder of the parts above,
+# checked against the code of that day). Nothing below is built or measured. Each ends with the decisions the
+# initiator has to take before it is built.
+
+design_metrics_across_nodes:        # `queries` (counters, histograms, unique clients) and `ui` (filter "Server") for metrics.db
+  status: ENTWURF
+  what_exists:
+    - 'every node keeps its MetricBucket rings in metrics.db (10 s, 1 min, 10 min); monitoring.Monitor.Buckets(res, from, cursor, limit) already hands them out by cursor (GET /monitoring/buckets, the export of MVP-20)'
+    - 'monitoring.mergeBucket adds two parts of one bucket by the rules of MVP-20: counters and latency histograms add, top lists merge as space-saving summaries, gauges average. It adds the estimates of distinct clients, which is right for two parts of one process and wrong for two nodes'
+    - 'the request charts, lists and the live view read the request ring and the event store, which hold the group already (cluster.share_data); only what reads metrics.db is per node: getOverview.counters_24h, getMonitoringNow, streamMonitoring, queryMetricSeries, getTrafficBreakdown, getWebsiteKpis and getWebsiteRealtime where they fall back to the rings, and the host metrics'
+  wire:
+    - 'Ask kind `metrics` (members only, never an edge): question `res` (1m, or 10s for the last 15 minutes), `after` (the cursor of Monitor.Buckets) and `epoch`; answer `epoch`, `next`, at most 120 buckets and 4 MiB. Pulled, as events are: every node asks every member it reaches once every 10 s for the 1 min ring, and keeps the cursor per member in cluster.db (mark `metrics:<node id>`)'
+    - 'a node stores the buckets of each member apart, in metrics.db under the node id (table node_buckets: node, res, start, body), with the retention of its own 1 min ring and a cap per member; a removed member''s rows go with its tombstone after the retention. Host values (CPU, memory, disk, network) travel in the same buckets and are never merged'
+    - 'the live second (getMonitoringNow, streamMonitoring) is not pulled: a Tell kind `live` once a second with the LiveTick of the node (fixed size), kept for 15 s per member'
+  merge:
+    - 'a query takes `node`: absent or `all` merges this node and every member, a node id answers from that node''s rows. Counters add; latency histograms add bucket by bucket (one fixed scheme, so a merged p95 keeps its bound); top lists merge with their error bound; gauges and host values are shown per node, never summed'
+    - 'unique and new clients are not added: the answer carries them per node and the largest as the group''s value, marked `at_least` (UI: "mindestens"). mergeBucket needs a second mode for this; the existing one stays for the parts of one process'
+    - 'a member whose rows end before the asked span (it is away, or this node was) makes the answer partial: `partial_nodes: [{node, from, until}]` next to the existing `partial`. A point that lacks a node is drawn as partial, as a gap of one process is today'
+  api:                              # additive, client dashboard API and agent API
+    - 'parameter `node` on getMonitoringNow, streamMonitoring, queryMetricSeries, getTrafficBreakdown, getWebsiteKpis, getWebsiteRealtime, getOverview; `nodes` (id, name) and `partial_nodes` on their answers; `at_least` on unique client values'
+    - 'getMonitoringServer (host metrics) takes `node` and has no `all`: the Auslastung page shows one server at a time, with the switcher the group card already feeds'
+  ui:
+    - 'filter "Server" with "Alle" first on Zugriffe, Diagramme, the start page and the server overview; hidden on a single gateway (getGroupStatus.mode). Auslastung and Server-Check pick one server'
+    - 'a node that is missing in a merged view is named above the chart: "Daten von web-3 fehlen seit 14:05."'
+  cost: 'per node and member one row a minute: at 16 nodes and 30 days of the 1 min ring about 650 000 rows more per node. Decision 2 below'
+  decisions:
+    - '1 pull every 10 s (charts of the group lag by up to 10 s plus the minute of the ring) or tell every bucket as it closes (no lag, lost while a node is away, then a pull anyway)?'
+    - '2 keep the buckets of every member on every node (as events are, simple, survives the loss of a node) or ask at query time with 2 s per member (the `queries` section above; nothing stored twice, a lost node takes its charts with it)? The design above takes the first because cluster.share_data already decided that way for events and requests'
+    - '3 the overview counters of 24 h: the sum of the group as the default on every node, or this node with the group next to it?'
+
+design_data_copies_and_queries:     # `classes.data` and `queries` for groups too large to keep everything on every node
+  status: ENTWURF
+  what_exists:
+    - 'cluster.share_data true: every node pulls the events and incidents of every member by cursor (Ask `events`, `incidents`) and the single requests from a bounded log in memory (Ask `requests`); every list and search is local. share_data false: nothing is pulled, a dashboard shows its node only'
+    - 'events carry a source that is unique in the group (schild://<node_name>.<12 hex of the node id>) and a random UUID as id; store.EventsOfSource and IncidentsOfSource answer a member by cursor; store.ListEvents pages by sequence number, which is local to a node'
+  holders:
+    - 'cluster.data_copies: 0, 1 or 2 (default 1; absent with share_data true means "all", today''s behaviour, so nothing changes for a pair). A node is a holder of member M when it is among the data_copies highest of SHA-256("schild-holder:" + group id + M''s node id + own node id) over the gateways of the member list that are not removed, M itself left out (rendezvous hashing: when a node joins or leaves, only the copies it wins or held move)'
+    - 'a holder pulls M exactly as every node does today; a node that is no holder of M does not ask M. The decision is taken again when the member list changes. A node that stops being a holder keeps what it has until its own retention; a new holder starts at cursor 0 and takes what M''s retention still holds, at the bounded rate of the pull'
+    - 'a holder away for 10 minutes: the next node in the rendezvous order pulls in its place and stops when the holder is back and caught up (it compares cursors through the status both tell). Lost for good, as the spec says: a node and all its holders at once'
+    - 'requests need a source on disk before copies of them can be told apart from a node''s own: reqring records carry no node today, so a node cannot answer "the requests of M" for a third node. Either a dictionary frame "node" in the segment format (version 2 of the segment header), or copies of requests stay out and only M and its holders answer for M through the query below. The second is taken here'
+    - 'each erasure reaches every member anyway (class erasure); a copy obeys the retention and the caps of the node that holds it'
+  query:
+    - 'scope=group (default with cluster.enabled) or scope=node on listEvents, listIncidents, queryRequests, the privacy search and the exports; the answering node asks every gateway it reaches with Ask kind `query`: the operation, its filters, `limit` (at most 500) and a keyset cursor `(time_ms, id)`, with 2 s per member and one query in flight per asking member'
+    - 'every member answers from what it wrote itself plus the copies it holds, rows in (time desc, id desc), each with its source. The asking node merges by (time, id), drops duplicates by event id (a row comes from its writer and from each holder), cuts at `limit` and returns the next cursor as the (time, id) of its last row: never an offset, so a row that arrives late does not shift a page'
+    - 'a member that does not answer in time is covered by its holders when they answer; else the answer names it: `partial: [{node, from, until}]`, until = now, from = the oldest time this page asked for. The UI says "Daten von web-3 fehlen seit 14:05." and never shows such a page as complete'
+    - 'counts and top lists (alerts per rule, bot overview): every member answers three times the rows asked for; a key that is missing from a full list may be undercounted by that member''s smallest count, which the merged list carries as its error bound (the rule of MVP-20)'
+    - 'the live view joins the members'' streams (Ask `query` with a wait, as the edge''s firewall call waits), holds rows 2 s to order them and counts what it dropped'
+    - 'bounds on the answering side: the row and byte caps of the MVP-20 export, a read transaction per answer, 4 MiB per answer; on the asking side every row is checked as the pull checks it today (size, id, time, not its own source)'
+  not_in_this_design:
+    - 'sealed request segments copied as files (the spec''s first idea): a segment mixes what a node wrote and what it was handed, and its sampling level belongs to the node that wrote it'
+    - 'metric rings: see design_metrics_across_nodes'
+  decisions:
+    - '1 the default of cluster.data_copies in a fleet: 1 (the spec) or all as today, with data_copies as the switch for large groups only?'
+    - '2 requests of a lost node: accept that they are gone with the node and its log (taken here), or change the segment format so holders keep copies?'
+    - '3 scope=group as the default of the agent API too, or node there so an agent''s numbers do not change when a group is formed?'
+    - '4 with data_copies below "all", a dashboard needs its peers for every list: is 2 s per member and a named partial answer acceptable on the start page, or does the start page stay on the local node?'

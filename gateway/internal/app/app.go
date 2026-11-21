@@ -173,6 +173,14 @@ type App struct {
 	// without cluster.enabled or before the node joined a group.
 	Cluster     *cluster.Node
 	groupBlocks groupBlocks
+	// groupData shares events, incidents and requests (cluster_data.go);
+	// erased: when each address was erased in the group.
+	groupData *groupData
+	erased    erasedSet
+	// groupVersions: the config and build versions the other gateways of
+	// the group told; groupConfig is this node's (cluster_status.go).
+	groupVersions groupVersions
+	groupConfig   atomic.Pointer[string]
 	// shared are the whole values the group shares (cluster_state.go);
 	// sharedMu around taking and publishing them.
 	shared   []sharedThing
@@ -459,6 +467,11 @@ func New(ctx context.Context, opts Options) (*App, error) {
 		Version: buildinfo.String(), CRSVersion: buildinfo.CRSVersion, Started: a.started, Log: log, UI: webui.Handler(),
 		ScriptHashes: webui.InlineScriptHashes(), ProxiesTooBroad: a.proxiesTooBroad, ProxyMissing: a.Gate.Proxies.Missing,
 		Listen: cfg.Listen.Dashboard, SettingsDropped: a.SettingsDropped}
+	if cfg.Cluster.Enabled {
+		// Without cluster.enabled the dashboard answers "single" by itself.
+		a.Dashboard.Group = a.GroupStatus
+		a.Dashboard.BlockNode = a.blockNode
+	}
 	if a.resetPending {
 		a.Dashboard.LoadPendingSetup(ctx)
 	}

@@ -33,6 +33,7 @@ import { computed, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { api, csrf, errorMessage } from '@/api/client'
 import { keys, usePrivacySearch, useSettings } from '@/api/queries'
+import { erasureNodesText } from '@/lib/group'
 import { isIP } from '@/lib/ip'
 
 const route = useRoute()
@@ -101,7 +102,7 @@ async function doDelete() {
     const res = await unwrap(api.POST('/privacy/delete', { params: { header: csrf() }, body: { ip: ip.value, confirm: true, keep_incidents: keepIncidents.value } }))
     deleteOpen.value = false
     toast.success('Gelöscht', {
-      description: `${formatNumber(res.deleted_events)} Ereignisse, ${formatNumber(res.deleted_sessions)} Sitzungen${res.deleted_allowlist_entries ? ` und ${formatNumber(res.deleted_allowlist_entries)} Freischaltungen` : ''} zu ${res.ip}${res.erased_requests ? `, in ${formatNumber(res.erased_requests)} Anfragen ist die Adresse gelöscht` : ''}. Das lässt sich nicht rückgängig machen.`,
+      description: `${formatNumber(res.deleted_events)} Ereignisse, ${formatNumber(res.deleted_sessions)} Sitzungen${res.deleted_allowlist_entries ? ` und ${formatNumber(res.deleted_allowlist_entries)} Freischaltungen` : ''} zu ${res.ip}${res.erased_requests ? `, in ${formatNumber(res.erased_requests)} Anfragen ist die Adresse gelöscht` : ''}. Das lässt sich nicht rückgängig machen.${res.nodes ? ` ${erasureNodesText(res.nodes)}` : ''}`,
     })
     void qc.invalidateQueries({ queryKey: keys.privacy(ip.value) })
     void qc.invalidateQueries({ queryKey: ['events'] })

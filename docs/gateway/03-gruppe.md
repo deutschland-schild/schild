@@ -5,7 +5,7 @@ description: "Mehrere Schild Gateways als Gruppe betreiben: was sie teilen, wie 
 
 # Mehrere Gateways als Gruppe betreiben
 
-**Status:** experimentell, noch in keinem Release enthalten · Stand 22.11.2026 · technische Quelle: [contracts/cluster.md](../../contracts/cluster.md) · unabhängig gemessen am 21.11.2026 mit drei Servern auf einem Rechner ([Bericht](../../tests/results/MVP-27-group-measurement.md)); was dort durchfiel, ist behoben, aber noch nicht nachgemessen
+**Status:** experimentell, noch in keinem Release enthalten · Stand 22.11.2026 · technische Quelle: [contracts/cluster.md](../../contracts/cluster.md) · unabhängig gemessen am 21.11.2026 mit drei Servern auf einem Rechner ([Bericht](../../tests/results/MVP-27-group-measurement.md)); was dort durchfiel, ist behoben, und ein zweiter Lauf desselben Messprogramms am 22.11.2026 bestand alle 92 bewerteten Prüfungen
 
 **Kurz:**
 
@@ -32,6 +32,7 @@ Ohne Gruppe wäre jedes Gateway für sich: Eine Sperre gälte nur auf einem Serv
 | Besucher:innen | Wer die Browser-Prüfung bestanden oder sich an der Zugriffssperre angemeldet hat, bleibt das auf dem nächsten Server. |
 | Zertifikate | Eine Bestellung pro Zertifikat. Die Prüfung der Zertifizierungsstelle klappt, egal auf welchem Server sie landet. |
 | Limits und Szenarien | Jeder Server meldet den anderen einmal pro Sekunde, was er gezählt hat. Ein Limit gilt damit für die Gruppe und nicht pro Server. |
+| Verteilte Angriffe (Wellen) | Auch die Erkennung verteilter Angriffe zählt für die Gruppe. Eine Welle ist auf jedem Server dieselbe, ihre Reaktion greift überall, und „Beenden“ im Dashboard beendet sie auf allen. |
 | Ereignisse und Anfragen | Jeder Server hält auch die Ereignisse, Vorfälle und einzelnen Anfragen der anderen. Jedes Dashboard zeigt die ganze Gruppe. |
 | Löschung nach Art. 17 DSGVO | Eine gelöschte Adresse wird auf jedem Server gelöscht, auch auf einem, der gerade aus war und später zurückkommt. |
 
@@ -145,7 +146,7 @@ Eine Edge lässt sich nur mit einem Code aufnehmen, nie mit dem Gruppen-Geheimni
 - Sperren, Einstellungen, Logins und Zertifikate liegen auf jedem Server. Es geht nichts verloren.
 - Was der ausgefallene Server an Ereignissen und Vorfällen geschrieben hat, zeigen die anderen weiter an, bis auf die letzte Sekunde vor dem Ausfall.
 
-Kommt der Server zurück, holt er Sperren, Einstellungen, eigene Adressen, Logins und Löschungen nach. Erst danach meldet er sich beim Balancer als bereit. Ereignisse und Vorfälle der anderen folgen in den Sekunden danach.
+Kommt der Server zurück, holt er Sperren, Einstellungen, eigene Adressen, Logins und Löschungen nach. Erst danach meldet er sich beim Balancer als bereit. Ereignisse und Vorfälle der anderen folgen in den Sekunden danach. Die einzelnen Anfragen, die die anderen inzwischen bedient haben, holt er im Hintergrund nach.
 
 ## Einen Server geplant anhalten
 
@@ -185,6 +186,20 @@ schild cluster status
 
 Die Ausgabe nennt jedes Mitglied mit Rolle, Adresse, Zustand und letztem Kontakt, dazu die Zahl laufender Sperren und geteilter Einstellungen.
 
+Dasselbe zeigt das Dashboard. Oben auf jeder Seite steht, ob der Server allein läuft („Einzelner Server“) oder Teil einer Gruppe ist („Gruppe · 3 Server“). Die Karte „Gruppe“ auf der Server-Seite nennt den Zustand des Abgleichs und jedes Gateway mit letztem Kontakt, Rückstand, Version und Konfiguration. Balancer-VMs stehen darunter für sich.
+
+| Anzeige | Bedeutung |
+| --- | --- |
+| Abgleich aktiv | Der Server erreicht alle anderen Gateways. |
+| Abgleich eingeschränkt | Mindestens ein Gateway ist nicht erreichbar. Mit den übrigen läuft der Abgleich weiter. |
+| Abgleich unterbrochen | Der Server erreicht kein anderes Gateway und arbeitet mit dem letzten Stand weiter. |
+| Abgleich pausiert | Auf dem Server wurde `schild cluster pause` aufgerufen. |
+| Aus der Gruppe entfernt | Ein Mitglied hat dem Server gemeldet, dass er entfernt wurde. |
+
+**Unterschiedliche Konfiguration.** Jedes Gateway nennt den anderen alle fünf Sekunden eine Prüfsumme seiner Konfiguration: `schild.yaml` ohne `node_name`, `cluster.listen` und `cluster.advertise`, dazu `rules.d`. Weicht ein Server ab, steht das in der Karte. Das ist ein Hinweis. Schild verteilt keine Konfiguration, das bleibt Aufgabe deines Deployments. Das Caddyfile geht in die Prüfsumme noch nicht ein.
+
+In der Liste gesperrter Adressen steht bei jeder Sperre, welcher Server sie entschieden hat. Löschst du unter „Datenschutz“ eine Adresse, nennt das Dashboard die Server, die die Löschung schon erreicht hat, und die, bei denen sie noch aussteht.
+
 ## Daten und Datenschutz
 
 Eine Gruppe ist ein Betreiber. Mit `cluster.share_data` (ab Werk an) hält jeder Server auch die Ereignisse und Anfragen der anderen, mit den Adressen der Besucher:innen. Sie reisen nur zwischen deinen eigenen Servern, über die verschlüsselte Verbindung der Gruppe. Nenne in deiner Datenschutzerklärung jeden Server als Ort der Verarbeitung.
@@ -198,8 +213,9 @@ Jeder Server speichert damit, was die ganze Gruppe aufzeichnet. In einer großen
 - **Nur im Kleinen gemessen.** Eine unabhängige Messung lief mit drei Servern auf einem Rechner. Ein echter Loadbalancer, zehn Server, Zertifikate, gemischte Versionen und Lastspitzen sind nicht gemessen.
 - **Dieselbe Einstellung auf zwei Servern geändert.** Änderst du denselben Schalter oder denselben Eintrag gleichzeitig auf zwei Servern, gilt überall die spätere Änderung. Verschiedene Einträge derselben Liste bleiben beide erhalten, auch wenn sich die Server zwischendurch nicht erreicht haben.
 - **Limits mit Verzug.** Ein Client, der seine Anfragen über die Server verteilt, kommt um das hinaus, was die Server in einer Sekunde annehmen.
-- **Einzelne Anfragen sind kein lückenloses Archiv.** Sie werden einmal pro Sekunde weitergegeben und nicht wiederholt. War ein Server aus, fehlen ihm die Anfragen, die die anderen in dieser Zeit bedient haben. Die anderen haben sie.
-- **Pro Server bleiben** die Zähler der Übersicht, die Server-Diagramme und die Erkennung verteilter Angriffe.
+- **Einzelne Anfragen nach einem langen Ausfall.** Jeder Server hält seine letzten 32 768 Anfragen für die anderen bereit, höchstens 24 MiB. Ein Server, der aus war, holt daraus nach, was ihm fehlt. War er länger weg, als dieser Vorrat reicht, fehlen ihm die älteren Anfragen der anderen. Er schreibt die Zahl in sein Log, und die Server, die sie bedient haben, halten sie weiter. Startet ein Server neu, beginnt sein Vorrat leer.
+- **Pro Server bleiben** die Zähler der Übersicht und die Server-Diagramme.
+- **Wellen mit Verzug.** Wie bei den Limits vergeht bis zu einer Sekunde, bis die Server voneinander wissen. Eine Welle wird deshalb erkannt, sobald die Summe über der Schwelle liegt und die nächste passende Anfrage einen Server erreicht. Wie viele Anfragen eine Reaktion gestoppt hat, zählt jeder Server für sich.
 - **Zertifikate bei Netztrennung.** Erreichen sich die Server nicht, kann jede Seite dasselbe Zertifikat bestellen. Das ist eine Bestellung zu viel, beide Zertifikate sind gültig.
 - **Neues Geheimnis heißt neue Gruppe.** Ist das Gruppen-Geheimnis bekannt geworden, verteilst du ein neues und lässt die Server mit leerem Verzeichnis `cluster` neu starten. Einen Wechsel im laufenden Betrieb gibt es noch nicht.
 - **Höchstens 16 Gateways und 8 Balancer-VMs.** Mehr lehnt die Gruppe ab. Im laufenden Betrieb erprobt sind bisher nur zwei und drei Gateways.

@@ -18,6 +18,7 @@ import (
 	"github.com/deutschland-schild/schild/gateway/internal/behaviour"
 	"github.com/deutschland-schild/schild/gateway/internal/cluster"
 	"github.com/deutschland-schild/schild/gateway/internal/dashboard"
+	"github.com/deutschland-schild/schild/gateway/internal/reqring"
 	"github.com/deutschland-schild/schild/gateway/internal/ruleset"
 	"github.com/deutschland-schild/schild/gateway/internal/store"
 )
@@ -700,5 +701,107 @@ func TestFreshGroupKeepsAWriteMadeRightAfterStart(t *testing.T) {
 	}
 	if code, body := a.h.API("GET", "/overview", nil); code != 200 {
 		t.Errorf("the session of the setup no longer holds on web-1: %d %s", code, body)
+	}
+}
+
+// A node that joins with nothing of its own must not hand its empty tables
+// to the group: the first node may not have told its users and sessions
+// yet (it does so once a second), and would take the empty ones as the
+// later change.
+func TestJoiningNodeWithNothingDoesNotEmptyTheGroup(t *testing.T) {
+	a := &groupNode{dir: t.TempDir(), addr: apptest.FreeAddr(t), name: "web-1"}
+	b := &groupNode{dir: t.TempDir(), addr: apptest.FreeAddr(t), name: "web-2"}
+	if _, err := cluster.Init(a.clusterDir(), a.name, a.addr, nil); err != nil {
+		t.Fatal(err)
+	}
+	a.start(t)
+	a.h.WaitFor("the mesh of web-1 listens", func() bool { return a.h.App.Cluster.Addr() != "" })
+	code, _, err := cluster.Invite(a.clusterDir(), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	// The login and the join fall into the same second.
+	a.h.Login()
+	if _, _, err := cluster.Join(context.Background(), b.clusterDir(), b.name, b.addr, a.addr, code, nil); err != nil {
+		t.Fatal(err)
+	}
+	b.start(t)
+	ctx := context.Background()
+	b.h.WaitFor("web-2 took the users of the group", func() bool { return b.h.App.Store.HasUsers(ctx) })
+	time.Sleep(1500 * time.Millisecond) // a round of both nodes
+	if !a.h.App.Store.HasUsers(ctx) {
+		t.Fatal("web-1 lost its users to the empty table of the node that joined")
+	}
+	if code, body := a.h.API("GET", "/overview", nil); code != 200 {
+		t.Errorf("the session on web-1 is gone after web-2 joined: %d %s", code, body)
+	}
+}
+
+// A node that was away gets the single requests the others served
+// meanwhile, once each, and none of an address that was erased while it was
+// away.
+func TestGroupNodeCatchesUpOnRequestsAfterAnOutage(t *testing.T) {
+	a, b := pair(t)
+	const before, missed, erased = "203.0.113.170", "203.0.113.171", "203.0.113.172"
+	a.h.Visit("GET", "/a", before, "", "")
+	b.h.WaitFor("web-2 holds the request web-1 served", func() bool { return requestsOf(t, b, before) == 1 })
+
+	if err := b.h.Stop(); err != nil {
+		t.Fatal(err)
+	}
+	for i := 0; i < 3; i++ {
+		a.h.Visit("GET", fmt.Sprintf("/while-away/%d", i), missed, "", "")
+		a.h.Visit("GET", fmt.Sprintf("/erased/%d", i), erased, "", "")
+	}
+	a.h.WaitFor("web-1 wrote what it served", func() bool { return requestsOf(t, a, missed) == 3 && requestsOf(t, a, erased) == 3 })
+	// The address is erased while web-2 is away: web-1 must not hand its
+	// requests over when web-2 asks.
+	a.h.Login()
+	if code, body := a.h.API("POST", "/privacy/delete", map[string]any{"ip": erased, "confirm": true}); code != 200 {
+		t.Fatalf("erasure on web-1: %d %s", code, body)
+	}
+
+	b.start(t)
+	b.h.WaitFor("web-2 caught up with the requests it missed", func() bool { return requestsOf(t, b, missed) == 3 })
+	// A few rounds later: nothing came twice, the request from before the
+	// outage did not come again, the erased address did not come at all.
+	time.Sleep(2500 * time.Millisecond)
+	if n := requestsOf(t, b, missed); n != 3 {
+		t.Errorf("web-2 holds %d requests of the address, web-1 served 3", n)
+	}
+	if n := requestsOf(t, b, before); n != 1 {
+		t.Errorf("web-2 holds %d requests from before the outage, web-1 served 1", n)
+	}
+	if n := requestsOf(t, b, erased); n != 0 {
+		t.Errorf("web-2 holds %d requests of an address that was erased while it was away", n)
+	}
+	if n := requestsOf(t, a, missed); n != 3 {
+		t.Errorf("web-1 holds %d requests of the address after web-2 returned, served 3", n)
+	}
+	if n := b.h.App.RequestsMissed(); n != 0 {
+		t.Errorf("web-2 counts %d requests as missed", n)
+	}
+
+	// And at the receiving end: a request of an erased address that was
+	// served before the erasure is not stored, whoever hands it over. One
+	// served after it is a new request.
+	b.h.WaitFor("web-2 took the erasure", func() bool {
+		return !b.h.App.TakesForeignRequest(&reqring.Entry{T: time.Now().Add(-time.Hour).UnixMilli(), Client: netip.MustParseAddr(erased), Host: "shop.example"})
+	})
+	if !b.h.App.TakesForeignRequest(&reqring.Entry{T: time.Now().Add(-time.Hour).UnixMilli(), Client: netip.MustParseAddr(missed), Host: "shop.example"}) {
+		t.Error("web-2 refuses the request of an address that was not erased")
+	}
+	// What a member hands over is bounded.
+	for name, e := range map[string]reqring.Entry{
+		"no address":       {T: time.Now().UnixMilli()},
+		"from the future":  {T: time.Now().Add(time.Hour).UnixMilli(), Client: netip.MustParseAddr(missed)},
+		"older than kept":  {T: time.Now().Add(-100 * 24 * time.Hour).UnixMilli(), Client: netip.MustParseAddr(missed)},
+		"a path of 1 MiB":  {T: time.Now().UnixMilli(), Client: netip.MustParseAddr(missed), RawPath: string(make([]byte, 1<<20))},
+		"a host too long":  {T: time.Now().UnixMilli(), Client: netip.MustParseAddr(missed), Host: string(make([]byte, 300))},
+		"a rule id of 1 k": {T: time.Now().UnixMilli(), Client: netip.MustParseAddr(missed), Rules: [3]string{string(make([]byte, 1024))}},
+	} {
+		if b.h.App.TakesForeignRequest(&e) {
+			t.Errorf("web-2 takes a request with %s", name)
+		}
 	}
 }

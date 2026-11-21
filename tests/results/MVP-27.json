@@ -1,12 +1,12 @@
 {
  "results_version": 0,
  "spec": "MVP-27",
- "run_id": "group-20261121T224241Z",
- "started_at": "2026-11-21T22:42:41Z",
- "finished_at": "2026-11-21T22:55:18Z",
+ "run_id": "group-20261121T234033Z",
+ "started_at": "2026-11-21T23:40:33Z",
+ "finished_at": "2026-11-21T23:52:54Z",
  "seed": 27,
  "profile": "unit",
- "git_rev": "32c642e34678-dirty",
+ "git_rev": "b511bd5fa45f-dirty",
  "host": {
   "os": "darwin 25.5.0",
   "arch": "arm64",
@@ -15,13 +15,13 @@
  "images": [
   {
    "name": "schild-dev-build",
-   "digest": "sha256:444ba5e59e57b1b827cbeca9f7a370cce29ca2fa08d4078ba2e8f5011a0a848c"
+   "digest": "sha256:05224008f2d6cc65383604509c300478b15ef16fc133460ff8ee5a2a9ca8d0f7"
   }
  ],
  "metrics": [
   {
    "name": "block_set_propagation",
-   "value": 238.4,
+   "value": 217.9,
    "unit": "ms",
    "labels": {
     "quantile": "p50",
@@ -32,7 +32,7 @@
   },
   {
    "name": "block_set_propagation",
-   "value": 822.7,
+   "value": 792.1,
    "unit": "ms",
    "labels": {
     "quantile": "p95",
@@ -43,7 +43,7 @@
   },
   {
    "name": "block_set_propagation",
-   "value": 837.1,
+   "value": 835.5,
    "unit": "ms",
    "labels": {
     "quantile": "max",
@@ -54,7 +54,7 @@
   },
   {
    "name": "block_lift_propagation",
-   "value": 94.4,
+   "value": 83.7,
    "unit": "ms",
    "labels": {
     "quantile": "p50",
@@ -65,7 +65,7 @@
   },
   {
    "name": "block_lift_propagation",
-   "value": 331.6,
+   "value": 131.2,
    "unit": "ms",
    "labels": {
     "quantile": "p95",
@@ -76,7 +76,7 @@
   },
   {
    "name": "block_lift_propagation",
-   "value": 632.9,
+   "value": 150.8,
    "unit": "ms",
    "labels": {
     "quantile": "max",
@@ -87,7 +87,7 @@
   },
   {
    "name": "request_latency",
-   "value": 0.603,
+   "value": 0.612,
    "unit": "ms",
    "labels": {
     "mode": "off_1",
@@ -97,7 +97,7 @@
   },
   {
    "name": "request_latency",
-   "value": 0.759,
+   "value": 0.708,
    "unit": "ms",
    "labels": {
     "mode": "off_1",
@@ -107,7 +107,7 @@
   },
   {
    "name": "request_latency",
-   "value": 1.58,
+   "value": 0.845,
    "unit": "ms",
    "labels": {
     "mode": "off_1",
@@ -117,7 +117,7 @@
   },
   {
    "name": "request_latency",
-   "value": 7.8,
+   "value": 2.843,
    "unit": "ms",
    "labels": {
     "mode": "off_1",
@@ -136,7 +136,7 @@
   },
   {
    "name": "request_latency",
-   "value": 0.622,
+   "value": 0.573,
    "unit": "ms",
    "labels": {
     "mode": "on_1",
@@ -146,7 +146,7 @@
   },
   {
    "name": "request_latency",
-   "value": 1.021,
+   "value": 0.66,
    "unit": "ms",
    "labels": {
     "mode": "on_1",
@@ -156,7 +156,7 @@
   },
   {
    "name": "request_latency",
-   "value": 1.905,
+   "value": 0.759,
    "unit": "ms",
    "labels": {
     "mode": "on_1",
@@ -166,7 +166,7 @@
   },
   {
    "name": "request_latency",
-   "value": 5.593,
+   "value": 2.026,
    "unit": "ms",
    "labels": {
     "mode": "on_1",
@@ -185,7 +185,7 @@
   },
   {
    "name": "request_latency",
-   "value": 0.59,
+   "value": 0.583,
    "unit": "ms",
    "labels": {
     "mode": "off_2",
@@ -195,7 +195,7 @@
   },
   {
    "name": "request_latency",
-   "value": 0.795,
+   "value": 0.684,
    "unit": "ms",
    "labels": {
     "mode": "off_2",
@@ -205,7 +205,7 @@
   },
   {
    "name": "request_latency",
-   "value": 2.409,
+   "value": 0.901,
    "unit": "ms",
    "labels": {
     "mode": "off_2",
@@ -215,7 +215,7 @@
   },
   {
    "name": "request_latency",
-   "value": 32.067,
+   "value": 7.198,
    "unit": "ms",
    "labels": {
     "mode": "off_2",
@@ -234,7 +234,7 @@
   },
   {
    "name": "request_latency",
-   "value": 0.601,
+   "value": 0.565,
    "unit": "ms",
    "labels": {
     "mode": "on_2",
@@ -244,7 +244,7 @@
   },
   {
    "name": "request_latency",
-   "value": 1.172,
+   "value": 0.651,
    "unit": "ms",
    "labels": {
     "mode": "on_2",
@@ -254,7 +254,7 @@
   },
   {
    "name": "request_latency",
-   "value": 3.53,
+   "value": 0.83,
    "unit": "ms",
    "labels": {
     "mode": "on_2",
@@ -264,7 +264,7 @@
   },
   {
    "name": "request_latency",
-   "value": 13.276,
+   "value": 2.25,
    "unit": "ms",
    "labels": {
     "mode": "on_2",
@@ -283,43 +283,43 @@
   },
   {
    "name": "request_latency",
-   "value": 0.593,
+   "value": 0.579,
    "unit": "ms",
    "labels": {
     "mode": "during_peer_kill",
     "quantile": "p50"
    },
-   "samples": 12837
+   "samples": 13444
   },
   {
    "name": "request_latency",
-   "value": 0.719,
+   "value": 0.678,
    "unit": "ms",
    "labels": {
     "mode": "during_peer_kill",
     "quantile": "p95"
    },
-   "samples": 12837
+   "samples": 13444
   },
   {
    "name": "request_latency",
-   "value": 1.216,
+   "value": 0.812,
    "unit": "ms",
    "labels": {
     "mode": "during_peer_kill",
     "quantile": "p99"
    },
-   "samples": 12837
+   "samples": 13444
   },
   {
    "name": "request_latency",
-   "value": 7.853,
+   "value": 3.71,
    "unit": "ms",
    "labels": {
     "mode": "during_peer_kill",
     "quantile": "max"
    },
-   "samples": 12837
+   "samples": 13444
   },
   {
    "name": "request_failed",
@@ -328,11 +328,11 @@
    "labels": {
     "mode": "during_peer_kill"
    },
-   "samples": 12837
+   "samples": 13444
   },
   {
    "name": "request_latency",
-   "value": 0.584,
+   "value": 0.574,
    "unit": "ms",
    "labels": {
     "mode": "peers_stopped",
@@ -342,7 +342,7 @@
   },
   {
    "name": "request_latency",
-   "value": 0.715,
+   "value": 0.673,
    "unit": "ms",
    "labels": {
     "mode": "peers_stopped",
@@ -352,7 +352,7 @@
   },
   {
    "name": "request_latency",
-   "value": 1.832,
+   "value": 0.742,
    "unit": "ms",
    "labels": {
     "mode": "peers_stopped",
@@ -362,7 +362,7 @@
   },
   {
    "name": "request_latency",
-   "value": 6.041,
+   "value": 1.893,
    "unit": "ms",
    "labels": {
     "mode": "peers_stopped",
@@ -381,43 +381,43 @@
   },
   {
    "name": "request_latency",
-   "value": 0.62,
+   "value": 0.574,
    "unit": "ms",
    "labels": {
     "mode": "during_peer_freeze",
     "quantile": "p50"
    },
-   "samples": 18487
+   "samples": 20385
   },
   {
    "name": "request_latency",
-   "value": 0.746,
+   "value": 0.664,
    "unit": "ms",
    "labels": {
     "mode": "during_peer_freeze",
     "quantile": "p95"
    },
-   "samples": 18487
+   "samples": 20385
   },
   {
    "name": "request_latency",
-   "value": 1.159,
+   "value": 0.781,
    "unit": "ms",
    "labels": {
     "mode": "during_peer_freeze",
     "quantile": "p99"
    },
-   "samples": 18487
+   "samples": 20385
   },
   {
    "name": "request_latency",
-   "value": 38.715,
+   "value": 3.123,
    "unit": "ms",
    "labels": {
     "mode": "during_peer_freeze",
     "quantile": "max"
    },
-   "samples": 18487
+   "samples": 20385
   },
   {
    "name": "request_failed",
@@ -426,11 +426,11 @@
    "labels": {
     "mode": "during_peer_freeze"
    },
-   "samples": 18487
+   "samples": 20385
   },
   {
    "name": "request_latency",
-   "value": 0.62,
+   "value": 0.566,
    "unit": "ms",
    "labels": {
     "mode": "peers_frozen",
@@ -440,7 +440,7 @@
   },
   {
    "name": "request_latency",
-   "value": 0.727,
+   "value": 0.643,
    "unit": "ms",
    "labels": {
     "mode": "peers_frozen",
@@ -450,7 +450,7 @@
   },
   {
    "name": "request_latency",
-   "value": 0.85,
+   "value": 0.728,
    "unit": "ms",
    "labels": {
     "mode": "peers_frozen",
@@ -460,7 +460,7 @@
   },
   {
    "name": "request_latency",
-   "value": 3.096,
+   "value": 3.202,
    "unit": "ms",
    "labels": {
     "mode": "peers_frozen",
@@ -479,7 +479,7 @@
   },
   {
    "name": "request_latency",
-   "value": 0.641,
+   "value": 0.593,
    "unit": "ms",
    "labels": {
     "mode": "peers_blackhole",
@@ -489,7 +489,7 @@
   },
   {
    "name": "request_latency",
-   "value": 0.863,
+   "value": 0.705,
    "unit": "ms",
    "labels": {
     "mode": "peers_blackhole",
@@ -499,7 +499,7 @@
   },
   {
    "name": "request_latency",
-   "value": 1.344,
+   "value": 0.834,
    "unit": "ms",
    "labels": {
     "mode": "peers_blackhole",
@@ -509,7 +509,7 @@
   },
   {
    "name": "request_latency",
-   "value": 7.783,
+   "value": 2.673,
    "unit": "ms",
    "labels": {
     "mode": "peers_blackhole",
@@ -528,7 +528,7 @@
   },
   {
    "name": "request_latency",
-   "value": 0.648,
+   "value": 0.582,
    "unit": "ms",
    "labels": {
     "mode": "off_3",
@@ -538,7 +538,7 @@
   },
   {
    "name": "request_latency",
-   "value": 0.79,
+   "value": 0.725,
    "unit": "ms",
    "labels": {
     "mode": "off_3",
@@ -548,7 +548,7 @@
   },
   {
    "name": "request_latency",
-   "value": 2.142,
+   "value": 1.185,
    "unit": "ms",
    "labels": {
     "mode": "off_3",
@@ -558,7 +558,7 @@
   },
   {
    "name": "request_latency",
-   "value": 12.437,
+   "value": 6.465,
    "unit": "ms",
    "labels": {
     "mode": "off_3",
@@ -577,7 +577,7 @@
   },
   {
    "name": "request_latency",
-   "value": 0.637,
+   "value": 0.577,
    "unit": "ms",
    "labels": {
     "mode": "on_3",
@@ -587,7 +587,7 @@
   },
   {
    "name": "request_latency",
-   "value": 0.775,
+   "value": 0.681,
    "unit": "ms",
    "labels": {
     "mode": "on_3",
@@ -597,7 +597,7 @@
   },
   {
    "name": "request_latency",
-   "value": 1.058,
+   "value": 0.824,
    "unit": "ms",
    "labels": {
     "mode": "on_3",
@@ -607,7 +607,7 @@
   },
   {
    "name": "request_latency",
-   "value": 3.064,
+   "value": 2.408,
    "unit": "ms",
    "labels": {
     "mode": "on_3",
@@ -628,16 +628,16 @@
    "name": "kill_failed_requests_other_nodes",
    "value": 0.0,
    "unit": "count",
-   "samples": 1983
+   "samples": 2022
   },
   {
    "name": "kill_events_written",
-   "value": 245.0,
+   "value": 220.0,
    "unit": "count"
   },
   {
    "name": "kill_events_missing",
-   "value": 5.0,
+   "value": 30.0,
    "unit": "count",
    "labels": {
     "node": "n1"
@@ -645,7 +645,7 @@
   },
   {
    "name": "kill_events_missing",
-   "value": 45.0,
+   "value": 16.0,
    "unit": "count",
    "labels": {
     "node": "n2"
@@ -653,7 +653,7 @@
   },
   {
    "name": "kill_oldest_missing_event_age",
-   "value": 1.13,
+   "value": 0.85,
    "unit": "s"
   },
   {
@@ -663,11 +663,11 @@
    "labels": {
     "step": "cluster_drain_n2"
    },
-   "samples": 2404
+   "samples": 2532
   },
   {
    "name": "drain_readyz_503_after",
-   "value": 0.118,
+   "value": 0.137,
    "unit": "s",
    "labels": {
     "step": "cluster_drain_n2"
@@ -675,7 +675,7 @@
   },
   {
    "name": "drain_served_after_503",
-   "value": 3.96,
+   "value": 3.95,
    "unit": "s",
    "labels": {
     "step": "cluster_drain_n2"
@@ -688,11 +688,11 @@
    "labels": {
     "step": "sigterm_n3"
    },
-   "samples": 2520
+   "samples": 2524
   },
   {
    "name": "drain_readyz_503_after",
-   "value": 0.012,
+   "value": 0.003,
    "unit": "s",
    "labels": {
     "step": "sigterm_n3"
@@ -700,7 +700,7 @@
   },
   {
    "name": "drain_served_after_503",
-   "value": 3.97,
+   "value": 3.98,
    "unit": "s",
    "labels": {
     "step": "sigterm_n3"
@@ -713,11 +713,11 @@
    "labels": {
     "step": "cluster_drain_n1"
    },
-   "samples": 2534
+   "samples": 2544
   },
   {
    "name": "drain_readyz_503_after",
-   "value": 0.107,
+   "value": 0.109,
    "unit": "s",
    "labels": {
     "step": "cluster_drain_n1"
@@ -743,7 +743,7 @@
   },
   {
    "name": "rate_limit_passed",
-   "value": 69.0,
+   "value": 76.0,
    "unit": "count",
    "labels": {
     "run": "three_nodes_20rps",
@@ -763,7 +763,7 @@
   },
   {
    "name": "rate_limit_passed",
-   "value": 75.0,
+   "value": 89.0,
    "unit": "count",
    "labels": {
     "run": "three_nodes_5rps",
@@ -783,7 +783,7 @@
   },
   {
    "name": "rate_limit_passed",
-   "value": 180.0,
+   "value": 161.0,
    "unit": "count",
    "labels": {
     "run": "three_nodes_burst",
@@ -813,7 +813,7 @@
   },
   {
    "name": "rate_limit_passed",
-   "value": 81.0,
+   "value": 121.0,
    "unit": "count",
    "labels": {
     "run": "three_nodes_4rps_60s",
@@ -823,27 +823,27 @@
   },
   {
    "name": "erasure_gone_on_other_node",
-   "value": 0.059261583257466555,
+   "value": 0.08022741600871086,
    "unit": "s"
   },
   {
    "name": "pause_resume_catch_up",
-   "value": 3.685114750172943,
+   "value": 3.199157333932817,
    "unit": "s"
   },
   {
    "name": "setting_propagation",
-   "value": 0.9672331670299172,
+   "value": 0.44653974985703826,
    "unit": "s"
   },
   {
    "name": "allowlist_propagation",
-   "value": 0.9988969168625772,
+   "value": 0.49473241716623306,
    "unit": "s"
   },
   {
    "name": "checks",
-   "value": 84.0,
+   "value": 92.0,
    "unit": "count",
    "labels": {
     "verdict": "pass"
@@ -851,7 +851,7 @@
   },
   {
    "name": "checks",
-   "value": 8.0,
+   "value": 0.0,
    "unit": "count",
    "labels": {
     "verdict": "fail"
@@ -874,8 +874,8 @@
   },
   {
    "expr": "a lost, empty or returning member deletes or weakens access state on another",
-   "hit": true,
-   "observed": "11 a login on each side of a cut: both sessions are still valid after healing; 11 allowlist entries added on both sides of a cut both hold (spec: 'an allowlist entry set on either side holds')"
+   "hit": false,
+   "observed": "kill and restart, empty member, cut and heal: access state kept"
   },
   {
    "expr": "a record that fails signature, schema or caps is applied",
@@ -913,8 +913,8 @@
    "observed": "NOT MEASURED: no ACME server in this setup"
   }
  ],
- "verdict": "fail",
- "notes": "Black-box measurement of the group of gateways on one machine: real `schild run` processes (development build) on 127.0.0.1, 3 gateways by cluster.secret_file and cluster.peers, 3 by join codes, round robin done by the load client. Not the testlab profiles pair and fleet of the spec: no balancer, no keepalived, no ACME server, no nftables, 3 nodes instead of 10. Verdict is never 'pass': most of `measure` is outside this setup; see tests/results/MVP-27-group-measurement.md. FAIL checks: 07 10 times: an allowlist entry added on n1 and right after it another on n2: all 20 are kept; 02b a block by hand of 1h still runs on every node of the group after 125 s; 02b a block by hand of 24h still runs on every node of the group after 125 s; 03r a node that never synced and reaches no member (black hole peers) answers 503 on /.schild/readyz first (contract section 10: until it took the state, or 10 s); 08t at its first ready answer n3 no longer applies the block of an address erased while it was down; 14 a password set on a node that answers ready survives the node's first sync; 11 a login on each side of a cut: both sessions are still valid after healing; 11 allowlist entries added on both sides of a cut both hold (spec: 'an allowlist entry set on either side holds')",
+ "verdict": "inconclusive",
+ "notes": "Black-box measurement of the group of gateways on one machine: real `schild run` processes (development build) on 127.0.0.1, 3 gateways by cluster.secret_file and cluster.peers, 3 by join codes, round robin done by the load client. Not the testlab profiles pair and fleet of the spec: no balancer, no keepalived, no ACME server, no nftables, 3 nodes instead of 10. Verdict is never 'pass': most of `measure` is outside this setup; see tests/results/MVP-27-group-measurement.md. FAIL checks: none",
  "artifacts": [
   "tests/results/MVP-27-group-measurement.md",
   "tests/testlab/measure/group/run.py"

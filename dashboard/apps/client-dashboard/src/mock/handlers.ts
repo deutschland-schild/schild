@@ -448,8 +448,16 @@ export function createHandlers(st: MockState, opts: HandlerOptions = {}): HttpHa
       const before = st.allowlist.length
       st.allowlist = st.allowlist.filter(a => a.ip !== ip)
       if (!keep) for (const [k, inc] of st.incidents) if (inc.request.ip === ip) st.incidents.delete(k)
-      return json({ ip, deleted_events: victims.length, deleted_sessions: sessions, deleted_allowlist_entries: before - st.allowlist.length })
+      // In a group the answer names how far the erasure got: the gateways that are reached, and the others.
+      const members = st.group.mode === 'group' ? (st.group.members ?? []).filter(m => m.role === 'gateway' && m.state !== 'removed') : []
+      const nodes = members.length
+        ? { nodes: { reached: members.filter(m => m.state === 'self' || m.state === 'ok').map(m => m.name), open: members.filter(m => m.state !== 'self' && m.state !== 'ok').map(m => m.name) } }
+        : {}
+      return json({ ip, deleted_events: victims.length, deleted_sessions: sessions, deleted_allowlist_entries: before - st.allowlist.length, ...nodes })
     })),
+
+    // ---------------------------------------------------------------- MVP-27: alone or a node of a group
+    http.get(`${base}/group`, guard('read', () => json(st.group.mode === 'group' ? { ...st.group, generated_at: iso(now()) } : st.group))),
 
     // ---------------------------------------------------------------- v0.3 hosts and agents (mock/hosts.ts)
     ...hostHandlers({ base, hosts: () => st.hosts, scenario: () => st.scenario, now, hex: n => st.rand.hex(n), uuid: () => st.rand.uuid(), guard, problem, page, read }),
@@ -459,9 +467,13 @@ export function createHandlers(st: MockState, opts: HandlerOptions = {}): HttpHa
     http.get(`${base}/blocks`, guard('read', () => {
       const t = now()
       const fw = st.firewall
+      // In a group a block names the node that decided it: here the first by another gateway, the rest by this one.
+      const self = st.group.node?.name
+      const other = (st.group.members ?? []).find(m => m.role === 'gateway' && m.state === 'ok')?.name
+      const groupNode = (i: number) => st.group.mode !== 'group' || !self ? {} : i === 0 && other ? { node: other, node_self: false } : { node: self, node_self: true }
       const items: RunningBlock[] = st.behaviour.hits
         .filter(h => h.kind === 'scenario' && h.active && h.ip && h.until && Date.parse(h.until) > t && st.incidents.get(h.incident ?? '')?.status !== 'unblocked')
-        .map(h => ({
+        .map((h, i) => ({
           client: h.ip!,
           source: 'scenario' as const,
           ...(h.scenario ? { scenario: h.scenario } : {}),
@@ -472,6 +484,7 @@ export function createHandlers(st: MockState, opts: HandlerOptions = {}): HttpHa
           net_class: h.geo?.net_class ?? 'unknown',
           incident: h.incident ?? '',
           kept: (h.duration_s ?? 0) > 86400,
+          ...groupNode(i),
           firewall: fw.state === 'ok' ? (fw.banned.includes(h.ip!) ? 'banned' as const : 'pending' as const) : fw.state === 'off' ? 'off' as const : 'stale' as const,
         }))
       st.manualBlocks = st.manualBlocks.filter(b => Date.parse(b.until) > t && st.incidents.get(b.incident)?.status !== 'unblocked')

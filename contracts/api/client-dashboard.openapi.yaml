@@ -46,6 +46,8 @@ security:
 tags:
   - name: auth
   - name: overview
+  - name: group
+    description: The group of gateways this gateway belongs to (contracts/cluster.md), read only. Membership is changed on the host (`schild cluster`), never here.
   - name: events
   - name: incidents
   - name: rules
@@ -476,6 +478,24 @@ paths:
           content:
             application/json:
               schema: { $ref: "#/components/schemas/Overview" }
+        "401": { $ref: "#/components/responses/Problem" }
+
+  /group:
+    get:
+      tags: [group]
+      operationId: getGroupStatus
+      summary: >-
+        Whether this gateway runs alone or as a node of a group (contracts/cluster.md), and the state of the group as
+        this node sees it: the members with their last contact, what is shared, the edges, the counters of the sync and
+        the members whose configuration differs. A gateway without `cluster.enabled` answers `mode: single` and nothing
+        else. Read from the running node; nothing is asked of another node for this answer.
+      responses:
+        default: { $ref: "#/components/responses/Problem" }
+        "200":
+          description: Mode and group.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/GroupStatus" }
         "401": { $ref: "#/components/responses/Problem" }
 
   /events:
@@ -2575,6 +2595,111 @@ components:
         deleted_sessions: { type: integer, minimum: 0 }
         deleted_allowlist_entries: { type: integer, minimum: 0 }
         erased_requests: { type: integer, minimum: 0, description: "Records of the ring whose address was overwritten." }
+        nodes:
+          type: object
+          additionalProperties: false
+          required: [reached, open]
+          description: >-
+            In a group (contracts/cluster.md): how far the erasure got when this answer was written, at most 2 s after
+            the erasure on this node. Absent on a single gateway. A node under `open` erases when it reaches the group
+            again; the erasure waits for it for 31 days.
+          properties:
+            reached: { type: array, maxItems: 16, items: { type: string, maxLength: 63 }, description: "Names of the gateways that hold the erasure, this node first." }
+            open: { type: array, maxItems: 16, items: { type: string, maxLength: 63 }, description: "Names of the gateways that have not said yet that they hold it: away, paused or slow." }
+
+    # ---- group of gateways (contracts/cluster.md, D103)
+    GroupStatus:
+      type: object
+      additionalProperties: false
+      required: [mode]
+      description: >-
+        The mode this gateway runs in. `single`: alone; without `state` the gateway has no `cluster.enabled` and no
+        other field is set. `group`: a node of a group, with everything below as this node sees it.
+      properties:
+        mode: { type: string, enum: [single, group] }
+        state:
+          type: string
+          enum: [no_group, syncing, active, degraded, interrupted, paused, removed]
+          description: >-
+            Absent without `cluster.enabled`. no_group (mode single): `cluster.enabled` is set, but the node belongs to
+            no group or could not be set up from schild.yaml; it runs alone. syncing: the node has not taken the state
+            of the group since its start. active: it is in step with every gateway. degraded: at least one gateway is
+            not reached, at least one is. interrupted: no other gateway is reached; the node serves with the state it
+            has. paused: `schild cluster pause`; the node takes and hands over nothing. removed: a member said this node
+            was removed; it serves with the state it has and shares nothing.
+        paused_since: { $ref: "#/components/schemas/Timestamp" }
+        generated_at: { $ref: "#/components/schemas/Timestamp" }
+        group: { type: string, pattern: "^g-[0-9a-f]{32}$" }
+        node: { $ref: "#/components/schemas/GroupNode" }
+        members:
+          type: array
+          maxItems: 64
+          description: "Gateways first, then edges, then removed members; each by name. This node is one of them."
+          items: { $ref: "#/components/schemas/GroupMember" }
+        shared:
+          type: object
+          additionalProperties: false
+          required: [blocks, settings, access, logins, share_data]
+          description: "What this node holds of the group's state."
+          properties:
+            blocks: { type: integer, minimum: 0, description: "Address blocks of the group that run." }
+            settings: { type: integer, minimum: 0, description: "Things of class settings (contracts/cluster.md section 5)." }
+            access: { type: integer, minimum: 0, description: "Lists of who passes: allowlist, released senders, disabled rules." }
+            logins: { type: integer, minimum: 0, description: "Lists of who signs in: users, sessions, agent tokens." }
+            share_data: { type: boolean, description: "cluster.share_data: every node keeps the events, incidents and requests of every node." }
+        counters:
+          type: object
+          additionalProperties: false
+          required: [taken, refused, deferred, unread]
+          description: "Records of other nodes since the start of this node."
+          properties:
+            taken: { type: integer, minimum: 0 }
+            refused: { type: integer, minimum: 0, description: "Failed signature, schema or membership; never applied." }
+            deferred: { type: integer, minimum: 0, description: "Put off and asked for again: clock ahead, or an origin not known yet." }
+            unread: { type: integer, minimum: 0, description: "Of a newer version; kept and passed on unread." }
+        replaced: { type: integer, minimum: 0, description: "Values this node gave up for the group's at its first sync; kept on the node." }
+        config:
+          type: object
+          additionalProperties: false
+          required: [version, differing]
+          description: >-
+            A hint, nothing is distributed: every gateway tells the others the version of its configuration (SHA-256
+            over schild.yaml without node_name, cluster.listen and cluster.advertise, and over rules.d).
+          properties:
+            version: { type: string, pattern: "^[0-9a-f]{12}$", description: "Start of this node's config version." }
+            differing: { type: array, maxItems: 16, items: { type: string, maxLength: 63 }, description: "Names of the gateways whose config version differs from this node's." }
+    GroupNode:
+      type: object
+      additionalProperties: false
+      required: [id, name, role]
+      properties:
+        id: { type: string, pattern: "^n-[0-9a-f]{32}$" }
+        name: { type: string, maxLength: 63 }
+        role: { type: string, enum: [gateway, edge] }
+    GroupMember:
+      type: object
+      additionalProperties: false
+      required: [id, name, role, state]
+      properties:
+        id: { type: string, pattern: "^n-[0-9a-f]{32}$" }
+        name: { type: string, maxLength: 63 }
+        role: { type: string, enum: [gateway, edge], description: "edge: a balancer VM that holds the block list in its firewall and reads nothing else." }
+        address: { type: string, maxLength: 64, description: "Address of the mesh listener; absent for an edge, which calls and is never called." }
+        state:
+          type: string
+          enum: [self, ok, unreachable, no_contact, asks_elsewhere, removed]
+          description: >-
+            self: this node. ok: reached within the last 15 s (an edge: it asked this node within the last minute).
+            unreachable: the last call to it failed. no_contact: no call to it succeeded yet, or none for 15 s.
+            asks_elsewhere (edges only): it did not ask this node lately; an edge asks one gateway at a time.
+            removed: its membership was ended.
+        last_out: { $ref: "#/components/schemas/Timestamp", description: "Last call of this node to the member that succeeded." }
+        last_in: { $ref: "#/components/schemas/Timestamp", description: "Last call of the member to this node." }
+        behind: { type: integer, minimum: 0, description: "Records the member has that this node lacks, at the last call." }
+        version: { type: string, maxLength: 128, description: "The schild version the member told; absent until it did." }
+        config: { type: string, enum: [same, differs, unknown], description: "Gateways only: its config version against this node's; unknown until it told one, or when the last word is older than a minute." }
+        error: { type: string, maxLength: 300, description: "Why the last call failed, in one line." }
+        blocks_held: { type: integer, minimum: 0, description: "Edges only: clients its firewall held at its last call to this node." }
 
     # ---- server check and agents (contracts/host-check.md)
     HostId:
@@ -2800,6 +2925,8 @@ components:
         net_class: { type: string, maxLength: 32 }
         incident: { type: string, maxLength: 9, description: "Incident number of the block page; ends the block with unblockIncident. Empty when none is known." }
         kept: { type: boolean, description: "Kept in schild.db (blocks over 24 h), survives a restart." }
+        node: { type: string, maxLength: 63, description: "In a group: name of the node that decided the block (contracts/cluster.md, class blocks). Absent on a single gateway and while the group does not know the block yet." }
+        node_self: { type: boolean, description: "With node: true when this node decided the block. Nodes of one deployment may carry the same name." }
         firewall: { type: string, enum: [off, stale, pending, banned], description: "off: no firewall has called; stale: its last call is older than 2 minutes, or it reports an error; pending: it has not applied this block yet; banned: the nftables table inet schild holds the client." }
     BlockRequest:
       type: object
