@@ -742,6 +742,31 @@ paths:
               schema: { $ref: "#/components/schemas/RuleRepository" }
         "400": { $ref: "#/components/responses/Problem" }
         "404": { $ref: "#/components/responses/Problem" }
+  /rule-repositories/{repository}/settings:
+    patch:
+      tags: [rules]
+      operationId: updateRuleRepositorySettings
+      summary: >-
+        crs: set the paranoia level and the blocking threshold (D101). The body replaces what the dashboard set
+        before: a field left out falls back to schild.yaml or the built-in default, an empty object removes the entry.
+        Written to the settings overlay and validated like schild.yaml; the WAF is rebuilt next to the running rules and
+        swapped in, no restart. crowdsec and local: 409 not_supported. Session and CSRF header, no password.
+      parameters: [{ $ref: "#/components/parameters/RuleRepository" }, { $ref: "#/components/parameters/CSRF" }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/RuleRepositorySettingsPatch" }
+      responses:
+        default: { $ref: "#/components/responses/Problem" }
+        "200":
+          description: The repository after the change.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/RuleRepository" }
+        "400": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+        "409": { $ref: "#/components/responses/Problem" }
   /rule-repositories/{repository}/sync:
     post:
       tags: [rules]
@@ -2146,10 +2171,12 @@ components:
     RuleRepositoryCRS:
       type: object
       additionalProperties: false
-      required: [paranoia_level, inbound_anomaly_threshold, livewire_exception, version]
+      required: [paranoia_level, inbound_anomaly_threshold, config_paranoia_level, config_inbound_anomaly_threshold, livewire_exception, version]
       properties:
-        paranoia_level: { type: integer, minimum: 1, maximum: 4 }
-        inbound_anomaly_threshold: { type: integer, minimum: 1, maximum: 100 }
+        paranoia_level: { type: integer, minimum: 1, maximum: 4, description: "The level that runs: the value set in the dashboard, else config_paranoia_level." }
+        inbound_anomaly_threshold: { type: integer, minimum: 1, maximum: 100, description: "The threshold that runs: the value set in the dashboard, else config_inbound_anomaly_threshold." }
+        config_paranoia_level: { type: integer, minimum: 1, maximum: 4, description: "The value of schild.yaml (or its default 1). Differs from paranoia_level when the dashboard set one (D101)." }
+        config_inbound_anomaly_threshold: { type: integer, minimum: 1, maximum: 100, description: "The value of schild.yaml (or its default 5). Differs from inbound_anomaly_threshold when the dashboard set one (D101)." }
         livewire_exception: { type: boolean }
         version: { type: string, maxLength: 32, description: "CRS version of the image." }
     RuleRepositoryCrowdsec:
@@ -2275,6 +2302,15 @@ components:
       properties:
         state: { $ref: "#/components/schemas/RuleRepositoryState" }
         reset_state: { const: true, description: "Drop the overlay value, whoever set it: schild.yaml counts again." }
+    RuleRepositorySettingsPatch:
+      type: object
+      additionalProperties: false
+      description: >-
+        The values of the crs repository the dashboard sets (D101). A field left out falls back to schild.yaml or the
+        built-in default; an empty object removes what the dashboard set.
+      properties:
+        paranoia_level: { type: integer, minimum: 1, maximum: 4 }
+        inbound_anomaly_threshold: { type: integer, minimum: 1, maximum: 100 }
     Rule:
       description: "One rule of one repository. The CRS blocks by anomaly score: a CRS rule's effect is that of its repository."
       type: object

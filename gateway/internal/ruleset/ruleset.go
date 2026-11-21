@@ -150,10 +150,46 @@ type RepositoryList struct {
 
 // CRSInfo is the crs object of a RuleRepository.
 type CRSInfo struct {
-	ParanoiaLevel           int    `json:"paranoia_level"`
-	InboundAnomalyThreshold int    `json:"inbound_anomaly_threshold"`
-	LivewireException       bool   `json:"livewire_exception"`
-	Version                 string `json:"version"`
+	ParanoiaLevel           int `json:"paranoia_level"`
+	InboundAnomalyThreshold int `json:"inbound_anomaly_threshold"`
+	// The values of schild.yaml or their defaults: what holds without the
+	// dashboard (D101).
+	ConfigParanoiaLevel           int    `json:"config_paranoia_level"`
+	ConfigInboundAnomalyThreshold int    `json:"config_inbound_anomaly_threshold"`
+	LivewireException             bool   `json:"livewire_exception"`
+	Version                       string `json:"version"`
+}
+
+// CRSSettings are the values of the crs repository the dashboard sets
+// (D101). Zero: not set, schild.yaml or the built-in default holds.
+type CRSSettings struct {
+	ParanoiaLevel           int
+	InboundAnomalyThreshold int
+}
+
+// SettingsPatch is the body of updateRuleRepositorySettings. A field left
+// out falls back to schild.yaml or the built-in default.
+type SettingsPatch struct {
+	ParanoiaLevel           *int `json:"paranoia_level,omitempty"`
+	InboundAnomalyThreshold *int `json:"inbound_anomaly_threshold,omitempty"`
+}
+
+// Check returns the settings of the body; field names the first value
+// outside the bounds of the config schema.
+func (p SettingsPatch) Check() (s CRSSettings, field string) {
+	if p.ParanoiaLevel != nil {
+		if *p.ParanoiaLevel < 1 || *p.ParanoiaLevel > 4 {
+			return s, "paranoia_level"
+		}
+		s.ParanoiaLevel = *p.ParanoiaLevel
+	}
+	if p.InboundAnomalyThreshold != nil {
+		if *p.InboundAnomalyThreshold < 1 || *p.InboundAnomalyThreshold > 100 {
+			return s, "inbound_anomaly_threshold"
+		}
+		s.InboundAnomalyThreshold = *p.InboundAnomalyThreshold
+	}
+	return s, ""
 }
 
 // LocalInfo is the local object of a RuleRepository.

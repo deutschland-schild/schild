@@ -478,6 +478,23 @@ export interface paths {
         patch: operations["updateRuleRepository"];
         trace?: never;
     };
+    "/rule-repositories/{repository}/settings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** crs: set the paranoia level and the blocking threshold (D101). The body replaces what the dashboard set before: a field left out falls back to schild.yaml or the built-in default, an empty object removes the entry. Written to the settings overlay and validated like schild.yaml; the WAF is rebuilt next to the running rules and swapped in, no restart. crowdsec and local: 409 not_supported. Session and CSRF header, no password. */
+        patch: operations["updateRuleRepositorySettings"];
+        trace?: never;
+    };
     "/rule-repositories/{repository}/sync": {
         parameters: {
             query?: never;
@@ -1503,8 +1520,14 @@ export interface components {
             local?: components["schemas"]["RuleRepositoryLocal"];
         } & (unknown | unknown | unknown);
         RuleRepositoryCRS: {
+            /** @description The level that runs: the value set in the dashboard, else config_paranoia_level. */
             paranoia_level: number;
+            /** @description The threshold that runs: the value set in the dashboard, else config_inbound_anomaly_threshold. */
             inbound_anomaly_threshold: number;
+            /** @description The value of schild.yaml (or its default 1). Differs from paranoia_level when the dashboard set one (D101). */
+            config_paranoia_level: number;
+            /** @description The value of schild.yaml (or its default 5). Differs from inbound_anomaly_threshold when the dashboard set one (D101). */
+            config_inbound_anomaly_threshold: number;
             livewire_exception: boolean;
             /** @description CRS version of the image. */
             version: string;
@@ -1611,6 +1634,11 @@ export interface components {
              */
             reset_state?: true;
         } & (unknown | unknown);
+        /** @description The values of the crs repository the dashboard sets (D101). A field left out falls back to schild.yaml or the built-in default; an empty object removes what the dashboard set. */
+        RuleRepositorySettingsPatch: {
+            paranoia_level?: number;
+            inbound_anomaly_threshold?: number;
+        };
         /** @description One rule of one repository. The CRS blocks by anomaly score: a CRS rule's effect is that of its repository. */
         Rule: {
             repository: components["schemas"]["RuleRepositoryId"];
@@ -5789,6 +5817,38 @@ export interface operations {
             };
             400: components["responses"]["Problem"];
             404: components["responses"]["Problem"];
+            default: components["responses"]["Problem"];
+        };
+    };
+    updateRuleRepositorySettings: {
+        parameters: {
+            query?: never;
+            header: {
+                "X-CSRF-Token": components["parameters"]["CSRF"];
+            };
+            path: {
+                repository: components["parameters"]["RuleRepository"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RuleRepositorySettingsPatch"];
+            };
+        };
+        responses: {
+            /** @description The repository after the change. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RuleRepository"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
+            409: components["responses"]["Problem"];
             default: components["responses"]["Problem"];
         };
     };

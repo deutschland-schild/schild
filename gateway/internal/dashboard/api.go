@@ -675,6 +675,30 @@ func (s *Server) updateRuleRepository(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, 200, v)
 }
 
+// updateRuleRepositorySettings sets the paranoia level and the blocking
+// threshold of the CRS (D101).
+func (s *Server) updateRuleRepositorySettings(w http.ResponseWriter, r *http.Request) {
+	var p ruleset.SettingsPatch
+	if !decode(w, r, &p) || s.reposOff(w) {
+		return
+	}
+	set, field := p.Check()
+	if field != "" {
+		detail := "eine ganze Zahl von 1 bis 4"
+		if field == "inbound_anomaly_threshold" {
+			detail = "eine ganze Zahl von 1 bis 100"
+		}
+		invalid(w, "Dieser Wert liegt außerhalb dessen, was Schild annimmt.", FieldError{Pointer: "/" + field, Detail: detail})
+		return
+	}
+	v, err := s.Repos.SetCRSSettings(r.Context(), r.PathValue("repository"), set)
+	if err != nil {
+		ruleProblem(w, err)
+		return
+	}
+	writeJSON(w, 200, v)
+}
+
 func (s *Server) syncRuleRepository(w http.ResponseWriter, r *http.Request) {
 	if s.reposOff(w) {
 		return

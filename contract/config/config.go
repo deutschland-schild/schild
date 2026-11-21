@@ -63,6 +63,12 @@ type Rules struct {
 	Local    LocalRules    `json:"local"`
 }
 
+// Defaults of rules.crs, also what the dashboard falls back to (D101).
+const (
+	DefaultParanoiaLevel           = 1
+	DefaultInboundAnomalyThreshold = 5
+)
+
 // CRS is the OWASP CRS repository.
 type CRS struct {
 	State                   string `json:"state"`
@@ -388,8 +394,8 @@ func (s *Site) defaults() {
 // detects, also in automatic blocking mode.
 func (r *Rules) defaults() {
 	orStr(&r.CRS.State, "block")
-	orInt(&r.CRS.ParanoiaLevel, 1)
-	orInt(&r.CRS.InboundAnomalyThreshold, 5)
+	orInt(&r.CRS.ParanoiaLevel, DefaultParanoiaLevel)
+	orInt(&r.CRS.InboundAnomalyThreshold, DefaultInboundAnomalyThreshold)
 	if r.CRS.LivewireException == nil {
 		r.CRS.LivewireException = boolp(true)
 	}

@@ -4,6 +4,7 @@ import (
 	"context"
 	"strconv"
 
+	"github.com/deutschland-schild/schild/contract/config"
 	"github.com/deutschland-schild/schild/contract/rules"
 	"github.com/deutschland-schild/schild/gateway/internal/waf"
 )
@@ -33,8 +34,16 @@ func (c *crsRepo) Rules() []Entry {
 func (c *crsRepo) Describe(v *RepositoryView, _ string) {
 	crs := c.reg.cfg().Rules.CRS
 	v.Name, v.Origin, v.Licence = "OWASP CRS", "built_in", "Apache-2.0"
-	v.CRS = &CRSInfo{ParanoiaLevel: crs.ParanoiaLevel, InboundAnomalyThreshold: crs.InboundAnomalyThreshold, LivewireException: *crs.LivewireException,
-		Version: c.version}
+	base := c.reg.o.Settings.CRSSettings()
+	if base.ParanoiaLevel == 0 {
+		base.ParanoiaLevel = config.DefaultParanoiaLevel
+	}
+	if base.InboundAnomalyThreshold == 0 {
+		base.InboundAnomalyThreshold = config.DefaultInboundAnomalyThreshold
+	}
+	v.CRS = &CRSInfo{ParanoiaLevel: crs.ParanoiaLevel, InboundAnomalyThreshold: crs.InboundAnomalyThreshold,
+		ConfigParanoiaLevel: base.ParanoiaLevel, ConfigInboundAnomalyThreshold: base.InboundAnomalyThreshold,
+		LivewireException: *crs.LivewireException, Version: c.version}
 }
 
 // Apply sets the CRS of the WAF: off leaves it out, detect and block build

@@ -33,6 +33,12 @@ type Settings interface {
 	// SetRuleState writes the overlay value (or drops it with reset) and its
 	// owner, validates the result like schild.yaml and makes it effective.
 	SetRuleState(ctx context.Context, repository, state string, reset bool, owner Owner) error
+	// CRSSettings returns paranoia level and blocking threshold of
+	// schild.yaml (zero when absent).
+	CRSSettings() CRSSettings
+	// SetCRSSettings replaces the overlay values of rules.crs (zero drops
+	// one), validates the result like schild.yaml and makes it effective.
+	SetCRSSettings(ctx context.Context, s CRSSettings) error
 }
 
 // Options of a Registry.
@@ -487,6 +493,38 @@ func (r *Registry) SetState(ctx context.Context, id, state string, reset bool, a
 		if sw.Rebuild {
 			if err := r.rebuild(id); err != nil {
 				r.log().Error("rule repository state: WAF not rebuilt", "repository", id, "state", sw.State, "err", err)
+			}
+		}
+	}
+	return r.view(x, r.o.Mode(), r.now()), nil
+}
+
+// SetCRSSettings sets the paranoia level and the blocking threshold of the
+// CRS from the dashboard (D101). The values replace what was set before, a
+// zero falls back to schild.yaml or the built-in default. A change builds the
+// WAF again next to the running one; a build that fails leaves the running
+// rules until the next change, as for a state.
+func (r *Registry) SetCRSSettings(ctx context.Context, id string, s CRSSettings) (RepositoryView, error) {
+	x := r.repo(id)
+	if x == nil {
+		return RepositoryView{}, ErrNotFound
+	}
+	if id != rules.RepoCRS {
+		return RepositoryView{}, ErrNotSupported
+	}
+	r.opMu.Lock()
+	defer r.opMu.Unlock()
+	before := r.cfg().Rules.CRS
+	if err := r.o.Settings.SetCRSSettings(ctx, s); err != nil {
+		return RepositoryView{}, err
+	}
+	after := r.cfg().Rules.CRS
+	if before.ParanoiaLevel != after.ParanoiaLevel || before.InboundAnomalyThreshold != after.InboundAnomalyThreshold {
+		r.log().Info("CRS settings changed in the dashboard", "paranoia_level", after.ParanoiaLevel, "inbound_anomaly_threshold", after.InboundAnomalyThreshold,
+			"paranoia_level_before", before.ParanoiaLevel, "inbound_anomaly_threshold_before", before.InboundAnomalyThreshold)
+		if r.State(id) != rules.StateOff {
+			if err := r.rebuild(id); err != nil {
+				r.log().Error("CRS settings: WAF not rebuilt", "err", err)
 			}
 		}
 	}

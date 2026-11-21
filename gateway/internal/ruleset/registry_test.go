@@ -66,6 +66,23 @@ func (s *settings) SetRuleState(_ context.Context, repo, state string, reset boo
 	return nil
 }
 
+func (s *settings) CRSSettings() CRSSettings { return CRSSettings{} }
+
+func (s *settings) SetCRSSettings(_ context.Context, v CRSSettings) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	c := *s.cfg.Load()
+	c.Rules.CRS.ParanoiaLevel, c.Rules.CRS.InboundAnomalyThreshold = config.DefaultParanoiaLevel, config.DefaultInboundAnomalyThreshold
+	if v.ParanoiaLevel != 0 {
+		c.Rules.CRS.ParanoiaLevel = v.ParanoiaLevel
+	}
+	if v.InboundAnomalyThreshold != 0 {
+		c.Rules.CRS.InboundAnomalyThreshold = v.InboundAnomalyThreshold
+	}
+	s.cfg.Store(&c)
+	return nil
+}
+
 func hubYAML(name, value string) string {
 	return fmt.Sprintf(`name: %s
 description: Detects a test exploit
