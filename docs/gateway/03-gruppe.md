@@ -145,7 +145,7 @@ Eine Edge lässt sich nur mit einem Code aufnehmen, nie mit dem Gruppen-Geheimni
 - Sperren, Einstellungen, Logins und Zertifikate liegen auf jedem Server. Es geht nichts verloren.
 - Was der ausgefallene Server an Ereignissen und Vorfällen geschrieben hat, zeigen die anderen weiter an, bis auf die letzte Sekunde vor dem Ausfall.
 
-Kommt der Server zurück, holt er Sperren, Einstellungen, Ereignisse und Vorfälle nach. Erst danach meldet er sich beim Balancer als bereit.
+Kommt der Server zurück, holt er Sperren, Einstellungen, Ereignisse und Vorfälle nach. Erst danach meldet er sich beim Balancer als bereit. Die einzelnen Anfragen, die die anderen inzwischen bedient haben, holt er im Hintergrund nach.
 
 ## Einen Server geplant anhalten
 
@@ -212,7 +212,7 @@ Jeder Server speichert damit, was die ganze Gruppe aufzeichnet. In einer großen
 - **Nicht unabhängig gemessen.** Verhalten unter Last, bei Netztrennung und bei gemischten Versionen ist nur durch die Tests der Entwickler belegt.
 - **Zwei Änderungen zur selben Sekunde.** Ändert jemand dieselbe Einstellung auf zwei Servern gleichzeitig, gilt überall die spätere. Die andere wird nicht eingemischt.
 - **Limits mit Verzug.** Ein Client, der seine Anfragen über die Server verteilt, kommt um das hinaus, was die Server in einer Sekunde annehmen.
-- **Einzelne Anfragen sind kein lückenloses Archiv.** Sie werden einmal pro Sekunde weitergegeben und nicht wiederholt. War ein Server aus, fehlen ihm die Anfragen, die die anderen in dieser Zeit bedient haben. Die anderen haben sie.
+- **Einzelne Anfragen nach einem langen Ausfall.** Jeder Server hält seine letzten 32 768 Anfragen für die anderen bereit, höchstens 24 MiB. Ein Server, der aus war, holt daraus nach, was ihm fehlt. War er länger weg, als dieser Vorrat reicht, fehlen ihm die älteren Anfragen der anderen. Er schreibt die Zahl in sein Log, und die Server, die sie bedient haben, halten sie weiter. Startet ein Server neu, beginnt sein Vorrat leer.
 - **Pro Server bleiben** die Zähler der Übersicht, die Server-Diagramme und die Erkennung verteilter Angriffe.
 - **Zertifikate bei Netztrennung.** Erreichen sich die Server nicht, kann jede Seite dasselbe Zertifikat bestellen. Das ist eine Bestellung zu viel, beide Zertifikate sind gültig.
 - **Neues Geheimnis heißt neue Gruppe.** Ist das Gruppen-Geheimnis bekannt geworden, verteilst du ein neues und lässt die Server mit leerem Verzeichnis `cluster` neu starten. Einen Wechsel im laufenden Betrieb gibt es noch nicht.

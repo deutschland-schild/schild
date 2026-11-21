@@ -216,49 +216,113 @@ func (r *Ring) Add(e *Entry) {
 	}
 }
 
-// teeBuf gathers the requests of this node for the other nodes of a group.
-// It is a concrete type filled by value, so Add hands its entry to nobody
-// and stays free of allocations.
+// teeBuf is the served log: the requests this node served itself, each with
+// a sequence number, for the other nodes of a group (MVP-27). They ask for
+// what came after their cursor (Served), so a node that was away catches up
+// from where it stopped, as far back as the log reaches.
+//
+// It is a ring of a fixed number of entries, made once and filled by value:
+// Add hands its entry to nobody and stays free of allocations. The strings
+// of an entry are memory the request owns; the log keeps them alive, so it
+// is bounded by their bytes too.
 type teeBuf struct {
-	mu      sync.Mutex
-	buf     []Entry
-	max     int
-	skipped uint64
+	mu  sync.Mutex
+	buf []Entry
+	// head is the index of the oldest entry held, n how many are held.
+	head, n int
+	// next is the sequence number the next entry gets; the first is 1.
+	next uint64
+	// bytes of the strings the entries held reference, at most maxBytes.
+	bytes, maxBytes int
+}
+
+// entryBytes is what an entry keeps alive beyond its own size.
+func entryBytes(e *Entry) int {
+	n := len(e.Site) + len(e.Host) + len(e.RawPath) + len(e.Template) + len(e.Referrer) + len(e.UA) + len(e.EventID)
+	for i := range e.Rules {
+		n += len(e.Rules[i])
+	}
+	return n
 }
 
 func (t *teeBuf) add(e *Entry) {
+	sz := entryBytes(e)
 	t.mu.Lock()
-	if len(t.buf) < t.max {
-		t.buf = append(t.buf, *e)
-	} else {
-		t.skipped++
+	for t.n > 0 && (t.n == len(t.buf) || t.bytes+sz > t.maxBytes) {
+		old := &t.buf[t.head]
+		t.bytes -= entryBytes(old)
+		*old = Entry{}
+		t.head = (t.head + 1) % len(t.buf)
+		t.n--
 	}
+	t.buf[(t.head+t.n)%len(t.buf)] = *e
+	t.n++
+	t.bytes += sz
+	t.next++
 	t.mu.Unlock()
 }
 
-// Tee makes Add keep a copy of every request of this node, at most max
-// until the next TakeTee, for the other nodes of a group (MVP-27). A
-// single gateway keeps none.
-func (r *Ring) Tee(max int) {
-	r.tee.Store(&teeBuf{max: max, buf: make([]Entry, 0, min(max, 1024))})
+// Tee makes Add keep a copy of every request of this node in the served
+// log: the newest max entries whose strings fit maxBytes. A single gateway
+// keeps none.
+func (r *Ring) Tee(max, maxBytes int) {
+	r.tee.Store(&teeBuf{buf: make([]Entry, max), maxBytes: maxBytes, next: 1})
 }
 
-// TakeTee returns the requests kept since the last call, and how many did
-// not fit. keep true leaves them where they are (nobody to hand them to).
-func (r *Ring) TakeTee(keep bool) (es []Entry, skipped uint64) {
+// Served returns the requests of this node after the sequence number
+// after, oldest first, at most limit entries and about maxBytes of strings:
+// first is the oldest sequence number the log still holds (above after+1:
+// the entries between left the log and are lost for the asking node), next
+// the cursor for the following call. Entries of an erased address are left
+// out; their numbers count all the same.
+func (r *Ring) Served(after uint64, limit, maxBytes int) (rows []Entry, first, next uint64) {
 	t := r.tee.Load()
 	if t == nil {
-		return nil, 0
+		return nil, 0, after
 	}
 	t.mu.Lock()
 	defer t.mu.Unlock()
-	if keep {
-		return nil, t.skipped
+	first = t.next - uint64(t.n)
+	if after >= t.next {
+		// A cursor of another run of this node (the caller compares epochs),
+		// or nothing new.
+		return nil, first, t.next - 1
 	}
-	es, skipped = t.buf, t.skipped
-	t.buf = make([]Entry, 0, min(t.max, 1024))
-	return es, skipped
+	from := max(after+1, first)
+	size := 0
+	next = from - 1
+	for seq := from; seq < t.next && len(rows) < limit && size < maxBytes; seq++ {
+		e := &t.buf[(t.head+int(seq-first))%len(t.buf)]
+		next = seq
+		if !e.Client.IsValid() {
+			continue // erased
+		}
+		rows = append(rows, *e)
+		size += entryBytes(e) + 64
+	}
+	return rows, first, next
 }
+
+// forgetServed takes the requests of an erased address out of the served
+// log, so no node that asks later gets them.
+func (r *Ring) forgetServed(ip netip.Addr) {
+	t := r.tee.Load()
+	if t == nil {
+		return
+	}
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	for i := 0; i < t.n; i++ {
+		e := &t.buf[(t.head+i)%len(t.buf)]
+		if e.Client.IsValid() && e.Client.Unmap().WithZone("") == ip {
+			t.bytes -= entryBytes(e)
+			*e = Entry{}
+		}
+	}
+}
+
+// Backlog is how many entries wait for the writer, and how many fit.
+func (r *Ring) Backlog() (waiting, room int) { return len(r.ch), cap(r.ch) }
 
 // AddForeign hands over a request another node of the group served: it is
 // written like one of this node, and not told on.

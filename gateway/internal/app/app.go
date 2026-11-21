@@ -173,6 +173,10 @@ type App struct {
 	// without cluster.enabled or before the node joined a group.
 	Cluster     *cluster.Node
 	groupBlocks groupBlocks
+	// groupData shares events, incidents and requests (cluster_data.go);
+	// erased: when each address was erased in the group.
+	groupData *groupData
+	erased    erasedSet
 	// groupVersions: the config and build versions the other gateways of
 	// the group told; groupConfig is this node's (cluster_status.go).
 	groupVersions groupVersions

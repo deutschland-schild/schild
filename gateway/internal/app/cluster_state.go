@@ -428,6 +428,7 @@ func (a *App) publishErasure(ip netip.Addr, keepIncidents bool) uint64 {
 		return 0
 	}
 	e := contract.Erasure{IP: ip.String(), KeepIncidents: keepIncidents, Node: node.Name()}
+	a.erased.note(ip, time.Now())
 	rec, err := node.Publish(contract.ClassErasure, e.IP, &e, false, time.Now().Add(contract.ErasureKeepS*time.Second))
 	if err != nil {
 		a.log.Error("cluster: erasure not handed to the group: erase the address on every other node by hand", "err", err)
@@ -448,6 +449,9 @@ func (a *App) takeErasure(ctx context.Context, rec *contract.Record) {
 	if err != nil {
 		return
 	}
+	// Noted first: a request of the address that a member hands over from
+	// now on is not stored (cluster_data.go).
+	a.erased.note(ip, contract.HLCTime(rec.HLC))
 	if _, err := a.Store.DeleteIP(ctx, e.IP, e.KeepIncidents, dashboard.TruncateBody); err != nil {
 		a.log.Error("cluster: an address erased on another node was not erased here", "from", e.Node, "err", err)
 		return

@@ -86,6 +86,7 @@ func (r *Ring) ForgetIP(ctx context.Context, ip netip.Addr) (int, error) {
 	r.forgetMu.Lock()
 	defer r.forgetMu.Unlock()
 	ip = ip.Unmap().WithZone("")
+	r.forgetServed(ip)
 	if r.started.Load() {
 		c := make(chan struct{})
 		select {
