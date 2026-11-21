@@ -1,0 +1,68 @@
+{
+  "mode": "group",
+  "state": "degraded",
+  "generated_at": "2026-11-21T14:05:30Z",
+  "group": "g-3f6c1d0a9b2e47c58d1f0a6b7c8d9e0f",
+  "node": { "id": "n-0a1b2c3d4e5f60718293a4b5c6d7e8f9", "name": "web-1", "role": "gateway" },
+  "members": [
+    {
+      "id": "n-0a1b2c3d4e5f60718293a4b5c6d7e8f9",
+      "name": "web-1",
+      "role": "gateway",
+      "address": "192.0.2.1:8790",
+      "state": "self",
+      "version": "schild 0.1.0-alpha.4",
+      "config": "same"
+    },
+    {
+      "id": "n-1b2c3d4e5f60718293a4b5c6d7e8f90a",
+      "name": "web-2",
+      "role": "gateway",
+      "address": "192.0.2.2:8790",
+      "state": "ok",
+      "last_out": "2026-11-21T14:05:29Z",
+      "last_in": "2026-11-21T14:05:28Z",
+      "behind": 0,
+      "version": "schild 0.1.0-alpha.4",
+      "config": "differs"
+    },
+    {
+      "id": "n-2c3d4e5f60718293a4b5c6d7e8f90a1b",
+      "name": "web-3",
+      "role": "gateway",
+      "address": "192.0.2.3:8790",
+      "state": "unreachable",
+      "last_out": "2026-11-21T13:58:02Z",
+      "last_in": "2026-11-21T13:58:01Z",
+      "behind": 0,
+      "version": "schild 0.1.0-alpha.3",
+      "config": "unknown",
+      "error": "dial tcp 192.0.2.3:8790: connect: connection refused"
+    },
+    {
+      "id": "n-3d4e5f60718293a4b5c6d7e8f90a1b2c",
+      "name": "lb-1",
+      "role": "edge",
+      "state": "ok",
+      "last_in": "2026-11-21T14:05:21Z",
+      "blocks_held": 2
+    },
+    {
+      "id": "n-4e5f60718293a4b5c6d7e8f90a1b2c3d",
+      "name": "lb-2",
+      "role": "edge",
+      "state": "asks_elsewhere"
+    },
+    {
+      "id": "n-5f60718293a4b5c6d7e8f90a1b2c3d4e",
+      "name": "web-0",
+      "role": "gateway",
+      "address": "192.0.2.9:8790",
+      "state": "removed"
+    }
+  ],
+  "shared": { "blocks": 2, "settings": 7, "access": 3, "logins": 3, "share_data": true },
+  "counters": { "taken": 1284, "refused": 0, "deferred": 1, "unread": 0 },
+  "replaced": 0,
+  "config": { "version": "5d41402abc4b", "differing": ["web-2"] }
+}

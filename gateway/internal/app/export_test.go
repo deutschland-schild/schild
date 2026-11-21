@@ -7,3 +7,6 @@ func (a *App) ConfigHash() string {
 	}
 	return ""
 }
+
+// GroupConfigVersion is the config version a node tells its group (tests).
+var GroupConfigVersion = groupConfigVersion

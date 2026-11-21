@@ -284,7 +284,7 @@ func (a *App) startSharedState(ctx context.Context) {
 		a.Cluster.On(class, func(rec *contract.Record) { a.takeShared(context.Background(), rec) })
 	}
 	a.Cluster.On(contract.ClassErasure, func(rec *contract.Record) { a.takeErasure(context.Background(), rec) })
-	a.Dashboard.Erased = a.publishErasure
+	a.Dashboard.Erased = a.erasedInGroup
 	a.goLoop(ctx, "cluster-state", tick(time.Second, func() { a.syncShared(ctx) }))
 }
 
@@ -421,15 +421,19 @@ func emptyDump(b []byte) bool {
 // publishErasure tells the group that an address was erased here (Art. 17
 // GDPR), after this node erased it. The record stays 31 days, so a node
 // that was away erases too, and is gone with the address after that.
-func (a *App) publishErasure(ip netip.Addr, keepIncidents bool) {
+// It returns the sequence number of the record; 0: not handed over.
+func (a *App) publishErasure(ip netip.Addr, keepIncidents bool) uint64 {
 	node := a.Cluster
 	if node == nil {
-		return
+		return 0
 	}
 	e := contract.Erasure{IP: ip.String(), KeepIncidents: keepIncidents, Node: node.Name()}
-	if _, err := node.Publish(contract.ClassErasure, e.IP, &e, false, time.Now().Add(contract.ErasureKeepS*time.Second)); err != nil {
+	rec, err := node.Publish(contract.ClassErasure, e.IP, &e, false, time.Now().Add(contract.ErasureKeepS*time.Second))
+	if err != nil {
 		a.log.Error("cluster: erasure not handed to the group: erase the address on every other node by hand", "err", err)
+		return 0
 	}
+	return rec.Seq
 }
 
 // takeErasure erases an address another node erased: events, incidents,

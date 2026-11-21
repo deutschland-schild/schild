@@ -47,6 +47,10 @@ type groupBlocks struct {
 type groupBlock struct {
 	incident string
 	until    time.Time
+	// node is the name of the node that decided the block, self whether
+	// that is this node.
+	node string
+	self bool
 }
 
 // startCluster opens the node and starts its loops. A gateway with
@@ -86,6 +90,7 @@ func (a *App) startCluster(ctx context.Context) {
 	a.startCounts(ctx)
 	a.startGroupData(ctx)
 	a.startEdges()
+	a.startGroupVersions(ctx)
 	if cfg.CaddyIngress() {
 		a.startGroupFiles(ctx, a.storageRoot())
 	}
@@ -147,11 +152,11 @@ func (a *App) applyGroupBlock(rec *contract.Record) bool {
 		// A block of this client runs here already. When it is the same
 		// one (a restart), the group knows it.
 		if cur, ok := a.Behaviour.ActiveBlock(key.Addr()); ok && cur.Incident == b.Incident {
-			a.groupBlocks.known[key] = groupBlock{incident: b.Incident, until: until}
+			a.groupBlocks.known[key] = groupBlock{incident: b.Incident, until: until, node: b.Node, self: rec.Origin == a.Cluster.ID()}
 		}
 		return false
 	}
-	a.groupBlocks.known[key] = groupBlock{incident: b.Incident, until: until}
+	a.groupBlocks.known[key] = groupBlock{incident: b.Incident, until: until, node: b.Node, self: rec.Origin == a.Cluster.ID()}
 	return true
 }
 
@@ -217,7 +222,7 @@ func (a *App) publishGroupBlocks() {
 			ratelog.Warn(a.log, "cluster: block not handed to the group (it runs on this node)", "err", err)
 			continue
 		}
-		a.groupBlocks.known[rb.Key] = groupBlock{incident: rb.Incident, until: until}
+		a.groupBlocks.known[rb.Key] = groupBlock{incident: rb.Incident, until: until, node: name, self: true}
 	}
 	for key, k := range a.groupBlocks.known {
 		if seen[key] {

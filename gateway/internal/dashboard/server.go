@@ -106,8 +106,16 @@ type Server struct {
 	// Behaviour is MVP-17 (v0.4); nil disables the behaviour operations.
 	Behaviour *behaviour.Engine
 	// Erased is told an address this node erased (Art. 17), so a group of
-	// gateways erases it on every node (MVP-27); nil without a group.
-	Erased func(ip netip.Addr, keepIncidents bool)
+	// gateways erases it on every node (MVP-27); nil without a group. It
+	// answers with the nodes the erasure reached, within the deadline of ctx
+	// and its own.
+	Erased func(ctx context.Context, ip netip.Addr, keepIncidents bool) *ErasureNodes
+	// Group is the mode this gateway runs in and the state of its group
+	// (getGroupStatus); nil: a single gateway without cluster.enabled.
+	Group func() GroupStatus
+	// BlockNode names the node of the group that decided a block; nil
+	// without a group.
+	BlockNode func(key behaviour.Key, incident string) (name string, self, ok bool)
 	// FirewallState is what `schild firewall run` said in its last call
 	// (D87); nil or ok false: no firewall has called.
 	FirewallState func() (firewall.Report, bool)
@@ -176,6 +184,7 @@ func (s *Server) Handler() http.Handler {
 	a("POST "+apiPrefix+"/auth/logout", s.logout)
 	a("POST "+apiPrefix+"/auth/password", s.changePassword)
 	a("GET "+apiPrefix+"/overview", s.getOverview)
+	a("GET "+apiPrefix+"/group", s.getGroupStatus)
 	a("GET "+apiPrefix+"/events", s.listEvents)
 	a("GET "+apiPrefix+"/events/stream", s.streamEvents)
 	a("GET "+apiPrefix+"/events/{id}", s.getEvent)

@@ -133,6 +133,8 @@ func (a *App) setConfigHash(localRules string) {
 	h.Write([]byte(localRules))
 	hash := hex.EncodeToString(h.Sum(nil))
 	a.configHash.Store(&hash)
+	group := groupConfigVersion(raw, localRules)
+	a.groupConfig.Store(&group)
 }
 
 func (a *App) agentSettings(ctx context.Context, hash string) agentapi.Settings {

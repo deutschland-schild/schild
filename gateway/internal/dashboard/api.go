@@ -1057,8 +1057,9 @@ func (s *Server) privacyDelete(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
+	out := PrivacyDeleteResult{IP: ip.String(), DeletedEvents: res.Events, DeletedSessions: res.Sessions, DeletedAllowlistEntries: res.Allowlist, ErasedRequests: erased}
 	if s.Erased != nil {
-		s.Erased(ip, req.KeepIncidents)
+		out.Nodes = s.Erased(r.Context(), ip, req.KeepIncidents).bounded()
 	}
-	writeJSON(w, 200, PrivacyDeleteResult{IP: ip.String(), DeletedEvents: res.Events, DeletedSessions: res.Sessions, DeletedAllowlistEntries: res.Allowlist, ErasedRequests: erased})
+	writeJSON(w, 200, out)
 }

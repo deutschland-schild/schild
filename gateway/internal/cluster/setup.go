@@ -591,3 +591,74 @@ func Pause(dir string, on bool, now func() time.Time) error {
 	}
 	return tx.Commit()
 }
+
+// Live is Status as the running node holds it: members, contacts and
+// counters from memory, the number of records per class from its own
+// database. The dashboard reads it; nothing is asked of another node.
+func (n *Node) Live() (*Status, error) {
+	st := &Status{Group: n.group, Node: n.id, Records: map[string]int{}, Seen: n.now(),
+		Counters: map[string]uint64{"applied": n.Applied.Load(), "rejected": n.Rejected.Load(), "deferred": n.Deferred.Load(), "unread": n.Unread.Load()}}
+	n.rmu.RLock()
+	members := n.roster.Members()
+	n.rmu.RUnlock()
+	type contact struct {
+		out, in time.Time
+		err     string
+		behind  uint64
+	}
+	seen := map[string]contact{}
+	n.pmu.Lock()
+	for id, p := range n.peers {
+		p.mu.Lock()
+		seen[id] = contact{out: p.outOK, in: p.inOK, err: p.err, behind: p.behind}
+		p.mu.Unlock()
+	}
+	// An edge calls and is never called: only when it asked last is known.
+	for id, at := range n.edgeSeen {
+		seen[id] = contact{in: at}
+	}
+	n.pmu.Unlock()
+	for _, e := range members {
+		c := seen[e.ID]
+		st.Members = append(st.Members, MemberStatus{Entry: e, Self: e.ID == n.id, OutOK: c.out, InOK: c.in, Error: c.err, Behind: c.behind})
+	}
+	rows, err := n.db.Query(`SELECT class, count(*) FROM records WHERE state = ? AND deleted = 0 GROUP BY class`, stateWinner)
+	if err != nil {
+		return nil, err
+	}
+	for rows.Next() {
+		var c string
+		var k int
+		if err := rows.Scan(&c, &k); err == nil {
+			st.Records[c] = k
+		}
+	}
+	rows.Close()
+	_ = n.db.QueryRow(`SELECT count(*) FROM replaced`).Scan(&st.Replaced)
+	if n.paused.Load() {
+		if v, err := n.meta(metaPaused); err == nil {
+			st.Paused = string(v)
+		}
+	}
+	return st, nil
+}
+
+// Acked returns which of the gateways of the group said they hold the
+// records of this node up to seq, and which did not (yet), by name. A
+// gateway this node does not reach is among the open ones.
+func (n *Node) Acked(seq uint64) (reached, open []string) {
+	n.pmu.Lock()
+	defer n.pmu.Unlock()
+	for _, p := range n.peers {
+		p.mu.Lock()
+		if p.inSeq >= seq {
+			reached = append(reached, p.name)
+		} else {
+			open = append(open, p.name)
+		}
+		p.mu.Unlock()
+	}
+	sort.Strings(reached)
+	sort.Strings(open)
+	return reached, open
+}

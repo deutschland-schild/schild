@@ -2,5 +2,15 @@
   "ip": "203.0.113.42",
   "deleted_events": 214,
   "deleted_sessions": 3,
-  "deleted_allowlist_entries": 0
+  "deleted_allowlist_entries": 0,
+  "erased_requests": 12,
+  "nodes": {
+    "reached": [
+      "web-1",
+      "web-2"
+    ],
+    "open": [
+      "web-3"
+    ]
+  }
 }

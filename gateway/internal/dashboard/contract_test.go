@@ -153,8 +153,10 @@ func TestFixturesRoundTrip(t *testing.T) {
 		"createRuleException": {"RuleException", agentapi.RuleException{}}, "removeRuleException": {"RuleExceptionList", agentapi.ExceptionList{}},
 		"removeRuleExceptionRule": {"RuleExceptionList", agentapi.ExceptionList{}},
 		// D87: the address blocks that run.
-		"listBlocks":  {"BlockList", dashboard.BlockList{}},
-		"createBlock": {"RunningBlock", dashboard.RunningBlock{}},
+		"listBlocks": {"BlockList", dashboard.BlockList{}},
+		// D103: the group of gateways.
+		"getGroupStatus": {"GroupStatus", dashboard.GroupStatus{}},
+		"createBlock":    {"RunningBlock", dashboard.RunningBlock{}},
 		// D56 (MVP-14 step 1)
 		"getAccessProtection": {"AccessProtectionState", dashboard.AccessProtectionState{}}, "setAccessProtection": {"AccessProtectionState", dashboard.AccessProtectionState{}},
 		// D98

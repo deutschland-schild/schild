@@ -22,7 +22,7 @@ id: MVP-27
 #   the balancer, so the host firewall of D87 holds nothing there; see `enforcement`.
 # - /healthz and /readyz exist on the dashboard listener only; a balancer needs one on the web ports.
 title: "Group: several gateways share blocks, settings, certificates, logins, events and requests from node to node, as a pair of two or a fleet of ten, with no store beside them"
-ships: false                        # draft. Built 2026-11-21, a first part of step 1: the mesh, the classes members and blocks, the setup by cluster.secret_file and cluster.peers, schild cluster secret|status|remove|init|invite|join (contracts/cluster.md, its last section lists what is missing). Not measured
+ships: false                        # draft. Built 2026-11-21 (contracts/cluster.md; its last section lists what is missing): the mesh, every class of `control`, counts of limits and scenarios, events, incidents and requests on every node, edges, drain, pause, and of `ui`: GroupStatus (mode, members, config drift hint from schild.yaml and rules.d), the card "Gruppe", the deciding node of a block, nodes in PrivacyDeleteResult. Not measured
 status: ENTWURF
 image: schild                       # same binary on gateways and on balancer VMs (role edge); nothing else to install
 hypotheses: [D3]
