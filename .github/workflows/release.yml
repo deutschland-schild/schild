@@ -5,7 +5,7 @@ name: Release
 #     with SBOM and build provenance; `latest` only for versions without a pre-release suffix
 #   - a GitHub release with schild_<version>_linux_{amd64,arm64}.tar.gz, the Debian packages
 #     schild_<version>_linux_{amd64,arm64}.deb, checksums.txt with its cosign signature (keyless)
-#     checksums.txt.sigstore.json and the Sigstore bundle of the build provenance (provenance.sigstore.json)
+#     checksums.txt.sigstore.json and the build provenance as a file (provenance.intoto.jsonl, a Sigstore bundle)
 #   - with the repository variable PACKAGES_ENABLED=true: the signed apt repository on GitHub Pages, rebuilt from
 #     the packages of the releases (jobs repository and pages)
 # Both come from gateway/Dockerfile (release build, dashboard built in the image, DB-IP data checked by sha256),
@@ -328,8 +328,8 @@ jobs:
           "$RUNNER_TEMP/cosign" verify-blob --bundle checksums.txt.sigstore.json \
             --certificate-identity "https://github.com/${GH_REPO}/.github/workflows/release.yml@refs/tags/${TAG}" \
             --certificate-oidc-issuer https://token.actions.githubusercontent.com checksums.txt
-          cp "$BUNDLE" provenance.sigstore.json
-          test -s provenance.sigstore.json
+          cp "$BUNDLE" provenance.intoto.jsonl
+          test -s provenance.intoto.jsonl
       - name: Create the GitHub release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -344,7 +344,7 @@ jobs:
             echo "- Image: \`${IMAGE}:${VERSION}\` (linux/amd64, linux/arm64), digest \`${DIGEST}\`"
             echo "- Binaries: \`schild_${VERSION}_linux_amd64.tar.gz\`, \`schild_${VERSION}_linux_arm64.tar.gz\`, sha256 in \`checksums.txt\`"
             echo "- Debian and Ubuntu packages: \`schild_${VERSION}_linux_amd64.deb\`, \`schild_${VERSION}_linux_arm64.deb\`, sha256 in \`checksums.txt\`"
-            echo "- Signatures: \`checksums.txt.sigstore.json\` (cosign, keyless), build provenance as a file: \`provenance.sigstore.json\`"
+            echo "- Signatures: \`checksums.txt.sigstore.json\` (cosign, keyless), build provenance as a file: \`provenance.intoto.jsonl\`"
             echo
             echo "Verify:"
             echo
@@ -369,7 +369,7 @@ jobs:
             "dist/schild_${VERSION}_linux_arm64.deb" \
             dist/checksums.txt \
             dist/checksums.txt.sigstore.json \
-            dist/provenance.sigstore.json
+            dist/provenance.intoto.jsonl
 
   # The apt repository is a function of the releases: the packages of the newest releases, the index files and one
   # signature. Nothing is kept between runs. Off until the maintainer has set it up (docs/ops/release.md).
