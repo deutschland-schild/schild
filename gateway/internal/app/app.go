@@ -40,6 +40,7 @@ import (
 	"github.com/deutschland-schild/schild/gateway/internal/buildinfo"
 	"github.com/deutschland-schild/schild/gateway/internal/caddymod"
 	"github.com/deutschland-schild/schild/gateway/internal/clientip"
+	"github.com/deutschland-schild/schild/gateway/internal/cluster"
 	"github.com/deutschland-schild/schild/gateway/internal/connlimit"
 	"github.com/deutschland-schild/schild/gateway/internal/crawlers"
 	"github.com/deutschland-schild/schild/gateway/internal/dashboard"
@@ -168,6 +169,10 @@ type App struct {
 	// Crawlers is crawler control (D57, MVP-29); crawlersMu around changes.
 	Crawlers   *crawlers.Control
 	crawlersMu sync.Mutex
+	// Cluster is this gateway as a node of its group (MVP-27, D103); nil
+	// without cluster.enabled or before the node joined a group.
+	Cluster     *cluster.Node
+	groupBlocks groupBlocks
 }
 
 const (
@@ -615,6 +620,7 @@ func (a *App) Loops(ctx context.Context) {
 	}))
 	a.goLoop(ctx, "allowlist-dns", tick(5*time.Minute, func() { a.Allow.RefreshDNS(ctx) }))
 	a.goLoop(ctx, "behaviour-sweep", tick(time.Minute, a.Behaviour.Sweep))
+	a.startCluster(ctx)
 	a.goLoop(ctx, "summaries", tick(time.Minute, func() {
 		a.flushSummaries(ctx)
 		if xs, err := a.Store.ActiveExceptions(ctx, time.Now()); err == nil {
@@ -746,6 +752,9 @@ func (a *App) Run(ctx context.Context) error {
 	}
 	if a.mirror != nil {
 		a.mirror.Close()
+	}
+	if a.Cluster != nil {
+		a.Cluster.Close()
 	}
 	if a.Monitor != nil {
 		_ = a.Monitor.Close()

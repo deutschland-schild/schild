@@ -6,6 +6,10 @@ The section of a version becomes the text of its GitHub release, so its heading 
 
 ## Unreleased
 
+### Group of gateways (experimental)
+
+- Several gateways can form a group that shares its address blocks from node to node, with no database or cache beside them (D103, MVP-27, first version). A block set on one node, by a scenario, by hand or by an agent, acts on every node within about a second, and a release ends it on every node. A node that was away takes what it missed when it returns. Set `cluster.enabled` and `cluster.listen` in `schild.yaml`, then `schild cluster init` on the first node and `schild cluster invite` / `schild cluster join` for every other; `schild cluster status` shows the members. Off by default: without it nothing changes. Not shared yet: settings, the allowlist, logins, certificates, limits and counters, events and requests.
+
 ### Rules
 
 - Strictness (paranoia level) and blocking threshold of the OWASP CRS are set in the dashboard (D101): "Strenge und Schwelle anpassen" on the page of the CRS. A change holds at once, without a restart, and wins over `schild.yaml`; "Werte aus schild.yaml einsetzen" gives both back to the file. A threshold above 5 points is named on the page, because a request with a single critical hit then passes.
