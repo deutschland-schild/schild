@@ -75,7 +75,7 @@ describe('rule copy', () => {
     expect(effectText({ id: 'crowdsec', state: 'block', effect: 'block', crowdsec: { settling_s: 86400 } as RuleRepository['crowdsec'] })).toContain('24 Stunden lang nur')
     expect(effectText({ id: 'crowdsec', state: 'detect', effect: 'detect', crowdsec: { settling_s: 86400 } as RuleRepository['crowdsec'] })).toBeNull()
     expect(effectText({ id: 'crs', state: 'block', effect: 'block' })).toBeNull()
-    expect(stateExplain({ id: 'crs', state: 'block', crs: { paranoia_level: 1, inbound_anomaly_threshold: 5, livewire_exception: false, version: '4.20.0' } })).toContain('Ab 5 Punkten')
+    expect(stateExplain({ id: 'crs', state: 'block', crs: { paranoia_level: 1, inbound_anomaly_threshold: 5, livewire_exception: false, version: '4.30.0' } })).toContain('Ab 5 Punkten')
   })
 
   it('labels and links the annotation of a switch', () => {
@@ -365,7 +365,7 @@ describe('the switch of a repository', () => {
     const { wrapper } = await mountApp('/settings/rules/crs')
     await waitFor(() => !!byTestId('repository-crs'))
     expect(byTestId('repository-crs')!.textContent).toContain('Stufe 1 von 4')
-    expect(byTestId('repository-crs')!.textContent).toContain('4.20.0')
+    expect(byTestId('repository-crs')!.textContent).toContain('4.30.0')
     expect(byTestId('repository-sync')).toBeNull()
     await click(segment('Aus'))
     await waitFor(() => !!byTestId('repository-baseline'))
@@ -436,7 +436,7 @@ describe('one rule', () => {
   it('works for CRS and own rules too', async () => {
     const { wrapper } = await mountApp('/settings/rules/crs?rule=930120')
     await waitFor(() => !!byTestId('rule-disable'))
-    expect(byTestId('rule-source')!.textContent).toContain('OWASP CRS 4.20.0')
+    expect(byTestId('rule-source')!.textContent).toContain('OWASP CRS 4.30.0')
     expect(byTestId('rule-references')).not.toBeNull()
     // D82: the rule as it runs, open, with the file it comes from.
     expect(byTestId('rule-seclang')!.textContent).toMatch(/SecRule[\s\S]*id:930120/)

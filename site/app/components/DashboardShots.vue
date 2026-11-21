@@ -84,7 +84,7 @@ watch(active, i => nextTick(() => {
     </div>
 
     <figcaption class="mt-3 text-xs text-slate">
-      {{ caption ?? 'Echte Screenshots aus dem Gateway-Dashboard mit Testdaten (nur IP-Adressen aus Dokumentationsbereichen).' }}
+      {{ caption ?? 'Echte Screenshots aus dem Gateway-Dashboard mit Testdaten. IP-Adressen sind unkenntlich gemacht.' }}
     </figcaption>
   </figure>
 </template>

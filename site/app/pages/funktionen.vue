@@ -1,16 +1,17 @@
 <script setup lang="ts">
 import type { DashboardShot } from '~/components/DashboardShots.vue'
+import { SHOTS_DATE } from '~/utils/shots'
 
 // Features shown as worked examples: what a visitor sees, what the operator sees, with real screenshots. Two groups:
-// what the gateway does on its own ("Schild wehrt ab") and what the operator switches on ("Du stellst ein").
+// what the gateway does on its own ("Ab Werk") and what the operator switches on ("Nach Bedarf").
 // This page shows; how to set things up lives in docs/gateway/01-funktionen.md, and every example links there.
 // Every claim has to hold for the gateway as built, without labs.
-// Screenshots: dashboard in mock mode (`pnpm dev:mock:client`, scenario default) at 1440×900; block page and login
+// Screenshots: retaken with `npm run shots` (site/scripts/shots.mjs), dashboard in mock mode at 1440×900; block page and login
 // page are the HTML the gateway serves (gateway/internal/blockpage, gateway/internal/accesslock). IP addresses are
 // blurred at capture time: they are documentation addresses, but a reader cannot tell that from the picture.
 
 useHead({ title: 'Funktionen – Deutschland-Schild' })
-useSeoMeta({ description: 'Was das Schild Gateway abwehrt und was du selbst einstellst, an Beispielen mit Screenshots: ein gestoppter SQL-Injection-Versuch und ein Admin-Bereich hinter Passwort und eigenen IPs.' })
+useSeoMeta({ description: 'Was das Schild Gateway abwehrt und was du selbst einstellst, an Beispielen mit Screenshots: ein gestoppter SQL-Injection-Versuch und sensible Bereiche hinter Passwort und eigenen IPs.' })
 
 const DOCS = '/doku/gateway/01-funktionen'
 
@@ -62,7 +63,7 @@ const adminShots: DashboardShot[] = [
   {
     src: '/img/dashboards/funktionen-admin-login.webp',
     title: '3. Anmeldeseite',
-    summary: 'Was vor dem Admin-Bereich steht',
+    summary: 'Was vor dem Bereich steht',
     frame: 'verein.example/wp-admin/',
     text: 'Wer von einer deiner Adressen kommt, sieht diese Seite und kommt mit dem Passwort weiter. Erst danach erreicht die Anfrage die Anmeldung deiner Anwendung.',
     benefit: 'Alle anderen sehen nur „Kein Zugriff“, ohne Formular.',
@@ -72,11 +73,11 @@ const adminShots: DashboardShot[] = [
 
 // Built features without a worked example yet; each links to its section in the docs.
 const more = [
-  { title: 'Login-Schutz', text: 'Erkennt massenhafte Login-Versuche und sperrt nach 14 Tagen Lernzeit von selbst.', to: `${DOCS}#szenarien-und-limits` },
+  { title: 'Login-Schutz', text: 'Ein Limit für Login-Seiten gilt ab dem Start. Wer Passwörter durchprobiert, wird nach 14 Tagen Lernzeit gesperrt.', to: `${DOCS}#szenarien-und-limits` },
   { title: 'Ausnahmen bei Fehlalarm', text: 'Eng begrenzt auf einzelne Regeln und ein Feld auf einer Seite.', to: `${DOCS}#ausnahmen` },
   { title: 'KI-Crawler', text: 'Pro Website festlegen, welche Crawler deine Seiten abrufen dürfen.', to: `${DOCS}#bots-und-ki-crawler` },
   { title: 'Eigene IPs', text: 'Dich und dein Team freischalten, dauerhaft oder befristet.', to: `${DOCS}#eigene-ips` },
-  { title: 'Wartungsmodus', text: 'Alle sehen eine Wartungsseite, nur deine eigenen IPs kommen durch.', to: `${DOCS}#zugriffsschutz-mit-passwort-und-eigenen-ips` },
+  { title: 'Wartungsmodus', text: 'Alle sehen eine Wartungsseite, nur deine eigenen IPs kommen durch.', to: `${DOCS}#wartungsmodus` },
   { title: 'Server-Check', text: 'Prüft Updates, offene Ports, Firewall, SSH und Zertifikate, ohne etwas zu ändern.', to: `${DOCS}#server-check` },
 ]
 </script>
@@ -95,14 +96,14 @@ const more = [
         <ul class="mt-8 grid gap-3 sm:grid-cols-2">
           <li>
             <a href="#sql-injection" class="block rounded-xl bg-white p-5 shadow-sm ring-1 ring-mist-line transition hover:ring-ink/30">
-              <span class="kicker">Schild wehrt ab</span>
+              <span class="kicker">Ab Werk</span>
               <span class="mt-1 block font-semibold">Ein SQL-Injection-Versuch wird gestoppt</span>
             </a>
           </li>
           <li>
-            <a href="#admin-bereich" class="block rounded-xl bg-white p-5 shadow-sm ring-1 ring-mist-line transition hover:ring-ink/30">
-              <span class="kicker">Du stellst ein</span>
-              <span class="mt-1 block font-semibold">Den Admin-Bereich zusätzlich absichern</span>
+            <a href="#sensible-bereiche" class="block rounded-xl bg-white p-5 shadow-sm ring-1 ring-mist-line transition hover:ring-ink/30">
+              <span class="kicker">Nach Bedarf</span>
+              <span class="mt-1 block font-semibold">Sensible Bereiche einfach zusätzlich absichern</span>
             </a>
           </li>
         </ul>
@@ -111,7 +112,7 @@ const more = [
 
     <section id="sql-injection" class="scroll-mt-16 border-b border-line" aria-labelledby="sqli-title">
       <div class="mx-auto max-w-6xl px-5 py-20 sm:px-8 lg:py-24">
-        <p class="kicker">Schild wehrt ab</p>
+        <p class="kicker">Ab Werk</p>
         <h2 id="sqli-title" class="h2 mt-3">Ein SQL-Injection-Versuch wird gestoppt.</h2>
         <div class="mt-4 grid gap-6 lg:grid-cols-[1.1fr_0.9fr] lg:gap-10">
           <p class="leading-relaxed text-slate">
@@ -125,7 +126,7 @@ const more = [
             </p>
           </div>
         </div>
-        <DashboardShots class="mt-10" label="Ein gestoppter SQL-Injection-Versuch in drei Schritten" :shots="sqliShots" eager caption="Echte Screenshots vom 21.11.2026 mit Testdaten, IP-Adresse unkenntlich gemacht. Die Sperrseite ist die Seite, die das Gateway ausliefert." />
+        <DashboardShots class="mt-10" label="Ein gestoppter SQL-Injection-Versuch in drei Schritten" :shots="sqliShots" eager :caption="`Echte Screenshots vom ${SHOTS_DATE} mit Testdaten, IP-Adresse unkenntlich gemacht. Die Sperrseite ist die Seite, die das Gateway ausliefert.`" />
         <p class="mt-6 text-sm text-slate">
           Einrichtung und Details:
           <NuxtLink :to="`${DOCS}#regeln`" class="font-semibold text-link hover:underline">Regeln <span aria-hidden="true">→</span></NuxtLink>
@@ -135,14 +136,14 @@ const more = [
       </div>
     </section>
 
-    <section id="admin-bereich" class="scroll-mt-16 border-b border-line bg-mist" aria-labelledby="admin-title">
+    <section id="sensible-bereiche" class="scroll-mt-16 border-b border-line bg-mist" aria-labelledby="admin-title">
       <div class="mx-auto max-w-6xl px-5 py-20 sm:px-8 lg:py-24">
-        <p class="kicker">Du stellst ein</p>
-        <h2 id="admin-title" class="h2 mt-3">Den Admin-Bereich zusätzlich absichern.</h2>
+        <p class="kicker">Nach Bedarf</p>
+        <h2 id="admin-title" class="h2 mt-3">Sensible Bereiche einfach zusätzlich absichern.</h2>
         <p class="mt-4 max-w-2xl leading-relaxed text-slate">
-          Die Anmeldung deines CMS ist für alle im Internet erreichbar. Mit dem Zugriffsschutz stellst du eine zweite Tür davor: Pfade wie <span class="code">/wp-admin/*</span> öffnen sich nur mit einem gemeinsamen Passwort, nur von deinen Adressen aus oder nur mit beidem. Schild speichert vom Passwort nur einen Hash.
+          Die Anmeldung deines CMS, eine Staging-Seite oder eine alte Anwendung, die keine Updates mehr bekommt: Vieles davon ist für alle im Internet erreichbar. Mit dem Zugriffsschutz stellst du eine zweite Tür davor, für einen Pfad, für mehrere oder für die ganze Website. Sie öffnet sich nur mit einem gemeinsamen Passwort, nur von deinen Adressen aus oder nur mit beidem. Im Beispiel sind es <span class="code">/wp-admin/*</span> und <span class="code">/wp-login.php</span>. Schild speichert vom Passwort nur einen Hash.
         </p>
-        <DashboardShots class="mt-10" label="Admin-Bereich absichern in drei Schritten" :shots="adminShots" caption="Echte Screenshots vom 21.11.2026 mit Testdaten. Die Anmeldeseite ist die Seite, die das Gateway ausliefert." />
+        <DashboardShots class="mt-10" label="Sensible Bereiche absichern in drei Schritten" :shots="adminShots" :caption="`Echte Screenshots vom ${SHOTS_DATE} mit Testdaten. Die Anmeldeseite ist die Seite, die das Gateway ausliefert.`" />
         <p class="mt-6 text-sm text-slate">
           Einrichtung und Details:
           <NuxtLink :to="`${DOCS}#zugriffsschutz-mit-passwort-und-eigenen-ips`" class="font-semibold text-link hover:underline">Zugriffsschutz mit Passwort und eigenen IPs <span aria-hidden="true">→</span></NuxtLink>

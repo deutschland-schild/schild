@@ -74,9 +74,15 @@ Die Web Application Firewall (Coraza) prüft mit Regeln aus drei Regel-Repositor
 | **CrowdSec Hub** (`crowdsec`) | virtuelle Patches gegen bekannte Lücken | Stand im Programm, dazu Updates aus dem öffentlichen Hub | Erkennen |
 | **Eigene Regeln** (`local`) | was du selbst schreibst | deine Dateien auf dem Server | Sperren |
 
+![Schild Dashboard, Regeln: Karten für OWASP CRS, CrowdSec Hub und Eigene Regeln und Ausnahmen, jede mit ihrem Schalter und der Zahl der Regeln, darunter Szenarien und Limits. Testdaten.](../../site/public/img/dashboards/doku-regeln.webp)
+
+Die Bilder auf dieser Seite zeigen das Dashboard mit Testdaten. Dort stehen nur wenige Beispielregeln, auf einem echten Gateway sind es deutlich mehr.
+
 ### OWASP Core Rule Set
 
 Das Core Rule Set erkennt typische Angriffsversuche: SQL-Injection, Cross-Site-Scripting, das Einschleusen von Befehlen oder PHP-Code, Zugriffe auf Dateien außerhalb der Website und Ähnliches. Jede Regel vergibt Punkte, ab einer Schwelle wird gesperrt. Strenge (Paranoia-Level) und Schwelle stellst du in `schild.yaml` unter `rules.crs` ein. Steht das Core Rule Set auf „Aus“ oder „Erkennen“, ist der Grundschutz eingeschränkt, und das Dashboard sagt es dir.
+
+![Schild Dashboard, OWASP CRS: Schalter Aus, Erkennen, Sperren, Strenge und Sperrschwelle, darunter die Liste der Regeln mit Status, Wirkung und Treffern der letzten 24 Stunden. Testdaten.](../../site/public/img/dashboards/doku-crs.webp)
 
 ### Virtuelle Patches aus dem CrowdSec Hub
 
@@ -85,6 +91,8 @@ Die öffentlichen virtuellen Patches aus dem CrowdSec Hub sind rund 200 Regeln g
 - Ein Stand der Regeln steckt im Programm. Neue und geänderte Regeln holt Schild jede Stunde im Hintergrund. Ein fehlerhaftes Update ändert nichts an den laufenden Regeln.
 - Regeln aus einem Update erkennen zuerst nur und sperren nach einer Wartezeit von selbst, siehe [Regeln aus Updates](#regeln-aus-updates).
 - Der ganze Satz lässt sich auf einen Stand des Hubs festnageln (`rules.crowdsec.pin`) oder auf den Stand im Programm zurücksetzen (`schild rules reset crowdsec` oder ein Klick im Dashboard).
+
+![Schild Dashboard, CrowdSec Hub: Schalter auf Sperren, Hinweis auf die Wartezeit von 24 Stunden für neue Regeln, Knöpfe Jetzt prüfen und Auf den Stand des Images zurücksetzen, darunter Regeln mit dem Status „Wartet noch“. Testdaten.](../../site/public/img/dashboards/doku-crowdsec.webp)
 
 ### Eigene Regeln
 
@@ -95,6 +103,8 @@ Zwei Dinge stellt Schild selbst ein, eigene Regeln können sie nicht ändern: ob
 ```
 SecRule REQUEST_URI "@beginsWith /webhook" "id:1001,phase:1,pass,nolog,ctl:ruleRemoveByTag=OWASP_CRS"
 ```
+
+![Schild Dashboard, Eigene Regeln: Ordner /etc/schild/rules.d mit zwei Dateien, Knopf Neu laden, darunter drei eigene Regeln mit Status und Treffern. Testdaten.](../../site/public/img/dashboards/doku-eigene-regeln.webp)
 
 ### Aus, Erkennen, Sperren
 
@@ -129,6 +139,8 @@ Eine Ausnahme nennt höchstens 16 Regeln. Braucht ein Feld mehr, legst du mehrer
 
 Was über eine solche Ausnahme hinausgeht, schreibst du als eigene Regel in eine Datei. Eigene Regeln änderst du direkt in deiner Datei.
 
+![Schild Dashboard, Reiter Ausnahmen: eine aktive Ausnahme für ein Feld auf einer Seite von verein.example mit Begründung und Regelnummern, darunter mögliche Fehlalarme mit dem Knopf Ausnahme anlegen. Testdaten.](../../site/public/img/dashboards/doku-ausnahmen.webp)
+
 ## Szenarien und Limits
 
 Schild beobachtet, wie sich ein Absender über mehrere Anfragen verhält. Passwörter und Formularinhalte liest es dabei nie.
@@ -141,6 +153,8 @@ Schild beobachtet, wie sich ein Absender über mehrere Anfragen verhält. Passw�
 | Aggressives Abrufen | 120 Seitenaufrufe pro Minute und das Zehnfache des Üblichen auf dieser Website |
 | Wiederholte Angriffsversuche | 2 verschiedene WAF-Regeln in 1 Minute |
 
+![Schild Dashboard, Szenarien und Limits, Reiter Szenarien: Passwort-Raten, Ausprobieren von Zugangsdaten und Suche nach Schwachstellen, jeweils mit Schalter Aus, Beobachten, Sperren, der Schwelle und dem Knopf Schwelle anpassen. Testdaten.](../../site/public/img/dashboards/doku-szenarien.webp)
+
 Die Schwellen änderst du unter „Regeln“ → „Szenarien und Limits“ mit „Schwelle anpassen“ an jedem Szenario oder in `schild.yaml` unter `behaviour.scenarios.<szenario>.thresholds`. Eine Schwelle gilt für alle Websites des Servers und wirkt sofort. Mit „Werkswert einsetzen“ stellst du die Tabelle oben wieder her. Bist du unsicher, stell das Szenario erst auf „Beobachten“: Dann siehst du, wen die neue Schwelle gesperrt hätte.
 
 Login-Erkennung ist eingebaut für WordPress, TYPO3, Joomla, Drupal, Nextcloud, Laravel und übliche Login-Pfade (`/login`, `/signin`, `/api/login`). Ob ein Login fehlgeschlagen ist, erkennt Schild an der Antwort deiner Anwendung (Statuscode, Weiterleitung).
@@ -149,7 +163,11 @@ Login-Erkennung ist eingebaut für WordPress, TYPO3, Joomla, Drupal, Nextcloud, 
 
 **Sperren laufen ab:** 15 Minuten, bei Wiederholung 1, 4, dann 24 Stunden. Adressen aus Rechenzentren: 15 Minuten, 1 Stunde, 24 Stunden, dann 7 Tage. Gesperrte sehen eine ruhige Seite „Kurze Pause“ mit Vorfallnummer und Uhrzeit, ab wann es weitergeht. Ist die [Firewall](02-betrieb.md) angebunden, kommen sie gar nicht mehr durch und sehen keine Seite.
 
+![Schild Dashboard, Sperren: eine gesperrte Adresse aus einem Rechenzentrum, Grund Passwort-Raten, gesperrt für 15 Minuten, Knopf Sperre aufheben. Die IP-Adresse ist unkenntlich gemacht. Testdaten.](../../site/public/img/dashboards/doku-sperren.webp)
+
 **Limits pro Pfad:** Vorlagen für Login (10 pro Minute), Passwort vergessen (3 in 10 Minuten), `xmlrpc.php`, Suche, Kontaktformulare und schreibende API-Aufrufe. Sie gelten für die üblichen Pfade von WordPress, Joomla, Drupal, Nextcloud, TYPO3 und Laravel; Schild prüft nicht, welches System bei dir läuft. Ab Werk begrenzen die Limits für Login, Passwort vergessen und `xmlrpc.php`. Die für Suche, Kontaktformulare und schreibende API-Aufrufe zählen nur mit, weil ein Shop oder eine App dort mit Absicht viele Anfragen schicken kann. Jedes dieser Limits hat unter „Regeln“ → „Szenarien und Limits“ → „Limits“ seinen eigenen Schalter, die Empfehlung ist dort markiert. Die Liste zeigt zuerst nur die Limits, deren Pfad in den letzten 24 Stunden Anfragen hatte oder die du umgestellt hast; „Alle zeigen“ blendet die übrigen ein. Limits wirken sofort, ohne Lernzeit. Eigene Limits legst du im Dashboard an, ein Probelauf über die letzten 24 Stunden zeigt vorher, wen sie getroffen hätten.
+
+![Schild Dashboard, Szenarien und Limits, Reiter Limits: Limits für WordPress-Anmeldung, XML-RPC, Suche und ein Kontaktformular mit Route, Limit, Schalter, Herkunft und den Zahlen der letzten 24 Stunden. Testdaten.](../../site/public/img/dashboards/doku-limits.webp)
 
 **Nie gesperrt** werden Adressen aus Mobilfunk, Carrier-NAT und Tor, weil sich dort viele Menschen eine Adresse teilen. Sie werden höchstens gezählt.
 
@@ -169,6 +187,8 @@ Du stellst sie im Dashboard bei der Website unter „Zugriffsschutz“ ein, in d
 
 Under Attack läuft unabhängig von der Einstellung darüber und ist nie unbefristet.
 
+![Schild Dashboard, Zugriffsschutz für verein.example: Karte Browser-Prüfung & Under Attack mit dem regulären Modus Aus, Bei Auffälligkeiten, Immer und dem Knopf Under Attack aktivieren. Testdaten.](../../site/public/img/dashboards/doku-browser-pruefung.webp)
+
 ## Verteilte Angriffe
 
 Manche Angriffe laufen über tausende private Anschlüsse und wechseln mit jeder Anfrage Adresse und Browserkennung. Schild erkennt solche Wellen am Ziel, nicht am Absender: viele Fehlversuche auf einen Login, viele Absender gegen ein Benutzerkonto, dieselbe Angriffsform von vielen Adressen oder viele Absender mit demselben technischen Fingerabdruck.
@@ -180,6 +200,8 @@ Manche Angriffe laufen über tausende private Anschlüsse und wechseln mit jeder
 | Gleiche Anfrage, viele Adressen | dieselbe auffällige Anfrage von 20 Adressen in 1 Minute |
 | Gleicher Fingerabdruck | 20 Adressen mit demselben Fingerabdruck und wechselnden Browser-Angaben in 5 Minuten |
 | Widersprüchliche Browser-Angaben | 20 Fehlversuche mit Angaben, die nicht zusammenpassen, in 5 Minuten |
+
+![Schild Dashboard, Szenarien und Limits, Reiter Wellen: die Erkennungen Ansturm auf eine Route, Ein Konto, viele Adressen und Gleiche Anfrage, viele Adressen, jeweils mit Schalter Aus, Beobachten, Reagieren und ihrer Schwelle. Testdaten.](../../site/public/img/dashboards/doku-wellen.webp)
 
 Beobachtet werden die eingebauten Login-Pfade und die Pfade, die du in `schild.yaml` unter `behaviour.distributed.routes` nennst.
 
@@ -197,6 +219,8 @@ Den Fingerabdruck bildet Schild aus Merkmalen der Kopfzeilen. Das ist grob: Ein 
 
 Im Dashboard legst du pro Website fest, welche Crawler deine Seiten abrufen dürfen: nach Zweck (zum Beispiel KI-Training, KI-Suche, Suchmaschinen) oder einzeln. Eine Vorlage blockt mit einem Klick alle KI-Trainings-Crawler und lässt den Rest durch.
 
+![Schild Dashboard, KI-Crawler für verein.example: Knopf KI-Training blocken, Schalter Falsche Crawler blocken, darunter die Kategorien KI-Training, KI-Suche, KI-Assistent und Suchmaschine mit Erlauben oder Blocken. Testdaten.](../../site/public/img/dashboards/doku-ki-crawler.webp)
+
 Gibt sich jemand als Googlebot oder GPTBot aus, kommt aber nicht aus den Adressbereichen, die der Betreiber veröffentlicht, kann Schild ihn als Fälschung blocken. Die Adresslisten holt Schild einmal am Tag direkt bei den Betreibern ab. Crawler, die sich nicht zu erkennen geben, erfasst diese Funktion nicht.
 
 ## Zugriffsschutz mit Passwort und eigenen IPs
@@ -207,9 +231,21 @@ Du kannst eine ganze Website oder einzelne Pfade schließen, etwa `/staging/*` o
 - nur für bestimmte Adressen und eigene Netze,
 - oder beides. Dann muss beides zutreffen.
 
+Gelten Passwort und Adressen zusammen, sehen nur diese Adressen das Anmeldeformular. Alle anderen bekommen die Seite „Kein Zugriff“ ohne Formular.
+
+Die Anmeldung mit Passwort braucht HTTPS, weil der Browser das Cookie der Anmeldung nur über HTTPS zurückschickt. Vom Passwort speichert Schild nur einen Hash (Argon2id).
+
+![Schild Dashboard, Dialog Zugriffsschutz für verein.example: Nur bestimmte Bereiche, Pfade /wp-admin/* und /wp-login.php, Zugang mit Passwort und Eigene IPs angehakt, Knopf Schutz aktivieren. Testdaten.](../../site/public/img/dashboards/funktionen-admin-dialog-1600.webp)
+
 Bei einer ganz geschlossenen Website sehen alle anderen eine Wartungsseite. Der Schutz bleibt an, bis du ihn aufhebst, im Dashboard unter „Zugriffsschutz“ oder mit `schild lock`.
 
+### Wartungsmodus
+
 Für Wartungsarbeiten gibt es unter „Zugriffsschutz“ den Schalter „Wartungsmodus“: Auf der ganzen Website sehen alle die Wartungsseite mit dem Code 503, nur deine eigenen IPs kommen durch. Den Text der Seite kannst du dabei selbst schreiben. Der Wartungsmodus ist ein eigener Schalter neben dem Zugriffsschutz. Hast du etwa `/wp-admin` mit einem Passwort geschützt, bleibt das bestehen: Wer von einer eigenen IP kommt, braucht dort weiter das Passwort, und nach dem Ausschalten gilt der Schutz wie vorher. `schild lock` hebt vom Server aus beides auf, falls du dich ausgesperrt hast.
+
+![Schild Dashboard, Zugriffsschutz für verein.example: Wartungsmodus eingeschaltet, Hinweis „Die Website ist im Wartungsmodus“, Feld für den Text der Wartungsseite. Testdaten.](../../site/public/img/dashboards/doku-wartungsmodus.webp)
+
+![Wartungsseite des Schild Gateway: „Wir sind gleich wieder da.“ An dieser Website wird gerade gearbeitet.](../../site/public/img/dashboards/doku-wartungsseite.webp)
 
 ## Eigene IPs
 
@@ -220,15 +256,21 @@ Damit du dich nicht selbst aussperrst, schaltest du eigene Adressen frei: einzel
 
 Auf der Kommandozeile schaltet `schild allow --mine` die Adresse deiner aktuellen SSH-Verbindung frei.
 
+![Schild Dashboard, Eigene IPs: Meine IP freischalten mit Bezeichnung und Dauer, darunter drei Einträge für Büro, Agentur und Homeoffice mit Umfang „Nie sperren“ und Gültigkeit. Die IP-Adressen sind unkenntlich gemacht. Testdaten.](../../site/public/img/dashboards/doku-eigene-ips.webp)
+
 ## Sperrseite und Warteseite
 
 Eine gestoppte Anfrage bekommt eine ruhige Seite auf Deutsch mit Vorfallnummer (`XXXX-XXXX`), API-Clients eine maschinenlesbare Antwort (RFC 9457). Mit der Nummer findest du den Vorfall im Dashboard und lässt die Person mit „Durchlassen“ wieder durch, bei einer gesperrten Adresse mit „Sperre aufheben“.
+
+![Sperrseite des Schild Gateway: Fehlercode 403, Anfrage angehalten, Vorfallnummer RN9T-F36Q und der Hinweis, die Nummer bei einem Irrtum an die Betreiber:innen der Website zu schicken. Testdaten.](../../site/public/img/dashboards/funktionen-sqli-blockpage-1600.webp)
 
 Ist Schild kurz voll ausgelastet, sehen Besucher:innen statt einer Fehlerseite eine Warteseite, die sich nach wenigen Sekunden selbst neu lädt.
 
 ## Dashboard
 
 Das Dashboard ist im Programm eingebaut und nie öffentlich erreichbar: Es lauscht nur auf dem Server selbst (`127.0.0.1:8788`). Du kommst per SSH-Tunnel oder VPN hinein. Das erste Passwort setzt du mit einem Einmal-Code aus dem Log.
+
+![Schild Dashboard, Alle Websites: Grundschutz aktiv, Karten für vier Websites mit Anfragen pro Sekunde, gestopptem Anteil und Antwortzeit, darunter Alarme auf mehreren Websites. Testdaten.](../../site/public/img/dashboards/gateway-website-1600.webp)
 
 Links im Menü wählst du oben den Server, eine Website oder „Alle Websites“. Darunter stehen nur die Seiten, die dazu gehören.
 
@@ -251,6 +293,10 @@ In jedem Ereignis, jedem Vorfall und in jeder Zeile der Listen „Ereignisse“ 
 
 Schild zählt jede Anfrage, die es sieht: Besucher, Seitenaufrufe, Statuscodes, Antwortzeiten, die häufigsten Seiten, Verweise und Netzbetreiber, Länder, Browser, Geräte und Bots. Besucherzahlen sind Schätzungen mit etwa ±3 % Abweichung. Dazu misst Schild alle 10 Sekunden CPU, Arbeitsspeicher, Festplatten und Netzwerk des Servers.
 
+![Schild Dashboard, Zugriffe für verein.example: Länder, Anteil von Menschen, Bots, Suchmaschinen und KI-Crawlern, Top-Seiten und Herkunft. Testdaten.](../../site/public/img/dashboards/gateway-requests-1600.webp)
+
+![Schild Dashboard, Server web-1: Anfragen pro Sekunde, Gestoppt, Antwortzeit, CPU, Arbeitsspeicher, Festplatte und Netzwerk, darunter Hinweise zur Anwendung. Testdaten.](../../site/public/img/dashboards/gateway-server-1600.webp)
+
 Hinweise bekommst du zum Beispiel, wenn die Festplatte in den nächsten 14 Tagen voll zu werden droht. Die Zahlen liegen in einer Datei mit fester Größenobergrenze und wachsen nicht mit dem Traffic. Es gibt kein Tracking-Skript und kein Cookie für Besucher:innen.
 
 ## Server-Check
@@ -263,6 +309,8 @@ Der Server-Check liest nur und ändert nichts. Er läuft täglich oder auf Knopf
 - **Zertifikate:** Ablaufdatum.
 - **Software:** PHP, Node.js, Python, Java, Webserver und Datenbanken ohne Support; Versionen von WordPress samt Plugins, TYPO3, Laravel und Nextcloud.
 - **Logs:** wachsende Logdateien, fehlende oder alte Logrotation, Docker-Logs ohne Grenze.
+
+![Schild Dashboard, Server-Check für web-1: Befunde zu Updates und offenen Ports, jeweils mit Schwere, Erklärung und dem Befehl zum Beheben, dazu erfüllte Prüfungen wie automatische Sicherheitsupdates. Testdaten.](../../site/public/img/dashboards/doku-server-check.webp)
 
 Zu jedem Befund gibt es eine Erklärung und den Befehl zum Beheben. Ausführen tust du ihn selbst.
 
