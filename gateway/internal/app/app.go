@@ -824,7 +824,8 @@ func (a *App) PrepareIngress() (*caddymod.Ingress, error) {
 // root is <dataDir>/caddy.
 func IngressFor(cfg *config.Site, dataDir string) (*caddymod.Ingress, error) {
 	return caddymod.PrepareIngress(caddymod.IngressOptions{Caddyfile: cfg.Ingress.Caddyfile, Storage: cfg.Ingress.CaddyStorage, ExposeServerHeaders: cfg.Ingress.ExposeServerHeaders,
-		DefaultStorage: caddymod.DefaultStorage(dataDir), Unprotected: cfg.Ingress.UnprotectedSites, TrustedProxies: cfg.Ingress.TrustedProxies})
+		DefaultStorage: caddymod.DefaultStorage(dataDir), Unprotected: cfg.Ingress.UnprotectedSites, TrustedProxies: cfg.Ingress.TrustedProxies,
+		Cluster: cfg.Cluster.Enabled})
 }
 
 func listen(s *http.Server, name string) error {

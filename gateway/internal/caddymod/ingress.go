@@ -33,6 +33,9 @@ type IngressOptions struct {
 	// Unprotected is ingress.unprotected_sites: hosts that may reach a
 	// backend without the schild directive.
 	Unprotected []string
+	// Cluster is cluster.enabled (MVP-27): the proxy protocol then needs
+	// an allow list (ProxyProtocolOpen).
+	Cluster bool
 	// TrustedProxies is ingress.trusted_proxies (a warning when Caddy does
 	// not share it, see TrustedProxiesWarning).
 	TrustedProxies []string
@@ -158,6 +161,11 @@ func PrepareIngress(o IngressOptions) (*Ingress, error) {
 	}
 	if w := trustedProxiesWarning(raw, o.TrustedProxies); w != "" {
 		ing.Check.Warnings = append(ing.Check.Warnings, w)
+	}
+	if o.Cluster {
+		if why := ProxyProtocolOpen(m); why != "" {
+			return nil, errors.New("caddyfile: cluster.enabled and " + why + ". Anyone who reaches this node could then name any address as theirs, and a block of that address would act on every node of the group. Give proxy_protocol an allow list with the addresses of your load balancers, and no fallback_policy use or require")
+		}
 	}
 	m["admin"] = map[string]any{"disabled": true, "config": map[string]any{"persist": false}}
 	limitAllConns(m)
@@ -793,3 +801,39 @@ func (c *Check) add(sc SiteCheck, unprotected []string, used map[string]bool) {
 
 // DefaultStorage is the Caddy storage root under the schild data dir.
 func DefaultStorage(dataDir string) string { return filepath.Join(dataDir, "caddy") }
+
+// ProxyProtocolOpen reports why a proxy_protocol listener wrapper of the
+// adapted config believes a PROXY header of a sender the operator did not
+// name: it has no allow list, or its fallback policy uses the header of
+// senders outside the list (USE, REQUIRE). Empty: no such wrapper.
+//
+// In a group this is refused (MVP-27, G5): a block follows the client
+// address, and a block of the group acts on every node.
+func ProxyProtocolOpen(m map[string]any) string {
+	apps, _ := m["apps"].(map[string]any)
+	h, _ := apps["http"].(map[string]any)
+	servers, _ := h["servers"].(map[string]any)
+	names := make([]string, 0, len(servers))
+	for name := range servers {
+		names = append(names, name)
+	}
+	sort.Strings(names)
+	for _, name := range names {
+		server, _ := servers[name].(map[string]any)
+		wrappers, _ := server["listener_wrappers"].([]any)
+		for _, w := range wrappers {
+			pp, _ := w.(map[string]any)
+			if pp["wrapper"] != "proxy_protocol" {
+				continue
+			}
+			if allow, _ := pp["allow"].([]any); len(allow) == 0 {
+				return "proxy_protocol has no allow list"
+			}
+			switch policy, _ := pp["fallback_policy"].(string); strings.ToUpper(policy) {
+			case "USE", "REQUIRE":
+				return "proxy_protocol has fallback_policy " + strings.ToLower(policy) + ", which takes the header of senders outside its allow list"
+			}
+		}
+	}
+	return ""
+}
