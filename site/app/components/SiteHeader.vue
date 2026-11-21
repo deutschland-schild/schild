@@ -23,7 +23,7 @@ const groups: NavGroup[] = [
   {
     label: 'Gateway',
     items: [
-      { to: '/#funktionen', label: 'Funktionen', text: 'Was das Gateway mitbringt' },
+      { to: '/funktionen', label: 'Funktionen', text: 'Was Schild abwehrt und was du einstellst' },
       { to: '/#dashboard', label: 'Dashboard', text: 'Ansichten mit Testdaten' },
       { to: '/#installieren', label: 'Installieren', text: 'Docker oder Binary, als dein Caddy oder dahinter' },
       { to: '/#faq', label: 'FAQ', text: 'Fragen und Antworten' },
@@ -49,10 +49,11 @@ const toggle = (label: string) => (menu.value = menu.value === label ? null : la
 
 <template>
   <header class="sticky top-0 z-40 text-ink backdrop-blur transition-[background-color,box-shadow] duration-200" :class="y > 0 ? 'bg-white/95 shadow-md' : 'bg-mist/90'">
-    <div class="mx-auto flex h-16 max-w-6xl items-center justify-between gap-4 px-5 sm:px-8">
+    <div class="mx-auto flex h-16 max-w-6xl items-center justify-between gap-2 px-5 sm:gap-4 sm:px-8">
       <div class="flex shrink-0 items-center gap-2.5">
         <BrandLogo />
-        <AlphaBadge />
+        <!-- very narrow phones (320 px): the badge would push the menu button off screen -->
+        <AlphaBadge class="max-[359px]:hidden" />
       </div>
       <nav ref="nav" class="flex items-center gap-1 text-sm" aria-label="Hauptnavigation">
         <template v-for="g in groups" :key="g.label">

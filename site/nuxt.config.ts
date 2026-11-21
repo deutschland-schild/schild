@@ -9,7 +9,7 @@ import { diagramHash, diagramsStamp, diagramSvg } from './scripts/mermaid-svgs.m
 import { SITE_URL } from './app/utils/site'
 
 // Status markers (FIXIERT, ENTWURF, …) are for the agents working on docs/. The rendered docs keep them out of the
-// way: status lines and "Als Nächstes" todo sections move into a collapsed block at the end of the page, marker
+// way: status lines are dropped, "Als Nächstes" todo sections move into a collapsed block at the end of the page, marker
 // legends and status table columns are dropped, a parenthesis
 // that only holds a marker (plus date/initiator) disappears, markers inside a sentence become plain words.
 const STATUS_WORDS = 'FIXIERT|ZIEL|ENTWURF|ZU PRÜFEN|OFFEN|ENTSCHIEDEN|ERSETZT|IDEE'
@@ -112,8 +112,8 @@ const isStatusLine = (node: any) => isTag(node, 'p') && startsWithStrong(node, t
 const isLegendItem = (node: any) => isTag(node, 'li') && startsWithStrong(node, t => STATUS_ONLY.test(t))
 const isTodoItem = (node: any) => isTag(node, 'li') && node.slice(2).some((c: any) => isTag(c, 'input'))
 
-// Moves the status lines and the WORK_SECTIONS (h2 up to the next h2) out of the page body;
-// they end up collapsed in a <details> at the end of the page (workState).
+// Drops the status lines and moves the WORK_SECTIONS (h2 up to the next h2) out of the page body;
+// they end up collapsed in a <details> at the end of the page.
 function splitWorkState(children: any[]): { body: any[], work: any[] } {
   const body: any[] = []
   const work: any[] = []
@@ -121,7 +121,7 @@ function splitWorkState(children: any[]): { body: any[], work: any[] } {
   for (const node of children) {
     if (isTag(node, 'h2')) todo = WORK_SECTIONS.has(textOf(node).trim())
     if (todo) { if (!isTag(node, 'h2')) work.push(node) }
-    else if (isStatusLine(node)) work.unshift(node)
+    else if (isStatusLine(node)) continue
     else body.push(node)
   }
   return { body, work }
@@ -216,7 +216,7 @@ export default defineNuxtConfig({
       const collection = ctx.collection?.name ?? 'concept'
       const { body: main, work } = splitWorkState(body.value)
       body.value = transformDoc(main, collection)
-      if (work.length) body.value.push(['details', { class: 'doku-work' }, ['summary', {}, 'Arbeitsstand und nächste Schritte'], ...transformDoc(work, collection, false, true)])
+      if (work.length) body.value.push(['details', { class: 'doku-work' }, ['summary', {}, 'Nächste Schritte'], ...transformDoc(work, collection, false, true)])
       if (body.toc?.links) body.toc.links = cleanToc(body.toc.links)
       if (typeof ctx.content.title === 'string') ctx.content.title = plainStatus(ctx.content.title, true)
     },

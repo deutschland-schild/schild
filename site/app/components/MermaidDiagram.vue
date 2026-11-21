@@ -10,6 +10,9 @@ const failed = ref(false)
 const el = ref<HTMLElement>()
 const forceLive = ref(false)
 const shown = computed(() => live.value || (forceLive.value ? '' : props.svg ?? ''))
+// Natural width of the diagram (Mermaid writes it as max-width). On phones the diagram keeps up to 36rem of it and the
+// figure scrolls sideways, instead of shrinking the labels to an unreadable size.
+const naturalWidth = computed(() => shown.value.match(/max-width:\s*([\d.]+)px/)?.[1])
 let seq = 0
 
 async function render() {
@@ -61,7 +64,7 @@ onMounted(() => {
 
 <template>
   <figure ref="el" class="not-prose my-8 overflow-x-auto rounded-card border border-line bg-paper p-5 sm:p-8" :data-diagram="diagram">
-    <div v-if="shown" class="mermaid-svg flex justify-center [&_svg]:h-auto [&_svg]:max-w-full" v-html="shown" />
+    <div v-if="shown" class="mermaid-svg flex justify-center-safe [&_svg]:h-auto [&_svg]:max-w-full" :style="naturalWidth ? { '--mmd-w': `${naturalWidth}px` } : undefined" v-html="shown" />
     <pre v-else-if="failed" class="font-mono text-sm whitespace-pre-wrap text-slate">{{ code }}</pre>
     <div v-else class="h-80 animate-pulse rounded-lg bg-sand" aria-label="Diagramm wird geladen" />
   </figure>
@@ -72,4 +75,7 @@ onMounted(() => {
 .mermaid-svg .node circle, .mermaid-svg .node polygon { fill: var(--color-signal-tint) !important; stroke: var(--color-signal-deep) !important; }
 .mermaid-svg .node rect { rx: 10px; ry: 10px; stroke-width: 1.5px; }
 .mermaid-svg .edgeLabel { font-size: 13px; color: var(--color-slate); }
+@media (max-width: 639px) {
+  .mermaid-svg svg { min-width: min(var(--mmd-w, 0px), 36rem); }
+}
 </style>

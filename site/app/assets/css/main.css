@@ -124,6 +124,12 @@ body { @apply bg-white text-ink antialiased; font-feature-settings: 'cv11', 'ss0
   .wave-once::before { display: none; }
 }
 
+/* Phones: headings never push the page sideways; only very long words (Datenschutzerklärung) get hyphenated. */
+@media (max-width: 639px) {
+  :is(h1, h2, h3) { overflow-wrap: break-word; }
+  h1 { hyphens: auto; hyphenate-limit-chars: 16 6 6; }
+}
+
 /* Heading anchors in rendered docs look like headings, not links. */
 .prose :is(h1, h2, h3, h4) a { font-weight: inherit; color: inherit; text-decoration: none; }
 
@@ -154,6 +160,8 @@ body { @apply bg-white text-ink antialiased; font-feature-settings: 'cv11', 'ss0
 .doku-prose a { @apply underline-offset-2; }
 .doku-prose code { @apply rounded bg-mist px-1 py-0.5 text-[0.85em] font-normal text-ink; }
 .doku-prose code::before, .doku-prose code::after { content: none; }
+/* Long identifiers and URLs break instead of pushing the page sideways on phones. */
+.doku-prose :not(pre) > code:not(.whitespace-nowrap) { overflow-wrap: anywhere; }
 .doku-prose blockquote { @apply font-normal not-italic; }
 .doku-prose blockquote p::before, .doku-prose blockquote p::after { content: none; }
 .doku-prose img { @apply my-4 inline-block max-h-40 w-auto; }
