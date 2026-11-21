@@ -590,3 +590,36 @@ func TestGroupBlockFloodArrivesInRounds(t *testing.T) {
 		return true
 	})
 }
+
+// A node that joins with nothing of its own must not hand its empty tables
+// to the group: the first node may not have told its users and sessions
+// yet (it does so once a second), and would take the empty ones as the
+// later change.
+func TestJoiningNodeWithNothingDoesNotEmptyTheGroup(t *testing.T) {
+	a := &groupNode{dir: t.TempDir(), addr: apptest.FreeAddr(t), name: "web-1"}
+	b := &groupNode{dir: t.TempDir(), addr: apptest.FreeAddr(t), name: "web-2"}
+	if _, err := cluster.Init(a.clusterDir(), a.name, a.addr, nil); err != nil {
+		t.Fatal(err)
+	}
+	a.start(t)
+	a.h.WaitFor("the mesh of web-1 listens", func() bool { return a.h.App.Cluster.Addr() != "" })
+	code, _, err := cluster.Invite(a.clusterDir(), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	// The login and the join fall into the same second.
+	a.h.Login()
+	if _, _, err := cluster.Join(context.Background(), b.clusterDir(), b.name, b.addr, a.addr, code, nil); err != nil {
+		t.Fatal(err)
+	}
+	b.start(t)
+	ctx := context.Background()
+	b.h.WaitFor("web-2 took the users of the group", func() bool { return b.h.App.Store.HasUsers(ctx) })
+	time.Sleep(1500 * time.Millisecond) // a round of both nodes
+	if !a.h.App.Store.HasUsers(ctx) {
+		t.Fatal("web-1 lost its users to the empty table of the node that joined")
+	}
+	if code, body := a.h.API("GET", "/overview", nil); code != 200 {
+		t.Errorf("the session on web-1 is gone after web-2 joined: %d %s", code, body)
+	}
+}

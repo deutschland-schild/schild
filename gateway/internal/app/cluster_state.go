@@ -383,8 +383,12 @@ func (a *App) syncShared(ctx context.Context) {
 				a.writeShared(ctx, t, val, v.Node)
 				continue
 			}
-			if len(local) == 0 {
-				continue // nothing here, nothing in the group
+			if len(local) == 0 || emptyDump(local) {
+				// Nothing here, nothing in the group. An empty table is
+				// nothing too: a node that just joined must not hand its
+				// empty list of users to a group whose first node has not
+				// told its own yet.
+				continue
 			}
 		}
 		if len(local) > contract.MaxData/4*3-256 {
