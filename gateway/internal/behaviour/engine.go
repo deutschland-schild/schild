@@ -317,6 +317,9 @@ type Engine struct {
 	sites    map[string]*siteState
 	stats    *statsRing
 	d        *dist
+	// share notes what the engine counts for the other nodes of a group
+	// (shared.go); nil on a single gateway.
+	share atomic.Pointer[sharer]
 }
 
 // New returns an engine with cfg.
@@ -667,6 +670,9 @@ func (e *Engine) observeLimits(r *Request, key Key, bits int, enforce bool) Verd
 			continue
 		}
 		e.stats.add(l.statMatched, r.Time, 1)
+		if sh := e.share.Load(); sh != nil {
+			sh.limit(key, l.ID)
+		}
 		var exceeded bool
 		var retry time.Duration
 		var emitCount int
@@ -892,6 +898,9 @@ func (e *Engine) Observe(r *Request, o Outcome) {
 	var baseline float64
 	if crawl && site != nil {
 		baseline = site.observeCrawl(now, int64(c.thr[config.ScenarioAggressiveCrawl].WindowS)*int64(time.Second), hashKey(key))
+	}
+	if sh := e.share.Load(); sh != nil {
+		e.noteShared(sh, r, o, key, h, site != nil, loginFailed, probing, crawl, waf)
 	}
 	var trig []trigger
 	e.clients.with(key, true, func(s *clientState) {

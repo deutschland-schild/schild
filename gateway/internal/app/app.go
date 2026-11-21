@@ -177,6 +177,10 @@ type App struct {
 	// sharedMu around taking and publishing them.
 	shared   []sharedThing
 	sharedMu sync.Mutex
+	// clusterSetupErr: cluster.secret_file did not set the node up;
+	// groupHash: the engine hashes under the key of the group.
+	clusterSetupErr error
+	groupHash       bool
 	// draining: the node left traffic (readiness 503) and stops; drainCh
 	// is closed by Drain. started is when Run began to serve.
 	draining  atomic.Bool
@@ -393,6 +397,7 @@ func New(ctx context.Context, opts Options) (*App, error) {
 	}
 	a.Gate.SetWaitingPage(cfg.WaitingPage.On()) // D37
 	// MVP-17: behaviour across requests and rate limits, local only.
+	a.prepareCluster(cfg) // before the engine: its hashes take the key of the group
 	a.Behaviour = behaviour.New(a.behaviourConfig(cfg))
 	a.Behaviour.KnownHost = a.knownSiteHost
 	a.Behaviour.Sink = behaviour.Sink{

@@ -12,7 +12,9 @@ The section of a version becomes the text of its GitHub release, so its heading 
 - In a group, what is set in the dashboard or by an agent holds on every node: switches of the sources, thresholds, CRS levels, rate limits, crawler control, access lock, browser check, rule exceptions and disabled rules, the allowlist and released senders. Users, sessions and agent tokens are shared too, so one login serves every node, and a visitor who passed the browser check or the access lock on one node passes on the next. An address erased on one node (Art. 17) is erased on every node, also on one that returns later. A node that joins takes the group's values; what it held before is kept on the node.
 - With `cluster.enabled`, a `proxy_protocol` wrapper in the Caddyfile needs an allow list: otherwise anyone who reaches a node could name any address as theirs.
 - In a group with a Caddyfile, certificates are shared: one order per certificate while the nodes reach each other, the HTTP-01 and TLS-ALPN-01 challenges work whichever node the balancer picks, a certificate always travels with the key that fits it, and a TLS session resumes on every node. Certificates a gateway had before it entered a group go with it.
-- Not shared yet: limits and counters, events and requests.
+- In a group, rate limits and scenarios count for the group: every node tells the others once a second what it counted, so a client that spreads its requests over the nodes gets a limit once, and failed logins, tried user names, probed paths and WAF hits add up across the nodes.
+- A node of a group answers the balancer's health check `/.schild/readyz` with 503 until it took the state of the group and while it stops. `systemctl stop` and `schild cluster drain` leave traffic first (`cluster.drain.delay_s`, default 15 s) and give running requests `cluster.drain.grace_s` (default 30 s) to finish.
+- Not shared yet: events and requests; the detectors of distributed attacks count per node.
 
 ### Rules
 

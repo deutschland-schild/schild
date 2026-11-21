@@ -154,6 +154,23 @@ One listener per node (`cluster.listen`), TLS 1.3, HTTP/2. Both sides show a sel
 
 A caller that was a member and was removed gets 410 on sync and hello, any other caller that is no member 403. A node that reads 410 says in its log that it was removed, serves with the state it has and shares nothing.
 
-## 8. Not built yet
+## 8. Counting for the group
 
-Of [MVP-27](../tests/specs/MVP-27-ha-group.yaml): the role edge, counters across nodes, copies of events and requests and queries across the group, the readiness answer and the drain, the caps on what a node may send, the nodes an erasure reached in `PrivacyDeleteResult`, events and dashboard operations of the group.
+Behind a balancer the requests of one client land on every node, so a limit or a scenario that counts on one node sees a part of them. No counter is shared and nothing in the request path asks another node.
+
+- Every node counts as a single gateway does. Once a second it tells every gateway it reaches what it counted in that second: `POST /mesh/v0/tell`, members only, body `kind` (`counts`) and `body`, at most 1 MiB. Nothing of it is stored, and a node that is away misses it.
+- `counts`: per client key and rate limit the requests that matched (`limits`); per client key what the scenarios counted (`clients`: `login_failed`, `crawl`, the hashes of user names tried, the hashes and weights of probed paths, the WAF rules matched and the requests that matched any); per website the crawl baseline and the user names of failed logins (`sites`).
+- A node adds what it is told to its own counters, as if the requests had come to it, and decides nothing: the next request of the client that reaches it meets the sum. A limit of n therefore lets a client pass n plus what the nodes take in the second a count travels; a scenario fires on the first node that sees a request after the sum is over its threshold.
+- Each node tells only what it counted itself, so nothing is added twice. A node tells at most 2 000 client keys and 2 000 limit counts a second; what is over counts on its node only. What a node is told is bounded when it is applied: a count cannot take a bucket further below zero than one burst.
+- The nodes merge sketches of user names and clients by the hashes themselves, so the nodes of a group hash under one key: 16 bytes for SipHash-2-4, made by the founder and handed to a node with the answer to its join, or derived from the group secret (SHA-256 over `schild-group-hash-key:` and the secret, the first 16 bytes). A single gateway keeps its random per-process seed.
+- Per node stay: open connections and waiting requests, the waiting page, memory limits (they protect the machine), and the detectors of distributed attacks and waves (MVP-18), which see the traffic of their node only.
+- A balancer that picks the node by the client address makes every count exact while the set of nodes is unchanged.
+
+## 9. Readiness and stopping
+
+- `/.schild/readyz` on the web ports, the health check of the balancer, answers 503 on a node of a group until the node took the state of the group (or reached no member for 10 s), and while it drains.
+- A stop (SIGTERM, `schild cluster drain`) turns the answer to 503, serves on for `cluster.drain.delay_s` (default 15) so the balancer sends new connections elsewhere, then ends idle connections and lets running requests finish within `cluster.drain.grace_s` (default 30).
+
+## 10. Not built yet
+
+Of [MVP-27](../tests/specs/MVP-27-ha-group.yaml): the role edge, copies of events and requests and queries across the group, counts of the distributed detectors, the cap on blocks a node may send, the nodes an erasure reached in `PrivacyDeleteResult`, events and dashboard operations of the group.

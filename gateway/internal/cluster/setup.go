@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/ed25519"
 	"crypto/rand"
+	"crypto/sha256"
 	"database/sql"
 	"encoding/base64"
 	"encoding/hex"
@@ -60,6 +61,15 @@ func Init(dir, name, address string, now func() time.Time) (group string, err er
 		tx.Rollback()
 		return "", err
 	}
+	hk := make([]byte, 16)
+	if _, err := rand.Read(hk); err != nil {
+		tx.Rollback()
+		return "", err
+	}
+	if err := setMeta(tx, metaHashKey, hk); err != nil {
+		tx.Rollback()
+		return "", err
+	}
 	if err := tx.Commit(); err != nil {
 		return "", err
 	}
@@ -67,6 +77,29 @@ func Init(dir, name, address string, now func() time.Time) (group string, err er
 		return "", err
 	}
 	return s.group, nil
+}
+
+// metaHashKey is where a node keeps the key of the keyed hashes of its
+// group (16 bytes): the nodes compare hashes of user names and merge
+// sketches, so they hash under one key. The founder makes it, a node that
+// joins gets it with the member list, and a group set up by configuration
+// derives it from the group secret.
+const metaHashKey = "hash_key"
+
+// HashKey returns the group's hash key of a data directory; ok false: the
+// node belongs to no group, or to one from before the key existed.
+func HashKey(dir string) (key [16]byte, ok bool) {
+	s, err := openState(dir, false, nil)
+	if err != nil {
+		return key, false
+	}
+	defer s.close()
+	v, err := s.meta(metaHashKey)
+	if err != nil || len(v) != 16 {
+		return key, false
+	}
+	copy(key[:], v)
+	return key, true
 }
 
 // Invite makes a join code of this node: one use, valid for an hour.
@@ -186,6 +219,11 @@ func Join(ctx context.Context, dir, name, advertise, address, code string, now f
 	defer tx.Rollback()
 	if err := setMeta(tx, "group", []byte(resp.Group)); err != nil {
 		return "", 0, err
+	}
+	if hk, err := base64.StdEncoding.DecodeString(resp.HashKey); err == nil && len(hk) == 16 {
+		if err := setMeta(tx, metaHashKey, hk); err != nil {
+			return "", 0, err
+		}
 	}
 	// The vector stays where it is: these are the member records only, the
 	// first sync brings everything, these again.
@@ -409,6 +447,11 @@ func Configure(dir, name, address string, secret []byte, now func() time.Time) (
 			return "", err
 		}
 		if err := setMeta(tx, "group", []byte(group)); err != nil {
+			tx.Rollback()
+			return "", err
+		}
+		hk := sha256.Sum256(append([]byte("schild-group-hash-key:"), secret...))
+		if err := setMeta(tx, metaHashKey, hk[:16]); err != nil {
 			tx.Rollback()
 			return "", err
 		}

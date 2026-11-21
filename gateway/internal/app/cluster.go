@@ -2,6 +2,7 @@ package app
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"net/netip"
 	"path/filepath"
@@ -49,17 +50,9 @@ func (a *App) startCluster(ctx context.Context) {
 	}
 	a.Gate.InService = a.inService
 	dir := ClusterDir(a.dataDir)
-	if cfg.Cluster.SecretFile != "" {
-		// Set up by configuration: the node lets itself into the group of
-		// the secret, as on every other node the same files were deployed to.
-		secret, err := cluster.ReadSecret(cfg.Cluster.SecretFile)
-		if err == nil {
-			_, err = cluster.Configure(dir, cfg.NodeName, cfg.Cluster.Address(), secret, nil)
-		}
-		if err != nil {
-			a.log.Error("cluster: the node is not set up from schild.yaml, this gateway runs alone", "err", err)
-			return
-		}
+	if a.clusterSetupErr != nil {
+		a.log.Error("cluster: the node is not set up from schild.yaml, this gateway runs alone", "err", a.clusterSetupErr)
+		return
 	}
 	node, err := cluster.Open(cluster.Options{Dir: dir, Listen: cfg.Cluster.Listen, Log: a.log, Peers: cfg.Cluster.Peers})
 	if errors.Is(err, cluster.ErrNoGroup) {
@@ -82,6 +75,7 @@ func (a *App) startCluster(ctx context.Context) {
 	})
 	a.goLoop(ctx, "cluster-blocks", tick(250*time.Millisecond, a.publishGroupBlocks))
 	a.startSharedState(ctx)
+	a.startCounts(ctx)
 	if cfg.CaddyIngress() {
 		a.startGroupFiles(ctx, a.storageRoot())
 	}
@@ -261,4 +255,63 @@ func (a *App) leaveTraffic() {
 	}
 	a.log.Info("cluster: this node left traffic (readiness 503), it stops when the balancer had time to see it", "delay", d.String(), "grace", cfg.Cluster.Drain.Grace().String())
 	time.Sleep(d)
+}
+
+// prepareCluster runs before the behaviour engine is made: a node set up by
+// configuration lets itself into its group (cluster.secret_file), and the
+// keyed hashes of the engine take the key of the group, so the nodes can
+// merge what they count (behaviour.SetHashKey).
+func (a *App) prepareCluster(cfg *config.Site) {
+	if !cfg.Cluster.Enabled {
+		return
+	}
+	dir := ClusterDir(a.dataDir)
+	if cfg.Cluster.SecretFile != "" {
+		// The same files were deployed to every node.
+		secret, err := cluster.ReadSecret(cfg.Cluster.SecretFile)
+		if err == nil {
+			_, err = cluster.Configure(dir, cfg.NodeName, cfg.Cluster.Address(), secret, nil)
+		}
+		if err != nil {
+			a.clusterSetupErr = err
+			return
+		}
+	}
+	if key, ok := cluster.HashKey(dir); ok {
+		behaviour.SetHashKey(key)
+		a.groupHash = true
+	}
+}
+
+// tellCounts tells the other nodes what this one counted in the last second.
+func (a *App) tellCounts(ctx context.Context) {
+	c := a.Behaviour.TakeCounts()
+	if c == nil || a.Cluster.Removed() {
+		return
+	}
+	body, err := json.Marshal(c)
+	if err != nil {
+		return
+	}
+	a.Cluster.Tell(ctx, tellCounts, body)
+}
+
+const tellCounts = "counts"
+
+// startCounts makes limits and scenarios count for the group
+// (behaviour/shared.go). Without the group's hash key the nodes would
+// compare hashes that mean nothing to each other, so it stays off.
+func (a *App) startCounts(ctx context.Context) {
+	if !a.groupHash {
+		a.log.Warn("cluster: this node holds no hash key of its group (it joined with an older schild): limits and scenarios count per node. Let it join again")
+		return
+	}
+	a.Behaviour.EnableSharing()
+	a.Cluster.OnTell(tellCounts, func(_ string, body []byte) {
+		var c behaviour.Counts
+		if json.Unmarshal(body, &c) == nil {
+			a.Behaviour.ApplyCounts(&c)
+		}
+	})
+	a.goLoop(ctx, "cluster-counts", tick(time.Second, func() { a.tellCounts(ctx) }))
 }

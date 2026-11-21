@@ -403,3 +403,54 @@ func TestSingleGatewayStopsWithoutDrainDelay(t *testing.T) {
 		t.Errorf("a single gateway took %s to stop", d)
 	}
 }
+
+// A limit counts for the group: a client that takes turns between the
+// nodes gets the limit once, not once per node.
+func TestGroupLimitCountsAcrossNodes(t *testing.T) {
+	limit := "behaviour:\n  rate_limits:\n    - {id: api, route: \"/api/**\", limit: 20, per: 1m, burst: 20, mode: block}\n"
+	a := &groupNode{dir: t.TempDir(), addr: apptest.FreeAddr(t), name: "web-1"}
+	b := &groupNode{dir: t.TempDir(), addr: apptest.FreeAddr(t), name: "web-2"}
+	if _, err := cluster.Init(a.clusterDir(), a.name, a.addr, nil); err != nil {
+		t.Fatal(err)
+	}
+	start := func(g *groupNode) {
+		g.h = apptest.New(t, apptest.Options{Dir: g.dir, Extra: limit + fmt.Sprintf("cluster: {enabled: true, listen: %q}\n", g.addr)})
+	}
+	start(a)
+	code, _, err := cluster.Invite(a.clusterDir(), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, _, err := cluster.Join(context.Background(), b.clusterDir(), b.name, b.addr, a.addr, code, nil); err != nil {
+		t.Fatal(err)
+	}
+	start(b)
+	a.h.WaitFor("the nodes reach each other", func() bool { return a.h.App.Cluster.Synced() && b.h.App.Cluster.Synced() })
+	time.Sleep(1500 * time.Millisecond)
+	const ip = "203.0.113.150"
+	passed, limited := 0, 0
+	// 4 requests a second for 15 s, taking turns: 60 requests, the limit is 20.
+	for i := 0; i < 60; i++ {
+		g := a
+		if i%2 == 1 {
+			g = b
+		}
+		switch resp := g.h.Visit("GET", "/api/items", ip, "", ""); resp.StatusCode {
+		case 200:
+			passed++
+		case 429:
+			limited++
+		default:
+			t.Fatalf("request %d: %d", i, resp.StatusCode)
+		}
+		time.Sleep(250 * time.Millisecond)
+	}
+	// 20 at the start, 5 more refilled in 15 s, and what two nodes take in
+	// the second a count travels.
+	if passed > 20+5+8 {
+		t.Errorf("%d requests passed, %d were limited: the limit of 20 a minute counted per node", passed, limited)
+	}
+	if passed < 20 {
+		t.Errorf("only %d requests passed: the group is stricter than the limit", passed)
+	}
+}

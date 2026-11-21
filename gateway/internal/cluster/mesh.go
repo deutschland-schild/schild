@@ -14,6 +14,7 @@ import (
 	"net"
 	"net/http"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	contract "github.com/deutschland-schild/schild/contract/cluster"
@@ -31,6 +32,7 @@ const (
 	pathHello  = "/mesh/v0/hello"
 	pathLock   = "/mesh/v0/lock"
 	pathUnlock = "/mesh/v0/unlock"
+	pathTell   = "/mesh/v0/tell"
 	// maxBatch bounds the records of one answer.
 	maxBatch = 500
 	maxBody  = 1 << 20
@@ -66,6 +68,9 @@ type helloRequest struct {
 type joinResponse struct {
 	Group   string            `json:"group"`
 	Records []json.RawMessage `json:"records"`
+	// HashKey is the group's hash key (setup.go), in the answer to a join
+	// only: a node set up by configuration derives it itself.
+	HashKey string `json:"hash_key,omitempty"`
 }
 
 func (n *Node) listen() (*http.Server, net.Listener, error) {
@@ -79,6 +84,7 @@ func (n *Node) listen() (*http.Server, net.Listener, error) {
 	mux.HandleFunc("POST "+pathHello, n.serveHello)
 	mux.HandleFunc("POST "+pathLock, n.serveLock)
 	mux.HandleFunc("POST "+pathUnlock, n.serveUnlock)
+	mux.HandleFunc("POST "+pathTell, n.serveTell)
 	srv := &http.Server{Handler: mux, ReadHeaderTimeout: 5 * time.Second, IdleTimeout: 2 * time.Minute, MaxHeaderBytes: 16 << 10,
 		TLSConfig: &tls.Config{MinVersion: tls.VersionTLS13, Certificates: []tls.Certificate{n.cert},
 			// Any certificate may connect; the handlers decide by its key
@@ -195,6 +201,9 @@ func (n *Node) serveJoin(w http.ResponseWriter, r *http.Request) {
 	n.wake()
 	n.log.Info("cluster: member joined", "name", req.Name, "node", contract.NodeID(key), "address", req.Address)
 	out := joinResponse{Group: n.group}
+	if hk, err := n.meta(metaHashKey); err == nil {
+		out.HashKey = base64.StdEncoding.EncodeToString(hk)
+	}
 	for _, raw := range raws {
 		out.Records = append(out.Records, raw)
 	}
@@ -378,6 +387,10 @@ type peer struct {
 	// inSeq is how far this peer said it is with the records of this node,
 	// in its last call.
 	inSeq uint64
+	// telling: a Tell to this peer is in flight; tellClient keeps its
+	// connection.
+	telling    atomic.Bool
+	tellClient *http.Client
 }
 
 // syncPeers starts a loop for every gateway of the roster and stops the
@@ -546,4 +559,94 @@ func ms(t time.Time) int64 {
 		return 0
 	}
 	return t.UnixMilli()
+}
+
+// Tell and OnTell carry what is said once and never stored: the counts a
+// node saw in the last second. A peer that is away misses it; that costs a
+// second of counting and nothing else.
+
+type tellRequest struct {
+	Kind string          `json:"kind"`
+	Body json.RawMessage `json:"body"`
+}
+
+// maxTell bounds one message.
+const maxTell = 1 << 20
+
+// OnTell registers f for messages of a kind; from is the id of the sender.
+func (n *Node) OnTell(kind string, f func(from string, body []byte)) {
+	n.hmu.Lock()
+	if n.tells == nil {
+		n.tells = map[string]func(string, []byte){}
+	}
+	n.tells[kind] = f
+	n.hmu.Unlock()
+}
+
+// Tell sends body to every gateway this node reached lately, each in its
+// own goroutine with one second to answer, and returns at once. A peer that
+// still works on the message before gets none.
+func (n *Node) Tell(ctx context.Context, kind string, body []byte) {
+	if len(body) > maxTell {
+		return
+	}
+	n.pmu.Lock()
+	now := n.now()
+	var to []*peer
+	for _, p := range n.peers {
+		p.mu.Lock()
+		ok := !p.outOK.IsZero() && now.Sub(p.outOK) < reachable
+		p.mu.Unlock()
+		if ok && p.telling.CompareAndSwap(false, true) {
+			to = append(to, p)
+		}
+	}
+	n.pmu.Unlock()
+	for _, p := range to {
+		go func(p *peer) {
+			defer p.telling.Store(false)
+			c := p.teller(n.cert)
+			tctx, cancel := context.WithTimeout(ctx, time.Second)
+			defer cancel()
+			var out struct{}
+			_ = postJSON(tctx, c, "https://"+p.address+pathTell, tellRequest{Kind: kind, Body: body}, &out)
+		}(p)
+	}
+}
+
+func (p *peer) teller(cert tls.Certificate) *http.Client {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	if p.tellClient == nil {
+		key := p.key
+		p.tellClient = meshClient(cert, func(k ed25519.PublicKey) bool { return k.Equal(key) }, 2*time.Second)
+	}
+	return p.tellClient
+}
+
+func (n *Node) serveTell(w http.ResponseWriter, r *http.Request) {
+	key, ok := peerKey(r.TLS)
+	if !ok {
+		http.Error(w, "no key", http.StatusForbidden)
+		return
+	}
+	id, ok := n.activeKey(key, contract.RoleGateway)
+	if !ok {
+		n.refuse(w, key)
+		return
+	}
+	var req tellRequest
+	d := json.NewDecoder(http.MaxBytesReader(w, r.Body, maxTell+4096))
+	if err := d.Decode(&req); err != nil {
+		http.Error(w, "bad request", http.StatusBadRequest)
+		return
+	}
+	n.hmu.Lock()
+	f := n.tells[req.Kind]
+	n.hmu.Unlock()
+	if f != nil {
+		f(id, req.Body)
+	}
+	w.Header().Set("Content-Type", "application/json")
+	_, _ = w.Write([]byte("{}"))
 }
