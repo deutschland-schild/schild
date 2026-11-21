@@ -257,11 +257,13 @@ func (c *checker) checkFirewall() {
 	var rs, rs6 *Ruleset // IPv4 and IPv6
 	src := ""
 	var rerr error
+	nftEmpty, noIptables := false, false
 	if res, err := c.env.Run(c.ctx, CmdNft); err == nil && res.Exit == 0 && len(bytes.TrimSpace(res.Stdout)) > 0 {
 		r, r6 := ParseNftFamily(res.Stdout, "ip"), ParseNftFamily(res.Stdout, "ip6")
 		rs, rs6, src = &r, &r6, "nft"
 	} else {
 		rerr = err
+		nftEmpty = err == nil && res.Exit == 0
 		if res2, err2 := c.env.Run(c.ctx, CmdIptablesSave); err2 == nil && res2.Exit == 0 && len(bytes.TrimSpace(res2.Stdout)) > 0 {
 			r := ParseIptablesSave(res2.Stdout)
 			rs, src, rerr = &r, "iptables", nil
@@ -270,12 +272,18 @@ func (c *checker) checkFirewall() {
 				r6 := ParseIptablesSave(res6.Stdout)
 				rs6 = &r6
 			}
-		} else if rerr == nil || readErr(rerr) == ReasonNotInstalled {
+		} else if noIptables = err2 == ErrNotInstalled; rerr == nil || readErr(rerr) == ReasonNotInstalled {
 			rerr = err2
 			if err2 == nil {
 				rerr = errPermissionLike
 			}
 		}
+	}
+	// nft answered as root with no table at all and there is no iptables
+	// that could hold rules nft does not show: the host has no rules. That
+	// is a result ("Keine Firewall aktiv"), not an unreadable ruleset.
+	if rs == nil && nftEmpty && noIptables && c.env.IsRoot() {
+		rs, rs6, src, rerr = &Ruleset{}, &Ruleset{}, "nft", nil
 	}
 	if rs != nil && rs.Docker {
 		c.facts.dockerPresent = true

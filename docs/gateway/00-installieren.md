@@ -5,7 +5,7 @@ description: "Schild Gateway installieren: als Caddy-Distribution oder hinter ng
 
 # Schild Gateway installieren
 
-**Status:** Alpha · Stand 20.11.2026 · technische Quelle: [gateway/README.md](../../gateway/README.md)
+**Status:** Alpha · Stand 21.11.2026 · technische Quelle: [gateway/README.md](../../gateway/README.md)
 
 **Kurz:**
 
@@ -402,7 +402,8 @@ Schild prüft nur, was über Schild kommt. Deine Anwendung darf deshalb von auß
 3. **Eigene Adresse freischalten:** in einer SSH-Sitzung auf dem Server mit `sudo schild allow "${SSH_CONNECTION%% *}"`. Die Variable enthält die Adresse, von der deine SSH-Verbindung kommt. Bist du direkt als root angemeldet, reicht `schild allow --mine`. Hinter `sudo` findet `--mine` die Adresse nicht, weil `sudo` die Variable nicht weitergibt. Mit Docker: `docker exec schild schild allow <deine-adresse>`, denn im Container kennt Schild deine SSH-Verbindung nicht.
 4. **Nachsehen, ob Traffic ankommt.** Als Caddy-Distribution zeigt das Dashboard sofort Anfragen. Hinter nginx, Apache oder einem Load Balancer erst, wenn dein Webserver [an Port 8080 weitergibt](#traffic-über-schild-leiten).
 5. **Hinschauen.** Unter „Ereignisse“ siehst du, was gestoppt und was nur erkannt wurde, unter „Sperren“, welche Adressen gerade gesperrt sind. Fehlalarme löst du mit einer [Ausnahme](01-funktionen.md#ausnahmen). Bei einer empfindlichen Anwendung stellst du das Core Rule Set vorher für ein paar Tage auf „erkennen“, unter „Regeln“ oder mit `rules.crs.state: detect`.
-6. **Mehr sperren.** Den CrowdSec Hub und die Limits, die ab Werk nur mitzählen, stellst du einzeln um, siehe [Was sperrt](02-betrieb.md#was-sperrt). Die Szenarien stehen ab Werk auf der Empfehlung: Vier sperren, „Aggressives Abrufen“ beobachtet. Sie sperren erst nach 14 Tagen Lernzeit ab dem ersten Start.
+6. **Server-Check einrichten.** Ein Befehl auf dem Server, dann zeigt das Dashboard unter „Server“ ausstehende Updates, offene Ports, Firewall, SSH, Zertifikate und Logs: [Server-Check einrichten](02-betrieb.md#server-check-einrichten).
+7. **Mehr sperren.** Den CrowdSec Hub und die Limits, die ab Werk nur mitzählen, stellst du einzeln um, siehe [Was sperrt](02-betrieb.md#was-sperrt). Die Szenarien stehen ab Werk auf der Empfehlung: Vier sperren, „Aggressives Abrufen“ beobachtet. Sie sperren erst nach 14 Tagen Lernzeit ab dem ersten Start.
 
 ### Was Schild mit deinem Traffic macht
 

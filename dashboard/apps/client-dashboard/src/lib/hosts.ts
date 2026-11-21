@@ -3,7 +3,7 @@
  * Everything here is pure: German copy, ordering, evidence formatting, fingerprint handling.
  */
 import type { MetaItem, StatusTone } from '@schild/ui'
-import type { HostSummary, HostReport, HostFinding, InventoryItem, Severity, SeverityCounts, ServersSummary, Agent } from '@/api/hosts'
+import type { AcceptedFinding, HostSummary, HostReport, HostFinding, InventoryItem, Severity, SeverityCounts, ServersSummary, Agent } from '@/api/hosts'
 import { formatBytes, formatNumber, formatRelative } from '@schild/ui'
 import { plural } from './summary'
 
@@ -204,26 +204,51 @@ export function sortFindings(list: HostFinding[]): HostFinding[] {
   return [...list].sort((a, b) => rank(a) - rank(b) || a.title.localeCompare(b.title, 'de'))
 }
 
+/** Key of a finding within a report: check id plus subject. */
+export function findingKey(f: { id: string, subject?: string | null }): string {
+  return `${f.id}:${f.subject ?? ''}`
+}
+
+const SEVERITY_RANK: Record<Severity, number> = { info: 0, low: 1, medium: 2, high: 3, critical: 4 }
+
+/**
+ * Accepted findings in force (D102), keyed like the findings of the report: an acceptance covers
+ * a finding of the same check and subject at the accepted severity or lower, never a higher one.
+ */
+export function acceptedInForce(report: HostReport | null | undefined, accepted: AcceptedFinding[] | undefined): Map<string, AcceptedFinding> {
+  const by = new Map((accepted ?? []).map(a => [findingKey(a), a]))
+  const out = new Map<string, AcceptedFinding>()
+  for (const f of report?.findings ?? []) {
+    const a = by.get(findingKey(f))
+    if (f.status === 'finding' && a && SEVERITY_RANK[f.severity] <= SEVERITY_RANK[a.severity]) out.set(findingKey(f), a)
+  }
+  return out
+}
+
 export interface AreaGroup {
   id: Area
   label: string
   hint: string
   open: HostFinding[]
+  /** Open in the report, accepted by the admin (D102): not counted as open. */
+  accepted: HostFinding[]
   unreadable: HostFinding[]
   ok: HostFinding[]
 }
 
 /** Group a report by area in page order; areas the report does not cover are left out. */
-export function groupByArea(report: HostReport): AreaGroup[] {
+export function groupByArea(report: HostReport, accepted?: AcceptedFinding[]): AreaGroup[] {
+  const inForce = acceptedInForce(report, accepted)
   return AREAS.map((a) => {
     const all = sortFindings(report.findings.filter(f => f.area === a.id))
     return {
       ...a,
-      open: all.filter(f => f.status === 'finding'),
+      open: all.filter(f => f.status === 'finding' && !inForce.has(findingKey(f))),
+      accepted: all.filter(f => f.status === 'finding' && inForce.has(findingKey(f))),
       unreadable: all.filter(f => f.status === 'unreadable'),
       ok: all.filter(f => f.status === 'ok'),
     }
-  }).filter(g => g.open.length || g.unreadable.length || g.ok.length || (g.id === 'software' && report.inventory.length))
+  }).filter(g => g.open.length || g.accepted.length || g.unreadable.length || g.ok.length || (g.id === 'software' && report.inventory.length))
 }
 
 /** Open findings above "info" (what the counts call findings). */

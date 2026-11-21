@@ -291,6 +291,33 @@ describe('Server section', () => {
     wrapper.unmount()
   })
 
+  it('marks a finding as accepted with a note and opens it again (D102)', async () => {
+    const { wrapper } = await mountApp('/server/check')
+    await waitFor(() => !!byTestId('host-detail') && all('[data-testid="finding"]').length > 0)
+    const local = () => mock.state.hosts.hosts.get('local')!
+    const openBefore = all('[data-testid="finding"]').length
+    expect(byTestId('accepted-list')).toBeNull()
+    const first = all('[data-testid="finding"]')[0]!
+    const title = first.getAttribute('aria-label')!
+    await click(first.querySelector('[data-testid="accept-open"]'))
+    await waitFor(() => !!byTestId('accept-form'))
+    // Nothing is accepted before the form is sent.
+    expect(local().accepted).toHaveLength(0)
+    await type(byTestId('accept-note'), 'Firewall des Hosters davor')
+    await click(byTestId('accept-confirm'))
+    await waitFor(() => local().accepted.length === 1 && all('[data-testid="finding-accepted"]').length === 1)
+    expect(local().accepted[0]!.note).toBe('Firewall des Hosters davor')
+    expect(all('[data-testid="finding"]')).toHaveLength(openBefore - 1)
+    const accepted = byTestId('finding-accepted')!
+    expect(accepted.textContent).toContain(title)
+    expect(byTestId('accepted-note')!.textContent).toContain('Firewall des Hosters davor')
+    expect(byTestId('host-summary')!.textContent).toContain('1 Befund akzeptiert')
+    await click(accepted.querySelector('[data-testid="reopen"]'))
+    await waitFor(() => local().accepted.length === 0 && all('[data-testid="finding"]').length === openBefore)
+    expect(byTestId('finding-accepted')).toBeNull()
+    wrapper.unmount()
+  })
+
   it('explains agents when there are none yet', async () => {
     mock.reset({ scenario: 'empty' })
     const { wrapper } = await mountApp('/server/check')

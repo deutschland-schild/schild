@@ -10,6 +10,16 @@ The section of a version becomes the text of its GitHub release, so its heading 
 
 - Strictness (paranoia level) and blocking threshold of the OWASP CRS are set in the dashboard (D101): "Strenge und Schwelle anpassen" on the page of the CRS. A change holds at once, without a restart, and wins over `schild.yaml`; "Werte aus schild.yaml einsetzen" gives both back to the file. A threshold above 5 points is named on the page, because a request with a single critical hit then passes.
 
+### Server check
+
+- `schild check install` sets the server check up with one command (D100): as root on the host it writes the systemd units from the binary, enables the daily run and "Jetzt prüfen" and runs the first check. For a gateway in Docker: `docker cp <container>:/usr/local/bin/schild /tmp/schild && sudo /tmp/schild check install`. `schild check uninstall` removes the units. The docs describe it under "Server-Check einrichten".
+- "Jetzt prüfen" no longer gets stuck when `schild.yaml` does not load: the check removes the request before it reads the config.
+- A server without any firewall rule and without iptables is reported as "Keine Firewall aktiv" instead of "nicht lesbar".
+- The dashboard names the install command where the server check is not set up yet, and the overview shows the Server card only once a report exists.
+- Findings can be marked as accepted in the dashboard, with a note (D102): for example an open port that a firewall in front of the server closes. An accepted finding no longer counts as open, stays listed and can be opened again; it is open by itself when the check reports it with a higher severity.
+- `schild init` and the quickstart files turn the Server section on (`host_check: {}`); the compose templates carry the mounts of the server check as comments.
+- A report written in the same second as the one before is no longer skipped by the gateway.
+
 ## 0.1.0-alpha.4
 
 ### Release

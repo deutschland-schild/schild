@@ -71,6 +71,11 @@ func Check(prog string, args []string) int {
 		fmt.Fprintln(os.Stderr, prog+": --fail-on low|medium|high|critical")
 		return ExitCheckUsage
 	}
+	// First of all, before anything can fail: a request file left behind
+	// would make schild-check.path start this unit again and again.
+	if *trigger != "" {
+		_ = os.Remove(*trigger)
+	}
 	reportDir, keepN, caddy := hostcheck.DefaultReportDir, 30, ""
 	path := *cfgPath
 	if path == "" {
@@ -105,9 +110,6 @@ func Check(prog string, args []string) int {
 	}
 	if *caddyfile != "" {
 		caddy = *caddyfile
-	}
-	if *trigger != "" {
-		_ = os.Remove(*trigger)
 	}
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()

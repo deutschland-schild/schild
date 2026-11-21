@@ -5,7 +5,7 @@ description: "Was das Schild Gateway heute kann und wie es selbst abgesichert is
 
 # Schild Gateway: alle Funktionen
 
-**Status:** Alpha · Stand 19.11.2026 · technische Quelle: [gateway/README.md](../../gateway/README.md)
+**Status:** Alpha · Stand 21.11.2026 · technische Quelle: [gateway/README.md](../../gateway/README.md)
 
 **Kurz:**
 
@@ -301,7 +301,7 @@ Hinweise bekommst du zum Beispiel, wenn die Festplatte in den nächsten 14 Tagen
 
 ## Server-Check
 
-Der Server-Check liest nur und ändert nichts. Er läuft täglich oder auf Knopfdruck („Jetzt prüfen“) und prüft:
+Der Server-Check liest nur und ändert nichts. Du richtest ihn mit einem Befehl ein ([Server-Check einrichten](02-betrieb.md#server-check-einrichten)). Danach läuft er täglich oder auf Knopfdruck („Jetzt prüfen“) und prüft:
 
 - **System:** Ende des Supports der Distribution, veralteter Kernel, ausstehende Sicherheitsupdates und andere Updates, automatische Updates, ob ein Neustart fällig ist.
 - **Netz:** öffentlich erreichbare Dienste, offene Docker-API, Admin-Oberflächen, Firewall an und Standard für eingehende Verbindungen (für IPv4 und, wenn der Server eine öffentliche IPv6-Adresse hat, für IPv6), Ports, die Docker an der Firewall vorbei öffnet.
@@ -313,6 +313,8 @@ Der Server-Check liest nur und ändert nichts. Er läuft täglich oder auf Knopf
 ![Schild Dashboard, Server-Check für web-1: Befunde zu Updates und offenen Ports, jeweils mit Schwere, Erklärung und dem Befehl zum Beheben, dazu erfüllte Prüfungen wie automatische Sicherheitsupdates. Testdaten.](../../site/public/img/dashboards/doku-server-check.webp)
 
 Zu jedem Befund gibt es eine Erklärung und den Befehl zum Beheben. Ausführen tust du ihn selbst.
+
+Manche Befunde stimmen für den Server und sind für dich trotzdem in Ordnung. Ein Beispiel: Die Datenbank lauscht auf einer öffentlichen Adresse, aber die Firewall deines Hosters lässt den Port nicht durch. Die sieht der Check auf dem Server nicht. Solche Befunde markierst du im Dashboard als akzeptiert, auf Wunsch mit einer Notiz. Sie zählen dann nicht mehr als offen und bleiben unter „Akzeptiert“ sichtbar. Meldet der Check einen akzeptierten Befund später mit einer höheren Stufe, ist er wieder offen.
 
 ## Agent-API für KI-Agenten
 

@@ -1,5 +1,6 @@
 # What a compose file of the gateway gains for the server check and the
-# agents (agents are not part of the first version, D60b). Merge it into
+# agents (agents are not part of the first version, D60b). The host side
+# (units, report dir) comes from `sudo schild check install`. Merge it into
 # /etc/schild-prod/<site>/compose.yaml of the gateway, or pass it as a second
 # file: docker compose -p schild-shop -f compose.yaml -f host-check-compose.yaml up -d
 #
@@ -11,7 +12,7 @@
 #   host_check.agents.listen, which has no default: set the gateway's address
 #   in the app VMs' private network (e.g. 192.0.2.10:8790), never 0.0.0.0 on a
 #   public host. network_mode is host (section 9.3), so that address is the
-#   host's: still let only the app VMs reach it (firewall, runbook 17.4).
+#   host's: still let only the app VMs reach it (firewall).
 # - The agent listener's certificate and key are read-only too; agents pin the
 #   certificate (sha256 of the DER bytes), so a self-signed one is fine.
 # - "Jetzt prüfen" (optional): schild writes /run/schild-check/request, the

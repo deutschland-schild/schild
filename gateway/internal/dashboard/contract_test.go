@@ -122,8 +122,9 @@ func TestFixturesRoundTrip(t *testing.T) {
 		"getSettings": {"Settings", dashboard.Settings{}}, "getSession": {"Session", dashboard.Session{}}, "privacySearch": {"PrivacySummary", dashboard.PrivacySummary{}},
 		"privacyDelete": {"PrivacyDeleteResult", dashboard.PrivacyDeleteResult{}},
 		// v0.3 (MVP-11): types of the hosts package, served unchanged.
-		"listHosts": {"HostPage", hosts.HostPage{}}, "getHost": {"HostDetail", hosts.HostDetail{}}, "runLocalCheck": {"LocalCheckRun", hosts.LocalCheckRun{}},
-		"listAgents": {"AgentPage", hosts.AgentPage{}}, "createEnrolment": {"Enrolment", hosts.Enrolment{}}, "confirmAgent": {"Agent", hosts.Agent{}},
+		"listHosts": {"HostPage", hosts.HostPage{}}, "getHost": {"HostDetail", hosts.HostDetail{}}, "acceptHostFinding": {"HostDetail", hosts.HostDetail{}}, "reopenHostFinding": {"HostDetail", hosts.HostDetail{}},
+		"runLocalCheck": {"LocalCheckRun", hosts.LocalCheckRun{}},
+		"listAgents":    {"AgentPage", hosts.AgentPage{}}, "createEnrolment": {"Enrolment", hosts.Enrolment{}}, "confirmAgent": {"Agent", hosts.Agent{}},
 		"revokeAgent": {"Agent", hosts.Agent{}},
 		// v0.4 (MVP-17)
 		"listBehaviourHits": {"BehaviourHitPage", dashboard.BehaviourHitPage{}}, "getBehaviourHit": {"BehaviourHitDetail", dashboard.BehaviourHitDetail{}},

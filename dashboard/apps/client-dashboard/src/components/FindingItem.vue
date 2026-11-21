@@ -1,8 +1,8 @@
 <script setup lang="ts">
-import type { FindingAnnotation, HostFinding } from '@/api/hosts'
-import { CommandBlock, formatRelative, MetaLine, Tag } from '@schild/ui'
-import { CircleCheck, TriangleAlert } from '@lucide/vue'
-import { computed } from 'vue'
+import type { AcceptedFinding, FindingAnnotation, HostFinding } from '@/api/hosts'
+import { Button, CommandBlock, formatRelative, Input, MetaLine, Tag } from '@schild/ui'
+import { CircleCheck, CircleSlash, TriangleAlert } from '@lucide/vue'
+import { computed, ref, useId } from 'vue'
 import { evidenceItems, fixConfigApply, needsText, SEVERITY, UNREADABLE_REASON } from '@/lib/hosts'
 
 /**
@@ -18,8 +18,32 @@ import { evidenceItems, fixConfigApply, needsText, SEVERITY, UNREADABLE_REASON }
  * fix_config (v0.5, D38): a config file as the fix (area logs), shown as path plus content with a copy
  * button and the step that applies it. The gateway only accepts fix_config rendered from its own
  * templates (host-check.md section 2), in agent reports too, so it is always offered for copying.
+ *
+ * Accepted findings (D102): an open finding can be marked as accepted with an optional note, for
+ * example when a firewall in front of the server closes a port the check sees as open. `accepted`
+ * given: the finding is shown as accepted, with the note and the way back. The check itself and
+ * its report stay as they are.
  */
-const props = defineProps<{ finding: HostFinding, checkedAt: string, annotation?: FindingAnnotation | null }>()
+const props = defineProps<{
+  finding: HostFinding
+  checkedAt: string
+  annotation?: FindingAnnotation | null
+  /** The acceptance in force for this finding. */
+  accepted?: AcceptedFinding | null
+  /** Offer "Als akzeptiert markieren" (open findings of a host the admin may change). */
+  acceptable?: boolean
+  /** A change for this finding is on its way. */
+  busy?: boolean
+}>()
+const emit = defineEmits<{ accept: [note: string], reopen: [] }>()
+const asking = ref(false)
+const note = ref('')
+const noteId = useId()
+function submit() {
+  emit('accept', note.value.trim())
+  asking.value = false
+  note.value = ''
+}
 const f = computed(() => props.finding)
 const fromAgent = computed(() => props.annotation !== undefined)
 const title = computed(() => props.annotation?.title ?? f.value.title)
@@ -58,6 +82,28 @@ const unreadable = computed(() => {
       </p>
       <MetaLine :items="meta" class="mt-0.5" />
     </div>
+  </div>
+
+  <div v-else-if="accepted" class="flex gap-2.5 py-2" data-testid="finding-accepted">
+    <CircleSlash class="mt-0.5 size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+    <div class="min-w-0 flex-1">
+      <p class="font-semibold">
+        <span class="sr-only">Akzeptiert: </span>{{ title }}
+        <Tag tone="neutral" class="ml-1 align-middle">
+          <span class="sr-only">Stufe: </span>{{ SEVERITY[f.severity].label }}
+        </Tag>
+      </p>
+      <p class="text-muted-foreground">
+        {{ explanation }}
+      </p>
+      <p v-if="accepted.note" data-testid="accepted-note">
+        <span class="font-semibold">Deine Notiz: </span>{{ accepted.note }}
+      </p>
+      <MetaLine :items="[...meta, `akzeptiert ${formatRelative(accepted.accepted_at)}`]" class="mt-0.5" />
+    </div>
+    <Button type="button" variant="ghost" size="sm" class="shrink-0" :disabled="busy" data-testid="reopen" @click="emit('reopen')">
+      Wieder öffnen
+    </Button>
   </div>
 
   <article
@@ -120,5 +166,27 @@ const unreadable = computed(() => {
       </p>
       <pre class="min-w-0 rounded-lg border border-status-warning/40 bg-muted px-3 py-2 font-mono text-[12.5px] leading-relaxed break-all whitespace-pre-wrap text-muted-foreground"><code data-testid="unverified-fix-text">{{ f.fix_command }}</code></pre>
     </div>
+    <template v-if="acceptable && f.status === 'finding'">
+      <form v-if="asking" class="space-y-2 border-t pt-2.5" data-testid="accept-form" @submit.prevent="submit">
+        <label :for="noteId" class="block text-xs font-semibold">Warum ist das für dich in Ordnung? (freiwillig)</label>
+        <Input :id="noteId" v-model="note" maxlength="200" placeholder="z. B. Firewall des Hosters lässt den Port nicht durch" data-testid="accept-note" />
+        <p class="text-xs text-muted-foreground">
+          Der Befund zählt dann nicht mehr als offen und bleibt unter „Akzeptiert“ sichtbar. Meldet der Check ihn später mit einer höheren Stufe, ist er wieder offen.
+        </p>
+        <div class="flex flex-wrap gap-2">
+          <Button type="submit" size="sm" :disabled="busy" data-testid="accept-confirm">
+            Akzeptieren
+          </Button>
+          <Button type="button" variant="ghost" size="sm" @click="asking = false">
+            Abbrechen
+          </Button>
+        </div>
+      </form>
+      <div v-else class="border-t pt-2">
+        <Button type="button" variant="ghost" size="sm" class="h-auto px-0 text-muted-foreground" :disabled="busy" data-testid="accept-open" @click="asking = true">
+          Als akzeptiert markieren
+        </Button>
+      </div>
+    </template>
   </article>
 </template>

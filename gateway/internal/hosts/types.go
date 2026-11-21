@@ -34,8 +34,11 @@ type HostSummary struct {
 	IntervalMinutes *int           `json:"interval_minutes"`
 	DurationMS      *int64         `json:"duration_ms"`
 	Counts          SeverityCounts `json:"counts"`
-	Unreadable      int64          `json:"unreadable"`
-	OS              *HostOS        `json:"os"`
+	// Accepted: findings of the newest report that are accepted (D102)
+	// and therefore not in Counts.
+	Accepted   int64   `json:"accepted"`
+	Unreadable int64   `json:"unreadable"`
+	OS         *HostOS `json:"os"`
 }
 
 // HostPage is listHosts.
@@ -65,6 +68,8 @@ type HostDetail struct {
 	Report       json.RawMessage `json:"report"`
 	History      []HostReportRef `json:"history"`
 	LastRejected *Rejected       `json:"last_rejected"`
+	// Accepted findings of this host (D102), newest first.
+	Accepted []AcceptedFinding `json:"accepted"`
 	// Annotations (agent hosts only, v0.3 amendment): the gateway's own
 	// text per finding, same order as report.findings.
 	Annotations []FindingAnnotation `json:"annotations,omitempty"`
@@ -120,6 +125,10 @@ type Enrolment struct {
 
 // ServersSummary is Overview.servers.
 type ServersSummary struct {
+	// Reported: at least one host has a report. Not part of the API: the
+	// overview shows no Server card before the first report (D100), a
+	// card saying "keine offenen Befunde" would claim a check that never ran.
+	Reported      bool           `json:"-"`
 	Hosts         int64          `json:"hosts"`
 	Findings      SeverityCounts `json:"findings"`
 	Silent        int64          `json:"silent"`

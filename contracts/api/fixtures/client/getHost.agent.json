@@ -17,6 +17,7 @@
       "low": 1,
       "info": 0
     },
+    "accepted": 0,
     "unreadable": 2,
     "os": {
       "name": "Ubuntu 24.04.1 LTS",
@@ -287,5 +288,6 @@
       "explanation": "Der Check liest die Version erkannter Anwendungen (WordPress, TYPO3, Laravel, Nextcloud) unter den angegebenen Pfaden.",
       "fix_verified": false
     }
-  ]
+  ],
+  "accepted": []
 }

@@ -17,6 +17,7 @@
       "low": 1,
       "info": 1
     },
+    "accepted": 0,
     "unreadable": 0,
     "os": {
       "name": "Debian GNU/Linux 12 (bookworm)",
@@ -309,5 +310,6 @@
       }
     }
   ],
-  "last_rejected": null
+  "last_rejected": null,
+  "accepted": []
 }

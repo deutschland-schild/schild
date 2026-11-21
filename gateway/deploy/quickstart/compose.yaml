@@ -42,6 +42,12 @@ services:
     volumes:
       - ./schild.yaml:/etc/schild/schild.yaml:ro
       - schild-data:/var/lib/schild
+      # Server check (after "sudo schild check install" on the host): the
+      # reports, read only, and the request directory of "Jetzt prüfen".
+      # - /var/lib/schild/host-check:/var/lib/schild/host-check:ro
+      # - /run/schild-check:/run/schild-check
+    # environment:
+    #   SCHILD_HOST_CHECK_TRIGGER: /run/schild-check/request
     # Container logs stay bounded: at most 5 files of 10 MB.
     logging:
       options:

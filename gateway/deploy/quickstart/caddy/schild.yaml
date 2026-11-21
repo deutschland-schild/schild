@@ -35,3 +35,11 @@ listen:
   # publishes it on the host's 127.0.0.1 only. Keep it that way: never
   # publish port 8788 on a public address.
   dashboard: "0.0.0.0:8788"
+
+# The server check: schild shows the reports of "schild check" under "Server"
+# in the dashboard. The check runs on the host, not in the container, and
+# reads only. Set it up once (docs: "Server-Check einrichten"):
+#   docker cp <container>:/usr/local/bin/schild /tmp/schild
+#   sudo /tmp/schild check install
+# and remove the "#" of the server check lines in compose.yaml.
+host_check: {}

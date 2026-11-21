@@ -1,11 +1,11 @@
 ---
 short: Betrieb
-description: "Einbauen als Caddy-Distribution oder hinter nginx, beobachten und einschalten, aktualisieren, die Agent-API, Schalter und Regeln einstellen, was bei einem Ausfall passiert, der Weg zurück in einer Minute, welche Daten wo bleiben, Befehle und bekannte Grenzen."
+description: "Einbauen als Caddy-Distribution oder hinter nginx, beobachten und einschalten, aktualisieren, die Agent-API, Schalter und Regeln einstellen, den Server-Check einrichten, was bei einem Ausfall passiert, der Weg zurück in einer Minute, welche Daten wo bleiben, Befehle und bekannte Grenzen."
 ---
 
 # Schild Gateway betreiben
 
-**Status:** Alpha · Stand 20.11.2026 · technische Quelle: [gateway/README.md](../../gateway/README.md)
+**Status:** Alpha · Stand 21.11.2026 · technische Quelle: [gateway/README.md](../../gateway/README.md)
 
 **Kurz:**
 
@@ -81,6 +81,8 @@ Schild aktualisiert sich nie von allein. Was sich geändert hat, steht bei jedem
 - **Docker Compose:** die Versionsnummer des Images in `compose.yaml` ändern, dann `docker compose pull && docker compose up -d`.
 - **Paket:** `sudo apt update && sudo apt install schild`, dann `sudo systemctl restart schild`. apt tauscht nur die Dateien. Den Neustart machst du selbst, bis dahin läuft die alte Version weiter: Als Caddy-Distribution ist Schild dein Webserver, und ein Neustart ist ein kurzer Moment ohne Antwort auf Port 443. Auch `sudo apt upgrade` nimmt Schild mit. Die automatischen Sicherheitsupdates von Debian und Ubuntu (`unattended-upgrades`) fassen in ihrer Standardeinstellung nur Pakete der Distribution an, Schild also nicht.
 - **Binary:** das neue Archiv laden und prüfen wie bei der Installation, dann `sudo install -m 0755 schild /usr/local/bin/schild`, die Geodaten (`sudo install -m 0644 geo/* /usr/share/schild/geo/`) und bei Änderungen die Unit-Dateien (`sudo install -m 0644 schild.service /etc/systemd/system/schild.service` und ggf. `schild-firewall.service`, danach `sudo systemctl daemon-reload`) aktualisieren und `sudo systemctl restart schild` ausführen.
+
+Hast du mit Docker den [Server-Check eingerichtet](#server-check-einrichten), liegt eine Kopie des Binarys auf dem Server. Hol sie nach dem Update neu: `docker cp schild:/usr/local/bin/schild /tmp/schild && sudo /tmp/schild check install`. Bei Paket und Binary prüft der Check von selbst mit der neuen Version.
 
 Passwort, freigeschaltete Adressen, Ausnahmen und Einstellungen liegen in `schild.db` im Datenverzeichnis und bleiben bei einem Update erhalten. Deine `schild.yaml` fasst Schild nicht an.
 
@@ -246,6 +248,56 @@ Die Unit `schild-firewall.service` aus dem Release-Archiv (oder `docs/ops/system
 - **Docker und IPv6:** Im Bridge-Netz mit `network_mode: service:schild` filtert die Tabelle im Netzwerk-Namespace des Containers. Bei Dockers Standardeinstellung (`userland-proxy`) kommen IPv6-Verbindungen oft über die Bridge-Adresse (`172.x.0.1`) im Container an statt mit der echten IPv6-Adresse der Besucher:innen. Dann greifen weder `blocked6` noch die IP-Zuordnung im WAF. Für echte IPv6-Filterung nutze `network_mode: host` (wie im Kamal-Beispiel oben) oder natives Docker-IPv6-Routing ohne `userland-proxy`.
 - **Nachsehen und ausschalten:** `schild firewall status` zeigt, was die Tabelle hält. Stoppst du den Firewall-Container, entfernt er die Tabelle. `schild firewall off` entfernt sie sofort.
 
+## Server-Check einrichten
+
+Der [Server-Check](01-funktionen.md#server-check) läuft als eigener Prozess direkt auf dem Server, weil er nur dort SSH, Firewall, Updates und Logs lesen kann. Einmal am Tag schreibt er einen Bericht in ein Verzeichnis, und das Gateway zeigt ihn im Dashboard unter „Server“. Ein Befehl richtet das ein: `schild check install` legt die systemd-Units an, schaltet den täglichen Lauf ein und startet die erste Prüfung.
+
+### Mit Docker
+
+Das Binary steckt im Image. Kopier es aus dem laufenden Container auf den Server und führ es einmal aus. `schild` ist in der ersten Zeile der Name deines Containers, `docker ps` zeigt ihn:
+
+```sh
+docker cp schild:/usr/local/bin/schild /tmp/schild
+sudo /tmp/schild check install
+```
+
+Der Befehl legt das Binary nach `/usr/local/bin/schild`. Danach gibst du dem Container zwei Verzeichnisse und eine Variable mit und startest ihn damit neu:
+
+```sh
+  -v /var/lib/schild/host-check:/var/lib/schild/host-check:ro \
+  -v /run/schild-check:/run/schild-check \
+  -e SCHILD_HOST_CHECK_TRIGGER=/run/schild-check/request \
+```
+
+In den `compose.yaml` aus `gateway/deploy/quickstart/` stehen diese Zeilen schon, mit einem `#` davor. Nimm es weg und führ `docker compose up -d` aus.
+
+In der `schild.yaml` braucht Schild die Zeile `host_check: {}`. Die Start-Konfiguration enthält sie. Fehlt sie in deiner Datei, trägst du sie nach und startest den Container neu.
+
+Im ersten Verzeichnis liegen die Berichte, der Container darf sie nur lesen. Über das zweite fordert „Jetzt prüfen“ im Dashboard einen Lauf an. Lässt du es weg, läuft der Check trotzdem einmal am Tag.
+
+Zwei Dinge gehören bei Docker dazu:
+
+- **Zertifikate.** Schilds Zertifikate liegen im Docker-Volume, dort sucht der Check nicht von selbst. Findet der Befehl ein solches Volume, nennt er dir die passende Zeile, zum Beispiel `sudo /tmp/schild check install -cert '/var/lib/docker/volumes/schild-data/_data/caddy/certificates/*/*/*.crt'`.
+- **Updates.** Nach einem Update des Images wiederholst du die beiden Befehle oben. Dann hat der Check auf dem Server dieselbe Version wie das Gateway.
+
+### Mit Paket oder Binary
+
+```sh
+sudo schild check install
+```
+
+Danach startest du Schild neu (`sudo systemctl restart schild`). Schild braucht dafür die Zeile `host_check: {}` in `/etc/schild/schild.yaml`. `schild init` schreibt sie hinein. Fehlt sie in deiner Datei, trägst du sie vorher nach. Der Befehl erkennt den Dienst `schild`, gibt dessen Gruppe Leserecht auf die Berichte und erlaubt dem Dienst, „Jetzt prüfen“ anzufordern. Schild startet er nicht neu, den Moment bestimmst du.
+
+### Was du wissen solltest
+
+- **Der Check liest nur.** Er ändert nichts am Server. Seine Unit lässt ihm dafür auch keine Rechte: Schreiben darf er nur in das Verzeichnis der Berichte. Was er nicht lesen kann, meldet er als „nicht lesbar“. `schild check -privileges` zeigt, was jede Prüfung liest.
+- **Anwendungen nennst du selbst.** WordPress, TYPO3, Laravel und Nextcloud sucht der Check nur unter Pfaden, die du angibst: `sudo schild check install -app /var/www/shop`, mehrere Pfade mit mehreren `-app`.
+- **Berichte bleiben auf dem Server.** Sie liegen in `/var/lib/schild/host-check`, aufbewahrt werden die letzten 30.
+- **Von Hand starten:** `sudo systemctl start schild-check.service`. Wann der nächste Lauf ansteht, zeigt `systemctl list-timers schild-check.timer`.
+- **Vorher ansehen:** `schild check install -dry-run` zeigt alle Dateien und Befehle und ändert nichts.
+- **Wieder entfernen:** `sudo schild check uninstall` nimmt die Units heraus. Berichte und Binary bleiben liegen.
+- **Ohne systemd** rufst du `schild check` aus deinem eigenen Zeitplaner auf, zum Beispiel per cron.
+
 ## Wenn Schild ausfällt
 
 - **Schild läuft nicht, hinter deinem Webserver** (Prozess beendet, Verbindung abgelehnt): Dein Webserver davor schickt die Anfragen direkt an die Anwendung. Die Website bleibt erreichbar, nur ohne Prüfung.
@@ -345,6 +397,7 @@ Für Alarme im Alltag sind besonders diese Metriken nützlich:
 | `schild rules sync crowdsec` | jetzt nach Updates im CrowdSec Hub schauen |
 | `schild rules reset crowdsec` | CrowdSec-Hub-Regeln auf den Stand des Programms zurücksetzen |
 | `schild check` | Server-Check auf diesem Server |
+| `schild check install`, `uninstall` | den täglichen Server-Check als systemd-Units einrichten oder wieder entfernen (siehe [Server-Check einrichten](#server-check-einrichten)) |
 | `schild firewall run`, `status`, `off` | Sperren von Schild in der Firewall halten, ansehen oder alle wieder herausnehmen (siehe [Sperren in der Firewall](#sperren-in-der-firewall)) |
 | `schild token …` | Tokens der [Agent-API](#agent-api-einschalten) anlegen, auflisten, widerrufen, Protokoll ansehen |
 | `schild dashboard setup-code` | den Einmal-Code für die erste Anmeldung noch einmal anzeigen, solange kein Passwort gesetzt ist |

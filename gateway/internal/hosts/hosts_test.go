@@ -701,3 +701,35 @@ func TestEnrolmentURLFromHostHeader(t *testing.T) {
 		t.Fatalf("command: %v %+v", err, en)
 	}
 }
+
+// TestLocalReportsOfTheSameSecond: two runs within one second (the first
+// check of `schild check install` and a "Jetzt prüfen" right after it) get
+// file names that differ only in the random report id. Whichever sorts
+// first, both are imported.
+func TestLocalReportsOfTheSameSecond(t *testing.T) {
+	now := time.Date(2026, 10, 27, 12, 0, 0, 0, time.UTC)
+	ctx := context.Background()
+	for _, firstID := range []string{"ffffffff-ffff-4fff-bfff-ffffffffffff", "00000000-0000-4000-8000-000000000000"} {
+		g := newGW(t, "gw-1", now, 30, "")
+		write := func(id string) {
+			r := hostcheck.Run(ctx, &hostcheck.FixtureEnv{Dir: "../hostcheck/testdata/hosts/debian12", Time: now}, hostcheck.Options{Role: hc.RoleGateway})
+			r.ReportID = id
+			b, err := hostcheck.Marshal(r)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if _, err := hostcheck.WriteReport(g.reportDir(), r, b, 30); err != nil {
+				t.Fatal(err)
+			}
+			if err := g.ScanLocal(ctx); err != nil {
+				t.Fatal(err)
+			}
+		}
+		write(firstID)
+		write("77777777-7777-4777-9777-777777777777")
+		d, err := g.Host(ctx, LocalID)
+		if err != nil || len(d.History) != 2 {
+			t.Fatalf("first report %s: %d reports imported, want 2 (%v)", firstID, len(d.History), err)
+		}
+	}
+}
