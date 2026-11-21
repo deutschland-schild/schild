@@ -3,6 +3,7 @@ package behaviour
 import (
 	"encoding/json"
 	"fmt"
+	"net/netip"
 	"testing"
 	"time"
 
@@ -231,5 +232,54 @@ func TestApplyCountsBoundsItsInput(t *testing.T) {
 	single.Check(req(c2, "203.0.113.5", "residential", "GET", "/api/items"))
 	if single.TakeCounts() != nil {
 		t.Error("an engine without sharing noted counts")
+	}
+}
+
+// A block set by hand or by an agent has no ladder memory. The sweep, which
+// runs every minute, must not take it while it runs.
+func TestSweepKeepsRunningBlocksWithoutLadder(t *testing.T) {
+	e, _, c := newEngine(modes(nil))
+	for name, src := range map[string]string{"by hand": DashboardSource, "by an agent": ""} {
+		ip := netip.MustParseAddr("203.0.113.77")
+		e.Release(ip)
+		e.SetAgentBlock(AgentBlock{IP: ip, TokenID: "tok_1", Source: src, NetClass: "residential", Duration: time.Hour, Incident: "S-1", Time: c.now()})
+		c.add(61 * time.Second)
+		e.Sweep()
+		if _, ok := e.ActiveBlock(ip); !ok {
+			t.Errorf("a block of one hour %s was gone after the first sweep", name)
+		}
+		c.add(time.Hour)
+		e.Sweep()
+		if _, ok := e.ActiveBlock(ip); ok {
+			t.Errorf("a block of one hour %s runs after its end", name)
+		}
+	}
+}
+
+// A client that keeps asking above a limit gets the limit, not less: the
+// nodes tell each other what passed, not what they refused.
+func TestGroupLimitIsNotStricterForASustainedClient(t *testing.T) {
+	b := modes(nil)
+	b.RateLimits = []config.RateLimit{{ID: "api", Route: "/api/**", Limit: 60, Per: "1m", Burst: 60, Mode: config.BehaviourBlock}}
+	passed := func(nodes int) int {
+		g := newGroup(t, nodes, b)
+		n := 0
+		for i := 0; i < 240; i++ { // 4 a second for a minute
+			if v := g.engs[i%nodes].Check(req(g.c, "203.0.113.5", "residential", "GET", "/api/items")); !v.RateLimited {
+				n++
+			}
+			g.c.add(250 * time.Millisecond)
+			if i%4 == 3 {
+				g.tell()
+			}
+		}
+		return n
+	}
+	one, three := passed(1), passed(3)
+	if three < one-6 {
+		t.Errorf("one node lets %d of 240 pass, three nodes %d: the group is stricter than the limit", one, three)
+	}
+	if three > one+3*4 {
+		t.Errorf("one node lets %d pass, three nodes %d: more than the limit and a second of three nodes", one, three)
 	}
 }
