@@ -47,9 +47,22 @@ func (a *App) startCluster(ctx context.Context) {
 	if !cfg.Cluster.Enabled {
 		return
 	}
-	node, err := cluster.Open(cluster.Options{Dir: ClusterDir(a.dataDir), Listen: cfg.Cluster.Listen, Log: a.log})
+	dir := ClusterDir(a.dataDir)
+	if cfg.Cluster.SecretFile != "" {
+		// Set up by configuration: the node lets itself into the group of
+		// the secret, as on every other node the same files were deployed to.
+		secret, err := cluster.ReadSecret(cfg.Cluster.SecretFile)
+		if err == nil {
+			_, err = cluster.Configure(dir, cfg.NodeName, cfg.Cluster.Address(), secret, nil)
+		}
+		if err != nil {
+			a.log.Error("cluster: the node is not set up from schild.yaml, this gateway runs alone", "err", err)
+			return
+		}
+	}
+	node, err := cluster.Open(cluster.Options{Dir: dir, Listen: cfg.Cluster.Listen, Log: a.log, Peers: cfg.Cluster.Peers})
 	if errors.Is(err, cluster.ErrNoGroup) {
-		a.log.Warn("cluster.enabled, but this node belongs to no group: it runs alone. First node: schild cluster init. Every other: schild cluster join ADDRESS CODE, then restart schild")
+		a.log.Warn("cluster.enabled, but this node belongs to no group: it runs alone. Set cluster.secret_file and cluster.peers on every node, or by hand: schild cluster init on the first node, schild cluster join ADDRESS CODE on every other, then restart schild")
 		return
 	}
 	if err != nil {

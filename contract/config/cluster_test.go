@@ -19,6 +19,10 @@ func TestClusterConfig(t *testing.T) {
 		{"public address allowed", "cluster: {enabled: true, listen: \"203.0.113.5:8790\", allow_public_listen: true}\n", ""},
 		{"every address without advertise", "cluster: {enabled: true, listen: \"0.0.0.0:8790\", allow_public_listen: true}\n", "cluster.advertise"},
 		{"every address with advertise", "cluster: {enabled: true, listen: \"0.0.0.0:8790\", allow_public_listen: true, advertise: \"10.0.0.2:8790\"}\n", ""},
+		{"by configuration", "cluster: {enabled: true, listen: \"10.0.0.2:8790\", secret_file: /etc/schild/cluster.secret, peers: [\"10.0.0.1:8790\", \"10.0.0.2:8790\"]}\n", ""},
+		{"peers without the secret", "cluster: {enabled: true, listen: \"10.0.0.2:8790\", peers: [\"10.0.0.1:8790\"]}\n", "secret_file"},
+		{"peer is a host name", "cluster: {enabled: true, listen: \"10.0.0.2:8790\", secret_file: /x, peers: [\"web-1:8790\"]}\n", "schema"},
+		{"peer is every address", "cluster: {enabled: true, listen: \"10.0.0.2:8790\", secret_file: /x, peers: [\"0.0.0.0:8790\"]}\n", "cluster.peers"},
 		{"host name", "cluster: {enabled: true, listen: \"web-1:8790\"}\n", "schema"},
 		{"unknown key", "cluster: {enabled: true, listen: \"10.0.0.2:8790\", store: valkey}\n", "schema"},
 	}

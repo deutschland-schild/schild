@@ -211,3 +211,74 @@ func TestJoinCode(t *testing.T) {
 		}
 	}
 }
+
+func TestAdmissionByTheGroupSecret(t *testing.T) {
+	secret := []byte("0123456789abcdef0123456789abcdef")
+	gk, err := GroupKey(secret)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := GroupKey(secret[:31]); !errors.Is(err, ErrSecret) {
+		t.Errorf("a short secret: %v", err)
+	}
+	self := func(k ed25519.PrivateKey, gk ed25519.PrivateKey, group string, hlc uint64) *Record {
+		pub := k.Public().(ed25519.PublicKey)
+		m := Member{Name: "web", Role: RoleGateway, PublicKey: base64.StdEncoding.EncodeToString(pub), Address: "10.0.0.1:8790", Joined: TimeText(t0)}
+		g := m.AdmitWith(gk, pub)
+		if group == "" {
+			group = g
+		}
+		r := &Record{V: Version, Group: group, Class: ClassMembers, ID: NodeID(pub), Origin: NodeID(pub), Seq: 1, HLC: hlc}
+		if err := r.Sign(k, m); err != nil {
+			t.Fatal(err)
+		}
+		return r
+	}
+	pa, ka := key(1)
+	_, kb := key(2)
+	group := GroupID(gk.Public().(ed25519.PublicKey))
+	ro := NewRoster(group)
+	// Two nodes let themselves in, each with its own key, neither is a founder.
+	for _, k := range []ed25519.PrivateKey{ka, kb} {
+		r := self(k, gk, "", HLCOf(t0))
+		if err := ro.Check(r, t0); err != nil {
+			t.Fatalf("a node with the secret: %v", err)
+		}
+		ro.Set(r)
+	}
+	if _, ok := ro.ActiveKey(pa, RoleGateway); !ok {
+		t.Fatal("an admitted node is no member")
+	}
+	// Another secret is another group key: no way into this group.
+	other, _ := GroupKey([]byte("another-secret-another-secret-00"))
+	_, kc := key(3)
+	if err := ro.Check(self(kc, other, group, HLCOf(t0)), t0); !errors.Is(err, ErrOrigin) {
+		t.Errorf("a node with another secret: %v", err)
+	}
+	// The admission of one node does not carry another key.
+	stolen := self(ka, gk, "", HLCOf(t0))
+	m, _ := DecodeMember(stolen)
+	pc := kc.Public().(ed25519.PublicKey)
+	forged := Member{Name: "evil", Role: RoleGateway, PublicKey: base64.StdEncoding.EncodeToString(pc), Address: "10.0.0.9:8790", Joined: TimeText(t0), AdmitKey: m.AdmitKey, Admit: m.Admit}
+	fr := &Record{V: Version, Group: group, Class: ClassMembers, ID: NodeID(pc), Origin: NodeID(pc), Seq: 1, HLC: HLCOf(t0)}
+	_ = fr.Sign(kc, forged)
+	if err := ro.Check(fr, t0); !errors.Is(err, ErrOrigin) {
+		t.Errorf("a copied admission: %v", err)
+	}
+	// A removed node stays out, although it holds the secret.
+	pb := kb.Public().(ed25519.PublicKey)
+	gone := self(kb, gk, "", HLCOf(t0.Add(time.Minute)))
+	gone.Origin, gone.Seq, gone.Deleted = NodeID(pa), 2, true
+	mb, _ := DecodeMember(gone)
+	_ = gone.Sign(ka, mb)
+	if err := ro.Check(gone, t0.Add(time.Minute)); err != nil {
+		t.Fatalf("removal: %v", err)
+	}
+	ro.Set(gone)
+	if err := ro.Check(self(kb, gk, "", HLCOf(t0.Add(2*time.Minute))), t0.Add(2*time.Minute)); !errors.Is(err, ErrRemoved) {
+		t.Errorf("a removed node lets itself in again: %v", err)
+	}
+	if _, ok := ro.ActiveKey(pb); ok {
+		t.Error("a removed node is active")
+	}
+}

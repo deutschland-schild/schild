@@ -27,6 +27,11 @@ type Member struct {
 	Address string `json:"address"`
 	Joined  string `json:"joined"`
 	Version string `json:"version,omitempty"`
+	// AdmitKey and Admit let a node into a group that is set up by
+	// configuration (admit.go): the public key the group id is the hash
+	// of, and its signature over this node's key. Both or none.
+	AdmitKey string `json:"admit_key,omitempty"`
+	Admit    string `json:"admit,omitempty"`
 }
 
 // Key returns the public key.
@@ -46,6 +51,9 @@ func (m *Member) valid() bool {
 		return false
 	}
 	if _, err := netip.ParseAddrPort(m.Address); err != nil {
+		return false
+	}
+	if (m.AdmitKey == "") != (m.Admit == "") || len(m.AdmitKey) > 64 || len(m.Admit) > 128 {
 		return false
 	}
 	_, err := time.Parse("2006-01-02T15:04:05Z", m.Joined)

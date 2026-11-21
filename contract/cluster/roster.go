@@ -119,13 +119,14 @@ func (ro *Roster) Check(r *Record, now time.Time) error {
 	case ok:
 		key = e.key
 	default:
-		// The founder's record of itself.
+		// A node's record of itself: the founder's, or one admitted by the
+		// group secret.
 		m, err := DecodeMember(r)
 		if err != nil || r.Class != ClassMembers || r.ID != r.Origin || r.Deleted {
 			return ErrOrigin
 		}
 		k, _ := m.Key()
-		if GroupID(k) != ro.Group || m.Role != RoleGateway {
+		if m.Role != RoleGateway || (GroupID(k) != ro.Group && !m.admitted(ro.Group)) {
 			return ErrOrigin
 		}
 		key = k

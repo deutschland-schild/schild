@@ -3,12 +3,15 @@ package cluster
 import (
 	"context"
 	"crypto/ed25519"
+	"crypto/rand"
 	"database/sql"
 	"encoding/base64"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"net/netip"
+	"os"
 	"sort"
 	"strings"
 	"time"
@@ -334,4 +337,102 @@ func ReadStatus(dir string, now func() time.Time) (*Status, error) {
 		return nil, err
 	}
 	return st, nil
+}
+
+// ErrOtherGroup: the secret of the configuration names another group than
+// the one this node belongs to.
+var ErrOtherGroup = errors.New("cluster: this node belongs to another group than cluster.secret_file names")
+
+// ErrRemovedSelf: this node was removed from its group.
+var ErrRemovedSelf = errors.New("cluster: this node was removed from its group")
+
+// NewSecret makes a group secret: 32 random bytes in hex.
+func NewSecret() (string, error) {
+	b := make([]byte, 32)
+	if _, err := rand.Read(b); err != nil {
+		return "", err
+	}
+	return hex.EncodeToString(b), nil
+}
+
+// ReadSecret reads the group secret of cluster.secret_file. Like the node
+// key, the file is for its owner only.
+func ReadSecret(path string) ([]byte, error) {
+	fi, err := os.Stat(path)
+	if err != nil {
+		return nil, fmt.Errorf("cluster.secret_file: %w", err)
+	}
+	if fi.Mode().Perm()&0o077 != 0 {
+		return nil, fmt.Errorf("cluster.secret_file %s is readable by others (mode %04o): chmod 600", path, fi.Mode().Perm())
+	}
+	raw, err := os.ReadFile(path)
+	if err != nil {
+		return nil, fmt.Errorf("cluster.secret_file: %w", err)
+	}
+	secret := []byte(strings.TrimSpace(string(raw)))
+	if len(secret) < contract.MinSecret {
+		return nil, fmt.Errorf("cluster.secret_file %s: %w", path, contract.ErrSecret)
+	}
+	return secret, nil
+}
+
+// Configure sets this node up from the configuration alone: with the group
+// secret it lets itself into the secret's group, under its name and
+// address. It changes nothing when the node is set up already, and writes
+// the member record again when name or address changed in schild.yaml. A
+// deployment runs it on every node through the start of schild; nothing
+// goes from node to node by hand.
+func Configure(dir, name, address string, secret []byte, now func() time.Time) (group string, err error) {
+	gk, err := contract.GroupKey(secret)
+	if err != nil {
+		return "", err
+	}
+	s, err := openState(dir, true, now)
+	if err != nil {
+		return "", err
+	}
+	defer s.close()
+	m, err := memberOf(name, address, s.pub, s.now())
+	if err != nil {
+		return "", err
+	}
+	group = m.AdmitWith(gk, s.pub)
+	switch s.group {
+	case group:
+	case "":
+		tx, err := s.db.Begin()
+		if err != nil {
+			return "", err
+		}
+		if err := setMeta(tx, "group", []byte(group)); err != nil {
+			tx.Rollback()
+			return "", err
+		}
+		if err := tx.Commit(); err != nil {
+			return "", err
+		}
+		s.group = group
+	default:
+		return "", fmt.Errorf("%w (it is in %s; the secret is of %s). To move the node, delete %s", ErrOtherGroup, s.group, group, dir)
+	}
+	recs, _, err := s.winners(contract.ClassMembers)
+	if err != nil {
+		return "", err
+	}
+	for _, r := range recs {
+		if r.ID != s.id {
+			continue
+		}
+		if r.Deleted {
+			return "", ErrRemovedSelf
+		}
+		if cur, err := contract.DecodeMember(r); err == nil {
+			if cur.Name == m.Name && cur.Address == m.Address && cur.AdmitKey == m.AdmitKey {
+				return group, nil // set up already
+			}
+			m.Joined = cur.Joined
+		}
+	}
+	_, err = s.publish(contract.ClassMembers, s.id, m, false, time.Time{})
+	return group, err
 }

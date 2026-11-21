@@ -145,3 +145,40 @@ func TestClusterEnabledWithoutGroupRunsAlone(t *testing.T) {
 		t.Errorf("a gateway without a group does not serve: %d", resp.StatusCode)
 	}
 }
+
+// The whole group from files a deployment writes: the same secret and the
+// same peers on both nodes, no command on either.
+func TestGroupFromConfigurationOnly(t *testing.T) {
+	secretFile := filepath.Join(t.TempDir(), "cluster.secret")
+	secret, err := cluster.NewSecret()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(secretFile, []byte(secret+"\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	a := &groupNode{dir: t.TempDir(), addr: apptest.FreeAddr(t), name: "web-1"}
+	b := &groupNode{dir: t.TempDir(), addr: apptest.FreeAddr(t), name: "web-2"}
+	start := func(g *groupNode) {
+		g.h = apptest.New(t, apptest.Options{Dir: g.dir, Extra: fmt.Sprintf("cluster: {enabled: true, listen: %q, secret_file: %q, peers: [%q, %q]}\n", g.addr, secretFile, a.addr, b.addr)})
+		if g.h.App.Cluster == nil {
+			t.Fatalf("%s: no cluster node", g.name)
+		}
+	}
+	start(a)
+	start(b)
+	a.block("203.0.113.90", "S-CONFIG", 15*time.Minute)
+	b.h.WaitFor("web-2 blocks the address web-1 blocked", func() bool { return b.blocked("203.0.113.90") == "S-CONFIG" })
+	b.block("203.0.113.91", "S-BACK", 15*time.Minute)
+	a.h.WaitFor("web-1 blocks the address web-2 blocked", func() bool { return a.blocked("203.0.113.91") == "S-BACK" })
+}
+
+func TestClusterWithUnreadableSecretRunsAlone(t *testing.T) {
+	h := apptest.New(t, apptest.Options{Extra: fmt.Sprintf("cluster: {enabled: true, listen: %q, secret_file: %q}\n", apptest.FreeAddr(t), filepath.Join(t.TempDir(), "missing"))})
+	if h.App.Cluster != nil {
+		t.Error("a node without its secret started the mesh")
+	}
+	if resp := h.Visit("GET", "/", "203.0.113.80", "", ""); resp.StatusCode != 200 {
+		t.Errorf("a gateway without its secret does not serve: %d", resp.StatusCode)
+	}
+}

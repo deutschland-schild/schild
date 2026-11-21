@@ -112,3 +112,24 @@ func TestClusterCommandsNeedTheSection(t *testing.T) {
 		t.Errorf("init without the cluster section: %v", err)
 	}
 }
+
+func TestClusterSecretAndConfiguredNode(t *testing.T) {
+	var out bytes.Buffer
+	if err := runCluster([]string{"secret"}, &out, time.Now); err != nil || !regexp.MustCompile(`^[0-9a-f]{64}\n$`).MatchString(out.String()) {
+		t.Fatalf("secret: %q, %v", out.String(), err)
+	}
+	var again bytes.Buffer
+	_ = runCluster([]string{"secret"}, &again, time.Now)
+	if again.String() == out.String() {
+		t.Error("two secrets are the same")
+	}
+	// A node set up by the file needs no init and takes none.
+	cfg, _ := clusterConfig(t, "web-1", testport.Free(t))
+	raw, _ := os.ReadFile(cfg)
+	if err := os.WriteFile(cfg, []byte(strings.Replace(string(raw), "cluster: {enabled: true,", "cluster: {secret_file: /etc/schild/cluster.secret, enabled: true,", 1)), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := clusterCmd(t, cfg, "init"); err == nil || !strings.Contains(err.Error(), "cluster.secret_file") {
+		t.Errorf("init on a node set up by configuration: %v", err)
+	}
+}

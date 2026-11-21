@@ -15,7 +15,8 @@ import (
 	"github.com/deutschland-schild/schild/gateway/internal/cluster"
 )
 
-const clusterUsage = `schild cluster init                    make this gateway the first node of a new group
+const clusterUsage = `schild cluster secret                  print a new group secret for cluster.secret_file
+schild cluster init                    make this gateway the first node of a new group
 schild cluster invite                  print a join code of this node (one use, valid one hour)
 schild cluster join ADDRESS CODE       join the group of the node at ADDRESS (its cluster.listen) with its code
 schild cluster status                  members, last contact, records held
@@ -24,7 +25,13 @@ Common flags: -config FILE, -data DIR
 
 A group shares the address blocks of every node (MVP-27, first version). The
 node's name is node_name, its address cluster.advertise or cluster.listen of
-schild.yaml. After init or join, restart schild.`
+schild.yaml.
+
+Two ways into a group:
+  by configuration  the same cluster.secret_file and cluster.peers on every node, deployed like the
+                    rest of schild.yaml (Ansible, for example). A node lets itself in at its start;
+                    init, invite and join are not needed.
+  by hand           init on the first node, invite there, join on every other, then restart schild.`
 
 // cmdCluster sets up and shows the group of this gateway on the host
 // (MVP-27, D103). Like tokens, membership is never changed through the
@@ -39,6 +46,14 @@ func runCluster(args []string, out io.Writer, now func() time.Time) error {
 		return nil
 	}
 	sub := args[0]
+	if sub == "secret" {
+		secret, err := cluster.NewSecret()
+		if err != nil {
+			return err
+		}
+		fmt.Fprintln(out, secret)
+		return nil
+	}
 	fs := flag.NewFlagSet("cluster "+sub, flag.ContinueOnError)
 	fs.SetOutput(io.Discard)
 	cfgPath := fs.String("config", "", "schild.yaml")
@@ -50,6 +65,9 @@ func runCluster(args []string, out io.Writer, now func() time.Time) error {
 	}
 	dir := app.ClusterDir(app.DataDir(cfg, *data))
 	needAddress := func() error {
+		if cfg.Cluster.SecretFile != "" {
+			return errors.New("cluster " + sub + ": this node is set up by cluster.secret_file; it lets itself into the group when schild starts")
+		}
 		if !cfg.Cluster.Enabled {
 			return errors.New("cluster " + sub + ": set cluster.enabled and cluster.listen in schild.yaml first (the other nodes reach this node there)")
 		}

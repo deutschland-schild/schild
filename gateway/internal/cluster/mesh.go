@@ -26,8 +26,9 @@ import (
 // push, the catch-up after an outage and the first sync of a new node.
 
 const (
-	pathSync = "/mesh/v0/sync"
-	pathJoin = "/mesh/v0/join"
+	pathSync  = "/mesh/v0/sync"
+	pathJoin  = "/mesh/v0/join"
+	pathHello = "/mesh/v0/hello"
 	// maxBatch bounds the records of one answer.
 	maxBatch = 500
 	maxBody  = 1 << 20
@@ -54,6 +55,12 @@ type joinRequest struct {
 	Address string `json:"address"`
 }
 
+// helloRequest is how a node set up by configuration makes itself known:
+// its own member record, which carries the admission of the group secret.
+type helloRequest struct {
+	Record json.RawMessage `json:"record"`
+}
+
 type joinResponse struct {
 	Group   string            `json:"group"`
 	Records []json.RawMessage `json:"records"`
@@ -67,6 +74,7 @@ func (n *Node) listen() (*http.Server, net.Listener, error) {
 	mux := http.NewServeMux()
 	mux.HandleFunc("POST "+pathSync, n.serveSync)
 	mux.HandleFunc("POST "+pathJoin, n.serveJoin)
+	mux.HandleFunc("POST "+pathHello, n.serveHello)
 	srv := &http.Server{Handler: mux, ReadHeaderTimeout: 5 * time.Second, IdleTimeout: 2 * time.Minute, MaxHeaderBytes: 16 << 10,
 		TLSConfig: &tls.Config{MinVersion: tls.VersionTLS13, Certificates: []tls.Certificate{n.cert},
 			// Any certificate may connect; the handlers decide by its key
@@ -94,7 +102,7 @@ func (n *Node) serveSync(w http.ResponseWriter, r *http.Request) {
 	}
 	id, ok := n.activeKey(key, contract.RoleGateway)
 	if !ok {
-		http.Error(w, "no member", http.StatusForbidden)
+		n.refuse(w, key)
 		return
 	}
 	var req syncRequest
@@ -190,6 +198,114 @@ func (n *Node) serveJoin(w http.ResponseWriter, r *http.Request) {
 	_ = json.NewEncoder(w).Encode(out)
 }
 
+// serveHello takes the member record of a node that lets itself in with the
+// group secret (cluster.secret_file), and answers with the member list. The
+// caller needs no place in the group yet: its record proves it, and the
+// answer holds only what every record of it proves by itself.
+func (n *Node) serveHello(w http.ResponseWriter, r *http.Request) {
+	key, ok := peerKey(r.TLS)
+	if !ok {
+		http.Error(w, "no key", http.StatusForbidden)
+		return
+	}
+	var req helloRequest
+	if !readJSON(w, r, &req) {
+		return
+	}
+	var rec contract.Record
+	id := contract.NodeID(key)
+	if len(req.Record) > contract.MaxRecord || json.Unmarshal(req.Record, &rec) != nil || rec.Class != contract.ClassMembers || rec.ID != id || rec.Origin != id || rec.Deleted {
+		http.Error(w, "bad request", http.StatusBadRequest)
+		return
+	}
+	if _, err := n.take([]json.RawMessage{req.Record}, nil); err != nil {
+		http.Error(w, "store", http.StatusInternalServerError)
+		return
+	}
+	if _, ok := n.activeKey(key, contract.RoleGateway); !ok {
+		n.refuse(w, key)
+		return
+	}
+	_, raws, err := n.winners(contract.ClassMembers)
+	if err != nil {
+		http.Error(w, "store", http.StatusInternalServerError)
+		return
+	}
+	out := joinResponse{Group: n.group}
+	for _, raw := range raws {
+		out.Records = append(out.Records, raw)
+	}
+	w.Header().Set("Content-Type", "application/json")
+	_ = json.NewEncoder(w).Encode(out)
+}
+
+// seek makes this node known at the configured peers it holds no member
+// for yet, and takes their member lists. One round at a time; a peer that
+// does not answer is asked again with the next round.
+func (n *Node) seek(ctx context.Context) {
+	if len(n.opts.Peers) == 0 || !n.seeking.CompareAndSwap(false, true) {
+		return
+	}
+	n.rmu.RLock()
+	known := map[string]bool{}
+	for _, e := range n.roster.Members() {
+		if !e.Removed {
+			known[e.Member.Address] = true
+		}
+	}
+	n.rmu.RUnlock()
+	var todo []string
+	for _, p := range n.opts.Peers {
+		if !known[p] {
+			todo = append(todo, p)
+		}
+	}
+	if len(todo) == 0 {
+		n.seeking.Store(false)
+		return
+	}
+	go func() {
+		defer n.seeking.Store(false)
+		recs, raws, err := n.winners(contract.ClassMembers)
+		if err != nil {
+			return
+		}
+		var own json.RawMessage
+		for i, r := range recs {
+			if r.ID == n.id && !r.Deleted {
+				own = raws[i]
+			}
+		}
+		if own == nil {
+			return
+		}
+		// Any key may answer: what it answers is checked record by record.
+		c := meshClient(n.cert, func(ed25519.PublicKey) bool { return true }, 5*time.Second)
+		defer c.CloseIdleConnections()
+		for _, addr := range todo {
+			var resp joinResponse
+			if err := postJSON(ctx, c, "https://"+addr+pathHello, helloRequest{Record: own}, &resp); err != nil {
+				if errors.Is(err, errRemoved) {
+					n.noteRemoved()
+				}
+				n.log.Debug("cluster: configured peer not reached", "peer", addr, "err", err)
+				continue
+			}
+			if resp.Group != n.group {
+				n.log.Warn("cluster: a configured peer is in another group (another cluster.secret_file?)", "peer", addr)
+				continue
+			}
+			var rs []json.RawMessage
+			for _, raw := range resp.Records {
+				rs = append(rs, raw)
+			}
+			if _, err := n.take(rs, nil); err != nil {
+				n.log.Warn("cluster: member list of a configured peer not taken", "peer", addr, "err", err)
+			}
+		}
+	}()
+}
+
 // client returns an HTTP client that talks to exactly one key: the check of
 // the peer's certificate is the comparison of its key.
 func meshClient(cert tls.Certificate, accept func(ed25519.PublicKey) bool, timeout time.Duration) *http.Client {
@@ -206,6 +322,15 @@ func meshClient(cert tls.Certificate, accept func(ed25519.PublicKey) bool, timeo
 				return errors.New("cluster: the peer shows another key")
 			}}}
 	return &http.Client{Transport: tr, Timeout: timeout}
+}
+
+// errRemoved: a member answered that this node is no member any more.
+var errRemoved = errors.New("this node was removed from the group")
+
+func (n *Node) noteRemoved() {
+	if n.removed.CompareAndSwap(false, true) {
+		n.log.Warn("cluster: this node was removed from its group. It serves with the state it has and shares nothing. To take it out for good: cluster.enabled false; to bring it back: delete its cluster directory and let it join again")
+	}
 }
 
 func postJSON(ctx context.Context, c *http.Client, url string, in, out any) error {
@@ -225,6 +350,9 @@ func postJSON(ctx context.Context, c *http.Client, url string, in, out any) erro
 	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
 		msg, _ := io.ReadAll(io.LimitReader(resp.Body, 256))
+		if resp.StatusCode == http.StatusGone {
+			return errRemoved
+		}
 		return fmt.Errorf("%s: %s", resp.Status, bytes.TrimSpace(msg))
 	}
 	// maxBatch records of at most MaxRecord bytes each.
@@ -330,6 +458,9 @@ func (n *Node) runPeer(ctx context.Context, p *peer, key ed25519.PublicKey) {
 			return
 		}
 		if err != nil {
+			if errors.Is(err, errRemoved) {
+				n.noteRemoved()
+			}
 			p.mu.Lock()
 			p.err = err.Error()
 			p.mu.Unlock()

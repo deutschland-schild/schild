@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"log/slog"
+	"os"
 	"path/filepath"
 	"strings"
 	"sync"
@@ -28,6 +29,8 @@ type testNode struct {
 
 	mu   sync.Mutex
 	seen []*contract.Record
+	// peers are cluster.peers of a node set up by configuration.
+	peers []string
 }
 
 func quiet() *slog.Logger { return slog.New(slog.NewTextHandler(io.Discard, nil)) }
@@ -39,7 +42,7 @@ func newTestNode(t *testing.T, name string) *testNode {
 
 func (tn *testNode) start() {
 	tn.t.Helper()
-	n, err := Open(Options{Dir: tn.dir, Listen: tn.addr, Log: quiet(), Hold: 300 * time.Millisecond})
+	n, err := Open(Options{Dir: tn.dir, Listen: tn.addr, Log: quiet(), Hold: 300 * time.Millisecond, Peers: tn.peers})
 	if err != nil {
 		tn.t.Fatalf("%s: open: %v", tn.name, err)
 	}
@@ -196,18 +199,7 @@ func TestRemovedMemberIsCutOff(t *testing.T) {
 		t.Fatal(err)
 	}
 	waitFor(t, "web-2 learned of the removal", func() bool { return !b.node.IsMember(c.node.ID()) })
-	waitFor(t, "web-3 learned of its removal or is refused", func() bool {
-		ok := c.node.IsMember(c.node.ID())
-		c.node.pmu.Lock()
-		defer c.node.pmu.Unlock()
-		refused := false
-		for _, p := range c.node.peers {
-			p.mu.Lock()
-			refused = refused || strings.Contains(p.err, "403")
-			p.mu.Unlock()
-		}
-		return !ok || refused
-	})
+	waitFor(t, "web-3 is told that it was removed", func() bool { return c.node.Removed() })
 	// What it writes now reaches nobody.
 	c.publishBlock("203.0.113.9")
 	a.publishBlock("203.0.113.10")
@@ -384,5 +376,128 @@ func TestHandlerAndPublishDoNotLockEachOther(t *testing.T) {
 	case <-done:
 	case <-time.After(5 * time.Second):
 		t.Fatal("publish and handler lock each other")
+	}
+}
+
+// A group set up by configuration: the same secret and the same list of
+// addresses on every node, no command between them.
+func TestGroupByConfiguration(t *testing.T) {
+	secret := []byte("the-same-file-on-every-node-0123456789")
+	a, b, c := newTestNode(t, "web-1"), newTestNode(t, "web-2"), newTestNode(t, "web-3")
+	all := []string{a.addr, b.addr, c.addr}
+	var group string
+	for _, n := range []*testNode{a, b, c} {
+		g, err := Configure(n.dir, n.name, n.addr, secret, nil)
+		if err != nil {
+			t.Fatalf("%s: %v", n.name, err)
+		}
+		if group != "" && g != group {
+			t.Fatalf("%s is in group %s, the others in %s", n.name, g, group)
+		}
+		group = g
+		n.peers = all
+	}
+	// The order of the starts does not matter: web-3 comes up alone first.
+	c.start()
+	c.publishBlock("203.0.113.7")
+	a.start()
+	b.start()
+	for _, n := range []*testNode{a, b} {
+		waitFor(t, n.name+" found the group and holds the block of web-3", func() bool { return n.holds("203.0.113.7") == "block" })
+	}
+	for _, n := range []*testNode{a, b, c} {
+		for _, m := range []*testNode{a, b, c} {
+			waitFor(t, n.name+" knows "+m.name, func() bool { return n.node.IsMember(m.node.ID()) })
+		}
+	}
+	// The same deployment again changes nothing; a new address is a new record.
+	b.stop()
+	before, _ := ReadStatus(b.dir, nil)
+	if _, err := Configure(b.dir, b.name, b.addr, secret, nil); err != nil {
+		t.Fatal(err)
+	}
+	after, _ := ReadStatus(b.dir, nil)
+	if len(after.Members) != len(before.Members) {
+		t.Errorf("a second deployment changed the member list: %d, then %d", len(before.Members), len(after.Members))
+	}
+
+	// A node with another secret is in another group and gets nothing.
+	x := newTestNode(t, "stranger")
+	if g, err := Configure(x.dir, x.name, x.addr, []byte("another-file-another-file-another-file"), nil); err != nil || g == group {
+		t.Fatalf("another secret: group %s, %v", g, err)
+	}
+	x.peers = all
+	x.start()
+	a.publishBlock("203.0.113.8")
+	waitFor(t, "web-3 holds the new block", func() bool { return c.holds("203.0.113.8") == "block" })
+	time.Sleep(1500 * time.Millisecond)
+	if a.node.IsMember(x.node.ID()) || c.node.IsMember(x.node.ID()) {
+		t.Error("a node with another secret became a member")
+	}
+	if x.holds("203.0.113.8") != "" || x.holds("203.0.113.7") != "" {
+		t.Error("a node with another secret holds blocks of the group")
+	}
+	// And the secret of one group does not move a node out of another.
+	if _, err := Configure(x.dir, x.name, x.addr, secret, nil); !errors.Is(err, ErrOtherGroup) {
+		t.Errorf("a node of another group with this secret: %v", err)
+	}
+}
+
+func TestRemovedNodeStaysOutAlthoughItHoldsTheSecret(t *testing.T) {
+	secret := []byte("the-same-file-on-every-node-0123456789")
+	a, b := newTestNode(t, "web-1"), newTestNode(t, "web-2")
+	for _, n := range []*testNode{a, b} {
+		if _, err := Configure(n.dir, n.name, n.addr, secret, nil); err != nil {
+			t.Fatal(err)
+		}
+		n.peers = []string{a.addr, b.addr}
+	}
+	a.start()
+	b.start()
+	waitFor(t, "web-1 knows web-2", func() bool { return a.node.IsMember(b.node.ID()) })
+	id := b.node.ID()
+	if _, err := Remove(a.dir, "web-2", nil); err != nil {
+		t.Fatal(err)
+	}
+	waitFor(t, "web-2 is told that it was removed", func() bool { return b.node.Removed() })
+	b.stop()
+	// The next deployment starts it again with the same files: it is told
+	// again, and stays out.
+	if _, err := Configure(b.dir, b.name, b.addr, secret, nil); err != nil {
+		t.Fatal(err)
+	}
+	b.start()
+	waitFor(t, "web-2 is told again after its restart", func() bool { return b.node.Removed() })
+	a.publishBlock("203.0.113.7")
+	time.Sleep(time.Second)
+	if a.node.IsMember(id) {
+		t.Error("a removed node is a member again")
+	}
+	if b.holds("203.0.113.7") != "" {
+		t.Error("a removed node got a block of the group")
+	}
+}
+
+func TestReadSecret(t *testing.T) {
+	dir := t.TempDir()
+	write := func(name, text string, mode os.FileMode) string {
+		p := filepath.Join(dir, name)
+		if err := os.WriteFile(p, []byte(text), mode); err != nil {
+			t.Fatal(err)
+		}
+		return p
+	}
+	s, _ := NewSecret()
+	if got, err := ReadSecret(write("ok", s+"\n", 0o600)); err != nil || string(got) != s {
+		t.Errorf("a good secret: %q, %v", got, err)
+	}
+	if _, err := ReadSecret(write("open", s, 0o644)); err == nil || !strings.Contains(err.Error(), "readable by others") {
+		t.Errorf("a secret others read: %v", err)
+	}
+	if _, err := ReadSecret(write("short", "abc", 0o600)); !errors.Is(err, contract.ErrSecret) {
+		t.Errorf("a short secret: %v", err)
+	}
+	if _, err := ReadSecret(filepath.Join(dir, "missing")); err == nil {
+		t.Error("a missing file was read")
 	}
 }

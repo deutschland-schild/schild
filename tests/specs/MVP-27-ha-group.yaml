@@ -22,7 +22,7 @@ id: MVP-27
 #   the balancer, so the host firewall of D87 holds nothing there; see `enforcement`.
 # - /healthz and /readyz exist on the dashboard listener only; a balancer needs one on the web ports.
 title: "Group: several gateways share blocks, settings, certificates, logins, events and requests from node to node, as a pair of two or a fleet of ten, with no store beside them"
-ships: false                        # draft. Built 2026-11-21, a first part of step 1: the mesh, the classes members and blocks, schild cluster init|invite|join|status|remove (contracts/cluster.md, section 8 lists what is missing). Not measured
+ships: false                        # draft. Built 2026-11-21, a first part of step 1: the mesh, the classes members and blocks, the setup by cluster.secret_file and cluster.peers, schild cluster secret|status|remove|init|invite|join (contracts/cluster.md, section 8 lists what is missing). Not measured
 status: ENTWURF
 image: schild                       # same binary on gateways and on balancer VMs (role edge); nothing else to install
 hypotheses: [D3]
@@ -68,7 +68,8 @@ mesh:
     - 'the validator refuses a cluster.listen that is not a private or loopback address unless cluster.allow_public_listen is set; the runbook asks for a private network or WireGuard between sites'
   identity:
     - 'every node has an Ed25519 key of its own, made on the node and never copied; members know each other by the public keys in the member list, as WireGuard peers do. No CA, no shared secret that opens everything'
-    - '`schild cluster init` on the first node makes the group id; `schild cluster invite [--role edge]` prints a join code for one use, valid one hour; `schild cluster join <address> <code>` on the new node. The member that takes the code adds the new key to the member list, and the list is a record class like any other'
+    - 'by configuration, for a deployment that writes the same files to every node (Ansible): cluster.secret_file, the same on every node, and cluster.peers, the addresses of the nodes. A node lets itself in at its start; the secret admits and nothing else: it signs the admission of a node key, every record is still signed by the node, and a removed node stays removed although it holds the secret. No command goes from node to node (initiator, 2026-11-21)'
+    - 'by hand: `schild cluster init` on the first node makes the group id; `schild cluster invite [--role edge]` prints a join code for one use, valid one hour; `schild cluster join <address> <code>` on the new node. The member that takes the code adds the new key to the member list, and the list is a record class like any other'
     - '`schild cluster remove <node>` on any member: a tombstone for its key. From then on no member talks to it and none takes a record it signed later. `schild cluster leave` on the node itself; it then runs alone with its copy, nothing is lost'
     - 'every record carries the signature of the node that wrote it, so the change log names the node and a removed node cannot write through a member that still listens'
   roles:
@@ -196,7 +197,7 @@ ui:                                 # German, du-form, calm
 contracts:
   new:                              # proposal; the contracts agent owns schemas, Go types and vectors
     - 'contracts/cluster.md: roles, join, record envelope and signature, classes, clock, tombstones, merge rules per class, counter slots, data copies and their cursor, what a node does when it is alone, when it returns and when it was away longer than tombstones live'
-    - 'schild.yaml: cluster {enabled, node, listen, advertise, allow_public_listen, key_file, data_copies, drain {delay, grace}}; validator rules above; default off, without it nothing changes'
+    - 'schild.yaml: cluster {enabled, node, listen, advertise, allow_public_listen, secret_file, peers, key_file, data_copies, drain {delay, grace}}; validator rules above; default off, without it nothing changes'
     - 'client dashboard API and agent API: scope and node on list, search, chart and export operations, partial {node, from, until} on their answers, GroupStatus, origin_node on blocks, events, incidents and requests, enforcement per block, hints cluster_peers_unreachable, cluster_config_drift and cluster_copy_behind, nodes in PrivacyDeleteResult'
     - 'events: origin_node on every local event; schild.cluster.member_joined.v1, member_removed.v1, record_rejected.v1'
     - 'Caddy storage module schild_cluster; the readiness answer /schild/ready'

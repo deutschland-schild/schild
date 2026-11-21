@@ -11,6 +11,7 @@ import (
 	"errors"
 	"log/slog"
 	"math/big"
+	"net/http"
 	"sort"
 	"sync"
 	"sync/atomic"
@@ -29,6 +30,9 @@ type Options struct {
 	Now    func() time.Time
 	// Hold is how long a sync call waits for news (default 4 s).
 	Hold time.Duration
+	// Peers are cluster.peers: where a node set up by configuration finds
+	// the group.
+	Peers []string
 }
 
 // Node is this gateway in its group.
@@ -56,7 +60,10 @@ type Node struct {
 	// Counters of schild cluster status.
 	Applied, Rejected, Deferred, Unread atomic.Uint64
 
-	addr atomic.Pointer[string]
+	addr    atomic.Pointer[string]
+	seeking atomic.Bool
+	// removed: a member answered that this node was removed.
+	removed atomic.Bool
 }
 
 // Open loads the node of a data directory. ErrNoGroup: it belongs to none.
@@ -101,6 +108,10 @@ func (n *Node) Name() string {
 	}
 	return n.id
 }
+
+// Removed reports whether a member told this node that it was removed from
+// the group. It then serves with the state it has and shares nothing.
+func (n *Node) Removed() bool { return n.removed.Load() }
 
 // Addr is the address the mesh listener bound; empty before Run.
 func (n *Node) Addr() string {
@@ -192,6 +203,19 @@ func (n *Node) activeKey(pub ed25519.PublicKey, roles ...string) (string, bool) 
 	n.rmu.RLock()
 	defer n.rmu.RUnlock()
 	return n.roster.ActiveKey(pub, roles...)
+}
+
+// refuse answers a caller that is no member: 410 when it was one and was
+// removed, so that node can say so in its log, else 403.
+func (n *Node) refuse(w http.ResponseWriter, pub ed25519.PublicKey) {
+	n.rmu.RLock()
+	removed := n.roster.Known(contract.NodeID(pub))
+	n.rmu.RUnlock()
+	if removed {
+		http.Error(w, "removed from the group", http.StatusGone)
+		return
+	}
+	http.Error(w, "no member", http.StatusForbidden)
 }
 
 // take checks and applies records a peer sent, and then moves the vector to
@@ -367,6 +391,7 @@ func (n *Node) Run(ctx context.Context) error {
 	n.log.Info("cluster: mesh listening", "listen", a, "group", n.group, "node", n.id)
 	done := make(chan error, 1)
 	go func() { done <- srv.ServeTLS(ln, "", "") }()
+	n.seek(ctx)
 	tick := time.NewTicker(time.Second)
 	defer tick.Stop()
 	var sweep int
@@ -386,6 +411,7 @@ func (n *Node) Run(ctx context.Context) error {
 			if err := n.reload(); err != nil {
 				n.log.Warn("cluster: member list not read", "err", err)
 			}
+			n.seek(ctx)
 			n.syncPeers(ctx)
 			if sweep++; sweep%2 == 0 {
 				n.saveStatus()

@@ -13,7 +13,7 @@ Go: `contract/cluster`. Built so far: the record, the classes `members` and `blo
 - Every node has an Ed25519 key of its own, made on the node, in `<storage.path>/cluster/node.key` (mode 0600, 64 hex characters of the seed). It never leaves the node.
 - Node id: `n-` and the first 16 bytes, in hex, of SHA-256 over `schild-node:` and the public key.
 - Group id: `g-` and the first 16 bytes, in hex, of SHA-256 over `schild-group:` and the public key of the node that founded the group. Every trust in a group starts at its id: the founder's record of itself is the one record that needs no member to sign it, because its key hashes to the group id.
-- There is no CA and no secret that opens everything.
+- There is no CA. A group set up by configuration has one shared secret, which admits a node and does nothing else (section 6).
 
 ## 2. Record
 
@@ -49,7 +49,7 @@ In this order; the first failing check decides.
 | 2 | `group` | another group | never |
 | 3 | `schema` | fields missing, unknown class, `expires` no time | never |
 | 4 | `clock` | the wall part of `hlc` is more than 60 s ahead of the receiver | asked for again |
-| 5 | `origin` | the origin is no member, is not the founder's own record, or is an edge | asked for again |
+| 5 | `origin` | the origin is no member and the record is not a node's record of itself that proves its place (the founder's, or one with the admission of the group secret), or the origin is an edge | asked for again |
 | 6 | `removed` | the origin was removed and `hlc` is not before its removal | never |
 | 7 | `signature` | does not verify with the origin's key | never |
 | 8 | `schema` | the data does not fit its class (section 5), unknown fields included | never |
@@ -62,7 +62,7 @@ Records a removed member signed before its removal stand: what it decided while 
 
 ### members
 
-`id` is the node id. Data: `name` (1 to 63 bytes, no space or `/`), `role` (`gateway`; `edge` is reserved and admitted by no node of this version), `public_key` (standard base64, 32 bytes, hashing to `id`), `address` (IP address and port of its mesh listener), `joined`, optional `version`. Any gateway may sign a member record. The tombstone of a member keeps its data, with the key.
+`id` is the node id. Data: `name` (1 to 63 bytes, no space or `/`), `role` (`gateway`; `edge` is reserved and admitted by no node of this version), `public_key` (standard base64, 32 bytes, hashing to `id`), `address` (IP address and port of its mesh listener), `joined`, optional `version`, and for a node admitted by the group secret `admit_key` and `admit` (section 6; both or none). Any gateway may sign a member record. The tombstone of a member keeps its data, with the key.
 
 ### blocks
 
@@ -74,6 +74,29 @@ Records a removed member signed before its removal stand: what it decided while 
 A node that receives a block decides again with what it holds itself: an address on its own allowlist is not blocked, the test profile blocks nothing, and a block of the same client that already runs there stands. Only the deciding node writes the event and the incident; the others show its incident number.
 
 ## 6. Joining
+
+Two ways. A group set up by configuration can also let a node in by hand, with a join code of one of its members; a group founded with `schild cluster init` has no group secret.
+
+### By configuration
+
+For a deployment that writes the same files to every node (Ansible, for example). No command and no code go from node to node.
+
+```yaml
+cluster:
+  enabled: true
+  listen: "10.0.0.2:8790"                    # this node's address in the private network
+  secret_file: /etc/schild/cluster.secret    # the same file on every node, mode 0600
+  peers: ["10.0.0.1:8790", "10.0.0.2:8790", "10.0.0.3:8790"]   # every node, the own address included
+```
+
+- The secret is at least 32 bytes; `schild cluster secret` prints 32 random bytes in hex. It is made once and kept where the deployment keeps its secrets (Ansible Vault, for example).
+- From the secret comes one key pair, the group key: the Ed25519 key with the seed SHA-256 over `schild-group-secret:` and the secret. The group id is the id of its public half (section 1). Another secret is another group.
+- At its start a node writes its own member record, signed with its node key as every record, carrying `admit_key` (the public half of the group key) and `admit`: the group key's signature over `schild-admit:`, the group id, `:` and the node's public key. A record of a node about itself is taken when `admit_key` hashes to the group id and `admit` verifies. The admission of one node does not fit another key.
+- The secret admits and does nothing else. It signs no record but the admission, it never travels, and a removed node stays removed although it holds the secret (check 6 of section 4 comes before). To shut out whoever holds a leaked secret, deploy a new one: that is a new group, which the nodes enter with a new cluster directory.
+- A node that holds no member for an address of `peers` sends its member record to that address (`POST /mesh/v0/hello`, section 7) and takes the member list it gets back, every second until it holds one. The order in which the nodes start does not matter.
+- Name and address come from `node_name` and `cluster.advertise` or `cluster.listen`. When they change in `schild.yaml`, the node writes its member record again at its next start.
+
+### By hand
 
 - `schild cluster init` on the first node makes the key and the group, and writes the node's member record.
 - `schild cluster invite` on a member prints a join code: 16 random bytes and the first 16 bytes of SHA-256 over `schild-join:` and that node's public key, base32 in lower case, in four groups. The node keeps SHA-256 over `schild-join-secret:` and the secret, with the expiry. One use, one hour.
@@ -87,6 +110,10 @@ One listener per node (`cluster.listen`), TLS 1.3, HTTP/2. Both sides show a sel
 `POST /mesh/v0/sync`, members only. Request: `group`, `vector` (per origin the highest `seq` the caller has seen) and `wait_ms`. The answer comes at once when the answering node holds records beyond the vector, else after `wait_ms`, at most 4 s (a long poll). Answer: `records` (at most 500), `covered` (per origin, how far these records bring the caller), `vector` (how far the answering node is), `more`. The caller applies the records, members first, then raises its vector to `covered`. The same call serves the push, the catch-up after an outage and the first sync of a new node.
 
 `POST /mesh/v0/join`, any certificate: section 6. A wrong code is answered after half a second.
+
+`POST /mesh/v0/hello`, any certificate: a node set up by configuration sends `record`, its own member record. The key of its certificate has to be the key of the record. The answering node checks the record like any other (section 4) and answers with `group` and every member record when the caller is a member afterwards. The caller checks each of them the same way, so it does not matter that it could not know the answering key before.
+
+A caller that was a member and was removed gets 410 on sync and hello, any other caller that is no member 403. A node that reads 410 says in its log that it was removed, serves with the state it has and shares nothing.
 
 ## 8. Not built yet
 

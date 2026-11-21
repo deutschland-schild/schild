@@ -16,6 +16,12 @@ type Cluster struct {
 	// Listen.
 	Advertise         string `json:"advertise"`
 	AllowPublicListen bool   `json:"allow_public_listen"`
+	// SecretFile sets the group up by configuration: the same secret on
+	// every node admits it at its start (contract/cluster admit.go).
+	SecretFile string `json:"secret_file"`
+	// Peers are the mesh addresses of the other nodes, where a node that
+	// knows no member yet finds the group.
+	Peers []string `json:"peers"`
 }
 
 // Address is what the other nodes dial: Advertise, else Listen.
@@ -37,6 +43,14 @@ func (c *Cluster) check() error {
 	a := ap.Addr().Unmap()
 	if !c.AllowPublicListen && !a.IsPrivate() && !a.IsLoopback() && !a.IsLinkLocalUnicast() {
 		return contract.Errf(contract.CodeConfig, "cluster.listen %s is no private or loopback address: put the mesh on a private network, or set cluster.allow_public_listen", c.Listen)
+	}
+	for _, p := range c.Peers {
+		if ap, err := netip.ParseAddrPort(p); err != nil || ap.Port() == 0 || ap.Addr().IsUnspecified() {
+			return contract.Errf(contract.CodeConfig, "cluster.peers: %q is no address and port of another node", p)
+		}
+	}
+	if len(c.Peers) > 0 && c.SecretFile == "" {
+		return contract.Errf(contract.CodeConfig, "cluster.peers needs cluster.secret_file: without the group secret a node joins with schild cluster join")
 	}
 	adv, err := netip.ParseAddrPort(c.Address())
 	if err != nil || adv.Port() == 0 || adv.Addr().IsUnspecified() {
