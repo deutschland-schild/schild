@@ -13,8 +13,8 @@ import (
 	"log/slog"
 	"net"
 	"net/http"
+	"sort"
 	"sync"
-	"sync/atomic"
 	"time"
 
 	contract "github.com/deutschland-schild/schild/contract/cluster"
@@ -33,6 +33,7 @@ const (
 	pathLock   = "/mesh/v0/lock"
 	pathUnlock = "/mesh/v0/unlock"
 	pathTell   = "/mesh/v0/tell"
+	pathAsk    = "/mesh/v0/ask"
 	// maxBatch bounds the records of one answer.
 	maxBatch = 500
 	maxBody  = 1 << 20
@@ -85,6 +86,7 @@ func (n *Node) listen() (*http.Server, net.Listener, error) {
 	mux.HandleFunc("POST "+pathLock, n.serveLock)
 	mux.HandleFunc("POST "+pathUnlock, n.serveUnlock)
 	mux.HandleFunc("POST "+pathTell, n.serveTell)
+	mux.HandleFunc("POST "+pathAsk, n.serveAsk)
 	srv := &http.Server{Handler: mux, ReadHeaderTimeout: 5 * time.Second, IdleTimeout: 2 * time.Minute, MaxHeaderBytes: 16 << 10,
 		TLSConfig: &tls.Config{MinVersion: tls.VersionTLS13, Certificates: []tls.Certificate{n.cert},
 			// Any certificate may connect; the handlers decide by its key
@@ -387,10 +389,11 @@ type peer struct {
 	// inSeq is how far this peer said it is with the records of this node,
 	// in its last call.
 	inSeq uint64
-	// telling: a Tell to this peer is in flight; tellClient keeps its
-	// connection.
-	telling    atomic.Bool
+	// telling: the kinds of Tell to this peer that are in flight;
+	// tellClient keeps its connection.
+	telling    map[string]bool
 	tellClient *http.Client
+	askClient  *http.Client
 }
 
 // syncPeers starts a loop for every gateway of the roster and stops the
@@ -597,14 +600,14 @@ func (n *Node) Tell(ctx context.Context, kind string, body []byte) {
 		p.mu.Lock()
 		ok := !p.outOK.IsZero() && now.Sub(p.outOK) < reachable
 		p.mu.Unlock()
-		if ok && p.telling.CompareAndSwap(false, true) {
+		if ok && p.startTell(kind) {
 			to = append(to, p)
 		}
 	}
 	n.pmu.Unlock()
 	for _, p := range to {
 		go func(p *peer) {
-			defer p.telling.Store(false)
+			defer p.endTell(kind)
 			c := p.teller(n.cert)
 			tctx, cancel := context.WithTimeout(ctx, time.Second)
 			defer cancel()
@@ -612,6 +615,27 @@ func (n *Node) Tell(ctx context.Context, kind string, body []byte) {
 			_ = postJSON(tctx, c, "https://"+p.address+pathTell, tellRequest{Kind: kind, Body: body}, &out)
 		}(p)
 	}
+}
+
+// startTell reports whether a message of this kind may go to the peer: one
+// of a kind at a time, the kinds do not wait for each other.
+func (p *peer) startTell(kind string) bool {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	if p.telling[kind] {
+		return false
+	}
+	if p.telling == nil {
+		p.telling = map[string]bool{}
+	}
+	p.telling[kind] = true
+	return true
+}
+
+func (p *peer) endTell(kind string) {
+	p.mu.Lock()
+	delete(p.telling, kind)
+	p.mu.Unlock()
 }
 
 func (p *peer) teller(cert tls.Certificate) *http.Client {
@@ -649,4 +673,128 @@ func (n *Node) serveTell(w http.ResponseWriter, r *http.Request) {
 	}
 	w.Header().Set("Content-Type", "application/json")
 	_, _ = w.Write([]byte("{}"))
+}
+
+// Ask and OnAsk are a question to one member and its answer: a node asks
+// another for the events it wrote after a cursor. Like every call of the
+// mesh it has a deadline, and the answer is input from outside.
+
+// maxAnswerBody bounds the answer to an Ask.
+const maxAnswerBody = 8 << 20
+
+// OnAsk registers f for questions of a kind; from is the id of the asker.
+func (n *Node) OnAsk(kind string, f func(from string, body []byte) ([]byte, error)) {
+	n.hmu.Lock()
+	if n.asks == nil {
+		n.asks = map[string]func(string, []byte) ([]byte, error){}
+	}
+	n.asks[kind] = f
+	n.hmu.Unlock()
+}
+
+// Reachable returns the gateways this node reached lately, by id.
+func (n *Node) Reachable() []string {
+	n.pmu.Lock()
+	defer n.pmu.Unlock()
+	now := n.now()
+	var out []string
+	for id, p := range n.peers {
+		p.mu.Lock()
+		if !p.outOK.IsZero() && now.Sub(p.outOK) < reachable {
+			out = append(out, id)
+		}
+		p.mu.Unlock()
+	}
+	sort.Strings(out)
+	return out
+}
+
+// PeerName is the name of a member, or its id.
+func (n *Node) PeerName(id string) string {
+	n.rmu.RLock()
+	defer n.rmu.RUnlock()
+	for _, e := range n.roster.Members() {
+		if e.ID == id {
+			return e.Member.Name
+		}
+	}
+	return id
+}
+
+// Ask sends a question to one member and returns its answer.
+func (n *Node) Ask(ctx context.Context, peerID, kind string, body []byte) ([]byte, error) {
+	n.pmu.Lock()
+	p := n.peers[peerID]
+	n.pmu.Unlock()
+	if p == nil {
+		return nil, errors.New("cluster: no such peer")
+	}
+	raw, err := json.Marshal(tellRequest{Kind: kind, Body: body})
+	if err != nil {
+		return nil, err
+	}
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, "https://"+p.address+pathAsk, bytes.NewReader(raw))
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("Content-Type", "application/json")
+	resp, err := p.asker(n.cert).Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("cluster: ask %s: %s", kind, resp.Status)
+	}
+	out, err := io.ReadAll(io.LimitReader(resp.Body, maxAnswerBody+1))
+	if err != nil {
+		return nil, err
+	}
+	if len(out) > maxAnswerBody {
+		return nil, errors.New("cluster: answer too large")
+	}
+	return out, nil
+}
+
+func (p *peer) asker(cert tls.Certificate) *http.Client {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	if p.askClient == nil {
+		key := p.key
+		p.askClient = meshClient(cert, func(k ed25519.PublicKey) bool { return k.Equal(key) }, 15*time.Second)
+	}
+	return p.askClient
+}
+
+func (n *Node) serveAsk(w http.ResponseWriter, r *http.Request) {
+	key, ok := peerKey(r.TLS)
+	if !ok {
+		http.Error(w, "no key", http.StatusForbidden)
+		return
+	}
+	id, ok := n.activeKey(key, contract.RoleGateway)
+	if !ok {
+		n.refuse(w, key)
+		return
+	}
+	var req tellRequest
+	d := json.NewDecoder(http.MaxBytesReader(w, r.Body, maxTell+4096))
+	if err := d.Decode(&req); err != nil {
+		http.Error(w, "bad request", http.StatusBadRequest)
+		return
+	}
+	n.hmu.Lock()
+	f := n.asks[req.Kind]
+	n.hmu.Unlock()
+	if f == nil {
+		http.Error(w, "unknown kind", http.StatusNotFound)
+		return
+	}
+	out, err := f(id, req.Body)
+	if err != nil {
+		http.Error(w, "failed", http.StatusInternalServerError)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	_, _ = w.Write(out)
 }

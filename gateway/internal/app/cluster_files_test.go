@@ -82,6 +82,7 @@ func ingressPair(t *testing.T) (a, b *groupNode) {
 		t.Fatal(err)
 	}
 	a.startIngress(t)
+	a.h.WaitFor("the mesh of web-1 listens", func() bool { return a.h.App.Cluster.Addr() != "" })
 	code, _, err := cluster.Invite(a.clusterDir(), nil)
 	if err != nil {
 		t.Fatal(err)

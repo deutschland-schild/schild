@@ -483,3 +483,14 @@ func Configure(dir, name, address string, secret []byte, now func() time.Time) (
 	_, err = s.publish(contract.ClassMembers, s.id, m, false, time.Time{})
 	return group, err
 }
+
+// Identity returns the node id of a data directory; ok false: the node
+// belongs to no group.
+func Identity(dir string) (id string, ok bool) {
+	s, err := openState(dir, false, nil)
+	if err != nil {
+		return "", false
+	}
+	defer s.close()
+	return s.id, s.group != ""
+}

@@ -23,6 +23,9 @@ type Cluster struct {
 	// Peers are the mesh addresses of the other nodes, where a node that
 	// knows no member yet finds the group.
 	Peers []string `json:"peers"`
+	// ShareData: every node keeps the events, incidents and requests of
+	// every node (default true).
+	ShareData *bool `json:"share_data"`
 	// Drain is how a node leaves traffic when it stops.
 	Drain ClusterDrain `json:"drain"`
 }
@@ -83,3 +86,6 @@ func (c *Cluster) check() error {
 	}
 	return nil
 }
+
+// SharesData reports whether events, incidents and requests are shared.
+func (c *Cluster) SharesData() bool { return c.ShareData == nil || *c.ShareData }

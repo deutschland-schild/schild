@@ -461,5 +461,5 @@ func (a *App) takeErasure(ctx context.Context, rec *contract.Record) {
 			a.log.Error("cluster: requests of an address erased on another node were not erased here", "from", e.Node, "err", err)
 		}
 	}
-	a.log.Info("cluster: erased an address that was erased on another node", "from", e.Node)
+	a.log.Debug("cluster: erased an address that was erased on a node of the group", "from", e.Node)
 }

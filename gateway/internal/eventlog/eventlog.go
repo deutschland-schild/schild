@@ -145,6 +145,25 @@ func (l *Log) EmitWithID(id, typ string, t time.Time, data any, idx Index) strin
 	return ev.ID
 }
 
+// Ingest stores events another node of the group wrote (MVP-27) and shows
+// them to the live subscribers. An event this node holds already is left as
+// it is. The Mirror does not get them: it is this node's own record.
+func (l *Log) Ingest(ctx context.Context, rows []*store.EventRow) error {
+	if len(rows) == 0 {
+		return nil
+	}
+	if err := l.st.InsertEvents(ctx, rows); err != nil {
+		return err
+	}
+	for _, r := range rows {
+		l.bus.Publish(r)
+	}
+	return nil
+}
+
+// Source is the CloudEvents source of the events this log writes.
+func (l *Log) Source() string { return "schild://" + l.node }
+
 // RowOf returns the stored form of ev with the index columns of idx (for
 // writers outside the queue, e.g. `schild dashboard reset-password`).
 // t is the time ev was built for (events.New).

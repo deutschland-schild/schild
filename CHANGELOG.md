@@ -14,7 +14,8 @@ The section of a version becomes the text of its GitHub release, so its heading 
 - In a group with a Caddyfile, certificates are shared: one order per certificate while the nodes reach each other, the HTTP-01 and TLS-ALPN-01 challenges work whichever node the balancer picks, a certificate always travels with the key that fits it, and a TLS session resumes on every node. Certificates a gateway had before it entered a group go with it.
 - In a group, rate limits and scenarios count for the group: every node tells the others once a second what it counted, so a client that spreads its requests over the nodes gets a limit once, and failed logins, tried user names, probed paths and WAF hits add up across the nodes.
 - A node of a group answers the balancer's health check `/.schild/readyz` with 503 until it took the state of the group and while it stops. `systemctl stop` and `schild cluster drain` leave traffic first (`cluster.drain.delay_s`, default 15 s) and give running requests `cluster.drain.grace_s` (default 30 s) to finish.
-- Not shared yet: events and requests; the detectors of distributed attacks count per node.
+- In a group every node keeps the events, incidents and single requests of every node (`cluster.share_data`, default on): each dashboard shows the group in its lists, searches, request charts and the live view, also what a node recorded that is gone, and a node that was away catches up on events and incidents. An erased address stays erased. Each node then stores what the whole group records; `share_data: false` keeps events and requests per node.
+- Per node in a group for now: the counters of the overview, the server charts and the detectors of distributed attacks.
 
 ### Rules
 

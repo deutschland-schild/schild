@@ -166,11 +166,23 @@ Behind a balancer the requests of one client land on every node, so a limit or a
 - Per node stay: open connections and waiting requests, the waiting page, memory limits (they protect the machine), and the detectors of distributed attacks and waves (MVP-18), which see the traffic of their node only.
 - A balancer that picks the node by the client address makes every count exact while the set of nodes is unchanged.
 
-## 9. Readiness and stopping
+## 9. Events, incidents and requests
+
+With `cluster.share_data` (default true) every node keeps the events, the incidents and the single requests of every node in its own store. Every list, search, chart of the requests and the live view of a dashboard then show the group without a query going from node to node, and what a node wrote is still there when the node is gone.
+
+- **Whose event it is.** The CloudEvents source of an event names its node. In a group the source is `schild://<node_name>.<the first 12 hex digits of the node id>`, so nodes with the same `node_name` (one `schild.yaml` deployed to all) still tell their events apart. A node hands on only what it wrote itself, and takes no event that carries its own source.
+- **Events** are asked for: `POST /mesh/v0/ask`, members only, body `kind` and `body`. Kind `events`, question `after` (a sequence number of the answering node), answer `epoch`, `next` and at most 500 `rows`. A node asks every member it reaches once a second and keeps the cursor per member, so a node that was away catches up from where it stopped. `epoch` names the store the cursor counts in; when it changes, the cursor starts at 0. An event a node holds already is left as it is.
+- **Incidents**: kind `incidents`, question `since_ms`, answer the incidents that changed since and whose event the answering node wrote. A node stores a new one and takes over a higher count, a later last request and that it was unblocked. It asks 2 minutes back again, because an incident that gathers the requests of a minute still changes.
+- **Single requests** are told (section 8, kind `requests`): once a second a node tells the others the requests it served, at most 4 000 a second and 1 MiB. This is the larger stream and it is not repeated: a node that is away does not get the requests the others served in that time; they hold them.
+- Each node applies its own retention, its size caps and every erasure to what it holds, whoever wrote it. A node erases again, for ten minutes, what the group erased: an event of the address may have come from a node that had not erased yet. At its start a node applies every erasure it holds.
+- Each node then stores what the whole group records. `share_data: false` keeps events and requests on the node that wrote them, for a large group; blocks, settings, logins and counts are shared all the same.
+- Per node stay: the counters of the overview and the charts of the server (`metrics.db`).
+
+## 10. Readiness and stopping
 
 - `/.schild/readyz` on the web ports, the health check of the balancer, answers 503 on a node of a group until the node took the state of the group (or reached no member for 10 s), and while it drains.
 - A stop (SIGTERM, `schild cluster drain`) turns the answer to 503, serves on for `cluster.drain.delay_s` (default 15) so the balancer sends new connections elsewhere, then ends idle connections and lets running requests finish within `cluster.drain.grace_s` (default 30).
 
-## 10. Not built yet
+## 11. Not built yet
 
-Of [MVP-27](../tests/specs/MVP-27-ha-group.yaml): the role edge, copies of events and requests and queries across the group, counts of the distributed detectors, the cap on blocks a node may send, the nodes an erasure reached in `PrivacyDeleteResult`, events and dashboard operations of the group.
+Of [MVP-27](../tests/specs/MVP-27-ha-group.yaml): the role edge, a copy on some nodes instead of all and queries from node to node (for groups too large to keep everything everywhere), the counters of the overview and the server charts across nodes, counts of the distributed detectors, the cap on blocks a node may send, the nodes an erasure reached in `PrivacyDeleteResult`, events and dashboard operations of the group.

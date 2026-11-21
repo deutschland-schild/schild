@@ -181,6 +181,8 @@ type App struct {
 	// groupHash: the engine hashes under the key of the group.
 	clusterSetupErr error
 	groupHash       bool
+	// groupNodeID is the node id of this gateway in its group; "": none.
+	groupNodeID string
 	// draining: the node left traffic (readiness 503) and stops; drainCh
 	// is closed by Drain. started is when Run began to serve.
 	draining  atomic.Bool
@@ -310,7 +312,8 @@ func New(ctx context.Context, opts Options) (*App, error) {
 		log.Warn(w)
 	}
 	a.Metrics = metrics.New()
-	a.Events = eventlog.New(a.Store, cfg.NodeName, a.Metrics, log)
+	a.prepareCluster(cfg) // before the event log and the engine: both take from the group
+	a.Events = eventlog.New(a.Store, a.eventNode(cfg), a.Metrics, log)
 	a.Sites = sites.NewRegistry(a.websitesView(cfg))
 	a.Events.Sites = a.Sites
 	// Test lab evaluation: mirror local events as an NDJSON file for the
@@ -397,7 +400,6 @@ func New(ctx context.Context, opts Options) (*App, error) {
 	}
 	a.Gate.SetWaitingPage(cfg.WaitingPage.On()) // D37
 	// MVP-17: behaviour across requests and rate limits, local only.
-	a.prepareCluster(cfg) // before the engine: its hashes take the key of the group
 	a.Behaviour = behaviour.New(a.behaviourConfig(cfg))
 	a.Behaviour.KnownHost = a.knownSiteHost
 	a.Behaviour.Sink = behaviour.Sink{

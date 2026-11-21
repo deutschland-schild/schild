@@ -58,6 +58,7 @@ func pair(t *testing.T) (a, b *groupNode) {
 		t.Fatal(err)
 	}
 	a.start(t)
+	a.h.WaitFor("the mesh of web-1 listens", func() bool { return a.h.App.Cluster.Addr() != "" })
 	code, _, err := cluster.Invite(a.clusterDir(), nil)
 	if err != nil {
 		t.Fatal(err)
@@ -305,6 +306,7 @@ func TestJoiningNodeTakesTheGroupsValuesAndKeepsItsOwn(t *testing.T) {
 		t.Fatal(err)
 	}
 	time.Sleep(1200 * time.Millisecond) // web-1 published its list
+	a.h.WaitFor("the mesh of web-1 listens", func() bool { return a.h.App.Cluster.Addr() != "" })
 	code, _, err := cluster.Invite(a.clusterDir(), nil)
 	if err != nil {
 		t.Fatal(err)
@@ -417,6 +419,7 @@ func TestGroupLimitCountsAcrossNodes(t *testing.T) {
 		g.h = apptest.New(t, apptest.Options{Dir: g.dir, Extra: limit + fmt.Sprintf("cluster: {enabled: true, listen: %q}\n", g.addr)})
 	}
 	start(a)
+	a.h.WaitFor("the mesh of web-1 listens", func() bool { return a.h.App.Cluster.Addr() != "" })
 	code, _, err := cluster.Invite(a.clusterDir(), nil)
 	if err != nil {
 		t.Fatal(err)
@@ -452,5 +455,120 @@ func TestGroupLimitCountsAcrossNodes(t *testing.T) {
 	}
 	if passed < 20 {
 		t.Errorf("only %d requests passed: the group is stricter than the limit", passed)
+	}
+}
+
+const attack = "/?q=<script>alert(document.cookie)</script>"
+
+func requestsOf(t *testing.T, g *groupNode, ip string) int {
+	t.Helper()
+	if g.h.App.Requests == nil {
+		t.Fatal("no request ring")
+	}
+	g.h.App.Requests.Flush()
+	recs, err := g.h.App.Requests.ByIP(context.Background(), netip.MustParseAddr(ip), 50, time.Now())
+	if err != nil {
+		t.Fatal(err)
+	}
+	return len(recs)
+}
+
+// What happens on one node is in the store of the other: events, the
+// incident of a stopped request, and the single requests.
+func TestGroupSharesEventsIncidentsAndRequests(t *testing.T) {
+	a, b := pair(t)
+	ctx := context.Background()
+	const ip = "203.0.113.160"
+	if resp := a.h.Visit("GET", attack, ip, "", ""); resp.StatusCode == 200 {
+		t.Fatal("the attack passed on web-1")
+	}
+	a.h.Visit("GET", "/impressum", ip, "", "")
+	a.h.Flush()
+	rows, err := a.h.App.Store.EventsByIP(ctx, ip, 50)
+	if err != nil || len(rows) == 0 {
+		t.Fatalf("web-1 holds no event of its own request: %v", err)
+	}
+	incident := ""
+	for _, r := range rows {
+		if r.Incident != "" {
+			incident = r.Incident
+		}
+	}
+	if incident == "" {
+		t.Fatal("the stopped request has no incident on web-1")
+	}
+	b.h.WaitFor("web-2 holds the events of web-1", func() bool { return eventsOf(t, b, ip) == len(rows) })
+	b.h.WaitFor("web-2 holds the incident of web-1", func() bool {
+		in, err := b.h.App.Store.GetIncident(ctx, incident)
+		return err == nil && in != nil && in.IP == ip
+	})
+	b.h.WaitFor("web-2 holds the requests web-1 served", func() bool { return requestsOf(t, b, ip) >= 2 })
+	// Nothing comes back to web-1 a second time, and web-2 does not hand
+	// the events of web-1 on as its own.
+	time.Sleep(2500 * time.Millisecond)
+	if n := eventsOf(t, a, ip); n != len(rows) {
+		t.Errorf("web-1 holds %d events of the address, wrote %d", n, len(rows))
+	}
+	if n := requestsOf(t, a, ip); n != 2 {
+		t.Errorf("web-1 holds %d requests of the address, served 2", n)
+	}
+
+	// web-2 is away while web-1 records; it catches up when it returns.
+	if err := b.h.Stop(); err != nil {
+		t.Fatal(err)
+	}
+	const later = "203.0.113.161"
+	a.h.Visit("GET", attack, later, "", "")
+	a.h.Flush()
+	want := eventsOf(t, a, later)
+	if want == 0 {
+		t.Fatal("no event of the second address on web-1")
+	}
+	b.start(t)
+	b.h.WaitFor("web-2 caught up with the events it missed", func() bool { return eventsOf(t, b, later) == want })
+
+	// An erased address is gone on both, and does not come back with what
+	// the other node holds.
+	a.h.Login()
+	if code, body := a.h.API("POST", "/privacy/delete", map[string]any{"ip": ip, "confirm": true}); code != 200 {
+		t.Fatalf("erasure: %d %s", code, body)
+	}
+	b.h.WaitFor("web-2 erased events and requests of the address", func() bool { return eventsOf(t, b, ip) == 0 && requestsOf(t, b, ip) == 0 })
+	time.Sleep(3 * time.Second)
+	if eventsOf(t, a, ip) != 0 || eventsOf(t, b, ip) != 0 || requestsOf(t, a, ip) != 0 {
+		t.Error("an erased address came back")
+	}
+	if eventsOf(t, b, later) != want {
+		t.Error("the erasure took the events of another address")
+	}
+}
+
+func TestGroupKeepsDataPerNodeWhenToldSo(t *testing.T) {
+	a := &groupNode{dir: t.TempDir(), addr: apptest.FreeAddr(t), name: "web-1"}
+	b := &groupNode{dir: t.TempDir(), addr: apptest.FreeAddr(t), name: "web-2"}
+	if _, err := cluster.Init(a.clusterDir(), a.name, a.addr, nil); err != nil {
+		t.Fatal(err)
+	}
+	start := func(g *groupNode) {
+		g.h = apptest.New(t, apptest.Options{Dir: g.dir, Extra: fmt.Sprintf("cluster: {enabled: true, listen: %q, share_data: false}\n", g.addr)})
+	}
+	start(a)
+	a.h.WaitFor("the mesh of web-1 listens", func() bool { return a.h.App.Cluster.Addr() != "" })
+	code, _, err := cluster.Invite(a.clusterDir(), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, _, err := cluster.Join(context.Background(), b.clusterDir(), b.name, b.addr, a.addr, code, nil); err != nil {
+		t.Fatal(err)
+	}
+	start(b)
+	const ip = "203.0.113.170"
+	a.h.Visit("GET", attack, ip, "", "")
+	a.h.Flush()
+	a.block("203.0.113.171", "S-STILL-SHARED", 15*time.Minute)
+	b.h.WaitFor("blocks are shared all the same", func() bool { return b.blocked("203.0.113.171") == "S-STILL-SHARED" })
+	time.Sleep(2 * time.Second)
+	if eventsOf(t, b, ip) != 0 || requestsOf(t, b, ip) != 0 {
+		t.Error("with share_data false web-2 holds events or requests of web-1")
 	}
 }

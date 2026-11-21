@@ -61,6 +61,8 @@ type Config struct {
 
 // Ring is the request ring.
 type Ring struct {
+	// tee: see Tee.
+	tee     atomic.Pointer[teeBuf]
 	cfg     Config
 	dir     string
 	ch      chan Entry
@@ -204,6 +206,63 @@ func (r *Ring) sortFiles() {
 // Add hands one request to the writer; never blocks. A full channel drops
 // the record and counts it (Stats.Dropped).
 func (r *Ring) Add(e *Entry) {
+	select {
+	case r.ch <- *e:
+	default:
+		r.dropped.Add(1)
+	}
+	if t := r.tee.Load(); t != nil {
+		t.add(e)
+	}
+}
+
+// teeBuf gathers the requests of this node for the other nodes of a group.
+// It is a concrete type filled by value, so Add hands its entry to nobody
+// and stays free of allocations.
+type teeBuf struct {
+	mu      sync.Mutex
+	buf     []Entry
+	max     int
+	skipped uint64
+}
+
+func (t *teeBuf) add(e *Entry) {
+	t.mu.Lock()
+	if len(t.buf) < t.max {
+		t.buf = append(t.buf, *e)
+	} else {
+		t.skipped++
+	}
+	t.mu.Unlock()
+}
+
+// Tee makes Add keep a copy of every request of this node, at most max
+// until the next TakeTee, for the other nodes of a group (MVP-27). A
+// single gateway keeps none.
+func (r *Ring) Tee(max int) {
+	r.tee.Store(&teeBuf{max: max, buf: make([]Entry, 0, min(max, 1024))})
+}
+
+// TakeTee returns the requests kept since the last call, and how many did
+// not fit. keep true leaves them where they are (nobody to hand them to).
+func (r *Ring) TakeTee(keep bool) (es []Entry, skipped uint64) {
+	t := r.tee.Load()
+	if t == nil {
+		return nil, 0
+	}
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	if keep {
+		return nil, t.skipped
+	}
+	es, skipped = t.buf, t.skipped
+	t.buf = make([]Entry, 0, min(t.max, 1024))
+	return es, skipped
+}
+
+// AddForeign hands over a request another node of the group served: it is
+// written like one of this node, and not told on.
+func (r *Ring) AddForeign(e *Entry) {
 	select {
 	case r.ch <- *e:
 	default:

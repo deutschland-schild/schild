@@ -76,6 +76,7 @@ func (a *App) startCluster(ctx context.Context) {
 	a.goLoop(ctx, "cluster-blocks", tick(250*time.Millisecond, a.publishGroupBlocks))
 	a.startSharedState(ctx)
 	a.startCounts(ctx)
+	a.startGroupData(ctx)
 	if cfg.CaddyIngress() {
 		a.startGroupFiles(ctx, a.storageRoot())
 	}
@@ -277,6 +278,9 @@ func (a *App) prepareCluster(cfg *config.Site) {
 			return
 		}
 	}
+	if id, ok := cluster.Identity(dir); ok {
+		a.groupNodeID = id
+	}
 	if key, ok := cluster.HashKey(dir); ok {
 		behaviour.SetHashKey(key)
 		a.groupHash = true
@@ -314,4 +318,19 @@ func (a *App) startCounts(ctx context.Context) {
 		}
 	})
 	a.goLoop(ctx, "cluster-counts", tick(time.Second, func() { a.tellCounts(ctx) }))
+}
+
+// eventNode is the name the events of this gateway carry as their source.
+// In a group it ends with the start of the node id: the nodes tell their
+// own events from the others' by it, and a deployment often gives every
+// node the same node_name.
+func (a *App) eventNode(cfg *config.Site) string {
+	if a.groupNodeID == "" {
+		return cfg.NodeName
+	}
+	name := cfg.NodeName
+	if len(name) > 48 {
+		name = name[:48]
+	}
+	return name + "." + strings.TrimPrefix(a.groupNodeID, "n-")[:12]
 }

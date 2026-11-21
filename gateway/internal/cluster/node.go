@@ -49,6 +49,7 @@ type Node struct {
 	hmu      sync.Mutex
 	handlers map[string][]func(*contract.Record)
 	tells    map[string]func(from string, body []byte)
+	asks     map[string]func(from string, body []byte) ([]byte, error)
 
 	// news wakes the sync calls that wait.
 	nmu  sync.Mutex
