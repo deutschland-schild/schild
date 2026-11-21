@@ -14,6 +14,7 @@ export const CHANGELOG: ChangelogEntry[] = [
       'Neu in dieser Version: die Kurze Prüfung im Browser mit Under-Attack-Modus, einstellbare Schwellen für Szenarien und ein eigener Schalter für jedes Limit.',
       '0.1.0-alpha.2 folgt am selben Tag. Sie härtet die Prüfung von Anfragen, die Erkennung von Anmeldeversuchen und die Übergabe der Sperren an die Firewall.',
       '0.1.0-alpha.3 bringt Pakete für Debian und Ubuntu: Jedes Release enthält jetzt eine .deb-Datei für amd64 und arm64.',
+      '0.1.0-alpha.4 folgt am 21. November: Die Prüfsummen eines Release sind mit cosign signiert, und die Anleitung beschreibt die Installation als Paket über apt.',
     ],
     link: { href: RELEASE_URL, label: 'Alle Änderungen auf GitHub' },
   },
