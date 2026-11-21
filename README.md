@@ -51,7 +51,8 @@ Ab dem Start sperrt das Core Rule Set bekannte Angriffe, und die Limits für Log
 Die anderen Wege stehen in der [Installationsanleitung](docs/gateway/00-installieren.md):
 
 - **Du nutzt Caddy:** Schild ist eine Caddy-Distribution, lädt dein Caddyfile und ersetzt Caddy als Webserver.
-- **Ohne Docker:** ein statisches Linux-Binary (amd64, arm64) mit systemd-Unit.
+- **Debian und Ubuntu:** das Paket `schild` aus dem eigenen apt-Repository (Debian 12 und 13, Ubuntu 22.04 und 24.04). Updates kommen über apt.
+- **Andere Linux-Server ohne Docker:** ein statisches Linux-Binary (amd64, arm64) mit systemd-Unit.
 - **Den Webserver weiterleiten:** die Zeilen für nginx und Apache.
 
 Updates, Backup, Monitoring und Rückbau: [Betrieb](docs/gateway/02-betrieb.md).
