@@ -30,7 +30,7 @@ type Member struct {
 	// AdmitKey and Admit let a node into a group that is set up by
 	// configuration (admit.go): the public key the group id is the hash
 	// of, and its signature over this node's key. Both or none.
-	AdmitKey string `json:"admit_key,omitempty"`
+	AdmitKey string `json:"admit_public_key,omitempty"`
 	Admit    string `json:"admit,omitempty"`
 }
 

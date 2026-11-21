@@ -1,0 +1,17 @@
+{
+  "contract": "cluster-record",
+  "description": "The record is an object.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"group\":\"g-bc3ac1de9bf1bcd004b70280521fda31\",\"members\":[],\"record\":null}",
+  "input_decoded": {
+    "group": "g-bc3ac1de9bf1bcd004b70280521fda31",
+    "members": [],
+    "record": null
+  },
+  "expect": {
+    "valid": false,
+    "error": "schema"
+  }
+}

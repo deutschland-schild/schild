@@ -1,0 +1,41 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://contracts.schild.invalid/v0/cluster-record.schema.json",
+  "title": "Group record check input (unreleased, D103, cluster.md)",
+  "description": "Input of the cluster-record vectors: the member records a node holds, one record it is handed, and optionally the record it holds of the same thing (contract/cluster Roster.Check, Wins). The expected result says whether the record is taken, why not, and whether it replaces the held one. The clock of the node is the vector's context.now.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["group", "members", "record"],
+  "properties": {
+    "group": { "type": "string", "pattern": "^g-[0-9a-f]{32}$" },
+    "members": {
+      "description": "Records of class members, applied in this order: each is checked like any record and, when taken, becomes the state of its member.",
+      "type": "array",
+      "maxItems": 16,
+      "items": { "$ref": "#/$defs/record" }
+    },
+    "record": { "$ref": "#/$defs/record" },
+    "held": { "$ref": "#/$defs/record" }
+  },
+  "$defs": {
+    "record": {
+      "description": "A record as it travels (cluster.md section 2). Whether it is taken is the result, not a property of the schema; the schema fixes only the types.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["v", "group", "class", "id", "origin", "seq", "hlc", "data", "sig"],
+      "properties": {
+        "v": { "type": "integer", "minimum": 0, "maximum": 1000 },
+        "group": { "type": "string", "maxLength": 64 },
+        "class": { "type": "string", "maxLength": 32 },
+        "id": { "type": "string", "maxLength": 1024 },
+        "origin": { "type": "string", "maxLength": 64 },
+        "seq": { "type": "integer", "minimum": 0, "maximum": 9007199254740991 },
+        "hlc": { "type": "integer", "minimum": 0 },
+        "deleted": { "type": "boolean" },
+        "expires": { "type": "string", "maxLength": 32 },
+        "data": { "type": "string", "maxLength": 400000 },
+        "sig": { "type": "string", "maxLength": 128 }
+      }
+    }
+  }
+}

@@ -2,7 +2,7 @@
 
 How several gateways of one operator share their state from node to node: no store beside them, no majority, so two nodes are a group. Direction given by the initiator on 2026-11-21, recorded in [DECISIONS](DECISIONS.md) D103; the whole plan is [MVP-27](../tests/specs/MVP-27-ha-group.yaml).
 
-Go: `contract/cluster`. Built so far: the record, the classes `members` and `blocks`, the join code, the sync call. No golden vectors yet and no Python implementation: `make contracts-test` does not cover this contract, its Go tests do. Everything here may still change before a release.
+Go: `contract/cluster`. Vectors: `cluster-record` (input [cluster-record.schema.json](cluster-record.schema.json)): whether a node takes a record, why not, and whether it replaces the record held (sections 3 to 5), cross-checked by `tools/crosscheck.py`. The mesh calls (sections 7 to 11) have no vectors; the gateway's tests cover them. Everything here may still change before a release.
 
 **No request waits for the group.** The gate decides from its own memory. A node that reaches no member serves with the state it has.
 
@@ -62,7 +62,7 @@ Records a removed member signed before its removal stand: what it decided while 
 
 ### members
 
-`id` is the node id. Data: `name` (1 to 63 bytes, no space or `/`), `role` (`gateway` or `edge`, section 11), `public_key` (standard base64, 32 bytes, hashing to `id`), `address` (IP address and port of its mesh listener), `joined`, optional `version`, and for a node admitted by the group secret `admit_key` and `admit` (section 6; both or none). Any gateway may sign a member record. The tombstone of a member keeps its data, with the key.
+`id` is the node id. Data: `name` (1 to 63 bytes, no space or `/`), `role` (`gateway` or `edge`, section 11), `public_key` (standard base64, 32 bytes, hashing to `id`), `address` (IP address and port of its mesh listener), `joined`, optional `version`, and for a node admitted by the group secret `admit_public_key` and `admit` (section 6; both or none). Any gateway may sign a member record. The tombstone of a member keeps its data, with the key.
 
 ### blocks
 
@@ -130,7 +130,7 @@ cluster:
 
 - The secret is at least 32 bytes; `schild cluster secret` prints 32 random bytes in hex. It is made once and kept where the deployment keeps its secrets (Ansible Vault, for example).
 - From the secret comes one key pair, the group key: the Ed25519 key with the seed SHA-256 over `schild-group-secret:` and the secret. The group id is the id of its public half (section 1). Another secret is another group.
-- At its start a node writes its own member record, signed with its node key as every record, carrying `admit_key` (the public half of the group key) and `admit`: the group key's signature over `schild-admit:`, the group id, `:` and the node's public key. A record of a node about itself is taken when `admit_key` hashes to the group id and `admit` verifies. The admission of one node does not fit another key.
+- At its start a node writes its own member record, signed with its node key as every record, carrying `admit_public_key` (the public half of the group key) and `admit`: the group key's signature over `schild-admit:`, the group id, `:` and the node's public key. A record of a node about itself is taken when `admit_public_key` hashes to the group id and `admit` verifies. The admission of one node does not fit another key.
 - The secret admits and does nothing else. It signs no record but the admission, it never travels, and a removed node stays removed although it holds the secret (check 6 of section 4 comes before). To shut out whoever holds a leaked secret, deploy a new one: that is a new group, which the nodes enter with a new cluster directory.
 - A node that holds no member for an address of `peers` sends its member record to that address (`POST /mesh/v0/hello`, section 7) and takes the member list it gets back, every second until it holds one. The order in which the nodes start does not matter.
 - Name and address come from `node_name` and `cluster.advertise` or `cluster.listen`. When they change in `schild.yaml`, the node writes its member record again at its next start.

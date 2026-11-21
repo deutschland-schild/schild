@@ -165,6 +165,8 @@ func main() {
 	genSiteConfigD92(g)
 	// D95 (2026-11-19): preset limits switched one by one.
 	genSiteConfigD95(g)
+	// D103 (MVP-27): the records of a group of gateways.
+	genClusterRecord(g)
 	g.summary()
 }
 
