@@ -15,6 +15,9 @@ afterEach(() => {
 afterAll(() => mock.server.close())
 
 const all = <T extends Element = HTMLElement>(sel: string) => [...document.querySelectorAll<T>(sel)]
+/** Open the detail of every line of the findings list. */
+const expandAll = () => click(byTestId('expand-all'))
+const rowsOf = (area: string) => all(`[data-testid="finding-row"][data-area="${area}"]`)
 const button = (label: string) => all<HTMLButtonElement>('button').find(b => b.textContent?.trim() === label) ?? null
 
 describe('server helpers', () => {
@@ -137,16 +140,24 @@ describe('Server section without agents (2026-11-02, the default)', () => {
 describe('Server section', () => {
   beforeAll(() => { FEATURES.hostAgents = true })
   afterAll(() => { FEATURES.hostAgents = false })
-  it('shows the gateway first with findings by area, copyable fixes and the inventory', async () => {
+  it('shows the gateway first with its findings as one list, copyable fixes and the inventory', async () => {
     const { wrapper } = await mountApp('/server/check')
     await waitFor(() => !!byTestId('host-detail'))
     // Only the server the sidebar holds (2026-11-02): the gateway, no list of every server.
     expect(all('[data-testid="host-item"]')).toHaveLength(0)
     expect(byTestId('servers-meta')!.textContent).toContain('Gateway')
     expect(byTestId('servers-meta')!.textContent).not.toContain('meldet sich nicht')
-    const areas = all('[data-testid^="area-"]').map(a => a.querySelector('h3')!.textContent!.trim())
-    expect(areas).toEqual(['Distribution & Kernel', 'Updates', 'Offene Ports', 'Firewall', 'SSH', 'TLS', 'Logs', 'Software'])
-    expect(byTestId('area-updates')!.querySelector('[data-testid="command-text"]')!.textContent).toBe('sudo apt-get update && sudo apt-get upgrade')
+    const areas = [...byTestId('filter-area')!.querySelectorAll('option')].slice(1).map(o => o.textContent!.trim())
+    expect(areas).toEqual(['Distribution & Kernel', 'Updates', 'Offene Ports', 'Firewall', 'SSH', 'TLS', 'Logs'])
+    expect(byTestId('inventory-section')!.querySelector('h3')!.textContent).toContain('Installierte Software')
+    // One line per check, open findings first; the detail opens on click.
+    const states = all('[data-testid="finding-row"]').map(x => x.getAttribute('data-state'))
+    expect(states.length).toBeGreaterThan(5)
+    expect(states).toEqual([...states].sort((a, b) => ['open', 'unreadable', 'accepted', 'ok'].indexOf(a!) - ['open', 'unreadable', 'accepted', 'ok'].indexOf(b!)))
+    expect(byTestId('command-text')).toBeNull()
+    const updates = rowsOf('updates').find(x => x.getAttribute('data-state') === 'open')!
+    await click(updates.querySelector('[data-testid="finding-toggle"]'))
+    expect(updates.querySelector('[data-testid="command-text"]')!.textContent).toBe('sudo apt-get update && sudo apt-get upgrade')
     expect(byTestId('inventory')!.querySelector('[data-eol="past"]')!.textContent).toContain('redis')
     expect(byTestId('check-now')).not.toBeNull()
     expect(bodyText()).not.toMatch(/geschützt|anonym|sicher\b/)
@@ -169,9 +180,18 @@ describe('Server section', () => {
 
   it('shows the logs area with config file fixes: path, content, copy button and how it applies (D38)', async () => {
     const { wrapper } = await mountApp('/server/check')
-    await waitFor(() => !!byTestId('area-logs'))
-    const area = byTestId('area-logs')!
-    const fixes = [...area.querySelectorAll('[data-testid="fix-config"]')]
+    await waitFor(() => rowsOf('logs').length > 0)
+    const before = all('[data-testid="finding-row"]').length
+    await type(byTestId('findings')!.querySelector('input[type="search"]'), 'journal')
+    const total = before
+    // The search looks at title, explanation and evidence, not only at what the line shows.
+    await waitFor(() => all('[data-testid="finding-row"]').length > 0 && all('[data-testid="finding-row"]').length < total)
+    expect(rowsOf('logs').length).toBeGreaterThan(0)
+    expect(byTestId('finding-count')!.textContent).toMatch(/^\s*\d+ von \d+ Prüfungen/)
+    await click(byTestId('filter-reset'))
+    await expandAll()
+    const area = byTestId('finding-list')!
+    const fixes = all('[data-testid="finding-row"][data-area="logs"] [data-testid="fix-config"]')
     expect(fixes.length).toBeGreaterThanOrEqual(3)
     const paths = fixes.map(x => x.querySelector('[data-testid="fix-config-path"]')!.textContent!.trim())
     expect(paths).toContain('/etc/systemd/journald.conf.d/50-schild-size.conf')
@@ -179,7 +199,7 @@ describe('Server section', () => {
     expect(journal.querySelector('[data-testid="command-text"]')!.textContent).toContain('SystemMaxUse=1024M')
     expect(journal.querySelector('[data-testid="command-copy"]')).not.toBeNull()
     // The restart command follows the file as "Danach ausführen".
-    const card = journal.closest('article')!
+    const card = journal.closest('[data-testid="finding-row"]')!
     expect(card.textContent).toContain('Danach ausführen')
     expect([...card.querySelectorAll('[data-testid="command-text"]')].map(c => c.textContent)).toContain('sudo systemctl restart systemd-journald')
     expect(area.textContent).toContain('Größe')
@@ -189,7 +209,8 @@ describe('Server section', () => {
 
   it('shows "nicht lesbar" with the reason, the silent banner and no "Jetzt prüfen" for agents', async () => {
     const { wrapper } = await mountApp('/server/check?server=app-1')
-    await waitFor(() => !!byTestId('finding-unreadable'))
+    await waitFor(() => all('[data-testid="finding-row"][data-state="unreadable"]').length > 0)
+    await expandAll()
     expect(byTestId('unreadable-reason')!.textContent).toContain('Nicht lesbar: keine Leserechte, braucht CAP_NET_ADMIN')
     expect(byTestId('last-rejected')!.textContent).toContain('zu alt')
     expect(byTestId('check-now')).toBeNull()
@@ -202,7 +223,8 @@ describe('Server section', () => {
 
   it('shows agent findings with the catalogue text of the gateway and no copy for unverified commands', async () => {
     const { wrapper } = await mountApp('/server/check?server=app-1')
-    await waitFor(() => !!byTestId('finding'))
+    await waitFor(() => !!byTestId('finding-row'))
+    await expandAll()
     // The fixture's agent sends commands the gateway's own check does not produce.
     const unverified = all('[data-testid="unverified-fix"]')
     expect(unverified.length).toBeGreaterThan(0)
@@ -221,7 +243,7 @@ describe('Server section', () => {
     const { wrapper } = await mountApp('/server/check?server=verein-alt')
     await waitFor(() => !!byTestId('os-support'))
     expect(byTestId('os-support')!.textContent).toContain('keine Sicherheitsupdates mehr')
-    expect(all('[data-testid="finding"][data-severity="critical"]')).toHaveLength(2)
+    expect(all('[data-testid="finding-row"][data-severity="critical"]')).toHaveLength(2)
     expect(all('#main [data-eol="past"]').length).toBeGreaterThanOrEqual(3)
     wrapper.unmount()
   })
@@ -288,6 +310,45 @@ describe('Server section', () => {
     const cfg = all('[data-testid="agent-row"]').find(r => r.getAttribute('data-agent') === 'app-2')!
     expect(cfg.querySelector('[data-testid="agent-revoke"]')).toBeNull()
     expect(cfg.textContent).toContain('Steht in schild.yaml')
+    wrapper.unmount()
+  })
+
+  it('marks a finding as accepted with a note and opens it again (D102)', async () => {
+    const { wrapper } = await mountApp('/server/check')
+    const open = () => all('[data-testid="finding-row"][data-state="open"]')
+    const acceptedRows = () => all('[data-testid="finding-row"][data-state="accepted"]')
+    await waitFor(() => !!byTestId('host-detail') && open().length > 0)
+    const local = () => mock.state.hosts.hosts.get('local')!
+    const openBefore = open().length
+    expect(acceptedRows()).toHaveLength(0)
+    const first = open()[0]!
+    await click(first.querySelector('[data-testid="finding-toggle"]'))
+    const title = first.querySelector('[data-testid="finding"]')!.getAttribute('aria-label')!
+    await click(first.querySelector('[data-testid="accept-open"]'))
+    await waitFor(() => !!byTestId('accept-form'))
+    // Nothing is accepted before the form is sent.
+    expect(local().accepted).toHaveLength(0)
+    await type(byTestId('accept-note'), 'Firewall des Hosters davor')
+    await click(byTestId('accept-confirm'))
+    await waitFor(() => local().accepted.length === 1 && acceptedRows().length === 1)
+    expect(local().accepted[0]!.note).toBe('Firewall des Hosters davor')
+    expect(open()).toHaveLength(openBefore - 1)
+    // The line stays open under its new state, with the note and the way back.
+    const accepted = acceptedRows()[0]!
+    expect(accepted.textContent).toContain(title)
+    expect(accepted.textContent).toContain('Akzeptiert')
+    await waitFor(() => !!byTestId('accepted-note'))
+    expect(byTestId('accepted-note')!.textContent).toContain('Firewall des Hosters davor')
+    expect(byTestId('host-summary')!.textContent).toContain('1 Befund akzeptiert')
+    // The state filter narrows the list to it.
+    const select = byTestId('filter-state') as HTMLSelectElement
+    select.value = 'accepted'
+    select.dispatchEvent(new Event('change', { bubbles: true }))
+    await waitFor(() => all('[data-testid="finding-row"]').length === 1)
+    await click(byTestId('filter-reset'))
+    await click(acceptedRows()[0]!.querySelector('[data-testid="reopen"]'))
+    await waitFor(() => local().accepted.length === 0 && open().length === openBefore)
+    expect(byTestId('finding-accepted')).toBeNull()
     wrapper.unmount()
   })
 

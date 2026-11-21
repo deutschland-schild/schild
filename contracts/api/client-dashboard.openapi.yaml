@@ -1060,6 +1060,45 @@ paths:
               schema: { $ref: "#/components/schemas/LocalCheckRun" }
         "409": { description: "A run is already requested or running (code `check_running`).", content: { application/problem+json: { schema: { $ref: "#/components/schemas/Problem" } } } }
         "503": { description: "No way to start the check from the dashboard (code `check_unavailable`); the timer still runs.", content: { application/problem+json: { schema: { $ref: "#/components/schemas/Problem" } } } }
+  /hosts/{host_id}/findings/accept:
+    post:
+      tags: [hosts]
+      operationId: acceptHostFinding
+      summary: "Mark an open finding of the newest report as accepted (D102): it no longer counts as open and stays listed under `accepted`. The severity is taken from the report. The acceptance holds for later reports until it is reopened or the finding comes back with a higher severity. 404 when the host or an open finding with this id and subject does not exist."
+      parameters: [{ $ref: "#/components/parameters/HostId" }, { $ref: "#/components/parameters/CSRF" }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/FindingAccept" }
+      responses:
+        default: { $ref: "#/components/responses/Problem" }
+        "200":
+          description: Accepted; the host as it is now.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/HostDetail" }
+        "404": { $ref: "#/components/responses/Problem" }
+        "409": { description: "The host already has 200 accepted findings (code `conflict`).", content: { application/problem+json: { schema: { $ref: "#/components/schemas/Problem" } } } }
+  /hosts/{host_id}/findings/reopen:
+    post:
+      tags: [hosts]
+      operationId: reopenHostFinding
+      summary: "Take an acceptance back (D102): the finding counts as open again when a report holds it. 404 when the host or the acceptance does not exist."
+      parameters: [{ $ref: "#/components/parameters/HostId" }, { $ref: "#/components/parameters/CSRF" }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/FindingRef" }
+      responses:
+        default: { $ref: "#/components/responses/Problem" }
+        "200":
+          description: Reopened; the host as it is now.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/HostDetail" }
+        "404": { $ref: "#/components/responses/Problem" }
 
   /agents:
     get:
@@ -2562,7 +2601,7 @@ components:
         low: { type: integer, minimum: 0 }
         info: { type: integer, minimum: 0 }
     ServersSummary:
-      description: "Optional: the compact Server card of the overview. Absent when host_check is not configured."
+      description: "Optional: the compact Server card of the overview. Absent when host_check is not configured, and until the first host has reported (D100)."
       type: object
       additionalProperties: false
       required: [hosts, findings, silent, unreadable]
@@ -2575,7 +2614,7 @@ components:
     HostSummary:
       type: object
       additionalProperties: false
-      required: [id, hostname, role, status, silent, last_report_at, counts, unreadable, os]
+      required: [id, hostname, role, status, silent, last_report_at, counts, accepted, unreadable, os]
       properties:
         id: { $ref: "#/components/schemas/HostId" }
         hostname: { type: string, maxLength: 253 }
@@ -2587,7 +2626,8 @@ components:
         received_at: { $ref: "#/components/schemas/NullableTimestamp", description: When the gateway stored the newest report. }
         interval_minutes: { type: [integer, "null"], minimum: 1, description: Expected report interval (agents and the local timer). }
         duration_ms: { type: [integer, "null"], minimum: 0 }
-        counts: { $ref: "#/components/schemas/SeverityCounts" }
+        counts: { $ref: "#/components/schemas/SeverityCounts", description: "Open findings of the newest report without the accepted ones (D102)." }
+        accepted: { type: integer, minimum: 0, description: "Findings of the newest report that are accepted and therefore not in counts (D102)." }
         unreadable: { type: integer, minimum: 0, description: Checks of the newest report that were not readable. }
         os:
           type: [object, "null"]
@@ -2615,9 +2655,10 @@ components:
     HostDetail:
       type: object
       additionalProperties: false
-      required: [host, report, history]
+      required: [host, report, history, accepted]
       properties:
         host: { $ref: "#/components/schemas/HostSummary" }
+        accepted: { type: array, maxItems: 200, description: "Accepted findings of this host (D102), newest first. The counts of the newest report in `history` leave them out, the counts of older reports are as stored.", items: { $ref: "#/components/schemas/AcceptedFinding" } }
         report:
           description: The newest host report exactly as stored (schild.host_report/0.1); null before the first report.
           oneOf:
@@ -2647,6 +2688,33 @@ components:
         title: { type: [string, "null"], maxLength: 120 }
         explanation: { type: [string, "null"], maxLength: 600 }
         fix_verified: { type: boolean }
+    FindingRef:
+      description: "A finding of a host by its check id and subject (null or absent: the check has one result)."
+      type: object
+      additionalProperties: false
+      required: [id]
+      properties:
+        id: { type: string, pattern: "^[a-z]+\\.[a-z_]+$", maxLength: 64 }
+        subject: { type: [string, "null"], minLength: 1, maxLength: 128 }
+    FindingAccept:
+      type: object
+      additionalProperties: false
+      required: [id]
+      properties:
+        id: { type: string, pattern: "^[a-z]+\\.[a-z_]+$", maxLength: 64 }
+        subject: { type: [string, "null"], minLength: 1, maxLength: 128 }
+        note: { type: string, maxLength: 200, description: "Why it is accepted (one line), e.g. a firewall in front of the server. Stays on this gateway." }
+    AcceptedFinding:
+      type: object
+      additionalProperties: false
+      required: [id, subject, severity, note, accepted_at, active]
+      properties:
+        id: { type: string, pattern: "^[a-z]+\\.[a-z_]+$", maxLength: 64 }
+        subject: { type: [string, "null"], maxLength: 128 }
+        severity: { $ref: "#/components/schemas/Severity", description: "Severity of the finding when it was accepted. A later report with a higher severity is open again." }
+        note: { type: [string, "null"], maxLength: 200 }
+        accepted_at: { $ref: "#/components/schemas/Timestamp" }
+        active: { type: boolean, description: "true: the newest report holds this finding at this severity or lower, and it is left out of counts. false: the finding is gone or came back higher." }
     LocalCheckRun:
       type: object
       additionalProperties: false

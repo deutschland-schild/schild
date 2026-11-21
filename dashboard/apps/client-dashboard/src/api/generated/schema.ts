@@ -731,6 +731,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/hosts/{host_id}/findings/accept": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Mark an open finding of the newest report as accepted (D102): it no longer counts as open and stays listed under `accepted`. The severity is taken from the report. The acceptance holds for later reports until it is reopened or the finding comes back with a higher severity. 404 when the host or an open finding with this id and subject does not exist. */
+        post: operations["acceptHostFinding"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/hosts/{host_id}/findings/reopen": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Take an acceptance back (D102): the finding counts as open again when a report holds it. 404 when the host or the acceptance does not exist. */
+        post: operations["reopenHostFinding"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/agents": {
         parameters: {
             query?: never;
@@ -1850,7 +1884,7 @@ export interface components {
             low: number;
             info: number;
         };
-        /** @description Optional: the compact Server card of the overview. Absent when host_check is not configured. */
+        /** @description Optional: the compact Server card of the overview. Absent when host_check is not configured, and until the first host has reported (D100). */
         ServersSummary: {
             hosts: number;
             findings: components["schemas"]["SeverityCounts"];
@@ -1876,7 +1910,10 @@ export interface components {
             /** @description Expected report interval (agents and the local timer). */
             interval_minutes?: number | null;
             duration_ms?: number | null;
+            /** @description Open findings of the newest report without the accepted ones (D102). */
             counts: components["schemas"]["SeverityCounts"];
+            /** @description Findings of the newest report that are accepted and therefore not in counts (D102). */
+            accepted: number;
             /** @description Checks of the newest report that were not readable. */
             unreadable: number;
             os: {
@@ -1896,6 +1933,8 @@ export interface components {
         };
         HostDetail: {
             host: components["schemas"]["HostSummary"];
+            /** @description Accepted findings of this host (D102), newest first. The counts of the newest report in `history` leave them out, the counts of older reports are as stored. */
+            accepted: components["schemas"]["AcceptedFinding"][];
             /** @description The newest host report exactly as stored (schild.host_report/0.1); null before the first report. */
             report: components["schemas"]["host-report.schema"] | null;
             /** @description Kept reports, newest first (host_check.keep_reports). The newest is `report`. */
@@ -1916,6 +1955,27 @@ export interface components {
             title: string | null;
             explanation: string | null;
             fix_verified: boolean;
+        };
+        /** @description A finding of a host by its check id and subject (null or absent: the check has one result). */
+        FindingRef: {
+            id: string;
+            subject?: string | null;
+        };
+        FindingAccept: {
+            id: string;
+            subject?: string | null;
+            /** @description Why it is accepted (one line), e.g. a firewall in front of the server. Stays on this gateway. */
+            note?: string;
+        };
+        AcceptedFinding: {
+            id: string;
+            subject: string | null;
+            /** @description Severity of the finding when it was accepted. A later report with a higher severity is open again. */
+            severity: components["schemas"]["Severity"];
+            note: string | null;
+            accepted_at: components["schemas"]["Timestamp"];
+            /** @description true: the newest report holds this finding at this severity or lower, and it is left out of counts. false: the finding is gone or came back higher. */
+            active: boolean;
         };
         LocalCheckRun: {
             requested_at: components["schemas"]["Timestamp"];
@@ -6330,6 +6390,75 @@ export interface operations {
                     "application/problem+json": components["schemas"]["Problem"];
                 };
             };
+            default: components["responses"]["Problem"];
+        };
+    };
+    acceptHostFinding: {
+        parameters: {
+            query?: never;
+            header: {
+                "X-CSRF-Token": components["parameters"]["CSRF"];
+            };
+            path: {
+                host_id: components["parameters"]["HostId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FindingAccept"];
+            };
+        };
+        responses: {
+            /** @description Accepted; the host as it is now. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HostDetail"];
+                };
+            };
+            404: components["responses"]["Problem"];
+            /** @description The host already has 200 accepted findings (code `conflict`). */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    reopenHostFinding: {
+        parameters: {
+            query?: never;
+            header: {
+                "X-CSRF-Token": components["parameters"]["CSRF"];
+            };
+            path: {
+                host_id: components["parameters"]["HostId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FindingRef"];
+            };
+        };
+        responses: {
+            /** @description Reopened; the host as it is now. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HostDetail"];
+                };
+            };
+            404: components["responses"]["Problem"];
             default: components["responses"]["Problem"];
         };
     };

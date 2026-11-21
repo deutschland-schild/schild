@@ -84,7 +84,7 @@ type Options struct {
 // New creates the tables, syncs agents from schild.yaml and loads (or
 // creates) the agent listener certificate when agents are enabled.
 func New(ctx context.Context, o Options) (*Gateway, error) {
-	if _, err := o.DB.ExecContext(ctx, schema); err != nil {
+	if _, err := o.DB.ExecContext(ctx, schema+acceptSchema); err != nil {
 		return nil, fmt.Errorf("hosts: schema: %w", err)
 	}
 	log := o.Log
@@ -337,7 +337,10 @@ func (g *Gateway) ScanLocal(ctx context.Context) error {
 			return err
 		}
 		if c > 0 {
-			break // older files were imported before
+			// No break: two runs in one second (the first check of an
+			// install and a request right after it) sort by their random
+			// id, so a new report can stand behind one already imported.
+			continue
 		}
 		p := filepath.Join(dir, n)
 		raw, r, err := hostcheck.ReadReport(p)

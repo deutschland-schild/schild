@@ -22,6 +22,8 @@ export type HostFinding = HostReport['findings'][number]
 export type InventoryItem = HostReport['inventory'][number]
 /** Gateway-side text of one agent finding (catalogue title/explanation, verified fix). */
 export type FindingAnnotation = S['FindingAnnotation']
+/** A finding the admin marked as accepted (D102); `active` says whether it covers the newest report. */
+export type AcceptedFinding = S['AcceptedFinding']
 export type Agent = S['Agent']
 export type Enrolment = S['Enrolment']
 export type EnrolmentInput = S['EnrolmentInput']
@@ -74,6 +76,34 @@ function invalidateAll(qc: ReturnType<typeof useQueryClient>) {
 export function useRunLocalCheck() {
   return useMutation({
     mutationFn: () => unwrap(api.POST('/hosts/local/check', { params: { header: csrf() } })),
+  })
+}
+
+/**
+ * Mark an open finding as accepted, or take that back (D102). Both answer with the host as it is
+ * now, which replaces the cached detail; list and overview count again.
+ */
+export function useAcceptFinding() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ host, id, subject, note }: { host: string, id: string, subject?: string | null, note?: string }) =>
+      unwrap(api.POST('/hosts/{host_id}/findings/accept', { params: { header: csrf(), path: { host_id: host } }, body: { id, ...(subject ? { subject } : {}), ...(note ? { note } : {}) } })),
+    onSuccess: (d, v) => {
+      qc.setQueryData(hostKeys.host(v.host), d)
+      invalidateAll(qc)
+    },
+  })
+}
+
+export function useReopenFinding() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ host, id, subject }: { host: string, id: string, subject?: string | null }) =>
+      unwrap(api.POST('/hosts/{host_id}/findings/reopen', { params: { header: csrf(), path: { host_id: host } }, body: { id, ...(subject ? { subject } : {}) } })),
+    onSuccess: (d, v) => {
+      qc.setQueryData(hostKeys.host(v.host), d)
+      invalidateAll(qc)
+    },
   })
 }
 

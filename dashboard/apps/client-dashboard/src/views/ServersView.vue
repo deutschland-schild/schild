@@ -88,7 +88,7 @@ async function checkNow() {
       toast('Die Prüfung läuft schon', { description: 'Das Ergebnis erscheint hier, sobald sie fertig ist.' })
     }
     else if (code === 'check_unavailable') {
-      toast.error('Aus dem Dashboard lässt sich die Prüfung hier nicht starten', { description: 'Der Lauf nach Plan geht weiter. Auf dem Server startest du ihn mit: sudo systemctl start schild-check.service' })
+      toast.error('Aus dem Dashboard lässt sich die Prüfung hier nicht starten', { description: 'Ist der Check eingerichtet, läuft er weiter nach Plan, und auf dem Server startest du ihn mit: sudo systemctl start schild-check.service. Sonst richtest du ihn dort ein mit: sudo schild check install' })
     }
     else {
       toast.error('Die Prüfung ließ sich nicht starten', { description: errorMessage(err) })
@@ -232,10 +232,10 @@ const checkRunning = computed(() => !!checking.value || runCheck.isPending.value
       v-else-if="!hosts.length"
       :icon="ServerCog"
       title="Der Server-Check ist noch nicht eingerichtet"
-      description="Er läuft auf dem Server als eigener Prozess, liest nur und legt seinen Bericht in ein Verzeichnis, das Schild lesen darf. Zum Einrichten trägst du host_check in schild.yaml ein, startest Schild neu und schaltest den täglichen Lauf ein (Runbook, Abschnitt 17):"
+      description="Er läuft auf dem Server als eigener Prozess, liest nur und legt seinen Bericht in ein Verzeichnis, das Schild lesen darf. Diesen Befehl führst du einmal auf dem Server aus. Er richtet den täglichen Lauf ein und nennt dir die Zeile für schild.yaml. Läuft Schild in Docker, kopierst du das Binary vorher aus dem Container (Doku: Betreiben, „Server-Check einrichten“)."
       data-testid="hostcheck-off"
     >
-      <CommandBlock command="sudo systemctl enable --now schild-check.timer" class="mx-auto max-w-md text-left" />
+      <CommandBlock command="sudo schild check install" class="mx-auto max-w-md text-left" />
     </EmptyState>
 
     <SplitPane v-else data-testid="servers-pane">

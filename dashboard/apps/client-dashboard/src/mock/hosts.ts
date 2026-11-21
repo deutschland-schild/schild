@@ -6,8 +6,9 @@
  */
 import type { HttpHandler } from 'msw'
 import type { Scenario } from './data'
-import type { Agent, Enrolment, HostDetail, HostReport, HostSummary, ServersSummary, SeverityCounts } from '@/api/hosts'
+import type { AcceptedFinding, Agent, Enrolment, HostDetail, HostReport, HostSummary, ServersSummary, SeverityCounts } from '@/api/hosts'
 import { http, HttpResponse } from 'msw'
+import { acceptedInForce, findingKey } from '@/lib/hosts'
 import agentFixture from '../../../../../contracts/api/fixtures/client/getHost.agent.json'
 import localFixture from '../../../../../contracts/api/fixtures/client/getHost.json'
 import silentFixture from '../../../../../contracts/api/fixtures/client/getHost.silent.json'
@@ -58,10 +59,24 @@ function shiftTimes<T>(value: T, delta: number): T {
 
 const zero = (): SeverityCounts => ({ critical: 0, high: 0, medium: 0, low: 0, info: 0 })
 
-export function countsOf(report: HostReport | null): SeverityCounts {
+export function countsOf(report: HostReport | null, accepted?: AcceptedFinding[]): SeverityCounts {
   const c = zero()
-  for (const f of report?.findings ?? []) if (f.status === 'finding') c[f.severity]++
+  const inForce = acceptedInForce(report, accepted)
+  for (const f of report?.findings ?? []) if (f.status === 'finding' && !inForce.has(findingKey(f))) c[f.severity]++
   return c
+}
+
+/** The detail as the API serves it: accepted findings with `active` for the newest report (D102). */
+function detailOf(d: HostDetail, h: HostMock, now: number): HostDetail {
+  const report = d.report as HostReport | null
+  const inForce = acceptedInForce(report, d.accepted)
+  const host = summarize(d, h, now)
+  return {
+    ...d,
+    host,
+    accepted: d.accepted.map(a => ({ ...a, active: inForce.has(findingKey(a)) })),
+    history: d.history.map((x, i) => i === 0 ? { ...x, counts: host.counts } : x),
+  }
 }
 
 /** An app VM on a system without any support left: Debian 10 with PHP 7.3, MariaDB 10.3 and TYPO3 9. */
@@ -169,6 +184,7 @@ function eolHost(t0: number): HostDetail {
       { report_id: '0b1c2d3e-4f5a-4b6c-9d7e-8f9a0b1c2d3e', started_at: iso(started - 24 * 3600_000), received_at: iso(started - 24 * 3600_000 + 5000), counts: countsOf(report) },
     ],
     last_rejected: null,
+    accepted: [],
   }
 }
 
@@ -179,7 +195,7 @@ function summaryStub(id: string, hostname: string, interval: number, report: Hos
     last_report_at: report?.run.started_at ?? null,
     received_at: report ? iso(Date.parse(report.run.started_at) + 6000) : null,
     interval_minutes: interval, duration_ms: report?.run.duration_ms ?? null,
-    counts: countsOf(report), unreadable: report?.findings.filter(f => f.status === 'unreadable').length ?? 0,
+    counts: countsOf(report), accepted: 0, unreadable: report?.findings.filter(f => f.status === 'unreadable').length ?? 0,
     os: report ? { name: report.host.os.name, eol: report.host.os.eol } : null,
   }
 }
@@ -190,7 +206,7 @@ export function createHostState(scenario: Scenario, t0: number): HostMock {
   const local = shiftTimes(localFixture as unknown as HostDetail, delta)
   if (scenario === 'empty') {
     // Fresh install: the gateway's timer has not run yet, no agents.
-    hosts.set('local', { host: summaryStub('local', local.host.hostname, 1440, null), report: null, history: [], last_rejected: null })
+    hosts.set('local', { host: summaryStub('local', local.host.hostname, 1440, null), report: null, history: [], last_rejected: null, accepted: [] })
     return { configured: true, hosts, agents: [], enrolments: [], localRun: null, checkUnavailable: false, checkRunMs: 4000, enrolDelayMs: 4000, seq: 6 }
   }
   if (local.report) {
@@ -258,7 +274,8 @@ function nextAgentId(h: HostMock, label: string | null): string {
 export function summarize(d: HostDetail, h: HostMock, now: number): HostSummary {
   const agent = h.agents.find(a => a.id === d.host.agent_id)
   const s: HostSummary = { ...d.host }
-  s.counts = countsOf(d.report)
+  s.counts = countsOf(d.report as HostReport | null, d.accepted)
+  s.accepted = acceptedInForce(d.report as HostReport | null, d.accepted).size
   s.unreadable = d.report?.findings.filter(f => f.status === 'unreadable').length ?? 0
   s.last_report_at = d.report?.run.started_at ?? null
   s.duration_ms = d.report?.run.duration_ms ?? null
@@ -340,7 +357,29 @@ export function hostHandlers(t: HostHandlerTools): HttpHandler[] {
       const h = state()
       const d = h.hosts.get(String(params.id))
       if (!d) return problem(404, 'not_found', 'Server nicht gefunden')
-      return json({ ...d, host: summarize(d, h, t.now()) })
+      return json(detailOf(d, h, t.now()))
+    })),
+    http.post(`${base}/hosts/:id/findings/accept`, guard('write', async ({ params, request }) => {
+      const h = state()
+      const d = h.hosts.get(String(params.id))
+      const body = await t.read(request)
+      const key = findingKey({ id: String(body.id), subject: body.subject as string | null | undefined })
+      const f = (d?.report as HostReport | null)?.findings.find(x => x.status === 'finding' && findingKey(x) === key)
+      if (!d || !f) return problem(404, 'not_found', 'Diesen Befund gibt es im neuesten Bericht nicht mehr')
+      d.accepted = [
+        { id: f.id, subject: f.subject ?? null, severity: f.severity, note: typeof body.note === 'string' && body.note.trim() ? body.note.trim() : null, accepted_at: iso(t.now()), active: true },
+        ...d.accepted.filter(a => findingKey(a) !== key),
+      ]
+      return json(detailOf(d, h, t.now()))
+    })),
+    http.post(`${base}/hosts/:id/findings/reopen`, guard('write', async ({ params, request }) => {
+      const h = state()
+      const d = h.hosts.get(String(params.id))
+      const body = await t.read(request)
+      const key = findingKey({ id: String(body.id), subject: body.subject as string | null | undefined })
+      if (!d || !d.accepted.some(a => findingKey(a) === key)) return problem(404, 'not_found', 'Dieser Befund ist nicht als akzeptiert markiert')
+      d.accepted = d.accepted.filter(a => findingKey(a) !== key)
+      return json(detailOf(d, h, t.now()))
     })),
 
     http.get(`${base}/agents`, guard('read', ({ request }) => {
@@ -391,7 +430,7 @@ export function hostHandlers(t: HostHandlerTools): HttpHandler[] {
       a.status = 'enrolled'
       a.confirmed_at = iso(now)
       if (typeof body.label === 'string' && body.label.trim()) a.label = body.label.trim()
-      h.hosts.set(a.id, { host: summaryStub(a.id, a.hostname, 1440, null), report: null, history: [], last_rejected: null })
+      h.hosts.set(a.id, { host: summaryStub(a.id, a.hostname, 1440, null), report: null, history: [], last_rejected: null, accepted: [] })
       return json(a)
     })),
     http.post(`${base}/agents/:id/revoke`, guard('write', async ({ params }) => {

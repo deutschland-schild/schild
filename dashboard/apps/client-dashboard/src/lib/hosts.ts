@@ -3,7 +3,7 @@
  * Everything here is pure: German copy, ordering, evidence formatting, fingerprint handling.
  */
 import type { MetaItem, StatusTone } from '@schild/ui'
-import type { HostSummary, HostReport, HostFinding, InventoryItem, Severity, SeverityCounts, ServersSummary, Agent } from '@/api/hosts'
+import type { AcceptedFinding, HostSummary, HostReport, HostFinding, InventoryItem, Severity, SeverityCounts, ServersSummary, Agent } from '@/api/hosts'
 import { formatBytes, formatNumber, formatRelative } from '@schild/ui'
 import { plural } from './summary'
 
@@ -198,32 +198,68 @@ export function fixConfigApply(f: Pick<HostFinding, 'id' | 'fix_command'>, fc: F
   return 'Lege die Datei mit genau diesem Inhalt an.'
 }
 
-/** Findings of one area, open ones first (by severity), then unreadable, then ok. */
-export function sortFindings(list: HostFinding[]): HostFinding[] {
-  const rank = (f: HostFinding) => f.status === 'finding' ? SEVERITY_ORDER.indexOf(f.severity) : f.status === 'unreadable' ? 10 : 20
-  return [...list].sort((a, b) => rank(a) - rank(b) || a.title.localeCompare(b.title, 'de'))
+/** Key of a finding within a report: check id plus subject. */
+export function findingKey(f: { id: string, subject?: string | null }): string {
+  return `${f.id}:${f.subject ?? ''}`
 }
 
-export interface AreaGroup {
-  id: Area
-  label: string
-  hint: string
-  open: HostFinding[]
-  unreadable: HostFinding[]
-  ok: HostFinding[]
+const SEVERITY_RANK: Record<Severity, number> = { info: 0, low: 1, medium: 2, high: 3, critical: 4 }
+
+/**
+ * Accepted findings in force (D102), keyed like the findings of the report: an acceptance covers
+ * a finding of the same check and subject at the accepted severity or lower, never a higher one.
+ */
+export function acceptedInForce(report: HostReport | null | undefined, accepted: AcceptedFinding[] | undefined): Map<string, AcceptedFinding> {
+  const by = new Map((accepted ?? []).map(a => [findingKey(a), a]))
+  const out = new Map<string, AcceptedFinding>()
+  for (const f of report?.findings ?? []) {
+    const a = by.get(findingKey(f))
+    if (f.status === 'finding' && a && SEVERITY_RANK[f.severity] <= SEVERITY_RANK[a.severity]) out.set(findingKey(f), a)
+  }
+  return out
 }
 
-/** Group a report by area in page order; areas the report does not cover are left out. */
-export function groupByArea(report: HostReport): AreaGroup[] {
-  return AREAS.map((a) => {
-    const all = sortFindings(report.findings.filter(f => f.area === a.id))
-    return {
-      ...a,
-      open: all.filter(f => f.status === 'finding'),
-      unreadable: all.filter(f => f.status === 'unreadable'),
-      ok: all.filter(f => f.status === 'ok'),
-    }
-  }).filter(g => g.open.length || g.unreadable.length || g.ok.length || (g.id === 'software' && report.inventory.length))
+export type FindingState = 'open' | 'unreadable' | 'accepted' | 'ok'
+
+/** Filter labels and list order of the four states a result can have on the page. */
+export const FINDING_STATES: { id: FindingState, label: string }[] = [
+  { id: 'open', label: 'Offen' },
+  { id: 'unreadable', label: 'Nicht lesbar' },
+  { id: 'accepted', label: 'Akzeptiert' },
+  { id: 'ok', label: 'In Ordnung' },
+]
+
+export interface FindingRow {
+  key: string
+  finding: HostFinding
+  /** Open in the report and accepted by the admin (D102) is "accepted": not counted as open. */
+  state: FindingState
+  area: string
+}
+
+/**
+ * Every result of a report as one flat list for the searchable view: open findings first (by
+ * severity), then unreadable, accepted and ok ones; within a state in the page order of the areas.
+ */
+export function findingRows(report: HostReport, accepted?: AcceptedFinding[]): FindingRow[] {
+  const inForce = acceptedInForce(report, accepted)
+  const stateOf = (f: HostFinding): FindingState => f.status === 'ok' ? 'ok' : f.status === 'unreadable' ? 'unreadable' : inForce.has(findingKey(f)) ? 'accepted' : 'open'
+  const areaIndex = (f: HostFinding) => AREAS.findIndex(a => a.id === f.area)
+  const stateIndex = (s: FindingState) => FINDING_STATES.findIndex(x => x.id === s)
+  return report.findings
+    .map(f => ({ key: findingKey(f), finding: f, state: stateOf(f), area: AREAS[areaIndex(f)]?.label ?? f.area }))
+    .sort((a, b) =>
+      stateIndex(a.state) - stateIndex(b.state)
+      || (a.state === 'open' ? SEVERITY_ORDER.indexOf(a.finding.severity) - SEVERITY_ORDER.indexOf(b.finding.severity) : 0)
+      || areaIndex(a.finding) - areaIndex(b.finding)
+      || a.finding.title.localeCompare(b.finding.title, 'de'))
+}
+
+/** What the search of the list looks at: title (as shown), explanation, area, check id, subject and the typed evidence. */
+export function findingSearchText(row: FindingRow, title = row.finding.title): string {
+  const f = row.finding
+  const evidence = evidenceItems(f).map(i => typeof i === 'string' ? i : i.text)
+  return [title, f.explanation, row.area, f.id, f.subject ?? '', f.fix_command ?? '', ...evidence].join(' ').toLowerCase()
 }
 
 /** Open findings above "info" (what the counts call findings). */

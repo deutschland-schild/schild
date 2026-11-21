@@ -87,6 +87,12 @@ services:
       # The Caddyfile your Caddy container used.
       - ${CADDYFILE:-./Caddyfile}:/etc/caddy/Caddyfile:ro
       - schild-data:/var/lib/schild
+      # Server check (after "sudo schild check install" on the host): the
+      # reports, read only, and the request directory of "Jetzt prüfen".
+      # - /var/lib/schild/host-check:/var/lib/schild/host-check:ro
+      # - /run/schild-check:/run/schild-check
+    # environment:
+    #   SCHILD_HOST_CHECK_TRIGGER: /run/schild-check/request
     # Does your Caddyfile name other containers (reverse_proxy app:3000)? Then
     # schild has to join their network, as your Caddy container did:
     # networks: [default, apps]

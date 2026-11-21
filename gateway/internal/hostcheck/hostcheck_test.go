@@ -762,6 +762,35 @@ func TestUfwDefaultAllowIsNoDefaultDeny(t *testing.T) {
 	want(t, mustGet(t, fs, "firewall.default_incoming", ""), "finding", "medium")
 }
 
+// TestEmptyNftRulesetIsNoFirewall: nft lists nothing as root and no iptables
+// is installed. That is a host without rules, not an unreadable one. Without
+// root, or with an iptables that may hold legacy rules, it stays unreadable.
+func TestEmptyNftRulesetIsNoFirewall(t *testing.T) {
+	f := defaultDebian(t)
+	f.root = true
+	f.file("/../cmd/nft.out", "")
+	fs := runFirewall(t, f.env())
+	want(t, mustGet(t, fs, "firewall.active", ""), "finding", "high")
+	want(t, mustGet(t, fs, "firewall.default_incoming", ""), "finding", "medium")
+
+	f = defaultDebian(t)
+	f.root = true
+	f.file("/../cmd/nft.out", "")
+	f.file("/etc/ufw/ufw.conf", "ENABLED=yes\n")
+	want(t, mustGet(t, runFirewall(t, f.env()), "firewall.active", ""), "ok", "info")
+
+	f = defaultDebian(t)
+	f.root = false
+	f.file("/../cmd/nft.out", "")
+	want(t, mustGet(t, runFirewall(t, f.env()), "firewall.active", ""), "unreadable", "info")
+
+	f = defaultDebian(t)
+	f.root = true
+	f.file("/../cmd/nft.out", "")
+	f.file("/../cmd/iptables-save.out", "")
+	want(t, mustGet(t, runFirewall(t, f.env()), "firewall.active", ""), "unreadable", "info")
+}
+
 func runFirewall(t *testing.T, env Env) []hc.Finding {
 	t.Helper()
 	c := &checker{ctx: context.Background(), env: env}

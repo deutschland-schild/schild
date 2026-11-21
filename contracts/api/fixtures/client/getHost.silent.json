@@ -17,6 +17,7 @@
       "low": 1,
       "info": 0
     },
+    "accepted": 0,
     "unreadable": 0,
     "os": {
       "name": "Rocky Linux 9.4 (Blue Onyx)",
@@ -155,5 +156,6 @@
       }
     }
   ],
-  "last_rejected": null
+  "last_rejected": null,
+  "accepted": []
 }

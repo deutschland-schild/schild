@@ -1,7 +1,7 @@
 # schild-agent (Schild Agent): the same read-only checks on an app VM, delivered
 # signed to the Schild Gateway (MVP-11, contracts/host-check.md sections 3 and 5).
 # The app VM gets only the schild-agent binary (no proxy, no WAF, no dashboard).
-# Install on the app VM after `sudo schild-agent enrol ...` (runbook section 17.3).
+# Install on the app VM after `sudo schild-agent enrol ...`.
 #
 # A long-running service, not a timer: the agent schedules its runs itself
 # (host_check.agents.interval_minutes at the gateway, default daily) and keeps

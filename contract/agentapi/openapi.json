@@ -5340,7 +5340,7 @@
    },
    "ServersSummary": {
     "additionalProperties": false,
-    "description": "Optional: the compact Server card of the overview. Absent when host_check is not configured.",
+    "description": "Optional: the compact Server card of the overview. Absent when host_check is not configured, and until the first host has reported (D100).",
     "properties": {
      "findings": {
       "$ref": "#/components/schemas/SeverityCounts"

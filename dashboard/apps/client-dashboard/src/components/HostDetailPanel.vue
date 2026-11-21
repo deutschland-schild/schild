@@ -1,20 +1,100 @@
 <script setup lang="ts">
-import type { FindingAnnotation, HostDetail } from '@/api/hosts'
-import { CommandBlock, formatDateTime, formatRelative, MetaLine, StatusPill, Tag } from '@schild/ui'
-import { CircleCheck, Clock, Info, PlugZap, Unplug } from '@lucide/vue'
-import { computed } from 'vue'
+import type { FindingAnnotation, HostDetail, HostFinding } from '@/api/hosts'
+import type { StatusTone } from '@schild/ui'
+import type { FindingRow, FindingState } from '@/lib/hosts'
+import { Button, CommandBlock, FilterBar, formatDateTime, formatRelative, MetaLine, NativeSelect, NativeSelectOption, StatusPill, Tag, toast } from '@schild/ui'
+import { ChevronDown, Clock, Info, PlugZap, Unplug } from '@lucide/vue'
+import { computed, ref, watch } from 'vue'
+import { errorMessage } from '@/api/client'
+import { useAcceptFinding, useReopenFinding } from '@/api/hosts'
 import FindingItem from '@/components/FindingItem.vue'
 import InventoryTable from '@/components/InventoryTable.vue'
 import Term from '@/components/Term.vue'
-import { countsText, eolState, formatDay, groupByArea, HOST_STATUS, intervalText, openCount, rejectReason } from '@/lib/hosts'
+import { acceptedInForce, AREAS, countsText, eolState, evidenceItems, FINDING_STATES, findingKey, findingRows, findingSearchText, formatDay, HOST_STATUS, intervalText, openCount, rejectReason, SEVERITY } from '@/lib/hosts'
 import { versionText } from '@/lib/labels'
 import { plural } from '@/lib/summary'
 
-/** Detail of one host: header with system facts, state banners, findings grouped by area, inventory, history. */
+/** Detail of one host: header with system facts, state banners, the results of the check as one searchable list, inventory, history. */
 const props = defineProps<{ detail: HostDetail }>()
 const h = computed(() => props.detail.host)
 const r = computed(() => props.detail.report)
-const groups = computed(() => r.value ? groupByArea(r.value) : [])
+const rows = computed(() => r.value ? findingRows(r.value, props.detail.accepted) : [])
+
+/**
+ * The list of results: one line per check, the detail opens on click. Search and the two filters
+ * work on what the page shows (for agent reports the gateway's own title).
+ */
+const search = ref('')
+const stateFilter = ref<FindingState | ''>('')
+const areaFilter = ref('')
+const expanded = ref(new Set<string>())
+const rowTitle = (row: FindingRow) => annotationOf(row.finding)?.title ?? row.finding.title
+const stateCount = (s: FindingState) => rows.value.filter(x => x.state === s).length
+const areaOptions = computed(() => AREAS.filter(a => rows.value.some(x => x.finding.area === a.id)))
+const shown = computed(() => {
+  const words = search.value.trim().toLowerCase().split(/\s+/).filter(Boolean)
+  return rows.value.filter((row) => {
+    if (stateFilter.value && row.state !== stateFilter.value) return false
+    if (areaFilter.value && row.finding.area !== areaFilter.value) return false
+    if (!words.length) return true
+    const text = findingSearchText(row, rowTitle(row))
+    return words.every(w => text.includes(w))
+  })
+})
+const filtered = computed(() => !!(search.value.trim() || stateFilter.value || areaFilter.value))
+function resetFilters() {
+  search.value = ''
+  stateFilter.value = ''
+  areaFilter.value = ''
+}
+const allExpanded = computed(() => shown.value.length > 0 && shown.value.every(x => expanded.value.has(x.key)))
+function toggle(key: string) {
+  const next = new Set(expanded.value)
+  if (!next.delete(key)) next.add(key)
+  expanded.value = next
+}
+function toggleAll() {
+  expanded.value = allExpanded.value ? new Set() : new Set(shown.value.map(x => x.key))
+}
+// Another server: start with a closed, unfiltered list.
+watch(() => h.value.id, () => {
+  resetFilters()
+  expanded.value = new Set()
+})
+function badge(row: FindingRow): { label: string, tone: StatusTone } {
+  if (row.state === 'open') return SEVERITY[row.finding.severity]
+  if (row.state === 'ok') return { label: 'In Ordnung', tone: 'success' }
+  return { label: row.state === 'accepted' ? 'Akzeptiert' : 'Nicht lesbar', tone: 'neutral' }
+}
+/** The first typed fact of a result (port, package, path) as a hint in its line. */
+function hint(row: FindingRow): string {
+  const first = evidenceItems(row.finding)[0]
+  return first ? (typeof first === 'string' ? first : first.text) : ''
+}
+/** Accepted findings (D102): the ones in force by finding key, and the ones the newest report no longer holds at that severity. */
+const inForce = computed(() => acceptedInForce(r.value, props.detail.accepted))
+const acceptedOf = (f: HostFinding) => inForce.value.get(findingKey(f)) ?? null
+const notInForce = computed(() => props.detail.accepted.filter(a => !a.active))
+/** Title of an acceptance that is not in force: from the newest report when it still holds the check, else the check id. */
+function titleOf(a: { id: string, subject?: string | null }) {
+  const f = r.value?.findings.find(x => findingKey(x) === findingKey(a))
+  return f ? (annotationOf(f)?.title ?? f.title) : a.id
+}
+const accept = useAcceptFinding()
+const reopen = useReopenFinding()
+const busy = computed(() => accept.isPending.value || reopen.isPending.value)
+function onAccept(f: HostFinding, note: string) {
+  accept.mutate({ host: h.value.id, id: f.id, subject: f.subject, note }, {
+    onSuccess: () => toast('Befund akzeptiert', { description: 'Er zählt nicht mehr als offen und steht unter „Akzeptiert“.' }),
+    onError: err => toast.error('Der Befund ließ sich nicht akzeptieren', { description: errorMessage(err) }),
+  })
+}
+function onReopen(a: { id: string, subject?: string | null }) {
+  reopen.mutate({ host: h.value.id, id: a.id, subject: a.subject }, {
+    onSuccess: () => toast('Befund ist wieder offen'),
+    onError: err => toast.error('Der Befund ließ sich nicht wieder öffnen', { description: errorMessage(err) }),
+  })
+}
 /** Agent reports: the gateway's own text per finding, keyed like the list items. */
 const annotations = computed(() => {
   const m = new Map<string, FindingAnnotation>()
@@ -104,7 +184,7 @@ const eolEnded = (inv: { eol: string | null }[]) => inv.filter(i => eolState(i.e
     <div v-else-if="!r" class="flex items-start gap-3 rounded-xl border bg-muted p-3" role="status" data-testid="waiting-banner">
       <Clock class="mt-0.5 size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
       <p v-if="isGateway">
-        <strong>Noch kein Bericht.</strong> Der Check läuft {{ intervalText(h.interval_minutes) || 'nach Plan' }} auf diesem Server. Mit „Jetzt prüfen“ startest du ihn sofort, oder auf dem Server mit <code class="rounded bg-card px-1 font-mono text-xs">sudo systemctl start schild-check.service</code>.
+        <strong>Noch kein Bericht.</strong> Der Server-Check läuft als eigener Prozess auf dem Server und liest nur. Einmal eingerichtet, prüft er {{ intervalText(h.interval_minutes) || 'täglich' }}. Zum Einrichten führst du auf dem Server <code class="rounded bg-card px-1 font-mono text-xs">sudo schild check install</code> aus. Läuft Schild in Docker, kopierst du das Binary vorher aus dem Container (Doku: Betreiben, „Server-Check einrichten“).
       </p>
       <p v-else>
         <strong>Noch kein Bericht.</strong> Der Agent ist bestätigt und schickt seinen ersten Bericht nach dem nächsten Lauf. Das kann ein paar Minuten dauern.
@@ -119,48 +199,132 @@ const eolEnded = (inv: { eol: string | null }[]) => inv.filter(i => eolState(i.e
       </p>
     </div>
 
-    <!-- Findings by area -->
+    <!-- Results of the check: one searchable list -->
     <template v-if="r">
       <p class="sr-only" data-testid="host-summary">
         {{ openCount(h.counts) ? `${plural(openCount(h.counts), 'offener Befund', 'offene Befunde')}: ${countsText(h.counts)}.` : 'Keine offenen Befunde.' }}
         {{ unreadableTotal ? `${plural(unreadableTotal, 'Prüfung', 'Prüfungen')} nicht lesbar.` : '' }}
+        {{ h.accepted ? `${plural(h.accepted, 'Befund', 'Befunde')} akzeptiert.` : '' }}
       </p>
-      <section v-for="g in groups" :key="g.id" :aria-labelledby="`area-${h.id}-${g.id}`" class="space-y-2" :data-testid="`area-${g.id}`">
+      <section :aria-labelledby="`findings-${h.id}`" class="space-y-3" data-testid="findings">
+        <h3 :id="`findings-${h.id}`" class="font-bold">
+          Was der Check gefunden hat
+        </h3>
+        <p class="text-muted-foreground">
+          Der Check sieht den Server von innen. Was von außen davor steht, zum Beispiel eine Firewall deines Hosters, sieht er nicht. Trifft ein Befund deshalb bei dir nicht zu, markierst du ihn als akzeptiert.
+        </p>
+        <FilterBar
+          v-model:search="search"
+          search-placeholder="Titel, Port, Paket, Pfad …"
+          search-label="Befunde durchsuchen"
+        >
+          <NativeSelect v-model="stateFilter" aria-label="Status" data-testid="filter-state">
+            <NativeSelectOption value="">
+              Alle ({{ rows.length }})
+            </NativeSelectOption>
+            <NativeSelectOption v-for="s in FINDING_STATES" :key="s.id" :value="s.id">
+              {{ s.label }} ({{ stateCount(s.id) }})
+            </NativeSelectOption>
+          </NativeSelect>
+          <NativeSelect v-model="areaFilter" aria-label="Bereich" data-testid="filter-area">
+            <NativeSelectOption value="">
+              Alle Bereiche
+            </NativeSelectOption>
+            <NativeSelectOption v-for="a in areaOptions" :key="a.id" :value="a.id">
+              {{ a.label }}
+            </NativeSelectOption>
+          </NativeSelect>
+          <template #end>
+            <Button v-if="filtered" type="button" variant="ghost" size="sm" data-testid="filter-reset" @click="resetFilters">
+              Filter zurücksetzen
+            </Button>
+            <Button type="button" variant="ghost" size="sm" :disabled="!shown.length" data-testid="expand-all" @click="toggleAll">
+              {{ allExpanded ? 'Alle zuklappen' : 'Alle aufklappen' }}
+            </Button>
+          </template>
+        </FilterBar>
+        <p class="text-xs text-muted-foreground" aria-live="polite" data-testid="finding-count">
+          {{ filtered ? `${shown.length} von ${rows.length} Prüfungen` : plural(rows.length, 'Prüfung', 'Prüfungen') }}
+        </p>
+        <ul v-if="shown.length" class="divide-y overflow-hidden rounded-xl border bg-card" data-testid="finding-list">
+          <li
+            v-for="row in shown"
+            :key="row.key"
+            data-testid="finding-row"
+            :data-state="row.state"
+            :data-area="row.finding.area"
+            :data-severity="row.state === 'open' ? row.finding.severity : undefined"
+          >
+            <button
+              type="button"
+              class="flex w-full items-center gap-x-3 px-3 py-2 text-left hover:bg-muted/60 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring"
+              :aria-expanded="expanded.has(row.key)"
+              :aria-controls="`finding-${h.id}-${row.key}`"
+              data-testid="finding-toggle"
+              @click="toggle(row.key)"
+            >
+              <span class="w-24 shrink-0">
+                <Tag :tone="badge(row).tone">
+                  <span v-if="row.state === 'open'" class="sr-only">Stufe: </span>{{ badge(row).label }}
+                </Tag>
+              </span>
+              <span class="min-w-0 flex-1">
+                <span :class="['block', row.state === 'open' ? 'font-semibold' : '']">{{ rowTitle(row) }}</span>
+                <span class="block truncate text-xs text-muted-foreground">{{ row.area }}<template v-if="hint(row)"> · {{ hint(row) }}</template></span>
+              </span>
+              <ChevronDown :class="['size-4 shrink-0 text-muted-foreground motion-safe:transition-transform', expanded.has(row.key) ? 'rotate-180' : '']" aria-hidden="true" />
+            </button>
+            <div v-if="expanded.has(row.key)" :id="`finding-${h.id}-${row.key}`" class="border-t bg-background/40 px-3 py-2 sm:pl-[7.5rem]">
+              <FindingItem
+                flat
+                :finding="row.finding"
+                :checked-at="r.run.started_at"
+                :annotation="annotationOf(row.finding)"
+                :accepted="row.state === 'accepted' ? acceptedOf(row.finding) : null"
+                :acceptable="row.state === 'open'"
+                :busy="busy"
+                @accept="onAccept(row.finding, $event)"
+                @reopen="onReopen(row.finding)"
+              />
+            </div>
+          </li>
+        </ul>
+        <p v-else class="rounded-xl border bg-card p-4 text-muted-foreground" data-testid="finding-empty">
+          Dazu passt keine Prüfung dieses Berichts.
+        </p>
+      </section>
+
+      <section v-if="r.inventory.length" :aria-labelledby="`inventory-${h.id}`" class="space-y-2" data-testid="inventory-section">
         <div class="flex flex-wrap items-baseline justify-between gap-x-3 border-b pb-1.5">
-          <h3 :id="`area-${h.id}-${g.id}`" class="font-bold">
-            {{ g.label }}
+          <h3 :id="`inventory-${h.id}`" class="font-bold">
+            Installierte Software
           </h3>
-          <p class="text-xs text-muted-foreground">
-            <template v-if="g.open.length">
-              {{ plural(g.open.length, 'Befund', 'Befunde') }}
-            </template>
-            <template v-else-if="g.id === 'software' && eolEnded(r.inventory)">
-              {{ eolEnded(r.inventory) === 1 ? '1 Eintrag ohne Support' : `${eolEnded(r.inventory)} Einträge ohne Support` }}
-            </template>
-            <template v-else-if="!g.unreadable.length">
-              <CircleCheck class="mr-0.5 inline size-3 -translate-y-px text-status-success" aria-hidden="true" />in Ordnung
-            </template>
-            <template v-if="g.unreadable.length">
-              {{ g.open.length ? ' · ' : '' }}{{ g.unreadable.length }} nicht lesbar
-            </template>
+          <p v-if="eolEnded(r.inventory)" class="text-xs text-muted-foreground">
+            {{ eolEnded(r.inventory) === 1 ? '1 Eintrag ohne Support' : `${eolEnded(r.inventory)} Einträge ohne Support` }}
           </p>
         </div>
-        <ul v-if="g.open.length || g.unreadable.length" class="grid gap-2">
-          <li v-for="f in [...g.open, ...g.unreadable]" :key="`${f.id}:${f.subject ?? ''}`">
-            <FindingItem :finding="f" :checked-at="r.run.started_at" :annotation="annotationOf(f)" />
+        <InventoryTable :items="r.inventory" />
+      </section>
+
+      <section v-if="notInForce.length" :aria-labelledby="`accepted-rest-${h.id}`" class="space-y-1.5" data-testid="accepted-rest">
+        <h3 :id="`accepted-rest-${h.id}`" class="border-b pb-1.5 font-bold">
+          Akzeptiert, trifft gerade nicht zu
+        </h3>
+        <p class="text-muted-foreground">
+          Diese Befunde hast du akzeptiert. Im neuesten Bericht fehlen sie, oder der Check meldet sie mit einer höheren Stufe, dann stehen sie oben wieder als offen. Kommt einer mit derselben Stufe zurück, gilt er weiter als akzeptiert.
+        </p>
+        <ul class="divide-y">
+          <li v-for="a in notInForce" :key="findingKey(a)" class="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 py-1.5">
+            <span class="min-w-0">
+              <span class="font-semibold">{{ titleOf(a) }}</span>
+              <span v-if="a.subject" class="font-mono text-xs break-all"> {{ a.subject }}</span>
+              <span v-if="a.note" class="text-muted-foreground"> · {{ a.note }}</span>
+            </span>
+            <Button type="button" variant="ghost" size="sm" :disabled="busy" @click="onReopen(a)">
+              Entfernen
+            </Button>
           </li>
         </ul>
-        <ul v-if="g.ok.length" class="divide-y" :aria-label="`${g.label}: ohne Befund`">
-          <li v-for="f in g.ok" :key="`${f.id}:${f.subject ?? ''}`">
-            <FindingItem :finding="f" :checked-at="r.run.started_at" :annotation="annotationOf(f)" />
-          </li>
-        </ul>
-        <template v-if="g.id === 'software' && r.inventory.length">
-          <h4 class="pt-1 text-xs font-semibold text-muted-foreground">
-            Installierte Software
-          </h4>
-          <InventoryTable :items="r.inventory" />
-        </template>
       </section>
 
       <section v-if="detail.history.length > 1" :aria-labelledby="`history-${h.id}`" class="space-y-1.5">

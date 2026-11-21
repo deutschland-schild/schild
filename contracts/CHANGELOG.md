@@ -11,11 +11,15 @@ Not backwards compatible with v0.5 for the gateway; nothing is installed outside
 - **Store (no contract file):** `schild.db` has schema version 1 from 0.1.0-alpha.1 on and is upgraded forward only at the gateway's start, with a backup (D75).
 - **CLI (no contract file):** `schild init`, `schild dashboard setup-code` (D78); test lab switches are ignored by release builds (D77).
 
+**D102 (2026-11-21): findings of the server check can be accepted.** Client dashboard API, not backwards compatible for clients that validate strictly: `HostSummary.accepted` and `HostDetail.accepted` (both required), new operations `acceptHostFinding` and `reopenHostFinding` with the schemas `FindingAccept`, `FindingRef` and `AcceptedFinding`; `HostSummary.counts` and `Overview.servers` leave accepted findings out. Fixtures `getHost*` and `listHosts` updated, `acceptHostFinding` and `reopenHostFinding` new. The host report and its vectors are unchanged.
+
+**D101 (2026-11-21): paranoia level and blocking threshold of the CRS in the dashboard.** Client dashboard API: `PATCH /rule-repositories/{repository}/settings` (`updateRuleRepositorySettings`, `RuleRepositorySettingsPatch`); `RuleRepository.crs` gains `config_paranoia_level` and `config_inbound_anomaly_threshold` (required), fixtures updated, not backwards compatible for strict readers. Agent API: the same two fields on its repositories, no new operation; the bundled document is regenerated. No config key, no vector change.
+
+**D100 (2026-11-21): `schild check install`.** CLI only, no vector change: the server check sets its systemd units up from the binary; `schild check` and the host report are unchanged. Client dashboard API: `Overview.servers` is also absent until the first host has reported (description only).
+
 **D99 (2026-11-20): the agent API names client addresses.** Additive. Agent API: `ip` (`ClientAddress`) on `AgentEvent`, `AgentIncident` and `AgentRequest`, the query parameter `ip` on `listAgentEvents` and `queryRequests`, fixtures updated. `TestConventions` forbids IP parameters and properties in the lab API only. No config key, no vector change.
 
 **Agent API document shortened and brought up to the code (2026-11-20).** Every operation has a short `summary` as its title and a shorter `description`; the notes for builders are gone from `summary`. The document now names what the gateway serves: `filter` on `getTrafficBreakdown` and `queryMetricSeries`, the dimensions `ip` and `user_agent`, the codes `busy`, `no_snapshot` and `filter_unavailable`. No behaviour, config key or vector changes.
-
-**D101 (2026-11-21): paranoia level and blocking threshold of the CRS in the dashboard.** Client dashboard API: `PATCH /rule-repositories/{repository}/settings` (`updateRuleRepositorySettings`, `RuleRepositorySettingsPatch`); `RuleRepository.crs` gains `config_paranoia_level` and `config_inbound_anomaly_threshold` (required), fixtures updated, not backwards compatible for strict readers. Agent API: the same two fields on its repositories, no new operation; the bundled document is regenerated. No config key, no vector change.
 
 **D98 (2026-11-19): the maintenance mode is a switch of its own.** Client dashboard API: `PUT /websites/{website}/maintenance` (`setMaintenance`, `MaintenanceInput`), `AccessProtectionState.maintenance` (required, `MaintenanceMode`); not backwards compatible for strict readers. The decision is `access.Decide` unchanged. No config key, no vector change.
 

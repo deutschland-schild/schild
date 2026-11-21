@@ -61,6 +61,11 @@ ingress:
   # for the way back.
   storage: %q
 
+# The server check: schild shows the reports of "schild check" under "Server"
+# in the dashboard. The check runs on the host and reads only; set it up
+# once with: sudo schild check install   (docs: "Server-Check einrichten")
+host_check: {}
+
 # Defaults you may want to change (remove the "#" of a whole block):
 #
 # ingress:
@@ -236,6 +241,7 @@ func runInitCaddy(w io.Writer, o caddyInit) error {
 	step("swap:         sudo systemctl disable --now caddy && sudo systemctl enable --now schild")
 	step("dashboard:    http://127.0.0.1:8788 on this server; from your machine: ssh -N -L 8788:127.0.0.1:8788 you@this-server")
 	step("setup code:   sudo schild dashboard setup-code%s", withConfig)
+	step("server check (optional): sudo schild check install")
 	fmt.Fprintln(w, "way back: put a \"#\" in front of the line \"schild\" in the (schild) snippet (stock Caddy does not know")
 	fmt.Fprintln(w, "the directive, everything else stays), then: sudo systemctl disable --now schild && sudo systemctl enable --now caddy")
 	for _, d := range logDirs {
