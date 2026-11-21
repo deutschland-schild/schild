@@ -17,8 +17,15 @@ const paths = [
     cta: 'Anleitung für nginx & Apache',
   },
   {
+    title: 'Paket für Debian und Ubuntu',
+    badge: 'apt · amd64 & arm64',
+    text: 'Ein eigenes apt-Repository für Debian 12 und 13 und Ubuntu 22.04 und 24.04. Das Paket bringt Binary, systemd-Units und Geodaten mit. Updates kommen über apt.',
+    to: '/doku/gateway/00-installieren#als-paket-unter-debian-und-ubuntu',
+    cta: 'Anleitung für apt',
+  },
+  {
     title: 'Linux-Binary mit systemd',
-    badge: 'Ohne Docker · amd64 & arm64',
+    badge: 'Andere Linux-Server · amd64 & arm64',
     text: 'Ein einzelnes statisches Binary inklusive gehärteter systemd-Units, Geodaten und SHA-256-Prüfsummen – direkt als Systemdienst installierbar.',
     to: '/doku/gateway/00-installieren#als-binary-mit-systemd',
     cta: 'Anleitung für Binary & systemd',
@@ -27,7 +34,7 @@ const paths = [
 </script>
 
 <template>
-  <div class="grid gap-4 md:grid-cols-3">
+  <div class="grid gap-4 md:grid-cols-2">
     <article v-for="p in paths" :key="p.title" class="flex flex-col justify-between rounded-xl border border-line bg-white p-5 shadow-xs">
       <div>
         <p class="text-xs font-semibold text-signal-deep">{{ p.badge }}</p>

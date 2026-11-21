@@ -44,7 +44,7 @@ const compareSources = [
 ]
 
 const steps = [
-  { title: 'Installieren', text: 'Als Docker-Container oder Linux-Binary: Nutzt du Caddy, bekommst du Caddy inkl. Schild – mit deinem Caddyfile und deinen Zertifikaten. Sonst läuft Schild hinter nginx, Apache oder deinem Load Balancer. Deine Anwendung bleibt unverändert.' },
+  { title: 'Installieren', text: 'Als Docker-Container, Paket für Debian und Ubuntu oder Linux-Binary: Nutzt du Caddy, bekommst du Caddy inkl. Schild – mit deinem Caddyfile und deinen Zertifikaten. Sonst läuft Schild hinter nginx, Apache oder deinem Load Balancer. Deine Anwendung bleibt unverändert.' },
   { title: 'Hinschauen', text: 'Ab dem Start sperrt Schild bekannte Angriffe. Im Dashboard siehst du an deinem echten Traffic, was gestoppt und was nur erkannt wurde. Bei einer empfindlichen Anwendung lässt du die Regeln die ersten Tage nur erkennen.' },
   { title: 'Feinjustieren', text: 'Vier Szenarien (u. a. Login-Schutz) sperren nach 14 Tagen Lernzeit selbstständig. Limits und weitere Regeln schaltest du bei Bedarf einzeln dazu – jede Sperre lässt sich mit einem Klick zurücknehmen.' },
 ]
@@ -98,7 +98,7 @@ const gatewayShots = [
 
 // Compact facts for the install section; full details live in /doku/gateway/00-installieren and 02-betrieb.
 const installRules = [
-  'Docker-Image oder statisches Linux-Binary (amd64 und arm64) – kein Abo, keine Cloud.',
+  'Docker-Image, Paket für Debian und Ubuntu oder statisches Linux-Binary (amd64 und arm64) – kein Abo, keine Cloud.',
   'Prüfbare Releases: Signatur mit cosign, SHA-256-Prüfsummen, Stückliste (SBOM) und Herkunftsnachweis.',
   'Ab Werk sperrt das OWASP Core Rule Set bekannte Angriffe; vier der fünf Szenarien sperren nach 14 Tagen Lernzeit.',
   'Keine automatischen Zwangs-Updates, und in einer Minute wieder vollständig rückbaubar.',
