@@ -4,6 +4,23 @@ Notable changes per release. Contract changes are in [contracts/CHANGELOG.md](co
 
 The section of a version becomes the text of its GitHub release, so its heading stays `## <version>`. The date of a release is the one GitHub shows.
 
+## 0.1.0-alpha.4
+
+### Release
+
+- `checksums.txt` is signed with cosign (keyless). The release carries the signature as `checksums.txt.sigstore.json`; it covers every archive and package the file lists. The command to check it stands in the release notes and in `SECURITY.md`.
+- The build provenance is attached to the release as a file, `provenance.sigstore.json`, for checks without access to the GitHub API. `gh attestation verify` works as before.
+- From this release on the release tag is signed by the maintainer who sets it. The tags of 0.1.0-alpha.1 to 0.1.0-alpha.3 are annotated and not signed.
+- The base images of the build are pinned by digest, and the build gets pnpm through corepack.
+
+### Docs
+
+- The installation docs describe the package for Debian and Ubuntu: installing with the installer script or by hand, both cases (schild as your Caddy, schild behind your web server), updating through apt, removing. README and start page name the package as one of the ways to install.
+
+### Upgrade
+
+- From 0.1.0-alpha.3: change the image tag, run `sudo apt update && sudo apt install schild` and `sudo systemctl restart schild`, or replace the binary and restart. `schild.yaml` and `schild.db` need no change. The gateway itself is the one of 0.1.0-alpha.2.
+
 ## 0.1.0-alpha.3
 
 ### Packages
