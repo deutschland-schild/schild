@@ -32,6 +32,9 @@ type Counts struct {
 	Limits  []LimitCount  `json:"limits,omitempty"`
 	Clients []ClientCount `json:"clients,omitempty"`
 	Sites   []SiteCount   `json:"sites,omitempty"`
+	// Dist is what the detectors of distributed attacks counted
+	// (shared_dist.go).
+	Dist *DistCounts `json:"dist,omitempty"`
 }
 
 // LimitCount: requests of one client key that matched one rate limit.
@@ -88,6 +91,7 @@ type sharer struct {
 	limits  map[limitShare]int
 	clients map[Key]*ClientCount
 	sites   map[string]*SiteCount
+	dist    distShare
 	// notShared counts what did not fit.
 	notShared atomic.Uint64
 }
@@ -160,13 +164,14 @@ func (e *Engine) TakeCounts() *Counts {
 	}
 	sh.mu.Lock()
 	limits, clients, sites := sh.limits, sh.clients, sh.sites
-	if len(limits)+len(clients)+len(sites) == 0 {
+	if len(limits)+len(clients)+len(sites) == 0 && sh.dist.empty() {
 		sh.mu.Unlock()
 		return nil
 	}
 	sh.limits, sh.clients, sh.sites = map[limitShare]int{}, map[Key]*ClientCount{}, map[string]*SiteCount{}
+	dist := sh.takeDist()
 	sh.mu.Unlock()
-	out := &Counts{}
+	out := &Counts{Dist: dist}
 	for k, n := range limits {
 		out.Limits = append(out.Limits, LimitCount{Client: k.key.String(), Limit: k.limit, N: n})
 	}
@@ -199,6 +204,7 @@ func (e *Engine) ApplyCounts(c *Counts) {
 		return
 	}
 	cfg := e.cfg.Load()
+	e.applyDist(cfg, c.Dist)
 	t := e.now()
 	now := t.UnixNano()
 	if len(c.Limits) > shareEntries {

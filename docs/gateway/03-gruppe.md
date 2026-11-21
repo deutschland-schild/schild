@@ -32,6 +32,7 @@ Ohne Gruppe wäre jedes Gateway für sich: Eine Sperre gälte nur auf einem Serv
 | Besucher:innen | Wer die Browser-Prüfung bestanden oder sich an der Zugriffssperre angemeldet hat, bleibt das auf dem nächsten Server. |
 | Zertifikate | Eine Bestellung pro Zertifikat. Die Prüfung der Zertifizierungsstelle klappt, egal auf welchem Server sie landet. |
 | Limits und Szenarien | Jeder Server meldet den anderen einmal pro Sekunde, was er gezählt hat. Ein Limit gilt damit für die Gruppe und nicht pro Server. |
+| Verteilte Angriffe (Wellen) | Auch die Erkennung verteilter Angriffe zählt für die Gruppe. Eine Welle ist auf jedem Server dieselbe, ihre Reaktion greift überall, und „Beenden“ im Dashboard beendet sie auf allen. |
 | Ereignisse und Anfragen | Jeder Server hält auch die Ereignisse, Vorfälle und einzelnen Anfragen der anderen. Jedes Dashboard zeigt die ganze Gruppe. |
 | Löschung nach Art. 17 DSGVO | Eine gelöschte Adresse wird auf jedem Server gelöscht, auch auf einem, der gerade aus war und später zurückkommt. |
 
@@ -213,7 +214,8 @@ Jeder Server speichert damit, was die ganze Gruppe aufzeichnet. In einer großen
 - **Zwei Änderungen zur selben Sekunde.** Ändert jemand dieselbe Einstellung auf zwei Servern gleichzeitig, gilt überall die spätere. Die andere wird nicht eingemischt.
 - **Limits mit Verzug.** Ein Client, der seine Anfragen über die Server verteilt, kommt um das hinaus, was die Server in einer Sekunde annehmen.
 - **Einzelne Anfragen nach einem langen Ausfall.** Jeder Server hält seine letzten 32 768 Anfragen für die anderen bereit, höchstens 24 MiB. Ein Server, der aus war, holt daraus nach, was ihm fehlt. War er länger weg, als dieser Vorrat reicht, fehlen ihm die älteren Anfragen der anderen. Er schreibt die Zahl in sein Log, und die Server, die sie bedient haben, halten sie weiter. Startet ein Server neu, beginnt sein Vorrat leer.
-- **Pro Server bleiben** die Zähler der Übersicht, die Server-Diagramme und die Erkennung verteilter Angriffe.
+- **Pro Server bleiben** die Zähler der Übersicht und die Server-Diagramme.
+- **Wellen mit Verzug.** Wie bei den Limits vergeht bis zu einer Sekunde, bis die Server voneinander wissen. Eine Welle wird deshalb erkannt, sobald die Summe über der Schwelle liegt und die nächste passende Anfrage einen Server erreicht. Wie viele Anfragen eine Reaktion gestoppt hat, zählt jeder Server für sich.
 - **Zertifikate bei Netztrennung.** Erreichen sich die Server nicht, kann jede Seite dasselbe Zertifikat bestellen. Das ist eine Bestellung zu viel, beide Zertifikate sind gültig.
 - **Neues Geheimnis heißt neue Gruppe.** Ist das Gruppen-Geheimnis bekannt geworden, verteilst du ein neues und lässt die Server mit leerem Verzeichnis `cluster` neu starten. Einen Wechsel im laufenden Betrieb gibt es noch nicht.
 - **Höchstens 16 Gateways und 8 Balancer-VMs.** Mehr lehnt die Gruppe ab. Im laufenden Betrieb erprobt sind bisher nur zwei und drei Gateways.

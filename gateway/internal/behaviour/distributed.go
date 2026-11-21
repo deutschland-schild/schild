@@ -10,6 +10,7 @@ package behaviour
 import (
 	"regexp"
 	"sort"
+	"strings"
 	"sync"
 	"time"
 
@@ -179,8 +180,11 @@ type Wave struct {
 	Incident                            string
 	clusterFPs                          map[string]bool
 	strongCluster                       bool
-	tokens                              float64
-	last                                int64
+	// foreign: another node of the group detected the wave and wrote its
+	// event; this node holds it (shared_dist.go).
+	foreign bool
+	tokens  float64
+	last    int64
 }
 
 // Active reports whether the response is enforced at t.
@@ -310,6 +314,13 @@ func (e *Engine) routeKey(c *compiled, r *Request) (string, bool) {
 }
 
 func waveKey(detector, host, route string) string { return detector + "|" + host + "|" + route }
+
+// cutWaveKey is the reverse of waveKey (a host holds no "|").
+func cutWaveKey(k string) (detector, host, route string) {
+	detector, rest, _ := strings.Cut(k, "|")
+	host, route, _ = strings.Cut(rest, "|")
+	return detector, host, route
+}
 
 // ---------------------------------------------------------------- enforce
 
@@ -443,6 +454,8 @@ func (e *Engine) observeDistributed(c *compiled, r *Request, o Outcome, key Key)
 		e.LearnCookies(r.Host, o.Response.CookieNames)
 	}
 	sender := hashKey(key)
+	// sh: in a group, what the detectors count is noted for the other nodes.
+	sh := e.share.Load()
 	if o.Shape != "" && len(o.ShapeRules) > 0 && c.dist.mode[config.DetectorShapeWave] != config.DistributedOff {
 		t := c.dist.thr[config.DetectorShapeWave]
 		var n int
@@ -458,6 +471,9 @@ func (e *Engine) observeDistributed(c *compiled, r *Request, o Outcome, key Key)
 			s.senders.add(sender)
 			n = int(s.senders.estimate() + 0.5)
 		})
+		if sh != nil {
+			sh.distShape(o.Shape, sender)
+		}
 		if n >= t.Count {
 			e.fireWave(c, r, config.DetectorShapeWave, "", o.Shape, trigger2{count: n, threshold: t.Count, window: t.WindowS, senders: n, sig: o.Shape, rules: o.ShapeRules,
 				route: redact.Path(r.Path)})
@@ -488,26 +504,7 @@ func (e *Engine) observeDistributed(c *compiled, r *Request, o Outcome, key Key)
 	it := c.dist.thr[config.DetectorInconsistency]
 	var rw, inc *trigger2
 	e.d.routes.with(rk, true, func(s *routeState) {
-		size := int64(rt.WindowS) * int64(time.Second)
-		if s.senders == nil {
-			s.senders = newHLL(8)
-		}
-		if s.start == 0 {
-			s.start = now
-		}
-		if now-s.start >= size {
-			// close the window: learn the baseline outside waves
-			if s.failures < max(float64(rt.Count), rt.Factor*s.baseline) {
-				if s.windows == 0 {
-					s.baseline = s.failures
-				} else {
-					s.baseline = 0.9*s.baseline + 0.1*s.failures
-				}
-				s.windows++
-			}
-			s.start, s.failures, s.successes, s.newSenders = now, 0, 0, 0
-			s.senders.reset()
-		}
+		s.roll(now, rt)
 		s.lastSeen = now
 		s.senders.add(sender)
 		if first {
@@ -542,6 +539,23 @@ func (e *Engine) observeDistributed(c *compiled, r *Request, o Outcome, key Key)
 			}
 		}
 	})
+	if sh != nil {
+		sh.distRoute(h, route, func(rc *RouteCount) {
+			sh.sender(&rc.Senders, sender)
+			if first {
+				rc.New++
+			}
+			if !failed {
+				rc.Passed++
+				return
+			}
+			rc.Failed++
+			rc.IncAll++
+			if r.Inconsistent {
+				rc.IncFailed++
+			}
+		})
+	}
 	if rw != nil && c.dist.mode[config.DetectorRouteWave] != config.DistributedOff {
 		e.fireWave(c, r, config.DetectorRouteWave, h, route, *rw)
 	}
@@ -580,6 +594,9 @@ func (e *Engine) observeDistributed(c *compiled, r *Request, o Outcome, key Key)
 			if !found && len(s.uas) < 16 {
 				s.uas = append(s.uas, ua)
 			}
+			if sh != nil {
+				sh.distFP(r.Fingerprint, h, route, sender, ua)
+			}
 			n := int(s.senders.estimate() + 0.5)
 			if n >= ft.Count && len(s.uas) >= 3 {
 				tg = &trigger2{count: n, threshold: ft.Count, window: ft.WindowS, senders: n, fp: r.Fingerprint, fpKind: r.FPKind, strong: r.StrongFP, uas: len(s.uas), route: route}
@@ -600,23 +617,14 @@ func (e *Engine) observeDistributed(c *compiled, r *Request, o Outcome, key Key)
 			}
 			a.lastSeen = now
 			a.failures++
-			known := false
-			for i := 0; i < min(a.nSenders, len(a.senders)); i++ {
-				if a.senders[i] == sender {
-					known = true
-				}
-			}
-			if !known {
-				if a.nSenders < len(a.senders) {
-					a.senders[a.nSenders] = sender
-				}
-				a.nSenders++
+			a.addSender(sender)
+			if sh != nil {
+				defer func() { sh.distAccount(o.UserHash, sender, a.flagged > now) }()
 			}
 			if a.flagged > now {
 				// every failed attempt while attacked doubles the wait
 				a.attempts++
-				wait := min(time.Duration(c.dist.slowdown.StartS)*time.Second<<min(a.attempts-1, 16), time.Duration(c.dist.slowdown.MaxS)*time.Second, AccountWaitCap)
-				a.next = now + int64(wait)
+				a.next = now + int64(c.dist.accountWait(a.attempts))
 				a.flagged = now + size
 				return
 			}
@@ -659,10 +667,14 @@ func (e *Engine) fireWave(c *compiled, r *Request, detector, h, key string, t tr
 			}
 			w.strongCluster = w.strongCluster || t.strong
 		}
+		before := w.Until
 		if w.Action == config.DistributedRespond {
 			w.Until = minTime(now.Add(mins), w.Started.Add(maxDur)).Truncate(time.Second)
 		}
 		w.Senders, w.Count = max(w.Senders, t.senders), max(w.Count, t.count)
+		if !w.Until.Equal(before) {
+			e.noteWave(w, key) // the other nodes of a group extend it too
+		}
 		d.mu.Unlock()
 		return
 	}
@@ -670,7 +682,18 @@ func (e *Engine) fireWave(c *compiled, r *Request, detector, h, key string, t tr
 	if c.dist.mode[detector] != config.DistributedRespond {
 		action = config.DistributedObserve
 	}
-	w := &Wave{ID: msg.NewID(), Detector: detector, Host: h, Route: t.route, Response: detectorResponse[detector], Mode: c.dist.mode[detector], Action: action,
+	id := msg.NewID()
+	if e.share.Load() != nil {
+		// In a group every node that detects this wave names it the same, so
+		// it is one wave and one event (shared_dist.go).
+		id = groupWaveID(detector, h, key, now)
+		// A wave of this target that started in the same five minutes and
+		// was ended since (by the operator) keeps its id; this is the next.
+		for n := 1; d.waves[id] != nil && n < 8; n++ {
+			id = derivedID("schild-wave-again", id)
+		}
+	}
+	w := &Wave{ID: id, Detector: detector, Host: h, Route: t.route, Response: detectorResponse[detector], Mode: c.dist.mode[detector], Action: action,
 		Started: now, Senders: t.senders, Count: t.count, Threshold: max(t.threshold, 1), WindowS: max(t.window, 1), Baseline: round2(t.baseline),
 		Fingerprint: t.fp, FPKind: t.fpKind, UserAgents: t.uas, RequestSig: t.sig, WAFRules: t.rules, clusterFPs: map[string]bool{}, strongCluster: t.strong}
 	if action == config.DistributedObserve {
@@ -684,7 +707,25 @@ func (e *Engine) fireWave(c *compiled, r *Request, detector, h, key string, t tr
 	}
 	if detector == config.DetectorShapeWave && action == config.DistributedRespond {
 		w.Incident = events.NewIncident()
+		if e.share.Load() != nil {
+			w.Incident = groupIncident(w.ID) // one number on every node
+		}
 	}
+	e.storeWave(w, k, now)
+	e.noteWave(w, key)
+	d.mu.Unlock()
+	e.stats.add("wave:"+detector, now, 1)
+	if w.Incident != "" && e.Sink.Incident != nil {
+		e.Sink.Incident(&store.Incident{Incident: w.Incident, EventID: w.ID, Time: now.UTC(), Status: "blocked", Host: w.Host,
+			Reason: "distributed shape_block " + t.sig, Sources: []string{"distributed:shape"}})
+	}
+	e.emitWave(w, r.Time)
+}
+
+// storeWave puts a wave into the tables, within CapacityWaves. Called with
+// dist.mu held.
+func (e *Engine) storeWave(w *Wave, k string, now time.Time) {
+	d := e.d
 	if len(d.waves) >= CapacityWaves {
 		oldest := ""
 		for id, x := range d.waves {
@@ -702,13 +743,30 @@ func (e *Engine) fireWave(c *compiled, r *Request, detector, h, key string, t tr
 	}
 	d.waves[w.ID] = w
 	d.byKey[k] = w
-	d.mu.Unlock()
-	e.stats.add("wave:"+detector, now, 1)
-	if w.Incident != "" && e.Sink.Incident != nil {
-		e.Sink.Incident(&store.Incident{Incident: w.Incident, EventID: w.ID, Time: now.UTC(), Status: "blocked", Host: w.Host,
-			Reason: "distributed shape_block " + t.sig, Sources: []string{"distributed:shape"}})
+}
+
+// roll closes the window of a route when its time is over, and learns the
+// baseline outside waves.
+func (s *routeState) roll(now int64, rt config.DetectorThresholds) {
+	if s.senders == nil {
+		s.senders = newHLL(8)
 	}
-	e.emitWave(w, r.Time)
+	if s.start == 0 {
+		s.start = now
+	}
+	if now-s.start < int64(rt.WindowS)*int64(time.Second) {
+		return
+	}
+	if s.failures < max(float64(rt.Count), rt.Factor*s.baseline) {
+		if s.windows == 0 {
+			s.baseline = s.failures
+		} else {
+			s.baseline = 0.9*s.baseline + 0.1*s.failures
+		}
+		s.windows++
+	}
+	s.start, s.failures, s.successes, s.newSenders = now, 0, 0, 0
+	s.senders.reset()
 }
 
 func (e *Engine) dropWave(id string) {
@@ -761,13 +819,19 @@ func capInts(x []int, n int) []int {
 // endWave records the end of a response.
 func (e *Engine) endWave(w *Wave, at time.Time, reason string) {
 	w.Ended, w.EndReason = at, reason
-	if e.Sink.Emit == nil {
+	// A wave another node detected ends at its time on every node; the node
+	// that detected it writes the event.
+	if e.Sink.Emit == nil || (w.foreign && reason == "expired") {
 		return
 	}
 	dur := int(at.Sub(w.Started) / time.Second)
 	d := events.DistributedEndedData{WaveID: w.ID, Detector: w.Detector, Host: trim(w.Host, 253), Route: trim(w.Route, 512), Reason: reason,
 		DurationS: min(max(dur, 0), 7200), Stopped: w.Stopped}
-	e.Sink.Emit("", events.DistributedEnded, at, d, eventlog.Index{Host: d.Host, Path: d.Route, Summary: "distributed " + w.Detector + " ended " + reason})
+	id := ""
+	if e.share.Load() != nil {
+		id = derivedID("schild-wave-ended", w.ID) // one end per wave in a group
+	}
+	e.Sink.Emit(id, events.DistributedEnded, at, d, eventlog.Index{Host: d.Host, Path: d.Route, Summary: "distributed " + w.Detector + " ended " + reason})
 }
 
 // EndWave ends a running response early (operator). ok is false when the
@@ -784,6 +848,12 @@ func (e *Engine) EndWave(id string) (w Wave, ok, active bool) {
 		return x.copy(), true, false
 	}
 	e.endWave(x, now, "operator")
+	for k, y := range e.d.byKey {
+		if y == x {
+			_, _, key := cutWaveKey(k)
+			e.noteWave(x, key) // it ends on every node of a group
+		}
+	}
 	return x.copy(), true, true
 }
 
