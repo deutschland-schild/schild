@@ -36,6 +36,9 @@ const (
 	ClassLogins = "logins"
 	// ClassErasure is one erased address (Art. 17 GDPR).
 	ClassErasure = "erasure"
+	// ClassCertificates is the storage of the embedded Caddy: certificates
+	// with their keys, ACME accounts, challenge tokens, session ticket keys.
+	ClassCertificates = "certificates"
 )
 
 // Things of the classes settings, access and logins: each is one value that
@@ -70,8 +73,8 @@ const (
 	// MaxClockAhead: a record whose clock is further ahead of the receiver
 	// is not taken (yet).
 	MaxClockAhead = 60 * time.Second
-	// MaxID bounds Record.ID.
-	MaxID = 128
+	// MaxID bounds Record.ID; a storage path of a certificate is the longest.
+	MaxID = 512
 )
 
 // Record is one change of one thing: the member with id n-…, the block of
@@ -201,7 +204,7 @@ func (r *Record) shape() error {
 		return ErrSchema
 	}
 	switch r.Class {
-	case ClassMembers, ClassBlocks, ClassErasure:
+	case ClassMembers, ClassBlocks, ClassErasure, ClassCertificates:
 	case ClassSettings, ClassAccess, ClassLogins:
 		if !knownThing(r.Class, r.ID) || r.Deleted {
 			return ErrSchema

@@ -58,6 +58,8 @@ type Node struct {
 
 	cert tls.Certificate
 
+	leases leases
+
 	// Counters of schild cluster status.
 	Applied, Rejected, Deferred, Unread atomic.Uint64
 

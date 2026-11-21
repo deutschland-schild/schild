@@ -26,9 +26,11 @@ import (
 // push, the catch-up after an outage and the first sync of a new node.
 
 const (
-	pathSync  = "/mesh/v0/sync"
-	pathJoin  = "/mesh/v0/join"
-	pathHello = "/mesh/v0/hello"
+	pathSync   = "/mesh/v0/sync"
+	pathJoin   = "/mesh/v0/join"
+	pathHello  = "/mesh/v0/hello"
+	pathLock   = "/mesh/v0/lock"
+	pathUnlock = "/mesh/v0/unlock"
 	// maxBatch bounds the records of one answer.
 	maxBatch = 500
 	maxBody  = 1 << 20
@@ -75,6 +77,8 @@ func (n *Node) listen() (*http.Server, net.Listener, error) {
 	mux.HandleFunc("POST "+pathSync, n.serveSync)
 	mux.HandleFunc("POST "+pathJoin, n.serveJoin)
 	mux.HandleFunc("POST "+pathHello, n.serveHello)
+	mux.HandleFunc("POST "+pathLock, n.serveLock)
+	mux.HandleFunc("POST "+pathUnlock, n.serveUnlock)
 	srv := &http.Server{Handler: mux, ReadHeaderTimeout: 5 * time.Second, IdleTimeout: 2 * time.Minute, MaxHeaderBytes: 16 << 10,
 		TLSConfig: &tls.Config{MinVersion: tls.VersionTLS13, Certificates: []tls.Certificate{n.cert},
 			// Any certificate may connect; the handlers decide by its key
@@ -113,7 +117,7 @@ func (n *Node) serveSync(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "another group", http.StatusForbidden)
 		return
 	}
-	n.seenIn(id)
+	n.seenIn(id, req.Vector[n.id])
 	wait := min(time.Duration(req.WaitMS)*time.Millisecond, n.opts.Hold)
 	deadline := time.NewTimer(max(wait, 0))
 	defer deadline.Stop()
@@ -364,11 +368,16 @@ type peer struct {
 	cancel            context.CancelFunc
 	done              chan struct{}
 
+	key ed25519.PublicKey
+
 	mu     sync.Mutex
 	outOK  time.Time
 	inOK   time.Time
 	err    string
 	behind uint64
+	// inSeq is how far this peer said it is with the records of this node,
+	// in its last call.
+	inSeq uint64
 }
 
 // syncPeers starts a loop for every gateway of the roster and stops the
@@ -397,7 +406,7 @@ func (n *Node) syncPeers(ctx context.Context) {
 		}
 		key, _ := m.Key()
 		pctx, cancel := context.WithCancel(ctx)
-		p := &peer{id: id, name: m.Name, address: m.Address, cancel: cancel, done: make(chan struct{})}
+		p := &peer{id: id, name: m.Name, address: m.Address, key: key, cancel: cancel, done: make(chan struct{})}
 		n.peers[id] = p
 		go n.runPeer(pctx, p, key)
 	}
@@ -417,13 +426,16 @@ func (n *Node) stopPeers() {
 	}
 }
 
-func (n *Node) seenIn(id string) {
+func (n *Node) seenIn(id string, own uint64) {
 	n.pmu.Lock()
 	p := n.peers[id]
 	n.pmu.Unlock()
 	if p != nil {
 		p.mu.Lock()
 		p.inOK = n.now()
+		if own > p.inSeq {
+			p.inSeq = own
+		}
 		p.mu.Unlock()
 	}
 }

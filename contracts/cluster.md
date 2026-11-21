@@ -23,8 +23,8 @@ One change of one thing, as a JSON object:
 | --- | --- |
 | `v` | 1. A record of another version stays unread and is passed on unchanged |
 | `group` | group id |
-| `class` | `members`, `blocks`, `settings`, `access`, `logins` or `erasure` |
-| `id` | the thing within its class, at most 128 bytes |
+| `class` | `members`, `blocks`, `settings`, `access`, `logins`, `erasure` or `certificates` |
+| `id` | the thing within its class, at most 512 bytes |
 | `origin` | node id of the signer |
 | `seq` | counts the records of one origin, from 1 |
 | `hlc` | hybrid logical clock of the write: wall clock in milliseconds in the upper 48 bits, a counter in the lower 16 |
@@ -98,6 +98,20 @@ Data: `v`, the value as the gateway stores it, in standard base64, and `node`, t
 
 One erased address (Art. 17 GDPR). `id` is the address. Data: `ip` (equal to `id`), `keep_incidents`, `node`. `expires` lies 31 days after the erasure: longer than any node keeps what is erased, so a node that was away erases when it returns; then the record is gone, and the address with it. A node erases events, incidents, sessions, allowlist entries, exceptions, the running block and the requests of the address, as the dashboard does on its own node. The node that erases publishes after it erased.
 
+### certificates
+
+The storage of the embedded Caddy: certificates with their keys, ACME accounts, the local CA, challenge tokens, the keys of TLS session tickets. `id` is a path below the storage root: relative, no empty, `.` or `..` element.
+
+- Data: `files`, a map from a file name to its content in standard base64, and `node`. Paths below `certificates/`, `acme/` and `pki/` travel per directory: the record names the directory and holds its files (at most 16). So a certificate, its key and its metadata are one record, and no node pairs the certificate of one order with the key of another. Every other path is one file per record, with the file name `""`.
+- A node publishes a certificate directory only when its certificate and key fit each other, and writes one it receives only then. A tombstone has no files and removes the file, or the files of the directory.
+- The lock files of the file storage (`locks/`) never leave a node.
+- A node writes to its own storage first and tells the group after, so a node that reaches no member reads and writes its certificates as a single gateway does. At its first sync a node hands over what its storage holds and the group does not: certificates from before go with it, none is ordered again.
+- A challenge token is published at once, and the write returns when every gateway the node reaches said it holds the token, or after 2 s.
+- The keys of TLS session tickets go through the same storage (Caddy's distributed key source), unless the Caddyfile sets session tickets itself.
+- With `cluster.enabled` a storage module of its own in the Caddyfile is refused.
+
+**The lock of an order.** `POST /mesh/v0/lock` and `/unlock`, members only, body `name` (and on unlock `seq`, how far the caller is with its own records). The lock is kept by the member with the lowest node id among the gateways a node reaches; a node asks that one, or itself. A lock ends 5 minutes after it was granted when its holder does not give it back. The answer to a grant names what the last holder had written; the new holder waits, at most 10 s, until it holds that, so it finds the certificate instead of ordering it again. Nodes that cannot reach each other each find a keeper on their side and may both order the same certificate: one order too many, two valid certificates.
+
 ## 6. Joining
 
 Two ways. A group set up by configuration can also let a node in by hand, with a join code of one of its members; a group founded with `schild cluster init` has no group secret.
@@ -142,4 +156,4 @@ A caller that was a member and was removed gets 410 on sync and hello, any other
 
 ## 8. Not built yet
 
-Of [MVP-27](../tests/specs/MVP-27-ha-group.yaml): the role edge, the class certificates, counters across nodes, copies of events and requests and queries across the group, the readiness answer and the drain, the caps on what a node may send, the nodes an erasure reached in `PrivacyDeleteResult`, events and dashboard operations of the group.
+Of [MVP-27](../tests/specs/MVP-27-ha-group.yaml): the role edge, counters across nodes, copies of events and requests and queries across the group, the readiness answer and the drain, the caps on what a node may send, the nodes an erasure reached in `PrivacyDeleteResult`, events and dashboard operations of the group.

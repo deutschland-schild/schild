@@ -219,3 +219,59 @@ func DecodeErasure(r *Record) (*Erasure, error) {
 	}
 	return &e, nil
 }
+
+// Files is the data of a record of class certificates. The id is a path of
+// the Caddy storage. A certificate, its key and its metadata are files of
+// one directory and travel as one record, so no node ever pairs the
+// certificate of one order with the key of another; everything else is one
+// file per record.
+type Files struct {
+	// Files maps a file name inside the directory id to its content in
+	// standard base64; the name "" is the path id itself, as a file.
+	Files map[string]string `json:"files"`
+	Node  string            `json:"node"`
+}
+
+// CleanPath reports whether p is a storage path a record may name: relative,
+// with no empty, "." or ".." element.
+func CleanPath(p string) bool {
+	if p == "" || len(p) > MaxID {
+		return false
+	}
+	for _, el := range strings.Split(p, "/") {
+		if el == "" || el == "." || el == ".." || strings.ContainsAny(el, "\\\x00") {
+			return false
+		}
+	}
+	return true
+}
+
+// DecodeFiles returns the files of a record of class certificates. A
+// tombstone has none.
+func DecodeFiles(r *Record) (*Files, error) {
+	var f Files
+	if err := decodeData(r, &f); err != nil || len(f.Node) > 63 || !CleanPath(r.ID) {
+		return nil, ErrSchema
+	}
+	if r.Deleted {
+		if len(f.Files) != 0 {
+			return nil, ErrSchema
+		}
+		return &f, nil
+	}
+	if len(f.Files) == 0 || len(f.Files) > 16 {
+		return nil, ErrSchema
+	}
+	for name, content := range f.Files {
+		if name != "" && (strings.Contains(name, "/") || !CleanPath(name)) {
+			return nil, ErrSchema
+		}
+		if name == "" && len(f.Files) != 1 {
+			return nil, ErrSchema
+		}
+		if _, err := base64.StdEncoding.Strict().DecodeString(content); err != nil {
+			return nil, ErrSchema
+		}
+	}
+	return &f, nil
+}

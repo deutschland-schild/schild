@@ -177,6 +177,9 @@ type App struct {
 	// sharedMu around taking and publishing them.
 	shared   []sharedThing
 	sharedMu sync.Mutex
+	// GroupFiles shares the certificate storage with the group
+	// (cluster_files.go); nil without a group or without a Caddyfile.
+	GroupFiles *groupFiles
 }
 
 const (
@@ -729,6 +732,11 @@ func (a *App) Run(ctx context.Context) error {
 		} else {
 			defer release()
 			defer caddymod.BindConns(a.Conns)()
+			if a.GroupFiles != nil {
+				// The storage module of the Caddyfile hands certificates
+				// to the group through it (MVP-27).
+				defer caddymod.BindGroup(a.GroupFiles)()
+			}
 			startErr = a.startCaddy(cfg)
 		}
 	}

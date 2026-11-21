@@ -181,7 +181,10 @@ func PrepareIngress(o IngressOptions) (*Ingress, error) {
 			ing.Check.Warnings = append(ing.Check.Warnings, "the storage option of the Caddyfile is replaced by ingress.storage "+root)
 		}
 	case cur != nil:
-		if cur["module"] != "file_system" {
+		if o.Cluster && cur["module"] != "file_system" && cur["module"] != clusterStorageName {
+			return nil, errors.New("caddyfile: cluster.enabled and a storage module of its own in the Caddyfile: in a group schild shares the certificates itself, remove the storage option")
+		}
+		if cur["module"] != "file_system" && cur["module"] != clusterStorageName {
 			// Another storage module (e.g. a cluster storage) stays as is.
 			ing.JSON, err = json.Marshal(m)
 			return ing, errors.Join(err, ing.Check.Err())
@@ -195,6 +198,11 @@ func PrepareIngress(o IngressOptions) (*Ingress, error) {
 	}
 	ing.StorageRoot = root
 	m["storage"] = map[string]any{"module": "file_system", "root": root}
+	if o.Cluster {
+		// The same files, and the group next to them (ClusterStorage).
+		m["storage"] = map[string]any{"module": clusterStorageName, "root": root}
+		shareTicketKeys(m)
+	}
 	ing.JSON, err = json.Marshal(m)
 	if err != nil {
 		return nil, err
@@ -836,4 +844,23 @@ func ProxyProtocolOpen(m map[string]any) string {
 		}
 	}
 	return ""
+}
+
+// shareTicketKeys lets the nodes of a group share the keys of TLS session
+// tickets through the storage (Caddy's distributed key source), so a visitor
+// resumes a TLS session on whichever node the balancer picks. A Caddyfile
+// that sets session tickets itself is left as it is.
+func shareTicketKeys(m map[string]any) {
+	apps, _ := m["apps"].(map[string]any)
+	if apps == nil {
+		return
+	}
+	t, _ := apps["tls"].(map[string]any)
+	if t == nil {
+		t = map[string]any{}
+		apps["tls"] = t
+	}
+	if _, set := t["session_tickets"]; !set {
+		t["session_tickets"] = map[string]any{"key_source": map[string]any{"provider": "distributed"}}
+	}
 }

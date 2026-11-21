@@ -156,6 +156,10 @@ func (ro *Roster) Check(r *Record, now time.Time) error {
 		if _, err := DecodeErasure(r); err != nil {
 			return err
 		}
+	case ClassCertificates:
+		if _, err := DecodeFiles(r); err != nil {
+			return err
+		}
 	}
 	return nil
 }

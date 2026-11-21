@@ -322,3 +322,41 @@ func TestValuesAndErasure(t *testing.T) {
 		}
 	}
 }
+
+func TestCertificateFiles(t *testing.T) {
+	ro, _, kb := group(t)
+	origin := NodeID(kb.Public().(ed25519.PublicKey))
+	b64 := func(s string) string { return base64.StdEncoding.EncodeToString([]byte(s)) }
+	rec := func(id string, f Files, deleted bool) *Record {
+		r := &Record{V: Version, Group: ro.Group, Class: ClassCertificates, ID: id, Origin: origin, Seq: 1, HLC: HLCOf(t0), Deleted: deleted}
+		if err := r.Sign(kb, f); err != nil {
+			t.Fatal(err)
+		}
+		return r
+	}
+	dir := "certificates/acme-v02.api.letsencrypt.org-directory/shop.example"
+	good := []*Record{
+		rec(dir, Files{Files: map[string]string{"shop.example.crt": b64("c"), "shop.example.key": b64("k"), "shop.example.json": b64("{}")}, Node: "web-2"}, false),
+		rec("challenge_tokens/shop.example.json", Files{Files: map[string]string{"": b64("t")}, Node: "web-2"}, false),
+		rec("challenge_tokens/shop.example.json", Files{Node: "web-2"}, true),
+	}
+	for _, r := range good {
+		if err := ro.Check(r, t0); err != nil {
+			t.Errorf("%s: %v", r.ID, err)
+		}
+	}
+	bad := map[string]*Record{
+		"a path out of the storage":      rec("../schild.yaml", Files{Files: map[string]string{"": b64("x")}}, false),
+		"an absolute path":               rec("/etc/passwd", Files{Files: map[string]string{"": b64("x")}}, false),
+		"a file name with a directory":   rec(dir, Files{Files: map[string]string{"../../x": b64("x")}}, false),
+		"a file and a directory at once": rec(dir, Files{Files: map[string]string{"": b64("x"), "a": b64("y")}}, false),
+		"no files":                       rec(dir, Files{}, false),
+		"a tombstone with files":         rec(dir, Files{Files: map[string]string{"a": b64("x")}}, true),
+		"content that is no base64":      rec(dir, Files{Files: map[string]string{"a": "%%"}}, false),
+	}
+	for name, r := range bad {
+		if err := ro.Check(r, t0); !errors.Is(err, ErrSchema) {
+			t.Errorf("%s: got %v", name, err)
+		}
+	}
+}
