@@ -23,12 +23,13 @@ type AgentAPI struct {
 // the MVP-20 export).
 const DefaultAgentAPIListen = "127.0.0.1:8789"
 
-// On reports whether the agent API runs (default false).
+// On reports whether schild.yaml has the agent API on (default true, D103).
+// The switch in the dashboard wins over it.
 func (a *AgentAPI) On() bool { return a.Enabled != nil && *a.Enabled }
 
 func (a *AgentAPI) defaults() {
 	if a.Enabled == nil {
-		a.Enabled = boolp(false)
+		a.Enabled = boolp(true)
 	}
 	orStr(&a.Listen, DefaultAgentAPIListen)
 	orInt(&a.RequestsPerMinute, 120)

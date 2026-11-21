@@ -5,7 +5,7 @@
 # "Sperren in der Firewall"). With Docker, run the image as a second container
 # instead (same document).
 #
-# Asks the agent API of schild (127.0.0.1:8789, agent_api.enabled) for the
+# Asks the agent API of schild (127.0.0.1:8789, on by default) for the
 # blocks that run and keeps the nftables table "inet schild" holding them,
 # each with its remaining time as the kernel timeout: their traffic to the
 # ports 80 and 443 is dropped. A stop removes the table; blocks also end in

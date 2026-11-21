@@ -34,7 +34,7 @@ Quellcode und Releases liegen auf GitHub: [github.com/deutschland-schild/schild]
 
 Das Image ist mit cosign signiert und bringt eine Stückliste (SBOM) mit. Für die Archive und Pakete hängen die Prüfsummen am Release (`checksums.txt`, SHA-256), mit cosign signiert (`checksums.txt.sigstore.json`). Das apt-Repository ist signiert, apt prüft das bei jedem Abruf. Zu Image, Archiven und Paketen gibt es einen signierten Herkunftsnachweis, den `gh attestation verify` prüft. Wie du Signatur und Nachweis prüfst, steht in den Hinweisen zum [Release](https://github.com/deutschland-schild/schild/releases).
 
-Pakete für dnf gibt es noch nicht, sie sind [geplant](01-funktionen.md#geplant-noch-nicht-gebaut).
+Pakete für dnf gibt es noch nicht.
 
 ## Installieren
 
@@ -115,7 +115,7 @@ docker stop caddy
 docker run -d --name schild --restart unless-stopped \
   --read-only --cap-drop ALL --security-opt no-new-privileges:true \
   --add-host host.docker.internal:host-gateway \
-  -p 80:80 -p 443:443 -p 127.0.0.1:8788:8788 \
+  -p 80:80 -p 443:443 -p 127.0.0.1:8788:8788 -p 127.0.0.1:8789:8789 \
   -v "$PWD/schild.yaml:/etc/schild/schild.yaml:ro" \
   -v "$PWD/Caddyfile:/etc/caddy/Caddyfile:ro" \
   -v schild-data:/var/lib/schild \
@@ -314,7 +314,7 @@ Trag in `schild.yaml` unter `upstream.url` die Adresse deiner Anwendung ein. Lä
 docker run -d --name schild --restart unless-stopped \
   --read-only --cap-drop ALL --security-opt no-new-privileges:true \
   --add-host host.docker.internal:host-gateway \
-  -p 127.0.0.1:8080:8080 -p 127.0.0.1:8788:8788 \
+  -p 127.0.0.1:8080:8080 -p 127.0.0.1:8788:8788 -p 127.0.0.1:8789:8789 \
   -v "$PWD/schild.yaml:/etc/schild/schild.yaml:ro" \
   -v schild-data:/var/lib/schild \
   ghcr.io/deutschland-schild/schild:0.1.0-alpha.4
@@ -323,7 +323,7 @@ docker exec schild schild dashboard setup-code
 
 Die letzte Zeile zeigt den Einmal-Code für die erste Anmeldung im Dashboard. Er steht auch im Log, im Feld `setup_code`. Der Container läuft ohne Root-Rechte, mit schreibgeschütztem Dateisystem und ohne Sonderrechte. Schreiben kann er nur in sein Daten-Volume.
 
-Das `127.0.0.1` vor beiden Ports muss bleiben. Ohne es wäre das Dashboard aus dem Internet erreichbar, und an Port 8080 könnte jeder an deinem Webserver vorbei eine falsche Absenderadresse behaupten. Dein Webserver auf dem Server erreicht Schild unter `127.0.0.1:8080`.
+Das `127.0.0.1` vor den drei Ports muss bleiben. Ohne es wären das Dashboard und die Agent-API aus dem Internet erreichbar, und an Port 8080 könnte jeder an deinem Webserver vorbei eine falsche Absenderadresse behaupten. Dein Webserver auf dem Server erreicht Schild unter `127.0.0.1:8080`.
 
 ### Dahinter als Paket unter Debian und Ubuntu
 
@@ -404,6 +404,7 @@ Schild prüft nur, was über Schild kommt. Deine Anwendung darf deshalb von auß
 5. **Hinschauen.** Unter „Ereignisse“ siehst du, was gestoppt und was nur erkannt wurde, unter „Sperren“, welche Adressen gerade gesperrt sind. Fehlalarme löst du mit einer [Ausnahme](01-funktionen.md#ausnahmen). Bei einer empfindlichen Anwendung stellst du das Core Rule Set vorher für ein paar Tage auf „erkennen“, unter „Regeln“ oder mit `rules.crs.state: detect`.
 6. **Server-Check einrichten.** Ein Befehl auf dem Server, dann zeigt das Dashboard unter „Server“ ausstehende Updates, offene Ports, Firewall, SSH, Zertifikate und Logs: [Server-Check einrichten](02-betrieb.md#server-check-einrichten).
 7. **Mehr sperren.** Den CrowdSec Hub und die Limits, die ab Werk nur mitzählen, stellst du einzeln um, siehe [Was sperrt](02-betrieb.md#was-sperrt). Die Szenarien stehen ab Werk auf der Empfehlung: Vier sperren, „Aggressives Abrufen“ beobachtet. Sie sperren erst nach 14 Tagen Lernzeit ab dem ersten Start.
+8. **Deinen KI-Agenten anbinden.** Über die Agent-API liest der Coding-Agent deiner Website mit, testet Anfragen gegen die Regeln und legt Ausnahmen an. Sie ist ab Werk an und antwortet erst, wenn du auf dem Server ein Token angelegt hast: [Agent-API einrichten](02-betrieb.md#agent-api-einrichten).
 
 ### Was Schild mit deinem Traffic macht
 
