@@ -177,7 +177,7 @@ export function repositoryView(st: MockState, id: RuleRepositoryId): RuleReposit
 
 // ------------------------------------------------------------------ seed
 
-const CRS_VERSION = '4.20.0'
+const CRS_VERSION = '4.30.0'
 const CRS: { id: string, msg: string, pl?: number }[] = [
   { id: '913100', msg: 'Found User-Agent associated with security scanner' },
   { id: '920350', msg: 'Host header is a numeric IP address' },

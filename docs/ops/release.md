@@ -67,8 +67,9 @@ The first run after this publishes every package the newest releases carry. Chec
    - `site/app/utils/release.ts`: `RELEASE_VERSION`
    - `README.md` and `docs/gateway/00-installieren.md`: the tag in the download addresses
    - `SECURITY.md`: supported versions, if the line changes
-3. Geo data: if `GEO_MONTH` in `gateway/Dockerfile` is older than two months, run `make gateway-geo-pin GEO_MONTH=YYYY-MM` and put the three lines into the Dockerfile. DB-IP removes old months; the build then stops at the download.
-4. Tag the merged commit on `main` with a signed tag ([above](#once-per-maintainer-signing-tags)) and push the tag. Each push needs the maintainer's go:
+3. Screenshots: when the dashboard changed, retake them with `cd site && npm run shots` and look through the changed pictures. One run renews every dashboard picture of the website and of `docs/gateway/01-funktionen.md` and puts the date into `site/app/utils/shots.ts`. It needs the dashboard dependencies, Go and `cwebp`; the list of pictures is `SHOTS` in `site/scripts/shots.mjs`.
+4. Geo data: if `GEO_MONTH` in `gateway/Dockerfile` is older than two months, run `make gateway-geo-pin GEO_MONTH=YYYY-MM` and put the three lines into the Dockerfile. DB-IP removes old months; the build then stops at the download.
+5. Tag the merged commit on `main` with a signed tag ([above](#once-per-maintainer-signing-tags)) and push the tag. Each push needs the maintainer's go:
 
    ```sh
    git switch main && git pull --ff-only
@@ -76,8 +77,8 @@ The first run after this publishes every package the newest releases carry. Chec
    git push origin v0.1.0-alpha.1
    ```
 
-5. Watch the run: `gh run watch --repo deutschland-schild/schild`. The order is check, test, build (per architecture: build, smoke test, tarball, Debian package with its test, push by digest), publish (manifest, signature, attestation), release, then repository and pages when the apt repository is set up. The job `repository` waits for your approval: it holds the signing key.
-6. Check the result from a machine that is not logged in to ghcr.io:
+6. Watch the run: `gh run watch --repo deutschland-schild/schild`. The order is check, test, build (per architecture: build, smoke test, tarball, Debian package with its test, push by digest), publish (manifest, signature, attestation), release, then repository and pages when the apt repository is set up. The job `repository` waits for your approval: it holds the signing key.
+7. Check the result from a machine that is not logged in to ghcr.io:
 
    ```sh
    docker run --rm ghcr.io/deutschland-schild/schild:0.1.0-alpha.1 version   # schild 0.1.0-alpha.1 (release)

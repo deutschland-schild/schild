@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { FaqGroup } from '~/components/FaqList.vue'
 import { ISSUES_URL, RELEASES_URL, RELEASE_VERSION, REPO_URL } from '~/utils/release'
+import { SHOTS_DATE } from '~/utils/shots'
 
 // Start page: one product, the Schild Gateway, and one primary action, installing it. Order: hero with "Warum jetzt?" →
 // how it works → what it does → dashboard → install (with what happens afterwards and how the gateway itself is secured) → comparison → small teaser for the network → FAQ → contact. The
@@ -49,20 +50,21 @@ const compareSources = [
 const steps = [
   { title: 'Installieren', text: 'Als Docker-Container, Paket für Debian und Ubuntu oder Linux-Binary: Nutzt du Caddy, bekommst du Caddy inkl. Schild – mit deinem Caddyfile und deinen Zertifikaten. Sonst läuft Schild hinter nginx, Apache oder deinem Load Balancer. Deine Anwendung bleibt unverändert.' },
   { title: 'Hinschauen', text: 'Ab dem Start sperrt Schild bekannte Angriffe. Im Dashboard siehst du an deinem echten Traffic, was gestoppt und was nur erkannt wurde. Bei einer empfindlichen Anwendung lässt du die Regeln die ersten Tage nur erkennen.' },
-  { title: 'Feinjustieren', text: 'Vier Szenarien (u. a. Login-Schutz) sperren nach 14 Tagen Lernzeit selbstständig. Limits und weitere Regeln schaltest du bei Bedarf einzeln dazu – jede Sperre lässt sich mit einem Klick zurücknehmen.' },
+  { title: 'Feinjustieren', text: 'Vier Szenarien (u. a. Passwort-Raten) sperren nach 14 Tagen Lernzeit selbstständig. Limits für Login, Passwort vergessen und XML-RPC gelten ab dem Start, weitere Limits und Regeln schaltest du bei Bedarf einzeln dazu – jede Sperre lässt sich mit einem Klick zurücknehmen.' },
 ]
 
 // Built and on hand without labs; see gateway/README.md and docs/gateway. Promises that are still planned stay off this list.
 const features = [
   { title: 'Web Application Firewall', text: 'Das OWASP Core Rule Set erkennt SQL-Injection-Versuche, Cross-Site-Scripting und andere typische Angriffsversuche. Geprüft wird direkt auf deinem Server.' },
-  { title: 'Login-Schutz', text: 'Schild erkennt massenhafte Login-Versuche bei WordPress, TYPO3, Joomla, Drupal, Nextcloud und Laravel. Nach 14 Tagen Lernzeit sperrt der Login-Schutz von selbst – jede Sperre läuft automatisch wieder ab.' },
+  { title: 'Login-Schutz', text: 'Schild erkennt massenhafte Login-Versuche bei WordPress, TYPO3, Joomla, Drupal, Nextcloud und Laravel. Ein Limit für Login-Seiten gilt ab dem Start. Wer Passwörter durchprobiert, wird nach 14 Tagen Lernzeit von selbst gesperrt – jede Sperre läuft automatisch wieder ab.' },
   { title: 'Dashboard', text: 'Besucher, Angriffsversuche, Vorfälle und Regeln an einem Ort. Erreichbar nur lokal, per SSH-Tunnel oder VPN, Anmeldung mit Passwort.' },
   { title: 'Server-Check', text: 'Liest nur mit und prüft Updates, offene Ports, Firewall, SSH und Zertifikate. Schild selbst ändert dabei nichts.' },
   { title: 'Eigene IPs', text: 'Schalte dich und dein Team dauerhaft oder befristet frei, damit du dich nicht aussperrst.' },
   { title: 'Daten bleiben bei dir', text: 'Nichts aus deinem Traffic verlässt den Server. Schild holt nur öffentliche Regeln und Listen ab.' },
 ]
 
-// Real screenshots of the gateway dashboard in mock mode (component DashboardShots). Sidebar as in the gateway without
+// Real screenshots of the gateway dashboard in mock mode (component DashboardShots), retaken with `npm run shots`
+// (site/scripts/shots.mjs). Sidebar as in the gateway without
 // labs: no Verbund, no approvals or signals.
 const gatewayShots = [
   {
@@ -143,8 +145,8 @@ const faq: FaqGroup[] = [
       { q: 'Kann ich Bereiche mit Passwort schützen?', a: 'Ja. Du schließt eine ganze Website oder Pfade wie /staging/* mit einem gemeinsamen Passwort, nur für eigene Adressen oder mit beidem; dann muss beides zutreffen. Gespeichert wird nur ein Hash. Der Schutz bleibt an, bis du ihn aufhebst.' },
       { q: 'Kann ich KI-Crawler sperren?', a: 'Ja, pro Website. Crawler sind nach Zweck gruppiert, etwa KI-Training, KI-Suche und Suchmaschinen; KI-Training blockst du mit einem Klick. Gibt sich jemand als Googlebot aus, kommt aber nicht aus Googles Adressbereichen, kann Schild ihn als Fälschung blocken. Crawler, die sich nicht zu erkennen geben, erfasst das nicht.' },
       { q: 'Wie ist das Dashboard abgesichert?', a: 'Ab Werk lauscht es nur auf dem Server selbst. Du kommst per SSH-Tunnel oder VPN hinein. Das erste Passwort setzt du mit einem Einmal-Code aus dem Log, und nach fünf falschen Versuchen ist eine Viertelstunde Pause.' },
-      { q: 'Gibt es Pakete für apt oder dnf?', a: 'Noch nicht, sie sind geplant. Heute gibt es Schild als Docker-Image und als statisches Binary für Linux amd64 und arm64, mit systemd-Unit im Archiv. Neue Versionen installierst du selbst. Schild aktualisiert sich nie von allein.' },
-      { q: 'Wie komme ich auf eine neue Version?', a: 'Du lädst das neue Image oder Binary und startest Schild neu. Die Datenbank passt Schild beim Start selbst an und legt vorher eine Sicherungskopie an. Was sich geändert hat, steht bei jedem Release auf GitHub.' },
+      { q: 'Gibt es Pakete für apt oder dnf?', a: 'Für apt ja: ein eigenes Repository für Debian 12 und 13 und Ubuntu 22.04 und 24.04. Pakete für dnf sind geplant. Daneben gibt es Schild als Docker-Image und als statisches Binary für Linux amd64 und arm64, mit systemd-Unit im Archiv. Neue Versionen installierst du selbst. Schild aktualisiert sich nie von allein.' },
+      { q: 'Wie komme ich auf eine neue Version?', a: 'Du lädst das neue Image oder Binary oder holst das neue Paket mit apt und startest Schild neu. Die Datenbank passt Schild beim Start selbst an und legt vorher eine Sicherungskopie an. Was sich geändert hat, steht bei jedem Release auf GitHub.' },
       { q: 'Was ist, wenn ich einen Fehler finde?', a: 'Dann hilft uns ein Issue auf GitHub, mit der Ausgabe von schild version und den Schritten, die zum Fehler führen. Eine Sicherheitslücke meldest du bitte nicht öffentlich, sondern auf dem Weg aus SECURITY.md.' },
     ],
   },
@@ -256,7 +258,7 @@ const faqMore = [
         <p class="mt-4 max-w-2xl leading-relaxed text-slate">
           Besucher, Bots, Angriffsversuche, Vorfälle und Server-Zustand an einem Ort. Das Dashboard läuft lokal auf deinem Server, ohne externe Dienste.
         </p>
-        <DashboardShots class="mt-10" label="Ansichten des Schild Dashboards" :shots="gatewayShots" caption="Echte Screenshots des Gateway-Dashboards vom 19.11.2026, mit Testdaten (nur IP-Adressen aus Dokumentationsbereichen)." />
+        <DashboardShots class="mt-10" label="Ansichten des Schild Dashboards" :shots="gatewayShots" :caption="`Echte Screenshots des Gateway-Dashboards vom ${SHOTS_DATE}, mit Testdaten. IP-Adressen sind unkenntlich gemacht.`" />
       </div>
     </section>
 

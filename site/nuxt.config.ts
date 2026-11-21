@@ -167,6 +167,10 @@ function transformDoc(children: any[], collection: string, heading = false, keep
       if (tag === 'img' && collection === 'brand' && typeof props?.src === 'string' && props.src.startsWith('assets/')) {
         props.src = `/doku/marke/${props.src}`
       }
+      // Screenshots in the docs point at site/public, so they also show on GitHub; the site serves that folder at /.
+      if (tag === 'img' && typeof props?.src === 'string' && props.src.startsWith('../../site/public/')) {
+        props.src = props.src.slice('../../site/public'.length)
+      }
       if (tag === 'table') rest = dropStatusColumn(rest)
       // Wide tables scroll inside the content column instead of squeezing cells into tall strips (ProseTable.vue):
       // estimate a minimum width from the longest cell per column (about 3–4 lines for the longest cell).

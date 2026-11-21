@@ -165,6 +165,8 @@ body { @apply bg-white text-ink antialiased; font-feature-settings: 'cv11', 'ss0
 .doku-prose blockquote { @apply font-normal not-italic; }
 .doku-prose blockquote p::before, .doku-prose blockquote p::after { content: none; }
 .doku-prose img { @apply my-4 inline-block max-h-40 w-auto; }
+/* Dashboard screenshots in the docs use the full column; the height limit above is for logos. */
+.doku-prose img[src^="/img/dashboards/"] { @apply block h-auto max-h-none w-full rounded-xl border border-line shadow-sm; }
 
 /* Tables (ProseTable.vue): own styles because the wrapper is not-prose. */
 .doku-table {
