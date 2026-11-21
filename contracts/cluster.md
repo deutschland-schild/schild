@@ -211,4 +211,6 @@ An edge is a member that only enforces: a balancer VM in front of the gateways t
 
 ## 14. Not built yet
 
+The designs of the two larger parts, with the decisions they need, are at the end of [MVP-27](../tests/specs/MVP-27-ha-group.yaml) (`design_metrics_across_nodes`, `design_data_copies_and_queries`).
+
 Of [MVP-27](../tests/specs/MVP-27-ha-group.yaml): where each block holds (edge, node firewall, gate) in the dashboard, a copy on some nodes instead of all and queries from node to node (for groups too large to keep everything everywhere), the counters of the overview and the server charts across nodes, the versions of rule sets, bot ranges and the geo database in the config hint, a catch-up of single requests from the request store on disk (for outages longer than the log in memory reaches), events and dashboard operations of the group (the filter "Server" on lists and charts, hints `cluster_peers_unreachable` and `cluster_config_drift` on the overview).
