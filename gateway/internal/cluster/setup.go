@@ -26,16 +26,26 @@ import (
 
 var errInvite = errors.New("cluster: join code not valid")
 
+// noAddress is the address of an edge: nobody calls it, it calls.
+const noAddress = "0.0.0.0:0"
+
 func memberOf(name, address string, pub ed25519.PublicKey, now time.Time) (*contract.Member, error) {
+	return memberWith(name, address, contract.RoleGateway, pub, now)
+}
+
+func memberWith(name, address, role string, pub ed25519.PublicKey, now time.Time) (*contract.Member, error) {
 	name = strings.TrimSpace(name)
+	if role == contract.RoleEdge {
+		address = noAddress
+	}
 	ap, err := netip.ParseAddrPort(address)
-	if err != nil || ap.Addr().IsUnspecified() {
+	if err != nil || (ap.Addr().IsUnspecified() && role != contract.RoleEdge) {
 		return nil, fmt.Errorf("%w: address %q is no host:port the other nodes reach", contract.ErrSchema, address)
 	}
 	if name == "" || len(name) > 63 || strings.ContainsAny(name, " \t\r\n/") {
 		return nil, fmt.Errorf("%w: node name %q", contract.ErrSchema, name)
 	}
-	return &contract.Member{Name: name, Role: contract.RoleGateway, PublicKey: base64.StdEncoding.EncodeToString(pub), Address: ap.String(), Joined: contract.TimeText(now)}, nil
+	return &contract.Member{Name: name, Role: role, PublicKey: base64.StdEncoding.EncodeToString(pub), Address: ap.String(), Joined: contract.TimeText(now)}, nil
 }
 
 // Init makes this node the first of a new group and returns the group id.
@@ -104,6 +114,15 @@ func HashKey(dir string) (key [16]byte, ok bool) {
 
 // Invite makes a join code of this node: one use, valid for an hour.
 func Invite(dir string, now func() time.Time) (code string, expires time.Time, err error) {
+	return InviteRole(dir, contract.RoleGateway, now)
+}
+
+// InviteRole is Invite for a role: gateway, or edge for a balancer VM that
+// only enforces the block list (`schild firewall run -group`).
+func InviteRole(dir, role string, now func() time.Time) (code string, expires time.Time, err error) {
+	if role != contract.RoleGateway && role != contract.RoleEdge {
+		return "", time.Time{}, fmt.Errorf("cluster: unknown role %q (gateway or edge)", role)
+	}
 	s, err := openState(dir, false, now)
 	if err != nil {
 		return "", time.Time{}, err
@@ -117,18 +136,24 @@ func Invite(dir string, now func() time.Time) (code string, expires time.Time, e
 		return "", time.Time{}, err
 	}
 	expires = s.now().Add(contract.JoinCodeTTL)
-	_, err = s.db.Exec(`INSERT INTO invites(hash, role, expires_ms) VALUES(?, ?, ?)`, hash, contract.RoleGateway, expires.UnixMilli())
+	_, err = s.db.Exec(`INSERT INTO invites(hash, role, expires_ms) VALUES(?, ?, ?)`, hash, role, expires.UnixMilli())
 	return code, expires, err
 }
 
 // admit takes a join code and writes the member record of the new key.
 func (n *Node) admit(key ed25519.PublicKey, secret []byte, name, address string) ([][]byte, error) {
-	m, err := memberOf(name, address, key, n.now())
+	now := n.now().UnixMilli()
+	hash := contract.JoinHash(secret)
+	var role string
+	if err := n.db.QueryRow(`SELECT role FROM invites WHERE hash = ? AND used_ms = 0 AND expires_ms > ?`, hash, now).Scan(&role); err != nil {
+		return nil, errInvite
+	}
+	// The code says what it admits: a gateway, or an edge.
+	m, err := memberWith(name, address, role, key, n.now())
 	if err != nil {
 		return nil, err
 	}
-	now := n.now().UnixMilli()
-	res, err := n.db.Exec(`UPDATE invites SET used_ms = ? WHERE hash = ? AND used_ms = 0 AND expires_ms > ?`, now, contract.JoinHash(secret), now)
+	res, err := n.db.Exec(`UPDATE invites SET used_ms = ? WHERE hash = ? AND used_ms = 0 AND expires_ms > ?`, now, hash, now)
 	if err != nil {
 		return nil, err
 	}
@@ -159,7 +184,12 @@ func Join(ctx context.Context, dir, name, advertise, address, code string, now f
 	if s.group != "" {
 		return "", 0, ErrHasGroup
 	}
-	if _, err := memberOf(name, advertise, s.pub, s.now()); err != nil {
+	// Without an address of its own the node joins as an edge.
+	role := contract.RoleGateway
+	if advertise == "" {
+		role, advertise = contract.RoleEdge, noAddress
+	}
+	if _, err := memberWith(name, advertise, role, s.pub, s.now()); err != nil {
 		return "", 0, err
 	}
 	cert, err := selfCert(s.key)
@@ -209,8 +239,8 @@ func Join(ctx context.Context, dir, name, advertise, address, code string, now f
 	if _, ok := ro.ActiveKey(inviter, contract.RoleGateway); !ok {
 		return "", 0, errors.New("cluster: the answering node is no member of the group it names")
 	}
-	if _, ok := ro.ActiveKey(s.pub, contract.RoleGateway); !ok {
-		return "", 0, errors.New("cluster: the answer does not admit this node")
+	if _, ok := ro.ActiveKey(s.pub, role); !ok {
+		return "", 0, fmt.Errorf("cluster: the answer does not admit this node as %s (was the join code made for another role?)", role)
 	}
 	tx, err := s.db.Begin()
 	if err != nil {
@@ -220,7 +250,10 @@ func Join(ctx context.Context, dir, name, advertise, address, code string, now f
 	if err := setMeta(tx, "group", []byte(resp.Group)); err != nil {
 		return "", 0, err
 	}
-	if hk, err := base64.StdEncoding.DecodeString(resp.HashKey); err == nil && len(hk) == 16 {
+	if err := setMeta(tx, "role", []byte(role)); err != nil {
+		return "", 0, err
+	}
+	if hk, err := base64.StdEncoding.DecodeString(resp.HashKey); err == nil && len(hk) == 16 && role == contract.RoleGateway {
 		if err := setMeta(tx, metaHashKey, hk); err != nil {
 			return "", 0, err
 		}

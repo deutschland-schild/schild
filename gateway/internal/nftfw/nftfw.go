@@ -59,6 +59,9 @@ type Config struct {
 	Retry time.Duration
 	// Now is the clock (default time.Now).
 	Now func() time.Time
+	// Call, when set, asks for the blocks instead of the agent API: an
+	// edge of a group asks its gateways over the mesh (MVP-27).
+	Call func(ctx context.Context, req firewall.SyncRequest) (firewall.SyncResponse, error)
 }
 
 // Elements turns the blocks that run at now into elements with timeouts.
@@ -165,6 +168,16 @@ func isTableMissing(err error) bool {
 }
 
 func call(ctx context.Context, cfg Config, req firewall.SyncRequest) (firewall.SyncResponse, error) {
+	if cfg.Call != nil {
+		ans, err := cfg.Call(ctx, req)
+		if err != nil {
+			return firewall.SyncResponse{}, err
+		}
+		if !ans.Valid() {
+			return firewall.SyncResponse{}, errors.New("the gateway's answer names something that is no client")
+		}
+		return ans, nil
+	}
 	var ans firewall.SyncResponse
 	body, _ := json.Marshal(req)
 	r, err := http.NewRequestWithContext(ctx, http.MethodPost, cfg.API+"/firewall/sync", bytes.NewReader(body))

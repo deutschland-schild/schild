@@ -112,10 +112,16 @@ func (n *Node) serveSync(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "no key", http.StatusForbidden)
 		return
 	}
+	// A gateway gets every class, an edge the member list only: it has to
+	// know whom to ask, and that is all it may read here.
+	class := ""
 	id, ok := n.activeKey(key, contract.RoleGateway)
 	if !ok {
-		n.refuse(w, key)
-		return
+		if id, ok = n.activeKey(key, contract.RoleEdge); !ok {
+			n.refuse(w, key)
+			return
+		}
+		class = contract.ClassMembers
 	}
 	var req syncRequest
 	if !readJSON(w, r, &req) {
@@ -131,7 +137,7 @@ func (n *Node) serveSync(w http.ResponseWriter, r *http.Request) {
 	defer deadline.Stop()
 	for {
 		news := n.waitNews()
-		recs, covered, more, err := n.after(r.Context(), req.Vector, maxBatch)
+		recs, covered, more, err := n.after(r.Context(), req.Vector, maxBatch, class)
 		if err != nil {
 			http.Error(w, "store", http.StatusInternalServerError)
 			return
@@ -203,8 +209,11 @@ func (n *Node) serveJoin(w http.ResponseWriter, r *http.Request) {
 	n.wake()
 	n.log.Info("cluster: member joined", "name", req.Name, "node", contract.NodeID(key), "address", req.Address)
 	out := joinResponse{Group: n.group}
-	if hk, err := n.meta(metaHashKey); err == nil {
-		out.HashKey = base64.StdEncoding.EncodeToString(hk)
+	// An edge gets the member list and nothing else.
+	if _, gw := n.activeKey(key, contract.RoleGateway); gw {
+		if hk, err := n.meta(metaHashKey); err == nil {
+			out.HashKey = base64.StdEncoding.EncodeToString(hk)
+		}
 	}
 	for _, raw := range raws {
 		out.Records = append(out.Records, raw)
@@ -530,6 +539,12 @@ func (n *Node) saveStatus() {
 		ps = append(ps, p)
 	}
 	n.pmu.Unlock()
+	edges := map[string]time.Time{}
+	n.pmu.Lock()
+	for id, at := range n.edgeSeen {
+		edges[id] = at
+	}
+	n.pmu.Unlock()
 	n.wmu.Lock()
 	defer n.wmu.Unlock()
 	tx, err := n.db.Begin()
@@ -539,6 +554,12 @@ func (n *Node) saveStatus() {
 	defer tx.Rollback()
 	if _, err := tx.Exec(`DELETE FROM peers`); err != nil {
 		return
+	}
+	// An edge calls and is never called: only when it asked last is known.
+	for id, at := range edges {
+		if _, err := tx.Exec(`INSERT INTO peers(node, out_ok_ms, in_ok_ms, error, behind) VALUES(?, 0, ?, '', 0)`, id, ms(at)); err != nil {
+			return
+		}
 	}
 	for _, p := range ps {
 		p.mu.Lock()
@@ -772,10 +793,20 @@ func (n *Node) serveAsk(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "no key", http.StatusForbidden)
 		return
 	}
+	edge := false
 	id, ok := n.activeKey(key, contract.RoleGateway)
 	if !ok {
-		n.refuse(w, key)
-		return
+		if id, ok = n.activeKey(key, contract.RoleEdge); !ok {
+			n.refuse(w, key)
+			return
+		}
+		edge = true
+		n.pmu.Lock()
+		if n.edgeSeen == nil {
+			n.edgeSeen = map[string]time.Time{}
+		}
+		n.edgeSeen[id] = n.now()
+		n.pmu.Unlock()
 	}
 	var req tellRequest
 	d := json.NewDecoder(http.MaxBytesReader(w, r.Body, maxTell+4096))
@@ -785,8 +816,16 @@ func (n *Node) serveAsk(w http.ResponseWriter, r *http.Request) {
 	}
 	n.hmu.Lock()
 	f := n.asks[req.Kind]
+	if edge {
+		// An edge may ask what was registered for edges, and nothing else.
+		f = n.edgeAsks[req.Kind]
+	}
 	n.hmu.Unlock()
 	if f == nil {
+		if edge {
+			http.Error(w, "not for an edge", http.StatusForbidden)
+			return
+		}
 		http.Error(w, "unknown kind", http.StatusNotFound)
 		return
 	}
@@ -797,4 +836,15 @@ func (n *Node) serveAsk(w http.ResponseWriter, r *http.Request) {
 	}
 	w.Header().Set("Content-Type", "application/json")
 	_, _ = w.Write(out)
+}
+
+// OnEdgeAsk registers f for questions of a kind that an edge asks. A
+// gateway cannot ask them, and an edge can ask nothing else.
+func (n *Node) OnEdgeAsk(kind string, f func(from string, body []byte) ([]byte, error)) {
+	n.hmu.Lock()
+	if n.edgeAsks == nil {
+		n.edgeAsks = map[string]func(string, []byte) ([]byte, error){}
+	}
+	n.edgeAsks[kind] = f
+	n.hmu.Unlock()
 }

@@ -62,7 +62,7 @@ Records a removed member signed before its removal stand: what it decided while 
 
 ### members
 
-`id` is the node id. Data: `name` (1 to 63 bytes, no space or `/`), `role` (`gateway`; `edge` is reserved and admitted by no node of this version), `public_key` (standard base64, 32 bytes, hashing to `id`), `address` (IP address and port of its mesh listener), `joined`, optional `version`, and for a node admitted by the group secret `admit_key` and `admit` (section 6; both or none). Any gateway may sign a member record. The tombstone of a member keeps its data, with the key.
+`id` is the node id. Data: `name` (1 to 63 bytes, no space or `/`), `role` (`gateway` or `edge`, section 11), `public_key` (standard base64, 32 bytes, hashing to `id`), `address` (IP address and port of its mesh listener), `joined`, optional `version`, and for a node admitted by the group secret `admit_key` and `admit` (section 6; both or none). Any gateway may sign a member record. The tombstone of a member keeps its data, with the key.
 
 ### blocks
 
@@ -183,6 +183,16 @@ With `cluster.share_data` (default true) every node keeps the events, the incide
 - `/.schild/readyz` on the web ports, the health check of the balancer, answers 503 on a node of a group until the node took the state of the group (or reached no member for 10 s), and while it drains.
 - A stop (SIGTERM, `schild cluster drain`) turns the answer to 503, serves on for `cluster.drain.delay_s` (default 15) so the balancer sends new connections elsewhere, then ends idle connections and lets running requests finish within `cluster.drain.grace_s` (default 30).
 
-## 11. Not built yet
+## 11. Edges
 
-Of [MVP-27](../tests/specs/MVP-27-ha-group.yaml): the role edge, a copy on some nodes instead of all and queries from node to node (for groups too large to keep everything everywhere), the counters of the overview and the server charts across nodes, counts of the distributed detectors, the cap on blocks a node may send, the nodes an erasure reached in `PrivacyDeleteResult`, events and dashboard operations of the group.
+An edge is a member that only enforces: a balancer VM in front of the gateways that drops blocked addresses before they cost a gateway a handshake. Behind a balancer that sends the PROXY protocol the packets a gateway sees come from the balancer, so the firewall on a gateway's own host holds nothing there; the balancer is where a drop belongs.
+
+- **Joining.** `schild cluster invite -role edge` on a gateway; the code says what it admits. On the VM `schild cluster join ADDRESS CODE -edge -name NAME -data DIR`, then `schild firewall run -group -data DIR`. The member record of an edge has the role `edge` and the address `0.0.0.0:0`: nobody calls it, it calls. An edge is admitted by a join code only, never by the group secret: a VM that held the secret could let itself in as a gateway.
+- **What it may read.** `POST /mesh/v0/sync` answers an edge with records of class `members` only, so it knows whom to ask. `POST /mesh/v0/ask` answers it the kind `firewall` only: the block list as `schild firewall run` gets it from its own gateway (D87): per block the client key and its end, own and allowlisted addresses left out, at most 10 000. Not the incident, not the source, nothing else. The call waits up to 20 s for a change.
+- **What it may not.** Every other call of the mesh answers an edge 403: no events, requests, settings, logins, certificates, counts, locks. No gateway takes a record an edge signed (check 5 of section 4), and an edge gets no hash key and no value of the classes settings, access and logins, which hold the secrets.
+- **Whom it asks.** The gateways of the member list, one after the other until one answers; the one that answered last first. Every element of its table carries its end as the kernel timeout, so no block outlives its end when no gateway answers.
+- A removed edge is answered 410 and gets nothing more.
+
+## 12. Not built yet
+
+Of [MVP-27](../tests/specs/MVP-27-ha-group.yaml): where each block holds (edge, node firewall, gate) in the dashboard, a copy on some nodes instead of all and queries from node to node (for groups too large to keep everything everywhere), the counters of the overview and the server charts across nodes, counts of the distributed detectors, the cap on blocks a node may send, the nodes an erasure reached in `PrivacyDeleteResult`, events and dashboard operations of the group.

@@ -47,6 +47,12 @@ func (ro *Roster) Member(id string) (Member, bool) {
 	return e.member, ok && e.removedAt == 0
 }
 
+// Removed reports whether id was a member and was removed.
+func (ro *Roster) Removed(id string) bool {
+	e, ok := ro.members[id]
+	return ok && e.removedAt != 0
+}
+
 // Known reports whether id is or was a member.
 func (ro *Roster) Known(id string) bool { _, ok := ro.members[id]; return ok }
 

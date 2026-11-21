@@ -50,6 +50,7 @@ type Node struct {
 	handlers map[string][]func(*contract.Record)
 	tells    map[string]func(from string, body []byte)
 	asks     map[string]func(from string, body []byte) ([]byte, error)
+	edgeAsks map[string]func(from string, body []byte) ([]byte, error)
 
 	// news wakes the sync calls that wait.
 	nmu  sync.Mutex
@@ -57,6 +58,8 @@ type Node struct {
 
 	pmu   sync.Mutex
 	peers map[string]*peer
+	// edgeSeen: when each edge asked this node last.
+	edgeSeen map[string]time.Time
 
 	cert tls.Certificate
 
@@ -279,7 +282,7 @@ func (n *Node) activeKey(pub ed25519.PublicKey, roles ...string) (string, bool) 
 // removed, so that node can say so in its log, else 403.
 func (n *Node) refuse(w http.ResponseWriter, pub ed25519.PublicKey) {
 	n.rmu.RLock()
-	removed := n.roster.Known(contract.NodeID(pub))
+	removed := n.roster.Removed(contract.NodeID(pub))
 	n.rmu.RUnlock()
 	if removed {
 		http.Error(w, "removed from the group", http.StatusGone)

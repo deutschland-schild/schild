@@ -177,6 +177,9 @@ type App struct {
 	// sharedMu around taking and publishing them.
 	shared   []sharedThing
 	sharedMu sync.Mutex
+	// edges: what the edges of the group said in their last calls.
+	edgeMu sync.Mutex
+	edges  map[string]edgeReport
 	// clusterSetupErr: cluster.secret_file did not set the node up;
 	// groupHash: the engine hashes under the key of the group.
 	clusterSetupErr error

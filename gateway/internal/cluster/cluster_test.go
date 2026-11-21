@@ -2,6 +2,7 @@ package cluster
 
 import (
 	"context"
+	"crypto/ed25519"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -499,5 +500,85 @@ func TestReadSecret(t *testing.T) {
 	}
 	if _, err := ReadSecret(filepath.Join(dir, "missing")); err == nil {
 		t.Error("a missing file was read")
+	}
+}
+
+// An edge has a place in the member list and may read two things: the
+// member list, and what was registered for edges.
+func TestEdgeReadsTheMemberListAndNothingElse(t *testing.T) {
+	a, b, _ := threeNodes(t)
+	a.node.OnEdgeAsk("firewall", func(from string, body []byte) ([]byte, error) {
+		return []byte(`{"blocks":` + string(body) + `}`), nil
+	})
+	a.node.OnAsk("events", func(string, []byte) ([]byte, error) { return []byte(`{"rows":"secret"}`), nil })
+	a.publishBlock("203.0.113.7")
+	code, _, err := InviteRole(a.dir, contract.RoleEdge, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	dir := filepath.Join(t.TempDir(), "cluster")
+	if _, _, err := Join(context.Background(), dir, "lb-1", "", a.addr, code, nil); err != nil {
+		t.Fatalf("edge joins: %v", err)
+	}
+	// A code made for an edge admits no gateway.
+	code2, _, _ := InviteRole(a.dir, contract.RoleEdge, nil)
+	g := newTestNode(t, "web-9")
+	if _, _, err := Join(context.Background(), g.dir, g.name, g.addr, a.addr, code2, nil); err == nil || !strings.Contains(err.Error(), "does not admit this node as gateway") {
+		t.Errorf("a gateway with an edge's code: %v", err)
+	}
+	e, err := OpenEdge(dir, quiet())
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer e.Close()
+	ctx := context.Background()
+	out, err := e.Ask(ctx, "firewall", []byte(`"lb-1"`), 5*time.Second)
+	if err != nil || string(out) != `{"blocks":"lb-1"}` {
+		t.Fatalf("the edge asks for the blocks: %q, %v", out, err)
+	}
+	// What gateways ask each other is not for an edge.
+	if _, err := e.Ask(ctx, "events", nil, 5*time.Second); err == nil || !strings.Contains(err.Error(), "403") {
+		t.Errorf("an edge asked for events: %v", err)
+	}
+	// The sync gives it member records only: the block of web-1 stays out.
+	waitFor(t, "the edge knows every gateway", func() bool {
+		e.seen = time.Time{}
+		_, _ = e.Ask(ctx, "firewall", nil, 5*time.Second)
+		return len(e.gateways()) == 3
+	})
+	recs, _ := e.n.State(contract.ClassBlocks)
+	if len(recs) != 0 {
+		t.Errorf("an edge holds %d block records", len(recs))
+	}
+	// It cannot write: a record it signs is refused by every gateway.
+	until := time.Now().Add(time.Hour).UTC().Truncate(time.Second)
+	rec, err := e.n.publish(contract.ClassBlocks, "203.0.113.99", block("203.0.113.99", until), false, until)
+	if err != nil {
+		t.Fatal(err)
+	}
+	raw, _ := json.Marshal(rec)
+	before := b.node.Rejected.Load() + b.node.Deferred.Load()
+	if n, _ := b.node.take([]json.RawMessage{raw}, nil); n != 0 || b.node.Rejected.Load()+b.node.Deferred.Load() != before+1 {
+		t.Errorf("a gateway took a record an edge signed (%d)", n)
+	}
+	// It may not tell, lock or hello either.
+	c := meshClient(e.n.cert, func(ed25519.PublicKey) bool { return true }, 3*time.Second)
+	for _, path := range []string{pathTell, pathLock, pathUnlock} {
+		var x map[string]any
+		if err := postJSON(ctx, c, "https://"+a.addr+path, map[string]string{"kind": "counts", "name": "x"}, &x); err == nil || !strings.Contains(err.Error(), "403") {
+			t.Errorf("an edge called %s: %v", path, err)
+		}
+	}
+	// A removed edge is told so and gets nothing more.
+	if _, err := Remove(a.dir, "lb-1", nil); err != nil {
+		t.Fatal(err)
+	}
+	waitFor(t, "the removed edge is refused", func() bool {
+		_, err := e.Ask(ctx, "firewall", nil, 5*time.Second)
+		return errors.Is(err, ErrRemovedSelf)
+	})
+	// A gateway's directory is no edge.
+	if _, err := OpenEdge(a.dir, quiet()); !errors.Is(err, ErrNoEdge) {
+		t.Errorf("a gateway opened as an edge: %v", err)
 	}
 }

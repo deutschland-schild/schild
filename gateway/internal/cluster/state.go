@@ -332,7 +332,9 @@ func (s *state) roster() (*contract.Roster, error) {
 // after returns the records a peer with this vector lacks, at most limit,
 // and how far the answer covers each origin: the peer may set its vector
 // there once it applied them.
-func (s *state) after(ctx context.Context, peer map[string]uint64, limit int) (recs []json.RawMessage, covered map[string]uint64, more bool, err error) {
+// class "" means every class; else only records of that class are returned,
+// and the answer still covers every sequence number it passed.
+func (s *state) after(ctx context.Context, peer map[string]uint64, limit int, class string) (recs []json.RawMessage, covered map[string]uint64, more bool, err error) {
 	mine, err := s.vector()
 	if err != nil {
 		return nil, nil, false, err
@@ -347,7 +349,8 @@ func (s *state) after(ctx context.Context, peer map[string]uint64, limit int) (r
 			more = true
 			continue
 		}
-		rows, err := s.db.QueryContext(ctx, `SELECT seq, raw FROM records WHERE origin = ? AND seq > ? ORDER BY seq LIMIT ?`, origin, int64(peer[origin]), limit-len(recs)+1)
+		rows, err := s.db.QueryContext(ctx, `SELECT seq, raw FROM records WHERE origin = ? AND seq > ? AND (? = '' OR class = ?) ORDER BY seq LIMIT ?`,
+			origin, int64(peer[origin]), class, class, limit-len(recs)+1)
 		if err != nil {
 			return nil, nil, false, err
 		}
