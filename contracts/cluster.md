@@ -23,7 +23,7 @@ One change of one thing, as a JSON object:
 | --- | --- |
 | `v` | 1. A record of another version stays unread and is passed on unchanged |
 | `group` | group id |
-| `class` | `members`, `blocks`, `settings`, `access`, `logins`, `erasure` or `certificates` |
+| `class` | `members`, `blocks`, `settings`, `access`, `logins`, `erasure`, `certificates` or `jobs` |
 | `id` | the thing within its class, at most 512 bytes |
 | `origin` | node id of the signer |
 | `seq` | counts the records of one origin, from 1 |
@@ -114,6 +114,18 @@ The storage of the embedded Caddy: certificates with their keys, ACME accounts, 
 
 **The lock of an order.** `POST /mesh/v0/lock` and `/unlock`, members only, body `name` (and on unlock `seq`, how far the caller is with its own records). The lock is kept by the member with the lowest node id among the gateways a node reaches; a node asks that one, or itself. A lock ends 5 minutes after it was granted when its holder does not give it back. The answer to a grant names what the last holder had written; the new holder waits, at most 10 s, until it holds that, so it finds the certificate instead of ordering it again. Nodes that cannot reach each other each find a keeper on their side and may both order the same certificate: one order too many, two valid certificates.
 
+### jobs
+
+When a task that runs once for the whole group last started. `id` is the task's name (1 to 64 of `a-z`, `0-9`, `_`, `.`, `-`). Data: `at` (UTC, seconds) and `node`, the name of the node that ran it. No tombstone: a job is never removed, only run again.
+
+A task that must not happen once per node (a rotation of keys; later a notification or a report) is asked for on every node with the same name and interval, and runs like this:
+
+- There is no main node and no election. The task is run by the node that keeps the group's locks (section "certificates": the lowest node id among the gateways a node reaches). When that node is gone, the role moves by itself.
+- A node runs a task when it is in step with the group, keeps the locks, and the record says the last start is an interval ago or there is none. It has to have been in that position for 3 s without a break: a node that just started has not heard from every member, and one failed call does not make it the keeper.
+- It writes the record first and runs the task after. So a task runs at most once per interval while the nodes reach each other, a node that takes over does not run it again before it is due, and a run that fails is tried again with the next interval.
+- Nodes that cannot reach each other each find a keeper on their side, and the task may run on both. A task has to be safe to run again; one that must never run twice, whatever the network does, does not belong here.
+- First user: `human_check_keys`, looked at every hour. The keys of the browser check are rotated when they are older than a day, once for the group; a node of a group no longer rotates them at its own start.
+
 ## 6. Joining
 
 Two ways. A group set up by configuration can also let a node in by hand, with a join code of one of its members; a group founded with `schild cluster init` has no group secret.
@@ -146,7 +158,7 @@ cluster:
 
 ## 7. Mesh
 
-One listener per node (`cluster.listen`), TLS 1.3, HTTP/2. Both sides show a self-signed certificate of their node key; names and dates in it mean nothing, the key is compared with the member list. A node calls every other gateway of the member list.
+One listener per node (`cluster.listen`), TLS 1.3, HTTP/2. Both ends watch a connection with HTTP/2 PING frames: after 1 s without a frame a ping goes out, and a connection that does not answer within 2 s more is closed. A node that hangs or lost its network is therefore unreachable for the others after about 3 s, a node that stopped at once (the connection is refused). A member counts as reachable when its last call was answered, at most 10 s ago. Both sides show a self-signed certificate of their node key; names and dates in it mean nothing, the key is compared with the member list. A node calls every other gateway of the member list.
 
 `POST /mesh/v0/sync`, members only. Request: `group`, `vector` (per origin the highest `seq` the caller has seen) and `wait_ms`. The answer comes at once when the answering node holds records beyond the vector, else after `wait_ms`, at most 4 s (a long poll). Answer: `records` (at most 500), `covered` (per origin, how far these records bring the caller), `vector` (how far the answering node is), `more`. The caller applies the records, members first, then raises its vector to `covered`. The same call serves the push, the catch-up after an outage and the first sync of a new node.
 

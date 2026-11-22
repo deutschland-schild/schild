@@ -79,6 +79,9 @@ func (n *Node) listen() (*http.Server, net.Listener, error) {
 	if err != nil {
 		return nil, nil, fmt.Errorf("cluster: listen %s: %w", n.opts.Listen, err)
 	}
+	if n.wrapListener != nil {
+		ln = n.wrapListener(ln)
+	}
 	mux := http.NewServeMux()
 	mux.HandleFunc("POST "+pathSync, n.serveSync)
 	mux.HandleFunc("POST "+pathJoin, n.serveJoin)
@@ -87,7 +90,7 @@ func (n *Node) listen() (*http.Server, net.Listener, error) {
 	mux.HandleFunc("POST "+pathUnlock, n.serveUnlock)
 	mux.HandleFunc("POST "+pathTell, n.serveTell)
 	mux.HandleFunc("POST "+pathAsk, n.serveAsk)
-	srv := &http.Server{Handler: mux, ReadHeaderTimeout: 5 * time.Second, IdleTimeout: 2 * time.Minute, MaxHeaderBytes: 16 << 10,
+	srv := &http.Server{Handler: mux, ReadHeaderTimeout: 5 * time.Second, IdleTimeout: 2 * time.Minute, MaxHeaderBytes: 16 << 10, HTTP2: meshPings(),
 		TLSConfig: &tls.Config{MinVersion: tls.VersionTLS13, Certificates: []tls.Certificate{n.cert},
 			// Any certificate may connect; the handlers decide by its key
 			// (a member for sync, a join code for join).
@@ -346,10 +349,22 @@ func (n *Node) seek(ctx context.Context) {
 	}()
 }
 
+// meshPings makes both ends of a mesh connection watch it: after a second
+// without a frame an HTTP/2 PING goes out, and a connection that does not
+// answer within two more is closed. So a node that hangs or whose network
+// went away is known as unreachable after about three seconds, without a
+// heartbeat of its own and without waiting for a call to time out. The
+// nodes keep one long-lived connection each way; this is the monitoring a
+// WebSocket would give, with what HTTP/2 already has.
+func meshPings() *http.HTTP2Config {
+	return &http.HTTP2Config{SendPingTimeout: time.Second, PingTimeout: 2 * time.Second}
+}
+
 // client returns an HTTP client that talks to exactly one key: the check of
 // the peer's certificate is the comparison of its key.
 func meshClient(cert tls.Certificate, accept func(ed25519.PublicKey) bool, timeout time.Duration) *http.Client {
 	tr := &http.Transport{ForceAttemptHTTP2: true, MaxIdleConns: 2, IdleConnTimeout: 90 * time.Second, TLSHandshakeTimeout: 5 * time.Second,
+		HTTP2:       meshPings(),
 		DialContext: (&net.Dialer{Timeout: 3 * time.Second, KeepAlive: 15 * time.Second}).DialContext,
 		TLSClientConfig: &tls.Config{MinVersion: tls.VersionTLS13, Certificates: []tls.Certificate{cert},
 			// Names and dates of the certificate mean nothing here; the key
@@ -641,7 +656,7 @@ func (n *Node) Tell(ctx context.Context, kind string, body []byte) {
 	var to []*peer
 	for _, p := range n.peers {
 		p.mu.Lock()
-		ok := !p.outOK.IsZero() && now.Sub(p.outOK) < reachable
+		ok := p.aliveLocked(now)
 		p.mu.Unlock()
 		if ok && p.startTell(kind) {
 			to = append(to, p)
@@ -658,6 +673,14 @@ func (n *Node) Tell(ctx context.Context, kind string, body []byte) {
 			_ = postJSON(tctx, c, "https://"+p.address+pathTell, tellRequest{Kind: kind, Body: body}, &out)
 		}(p)
 	}
+}
+
+// aliveLocked reports whether the peer answered its last call, and lately.
+// A call that failed makes it unreachable at once: who keeps the locks and
+// runs the group's jobs must not wait ten seconds for a node that is gone.
+// Called with p.mu held.
+func (p *peer) aliveLocked(now time.Time) bool {
+	return p.err == "" && !p.outOK.IsZero() && now.Sub(p.outOK) < reachable
 }
 
 // startTell reports whether a message of this kind may go to the peer: one
@@ -743,7 +766,7 @@ func (n *Node) Reachable() []string {
 	var out []string
 	for id, p := range n.peers {
 		p.mu.Lock()
-		if !p.outOK.IsZero() && now.Sub(p.outOK) < reachable {
+		if p.aliveLocked(now) {
 			out = append(out, id)
 		}
 		p.mu.Unlock()

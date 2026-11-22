@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"log/slog"
+	"net"
 	"os"
 	"path/filepath"
 	"strings"
@@ -675,4 +676,151 @@ func TestInStepOnlyAfterWhatWasTakenIsApplied(t *testing.T) {
 	if !applied.Load() {
 		t.Error("web-3 says it is in step while it still applies what it took")
 	}
+}
+
+// A task every node asks for runs once per interval for the group, on the
+// node that keeps the locks; when that node is gone another takes over, and
+// not before the interval is over.
+func TestJobRunsOncePerIntervalForTheGroup(t *testing.T) {
+	a, b, c := threeNodes(t)
+	nodes := []*testNode{a, b, c}
+	var mu sync.Mutex
+	runs := map[string]int{}
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	const every = 6 * time.Second
+	start := func(tn *testNode, n *Node) {
+		go n.Every(ctx, "test_job", every, func(context.Context) error {
+			mu.Lock()
+			runs[tn.name]++
+			mu.Unlock()
+			return nil
+		})
+	}
+	for _, tn := range nodes {
+		start(tn, tn.node)
+	}
+	total := func() int {
+		mu.Lock()
+		defer mu.Unlock()
+		n := 0
+		for _, v := range runs {
+			n += v
+		}
+		return n
+	}
+	waitFor(t, "the job ran", func() bool { return total() >= 1 })
+	time.Sleep(1500 * time.Millisecond)
+	if n := total(); n != 1 {
+		t.Fatalf("three nodes ran the job %d times in its first interval: %v", n, runs)
+	}
+	// Every node knows when it ran, also the ones that did not run it.
+	for _, tn := range nodes {
+		waitFor(t, tn.name+" knows when the job ran", func() bool { _, _, ok := tn.node.LastRun("test_job"); return ok })
+	}
+	// The node that ran it goes away: another one runs it when it is due,
+	// once.
+	var first *testNode
+	mu.Lock()
+	for _, tn := range nodes {
+		if runs[tn.name] == 1 {
+			first = tn
+		}
+	}
+	mu.Unlock()
+	first.stop()
+	deadline := time.Now().Add(20 * time.Second)
+	for total() < 2 {
+		if time.Now().After(deadline) {
+			t.Fatal("no other node took the job over")
+		}
+		time.Sleep(20 * time.Millisecond)
+	}
+	mu.Lock()
+	if runs[first.name] != 1 {
+		t.Errorf("the stopped node ran the job again: %v", runs)
+	}
+	mu.Unlock()
+	time.Sleep(1200 * time.Millisecond)
+	if n := total(); n != 2 {
+		t.Errorf("after the take-over the job ran %d times in all, want 2: %v", n, runs)
+	}
+}
+
+// frozen is a listener whose connections stop moving on command: the
+// process is there, the port is open, nothing answers. A crash refuses
+// connections and is seen at once; this is the case that is not.
+type frozen struct {
+	net.Listener
+	stop atomic.Bool
+}
+
+type frozenConn struct {
+	net.Conn
+	f *frozen
+}
+
+func (f *frozen) Accept() (net.Conn, error) {
+	c, err := f.Listener.Accept()
+	if err != nil {
+		return nil, err
+	}
+	return &frozenConn{Conn: c, f: f}, nil
+}
+
+func (c *frozenConn) hold() {
+	for c.f.stop.Load() {
+		time.Sleep(20 * time.Millisecond)
+	}
+}
+func (c *frozenConn) Read(b []byte) (int, error)  { c.hold(); return c.Conn.Read(b) }
+func (c *frozenConn) Write(b []byte) (int, error) { c.hold(); return c.Conn.Write(b) }
+
+// A node that hangs is known as unreachable within a few seconds: the
+// connection is watched with HTTP/2 pings, not only when a call times out.
+func TestHangingPeerIsNoticedByPings(t *testing.T) {
+	a, b := newTestNode(t, "web-1"), newTestNode(t, "web-2")
+	if _, err := Init(a.dir, a.name, a.addr, nil); err != nil {
+		t.Fatal(err)
+	}
+	a.start()
+	b.join(a)
+	// web-2 with a long hold, so a call alone would wait long for it.
+	n, err := Open(Options{Dir: b.dir, Listen: b.addr, Log: quiet(), Hold: 4 * time.Second})
+	if err != nil {
+		t.Fatal(err)
+	}
+	fz := &frozen{}
+	n.wrapListener = func(ln net.Listener) net.Listener { fz.Listener = ln; return fz }
+	ctx, cancel := context.WithCancel(context.Background())
+	done := make(chan struct{})
+	go func() { defer close(done); _ = n.Run(ctx) }()
+	defer func() { fz.stop.Store(false); cancel(); <-done; n.Close() }()
+	// web-1 asks with the same long hold.
+	a.stop()
+	an, err := Open(Options{Dir: a.dir, Listen: a.addr, Log: quiet(), Hold: 4 * time.Second})
+	if err != nil {
+		t.Fatal(err)
+	}
+	actx, acancel := context.WithCancel(context.Background())
+	adone := make(chan struct{})
+	go func() { defer close(adone); _ = an.Run(actx) }()
+	defer func() { acancel(); <-adone; an.Close() }()
+	waitFor(t, "web-1 reaches web-2", func() bool { return len(an.Reachable()) == 1 })
+
+	fz.stop.Store(true)
+	start := time.Now()
+	deadline := start.Add(8 * time.Second)
+	for len(an.Reachable()) != 0 {
+		if time.Now().After(deadline) {
+			t.Fatal("web-1 did not notice within 8 s that web-2 hangs (a call alone waits 9 s)")
+		}
+		time.Sleep(20 * time.Millisecond)
+	}
+	if d := time.Since(start); d > 6*time.Second {
+		t.Errorf("web-1 took %s to notice that web-2 hangs", d.Round(100*time.Millisecond))
+	}
+	// And it is back as soon as web-2 moves again.
+	fz.stop.Store(false)
+	waitFor(t, "web-1 reaches web-2 again", func() bool { return len(an.Reachable()) == 1 })
 }

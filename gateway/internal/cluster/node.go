@@ -12,6 +12,7 @@ import (
 	"errors"
 	"log/slog"
 	"math/big"
+	"net"
 	"net/http"
 	"sort"
 	"sync"
@@ -66,6 +67,8 @@ type Node struct {
 	leases leases
 	// takeMu: see take.
 	takeMu sync.Mutex
+	// wrapListener, in tests, stands between the mesh and its listener.
+	wrapListener func(net.Listener) net.Listener
 
 	// Counters of schild cluster status.
 	Applied, Rejected, Deferred, Unread atomic.Uint64

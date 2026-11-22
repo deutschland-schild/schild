@@ -4057,6 +4057,7 @@ CL_THINGS = {
     "access": {"allowlist", "ip_exceptions", "rule_decisions"},
     "logins": {"users", "sessions", "agent_tokens"},
 }
+CL_TIME_PLAIN = re.compile(r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}([.,]\d+)?Z$")
 CL_TIME = re.compile(r"^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})([.,]\d+)?Z$")
 
 
@@ -4282,6 +4283,10 @@ def cl_class_rules(rec):
         a = cl_addr(e["ip"])
         if cl_blen(e["node"]) > 63 or a is None or a[0] != e["ip"] or e["ip"] != rec["id"] or deleted or expires == "":
             raise ClRefuse("schema")
+    elif cls == "jobs":
+        j = cl_decode(rec, {"at": "str", "node": "str"})
+        if cl_blen(j["node"]) > 63 or not re.fullmatch(r"[a-z0-9_.-]{1,64}", rec["id"]) or deleted or not CL_TIME_PLAIN.match(j["at"]) or cl_time(j["at"]) is None:
+            raise ClRefuse("schema")
     elif cls == "certificates":
         f = cl_decode(rec, {"files": "map", "node": "str"})
         files = f["files"]
@@ -4314,7 +4319,7 @@ def cl_check(roster, group, rec, now):
     if cls in CL_THINGS:
         if cl_thing_of(cls, rec["id"]) is None:
             raise ClRefuse("schema")
-    elif cls not in ("members", "blocks", "erasure", "certificates"):
+    elif cls not in ("members", "blocks", "erasure", "certificates", "jobs"):
         raise ClRefuse("schema")
     if rec.get("expires", "") != "" and cl_time(rec["expires"]) is None:
         raise ClRefuse("schema")

@@ -46,7 +46,11 @@ func (a *App) newHumanCheck(ctx context.Context) error {
 			}
 			st.KeysRotatedAt = now
 			dirty = true
-		} else if now.Sub(st.KeysRotatedAt) >= humancheck.KeyRotationInterval {
+		} else if now.Sub(st.KeysRotatedAt) >= humancheck.KeyRotationInterval && a.groupNodeID == "" {
+			// A node of a group does not rotate at its start: the group
+			// rotates once for all (rotateHumanCheckKeys), or every node
+			// that restarts would put the visitors of the others through
+			// the check again.
 			st.RotateKeys(now)
 			dirty = true
 		}
@@ -136,4 +140,30 @@ func (a *App) dashboardHumanCheck() dashboard.HumanCheckFuncs {
 			return a.RemoveHumanCheck(ctx, website)
 		},
 	}
+}
+
+// jobHumanCheckKeys is the group's task of rotating the keys of the browser
+// check (cluster/jobs.go).
+const jobHumanCheckKeys = "human_check_keys"
+
+// rotateHumanCheckKeys gives the browser check new keys when the ones in
+// use are older than a day. In a group one node does it for all: the keys
+// travel with the settings, the keys before stay valid next to the new
+// ones, so no visitor is asked again because of a rotation.
+func (a *App) rotateHumanCheckKeys(ctx context.Context) error {
+	a.humanCheckMu.Lock()
+	defer a.humanCheckMu.Unlock()
+	now := time.Now().UTC()
+	cur := a.HumanCheck.State()
+	if cur == nil || now.Sub(cur.KeysRotatedAt) < humancheck.KeyRotationInterval {
+		return nil
+	}
+	next := cur.Clone()
+	next.RotateKeys(now)
+	if err := a.storeHumanCheck(ctx, next); err != nil {
+		return err
+	}
+	a.HumanCheck.Store(next)
+	a.log.Info("browser check: keys rotated for the group")
+	return nil
 }

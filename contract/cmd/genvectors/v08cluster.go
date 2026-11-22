@@ -123,6 +123,14 @@ func genClusterRecord(g *gen) {
 	taken("certificate-tombstone", "A tombstone of the storage has no files.",
 		in(roster, rec(b, cluster.ClassCertificates, "challenge_tokens/shop.example.json", 9, h(45*time.Minute), true, "", cluster.Files{Node: "web-2"}), nil), nil)
 
+	job := func(id string, deleted bool, data any) *cluster.Record {
+		return rec(b, cluster.ClassJobs, id, 10, h(46*time.Minute), deleted, "", data)
+	}
+	taken("job", "When a task that runs once for the group last started.", in(roster, job("human_check_keys", false, cluster.Job{At: cluster.TimeText(Now.Add(-time.Minute)), Node: "web-2"}), nil), nil)
+	refused("schema", "job-name", "A job is named in lower case, without spaces.", in(roster, job("Send Report", false, cluster.Job{At: cluster.TimeText(Now), Node: "web-2"}), nil))
+	refused("schema", "job-without-time", "A job says when it started.", in(roster, job("human_check_keys", false, cluster.Job{Node: "web-2"}), nil))
+	refused("schema", "job-deleted", "A job is never removed, only run again.", in(roster, job("human_check_keys", true, cluster.Job{At: cluster.TimeText(Now), Node: "web-2"}), nil))
+
 	// Admission by the group secret.
 	gk, err := cluster.GroupKey([]byte("0123456789abcdef0123456789abcdef"))
 	if err != nil {

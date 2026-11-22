@@ -43,3 +43,17 @@ func (a *App) SetHubShare(h interface {
 	var x hubIndex = h
 	a.hubShare.Store(&x)
 }
+
+// AgeHumanCheckKeys sets when the keys of the browser check were rotated
+// (tests of the rotation).
+func (a *App) AgeHumanCheckKeys(ctx context.Context, at time.Time) error {
+	a.humanCheckMu.Lock()
+	defer a.humanCheckMu.Unlock()
+	next := a.HumanCheck.State().Clone()
+	next.KeysRotatedAt = at
+	if err := a.storeHumanCheck(ctx, next); err != nil {
+		return err
+	}
+	a.HumanCheck.Store(next)
+	return nil
+}

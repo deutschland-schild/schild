@@ -94,7 +94,7 @@ func (n *Node) keeper() *peer {
 	ids := []string{n.id}
 	for id, p := range n.peers {
 		p.mu.Lock()
-		ok := !p.outOK.IsZero() && now.Sub(p.outOK) < reachable
+		ok := p.aliveLocked(now)
 		p.mu.Unlock()
 		if ok {
 			ids = append(ids, id)
@@ -177,7 +177,7 @@ func (n *Node) WaitAcked(ctx context.Context, seq uint64, limit time.Duration) b
 		now, all := n.now(), true
 		for _, p := range n.peers {
 			p.mu.Lock()
-			if !p.outOK.IsZero() && now.Sub(p.outOK) < reachable && p.inSeq < seq {
+			if p.aliveLocked(now) && p.inSeq < seq {
 				all = false
 			}
 			p.mu.Unlock()

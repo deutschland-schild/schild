@@ -288,3 +288,40 @@ func DecodeFiles(r *Record) (*Files, error) {
 	}
 	return &f, nil
 }
+
+// Job is the data of a record of class jobs: when a task that runs once
+// for the whole group (a rotation of keys, a notification) last started,
+// and on which node. Its id is the task's name. Every node reads it to know
+// whether the task is due; the node that keeps the group's locks writes it
+// before it runs the task, so a task runs at most once per interval while
+// the nodes reach each other.
+type Job struct {
+	At   string `json:"at"`
+	Node string `json:"node"`
+}
+
+// JobName reports whether s names a job: 1 to 64 of a-z, 0-9, "_", "." and "-".
+func JobName(s string) bool {
+	if s == "" || len(s) > 64 {
+		return false
+	}
+	for _, c := range s {
+		if !(c >= 'a' && c <= 'z' || c >= '0' && c <= '9' || c == '_' || c == '.' || c == '-') {
+			return false
+		}
+	}
+	return true
+}
+
+// DecodeJob returns the job of a record of class jobs.
+func DecodeJob(r *Record) (*Job, time.Time, error) {
+	var j Job
+	if err := decodeData(r, &j); err != nil || len(j.Node) > 63 || !JobName(r.ID) || r.Deleted {
+		return nil, time.Time{}, ErrSchema
+	}
+	at, err := time.Parse("2006-01-02T15:04:05Z", j.At)
+	if err != nil {
+		return nil, time.Time{}, ErrSchema
+	}
+	return &j, at, nil
+}

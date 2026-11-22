@@ -140,10 +140,19 @@ Jede Sperre endet in der Firewall von selbst, auch wenn die VM kein Gateway mehr
 
 Eine Edge lässt sich nur mit einem Code aufnehmen, nie mit dem Gruppen-Geheimnis. Das Geheimnis gehört nicht auf eine Balancer-VM.
 
+## Aufgaben, die nur einmal laufen dürfen
+
+Manche Aufgaben sollen in der Gruppe einmal laufen und nicht einmal pro Server, zum Beispiel das Erneuern der Schlüssel der Browser-Prüfung. Dafür gibt es keinen Haupt-Server. Die Aufgabe übernimmt jeweils der erreichbare Server mit der kleinsten Kennung. Fällt er aus, übernimmt der nächste von selbst.
+
+Wann eine Aufgabe zuletzt lief, weiß jeder Server. Ein Server, der übernimmt oder neu startet, führt sie deshalb nicht noch einmal aus, bevor sie wieder fällig ist.
+
+Erreichen sich die Server nicht, kann eine Aufgabe auf beiden Seiten laufen. Für die Schlüssel der Browser-Prüfung ist das unkritisch.
+
 ## Wenn ein Server ausfällt
 
 - Verbindungen, die auf dem ausgefallenen Server endeten, brechen ab. Anfragen, die dort gerade liefen, schlagen fehl. Kein Loadbalancer und kein Proxy kann eine laufende TLS-Verbindung auf einen anderen Server umziehen.
 - Neue Verbindungen gehen an die anderen Server, sobald der Balancer den Ausfall bemerkt.
+- Die anderen Server bemerken einen Ausfall sofort, einen hängenden Server nach etwa drei Sekunden.
 - Sperren, Einstellungen, Logins und Zertifikate liegen auf jedem Server. Es geht nichts verloren.
 - Was der ausgefallene Server an Ereignissen und Vorfällen geschrieben hat, zeigen die anderen weiter an, bis auf die letzte Sekunde vor dem Ausfall.
 

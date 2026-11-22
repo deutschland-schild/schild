@@ -40,6 +40,8 @@ const (
 	// ClassCertificates is the storage of the embedded Caddy: certificates
 	// with their keys, ACME accounts, challenge tokens, session ticket keys.
 	ClassCertificates = "certificates"
+	// ClassJobs is when a task that runs once for the group last ran.
+	ClassJobs = "jobs"
 )
 
 // Things of the classes settings, access and logins. Each is a set of
@@ -224,7 +226,7 @@ func (r *Record) shape() error {
 		return ErrSchema
 	}
 	switch r.Class {
-	case ClassMembers, ClassBlocks, ClassErasure, ClassCertificates:
+	case ClassMembers, ClassBlocks, ClassErasure, ClassCertificates, ClassJobs:
 	case ClassSettings, ClassAccess, ClassLogins:
 		if _, ok := ThingOf(r.Class, r.ID); !ok {
 			return ErrSchema
