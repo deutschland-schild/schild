@@ -54,6 +54,10 @@ type GroupMember struct {
 	// ClockSkewMS: gateways only: the member's clock minus this node's, as
 	// of its last word; absent when it named no time lately.
 	ClockSkewMS *int64 `json:"clock_skew_ms,omitempty"`
+	// SharedState: gateways only: per class (blocks, settings, access,
+	// logins) whether what is in force on the member is what is in force
+	// on this node: same | differs | unknown.
+	SharedState map[string]string `json:"shared_state,omitempty"`
 }
 
 // GroupVitals is how a gateway said it is doing: whether it takes traffic

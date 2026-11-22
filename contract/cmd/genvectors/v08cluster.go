@@ -6,6 +6,7 @@ import (
 	"crypto/ed25519"
 	"crypto/sha256"
 	"encoding/base64"
+	"strings"
 	"time"
 
 	"github.com/deutschland-schild/schild/contract"
@@ -282,6 +283,18 @@ func genClusterRecord(g *gen) {
 		panic(err)
 	}
 	refused("schema", "block-without-data", "A record of a class with data, without data.", in(roster, noData, nil))
+
+	// ---- everything set at runtime is shared: class settings takes every key of the store (initiator, 2026-11-22)
+	taken("settings-any-key", "Class settings takes every key of the store as a thing: a setting of a feature this contract does not name.",
+		in(roster, entry(cluster.ClassSettings, "notify_channels_v1", `l["mail-1"]`, 7, false, "", cluster.NewValue(`l["mail-1"]`, []byte(`{"id":"mail-1"}`), "web-2")), nil), nil)
+	refused("schema", "value-key-not-a-name", "A key of class settings is a lower-case name.",
+		in(roster, entry(cluster.ClassSettings, "Notify-Channels", "", 3, false, "", cluster.NewValue("", nil, "web-2")), nil))
+	refused("schema", "value-key-too-long", "A key of class settings has at most 64 characters.",
+		in(roster, entry(cluster.ClassSettings, "a"+strings.Repeat("b", 64), "", 3, false, "", cluster.NewValue("", nil, "web-2")), nil))
+	refused("schema", "value-any-key-of-access", "Only class settings takes keys it does not name: access is a closed list.",
+		in(roster, entry(cluster.ClassAccess, "notify_channels_v1", "", 3, false, "", cluster.NewValue("", nil, "web-2")), nil))
+	refused("schema", "value-per-node-key", "A key that describes one node never travels.",
+		in(roster, entry(cluster.ClassSettings, "dashboard_setup_code_v1", "", 3, false, "", cluster.NewValue("", []byte("x"), "web-2")), nil))
 
 	// ---- inputs that are no input
 	good := block(b, 1, h(40*time.Minute), "203.0.113.7")

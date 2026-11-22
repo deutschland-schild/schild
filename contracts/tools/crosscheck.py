@@ -4057,6 +4057,9 @@ CL_THINGS = {
     "access": {"allowlist", "ip_exceptions", "rule_decisions"},
     "logins": {"users", "sessions", "agent_tokens"},
 }
+# Keys of the gateway's store that describe one node and never travel.
+CL_PER_NODE_SETTINGS = {"installed_at_v1", "dashboard_setup_code_v1", "crowdsec_hub_status_v1", "crowdsec_hub_set_v1", "allow_version"}
+CL_SETTING_KEY = re.compile(r"^[a-z][a-z0-9_]{0,63}\Z")
 CL_TIME_PLAIN = re.compile(r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}([.,]\d+)?Z$")
 CL_TIME = re.compile(r"^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})([.,]\d+)?Z$")
 
@@ -4244,7 +4247,13 @@ def cl_thing_of(cls, rid):
     i = rid.rfind("/")
     if i < 0 or len(rid) - i - 1 != 32:
         return None
-    return rid[:i] if rid[:i] in CL_THINGS[cls] else None
+    thing = rid[:i]
+    if thing in CL_THINGS[cls]:
+        return thing
+    # Class settings takes every key of the store that is not per node.
+    if cls == "settings" and CL_SETTING_KEY.match(thing) and thing not in CL_PER_NODE_SETTINGS:
+        return thing
+    return None
 
 
 def cl_class_rules(rec):

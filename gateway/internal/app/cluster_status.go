@@ -47,6 +47,9 @@ type nodeVersions struct {
 	// Now is the clock of the node when it sent this, so the others see
 	// how far the clocks are apart. Absent from a node of an older build.
 	Now string `json:"now,omitempty"`
+	// State: per class a keyed hash of what is in force on the node
+	// (cluster_fingerprint.go). Absent from a node of an older build.
+	State map[string]string `json:"state,omitempty"`
 }
 
 type toldVersions struct {
@@ -114,10 +117,11 @@ func (a *App) startGroupVersions(ctx context.Context) {
 	a.groupVersions.told = map[string]toldVersions{}
 	a.Cluster.OnTell(tellConfig, func(from string, body []byte) {
 		var v nodeVersions
-		if len(body) > 1024 || json.Unmarshal(body, &v) != nil || !hexText(v.Config, 64) || len(v.Version) > maxVersionText {
+		if len(body) > 2048 || json.Unmarshal(body, &v) != nil || !hexText(v.Config, 64) || len(v.Version) > maxVersionText {
 			return
 		}
 		v.Vitals = cleanVitals(v.Vitals, time.Now())
+		v.State = cleanState(v.State)
 		a.groupVersions.mu.Lock()
 		defer a.groupVersions.mu.Unlock()
 		// The mesh takes a Tell from members only; the map is bounded all
@@ -146,6 +150,7 @@ func (a *App) startGroupVersions(ctx context.Context) {
 		if a.Cluster.Removed() {
 			return
 		}
+		a.watchState(ctx)
 		a.tellVersions(ctx)
 		a.groupVersions.mu.Lock()
 		for id := range a.groupVersions.told {
@@ -196,6 +201,14 @@ func (a *App) ownVersions() nodeVersions {
 	if p := a.groupConfig.Load(); p != nil {
 		v.Config = *p
 	}
+	a.stateWatch.mu.Lock()
+	if len(a.stateWatch.own) > 0 {
+		v.State = make(map[string]string, len(a.stateWatch.own))
+		for class, h := range a.stateWatch.own {
+			v.State[class] = h
+		}
+	}
+	a.stateWatch.mu.Unlock()
 	return v
 }
 
@@ -339,6 +352,7 @@ func (a *App) GroupStatus() dashboard.GroupStatus {
 				ms := v.skew.Milliseconds()
 				row.ClockSkewMS = &ms
 			}
+			row.SharedState = a.memberState(m.ID, v.State, row.State == "ok" && now.Sub(v.at) < vitalsFresh, now)
 			if now.Sub(v.at) < configFresh && own.Config != "" {
 				row.Config = "same"
 				if v.Config != own.Config {
@@ -436,6 +450,9 @@ func (a *App) clusterReasons() []string {
 	}
 	if a.clockOut.Load() {
 		out = append(out, "cluster_clock_out_of_service")
+	}
+	if a.stateDiffers(time.Now()) {
+		out = append(out, "cluster_state_differs")
 	}
 	if a.warmFailed.Load() {
 		out = append(out, "cluster_counts_not_taken")

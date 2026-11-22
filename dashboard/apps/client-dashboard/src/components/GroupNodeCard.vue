@@ -2,7 +2,7 @@
 import type { GroupMember } from '@/api/group'
 import { Card, CardContent, cn, formatDecimal, formatMs, formatNumber, formatPercent, RelativeTime, StatusDot, StatusPill, Tag } from '@schild/ui'
 import { computed } from 'vue'
-import { CLOCK_SKEW_HINT_MS, clockText, CONFIG_STATE, loadTone, nodeView, shortVersion } from '@/lib/group'
+import { CLOCK_SKEW_HINT_MS, clockText, CONFIG_STATE, loadTone, nodeView, shortVersion, stateText } from '@/lib/group'
 
 /**
  * One gateway of the group (MVP-27) on the page "Cluster": whether it takes traffic, what it serves and how
@@ -124,6 +124,14 @@ const barClass = { success: 'bg-status-success', warning: 'bg-status-warning', d
           </dt>
           <dd :class="Math.abs(m.clock_skew_ms ?? 0) >= CLOCK_SKEW_HINT_MS ? 'font-medium' : ''">
             {{ clockText(m.clock_skew_ms) }}
+          </dd>
+        </div>
+        <div v-if="stateText(m.shared_state).text" data-testid="group-node-state" :data-differs="stateText(m.shared_state).differs">
+          <dt class="text-muted-foreground" title="Sperren, Einstellungen, Freigaben und Logins im Vergleich mit diesem Server">
+            Stand
+          </dt>
+          <dd :class="stateText(m.shared_state).differs ? 'font-medium' : ''">
+            {{ stateText(m.shared_state).text }}
           </dd>
         </div>
         <div :data-config="m.config ?? ''">

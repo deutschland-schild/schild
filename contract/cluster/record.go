@@ -56,8 +56,41 @@ var things = map[string][]string{
 	ClassLogins: {"users", "sessions", "agent_tokens"},
 }
 
-// Things returns the things of a class.
+// Things returns the named things of a class.
 func Things(class string) []string { return things[class] }
+
+// Everything a gateway sets at runtime is shared (initiator, 2026-11-22):
+// beside its named things the class settings takes every key of the
+// gateway's key-value store as a thing, whatever feature wrote it, so a new
+// setting holds on every node without a change here. A key is a lower-case
+// name of at most 64 characters (SettingKey). The classes access and logins
+// stay closed lists: their things are tables with a schema.
+//
+// PerNodeSettings are the keys that describe one node and never travel.
+// A record that names one is refused, so no member can set them on another.
+var PerNodeSettings = map[string]string{
+	"installed_at_v1":         "when this node was installed: the start of its own learning phase and the name of its event store",
+	"dashboard_setup_code_v1": "the pending first-run or reset code of this node, shown in its own log",
+	"crowdsec_hub_status_v1":  "when this node last downloaded the hub index and what it answered",
+	"crowdsec_hub_set_v1":     "the hub rules this node holds; the group hands the index on by its own messages (hub, hub_index)",
+	"allow_version":           "a counter of this node's allowlist changes for its own caches",
+}
+
+// SettingKey reports whether s can be a thing of class settings: a named
+// thing, or a key of the store that is not per node.
+func SettingKey(s string) bool {
+	if len(s) == 0 || len(s) > 64 || s[0] < 'a' || s[0] > 'z' {
+		return false
+	}
+	for i := 0; i < len(s); i++ {
+		c := s[i]
+		if !(c >= 'a' && c <= 'z' || c >= '0' && c <= '9' || c == '_') {
+			return false
+		}
+	}
+	_, perNode := PerNodeSettings[s]
+	return !perNode
+}
 
 // MaxEntryKey bounds the key of one entry.
 const MaxEntryKey = 1024
@@ -81,6 +114,9 @@ func ThingOf(class, id string) (thing string, ok bool) {
 		if t == id[:i] {
 			return t, true
 		}
+	}
+	if class == ClassSettings && SettingKey(id[:i]) {
+		return id[:i], true
 	}
 	return "", false
 }

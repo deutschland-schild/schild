@@ -147,6 +147,21 @@ export function clockText(skewMs: number | undefined): string {
   return `${amount} ${skewMs > 0 ? 'vor' : 'nach'}`
 }
 
+const STATE_CLASS: Record<string, string> = { blocks: 'Sperren', settings: 'Einstellungen', access: 'Freigaben', logins: 'Logins' }
+
+/**
+ * Whether what is in force on a member is what is in force on this server (GroupMember.shared_state): the servers
+ * compare a hash per area every five seconds. '' when the API names nothing (this server itself, an edge).
+ */
+export function stateText(st: GroupMember['shared_state']): { text: string, differs: boolean } {
+  if (!st) return { text: '', differs: false }
+  const classes = ['blocks', 'settings', 'access', 'logins'] as const
+  const differing = classes.filter(c => st[c] === 'differs').map(c => STATE_CLASS[c]!)
+  if (differing.length) return { text: `weicht ab: ${list(differing)}`, differs: true }
+  if (classes.some(c => st[c] === 'unknown')) return { text: 'unbekannt', differs: false }
+  return { text: 'gleich', differs: false }
+}
+
 /** Tone of a load bar: calm up to 80 %, a warning above, red from 95 %. */
 export const loadTone = (ratio: number | null | undefined): StatusTone => ratio == null ? 'neutral' : ratio >= 0.95 ? 'danger' : ratio >= 0.8 ? 'warning' : 'success'
 

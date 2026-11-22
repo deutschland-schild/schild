@@ -81,6 +81,8 @@ type Node struct {
 	synced  atomic.Bool
 	// heldBack: the last take put records off (see take).
 	heldBack atomic.Bool
+	// retake: a Resync is under way (resync.go).
+	retake atomic.Int32
 	// paused: schild cluster pause (setup.go).
 	paused atomic.Bool
 }
@@ -382,6 +384,7 @@ func (n *Node) take(raws []json.RawMessage, covered map[string]uint64) (applied 
 	if err != nil {
 		return 0, err
 	}
+	again := n.retake.Load() > 0
 	if err := n.reload(); err != nil {
 		return 0, err
 	}
@@ -412,7 +415,9 @@ func (n *Node) take(raws []json.RawMessage, covered map[string]uint64) (applied 
 	now := n.now()
 	for i := range items {
 		rec, raw := &items[i].rec, items[i].raw
-		if rec.Seq <= have[rec.Origin] {
+		// Resync looks at records the vector says this node has: the store
+		// then decides, and leaves alone what it holds already.
+		if rec.Seq <= have[rec.Origin] && !again {
 			continue
 		}
 		n.rmu.RLock()

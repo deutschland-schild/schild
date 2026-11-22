@@ -6,7 +6,7 @@ import { useGroupStatus } from '@/api/group'
 import GroupCard from '@/components/GroupCard.vue'
 import GroupMap from '@/components/GroupMap.vue'
 import GroupNodeCard from '@/components/GroupNodeCard.vue'
-import { configHint, edges, gateways, groupTotals, nodeView, stateView } from '@/lib/group'
+import { configHint, edges, gateways, groupTotals, nodeView, stateText, stateView } from '@/lib/group'
 import { plural } from '@/lib/summary'
 
 /**
@@ -91,6 +91,9 @@ const readyHint = computed(() => {
                 <th scope="col" class="px-4 py-2 font-medium">
                   Zustand
                 </th>
+                <th scope="col" class="px-4 py-2 font-medium" title="Sperren, Einstellungen, Freigaben und Logins im Vergleich mit diesem Server">
+                  Stand
+                </th>
                 <th scope="col" class="px-4 py-2 text-right font-medium">
                   Anfragen/s
                 </th>
@@ -116,6 +119,9 @@ const readyHint = computed(() => {
                 </td>
                 <td class="px-4 py-2 whitespace-nowrap">
                   {{ nodeView(m).label }}
+                </td>
+                <td class="px-4 py-2 whitespace-nowrap" :class="stateText(m.shared_state).differs ? 'font-medium' : ''" data-testid="group-node-row-state">
+                  {{ stateText(m.shared_state).text || '–' }}
                 </td>
                 <td class="px-4 py-2 text-right tabular-nums">
                   {{ vitalsOf(m) ? formatDecimal(vitalsOf(m)!.requests_per_s) : '–' }}

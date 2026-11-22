@@ -374,7 +374,19 @@ func (a *App) syncShared(ctx context.Context) {
 	a.sharedMu.Lock()
 	defer a.sharedMu.Unlock()
 	synced := node.Synced()
+	repair := a.sharedRepair
+	a.sharedRepair = nil
 	for _, t := range a.shared {
+		if repair[t.class] {
+			a.repairThing(ctx, t)
+		}
+		a.syncThing(ctx, t, synced)
+	}
+	// Every other key of the store, shared without registration.
+	for _, t := range a.genericThings(ctx, synced) {
+		if repair[t.class] {
+			a.repairThing(ctx, t)
+		}
 		a.syncThing(ctx, t, synced)
 	}
 	if synced {

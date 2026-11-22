@@ -116,3 +116,55 @@ var ClockOdd = clockOdd
 // WarmDone and WarmFailed report on the handover of the running counts.
 func (a *App) WarmDone() bool   { return a.warmDone.Load() }
 func (a *App) WarmFailed() bool { return a.warmFailed.Load() }
+
+// SetStateDiffTimes shortens from when a difference of the state hashes is
+// shown and repaired, and returns how to undo it.
+func SetStateDiffTimes(shown, repair, every time.Duration) (undo func()) {
+	a, b, c := stateDiffShown, stateDiffRepair, stateRepairEvery
+	stateDiffShown, stateDiffRepair, stateRepairEvery = shown, repair, every
+	return func() { stateDiffShown, stateDiffRepair, stateRepairEvery = a, b, c }
+}
+
+// BreakSharedKey stores a value under a key of the store and notes it as in
+// step with the group, as a node would hold it that did not apply a change
+// of another node.
+func (a *App) BreakSharedKey(ctx context.Context, key string, v []byte) error {
+	a.sharedMu.Lock()
+	defer a.sharedMu.Unlock()
+	if err := a.Store.Put(ctx, key, v); err != nil {
+		return err
+	}
+	t := a.genericThing(key)
+	entries, err := t.codec.split(v)
+	if err != nil {
+		return err
+	}
+	marks := a.marksOf(t)
+	for k := range marks {
+		delete(marks, k)
+	}
+	for k, e := range entries {
+		marks[k] = sum(e)
+	}
+	a.saveMarks(t)
+	return nil
+}
+
+// StateRepairs counts the repairs of the state that ran.
+func (a *App) StateRepairs() int64 { return a.stateWatch.repairs.Load() }
+
+// StateDiffers reports whether the overview names a state that differs.
+func (a *App) StateDiffers() bool { return a.stateDiffers(time.Now()) }
+
+// PerNodeTables are the tables of schild.db that stay on one node, with
+// their reasons (cluster_per_node.go).
+func PerNodeTables() map[string]string { return perNodeTables }
+
+// SharedThingIDs returns the things registered by hand, per class.
+func (a *App) SharedThingIDs() map[string][]string {
+	out := map[string][]string{}
+	for _, t := range a.sharedThings() {
+		out[t.class] = append(out[t.class], t.id)
+	}
+	return out
+}

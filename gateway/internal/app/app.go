@@ -185,6 +185,18 @@ type App struct {
 	// sharedApplied: what the node took of its group was applied once since
 	// it came in step; inStepNoted: the mark for it is written (inService).
 	sharedApplied, inStepNoted atomic.Bool
+	// Keys of the store shared without registration (cluster_generic.go);
+	// guarded by sharedMu, the hooks by their own lock.
+	// sharedRepair: classes whose things are compared with the group's
+	// records in the next round (cluster_fingerprint.go).
+	sharedRepair map[string]bool
+	stateWatch   stateWatch
+	// groupHashKey keys the hashes of the state the nodes compare.
+	groupHashKey               [16]byte
+	sharedNamed, sharedGeneric map[string]bool
+	sharedGenericCaught        bool
+	sharedHooksMu              sync.Mutex
+	sharedHooks                map[string]func(context.Context, []byte)
 	// warmDone: the running counts of the group were taken at the start, or
 	// there was nobody to take them from; warmFailed: a member was in reach
 	// and they were not taken (cluster_warm.go). clockOut: the node left

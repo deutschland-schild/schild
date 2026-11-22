@@ -411,6 +411,7 @@ func (a *App) prepareCluster(cfg *config.Site) {
 		}
 		behaviour.SetHashKey(key)
 		a.groupHash = true
+		a.groupHashKey = key
 	}
 }
 
