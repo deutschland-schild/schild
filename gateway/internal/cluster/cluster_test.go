@@ -358,6 +358,23 @@ func TestStatus(t *testing.T) {
 	if noted != 1 {
 		t.Errorf("web-1 in the status %d times", noted)
 	}
+	// That the node left traffic because of its clock is in the status too,
+	// and gone when it is back.
+	if !st.ClockOut.IsZero() {
+		t.Error("the status says the node left traffic for its clock, of which nothing was said")
+	}
+	if err := b.node.NoteClockOut(true); err != nil {
+		t.Fatal(err)
+	}
+	if st, err = ReadStatus(b.dir, nil); err != nil || st.ClockOut.IsZero() {
+		t.Errorf("after the note the status does not say the node left traffic for its clock (%v)", err)
+	}
+	if err := b.node.NoteClockOut(false); err != nil {
+		t.Fatal(err)
+	}
+	if st, err = ReadStatus(b.dir, nil); err != nil || !st.ClockOut.IsZero() {
+		t.Errorf("the note is taken back, the status still says the node left traffic (%v)", err)
+	}
 }
 
 func TestNodeWithoutGroup(t *testing.T) {

@@ -210,6 +210,12 @@ Erreichen sich die Server nicht, kann eine Aufgabe auf beiden Seiten laufen. Fü
 
 Kommt der Server zurück, holt er Sperren, Einstellungen, eigene Adressen, Logins und Löschungen nach. Erst danach meldet er sich beim Balancer als bereit. Ereignisse und Vorfälle der anderen folgen in den Sekunden danach. Die einzelnen Anfragen, die die anderen inzwischen bedient haben, holt er im Hintergrund nach. Das geschieht von selbst, egal wie lange er weg war. Du musst nichts anstoßen.
 
+## Was ein Server beim Start übernimmt
+
+Ein Server, der startet, holt zuerst Sperren, Einstellungen, eigene Adressen, Logins und Löschungen. Danach übernimmt er von einem anderen Server die laufenden Zähler: wie viel jeder Client von einem Limit verbraucht hat, was die Szenarien in ihren Zeitfenstern gezählt haben und was die Erkennung verteilter Angriffe gelernt hat. Erst dann meldet er sich als bereit. So gilt ein Client, dem ein Fehlversuch bis zur Sperre fehlt, auch auf dem frisch gestarteten Server als kurz vor der Sperre.
+
+Gelingt die Übernahme nach drei Versuchen nicht, bedient der Server trotzdem. Seine Zähler beginnen dann bei null, und die Startseite seines Dashboards sagt das. Sperren, Einstellungen und Logins hat er in jedem Fall.
+
 ## Einen Server geplant anhalten
 
 Für ein Update oder eine Wartung:
@@ -298,6 +304,8 @@ Jeder Server meldet diese Zahlen alle fünf Sekunden an die anderen. Die Seite z
 | Aus dem Cluster entfernt | Ein Mitglied hat dem Server gemeldet, dass er entfernt wurde. |
 
 **Uhren.** Im Cluster gilt bei zwei Änderungen am selben Eintrag die spätere. Dafür brauchen die Server gleiche Uhren. Jedes Gateway nennt den anderen alle fünf Sekunden seine Uhrzeit. Auf der Seite „Cluster“ steht bei jedem Server, wie weit seine Uhr von der dieses Servers abweicht. `schild cluster status` nennt einen Server ab fünf Sekunden Abstand, und ein Server schreibt in sein Log, wenn er einen Eintrag wegen der Uhr zurückstellt. Ab zehn Sekunden steht ein Hinweis auf der Startseite. Richte auf jedem Server eine Zeitsynchronisation ein, etwa chrony oder systemd-timesyncd. Einen Eintrag, dessen Uhrzeit mehr als 60 Sekunden voraus liegt, nimmt kein Server an.
+
+**Ein Server mit falscher Uhr nimmt sich selbst aus dem Verkehr.** Erreicht ein Server mindestens zwei andere, die sich über die Uhrzeit einig sind, und weicht seine eigene Uhr um eine Minute oder mehr davon ab, meldet er sich als nicht bereit. Der Loadbalancer schickt ihm dann nichts mehr. Das steht auf der Startseite seines Dashboards, in `schild cluster status` und im Log. Sobald die Uhr stimmt, nimmt er von selbst wieder Anfragen an. Bei nur zwei Servern kann keiner wissen, wessen Uhr falsch geht. Dann bedienen beide weiter, und das Dashboard nennt den Abstand.
 
 **Hinweise auf der Startseite.** Erreicht ein Server einen anderen nicht, weicht eine Konfiguration ab oder geht eine Uhr auseinander, steht das auch auf der Startseite jedes Dashboards, mit einem Link zur Seite „Cluster“.
 

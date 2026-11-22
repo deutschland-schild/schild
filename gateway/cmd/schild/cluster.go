@@ -231,6 +231,9 @@ func printClusterStatus(out io.Writer, st *cluster.Status, cfg *config.Site, now
 			fmt.Fprintf(out, "%s: %s\n", m.Member.Name, m.Error)
 		}
 	}
+	if !st.ClockOut.IsZero() && now.Sub(st.ClockOut) < 2*time.Minute {
+		fmt.Fprintf(out, "Clock: this node left traffic (/.schild/readyz answers 503): its clock is a minute or more off the clocks of the other gateways, which agree with each other. It returns by itself when its clock is right (NTP).\n")
+	}
 	// A clock that is off: named from five seconds on, while the note of the
 	// running node is fresh.
 	for _, m := range st.Members {

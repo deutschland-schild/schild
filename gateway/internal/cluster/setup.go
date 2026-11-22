@@ -332,6 +332,20 @@ type MemberStatus struct {
 // markClock is the note of a member's clock: "<difference ms>:<noted at, unix ms>".
 const markClock = "clock:"
 
+// markClockOut is the note that this node left traffic because its clock is
+// off the group's: "<noted at, unix ms>", "" when it is not.
+const markClockOut = "clock_out"
+
+// NoteClockOut keeps for `schild cluster status` that this node left
+// traffic because of its clock, or that it is back.
+func (n *Node) NoteClockOut(out bool) error {
+	v := ""
+	if out {
+		v = fmt.Sprint(n.now().UnixMilli())
+	}
+	return n.SetMark(markClockOut, v)
+}
+
 // NoteClock keeps how far the clock of a member is off this node's, for
 // `schild cluster status`, which reads the store and not the process.
 func (n *Node) NoteClock(member string, skew time.Duration) error {
@@ -353,6 +367,9 @@ type Status struct {
 	Replaced int
 	// Paused: since when the node is paused; "": it is not.
 	Paused string
+	// ClockOut: when the running node last noted that it left traffic
+	// because its clock is off the group's (NoteClockOut); zero: it did not.
+	ClockOut time.Time
 }
 
 // ReadStatus reads the state of the group from the data directory.
@@ -431,6 +448,12 @@ func ReadStatus(dir string, now func() time.Time) (*Status, error) {
 	_ = s.db.QueryRow(`SELECT count(*) FROM replaced`).Scan(&st.Replaced)
 	if v, err := s.meta(metaPaused); err == nil {
 		st.Paused = string(v)
+	}
+	if v, err := s.meta("mark:" + markClockOut); err == nil {
+		var noted int64
+		if _, err := fmt.Sscanf(string(v), "%d", &noted); err == nil && noted > 0 {
+			st.ClockOut = time.UnixMilli(noted).UTC()
+		}
 	}
 	var seen int64
 	if err := s.db.QueryRow(`SELECT CAST(v AS INTEGER) FROM meta WHERE k = 'status_ms'`).Scan(&seen); err == nil {

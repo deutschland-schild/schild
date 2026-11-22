@@ -213,6 +213,28 @@ func (n *Node) Keep(key string, value []byte) error {
 	return err
 }
 
+// Alone reports whether this node is the only gateway of its group and
+// names no peer to find: there is nobody it could be in step with.
+func (n *Node) Alone() bool {
+	n.rmu.RLock()
+	defer n.rmu.RUnlock()
+	own := ""
+	for _, e := range n.roster.Members() {
+		if !e.Removed && e.ID != n.id && e.Member.Role == contract.RoleGateway {
+			return false
+		}
+		if e.ID == n.id {
+			own = e.Member.Address
+		}
+	}
+	for _, p := range n.opts.Peers {
+		if p != own {
+			return false
+		}
+	}
+	return true
+}
+
 // Synced reports whether this node took everything a member had to give
 // since its start, or is the only gateway of its group. Before that it
 // does not know what the group holds.

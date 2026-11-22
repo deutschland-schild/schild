@@ -105,3 +105,14 @@ func SetFirstSyncWait(d time.Duration) (undo func()) {
 // WaitInStep blocks until the node may act for its group on its own
 // (cluster.go).
 func (a *App) WaitInStep(ctx context.Context) error { return a.waitInStep(ctx) }
+
+// SetClocks makes the node see these clock differences to the gateways it
+// reaches, instead of what they tell (tests).
+func (a *App) SetClocks(f func() []time.Duration) { a.testClocks.Store(&f) }
+
+// ClockOdd is the rule by which a node knows its clock is the odd one.
+var ClockOdd = clockOdd
+
+// WarmDone and WarmFailed report on the handover of the running counts.
+func (a *App) WarmDone() bool   { return a.warmDone.Load() }
+func (a *App) WarmFailed() bool { return a.warmFailed.Load() }
