@@ -63,6 +63,7 @@ func (a *App) startCluster(ctx context.Context) {
 		return
 	}
 	a.Gate.InService = a.inService
+	a.Gate.Leaving = a.Draining
 	dir := ClusterDir(a.dataDir)
 	if a.clusterSetupErr != nil {
 		a.log.Error("cluster: the node is not set up from schild.yaml, this gateway runs alone", "err", a.clusterSetupErr)

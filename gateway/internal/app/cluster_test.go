@@ -5,11 +5,13 @@ package app_test
 import (
 	"context"
 	"fmt"
+	"io"
 	"net/http"
 	"net/netip"
 	"net/url"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
@@ -370,13 +372,59 @@ func TestGroupNodeDrains(t *testing.T) {
 		return resp.StatusCode
 	}
 	h.WaitFor("the node is in service", func() bool { return ready() == 200 })
+	// Before the stop an answer leaves the connection open, as usual.
+	closes := func() bool {
+		req, _ := http.NewRequest("GET", "http://"+h.ProxyAddr+"/", nil)
+		req.Host = "shop.example"
+		resp, err := http.DefaultClient.Do(req)
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer resp.Body.Close()
+		return resp.Close
+	}
+	if closes() {
+		t.Fatal("an answer of a node in service asks to close the connection")
+	}
 	h.App.Drain()
 	h.WaitFor("the readiness answer turns to 503", func() bool { return ready() == 503 })
+	// During the delay every answer asks the client to close: a client
+	// that keeps its connection open leaves before the node stops.
+	if !closes() {
+		t.Fatal("an answer during the drain delay does not carry Connection: close")
+	}
 	if got := page(); got != 200 {
 		t.Errorf("a request during the drain delay: %d, want it served", got)
 	}
 	stopped := make(chan error, 1)
 	go func() { stopped <- h.Stop() }()
+	// A client that keeps its connection open and does what the answers ask
+	// (close, then connect again) loses no request across the stop: every
+	// request is answered until the node refuses new connections.
+	kept := &http.Client{Transport: &http.Transport{MaxIdleConnsPerHost: 1}, Timeout: 5 * time.Second}
+	answered, cut := 0, ""
+	for cut == "" {
+		req, _ := http.NewRequest("GET", "http://"+h.ProxyAddr+"/", nil)
+		req.Host = "shop.example"
+		resp, err := kept.Do(req)
+		switch {
+		case err == nil:
+			_, _ = io.Copy(io.Discard, resp.Body)
+			resp.Body.Close()
+			answered++
+			time.Sleep(20 * time.Millisecond)
+		case strings.Contains(err.Error(), "connection refused"):
+			cut = "refused"
+		default:
+			cut = err.Error()
+		}
+		if answered > 2000 {
+			cut = "never stopped"
+		}
+	}
+	if cut != "refused" || answered < 10 {
+		t.Errorf("a request on a kept connection was lost across the stop: %s after %d answers", cut, answered)
+	}
 	select {
 	case err := <-stopped:
 		if err != nil {
