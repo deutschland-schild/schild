@@ -110,7 +110,7 @@ test('a node of the map opens its details in a sheet', async ({ page, isMobile }
   await expect(page.getByTestId('group-node-sheet').getByTestId('group-node-service')).toContainText('Nicht erreichbar')
 })
 
-test('sixteen gateways stay readable: this server in the middle, a table instead of cards', async ({ page, isMobile }) => {
+test('sixteen gateways stay readable: all on one ring and none in the middle, a table instead of cards', async ({ page, isMobile }) => {
   await page.goto('./?scenario=group-large#/server/group')
   await expect(page.getByTestId('group-total-ready')).toContainText('13 von 16')
   await expect(page.getByTestId('group-node-row')).toHaveCount(16)
@@ -118,9 +118,14 @@ test('sixteen gateways stay readable: this server in the middle, a table instead
   if (!isMobile) {
     const map = page.getByTestId('group-map')
     await expect(map.getByTestId('group-map-node')).toHaveCount(16)
-    // Only the 15 links of this server are drawn, none between the others.
-    await expect(map.getByTestId('group-map-link')).toHaveCount(15)
-    await expect(map.locator('[data-testid="group-map-link"][data-kind="unseen"]')).toHaveCount(0)
+    // Every gateway is linked with every other: 15 links of this server in colour, 105 between the others in grey.
+    await expect(map.getByTestId('group-map-link')).toHaveCount(120)
+    await expect(map.locator('[data-testid="group-map-link"][data-kind="unseen"]')).toHaveCount(105)
+    await expect(map.locator('[data-testid="group-map-link"][data-kind="away"]')).toHaveCount(1)
+    // No gateway stands in the middle of the ring.
+    const centre = await map.locator('svg').evaluate((svg) => { const r = svg.getBoundingClientRect(); return [r.left + r.width / 2, r.width] })
+    const mids = await map.locator('[data-testid="group-map-node"] rect').evaluateAll(els => els.map((e) => { const r = e.getBoundingClientRect(); return r.left + r.width / 2 }))
+    expect(mids.every(x => Math.abs(x - centre[0]!) > centre[1]! * 0.05)).toBe(true)
     // No two gateways overlap.
     const boxes = await map.locator('[data-testid="group-map-node"] rect').evaluateAll(els => els.map((e) => { const r = e.getBoundingClientRect(); return [r.left, r.top, r.right, r.bottom] }))
     const hit = boxes.some((a, i) => boxes.some((b, j) => j > i && a[0]! < b[2]! && b[0]! < a[2]! && a[1]! < b[3]! && b[1]! < a[3]!))
