@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"net/netip"
+	"os"
 	"path/filepath"
 	"strings"
 	"sync"
@@ -302,7 +303,8 @@ func (a *App) prepareCluster(cfg *config.Site) {
 		// The same files were deployed to every node.
 		secret, err := cluster.ReadSecret(cfg.Cluster.SecretFile)
 		if err == nil {
-			_, err = cluster.Configure(dir, cfg.NodeName, cfg.Cluster.Address(), secret, nil)
+			host, _ := os.Hostname()
+			_, err = cluster.Configure(dir, cfg.MemberName(host), cfg.Cluster.Address(), secret, nil)
 		}
 		if err != nil {
 			a.clusterSetupErr = err

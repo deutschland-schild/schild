@@ -2,7 +2,7 @@
 import type { GroupMember } from '@/api/group'
 import { Card, CardContent, cn, formatDecimal, formatMs, formatNumber, formatPercent, RelativeTime, StatusDot, StatusPill, Tag } from '@schild/ui'
 import { computed } from 'vue'
-import { CONFIG_STATE, loadTone, nodeView, shortVersion } from '@/lib/group'
+import { CLOCK_SKEW_HINT_MS, clockText, CONFIG_STATE, loadTone, nodeView, shortVersion } from '@/lib/group'
 
 /**
  * One gateway of the group (MVP-27) on the page "Cluster": whether it takes traffic, what it serves and how
@@ -117,6 +117,14 @@ const barClass = { success: 'bg-status-success', warning: 'bg-status-warning', d
             Version
           </dt>
           <dd>{{ shortVersion(m.version) || 'unbekannt' }}</dd>
+        </div>
+        <div v-if="clockText(m.clock_skew_ms)" data-testid="group-node-clock">
+          <dt class="text-muted-foreground">
+            Uhr
+          </dt>
+          <dd :class="Math.abs(m.clock_skew_ms ?? 0) >= CLOCK_SKEW_HINT_MS ? 'font-medium' : ''">
+            {{ clockText(m.clock_skew_ms) }}
+          </dd>
         </div>
         <div :data-config="m.config ?? ''">
           <dt class="text-muted-foreground">

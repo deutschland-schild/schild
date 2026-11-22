@@ -1,6 +1,6 @@
 import type { GroupStatus } from '../src/api/group'
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest'
-import { blockNodeText, configHint, erasureNodesText, groupTotals, loadTone, modeView, nodeView, stateView } from '../src/lib/group'
+import { blockNodeText, clockText, configHint, erasureNodesText, groupTotals, loadTone, modeView, nodeView, stateView } from '../src/lib/group'
 import groupFixture from '../../../../contracts/api/fixtures/client/getGroupStatus.json'
 import noGroupFixture from '../../../../contracts/api/fixtures/client/getGroupStatus.no-group.json'
 import pausedFixture from '../../../../contracts/api/fixtures/client/getGroupStatus.paused.json'
@@ -37,6 +37,9 @@ describe('the servers of a group on the page Cluster (MVP-27)', () => {
     expect(t).toMatchObject({ gateways: 3, ready: 2, away: 1, reporting: 2 })
     expect(t.requestsPerS).toBeCloseTo(80.5)
     expect(groupTotals({ mode: 'group', members: [{ ...byName('web-1'), vitals: undefined }] }).requestsPerS).toBeNull()
+  })
+  it('names a clock that is off, and calls one within two seconds the same', () => {
+    expect([undefined, 420, -1500, 42_000, -90_000, 3 * 3600_000].map(clockText)).toEqual(['', 'gleich', 'gleich', '42 Sekunden vor', '90 Sekunden nach', '3 Stunden vor'])
   })
   it('colours a load bar calm up to 80 %, then a warning, red from 95 %', () => {
     expect([null, 0.5, 0.8, 0.95].map(loadTone)).toEqual(['neutral', 'success', 'warning', 'danger'])

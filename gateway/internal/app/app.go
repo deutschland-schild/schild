@@ -473,6 +473,13 @@ func New(ctx context.Context, opts Options) (*App, error) {
 	if cfg.Cluster.Enabled {
 		// Without cluster.enabled the dashboard answers "single" by itself.
 		a.Dashboard.Group = a.GroupStatus
+		a.Dashboard.MemberName = func() string {
+			if node := a.Cluster; node != nil {
+				return node.Name()
+			}
+			return ""
+		}
+		a.Dashboard.ClusterReasons = a.clusterReasons
 		a.Dashboard.BlockNode = a.blockNode
 	}
 	if a.resetPending {

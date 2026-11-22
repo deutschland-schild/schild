@@ -44,12 +44,28 @@ type nodeVersions struct {
 	// Vitals: how the node is doing right now, for the page of the group.
 	// Absent from a node of an older build.
 	Vitals *dashboard.GroupVitals `json:"vitals,omitempty"`
+	// Now is the clock of the node when it sent this, so the others see
+	// how far the clocks are apart. Absent from a node of an older build.
+	Now string `json:"now,omitempty"`
 }
 
 type toldVersions struct {
 	nodeVersions
 	at time.Time
+	// skew is the sender's clock minus this node's at the moment the word
+	// arrived (the time on the way counts in, a few milliseconds); hasSkew
+	// is false when the sender named no time.
+	skew    time.Duration
+	hasSkew bool
 }
+
+const (
+	// clockSkewHint is from where the dashboard names a clock that is off:
+	// "the later change wins" needs clocks that agree within seconds.
+	clockSkewHint = 10 * time.Second
+	// maxClockSkew bounds what a node says about its clock.
+	maxClockSkew = 366 * 24 * time.Hour
+)
 
 type groupVersions struct {
 	mu   sync.Mutex
@@ -58,7 +74,8 @@ type groupVersions struct {
 
 // groupConfigVersion is the config version a node tells its group: SHA-256
 // over schild.yaml as loaded, without the keys that differ from node to
-// node by design (node_name, cluster.listen, cluster.advertise), and over
+// node by design (node_name, cluster.name, cluster.listen,
+// cluster.advertise), and over
 // rules.d. A file that does not parse hashes as its bytes.
 func groupConfigVersion(raw []byte, localRules string) string {
 	h := sha256.New()
@@ -66,6 +83,7 @@ func groupConfigVersion(raw []byte, localRules string) string {
 	if j, err := config.YAMLToJSON(raw); err == nil && json.Unmarshal(j, &doc) == nil {
 		delete(doc, "node_name")
 		if c, ok := doc["cluster"].(map[string]any); ok {
+			delete(c, "name")
 			delete(c, "listen")
 			delete(c, "advertise")
 		}
@@ -97,7 +115,13 @@ func (a *App) startGroupVersions(ctx context.Context) {
 		if _, ok := a.groupVersions.told[from]; !ok && len(a.groupVersions.told) >= 4*clusterMaxGateways {
 			return
 		}
-		a.groupVersions.told[from] = toldVersions{nodeVersions: v, at: time.Now()}
+		told := toldVersions{nodeVersions: v, at: time.Now()}
+		if t, err := time.Parse(time.RFC3339Nano, v.Now); err == nil {
+			if d := t.Sub(told.at); d > -maxClockSkew && d < maxClockSkew {
+				told.skew, told.hasSkew = d, true
+			}
+		}
+		a.groupVersions.told[from] = told
 	})
 	a.goLoop(ctx, "cluster-versions", tick(configTellEvery, func() {
 		if a.Cluster.Removed() {
@@ -148,7 +172,8 @@ func hexText(s string, n int) bool {
 }
 
 func (a *App) ownVersions() nodeVersions {
-	v := nodeVersions{Version: buildinfo.String(), Vitals: a.ownVitals(time.Now())}
+	now := time.Now()
+	v := nodeVersions{Version: buildinfo.String(), Vitals: a.ownVitals(now), Now: now.UTC().Format(time.RFC3339Nano)}
 	if p := a.groupConfig.Load(); p != nil {
 		v.Config = *p
 	}
@@ -291,6 +316,10 @@ func (a *App) GroupStatus() dashboard.GroupStatus {
 			if now.Sub(v.at) < vitalsFresh {
 				row.Vitals = v.Vitals
 			}
+			if v.hasSkew && now.Sub(v.at) < configFresh {
+				ms := v.skew.Milliseconds()
+				row.ClockSkewMS = &ms
+			}
 			if now.Sub(v.at) < configFresh && own.Config != "" {
 				row.Config = "same"
 				if v.Config != own.Config {
@@ -370,5 +399,30 @@ func (a *App) erasedInGroup(ctx context.Context, ip netip.Addr, keepIncidents bo
 	reached, open := node.Acked(seq)
 	out.Reached = append(out.Reached, reached...)
 	out.Open = append(out.Open, open...)
+	return out
+}
+
+// clusterReasons are the baseline reasons of the overview that come from
+// the group: a gateway this node does not reach, a configuration that
+// differs, a clock that is off. Hints for the operator; nothing is decided
+// by them.
+func (a *App) clusterReasons() []string {
+	if a.Cluster == nil {
+		return nil
+	}
+	st := a.GroupStatus()
+	var out []string
+	if st.State == "degraded" || st.State == "interrupted" {
+		out = append(out, "cluster_peers_unreachable")
+	}
+	if st.Config != nil && len(st.Config.Differing) > 0 {
+		out = append(out, "cluster_config_drift")
+	}
+	for _, m := range st.Members {
+		if m.ClockSkewMS != nil && (*m.ClockSkewMS >= clockSkewHint.Milliseconds() || *m.ClockSkewMS <= -clockSkewHint.Milliseconds()) {
+			out = append(out, "cluster_clock_skew")
+			break
+		}
+	}
 	return out
 }

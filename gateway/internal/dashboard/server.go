@@ -113,6 +113,13 @@ type Server struct {
 	// Group is the mode this gateway runs in and the state of its group
 	// (getGroupStatus); nil: a single gateway without cluster.enabled.
 	Group func() GroupStatus
+	// MemberName is the name of this node in its group, "" outside one. The
+	// dashboard shows it instead of node_name, which a deployment often
+	// sets the same on every node.
+	MemberName func() string
+	// ClusterReasons are the baseline reasons that come from the group
+	// (cluster_peers_unreachable, cluster_config_drift, cluster_clock_skew).
+	ClusterReasons func() []string
 	// BlockNode names the node of the group that decided a block; nil
 	// without a group.
 	BlockNode func(key behaviour.Key, incident string) (name string, self, ok bool)

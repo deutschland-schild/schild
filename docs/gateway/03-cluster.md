@@ -73,6 +73,8 @@ Das ist der Weg für ein Deployment, das dieselben Dateien auf jeden Server schr
 
    Nur `listen` unterscheidet sich von Server zu Server. `peers` nennt alle Server und darf die eigene Adresse enthalten.
 
+   Im Cluster heißt jeder Server nach seinem Hostnamen (der Teil vor dem ersten Punkt), auch wenn `node_name` überall gleich ist. So unterscheidest du die Server im Dashboard. Einen anderen Namen setzt du mit `cluster.name`. Der Name gilt ab der Aufnahme in den Cluster. Um ihn später zu ändern, nimmst du den Server aus dem Cluster und lässt ihn neu hinein.
+
 4. Starte Schild neu. Jeder Server nimmt sich beim Start selbst in den Cluster auf und findet die anderen. Die Reihenfolge ist egal.
 
 Das Geheimnis lässt einen Server in den Cluster und kann sonst nichts. Wer es hat, kann einen Server aufnehmen. Behandle es deshalb wie ein Passwort.
@@ -219,7 +221,11 @@ Jeder Server meldet diese Zahlen alle fünf Sekunden an die anderen. Die Seite z
 | Abgleich pausiert | Auf dem Server wurde `schild cluster pause` aufgerufen. |
 | Aus dem Cluster entfernt | Ein Mitglied hat dem Server gemeldet, dass er entfernt wurde. |
 
-**Unterschiedliche Konfiguration.** Jedes Gateway nennt den anderen alle fünf Sekunden eine Prüfsumme seiner Konfiguration: `schild.yaml` ohne `node_name`, `cluster.listen` und `cluster.advertise`, dazu `rules.d`. Weicht ein Server ab, steht das in der Karte. Das ist ein Hinweis. Schild verteilt keine Konfiguration, das bleibt Aufgabe deines Deployments. Das Caddyfile geht in die Prüfsumme noch nicht ein.
+**Uhren.** Im Cluster gilt bei zwei Änderungen am selben Eintrag die spätere. Dafür brauchen die Server gleiche Uhren. Jedes Gateway nennt den anderen alle fünf Sekunden seine Uhrzeit. Auf der Seite „Cluster“ steht bei jedem Server, wie weit seine Uhr von der dieses Servers abweicht. Ab zehn Sekunden steht ein Hinweis auf der Startseite. Richte auf jedem Server eine Zeitsynchronisation ein, etwa chrony oder systemd-timesyncd. Einen Eintrag, dessen Uhrzeit mehr als 60 Sekunden voraus liegt, nimmt kein Server an.
+
+**Hinweise auf der Startseite.** Erreicht ein Server einen anderen nicht, weicht eine Konfiguration ab oder geht eine Uhr auseinander, steht das auch auf der Startseite jedes Dashboards, mit einem Link zur Seite „Cluster“.
+
+**Unterschiedliche Konfiguration.** Jedes Gateway nennt den anderen alle fünf Sekunden eine Prüfsumme seiner Konfiguration: `schild.yaml` ohne `node_name`, `cluster.name`, `cluster.listen` und `cluster.advertise`, dazu `rules.d`. Weicht ein Server ab, steht das in der Karte. Das ist ein Hinweis. Schild verteilt keine Konfiguration, das bleibt Aufgabe deines Deployments. Das Caddyfile geht in die Prüfsumme noch nicht ein.
 
 In der Liste gesperrter Adressen steht bei jeder Sperre, welcher Server sie entschieden hat. Löschst du unter „Datenschutz“ eine Adresse, nennt das Dashboard die Server, die die Löschung schon erreicht hat, und die, bei denen sie noch aussteht.
 

@@ -71,3 +71,6 @@ func SetRequestsLog(n int) (undo func()) {
 	requestsLog = n
 	return func() { requestsLog = old }
 }
+
+// ClusterReasons are the baseline reasons the overview takes from the group.
+func (a *App) ClusterReasons() []string { return a.clusterReasons() }

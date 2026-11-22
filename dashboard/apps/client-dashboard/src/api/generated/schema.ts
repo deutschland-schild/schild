@@ -1359,10 +1359,10 @@ export interface components {
                 state: "active" | "degraded" | "off";
                 reasons: {
                     /**
-                     * @description crs_off: the crs repository is off; crs_detect: it only detects, so the CRS blocks nothing. trusted_proxies_too_broad: a range in ingress.trusted_proxies is wider than /8 (IPv4) or /32 (IPv6), so forwarding headers are ignored and every client counts as its TCP peer. trusted_proxies_missing (D91): in the last 10 to 20 minutes at least 20 requests, and at least half of all, came from a private or loopback address that is not in ingress.trusted_proxies and carried a forwarding header: a proxy in front (nginx on the Docker host, a load balancer) is not trusted, so every visitor counts as that proxy and blocks of scenarios never hit (private addresses are never blocked). dashboard_settings_dropped: settings or rate limits saved in the dashboard no longer fit schild.yaml and were not applied at start; schild.yaml counts until they are saved again.
+                     * @description cluster_peers_unreachable (a node of a group only, contracts/cluster.md): this node does not reach at least one gateway of its group. cluster_config_drift: the config version of at least one gateway differs from this node's. cluster_clock_skew: the clock of at least one gateway is 10 s or more off this node's; the later change wins in a group, so clocks have to agree. crs_off: the crs repository is off; crs_detect: it only detects, so the CRS blocks nothing. trusted_proxies_too_broad: a range in ingress.trusted_proxies is wider than /8 (IPv4) or /32 (IPv6), so forwarding headers are ignored and every client counts as its TCP peer. trusted_proxies_missing (D91): in the last 10 to 20 minutes at least 20 requests, and at least half of all, came from a private or loopback address that is not in ingress.trusted_proxies and carried a forwarding header: a proxy in front (nginx on the Docker host, a load balancer) is not trusted, so every visitor counts as that proxy and blocks of scenarios never hit (private addresses are never blocked). dashboard_settings_dropped: settings or rate limits saved in the dashboard no longer fit schild.yaml and were not applied at start; schild.yaml counts until they are saved again.
                      * @enum {string}
                      */
-                    code: "waf_down" | "crs_off" | "crs_detect" | "geo_db_old" | "disk_full" | "trusted_proxies_too_broad" | "trusted_proxies_missing" | "dashboard_settings_dropped";
+                    code: "waf_down" | "crs_off" | "crs_detect" | "geo_db_old" | "disk_full" | "trusted_proxies_too_broad" | "trusted_proxies_missing" | "dashboard_settings_dropped" | "cluster_peers_unreachable" | "cluster_config_drift" | "cluster_clock_skew";
                     since: components["schemas"]["Timestamp"];
                 }[];
             };
@@ -1975,6 +1975,8 @@ export interface components {
             /** @description Edges only: clients its firewall held at its last call to this node. */
             blocks_held?: number;
             vitals?: components["schemas"]["GroupVitals"];
+            /** @description Gateways only: the member's clock minus this node's in milliseconds, as of its last word within the last minute (the time on the way counts in). Absent when it named no time. From 10 000 on the dashboard names it; a record more than 60 s ahead is refused (contracts/cluster.md section 4). */
+            clock_skew_ms?: number;
         };
         /** @description Gateways only: how the member said it is doing, as it told this node within the last 20 s (this node: read now). Absent when it said nothing lately or runs a build that tells no vitals. A value outside its range is null. Shown, never decided on. */
         GroupVitals: {

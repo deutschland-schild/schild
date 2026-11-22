@@ -1,7 +1,7 @@
 /** Words for the mode a gateway runs in and for the state of its group (MVP-27, D103). */
 import type { StatusTone } from '@schild/ui'
 import type { GroupMember, GroupState, GroupStatus } from '@/api/group'
-import { formatNumber } from '@schild/ui'
+import { formatDuration, formatNumber } from '@schild/ui'
 import { plural } from './summary'
 
 const list = (names: string[]) => names.length <= 1 ? names.join('') : `${names.slice(0, -1).join(', ')} und ${names.at(-1)}`
@@ -133,6 +133,18 @@ export function groupTotals(s: GroupStatus): GroupTotals {
     requestsPerS: told.length ? told.reduce((sum, m) => sum + (m.vitals?.requests_per_s ?? 0), 0) : null,
     reporting: told.length,
   }
+}
+
+/** From this difference on the clock of a server is named as off (the gateway: cluster_clock_skew). */
+export const CLOCK_SKEW_HINT_MS = 10_000
+
+/** The clock of a member against this server's, in words; '' when it named no time. Below 2 s it counts as the same. */
+export function clockText(skewMs: number | undefined): string {
+  if (skewMs === undefined) return ''
+  const abs = Math.abs(skewMs)
+  if (abs < 2000) return 'gleich'
+  const amount = abs < 120_000 ? plural(Math.round(abs / 1000), 'Sekunde', 'Sekunden') : formatDuration(abs / 1000)
+  return `${amount} ${skewMs > 0 ? 'vor' : 'nach'}`
 }
 
 /** Tone of a load bar: calm up to 80 %, a warning above, red from 95 %. */

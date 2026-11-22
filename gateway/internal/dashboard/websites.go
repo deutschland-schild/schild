@@ -134,6 +134,11 @@ func contains(l []string, x string) bool {
 // serverState is this gateway for the status rules and runs_on.
 func (s *Server) serverState(now time.Time) (websites.Server, websites.ServerHealth) {
 	node := s.Config().NodeName
+	if s.MemberName != nil {
+		if n := s.MemberName(); n != "" {
+			node = n
+		}
+	}
 	state := "ok"
 	if s.Gate == nil || !s.Gate.Ready() {
 		state = websites.ReasonNotReady

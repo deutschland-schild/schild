@@ -98,16 +98,23 @@ func runCluster(args []string, out io.Writer, now func() time.Time) error {
 		}
 		return nil
 	}
+	// The name of this node in its group: cluster.name, else node_name. By
+	// hand nothing says the files are the same on every node, so the host
+	// name is not taken here (config.Site.MemberName).
+	member := cfg.NodeName
+	if cfg.Cluster.Name != "" {
+		member = cfg.Cluster.Name
+	}
 	switch sub {
 	case "init":
 		if err := needAddress(); err != nil {
 			return err
 		}
-		group, err := cluster.Init(dir, cfg.NodeName, cfg.Cluster.Address(), now)
+		group, err := cluster.Init(dir, member, cfg.Cluster.Address(), now)
 		if err != nil {
 			return err
 		}
-		fmt.Fprintf(out, "Group %s created, %s is its first node (%s).\nRestart schild, then let the next node in:\n  schild cluster invite\n", group, cfg.NodeName, cfg.Cluster.Address())
+		fmt.Fprintf(out, "Group %s created, %s is its first node (%s).\nRestart schild, then let the next node in:\n  schild cluster invite\n", group, member, cfg.Cluster.Address())
 	case "invite":
 		code, expires, err := cluster.InviteRole(dir, *role, now)
 		if err != nil {
@@ -129,11 +136,11 @@ func runCluster(args []string, out io.Writer, now func() time.Time) error {
 		}
 		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 		defer cancel()
-		group, members, err := cluster.Join(ctx, dir, cfg.NodeName, cfg.Cluster.Address(), pos[0], pos[1], now)
+		group, members, err := cluster.Join(ctx, dir, member, cfg.Cluster.Address(), pos[0], pos[1], now)
 		if err != nil {
 			return err
 		}
-		fmt.Fprintf(out, "%s joined group %s (%d nodes). Restart schild: it then takes the state of the group.\n", cfg.NodeName, group, members)
+		fmt.Fprintf(out, "%s joined group %s (%d nodes). Restart schild: it then takes the state of the group.\n", member, group, members)
 	case "remove":
 		if len(pos) != 1 {
 			return errors.New("cluster remove: NODE (name or id)\n" + clusterUsage)

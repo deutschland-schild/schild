@@ -3,11 +3,13 @@
 package app_test
 
 import (
+	"slices"
 	"testing"
 	"time"
 
 	"github.com/deutschland-schild/schild/gateway/internal/dashboard"
 
+	"github.com/deutschland-schild/schild/contract/config"
 	"github.com/deutschland-schild/schild/gateway/internal/app"
 )
 
@@ -74,6 +76,21 @@ func TestGroupStatusShowsHowEveryGatewayIsDoing(t *testing.T) {
 		}
 		return n == 2
 	})
+	// Both run on one machine: the clocks agree, and the overview names nothing of the group.
+	a.h.WaitFor("web-1 knows the clock of web-2", func() bool {
+		for _, m := range a.h.App.GroupStatus().Members {
+			if m.Name == b.name && m.ClockSkewMS != nil {
+				return *m.ClockSkewMS > -2000 && *m.ClockSkewMS < 2000
+			}
+		}
+		return false
+	})
+	// (The two test nodes differ in their files, so a config drift is named rightly.)
+	for _, code := range []string{"cluster_peers_unreachable", "cluster_clock_skew"} {
+		if slices.Contains(a.h.App.ClusterReasons(), code) {
+			t.Errorf("overview of web-1 carries %s although the pair is in step", code)
+		}
+	}
 	// A node that leaves traffic says so to the others.
 	b.h.App.LeaveTraffic()
 	a.h.WaitFor("web-1 shows web-2 draining", func() bool {
@@ -84,4 +101,37 @@ func TestGroupStatusShowsHowEveryGatewayIsDoing(t *testing.T) {
 		}
 		return false
 	})
+}
+
+// With the same files on every node (cluster.secret_file) a node takes its
+// host name in the group, so the nodes differ in the dashboard although
+// node_name is the same; cluster.name always wins, and by hand node_name stays.
+func TestMemberNameOfANode(t *testing.T) {
+	site := func(name, secret string) *config.Site {
+		s := &config.Site{NodeName: "schild-1"}
+		s.Cluster.Name, s.Cluster.SecretFile = name, secret
+		return s
+	}
+	for _, c := range []struct {
+		name, secret, host, want string
+	}{
+		{"", "/etc/schild/cluster.secret", "Web-3.example.net", "web-3"},
+		{"", "/etc/schild/cluster.secret", "not a name", "schild-1"},
+		{"", "/etc/schild/cluster.secret", "", "schild-1"},
+		{"", "", "web-3", "schild-1"},
+		{"gw-a", "/etc/schild/cluster.secret", "web-3", "gw-a"},
+	} {
+		if got := site(c.name, c.secret).MemberName(c.host); got != c.want {
+			t.Errorf("MemberName(name %q, secret %q, host %q) = %q, want %q", c.name, c.secret, c.host, got, c.want)
+		}
+	}
+}
+
+func TestOverviewNamesAGatewayThatIsNotReached(t *testing.T) {
+	a, b := pair(t)
+	a.h.WaitFor("web-1 reaches web-2", func() bool { return a.h.App.GroupStatus().State == "active" })
+	if err := b.h.Stop(); err != nil {
+		t.Fatal(err)
+	}
+	a.h.WaitFor("the overview of web-1 says a gateway is not reached", func() bool { return slices.Contains(a.h.App.ClusterReasons(), "cluster_peers_unreachable") })
 }

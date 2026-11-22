@@ -51,6 +51,9 @@ type GroupMember struct {
 	BlocksHeld *int    `json:"blocks_held,omitempty"`
 	// Vitals: gateways only, absent when the member said nothing lately.
 	Vitals *GroupVitals `json:"vitals,omitempty"`
+	// ClockSkewMS: gateways only: the member's clock minus this node's, as
+	// of its last word; absent when it named no time lately.
+	ClockSkewMS *int64 `json:"clock_skew_ms,omitempty"`
 }
 
 // GroupVitals is how a gateway said it is doing: whether it takes traffic
@@ -70,10 +73,10 @@ type GroupVitals struct {
 
 // GroupShared counts what this node holds of the group's state.
 type GroupShared struct {
-	Blocks    int  `json:"blocks"`
-	Settings  int  `json:"settings"`
-	Access    int  `json:"access"`
-	Logins    int  `json:"logins"`
+	Blocks   int `json:"blocks"`
+	Settings int `json:"settings"`
+	Access   int `json:"access"`
+	Logins   int `json:"logins"`
 }
 
 // GroupCounters are the records of other nodes since the start.

@@ -2,6 +2,8 @@ package config
 
 import (
 	"net/netip"
+	"regexp"
+	"strings"
 	"time"
 
 	"github.com/deutschland-schild/schild/contract"
@@ -11,6 +13,8 @@ import (
 // node to node (MVP-27, D103, contracts/cluster.md). Off by default.
 type Cluster struct {
 	Enabled bool `json:"enabled"`
+	// Name is the name of this node in its group (see MemberName).
+	Name string `json:"name"`
 	// Listen is host:port of the mesh listener.
 	Listen string `json:"listen"`
 	// Advertise is host:port under which the other nodes reach it; empty:
@@ -84,3 +88,22 @@ func (c *Cluster) check() error {
 	return nil
 }
 
+var memberNameRe = regexp.MustCompile(`^[a-z0-9][a-z0-9-]{0,62}$`)
+
+// MemberName is the name a node takes in its group: cluster.name when set.
+// Otherwise, in a group set up by configuration (cluster.secret_file: the
+// same files lie on every node, so node_name is the same on all of them),
+// the first label of the host name in lower case when it is a valid name.
+// In every other case node_name.
+func (s *Site) MemberName(hostname string) string {
+	if s.Cluster.Name != "" {
+		return s.Cluster.Name
+	}
+	if s.Cluster.SecretFile != "" {
+		h, _, _ := strings.Cut(strings.ToLower(hostname), ".")
+		if memberNameRe.MatchString(h) {
+			return h
+		}
+	}
+	return s.NodeName
+}
