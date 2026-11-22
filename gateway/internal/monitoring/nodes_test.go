@@ -151,6 +151,47 @@ func TestGroupNamesANodeWhoseHistoryEndsEarly(t *testing.T) {
 	}
 }
 
+// A member that stopped is named in every answer over the group, however
+// short its span and at every second of the minute, and `until` is the end
+// of what is held of it (finding N2 of the second lab run).
+func TestGroupNamesASilentNodeInShortSpansAndNow(t *testing.T) {
+	end := time.Date(2026, 11, 22, 12, 0, 0, 0, time.UTC)
+	m := groupMonitor(t, end)
+	// The member handed over 10 s buckets until 19 s past the minute, then stopped.
+	var last time.Time
+	for i := 0; i < 2; i++ {
+		start := end.Add(time.Duration(i) * 10 * time.Second)
+		b := heavyBucket(start, cm.Res10s, 10, i+1)
+		if _, err := m.PutNodeBuckets(nodeOther, "web-2", cm.Res10s, []cm.MetricBucket{b}, start.Add(15*time.Second)); err != nil {
+			t.Fatal(err)
+		}
+		last = start.Add(10 * time.Second)
+	}
+	all := m.all()
+	// Within the time a bucket may take to arrive nobody is named.
+	if sc := all.Scope(last.Add(-2*time.Minute), last.Add(25*time.Second), last.Add(25*time.Second)); len(sc.PartialNodes) != 0 {
+		t.Fatalf("a node is named although its buckets may still be on their way: %+v", sc.PartialNodes)
+	}
+	// From 75 s after the stop, every 15 s for four minutes: the last two
+	// minutes (the 10 s series) and the last minute (the answer for now).
+	for after := 75 * time.Second; after <= 315*time.Second; after += 15 * time.Second {
+		now := last.Add(after)
+		for _, span := range []time.Duration{2 * time.Minute, time.Minute, 30 * time.Second} {
+			sc := all.Scope(now.Add(-span), now, now)
+			if len(sc.PartialNodes) != 1 || sc.PartialNodes[0].Node != nodeOther || sc.PartialNodes[0].Until == nil || *sc.PartialNodes[0].Until != ts(last) {
+				t.Fatalf("%s after the stop, span %s: the silent node is not named with the end of what is held: %+v", after, span, sc.PartialNodes)
+			}
+		}
+		n, err := all.Now("", now)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if n.Cluster == nil || len(n.Cluster.PartialNodes) != 1 || n.Cluster.PartialNodes[0].Node != nodeOther {
+			t.Fatalf("%s after the stop: the answer for now does not name the silent node: %+v", after, n.Cluster)
+		}
+	}
+}
+
 func TestGroupBoundsWhatAnotherNodeHandsOver(t *testing.T) {
 	end := time.Date(2026, 11, 22, 12, 0, 0, 0, time.UTC)
 	m := groupMonitor(t, end)
