@@ -48,6 +48,10 @@ type sharedThing struct {
 	read func(ctx context.Context) ([]byte, error)
 	// write stores a value of another node and makes it effective.
 	write func(ctx context.Context, v []byte) error
+	// hold, when set, is asked before a node hands over a thing it never
+	// brought in step with the group: true keeps its entries back for now
+	// (holdFirstKeys).
+	hold func() bool
 }
 
 func (t sharedThing) key() string { return t.class + "/" + t.id }
@@ -105,7 +109,7 @@ func (a *App) sharedThings() []sharedThing {
 		a.kvThing(ownersKey, objectCodec{depth: 1}, nil),
 		a.kvThing(crawlers.StoreKey, site, a.takeCrawlers),
 		a.kvThing(accesslock.StoreKey, site, a.takeAccess),
-		a.kvThing(humancheck.StoreKey, site, a.takeHumanCheck),
+		a.firstOnce(a.kvThing(humancheck.StoreKey, site, a.takeHumanCheck)),
 		a.kvThing(ruleExceptionsKey, listCodec{id: "id"}, a.takeRuleExceptions),
 		// The agent API reads this key at its first call: a node that
 		// served agents before it joined names clients its own way until
@@ -130,6 +134,49 @@ func (a *App) sharedThings() []sharedThing {
 		a.tableThing(contract.ClassLogins, "sessions", 1, nil),
 		a.tableThing(contract.ClassLogins, "agent_tokens", 1, nil),
 	}
+}
+
+// The first keys of the browser check are made by every node at its first
+// start, and a group needs one set of them. Handed over by every node at
+// once, as any other value is, two nodes that enter a new group in the same
+// second each publish theirs (third lab measurement, S2). So a node that
+// never brought them in step keeps them back: the node that keeps the
+// group's tasks (the lowest id among the gateways that reach each other),
+// once it has been that for firstKeysSettle, hands its own over, and the
+// others take them. A node that waited firstKeysWait without seeing any
+// hands its own over all the same: the keeper may be a node of an earlier
+// build, or cut off. Until the group's keys are there a node runs with its
+// own, so the browser check works on it from its first request; a website
+// of a new group has no browser check switched on yet.
+var (
+	firstKeysSettle = 3 * time.Second
+	firstKeysWait   = 10 * time.Second
+)
+
+// firstOnce marks a thing as made once for the group (see above).
+func (a *App) firstOnce(t sharedThing) sharedThing {
+	t.hold = a.holdFirstKeys
+	return t
+}
+
+// holdFirstKeys reports whether this node keeps back a thing it never
+// brought in step. Called with sharedMu held, from the loop of the shared
+// things only.
+func (a *App) holdFirstKeys() bool {
+	node := a.Cluster
+	now := time.Now()
+	if a.firstKeysSince.IsZero() {
+		a.firstKeysSince = now
+	}
+	_, lead := node.Jobs()
+	if !lead.Leads() {
+		a.firstKeysLead = time.Time{}
+		return now.Sub(a.firstKeysSince) < firstKeysWait
+	}
+	if a.firstKeysLead.IsZero() {
+		a.firstKeysLead = now
+	}
+	return now.Sub(a.firstKeysLead) < firstKeysSettle
 }
 
 // takeStoredSettings stores the settings overlay or the dashboard's rate
@@ -485,6 +532,54 @@ func (a *App) syncThing(ctx context.Context, t sharedThing, synced bool) {
 	// the same entry carried into a new group by two nodes, or a value set
 	// back to what it was. It must not take back a change made on this node
 	// that has not left yet (a node publishes only once it is in step).
+	//
+	// And what was noted is not taken on trust: between the note and this
+	// round the record of the entry may have lost. The handler notes a
+	// record when it arrives; a record this node publishes a moment later,
+	// or one of a third node, may beat it, and then the note names a value
+	// that is not the group's any more. Applied all the same, it left this
+	// node with a value no record holds while its marks said "in step"
+	// (third lab measurement, S2: two nodes wrote the first keys of the
+	// browser check in the same second, and one ran with the loser for half
+	// a minute, until the repair). So every noted entry is looked up: the
+	// record that is the state of the entry now decides, by the clocks, not
+	// by which note came first.
+	self := node.ID()
+	for k, p := range pending {
+		rec, err := node.Get(t.class, contract.EntryID(t.id, k))
+		if err != nil {
+			continue // not read: the note stands as it was
+		}
+		if rec == nil {
+			delete(pending, k) // no record holds the entry any more
+			continue
+		}
+		cur, here := local[k]
+		mark, marked := marks[k]
+		if rec.Origin == self && ((here && (!marked || mark != sum(cur))) || (!here && marked)) {
+			// This node's own record is the state, and the entry changed
+			// here since: that change leaves with this round.
+			delete(pending, k)
+			continue
+		}
+		v, err := contract.DecodeValue(rec)
+		if err != nil {
+			continue
+		}
+		p = pendingEntry{node: v.Node}
+		if !rec.Deleted {
+			val, _ := v.Bytes()
+			if val == nil {
+				val = []byte{}
+			}
+			p.v = val
+		}
+		if (p.v == nil && !here && !marked) || (p.v != nil && here && sum(cur) == sum(p.v) && marked && mark == sum(cur)) {
+			delete(pending, k) // this node holds the state of the entry already
+			continue
+		}
+		pending[k] = p
+	}
 	for k, p := range pending {
 		// A removal is always taken: an entry the group removed never
 		// comes back through a node that still holds it.
@@ -535,6 +630,25 @@ func (a *App) syncThing(ctx context.Context, t sharedThing, synced bool) {
 
 	// What changed on this node. Before its first sync a node publishes
 	// nothing: it does not know yet what the group holds.
+	if synced && t.hold != nil && !a.firstKeysDone && len(local) > 0 {
+		// Made on every node at its first start and meant to be one for
+		// the group: the node that keeps the group's tasks hands its own
+		// over, the others wait for it. Once every entry is in step, or
+		// the wait is over, the thing is handed over like any other.
+		own := false
+		for k, v := range local {
+			if marks[k] != sum(v) {
+				own = true
+				break
+			}
+		}
+		if own && t.hold() {
+			a.sharedDue.Store(true)
+			synced = false
+		} else {
+			a.firstKeysDone = true
+		}
+	}
 	if synced {
 		name := node.Name()
 		sent := 0

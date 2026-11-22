@@ -189,6 +189,11 @@ type App struct {
 	// groupVersions: the config and build versions the other gateways of
 	// the group told; groupConfig is this node's (cluster_status.go).
 	groupVersions groupVersions
+	// firstKeysSince, firstKeysLead: since when this node keeps back a thing
+	// made once for the group, and since when it keeps the group's tasks
+	// (holdFirstKeys; under sharedMu).
+	firstKeysSince, firstKeysLead time.Time
+	firstKeysDone                 bool
 	// sharedApplied: what the node took of its group was applied once since
 	// it came in step; inStepNoted: the mark for it is written (inService).
 	sharedApplied, inStepNoted atomic.Bool
