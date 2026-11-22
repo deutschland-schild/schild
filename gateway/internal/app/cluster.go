@@ -194,9 +194,13 @@ func (a *App) publishGroupBlocks() {
 		return
 	}
 	now := time.Now()
-	running := a.Behaviour.RunningBlocks()
+	// The blocks that run are read under the lock, not before it: a block
+	// of another node that arrived in between would be known and missing
+	// from an older reading, taken for one that ended early here, and
+	// lifted for the whole group.
 	a.groupBlocks.mu.Lock()
 	defer a.groupBlocks.mu.Unlock()
+	running := a.Behaviour.RunningBlocks()
 	seen := make(map[behaviour.Key]bool, len(running))
 	name := node.Name()
 	// A flood of blocks must not become a flood of records: at most

@@ -805,3 +805,35 @@ func TestGroupNodeCatchesUpOnRequestsAfterAnOutage(t *testing.T) {
 		}
 	}
 }
+
+// Blocks that arrive from another node while this node compares its own
+// must never be taken for blocks that ended early here: a node once lifted
+// such a block for the whole group (finding of the measurement: an unblock
+// on the other node answered "already unblocked").
+func TestGroupNeverLiftsABlockThatJustArrived(t *testing.T) {
+	a, b := pair(t)
+	const n = 300
+	for i := 0; i < n; i++ {
+		a.block(fmt.Sprintf("198.19.%d.%d", i/200, i%200+1), fmt.Sprintf("S-ARRIVE-%d", i), 15*time.Minute)
+		if i%10 == 0 {
+			time.Sleep(7 * time.Millisecond) // arrivals spread over many rounds of web-2
+		}
+	}
+	all := func(g *groupNode) int {
+		c := 0
+		for i := 0; i < n; i++ {
+			if g.blocked(fmt.Sprintf("198.19.%d.%d", i/200, i%200+1)) != "" {
+				c++
+			}
+		}
+		return c
+	}
+	b.h.WaitFor("web-2 holds every block", func() bool { return all(b) == n })
+	time.Sleep(1500 * time.Millisecond)
+	if got := all(a); got != n {
+		t.Errorf("web-1 runs %d of the %d blocks it set: another node lifted the rest", got, n)
+	}
+	if got := all(b); got != n {
+		t.Errorf("web-2 runs %d of %d blocks", got, n)
+	}
+}
