@@ -4,6 +4,12 @@ Notable changes per release. Contract changes are in [contracts/CHANGELOG.md](co
 
 The section of a version becomes the text of its GitHub release, so its heading stays `## <version>`. The date of a release is the one GitHub shows.
 
+## Unreleased
+
+### Security
+
+- An operator's Caddyfile may no longer use `acme_server`: schild refuses it at start and in `schild ingress validate`, wherever it stands. A gateway obtains certificates and issues none, and Caddy's ACME server is the only path to a library with known flaws and no fixed release (go-jose v3: GHSA-mgcc-cww5-fp2q, GHSA-4w3g-jfj2-cw2q, GHSA-vvm8-gf78-28g4). `tls internal` stays available.
+
 ## 0.1.0-alpha.5
 
 ### Rules
