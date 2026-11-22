@@ -2,6 +2,7 @@ package cluster
 
 import (
 	"bytes"
+	"compress/gzip"
 	"context"
 	"crypto/ed25519"
 	"crypto/tls"
@@ -13,7 +14,9 @@ import (
 	"log/slog"
 	"net"
 	"net/http"
+	"slices"
 	"sort"
+	"strings"
 	"sync"
 	"time"
 
@@ -161,18 +164,15 @@ func (n *Node) serveSync(w http.ResponseWriter, r *http.Request) {
 		expired := false
 		if !ahead {
 			// A command on the host writes into the same file and cannot
-			// wake this call, so it looks again every 500 ms.
-			poll := time.NewTimer(500 * time.Millisecond)
+			// wake this call itself: watchStore does that for every call
+			// that waits, within half a second.
 			select {
 			case <-r.Context().Done():
-				poll.Stop()
 				return
 			case <-news:
-			case <-poll.C:
 			case <-deadline.C:
 				expired = true
 			}
-			poll.Stop()
 			if !expired {
 				continue
 			}
@@ -678,13 +678,21 @@ func (n *Node) OnTell(kind string, f func(from string, body []byte)) {
 // own goroutine with one second to answer, and returns at once. A peer that
 // still works on the message before gets none.
 func (n *Node) Tell(ctx context.Context, kind string, body []byte) {
+	n.TellTo(ctx, nil, kind, body)
+}
+
+// TellTo is Tell to the gateways named by id only; nil means every one.
+func (n *Node) TellTo(ctx context.Context, ids []string, kind string, body []byte) {
 	if len(body) > maxTell || n.paused.Load() {
 		return
 	}
 	n.pmu.Lock()
 	now := n.now()
 	var to []*peer
-	for _, p := range n.peers {
+	for id, p := range n.peers {
+		if ids != nil && !slices.Contains(ids, id) {
+			continue
+		}
 		p.mu.Lock()
 		ok := p.aliveLocked(now)
 		p.mu.Unlock()
@@ -910,7 +918,35 @@ func (n *Node) serveAsk(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	w.Header().Set("Content-Type", "application/json")
+	// A long answer travels compressed when the asking side takes that
+	// (Go's HTTP client says so by itself and unpacks it, also the one of
+	// earlier builds; it bounds what it reads after unpacking).
+	if len(out) >= gzipFrom && strings.Contains(r.Header.Get("Accept-Encoding"), "gzip") && !isBlock(out) {
+		zw := gzipPool.Get().(*gzip.Writer)
+		n.Compressed.Add(1)
+		w.Header().Set("Content-Encoding", "gzip")
+		zw.Reset(w)
+		_, _ = zw.Write(out)
+		_ = zw.Close()
+		gzipPool.Put(zw)
+		return
+	}
 	_, _ = w.Write(out)
+}
+
+// gzipFrom is the size from which an answer is compressed.
+const gzipFrom = 2048
+
+var gzipPool = sync.Pool{New: func() any {
+	zw, _ := gzip.NewWriterLevel(io.Discard, gzip.BestSpeed)
+	return zw
+}}
+
+// isBlock reports whether an answer is in a compact binary form already
+// (it does not start like JSON): compressing it again costs more than it
+// saves.
+func isBlock(out []byte) bool {
+	return len(out) > 0 && out[0] != '{' && out[0] != '['
 }
 
 // OnEdgeAsk registers f for questions of a kind that an edge asks. A
