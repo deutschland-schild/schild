@@ -934,30 +934,39 @@ func TestGroupNeverLiftsABlockThatJustArrived(t *testing.T) {
 	}
 }
 
-// A node of a group that restarts with keys older than a day does not
-// rotate them on its own: the visitors of the other node would be put
-// through the browser check again. The group rotates once for all.
+// A node of a group makes no keys of the browser check of its own at its
+// start: the group rotates them, once, on the node that keeps its tasks,
+// and the keys before stay valid next to the new ones. The age is looked at
+// every second here, so the test does not depend on when the task first ran
+// (it is looked at every hour in production).
 func TestGroupNodeDoesNotRotateBrowserCheckKeysAtItsStart(t *testing.T) {
+	defer app.SetHumanCheckKeysLook(time.Second)()
 	a, b := pair(t)
 	b.h.WaitFor("web-2 runs the keys of the group", func() bool {
 		x, y := a.h.App.HumanCheck.State(), b.h.App.HumanCheck.State()
 		return x != nil && y != nil && string(x.ClearanceKey) == string(y.ClearanceKey) && string(x.ChallengeKey) == string(y.ChallengeKey)
 	})
 	key := string(a.h.App.HumanCheck.State().ClearanceKey)
-	// The keys age two days on both nodes, then web-2 restarts.
+	// The keys age two days on both nodes; the group may rotate them at any
+	// moment from now on.
 	old := time.Now().UTC().Add(-48 * time.Hour)
 	if err := a.h.App.AgeHumanCheckKeys(context.Background(), old); err != nil {
 		t.Fatal(err)
 	}
-	b.h.WaitFor("web-2 holds the aged keys", func() bool { return b.h.App.HumanCheck.State().KeysRotatedAt.Equal(old) })
+	b.h.WaitFor("web-2 holds the aged keys or the group's new ones", func() bool {
+		st := b.h.App.HumanCheck.State()
+		return st.KeysRotatedAt.Equal(old) || string(st.PrevClearanceKey) == key
+	})
 	if err := b.h.Stop(); err != nil {
 		t.Fatal(err)
 	}
 	b.start(t)
-	if got := string(b.h.App.HumanCheck.State().ClearanceKey); got != key {
+	// At its start web-2 runs the keys it held or the group's, never keys
+	// it made itself.
+	if got, group := string(b.h.App.HumanCheck.State().ClearanceKey), string(a.h.App.HumanCheck.State().ClearanceKey); got != key && got != group {
 		t.Fatal("web-2 rotated the keys at its start, on its own")
 	}
-	// The group rotates them once: both nodes end with the same new keys,
+	// The group rotated them once: both nodes end with the same new keys,
 	// and the keys before stay valid next to them.
 	for _, g := range []*groupNode{a, b} {
 		g.h.WaitFor(g.name+" runs the keys the group rotated", func() bool {

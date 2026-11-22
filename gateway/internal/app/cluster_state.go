@@ -630,11 +630,14 @@ func (a *App) syncThing(ctx context.Context, t sharedThing, synced bool) {
 
 	// What changed on this node. Before its first sync a node publishes
 	// nothing: it does not know yet what the group holds.
-	if synced && t.hold != nil && !a.firstKeysDone && len(local) > 0 {
+	if synced && t.hold != nil && !a.firstKeysDone && len(local) > 0 && len(marks) == 0 {
 		// Made on every node at its first start and meant to be one for
 		// the group: the node that keeps the group's tasks hands its own
 		// over, the others wait for it. Once every entry is in step, or
-		// the wait is over, the thing is handed over like any other.
+		// the wait is over, the thing is handed over like any other. Only
+		// the first ones: a node that brought an entry of the thing in step
+		// once holds the group's, and what changes later (the rotation of
+		// the keys, run once for the group) leaves at once.
 		own := false
 		for k, v := range local {
 			if marks[k] != sum(v) {

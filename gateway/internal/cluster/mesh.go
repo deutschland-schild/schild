@@ -559,8 +559,18 @@ func (n *Node) runPeer(ctx context.Context, p *peer, key ed25519.PublicKey) {
 			}
 			continue
 		}
+		// A node that is not in step yet asks without waiting: the member
+		// answers at once, also when it has nothing new, and the node knows
+		// what the group holds. Held, its readiness depended on whether the
+		// member happened to write something within the hold. A node whose
+		// records were put off (a clock far behind) waits as usual, so it
+		// does not ask in a tight loop.
+		hold := n.opts.Hold
+		if !n.synced.Load() && !n.heldBack.Load() {
+			hold = 0
+		}
 		var resp syncResponse
-		err = postJSON(ctx, c, "https://"+p.address+pathSync, syncRequest{Group: n.group, Vector: vec, WaitMS: int(n.opts.Hold / time.Millisecond)}, &resp)
+		err = postJSON(ctx, c, "https://"+p.address+pathSync, syncRequest{Group: n.group, Vector: vec, WaitMS: int(hold / time.Millisecond)}, &resp)
 		if ctx.Err() != nil {
 			return
 		}
