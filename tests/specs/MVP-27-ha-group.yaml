@@ -22,7 +22,7 @@ id: MVP-27
 #   the balancer, so the host firewall of D87 holds nothing there; see `enforcement`.
 # - /healthz and /readyz exist on the dashboard listener only; a balancer needs one on the web ports.
 title: "Group: several gateways share blocks, settings, certificates, logins, events and requests from node to node, as a pair of two or a fleet of ten, with no store beside them"
-ships: false                        # draft. Built 2026-11-21 (contracts/cluster.md; its last section lists what is missing): the mesh, every class of `control`, counts of limits and scenarios, events, incidents and requests on every node, edges, drain, pause, and of `ui`: GroupStatus (mode, members, config drift hint from schild.yaml and rules.d), the card "Gruppe", the deciding node of a block, nodes in PrivacyDeleteResult; single requests are asked for with a cursor per member from a bounded log in memory (the spec's sealed segments as files are not built); the wave and distributed detectors count for the group, deltas per second instead of the spec's aggregates of the last 10 s. Not measured
+ships: false                        # draft, experimental, in no release. What is built, decided and measured as of 2026-11-22: section `state` at the end of the open questions. The technical text is contracts/cluster.md, the operator guide docs/gateway/03-cluster.md.
 status: ENTWURF
 image: schild                       # same binary on gateways and on balancer VMs (role edge); nothing else to install
 hypotheses: [D3]
@@ -255,19 +255,57 @@ out_of_scope:
   - 'gateways of different operators in one group; network mode in a group (D72)'
   - 'scaling the group by itself; HTTP/3 behind a layer 4 balancer (QUIC-LB is still a draft, checked 2026-11-21)'
 open_questions:                     # for the initiator
-  - '1 settings in a group: shared from the dashboard as written here, or read-only as in D53?'
-  - '2 a full mesh up to 16 gateways, or gossip (memberlist) from the start for larger fleets?'
+  # 1 closed by the initiator 2026-11-22: shared, and without a list to keep: everything set at runtime through the dashboard or
+  #   the agent API holds on every node, except a short list of things that describe one node (contracts/cluster.md section 5).
+  #   A fingerprint per class shows whether the nodes hold the same.
+  - '2 a full mesh up to 16 gateways, or gossip (memberlist) from the start for larger fleets? Built and measured as a full mesh up to 16; the builder proposed to take memberlist only when a fleet needs more than 16. Not decided by the initiator'
   - '3 behind the PROXY protocol: close a blocked client before TLS (cheap, no block page), or always answer with the block page?'
   # 4 closed by the initiator 2026-11-22: every node holds the events, incidents and requests of every node, with no switch
   #   (cluster.share_data is gone, cluster.data_copies is not built): all nodes have to be in step to judge by what they hold.
   #   A node that returns catches up on everything it missed by itself.
+  # (2026-11-22) names: a node is named by node_name; with cluster.name_from_host by its host name, so one schild.yaml can lie on
+  #   every node; cluster.name sets a fixed one. Decided with the initiator after the first lab run found equal names.
   - '5 the caps (200 blocks per second, 2 000 hot keys, 20 000 running blocks, 131 072 addresses on an edge): confirm in the testlab'
   - '6 a block list as plain text for a hoster''s routers and appliances (as CrowdSec''s blocklist mirror), in a later step?'
 
+state:                              # 2026-11-22, written by the builder; `must`, `measure` and `kill_if` above are unchanged
+  built:
+    - 'the mesh (TLS 1.3, keys per node, HTTP/2 pings), setting up by configuration (cluster.secret_file, cluster.peers) and by hand (join codes), names, readiness and drain, pause, removal, a new group secret that moves a node with what it held'
+    - 'classes members, blocks, settings, access, logins, erasure, certificates, jobs; every key of the runtime store travels as class settings unless it is on the per-node list; a fingerprint per class with self-repair'
+    - 'counts of limits, scenarios and the distributed detectors once a second; their running state handed to a node that starts'
+    - 'events, incidents and single requests of every node on every node (asked for when a member says it has news; requests in a compact form; catch-up from the request stores on disk); metric buckets of every member on every node, queries over all nodes or one (design_metrics_across_nodes below)'
+    - 'edges (`schild firewall run -group`), one set of CrowdSec Hub rules, tasks once per period for a single gateway and a group'
+    - 'ui: the mode on every page, the page "Cluster" with the map and the servers, the filter "Zahlen von", the reasons of the overview (member not reached, config drift, clock, state differs, counts not taken, clock out of service), the deciding node of a block, the nodes of an erasure'
+  rejected:
+    - 'copies on some nodes and queries from node to node (design_data_copies_and_queries below): every node holds everything, always (initiator 2026-11-22). `classes.data` and `queries` above describe the first design and are not what is built'
+  not_built:
+    - 'the testlab profiles pair and fleet of `measure` and `done` (keepalived, two balancer VMs); the measurements below ran on other setups'
+    - 'where each block holds (edge, node firewall, gate) in the dashboard; closing a blocked client before TLS (open question 3); a block list as plain text (open question 6)'
+    - 'per node only: the 24 h counters of the overview, the host values of this moment, the live second, the status of a website; no filter by server on the lists of events and requests'
+    - 'the Caddyfile, the versions of rule sets, bot ranges and the geo database in the config hint'
+    - 'a node cannot take back from the others the requests it served itself and lost (the last second before a hard crash, what its writer dropped under saturation)'
+  measured:                         # every run black box, by measuring agents that did not build the gateway, except where "builder" is said
+    - 'loopback, three gateways and a hostile member (tests/results/MVP-27-group-measurement.md, MVP-27.json): of `measure` the hostile member, erasure with a member away, limits over three nodes, a split of a pair; last run 92 of 92 judged checks'
+    - 'loopback hardening (tests/results/MVP-27-hardening.md): faults between nodes by a userspace proxy, hard crashes, load up to 9 000 requests a second over three nodes, 2 and 16 gateways, long absence, clocks, an upgrade in turn. First run by the measuring agent on e0349dc: 223 of 236. Second and third run by the builder with the unchanged harness on e54c040 and 3971e35: 229 and 225 of 236; what still fails is named in the report and in the guide as limits'
+    - 'lab on Linux VMs with HAProxy, the PROXY protocol, an edge on nftables and an ACME test server (tests/results/MVP-27-lab.md on e0349dc: 114 of 165 pass, 19 fail; MVP-27-lab-run2.md on e54c040: 181 of 233 pass, 12 fail). Of `measure`: failure under load on a pair and on sixteen, spoofing, the edge, parts of certificates (one name, not 2 000; no renewal)'
+    - 'not measured by anyone: `M1` with every peer blackholed for the full matrix, versions N and N-1 mixed for one hour, a fleet cut 5 and 5 across a renewal window, 2 000 domains, 30 days of data, real servers and a real network. Everything built after e54c040 (the fixes for the second lab run, counts at start, the clock rule, sharing every key, the fingerprint, the cheaper exchange, jobs at a time of day) is covered by the builder''s tests and the builder''s third loopback run only; a third lab run on 3971e35 was started 2026-11-22'
+  kill_if_checked:                  # which run looked at which clause; a human decides what a hit means
+    - 'a request waits for a peer or fails because of one: not hit (first loopback run; hardening: 31 checks; lab: 0 of 36 782 failed in the second run)'
+    - 'a lost, empty or returning member deletes or weakens access state on another: not hit (hardening: 47 checks; lab: kill, partition, five of sixteen lost, rolling restart)'
+    - 'a record that fails signature, schema or caps is applied: not hit (first loopback run, hostile member); not repeated on VMs'
+    - 'an edge or a removed member reads events, requests, settings, logins or keys: not hit for the edge (loopback and lab); a removed member only on loopback'
+    - 'an erased address returns: not hit (loopback, hardening: 11 checks; on VMs only the edge''s firewall)'
+    - 'an address outside the proxy allow list can get another address blocked: not hit (lab: the header is not believed)'
+    - 'a partial answer is shown as complete: HIT in the second lab run (checks 10.20, 10.20b: a killed node was named as missing in 3 of 12 answers of the 10 s series and in 0 of 12 answers for now). Fixed afterwards (commit 353243f); to be confirmed by the third lab run'
+    - 'a copy outlives its origin''s retention: not measured'
+    - 'certificates are lost or issued again by the move into the group: not hit; in the first lab run only because the extra orders failed at the CA, in the second run a joining node placed no order (3 runs)'
+  outside_the_clauses:
+    - 'second lab run, N1: a block lifted on another node within a second stayed in the group''s records (116 of 1 600) and an edge dropped the address for its 7 days. The state it leaves is too strict, not too weak, so no clause names it; a visitor is refused against the operator''s decision. Fixed afterwards (commit 3321b69); to be confirmed by the third lab run'
+
 # ---------------------------------------------------------------------------------------------------------------
-# Designs for the two parts of this spec that are not built (written 2026-11-22 by the builder of the parts above,
-# checked against the code of that day). Nothing below is built or measured. Each ends with the decisions the
-# initiator has to take before it is built.
+# Designs for two parts of this spec (written 2026-11-22 by the builder of the parts above, checked against the code
+# of that day). The first was built the same day with the decisions as the builder proposed them, the second was
+# rejected by the initiator. See `state` above.
 
 design_metrics_across_nodes:        # `queries` (counters, histograms, unique clients) and `ui` (filter "Server") for metrics.db
   status: GEBAUT                    # 2026-11-22, contracts/cluster.md section 9a; not measured independently. Decisions as
