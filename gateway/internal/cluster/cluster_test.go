@@ -335,6 +335,29 @@ func TestStatus(t *testing.T) {
 		}
 		return true
 	})
+	// What the running node noted of a member's clock is in the status
+	// (`schild cluster status` reads the store, not the process).
+	if err := b.node.NoteClock(a.node.ID(), -90*time.Second); err != nil {
+		t.Fatal(err)
+	}
+	st, err := ReadStatus(b.dir, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	noted := 0
+	for _, m := range st.Members {
+		if m.ID == a.node.ID() {
+			if m.Clock != -90*time.Second || m.ClockAt.IsZero() {
+				t.Errorf("clock of web-1 in the status: %s at %s", m.Clock, m.ClockAt)
+			}
+			noted++
+		} else if !m.ClockAt.IsZero() {
+			t.Errorf("a clock noted for %s, of which nothing was said", m.Member.Name)
+		}
+	}
+	if noted != 1 {
+		t.Errorf("web-1 in the status %d times", noted)
+	}
 }
 
 func TestNodeWithoutGroup(t *testing.T) {

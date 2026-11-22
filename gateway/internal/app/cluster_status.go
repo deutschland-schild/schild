@@ -57,6 +57,16 @@ type toldVersions struct {
 	// is false when the sender named no time.
 	skew    time.Duration
 	hasSkew bool
+	// noted, notedSkew: what was last written into the node's store.
+	noted     time.Time
+	notedSkew time.Duration
+}
+
+func absDur(d time.Duration) time.Duration {
+	if d < 0 {
+		return -d
+	}
+	return d
 }
 
 const (
@@ -120,6 +130,15 @@ func (a *App) startGroupVersions(ctx context.Context) {
 			if d := t.Sub(told.at); d > -maxClockSkew && d < maxClockSkew {
 				told.skew, told.hasSkew = d, true
 			}
+		}
+		// Kept in the store too, for `schild cluster status`: when it moved
+		// by a second or more, and once a minute at least.
+		if prev, ok := a.groupVersions.told[from]; told.hasSkew && (!ok || !prev.hasSkew || told.at.Sub(prev.noted) > time.Minute || absDur(told.skew-prev.notedSkew) >= time.Second) {
+			if a.Cluster.NoteClock(from, told.skew) == nil {
+				told.noted, told.notedSkew = told.at, told.skew
+			}
+		} else if ok {
+			told.noted, told.notedSkew = prev.noted, prev.notedSkew
 		}
 		a.groupVersions.told[from] = told
 	})

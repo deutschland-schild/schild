@@ -323,6 +323,19 @@ type MemberStatus struct {
 	Error       string
 	// Behind is how many records the member has that this node lacks.
 	Behind uint64
+	// Clock is the member's clock minus this node's, as the running node
+	// noted it at ClockAt (NoteClock); ClockAt zero: nothing noted.
+	Clock   time.Duration
+	ClockAt time.Time
+}
+
+// markClock is the note of a member's clock: "<difference ms>:<noted at, unix ms>".
+const markClock = "clock:"
+
+// NoteClock keeps how far the clock of a member is off this node's, for
+// `schild cluster status`, which reads the store and not the process.
+func (n *Node) NoteClock(member string, skew time.Duration) error {
+	return n.SetMark(markClock+member, fmt.Sprintf("%d:%d", skew.Milliseconds(), n.now().UnixMilli()))
 }
 
 // Status is what `schild cluster status` prints.
@@ -384,7 +397,14 @@ func ReadStatus(dir string, now func() time.Time) (*Status, error) {
 	}
 	for _, e := range ro.Members() {
 		p := peers[e.ID]
-		st.Members = append(st.Members, MemberStatus{Entry: e, Self: e.ID == s.id, OutOK: at(p.out), InOK: at(p.in), Error: p.err, Behind: uint64(p.behind)})
+		m := MemberStatus{Entry: e, Self: e.ID == s.id, OutOK: at(p.out), InOK: at(p.in), Error: p.err, Behind: uint64(p.behind)}
+		if v, err := s.meta("mark:" + markClock + e.ID); err == nil {
+			var skew, noted int64
+			if _, err := fmt.Sscanf(string(v), "%d:%d", &skew, &noted); err == nil {
+				m.Clock, m.ClockAt = time.Duration(skew)*time.Millisecond, at(noted)
+			}
+		}
+		st.Members = append(st.Members, m)
 	}
 	if rows, err = s.db.Query(`SELECT class, count(*) FROM records WHERE state = ? AND deleted = 0 GROUP BY class`, stateWinner); err != nil {
 		return nil, err

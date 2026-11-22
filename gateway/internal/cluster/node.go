@@ -20,6 +20,7 @@ import (
 	"time"
 
 	contract "github.com/deutschland-schild/schild/contract/cluster"
+	"github.com/deutschland-schild/schild/gateway/internal/ratelog"
 )
 
 // Options of a running node.
@@ -414,6 +415,12 @@ func (n *Node) take(raws []json.RawMessage, covered map[string]uint64) (applied 
 			}
 			continue
 		case errors.Is(cerr, contract.ErrClock), errors.Is(cerr, contract.ErrOrigin):
+			if errors.Is(cerr, contract.ErrClock) {
+				// Said in the log, not only counted: a clock that is off is the
+				// operator's to set right, and nothing else names the node.
+				ratelog.Warn(n.log, "cluster: a record is put off, its time is ahead of this node's clock by more than a minute; set the clocks of the nodes right (NTP)",
+					"from", n.PeerName(rec.Origin), "ahead", contract.HLCTime(rec.HLC).Sub(now).Round(time.Second).String())
+			}
 			n.Deferred.Add(1)
 			hold(rec)
 			continue

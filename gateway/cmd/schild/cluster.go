@@ -236,6 +236,20 @@ func printClusterStatus(out io.Writer, st *cluster.Status, cfg *config.Site, now
 			fmt.Fprintf(out, "%s: %s\n", m.Member.Name, m.Error)
 		}
 	}
+	// A clock that is off: named from five seconds on, while the note of the
+	// running node is fresh.
+	for _, m := range st.Members {
+		if m.Self || m.Removed || m.ClockAt.IsZero() || now.Sub(m.ClockAt) > 2*time.Minute {
+			continue
+		}
+		d, word := m.Clock, "ahead of"
+		if d < 0 {
+			d, word = -d, "behind"
+		}
+		if d >= 5*time.Second {
+			fmt.Fprintf(out, "Clock: %s is %s %s this node. The later change wins in a group and a record more than 60 s ahead is put off: set the clocks right (NTP).\n", m.Member.Name, d.Round(time.Second), word)
+		}
+	}
 	fmt.Fprintf(out, "Blocks of the group that run: %d\n", st.Records["blocks"])
 	fmt.Fprintf(out, "Shared: %d settings, %d lists of who passes, %d lists of who signs in\n", st.Records["settings"], st.Records["access"], st.Records["logins"])
 	if st.Replaced > 0 {
