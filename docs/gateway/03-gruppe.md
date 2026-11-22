@@ -5,7 +5,7 @@ description: "Mehrere Schild Gateways als Gruppe betreiben: was sie teilen, wie 
 
 # Mehrere Gateways als Gruppe betreiben
 
-**Status:** experimentell, noch in keinem Release enthalten · Stand 22.11.2026 · technische Quelle: [contracts/cluster.md](../../contracts/cluster.md) · unabhängig gemessen am 21.11.2026 mit drei Servern auf einem Rechner ([Bericht](../../tests/results/MVP-27-group-measurement.md)); was dort durchfiel, ist behoben, und ein zweiter Lauf desselben Messprogramms am 22.11.2026 bestand alle 92 bewerteten Prüfungen
+**Status:** experimentell, noch in keinem Release enthalten · Stand 22.11.2026 · technische Quelle: [contracts/cluster.md](../../contracts/cluster.md) · unabhängig gemessen am 21.11.2026 mit drei Servern auf einem Rechner ([Bericht](../../tests/results/MVP-27-group-measurement.md)); was dort durchfiel, ist behoben, und der letzte Lauf desselben Messprogramms am 22.11.2026 bestand 90 von 92 bewerteten Prüfungen (offen: siehe Grenzen)
 
 **Kurz:**
 
@@ -211,6 +211,7 @@ Jeder Server speichert damit, was die ganze Gruppe aufzeichnet. In einer großen
 ## Grenzen
 
 - **Nur im Kleinen gemessen.** Eine unabhängige Messung lief mit drei Servern auf einem Rechner. Ein echter Loadbalancer, zehn Server, Zertifikate, gemischte Versionen und Lastspitzen sind nicht gemessen.
+- **Zwei offene Befunde der Messung.** Kommt ein Server zurück, während dessen Ausfall eine gesperrte Adresse gelöscht wurde, meldet er sich etwa eine Zehntelsekunde zu früh als bereit und weist die Adresse so lange noch ab. Und „Freigeben“ auf einem anderen Server als dem, der gesperrt hat, kann in der ersten Sekunde nach der Sperre scheitern.
 - **Dieselbe Einstellung auf zwei Servern geändert.** Änderst du denselben Schalter oder denselben Eintrag gleichzeitig auf zwei Servern, gilt überall die spätere Änderung. Verschiedene Einträge derselben Liste bleiben beide erhalten, auch wenn sich die Server zwischendurch nicht erreicht haben.
 - **Limits mit Verzug.** Ein Client, der seine Anfragen über die Server verteilt, kommt um das hinaus, was die Server in einer Sekunde annehmen.
 - **Einzelne Anfragen nach einem langen Ausfall.** Jeder Server hält seine letzten 32 768 Anfragen für die anderen bereit, höchstens 24 MiB. Ein Server, der aus war, holt daraus nach, was ihm fehlt. War er länger weg, als dieser Vorrat reicht, fehlen ihm die älteren Anfragen der anderen. Er schreibt die Zahl in sein Log, und die Server, die sie bedient haben, halten sie weiter. Startet ein Server neu, beginnt sein Vorrat leer.

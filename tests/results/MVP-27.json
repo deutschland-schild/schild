@@ -1,12 +1,12 @@
 {
  "results_version": 0,
  "spec": "MVP-27",
- "run_id": "group-20261121T234033Z",
- "started_at": "2026-11-21T23:40:33Z",
- "finished_at": "2026-11-21T23:52:54Z",
+ "run_id": "group-20261121T235622Z",
+ "started_at": "2026-11-21T23:56:22Z",
+ "finished_at": "2026-11-22T00:08:56Z",
  "seed": 27,
  "profile": "unit",
- "git_rev": "b511bd5fa45f-dirty",
+ "git_rev": "7f8686311da5-dirty",
  "host": {
   "os": "darwin 25.5.0",
   "arch": "arm64",
@@ -15,13 +15,13 @@
  "images": [
   {
    "name": "schild-dev-build",
-   "digest": "sha256:05224008f2d6cc65383604509c300478b15ef16fc133460ff8ee5a2a9ca8d0f7"
+   "digest": "sha256:1a337e248781ce9c657ec9f569723fec0150174deef10bc6d9dd0346343c85da"
   }
  ],
  "metrics": [
   {
    "name": "block_set_propagation",
-   "value": 217.9,
+   "value": 213.5,
    "unit": "ms",
    "labels": {
     "quantile": "p50",
@@ -32,7 +32,7 @@
   },
   {
    "name": "block_set_propagation",
-   "value": 792.1,
+   "value": 786.5,
    "unit": "ms",
    "labels": {
     "quantile": "p95",
@@ -43,7 +43,7 @@
   },
   {
    "name": "block_set_propagation",
-   "value": 835.5,
+   "value": 831.3,
    "unit": "ms",
    "labels": {
     "quantile": "max",
@@ -54,40 +54,40 @@
   },
   {
    "name": "block_lift_propagation",
-   "value": 83.7,
+   "value": 91.9,
    "unit": "ms",
    "labels": {
     "quantile": "p50",
     "setup": "config",
     "nodes": "3"
    },
-   "samples": 80
+   "samples": 78
   },
   {
    "name": "block_lift_propagation",
-   "value": 131.2,
+   "value": 103.3,
    "unit": "ms",
    "labels": {
     "quantile": "p95",
     "setup": "config",
     "nodes": "3"
    },
-   "samples": 80
+   "samples": 78
   },
   {
    "name": "block_lift_propagation",
-   "value": 150.8,
+   "value": 583.7,
    "unit": "ms",
    "labels": {
     "quantile": "max",
     "setup": "config",
     "nodes": "3"
    },
-   "samples": 80
+   "samples": 78
   },
   {
    "name": "request_latency",
-   "value": 0.612,
+   "value": 0.582,
    "unit": "ms",
    "labels": {
     "mode": "off_1",
@@ -97,7 +97,7 @@
   },
   {
    "name": "request_latency",
-   "value": 0.708,
+   "value": 0.675,
    "unit": "ms",
    "labels": {
     "mode": "off_1",
@@ -107,7 +107,7 @@
   },
   {
    "name": "request_latency",
-   "value": 0.845,
+   "value": 0.767,
    "unit": "ms",
    "labels": {
     "mode": "off_1",
@@ -117,7 +117,7 @@
   },
   {
    "name": "request_latency",
-   "value": 2.843,
+   "value": 10.412,
    "unit": "ms",
    "labels": {
     "mode": "off_1",
@@ -136,7 +136,7 @@
   },
   {
    "name": "request_latency",
-   "value": 0.573,
+   "value": 0.566,
    "unit": "ms",
    "labels": {
     "mode": "on_1",
@@ -146,7 +146,7 @@
   },
   {
    "name": "request_latency",
-   "value": 0.66,
+   "value": 0.661,
    "unit": "ms",
    "labels": {
     "mode": "on_1",
@@ -156,7 +156,7 @@
   },
   {
    "name": "request_latency",
-   "value": 0.759,
+   "value": 0.792,
    "unit": "ms",
    "labels": {
     "mode": "on_1",
@@ -166,7 +166,7 @@
   },
   {
    "name": "request_latency",
-   "value": 2.026,
+   "value": 2.905,
    "unit": "ms",
    "labels": {
     "mode": "on_1",
@@ -185,7 +185,7 @@
   },
   {
    "name": "request_latency",
-   "value": 0.583,
+   "value": 0.574,
    "unit": "ms",
    "labels": {
     "mode": "off_2",
@@ -195,7 +195,7 @@
   },
   {
    "name": "request_latency",
-   "value": 0.684,
+   "value": 0.667,
    "unit": "ms",
    "labels": {
     "mode": "off_2",
@@ -205,7 +205,7 @@
   },
   {
    "name": "request_latency",
-   "value": 0.901,
+   "value": 0.841,
    "unit": "ms",
    "labels": {
     "mode": "off_2",
@@ -215,7 +215,7 @@
   },
   {
    "name": "request_latency",
-   "value": 7.198,
+   "value": 2.594,
    "unit": "ms",
    "labels": {
     "mode": "off_2",
@@ -234,7 +234,7 @@
   },
   {
    "name": "request_latency",
-   "value": 0.565,
+   "value": 0.581,
    "unit": "ms",
    "labels": {
     "mode": "on_2",
@@ -244,7 +244,7 @@
   },
   {
    "name": "request_latency",
-   "value": 0.651,
+   "value": 0.692,
    "unit": "ms",
    "labels": {
     "mode": "on_2",
@@ -254,7 +254,7 @@
   },
   {
    "name": "request_latency",
-   "value": 0.83,
+   "value": 0.853,
    "unit": "ms",
    "labels": {
     "mode": "on_2",
@@ -264,7 +264,7 @@
   },
   {
    "name": "request_latency",
-   "value": 2.25,
+   "value": 3.324,
    "unit": "ms",
    "labels": {
     "mode": "on_2",
@@ -283,43 +283,43 @@
   },
   {
    "name": "request_latency",
-   "value": 0.579,
+   "value": 0.577,
    "unit": "ms",
    "labels": {
     "mode": "during_peer_kill",
     "quantile": "p50"
    },
-   "samples": 13444
+   "samples": 13497
   },
   {
    "name": "request_latency",
-   "value": 0.678,
+   "value": 0.673,
    "unit": "ms",
    "labels": {
     "mode": "during_peer_kill",
     "quantile": "p95"
    },
-   "samples": 13444
+   "samples": 13497
   },
   {
    "name": "request_latency",
-   "value": 0.812,
+   "value": 0.8,
    "unit": "ms",
    "labels": {
     "mode": "during_peer_kill",
     "quantile": "p99"
    },
-   "samples": 13444
+   "samples": 13497
   },
   {
    "name": "request_latency",
-   "value": 3.71,
+   "value": 7.409,
    "unit": "ms",
    "labels": {
     "mode": "during_peer_kill",
     "quantile": "max"
    },
-   "samples": 13444
+   "samples": 13497
   },
   {
    "name": "request_failed",
@@ -328,11 +328,11 @@
    "labels": {
     "mode": "during_peer_kill"
    },
-   "samples": 13444
+   "samples": 13497
   },
   {
    "name": "request_latency",
-   "value": 0.574,
+   "value": 0.583,
    "unit": "ms",
    "labels": {
     "mode": "peers_stopped",
@@ -342,7 +342,7 @@
   },
   {
    "name": "request_latency",
-   "value": 0.673,
+   "value": 0.682,
    "unit": "ms",
    "labels": {
     "mode": "peers_stopped",
@@ -352,7 +352,7 @@
   },
   {
    "name": "request_latency",
-   "value": 0.742,
+   "value": 0.773,
    "unit": "ms",
    "labels": {
     "mode": "peers_stopped",
@@ -362,7 +362,7 @@
   },
   {
    "name": "request_latency",
-   "value": 1.893,
+   "value": 2.955,
    "unit": "ms",
    "labels": {
     "mode": "peers_stopped",
@@ -387,37 +387,37 @@
     "mode": "during_peer_freeze",
     "quantile": "p50"
    },
-   "samples": 20385
+   "samples": 20288
   },
   {
    "name": "request_latency",
-   "value": 0.664,
+   "value": 0.667,
    "unit": "ms",
    "labels": {
     "mode": "during_peer_freeze",
     "quantile": "p95"
    },
-   "samples": 20385
+   "samples": 20288
   },
   {
    "name": "request_latency",
-   "value": 0.781,
+   "value": 0.79,
    "unit": "ms",
    "labels": {
     "mode": "during_peer_freeze",
     "quantile": "p99"
    },
-   "samples": 20385
+   "samples": 20288
   },
   {
    "name": "request_latency",
-   "value": 3.123,
+   "value": 8.038,
    "unit": "ms",
    "labels": {
     "mode": "during_peer_freeze",
     "quantile": "max"
    },
-   "samples": 20385
+   "samples": 20288
   },
   {
    "name": "request_failed",
@@ -426,11 +426,11 @@
    "labels": {
     "mode": "during_peer_freeze"
    },
-   "samples": 20385
+   "samples": 20288
   },
   {
    "name": "request_latency",
-   "value": 0.566,
+   "value": 0.57,
    "unit": "ms",
    "labels": {
     "mode": "peers_frozen",
@@ -440,7 +440,7 @@
   },
   {
    "name": "request_latency",
-   "value": 0.643,
+   "value": 0.65,
    "unit": "ms",
    "labels": {
     "mode": "peers_frozen",
@@ -450,7 +450,7 @@
   },
   {
    "name": "request_latency",
-   "value": 0.728,
+   "value": 0.779,
    "unit": "ms",
    "labels": {
     "mode": "peers_frozen",
@@ -460,7 +460,7 @@
   },
   {
    "name": "request_latency",
-   "value": 3.202,
+   "value": 3.607,
    "unit": "ms",
    "labels": {
     "mode": "peers_frozen",
@@ -479,7 +479,7 @@
   },
   {
    "name": "request_latency",
-   "value": 0.593,
+   "value": 0.572,
    "unit": "ms",
    "labels": {
     "mode": "peers_blackhole",
@@ -489,7 +489,7 @@
   },
   {
    "name": "request_latency",
-   "value": 0.705,
+   "value": 0.681,
    "unit": "ms",
    "labels": {
     "mode": "peers_blackhole",
@@ -499,7 +499,7 @@
   },
   {
    "name": "request_latency",
-   "value": 0.834,
+   "value": 0.845,
    "unit": "ms",
    "labels": {
     "mode": "peers_blackhole",
@@ -509,7 +509,7 @@
   },
   {
    "name": "request_latency",
-   "value": 2.673,
+   "value": 3.204,
    "unit": "ms",
    "labels": {
     "mode": "peers_blackhole",
@@ -528,7 +528,7 @@
   },
   {
    "name": "request_latency",
-   "value": 0.582,
+   "value": 0.584,
    "unit": "ms",
    "labels": {
     "mode": "off_3",
@@ -538,7 +538,7 @@
   },
   {
    "name": "request_latency",
-   "value": 0.725,
+   "value": 0.726,
    "unit": "ms",
    "labels": {
     "mode": "off_3",
@@ -548,7 +548,7 @@
   },
   {
    "name": "request_latency",
-   "value": 1.185,
+   "value": 0.934,
    "unit": "ms",
    "labels": {
     "mode": "off_3",
@@ -558,7 +558,7 @@
   },
   {
    "name": "request_latency",
-   "value": 6.465,
+   "value": 4.785,
    "unit": "ms",
    "labels": {
     "mode": "off_3",
@@ -577,7 +577,7 @@
   },
   {
    "name": "request_latency",
-   "value": 0.577,
+   "value": 0.595,
    "unit": "ms",
    "labels": {
     "mode": "on_3",
@@ -587,7 +587,7 @@
   },
   {
    "name": "request_latency",
-   "value": 0.681,
+   "value": 0.844,
    "unit": "ms",
    "labels": {
     "mode": "on_3",
@@ -597,7 +597,7 @@
   },
   {
    "name": "request_latency",
-   "value": 0.824,
+   "value": 1.138,
    "unit": "ms",
    "labels": {
     "mode": "on_3",
@@ -607,7 +607,7 @@
   },
   {
    "name": "request_latency",
-   "value": 2.408,
+   "value": 4.633,
    "unit": "ms",
    "labels": {
     "mode": "on_3",
@@ -628,16 +628,16 @@
    "name": "kill_failed_requests_other_nodes",
    "value": 0.0,
    "unit": "count",
-   "samples": 2022
+   "samples": 1977
   },
   {
    "name": "kill_events_written",
-   "value": 220.0,
+   "value": 225.0,
    "unit": "count"
   },
   {
    "name": "kill_events_missing",
-   "value": 30.0,
+   "value": 31.0,
    "unit": "count",
    "labels": {
     "node": "n1"
@@ -645,7 +645,7 @@
   },
   {
    "name": "kill_events_missing",
-   "value": 16.0,
+   "value": 9.0,
    "unit": "count",
    "labels": {
     "node": "n2"
@@ -653,7 +653,7 @@
   },
   {
    "name": "kill_oldest_missing_event_age",
-   "value": 0.85,
+   "value": 0.84,
    "unit": "s"
   },
   {
@@ -663,11 +663,11 @@
    "labels": {
     "step": "cluster_drain_n2"
    },
-   "samples": 2532
+   "samples": 2540
   },
   {
    "name": "drain_readyz_503_after",
-   "value": 0.137,
+   "value": 0.105,
    "unit": "s",
    "labels": {
     "step": "cluster_drain_n2"
@@ -675,7 +675,7 @@
   },
   {
    "name": "drain_served_after_503",
-   "value": 3.95,
+   "value": 3.98,
    "unit": "s",
    "labels": {
     "step": "cluster_drain_n2"
@@ -692,7 +692,7 @@
   },
   {
    "name": "drain_readyz_503_after",
-   "value": 0.003,
+   "value": 0.018,
    "unit": "s",
    "labels": {
     "step": "sigterm_n3"
@@ -700,7 +700,7 @@
   },
   {
    "name": "drain_served_after_503",
-   "value": 3.98,
+   "value": 3.97,
    "unit": "s",
    "labels": {
     "step": "sigterm_n3"
@@ -713,11 +713,11 @@
    "labels": {
     "step": "cluster_drain_n1"
    },
-   "samples": 2544
+   "samples": 2532
   },
   {
    "name": "drain_readyz_503_after",
-   "value": 0.109,
+   "value": 0.11,
    "unit": "s",
    "labels": {
     "step": "cluster_drain_n1"
@@ -725,7 +725,7 @@
   },
   {
    "name": "drain_served_after_503",
-   "value": 3.97,
+   "value": 3.96,
    "unit": "s",
    "labels": {
     "step": "cluster_drain_n1"
@@ -763,7 +763,7 @@
   },
   {
    "name": "rate_limit_passed",
-   "value": 89.0,
+   "value": 91.0,
    "unit": "count",
    "labels": {
     "run": "three_nodes_5rps",
@@ -783,7 +783,7 @@
   },
   {
    "name": "rate_limit_passed",
-   "value": 161.0,
+   "value": 154.0,
    "unit": "count",
    "labels": {
     "run": "three_nodes_burst",
@@ -823,27 +823,27 @@
   },
   {
    "name": "erasure_gone_on_other_node",
-   "value": 0.08022741600871086,
+   "value": 2.055708833038807,
    "unit": "s"
   },
   {
    "name": "pause_resume_catch_up",
-   "value": 3.199157333932817,
+   "value": 3.449738583061844,
    "unit": "s"
   },
   {
    "name": "setting_propagation",
-   "value": 0.44653974985703826,
+   "value": 0.43963054195046425,
    "unit": "s"
   },
   {
    "name": "allowlist_propagation",
-   "value": 0.49473241716623306,
+   "value": 0.5081263338215649,
    "unit": "s"
   },
   {
    "name": "checks",
-   "value": 92.0,
+   "value": 90.0,
    "unit": "count",
    "labels": {
     "verdict": "pass"
@@ -851,7 +851,7 @@
   },
   {
    "name": "checks",
-   "value": 0.0,
+   "value": 2.0,
    "unit": "count",
    "labels": {
     "verdict": "fail"
@@ -913,8 +913,8 @@
    "observed": "NOT MEASURED: no ACME server in this setup"
   }
  ],
- "verdict": "inconclusive",
- "notes": "Black-box measurement of the group of gateways on one machine: real `schild run` processes (development build) on 127.0.0.1, 3 gateways by cluster.secret_file and cluster.peers, 3 by join codes, round robin done by the load client. Not the testlab profiles pair and fleet of the spec: no balancer, no keepalived, no ACME server, no nftables, 3 nodes instead of 10. Verdict is never 'pass': most of `measure` is outside this setup; see tests/results/MVP-27-group-measurement.md. FAIL checks: none",
+ "verdict": "fail",
+ "notes": "Black-box measurement of the group of gateways on one machine: real `schild run` processes (development build) on 127.0.0.1, 3 gateways by cluster.secret_file and cluster.peers, 3 by join codes, round robin done by the load client. Not the testlab profiles pair and fleet of the spec: no balancer, no keepalived, no ACME server, no nftables, 3 nodes instead of 10. Verdict is never 'pass': most of `measure` is outside this setup; see tests/results/MVP-27-group-measurement.md. FAIL checks: 02 the incident of a block set on n1 is found on n2 (to lift it there); 08t at its first ready answer n3 no longer applies the block of an address erased while it was down",
  "artifacts": [
   "tests/results/MVP-27-group-measurement.md",
   "tests/testlab/measure/group/run.py"
