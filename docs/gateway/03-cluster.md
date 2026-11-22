@@ -156,7 +156,7 @@ Erreichen sich die Server nicht, kann eine Aufgabe auf beiden Seiten laufen. Fü
 - Sperren, Einstellungen, Logins und Zertifikate liegen auf jedem Server. Es geht nichts verloren.
 - Was der ausgefallene Server an Ereignissen und Vorfällen geschrieben hat, zeigen die anderen weiter an, bis auf die letzte Sekunde vor dem Ausfall.
 
-Kommt der Server zurück, holt er Sperren, Einstellungen, eigene Adressen, Logins und Löschungen nach. Erst danach meldet er sich beim Balancer als bereit. Ereignisse und Vorfälle der anderen folgen in den Sekunden danach. Die einzelnen Anfragen, die die anderen inzwischen bedient haben, holt er im Hintergrund nach.
+Kommt der Server zurück, holt er Sperren, Einstellungen, eigene Adressen, Logins und Löschungen nach. Erst danach meldet er sich beim Balancer als bereit. Ereignisse und Vorfälle der anderen folgen in den Sekunden danach. Die einzelnen Anfragen, die die anderen inzwischen bedient haben, holt er im Hintergrund nach. Das geschieht von selbst, egal wie lange er weg war. Du musst nichts anstoßen.
 
 ## Einen Server geplant anhalten
 
@@ -236,7 +236,7 @@ Jeder Server speichert damit, was der ganze Cluster aufzeichnet. Das lässt sich
 - **Nur im Kleinen gemessen.** Eine unabhängige Messung lief mit drei Servern auf einem Rechner. Ein echter Loadbalancer, zehn Server, Zertifikate, gemischte Versionen und Lastspitzen sind nicht gemessen.
 - **Dieselbe Einstellung auf zwei Servern geändert.** Änderst du denselben Schalter oder denselben Eintrag gleichzeitig auf zwei Servern, gilt überall die spätere Änderung. Verschiedene Einträge derselben Liste bleiben beide erhalten, auch wenn sich die Server zwischendurch nicht erreicht haben.
 - **Limits mit Verzug.** Ein Client, der seine Anfragen über die Server verteilt, kommt um das hinaus, was die Server in einer Sekunde annehmen.
-- **Einzelne Anfragen nach einem langen Ausfall.** Jeder Server hält seine letzten 32 768 Anfragen für die anderen bereit, höchstens 24 MiB. Ein Server, der aus war, holt daraus nach, was ihm fehlt. War er länger weg, als dieser Vorrat reicht, fehlen ihm die älteren Anfragen der anderen. Er schreibt die Zahl in sein Log, und die Server, die sie bedient haben, halten sie weiter. Startet ein Server neu, beginnt sein Vorrat leer.
+- **Einzelne Anfragen nach einem langen Ausfall.** Ein Server, der aus war, holt alle Anfragen nach, die die anderen inzwischen bedient haben, auch wenn einer von ihnen selbst neu gestartet ist. Die Grenze ist die Aufbewahrung der anderen Server: Was dort schon gelöscht ist (`requests.keep_hours`, `requests.max_size_mb`), kommt nicht mehr. Der Server schreibt dann in sein Log, dass ihm Anfragen fehlen. Unter hoher Last speichert ein Server nur einen Teil der Anfragen. Was er nicht gespeichert hat, kann er später auch nicht nachliefern.
 - **Pro Server bleiben** die Zähler der Übersicht und die Server-Diagramme.
 - **Wellen mit Verzug.** Wie bei den Limits vergeht bis zu einer Sekunde, bis die Server voneinander wissen. Eine Welle wird deshalb erkannt, sobald die Summe über der Schwelle liegt und die nächste passende Anfrage einen Server erreicht. Wie viele Anfragen eine Reaktion gestoppt hat, zählt jeder Server für sich.
 - **Zertifikate bei Netztrennung.** Erreichen sich die Server nicht, kann jede Seite dasselbe Zertifikat bestellen. Das ist eine Bestellung zu viel, beide Zertifikate sind gültig.

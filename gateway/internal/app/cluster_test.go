@@ -776,6 +776,55 @@ func TestGroupNodeCatchesUpOnRequestsAfterAnOutage(t *testing.T) {
 	}
 }
 
+// A node that was away longer than the log in memory of the others reaches
+// gets everything all the same, from their request stores on disk: once
+// each, also what a node served before it restarted itself.
+func TestGroupNodeCatchesUpFromDiskAfterALongOutage(t *testing.T) {
+	defer app.SetRequestsLog(4)() // four requests in memory: the rest has to come from disk
+	a, b := pair(t)
+	const before, away1, away2, after = "203.0.113.180", "203.0.113.181", "203.0.113.182", "203.0.113.183"
+	a.h.Visit("GET", "/before", before, "", "")
+	b.h.WaitFor("web-2 holds the request web-1 served", func() bool { return requestsOf(t, b, before) == 1 })
+
+	if err := b.h.Stop(); err != nil {
+		t.Fatal(err)
+	}
+	for i := 0; i < 20; i++ {
+		a.h.Visit("GET", fmt.Sprintf("/away/%d", i), away1, "", "")
+	}
+	a.h.WaitFor("web-1 wrote what it served", func() bool { return requestsOf(t, a, away1) == 20 })
+	// web-1 restarts while web-2 is still away: its log in memory is gone,
+	// its numbers go on above the old ones.
+	if err := a.h.Stop(); err != nil {
+		t.Fatal(err)
+	}
+	a.start(t)
+	for i := 0; i < 20; i++ {
+		a.h.Visit("GET", fmt.Sprintf("/away-again/%d", i), away2, "", "")
+	}
+	a.h.WaitFor("web-1 wrote what it served after its restart", func() bool { return requestsOf(t, a, away2) == 20 })
+
+	b.start(t)
+	b.h.WaitFor("web-2 caught up with all 40 requests it missed", func() bool {
+		return requestsOf(t, b, away1) == 20 && requestsOf(t, b, away2) == 20
+	})
+	a.h.Visit("GET", "/after", after, "", "")
+	b.h.WaitFor("web-2 goes on with what web-1 serves now", func() bool { return requestsOf(t, b, after) == 1 })
+	// A few rounds later nothing came twice, on either node.
+	time.Sleep(2500 * time.Millisecond)
+	for ip, want := range map[string]int{before: 1, away1: 20, away2: 20, after: 1} {
+		if n := requestsOf(t, b, ip); n != want {
+			t.Errorf("web-2 holds %d requests of %s, web-1 served %d", n, ip, want)
+		}
+		if n := requestsOf(t, a, ip); n != want {
+			t.Errorf("web-1 holds %d requests of %s, it served %d", n, ip, want)
+		}
+	}
+	if n := b.h.App.RequestsMissed(); n != 0 {
+		t.Errorf("web-2 counts %d numbers as gone for good", n)
+	}
+}
+
 // Blocks that arrive from another node while this node compares its own
 // must never be taken for blocks that ended early here: a node once lifted
 // such a block for the whole group (finding of the measurement: an unblock

@@ -63,3 +63,11 @@ var CleanVitals = cleanVitals
 
 // LeaveTraffic marks the node as draining, as the first step of a stop does.
 func (a *App) LeaveTraffic() { a.setDraining() }
+
+// SetRequestsLog makes the log of served requests in memory n entries long
+// for nodes started afterwards, and returns how to undo it (tests).
+func SetRequestsLog(n int) (undo func()) {
+	old := requestsLog
+	requestsLog = n
+	return func() { requestsLog = old }
+}

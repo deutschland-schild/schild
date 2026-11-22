@@ -51,12 +51,16 @@ const (
 	requestsBatch    = 2000
 	requestsBytes    = 1 << 20
 	requestsRounds   = 4
-	requestsLog      = 32768
 	requestsLogBytes = 24 << 20
 	// incidentOverlap: incidents are asked for again this far back, because
 	// one that aggregates the requests of a minute still changes.
 	incidentOverlap = 2 * time.Minute
 )
+
+// requestsLog is how many of its newest requests a node holds in memory for
+// the others; a cursor further back is answered from its request store on
+// disk. A variable for the tests, which make it small.
+var requestsLog = 32768
 
 type eventsQuestion struct {
 	After int64 `json:"after"`
@@ -83,11 +87,12 @@ type requestsQuestion struct {
 }
 
 type requestsAnswer struct {
-	// Epoch names the run of the answering node the numbers count in: its
-	// log lives in memory and starts at 1 with every start.
+	// Epoch names the run of numbers of the answering node: it stays over
+	// its restarts (the numbers are kept in its request store) and changes
+	// only when that store is new.
 	Epoch string `json:"epoch"`
-	// First is the oldest number the log still holds, Next the cursor for
-	// the following question.
+	// First is the lowest number that cannot have left the answering node
+	// with a deleted segment, Next the cursor for the following question.
 	First uint64          `json:"first"`
 	Next  uint64          `json:"next"`
 	Rows  []reqring.Entry `json:"rows"`
@@ -95,10 +100,9 @@ type requestsAnswer struct {
 
 type groupData struct {
 	a *App
-	// requestsEpoch names this run of the node in its answers.
-	requestsEpoch string
-	// requestsMissed counts requests of other nodes that left their log
-	// before this node asked for them.
+	// requestsMissed counts the numbers of requests of other nodes that
+	// may have left their request store (retention, the size cap) before
+	// this node asked for them. An upper bound: numbers have holes.
 	requestsMissed atomic.Uint64
 }
 
@@ -111,7 +115,7 @@ func (a *App) dataEpoch(ctx context.Context) string {
 // group holds what every node wrote (initiator 2026-11-22, no switch).
 func (a *App) startGroupData(ctx context.Context) {
 	a.reapplyErasures(ctx, 0) // what was erased while this node was away
-	g := &groupData{a: a, requestsEpoch: a.Cluster.ID() + "@" + strconv.FormatInt(a.started.UnixNano(), 36)}
+	g := &groupData{a: a}
 	a.groupData = g
 	node := a.Cluster
 	node.OnAsk(askEvents, func(_ string, body []byte) ([]byte, error) {
@@ -151,7 +155,7 @@ func (a *App) startGroupData(ctx context.Context) {
 			if rows == nil {
 				rows = []reqring.Entry{}
 			}
-			return json.Marshal(requestsAnswer{Epoch: g.requestsEpoch, First: first, Next: next, Rows: rows})
+			return json.Marshal(requestsAnswer{Epoch: a.Cluster.ID() + "@" + a.Requests.ServedEpoch(), First: first, Next: next, Rows: rows})
 		})
 	}
 	var round int
@@ -170,7 +174,9 @@ func (a *App) startGroupData(ctx context.Context) {
 }
 
 // pullRequests asks a member for the requests it served after this node's
-// cursor. Bounded on both sides: an answer holds at most requestsBatch
+// cursor. The member answers from memory or, for a cursor further back,
+// from its request store on disk: a node that was away, however long,
+// takes everything the member still keeps. Bounded on both sides: an answer holds at most requestsBatch
 // entries, a round asks at most requestsRounds times, and it stops while
 // the writer of this node's ring is behind, so a node that returns after an
 // outage neither floods a member nor itself. Nothing here is in the request
@@ -199,21 +205,25 @@ func (g *groupData) pullRequests(ctx context.Context, peer string) {
 			return
 		}
 		if ans.Epoch != epoch {
-			// Another run of the member than last time: its numbers start anew.
+			// Another request store of the member than last time: its numbers start anew.
 			_ = a.Cluster.SetMark(key, ans.Epoch+":0")
 			if after != 0 {
 				continue
 			}
 		}
-		if ans.Next < after || ans.Next-after > requestsLog+requestsBatch {
+		if ans.Next < after || ans.Next > 1<<62 {
 			return // no answer of this version of schild
 		}
-		if ans.First > after+1 && (after != 0 || epoch == ans.Epoch) {
-			// What the member served in between left its log before this node
-			// asked. A first question to a run counts nothing: it is the start.
+		// A number may jump ahead (the member restarted): the cursor follows
+		// whatever it says. It is the member's own cursor and bounds nothing
+		// but what this node asks that member next.
+		if ans.First > after+1 && after != 0 {
+			// The member deleted segments (retention, the size cap) that held
+			// numbers above this node's cursor. A first question counts
+			// nothing: it is the start.
 			missed := ans.First - after - 1
 			g.requestsMissed.Add(missed)
-			ratelog.Warn(a.log, "cluster: requests of another node were gone from its log before this node asked for them; that node holds them", "from", a.Cluster.PeerName(peer), "requests", missed)
+			ratelog.Warn(a.log, "cluster: requests of another node left its request store before this node asked for them", "from", a.Cluster.PeerName(peer), "numbers", missed)
 		}
 		now := time.Now()
 		for i := range ans.Rows[:min(len(ans.Rows), requestsBatch)] {
