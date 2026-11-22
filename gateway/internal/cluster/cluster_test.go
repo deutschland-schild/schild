@@ -864,3 +864,53 @@ func TestHangingPeerIsNoticedByPings(t *testing.T) {
 	fz.stop.Store(false)
 	waitFor(t, "web-1 reaches web-2 again", func() bool { return len(an.Reachable()) == 1 })
 }
+
+// A member removed by the command on the host (it writes into the store of
+// the running node and tells the process nothing) is refused by the very
+// next call, not after a timer: the node looks at the change counter of its
+// store before every decision that rests on the member list.
+func TestMemberRemovedByTheCommandLineIsRefusedAtOnce(t *testing.T) {
+	a, b, c := threeNodes(t)
+	waitFor(t, "web-1 knows web-3", func() bool { return a.node.IsMember(c.node.ID()) && b.node.IsMember(c.node.ID()) })
+	key := c.node.pub
+	// The node answers from what it holds while nothing was written.
+	for i := 0; i < 50; i++ {
+		if _, ok := a.node.activeKey(key, contract.RoleGateway); !ok {
+			t.Fatal("web-3 is a member and was refused")
+		}
+	}
+	if _, err := Remove(a.dir, "web-3", nil); err != nil {
+		t.Fatal(err)
+	}
+	if _, ok := a.node.activeKey(key, contract.RoleGateway); ok {
+		t.Fatal("web-1 still took web-3 for a member right after the command removed it")
+	}
+	if _, ok := a.node.activeKey(b.node.pub, contract.RoleGateway); !ok {
+		t.Fatal("web-2 is still a member and was refused")
+	}
+}
+
+// The vector a node hands out follows every write at once, although it is
+// kept while the store stands.
+func TestVectorFollowsEveryWrite(t *testing.T) {
+	a, b, _ := threeNodes(t)
+	waitFor(t, "web-2 reaches web-1", func() bool { return b.node.Synced() })
+	before, err := a.node.vectorNow()
+	if err != nil {
+		t.Fatal(err)
+	}
+	for i := 0; i < 5; i++ {
+		a.publishBlock("203.0.113." + string(rune('1'+i)))
+		now, err := a.node.vectorNow()
+		if err != nil {
+			t.Fatal(err)
+		}
+		if now[a.node.ID()] != before[a.node.ID()]+uint64(i+1) {
+			t.Fatalf("after %d writes the vector of web-1 says %d, before them %d", i+1, now[a.node.ID()], before[a.node.ID()])
+		}
+		straight, _ := a.node.state.vector()
+		if straight[a.node.ID()] != now[a.node.ID()] {
+			t.Fatalf("kept vector %d, store %d", now[a.node.ID()], straight[a.node.ID()])
+		}
+	}
+}

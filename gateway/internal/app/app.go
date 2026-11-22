@@ -185,6 +185,18 @@ type App struct {
 	// sharedApplied: what the node took of its group was applied once since
 	// it came in step; inStepNoted: the mark for it is written (inService).
 	sharedApplied, inStepNoted atomic.Bool
+	// The loop of the shared things works only when there is something to
+	// do (cluster_state.go syncShared). storeWatch: whether schild.db
+	// changed; sharedDue: a round is asked for; sharedRan, sharedWasSynced:
+	// the last round (under sharedMu); sharedRounds counts the rounds that
+	// worked (tests). stateGen moves with everything that may change the
+	// state this node hashes (cluster_fingerprint.go).
+	storeWatch      *store.Watcher
+	sharedDue       atomic.Bool
+	sharedRan       time.Time
+	sharedWasSynced bool
+	sharedRounds    atomic.Int64
+	stateGen        atomic.Uint64
 	// Keys of the store shared without registration (cluster_generic.go);
 	// guarded by sharedMu, the hooks by their own lock.
 	// sharedRepair: classes whose things are compared with the group's

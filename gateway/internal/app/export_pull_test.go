@@ -1,3 +1,5 @@
+//go:build !release
+
 package app
 
 // DataAsks is how many questions this node asked the members for events,

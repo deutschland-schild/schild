@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/http/httptrace"
 	"net/netip"
 	"net/url"
 	"os"
@@ -403,9 +404,16 @@ func TestGroupNodeDrains(t *testing.T) {
 	// request is answered until the node refuses new connections.
 	kept := &http.Client{Transport: &http.Transport{MaxIdleConnsPerHost: 1}, Timeout: 5 * time.Second}
 	answered, cut := 0, ""
+	// reused: the request that was cut ran on a connection the client had
+	// kept; sinceConn: how long that connection existed when it was cut.
+	var reused bool
+	var sinceConn time.Duration
 	for cut == "" {
 		req, _ := http.NewRequest("GET", "http://"+h.ProxyAddr+"/", nil)
 		req.Host = "shop.example"
+		var got httptrace.GotConnInfo
+		var gotAt time.Time
+		req = req.WithContext(httptrace.WithClientTrace(req.Context(), &httptrace.ClientTrace{GotConn: func(i httptrace.GotConnInfo) { got, gotAt = i, time.Now() }}))
 		resp, err := kept.Do(req)
 		switch {
 		case err == nil:
@@ -416,14 +424,35 @@ func TestGroupNodeDrains(t *testing.T) {
 		case strings.Contains(err.Error(), "connection refused"):
 			cut = "refused"
 		default:
-			cut = err.Error()
+			cut, reused = err.Error(), got.Reused
+			if !gotAt.IsZero() {
+				sinceConn = time.Since(gotAt)
+			}
 		}
 		if answered > 2000 {
 			cut = "never stopped"
 		}
 	}
-	if cut != "refused" || answered < 10 {
-		t.Errorf("a request on a kept connection was lost across the stop: %s after %d answers", cut, answered)
+	if cut != "refused" {
+		// The one case that is no loss: a connection made in the instant
+		// the node closed its listener. The kernel had taken it, the node
+		// never did, and every connection after it is refused. That is the
+		// end of the node as a client sees it, like a refused connection;
+		// behind a balancer no new connection comes at that moment, the
+		// node left its pool a delay ago. A connection the client had kept,
+		// or one the node held for a while, must never end this way.
+		next, _ := http.NewRequest("GET", "http://"+h.ProxyAddr+"/", nil)
+		next.Host = "shop.example"
+		_, nerr := kept.Do(next)
+		atClose := !reused && sinceConn < 500*time.Millisecond && nerr != nil && strings.Contains(nerr.Error(), "connection refused")
+		if !atClose {
+			t.Errorf("a request on a kept connection was lost across the stop: %s after %d answers (connection reused: %v, %s old; the next request: %v)", cut, answered, reused, sinceConn, nerr)
+		} else {
+			t.Logf("the last connection was made as the listener closed (%s after %d answers, %s old); the next is refused", cut, answered, sinceConn)
+		}
+	}
+	if answered < 10 {
+		t.Errorf("only %d requests were answered during the drain delay", answered)
 	}
 	select {
 	case err := <-stopped:

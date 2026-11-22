@@ -71,10 +71,6 @@ const (
 	incidentOverlap = 2 * time.Minute
 )
 
-// startAsBuildBefore makes the nodes started from now on speak as the build
-// before this one (groupData.before). Tests only.
-var startAsBuildBefore bool
-
 // requestsLog is how many of its newest requests a node holds in memory for
 // the others; a cursor further back is answered from its request store on
 // disk. A variable for the tests, which make it small.
@@ -132,13 +128,11 @@ type groupData struct {
 	// may have left their request store (retention, the size cap) before
 	// this node asked for them. An upper bound: numbers have holes.
 	requestsMissed atomic.Uint64
-	// asks counts the questions this node asked the members for events,
-	// incidents and requests (a number for measurements and tests).
-	asks atomic.Int64
-	// before: this node speaks as the build before this one did: it says
-	// no heads, asks for requests as JSON and answers them so. Only tests
-	// set it, to run two builds side by side.
-	before atomic.Bool
+	// What only tests and measurements use, and a release build does not
+	// contain (cluster_data_hooks.go, cluster_data_hooks_release.go): a
+	// counter of the questions asked, and a switch that makes this node
+	// speak as the build before this one did.
+	dataHooks
 }
 
 func (a *App) dataEpoch(ctx context.Context) string {
@@ -151,7 +145,7 @@ func (a *App) dataEpoch(ctx context.Context) string {
 func (a *App) startGroupData(ctx context.Context) {
 	a.reapplyErasures(ctx, 0) // what was erased while this node was away
 	g := &groupData{a: a, heads: newHeadsState(a.started)}
-	g.before.Store(startAsBuildBefore)
+	g.initHooks()
 	a.groupData = g
 	node := a.Cluster
 	// Each answer notes what the asking member has now seen of this node,
@@ -197,7 +191,7 @@ func (a *App) startGroupData(ctx context.Context) {
 			if err := json.Unmarshal(body, &q); err != nil {
 				return nil, err
 			}
-			block := q.Enc == encBlock && !g.before.Load()
+			block := q.Enc == encBlock && !g.asBuildBefore()
 			limit, size := requestsBatch, requestsBytes
 			if block {
 				limit, size = requestsBlockBatch, requestsBlockBytes
@@ -226,7 +220,7 @@ func (a *App) startGroupData(ctx context.Context) {
 			if block {
 				return encodeRequestsBlock(&ans), nil
 			}
-			if g.before.Load() {
+			if g.asBuildBefore() {
 				ans.Heads = nil
 			}
 			return json.Marshal(ans)
@@ -271,12 +265,12 @@ func (g *groupData) pullRequests(ctx context.Context, peer string) (got int, dra
 		epoch, cur := g.cursor(key)
 		after := uint64(max(cur, 0))
 		question := requestsQuestion{After: after, Enc: encBlock, Limit: requestsBlockBatch}
-		if g.before.Load() {
+		if g.asBuildBefore() {
 			question = requestsQuestion{After: after}
 		}
 		q, _ := json.Marshal(question)
 		actx, cancel := context.WithTimeout(ctx, 5*time.Second)
-		g.asks.Add(1)
+		g.countAsk()
 		raw, err := a.Cluster.Ask(actx, peer, askRequests, q)
 		cancel()
 		if err != nil {
@@ -287,7 +281,7 @@ func (g *groupData) pullRequests(ctx context.Context, peer string) (got int, dra
 			return got, false, said, ok
 		}
 		ok = true
-		if ans.Heads != nil && ans.Heads.Boot != "" && len(ans.Heads.Boot) <= 64 && !g.before.Load() {
+		if ans.Heads != nil && ans.Heads.Boot != "" && len(ans.Heads.Boot) <= 64 && !g.asBuildBefore() {
 			said = *ans.Heads
 		}
 		if ans.Epoch != epoch {
@@ -407,7 +401,7 @@ func (g *groupData) pullEvents(ctx context.Context, peer string) (more, ok bool)
 	for batch := 0; batch < 4 && ctx.Err() == nil; batch++ {
 		epoch, after := g.cursor(key)
 		q, _ := json.Marshal(eventsQuestion{After: after})
-		g.asks.Add(1)
+		g.countAsk()
 		raw, err := a.Cluster.Ask(ctx, peer, askEvents, q)
 		if err != nil {
 			return false, false
@@ -464,7 +458,7 @@ func (g *groupData) pullIncidents(ctx context.Context, peer string) bool {
 	key := "incidents:" + peer
 	since, _ := strconv.ParseInt(a.Cluster.Mark(key), 10, 64)
 	q, _ := json.Marshal(incidentsQuestion{SinceMS: since})
-	g.asks.Add(1)
+	g.countAsk()
 	raw, err := a.Cluster.Ask(ctx, peer, askIncidents, q)
 	if err != nil {
 		return false

@@ -293,8 +293,23 @@ func (a *App) startSharedState(ctx context.Context) {
 	}
 	a.Cluster.On(contract.ClassErasure, func(rec *contract.Record) { a.takeErasure(context.Background(), rec) })
 	a.Dashboard.Erased = a.erasedInGroup
-	a.goLoop(ctx, "cluster-state", tick(250*time.Millisecond, func() { a.syncShared(ctx) }))
+	a.storeWatch = a.Store.Watch()
+	a.goLoop(ctx, "cluster-state", func(ctx context.Context) {
+		defer a.storeWatch.Close()
+		tick(sharedLookEvery, func() { a.syncShared(ctx) })(ctx)
+	})
 }
+
+// The loop of the shared things looks four times a second and works only
+// when there is something to do: the store of this node changed (a setting
+// made here, or by a command on the host that writes into the same file), a
+// record of another node arrived, a repair was asked for, the node came in
+// step, or a round left work over. Otherwise it reads nothing; an idle node
+// used to read every shared value four times a second. After sharedSafety
+// it works once all the same, so a signal that was missed cannot stall it.
+const sharedLookEvery = 250 * time.Millisecond
+
+var sharedSafety = 15 * time.Second
 
 // pendingEntry is an entry another node changed, waiting to be put into
 // its value: v nil means it is gone.
@@ -371,9 +386,21 @@ func (a *App) syncShared(ctx context.Context) {
 	if node == nil || node.Removed() || node.Paused() {
 		return
 	}
+	// The look comes before the reading: what is written while this round
+	// reads is seen by the next look.
+	if a.storeWatch == nil || a.storeWatch.Changed(ctx) {
+		a.stateGen.Add(1)
+		a.sharedDue.Store(true)
+	}
 	a.sharedMu.Lock()
 	defer a.sharedMu.Unlock()
 	synced := node.Synced()
+	now := time.Now()
+	if !a.sharedDue.Swap(false) && len(a.sharedPending) == 0 && a.sharedRepair == nil && synced == a.sharedWasSynced && now.Sub(a.sharedRan) < sharedSafety {
+		return
+	}
+	a.sharedRan, a.sharedWasSynced = now, synced
+	a.sharedRounds.Add(1)
 	repair := a.sharedRepair
 	a.sharedRepair = nil
 	for _, t := range a.shared {
@@ -404,6 +431,7 @@ func (a *App) syncThing(ctx context.Context, t sharedThing, synced bool) {
 	node := a.Cluster
 	blob, err := t.read(ctx)
 	if err != nil {
+		a.sharedDue.Store(true) // read again with the next look
 		return
 	}
 	local, err := t.codec.split(blob)
@@ -488,9 +516,11 @@ func (a *App) syncThing(ctx context.Context, t sharedThing, synced bool) {
 			a.log.Info("cluster: took a change of another node", "thing", t.key(), "from", from, "entries", len(pending))
 		}
 		if blob, err = t.read(ctx); err != nil {
+			a.sharedDue.Store(true)
 			return
 		}
 		if local, err = t.codec.split(blob); err != nil {
+			a.sharedDue.Store(true)
 			return
 		}
 		for k := range pending {
@@ -514,6 +544,7 @@ func (a *App) syncThing(ctx context.Context, t sharedThing, synced bool) {
 				continue
 			}
 			if sent >= maxEntryPublishes {
+				a.sharedDue.Store(true) // the rest with the next look
 				break
 			}
 			if len(k) > contract.MaxEntryKey || len(v) > contract.MaxData/4*3-2048 {
@@ -524,6 +555,7 @@ func (a *App) syncThing(ctx context.Context, t sharedThing, synced bool) {
 			}
 			if _, err := node.Publish(t.class, contract.EntryID(t.id, k), contract.NewValue(k, v, name), false, time.Time{}); err != nil {
 				ratelog.Warn(a.log, "cluster: change not handed to the group (it holds on this node)", "thing", t.key(), "err", err)
+				a.sharedDue.Store(true)
 				break
 			}
 			marks[k] = h
@@ -535,11 +567,13 @@ func (a *App) syncThing(ctx context.Context, t sharedThing, synced bool) {
 				continue
 			}
 			if sent >= maxEntryPublishes {
+				a.sharedDue.Store(true)
 				break
 			}
 			// Gone on this node: a tombstone, so it is gone on every node.
 			if _, err := node.Publish(t.class, contract.EntryID(t.id, k), &contract.Value{K: k, Node: name}, true, time.Now().Add(entryTombstoneKeep)); err != nil {
 				ratelog.Warn(a.log, "cluster: removal not handed to the group (it holds on this node)", "thing", t.key(), "err", err)
+				a.sharedDue.Store(true)
 				break
 			}
 			delete(marks, k)
@@ -549,6 +583,11 @@ func (a *App) syncThing(ctx context.Context, t sharedThing, synced bool) {
 	}
 	if changed {
 		a.saveMarks(t)
+		// What this round wrote is looked at once more: the value it stored
+		// may differ from what it was handed (a node validates and may keep
+		// its own), and the state of the node changed for the fingerprint.
+		a.sharedDue.Store(true)
+		a.stateGen.Add(1)
 	}
 }
 

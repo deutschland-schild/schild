@@ -44,6 +44,16 @@ type Node struct {
 	opts Options
 	log  *slog.Logger
 
+	// lookMu guards the look whether the store changed since the roster was
+	// built (reload): the connection kept for it and the counter it read.
+	lookMu   sync.Mutex
+	lookConn *sql.Conn
+	lookVer  int64
+	lookSeen bool
+	// vec: the vector as of the counter vecVer (vectorNow), under lookMu.
+	vec        map[string]uint64
+	vecVer     int64
+	vecKept    bool
 	rmu        sync.RWMutex
 	roster     *contract.Roster
 	rosterMark string
@@ -62,6 +72,10 @@ type Node struct {
 	peers map[string]*peer
 	// edgeSeen: when each edge asked this node last.
 	edgeSeen map[string]time.Time
+	// statusMu: one writer of statusFile at a time.
+	statusMu sync.Mutex
+	// clocks: what the app noted of the members' clocks (NoteClock), under pmu.
+	clocks map[string]statusClock
 
 	cert tls.Certificate
 
@@ -83,6 +97,8 @@ type Node struct {
 	synced  atomic.Bool
 	// heldBack: the last take put records off (see take).
 	heldBack atomic.Bool
+	// storeGen moves when the store of the node changed (watchStore).
+	storeGen atomic.Uint64
 	// retake: a Resync is under way (resync.go).
 	retake atomic.Int32
 	// paused: schild cluster pause (setup.go).
@@ -275,6 +291,7 @@ func (n *Node) State(class string) ([]*contract.Record, error) {
 }
 
 func (n *Node) wake() {
+	n.storeGen.Add(1) // what woke the calls changed the store
 	n.nmu.Lock()
 	close(n.news)
 	n.news = make(chan struct{})
@@ -291,12 +308,33 @@ func (n *Node) waitNews() <-chan struct{} {
 // A command on the host writes them into the same file (schild cluster
 // remove), so the node looks before every decision that rests on the
 // roster: a removed member must not pass for the second until a timer.
+//
+// The look is the change counter of the file (PRAGMA data_version on a
+// connection kept for it): it moves with every commit of any other
+// connection, of this process or of a command on the host, at the moment of
+// the commit. While it stands, nothing was written and the roster holds;
+// the member records are read only when it moved. A node used to query
+// them on every incoming call.
 func (n *Node) reload() error {
+	n.lookMu.Lock()
+	defer n.lookMu.Unlock()
+	ver, looked := n.lookVersion()
+	if looked && n.lookSeen && ver == n.lookVer {
+		n.rmu.RLock()
+		holds := n.roster != nil && n.rosterMark != ""
+		n.rmu.RUnlock()
+		if holds {
+			return nil
+		}
+	}
 	var mark string
 	if err := n.db.QueryRow(`SELECT count(*) || ':' || coalesce(max(hlc), 0) || ':' || coalesce(sum(deleted), 0) FROM records WHERE class = ? AND state = ?`,
 		contract.ClassMembers, stateWinner).Scan(&mark); err != nil {
 		return err
 	}
+	// The counter as read before the records: a commit in between moves it
+	// again and the next look reads the records once more.
+	n.lookVer, n.lookSeen = ver, looked
 	n.rmu.RLock()
 	same := n.roster != nil && mark == n.rosterMark
 	n.rmu.RUnlock()
@@ -311,6 +349,49 @@ func (n *Node) reload() error {
 	n.roster, n.rosterMark = ro, mark
 	n.rmu.Unlock()
 	return nil
+}
+
+// vectorNow is the vector of this node. It is read from the store when the
+// store changed since the last reading and kept otherwise: every sync call
+// a member makes, and every answer the node takes, needs it, and on an idle
+// node that was a query each for a vector that had not moved.
+func (n *Node) vectorNow() (map[string]uint64, error) {
+	n.lookMu.Lock()
+	defer n.lookMu.Unlock()
+	ver, looked := n.lookVersion()
+	if !looked || !n.vecKept || n.vecVer != ver {
+		v, err := n.state.vector()
+		if err != nil {
+			return nil, err
+		}
+		// Kept under the counter read before the vector: a commit in
+		// between moves it and the next call reads again.
+		n.vec, n.vecVer, n.vecKept = v, ver, looked
+	}
+	out := make(map[string]uint64, len(n.vec))
+	for o, seq := range n.vec {
+		out[o] = seq
+	}
+	return out, nil
+}
+
+// lookVersion reads the change counter of the store on the connection kept
+// for it. ok false: it could not be read, and the caller reads the records.
+// Called with lookMu held.
+func (n *Node) lookVersion() (ver int64, ok bool) {
+	if n.lookConn == nil {
+		c, err := n.db.Conn(context.Background())
+		if err != nil {
+			return 0, false
+		}
+		n.lookConn, n.lookSeen = c, false
+	}
+	if err := n.lookConn.QueryRowContext(context.Background(), "PRAGMA data_version").Scan(&ver); err != nil {
+		_ = n.lookConn.Close()
+		n.lookConn = nil
+		return 0, false
+	}
+	return ver, true
 }
 
 // IsMember reports whether id is an active member as this node sees it.
@@ -382,11 +463,24 @@ func (n *Node) take(raws []json.RawMessage, covered map[string]uint64) (applied 
 		}
 		return items[i].rec.HLC < items[j].rec.HLC
 	})
-	have, err := n.vector()
+	have, err := n.vectorNow()
 	if err != nil {
 		return 0, err
 	}
 	again := n.retake.Load() > 0
+	// An answer that brings nothing and covers nothing new, which is what
+	// a member in step answers every few seconds, needs no look at the
+	// roster and no write.
+	if len(items) == 0 && !again {
+		news := false
+		for origin, seq := range covered {
+			news = news || seq > have[origin]
+		}
+		if !news {
+			n.heldBack.Store(false)
+			return 0, nil
+		}
+	}
 	if err := n.reload(); err != nil {
 		return 0, err
 	}
@@ -558,15 +652,18 @@ func (n *Node) watchStore(ctx context.Context) {
 		case <-t.C:
 		}
 		if conn == nil {
+			n.storeGen.Add(1)
 			n.wake()
 			continue
 		}
 		var v int64
 		if err := conn.QueryRowContext(ctx, "PRAGMA data_version").Scan(&v); err != nil {
+			n.storeGen.Add(1)
 			n.wake()
 			continue
 		}
 		if v != last {
+			n.storeGen.Add(1)
 			if last != -1 {
 				n.wake()
 			}
@@ -574,6 +671,12 @@ func (n *Node) watchStore(ctx context.Context) {
 		}
 	}
 }
+
+// StoreGen is a number that moves whenever something was written into the
+// node's store, by the node or by a command on the host, seen within
+// watchEvery. Equal numbers at two moments mean the records the node holds
+// are the same; a caller that computed something from them may keep it.
+func (n *Node) StoreGen() uint64 { return n.storeGen.Load() }
 
 // Run serves the mesh and keeps in step with every member until ctx ends.
 func (n *Node) Run(ctx context.Context) error {
@@ -616,7 +719,9 @@ func (n *Node) Run(ctx context.Context) error {
 			}
 			n.seek(ctx)
 			n.syncPeers(ctx)
-			if sweep++; sweep%2 == 0 {
+			// Every fifth second: `schild cluster status` takes a node for
+			// running while its view is younger than ten.
+			if sweep++; sweep%5 == 0 {
 				n.saveStatus()
 			}
 			if sweep%60 == 0 {

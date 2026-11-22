@@ -28,6 +28,9 @@ type ringStore struct {
 	// hard stop, and reads skip it as they skipped the bucket in progress
 	// before checkpoints existed.
 	hide atomic.Int64
+	// gen counts the buckets written into this store (put): a reader that
+	// kept an answer may keep it while the number stands.
+	gen atomic.Uint64
 }
 
 func tableOf(r cm.Resolution) string {

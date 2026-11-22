@@ -67,6 +67,12 @@ type stateWatch struct {
 	repairing atomic.Bool
 	// Repairs counts the repairs that ran (tests).
 	repairs atomic.Int64
+	// kept: the hashes last computed, and what they were computed from
+	// (stateHashes). computed counts the computations (tests).
+	kept                map[string]string
+	keptGen, keptRecGen uint64
+	keptAt, keptUntil   time.Time
+	computed            atomic.Int64
 }
 
 // canonSum is the SHA-256 of a value in one JSON form, of its bytes when it
@@ -96,20 +102,57 @@ func (a *App) stateMAC(class string, lines []string) string {
 	return hex.EncodeToString(m.Sum(nil)[:8])
 }
 
-// stateHashes computes the hashes of this node.
+// stateHashKept is how long hashes are kept at most while nothing changed.
+var stateHashKept = time.Minute
+
+// stateHashes returns the hashes of this node. They are computed anew only
+// when something changed that they are made of: the store of this node
+// (stateGen, moved by the loop of the shared things on every commit to
+// schild.db), the records the node holds (Node.StoreGen), or the time, when
+// a block that was hashed comes within stateBlockMargin of its end. An idle
+// node used to read and hash every entry every 5 s.
 func (a *App) stateHashes(ctx context.Context, now time.Time) map[string]string {
 	node := a.Cluster
 	if node == nil {
 		return nil
 	}
+	w := &a.stateWatch
+	gen, recGen := a.stateGen.Load(), node.StoreGen()
+	w.mu.Lock()
+	if w.kept != nil && w.keptGen == gen && w.keptRecGen == recGen && now.Before(w.keptUntil) && !now.Before(w.keptAt) {
+		out := w.kept
+		w.mu.Unlock()
+		return out
+	}
+	w.mu.Unlock()
+	out, until := a.computeStateHashes(ctx, now)
+	w.computed.Add(1)
+	w.mu.Lock()
+	// Kept under the numbers read before the computing: a write in between
+	// moves them, and the next call computes again.
+	w.kept, w.keptGen, w.keptRecGen, w.keptAt, w.keptUntil = out, gen, recGen, now, until
+	w.mu.Unlock()
+	return out
+}
+
+// computeStateHashes hashes the state now. until is when the hashes stop
+// to hold although nothing was written: a hashed block comes within the
+// margin of its end, or stateHashKept passed.
+func (a *App) computeStateHashes(ctx context.Context, now time.Time) (hashes map[string]string, until time.Time) {
+	node := a.Cluster
+	until = now.Add(stateHashKept)
 	lines := map[string][]string{}
 	if recs, err := node.State(contract.ClassBlocks); err == nil {
 		for _, rec := range recs {
 			if rec.Deleted {
 				continue
 			}
-			if until, err := time.Parse("2006-01-02T15:04:05Z", rec.Expires); err != nil || !until.After(now.Add(stateBlockMargin)) {
+			ends, err := time.Parse("2006-01-02T15:04:05Z", rec.Expires)
+			if err != nil || !ends.After(now.Add(stateBlockMargin)) {
 				continue
+			}
+			if leaves := ends.Add(-stateBlockMargin); leaves.Before(until) {
+				until = leaves
 			}
 			b, err := contract.DecodeBlock(rec)
 			if err != nil {
@@ -138,7 +181,7 @@ func (a *App) stateHashes(ctx context.Context, now time.Time) map[string]string 
 	for _, class := range stateClasses {
 		out[class] = a.stateMAC(class, lines[class])
 	}
-	return out
+	return out, until
 }
 
 // cleanState bounds the hashes another node told.

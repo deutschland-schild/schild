@@ -576,6 +576,12 @@ func topList(t *cm.BucketTop, by string) []cm.TopEntry {
 
 // ---------------------------------------------------------------- buckets
 
+// OwnGen is a number that moves whenever this gateway wrote a bucket of its
+// own into its store. While it stands, Buckets answers the same question
+// with the same buckets (a caller may keep the answer; what the retention
+// deletes meanwhile is old and never asked for anew).
+func (m *Monitor) OwnGen() uint64 { return m.store.gen.Load() }
+
 // Buckets answers listMetricBuckets: oldest first by cursor.
 func (m *Monitor) Buckets(res string, from time.Time, cursor string, limit int, now time.Time) (cm.MetricBucketPage, error) {
 	var ring cm.Ring

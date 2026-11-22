@@ -14,6 +14,8 @@ import (
 	"log/slog"
 	"net"
 	"net/http"
+	"os"
+	"path/filepath"
 	"slices"
 	"sort"
 	"strings"
@@ -152,7 +154,12 @@ func (n *Node) serveSync(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "paused", http.StatusServiceUnavailable)
 			return
 		}
-		recs, covered, more, err := n.after(r.Context(), req.Vector, maxBatch, class)
+		mine, err := n.vectorNow()
+		if err != nil {
+			http.Error(w, "store", http.StatusInternalServerError)
+			return
+		}
+		recs, covered, more, err := n.afterOf(r.Context(), mine, req.Vector, maxBatch, class)
 		if err != nil {
 			http.Error(w, "store", http.StatusInternalServerError)
 			return
@@ -177,7 +184,7 @@ func (n *Node) serveSync(w http.ResponseWriter, r *http.Request) {
 				continue
 			}
 		}
-		vec, _ := n.vector()
+		vec, _ := n.vectorNow()
 		if recs == nil {
 			recs = []json.RawMessage{}
 		}
@@ -545,7 +552,7 @@ func (n *Node) runPeer(ctx context.Context, p *peer, key ed25519.PublicKey) {
 			}
 			continue
 		}
-		vec, err := n.vector()
+		vec, err := n.vectorNow()
 		if err != nil {
 			if !pause(time.Second) {
 				return
@@ -598,51 +605,80 @@ func (n *Node) runPeer(ctx context.Context, p *peer, key ed25519.PublicKey) {
 	}
 }
 
+// statusFile is where a running node writes what it sees of its peers, for
+// `schild cluster status`, which reads the directory and not the process.
+// A file of its own and not rows of the store: the view is written every
+// two seconds, and a commit to the store wakes every sync call that waits
+// and makes the node look at its member records again. An idle node used
+// to do that every two seconds for nothing but this heartbeat.
+const statusFile = "status.json"
+
+// statusView is the content of statusFile.
+type statusView struct {
+	// At is when the node wrote it, unix ms: the sign that it runs.
+	At       int64                 `json:"at_ms"`
+	Peers    map[string]statusPeer `json:"peers"`
+	Counters map[string]uint64     `json:"counters"`
+	// Clocks: how far the clock of a member is off this node's (NoteClock).
+	Clocks map[string]statusClock `json:"clocks,omitempty"`
+}
+
+type statusPeer struct {
+	OutOK  int64  `json:"out_ok_ms"`
+	InOK   int64  `json:"in_ok_ms"`
+	Error  string `json:"error,omitempty"`
+	Behind uint64 `json:"behind"`
+}
+
+type statusClock struct {
+	SkewMS int64 `json:"skew_ms"`
+	At     int64 `json:"at_ms"`
+}
+
 // saveStatus writes what the node sees of its peers, for the status command.
 func (n *Node) saveStatus() {
+	v := statusView{At: n.now().UnixMilli(), Peers: map[string]statusPeer{}, Clocks: map[string]statusClock{},
+		Counters: map[string]uint64{"applied": n.Applied.Load(), "rejected": n.Rejected.Load(), "deferred": n.Deferred.Load(), "unread": n.Unread.Load()}}
 	n.pmu.Lock()
 	ps := make([]*peer, 0, len(n.peers))
 	for _, p := range n.peers {
 		ps = append(ps, p)
 	}
-	n.pmu.Unlock()
-	edges := map[string]time.Time{}
-	n.pmu.Lock()
+	// An edge calls and is never called: only when it asked last is known.
 	for id, at := range n.edgeSeen {
-		edges[id] = at
+		v.Peers[id] = statusPeer{InOK: ms(at)}
+	}
+	for id, c := range n.clocks {
+		v.Clocks[id] = c
 	}
 	n.pmu.Unlock()
-	n.wmu.Lock()
-	defer n.wmu.Unlock()
-	tx, err := n.db.Begin()
+	for _, p := range ps {
+		p.mu.Lock()
+		v.Peers[p.id] = statusPeer{OutOK: ms(p.outOK), InOK: ms(p.inOK), Error: p.err, Behind: p.behind}
+		p.mu.Unlock()
+	}
+	raw, err := json.Marshal(v)
 	if err != nil {
 		return
 	}
-	defer tx.Rollback()
-	if _, err := tx.Exec(`DELETE FROM peers`); err != nil {
+	// Written aside and moved into place: a reader never sees half a file.
+	n.statusMu.Lock()
+	defer n.statusMu.Unlock()
+	path := filepath.Join(n.dir, statusFile)
+	tmp := path + ".tmp"
+	if err := os.WriteFile(tmp, raw, 0o600); err != nil {
 		return
 	}
-	// An edge calls and is never called: only when it asked last is known.
-	for id, at := range edges {
-		if _, err := tx.Exec(`INSERT INTO peers(node, out_ok_ms, in_ok_ms, error, behind) VALUES(?, 0, ?, '', 0)`, id, ms(at)); err != nil {
-			return
-		}
+	_ = os.Rename(tmp, path)
+}
+
+// readStatusView reads statusFile of a cluster directory; ok false: none.
+func readStatusView(dir string) (v statusView, ok bool) {
+	raw, err := os.ReadFile(filepath.Join(dir, statusFile))
+	if err != nil || len(raw) > 1<<20 || json.Unmarshal(raw, &v) != nil {
+		return statusView{}, false
 	}
-	for _, p := range ps {
-		p.mu.Lock()
-		_, err := tx.Exec(`INSERT INTO peers(node, out_ok_ms, in_ok_ms, error, behind) VALUES(?, ?, ?, ?, ?)`, p.id, ms(p.outOK), ms(p.inOK), p.err, int64(p.behind))
-		p.mu.Unlock()
-		if err != nil {
-			return
-		}
-	}
-	for k, v := range map[string]uint64{"applied": n.Applied.Load(), "rejected": n.Rejected.Load(), "deferred": n.Deferred.Load(), "unread": n.Unread.Load()} {
-		if _, err := tx.Exec(`INSERT INTO counters(k, n) VALUES(?, ?) ON CONFLICT(k) DO UPDATE SET n = excluded.n`, k, int64(v)); err != nil {
-			return
-		}
-	}
-	_ = setMeta(tx, "status_ms", []byte(fmt.Sprint(n.now().UnixMilli())))
-	_ = tx.Commit()
+	return v, true
 }
 
 func ms(t time.Time) int64 {

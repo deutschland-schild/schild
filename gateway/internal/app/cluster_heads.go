@@ -149,7 +149,7 @@ func safetyOf(peer string) time.Duration {
 // holds now.
 func (g *groupData) tellHeadsRound(ctx context.Context) {
 	node := g.a.Cluster
-	if node.Removed() || node.Paused() || g.before.Load() {
+	if node.Removed() || node.Paused() || g.asBuildBefore() {
 		return
 	}
 	cur := g.ownHeads()
@@ -190,7 +190,7 @@ func (g *groupData) tellHeadsRound(ctx context.Context) {
 
 // takeHeads keeps the word of a member and wakes the pull loop for it.
 func (g *groupData) takeHeads(from string, hd heads) {
-	if hd.Boot == "" || len(hd.Boot) > 64 || g.before.Load() {
+	if hd.Boot == "" || len(hd.Boot) > 64 || g.asBuildBefore() {
 		return
 	}
 	h := g.heads

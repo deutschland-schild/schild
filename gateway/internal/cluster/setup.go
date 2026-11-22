@@ -348,8 +348,24 @@ func (n *Node) NoteClockOut(out bool) error {
 
 // NoteClock keeps how far the clock of a member is off this node's, for
 // `schild cluster status`, which reads the store and not the process.
+//
+// Kept in memory and written with the view of the peers (saveStatus), not
+// into the store: a note per member and minute would be a commit each.
 func (n *Node) NoteClock(member string, skew time.Duration) error {
-	return n.SetMark(markClock+member, fmt.Sprintf("%d:%d", skew.Milliseconds(), n.now().UnixMilli()))
+	n.pmu.Lock()
+	if n.clocks == nil {
+		n.clocks = map[string]statusClock{}
+	}
+	if _, known := n.clocks[member]; !known && len(n.clocks) >= 4*(MaxGateways+MaxEdges) {
+		n.pmu.Unlock()
+		return errors.New("cluster: too many clock notes")
+	}
+	n.clocks[member] = statusClock{SkewMS: skew.Milliseconds(), At: n.now().UnixMilli()}
+	n.pmu.Unlock()
+	// Written at once: the command line shows it without waiting for the
+	// next view of the peers.
+	n.saveStatus()
+	return nil
 }
 
 // Status is what `schild cluster status` prints.
@@ -392,20 +408,30 @@ func ReadStatus(dir string, now func() time.Time) (*Status, error) {
 		err             string
 	}
 	peers := map[string]row{}
-	rows, err := s.db.Query(`SELECT node, out_ok_ms, in_ok_ms, error, behind FROM peers`)
-	if err != nil {
-		return nil, err
-	}
-	for rows.Next() {
-		var id string
-		var r row
-		if err := rows.Scan(&id, &r.out, &r.in, &r.err, &r.behind); err != nil {
-			rows.Close()
+	// What the running node wrote last (saveStatus). A node of an earlier
+	// build wrote the same into tables of the store; without the file they
+	// are read, so a status right after an update still shows the last view.
+	view, fromFile := readStatusView(dir)
+	if fromFile {
+		for id, p := range view.Peers {
+			peers[id] = row{out: p.OutOK, in: p.InOK, behind: int64(p.Behind), err: p.Error}
+		}
+	} else {
+		rows, err := s.db.Query(`SELECT node, out_ok_ms, in_ok_ms, error, behind FROM peers`)
+		if err != nil {
 			return nil, err
 		}
-		peers[id] = r
+		for rows.Next() {
+			var id string
+			var r row
+			if err := rows.Scan(&id, &r.out, &r.in, &r.err, &r.behind); err != nil {
+				rows.Close()
+				return nil, err
+			}
+			peers[id] = r
+		}
+		rows.Close()
 	}
-	rows.Close()
 	at := func(ms int64) time.Time {
 		if ms == 0 {
 			return time.Time{}
@@ -415,7 +441,10 @@ func ReadStatus(dir string, now func() time.Time) (*Status, error) {
 	for _, e := range ro.Members() {
 		p := peers[e.ID]
 		m := MemberStatus{Entry: e, Self: e.ID == s.id, OutOK: at(p.out), InOK: at(p.in), Error: p.err, Behind: uint64(p.behind)}
-		if v, err := s.meta("mark:" + markClock + e.ID); err == nil {
+		if c, ok := view.Clocks[e.ID]; ok {
+			m.Clock, m.ClockAt = time.Duration(c.SkewMS)*time.Millisecond, at(c.At)
+		} else if v, err := s.meta("mark:" + markClock + e.ID); err == nil {
+			// The note of an earlier build.
 			var skew, noted int64
 			if _, err := fmt.Sscanf(string(v), "%d:%d", &skew, &noted); err == nil {
 				m.Clock, m.ClockAt = time.Duration(skew)*time.Millisecond, at(noted)
@@ -423,7 +452,8 @@ func ReadStatus(dir string, now func() time.Time) (*Status, error) {
 		}
 		st.Members = append(st.Members, m)
 	}
-	if rows, err = s.db.Query(`SELECT class, count(*) FROM records WHERE state = ? AND deleted = 0 GROUP BY class`, stateWinner); err != nil {
+	rows, err := s.db.Query(`SELECT class, count(*) FROM records WHERE state = ? AND deleted = 0 GROUP BY class`, stateWinner)
+	if err != nil {
 		return nil, err
 	}
 	for rows.Next() {
@@ -434,17 +464,23 @@ func ReadStatus(dir string, now func() time.Time) (*Status, error) {
 		}
 	}
 	rows.Close()
-	if rows, err = s.db.Query(`SELECT k, n FROM counters`); err != nil {
-		return nil, err
-	}
-	for rows.Next() {
-		var k string
-		var n int64
-		if err := rows.Scan(&k, &n); err == nil {
-			st.Counters[k] = uint64(n)
+	if fromFile {
+		for k, n := range view.Counters {
+			st.Counters[k] = n
 		}
+	} else {
+		if rows, err = s.db.Query(`SELECT k, n FROM counters`); err != nil {
+			return nil, err
+		}
+		for rows.Next() {
+			var k string
+			var n int64
+			if err := rows.Scan(&k, &n); err == nil {
+				st.Counters[k] = uint64(n)
+			}
+		}
+		rows.Close()
 	}
-	rows.Close()
 	_ = s.db.QueryRow(`SELECT count(*) FROM replaced`).Scan(&st.Replaced)
 	if v, err := s.meta(metaPaused); err == nil {
 		st.Paused = string(v)
@@ -454,6 +490,10 @@ func ReadStatus(dir string, now func() time.Time) (*Status, error) {
 		if _, err := fmt.Sscanf(string(v), "%d", &noted); err == nil && noted > 0 {
 			st.ClockOut = time.UnixMilli(noted).UTC()
 		}
+	}
+	if fromFile {
+		st.Seen = at(view.At)
+		return st, nil
 	}
 	var seen int64
 	if err := s.db.QueryRow(`SELECT CAST(v AS INTEGER) FROM meta WHERE k = 'status_ms'`).Scan(&seen); err == nil {

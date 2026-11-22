@@ -119,7 +119,7 @@ func openState(dir string, create bool, now func() time.Time) (*state, error) {
 	if err != nil {
 		return nil, err
 	}
-	db.SetMaxOpenConns(5) // one is kept by watchStore
+	db.SetMaxOpenConns(6) // one is kept by watchStore, one by the look of the roster (reload)
 	if _, err := db.Exec(schema); err != nil {
 		db.Close()
 		return nil, fmt.Errorf("cluster: %s: %w", path, err)
@@ -339,6 +339,12 @@ func (s *state) after(ctx context.Context, peer map[string]uint64, limit int, cl
 	if err != nil {
 		return nil, nil, false, err
 	}
+	return s.afterOf(ctx, mine, peer, limit, class)
+}
+
+// afterOf is after with the vector of this node handed in (a running node
+// keeps it while its store stands, Node.vectorNow).
+func (s *state) afterOf(ctx context.Context, mine, peer map[string]uint64, limit int, class string) (recs []json.RawMessage, covered map[string]uint64, more bool, err error) {
 	covered = map[string]uint64{}
 	size := 0
 	for origin, seq := range mine {

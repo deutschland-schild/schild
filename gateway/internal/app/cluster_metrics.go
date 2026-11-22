@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"strconv"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	contract "github.com/deutschland-schild/schild/contract/cluster"
@@ -66,6 +67,95 @@ type groupMetrics struct {
 	// changed.
 	mu   sync.Mutex
 	seen map[string][sha256.Size]byte
+	// cur is the cursor per member and ring, saved when it was last written
+	// into the node's store (cursor, setCursor).
+	cur   map[string]int64
+	saved map[string]time.Time
+	// answers keeps what this node answered while its own store stands
+	// (answer); answersGen is the Monitor.OwnGen they belong to.
+	amu        sync.Mutex
+	answers    map[metricsQuestion]keptAnswer
+	answersGen uint64
+	// answerHits counts the answers given from what was kept (tests).
+	answerHits atomic.Int64
+}
+
+type keptAnswer struct {
+	raw []byte
+	at  time.Time
+}
+
+const (
+	// metricsCursorSaved is how often a cursor is written into the node's
+	// store. In between it lives in memory: a cursor moves every ten
+	// seconds per member, and each write into the store wakes every sync
+	// call of the node that waits. After a restart a node asks again for
+	// at most this much, and stores what it already holds a second time
+	// over itself.
+	metricsCursorSaved = 10 * time.Minute
+	// metricsAnswerKept bounds how long an answer is kept although the own
+	// store did not change, and metricsAnswersKept how many.
+	metricsAnswerKept  = 30 * time.Second
+	metricsAnswersKept = 64
+)
+
+// cursor is the start of the newest bucket stored of a member's ring.
+func (g *groupMetrics) cursor(key string) int64 {
+	g.mu.Lock()
+	defer g.mu.Unlock()
+	if v, ok := g.cur[key]; ok {
+		return v
+	}
+	v, _ := strconv.ParseInt(g.a.Cluster.Mark(key), 10, 64)
+	g.cur[key] = v
+	if v > 0 {
+		// What the store holds counts as saved now; a cursor the store
+		// does not hold yet is saved with its first step.
+		g.saved[key] = time.Now()
+	}
+	return v
+}
+
+func (g *groupMetrics) setCursor(key string, v int64, now time.Time) {
+	g.mu.Lock()
+	g.cur[key] = v
+	save := now.Sub(g.saved[key]) >= metricsCursorSaved
+	if save {
+		g.saved[key] = now
+	}
+	g.mu.Unlock()
+	if save {
+		_ = g.a.Cluster.SetMark(key, strconv.FormatInt(v, 10))
+	}
+}
+
+// answer keeps what this node answers to a question while its own buckets
+// stand: every member asks the same question within the same ten seconds,
+// and each answer used to read the store.
+func (g *groupMetrics) answer(q metricsQuestion, now time.Time, make func() ([]byte, error)) ([]byte, error) {
+	gen := g.a.Monitor.OwnGen()
+	g.amu.Lock()
+	if g.answersGen != gen || g.answers == nil {
+		g.answers, g.answersGen = map[metricsQuestion]keptAnswer{}, gen
+	}
+	if k, ok := g.answers[q]; ok && now.Sub(k.at) < metricsAnswerKept && !now.Before(k.at) {
+		g.amu.Unlock()
+		g.answerHits.Add(1)
+		return k.raw, nil
+	}
+	g.amu.Unlock()
+	raw, err := make()
+	if err != nil {
+		return nil, err
+	}
+	g.amu.Lock()
+	// Kept under the number read before the store was read: a bucket
+	// written in between moves it and the answer is dropped.
+	if g.answersGen == gen && len(g.answers) < metricsAnswersKept {
+		g.answers[q] = keptAnswer{raw: raw, at: now}
+	}
+	g.amu.Unlock()
+	return raw, nil
 }
 
 // startGroupMetrics answers the members' questions for this node's buckets
@@ -76,7 +166,7 @@ func (a *App) startGroupMetrics(ctx context.Context) {
 	}
 	node := a.Cluster
 	a.Monitor.SetSelf(node.ID(), node.Name())
-	g := &groupMetrics{a: a, seen: map[string][sha256.Size]byte{}}
+	g := &groupMetrics{a: a, seen: map[string][sha256.Size]byte{}, cur: map[string]int64{}, saved: map[string]time.Time{}}
 	a.groupMetrics = g
 	g.openNodes()
 	node.OnAsk(askMetrics, func(_ string, body []byte) ([]byte, error) {
@@ -84,6 +174,14 @@ func (a *App) startGroupMetrics(ctx context.Context) {
 		if err := json.Unmarshal(body, &q); err != nil {
 			return nil, err
 		}
+		return g.answer(q, time.Now(), func() ([]byte, error) { return a.metricsAnswer(q) })
+	})
+	a.goLoop(ctx, "cluster-metrics", tick(metricsEvery, func() { g.round(ctx) }))
+}
+
+// metricsAnswer reads this node's own buckets for a member's question.
+func (a *App) metricsAnswer(q metricsQuestion) ([]byte, error) {
+	{
 		var from time.Time
 		if q.From > 0 {
 			from = time.Unix(q.From, 0)
@@ -126,8 +224,7 @@ func (a *App) startGroupMetrics(ctx context.Context) {
 			}
 		}
 		return json.Marshal(ans)
-	})
-	a.goLoop(ctx, "cluster-metrics", tick(metricsEvery, func() { g.round(ctx) }))
+	}
 }
 
 // round asks every member this node reaches for its new buckets.
@@ -180,7 +277,7 @@ func (g *groupMetrics) pull(ctx context.Context, peer string, res cm.Resolution)
 	step := stepOf(res)
 	for round := 0; round < metricsRounds && ctx.Err() == nil; round++ {
 		now := time.Now()
-		cur, _ := strconv.ParseInt(a.Cluster.Mark(key), 10, 64)
+		cur := g.cursor(key)
 		var from int64
 		if cur > 0 {
 			from = cur + int64(step/time.Second)
@@ -243,7 +340,7 @@ func (g *groupMetrics) pull(ctx context.Context, peer string, res cm.Resolution)
 			next = max(next, ans.Next-int64(step/time.Second))
 		}
 		if limit := now.Add(2 * time.Minute).Unix(); next > cur && next <= limit {
-			_ = a.Cluster.SetMark(key, strconv.FormatInt(next, 10))
+			g.setCursor(key, next, now)
 		} else if ans.More {
 			return // no progress: ask again in the next round
 		}
