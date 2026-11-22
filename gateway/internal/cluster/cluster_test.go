@@ -18,6 +18,7 @@ import (
 	"time"
 
 	contract "github.com/deutschland-schild/schild/contract/cluster"
+	"github.com/deutschland-schild/schild/gateway/internal/jobs"
 	"github.com/deutschland-schild/schild/gateway/internal/testport"
 )
 
@@ -726,12 +727,15 @@ func TestJobRunsOncePerIntervalForTheGroup(t *testing.T) {
 	defer cancel()
 	const every = 6 * time.Second
 	start := func(tn *testNode, n *Node) {
-		go n.Every(ctx, "test_job", every, func(context.Context) error {
-			mu.Lock()
-			runs[tn.name]++
-			mu.Unlock()
-			return nil
-		})
+		st, lead := n.Jobs()
+		go jobs.Loop(ctx, st, lead, jobs.Task{Name: "test_job", Log: quiet(),
+			Schedule: func() jobs.Schedule { return jobs.Schedule{Every: every} },
+			Run: func(context.Context, *jobs.Run) error {
+				mu.Lock()
+				runs[tn.name]++
+				mu.Unlock()
+				return nil
+			}})
 	}
 	for _, tn := range nodes {
 		start(tn, tn.node)
