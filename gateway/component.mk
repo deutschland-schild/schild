@@ -42,8 +42,9 @@ gateway-test:
 
 gateway-race:
 	# The tests of a group of gateways start several gateways each; under the race detector on a hosted
-	# runner the package internal/app needs more than go test's ten minutes.
-	cd gateway && CGO_ENABLED=1 $(GO) test -race -timeout 45m $(GO_TEST_FLAGS) ./...
+	# runner the package internal/app needs about ten minutes, which is go test's limit. 25 minutes stay
+	# below the limit of the CI job (go-race, 30 minutes).
+	cd gateway && CGO_ENABLED=1 $(GO) test -race -timeout 25m $(GO_TEST_FLAGS) ./...
 
 gateway-bench:
 	cd gateway && $(GO) test -run '^$$' -bench . -benchtime 3s ./internal/gate ./internal/waf ./internal/caddymod
