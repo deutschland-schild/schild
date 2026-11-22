@@ -77,13 +77,13 @@ const nav = computed<NavGroup[]>(() => {
   const d = draft.value
   if (d?.draftNav.value)
     return d.buildDraftNav({ websites: d.withDemoSites(websites.value), servers: servers.value, site: site.value, subpage: subpage.value, serverPage: route.path.startsWith('/server') ? String(route.name) : '', path: route.path })
-  const groups = buildNav({ site: held.value, server: heldServer.value, path: route.path })
+  const groups = buildNav({ site: held.value, server: heldServer.value, path: route.path, group: group.value?.mode === 'group' })
   return d ? [d.draftGroup(), ...groups] : groups
 })
 /** A page of the open (or last) website, else of the top website; without any website the start page. */
 const sitePage = (sub: string) => websitePath(site.value || last.value || websites.value[0]?.id || '', sub)
 
-const SERVER_TABS: Record<string, string> = { 'server-load': 'Auslastung', 'server-check': 'Server-Check' }
+const SERVER_TABS: Record<string, string> = { 'server-load': 'Auslastung', 'server-check': 'Server-Check', 'server-group': 'Gruppe' }
 const breadcrumbs = computed<BreadcrumbEntry[] | undefined>(() => {
   // An agent's Server-Check carries its own name; the gateway its node name.
   const agent = heldServer.value && heldServer.value !== 'local' ? servers.value.find(s => s.id === heldServer.value) : undefined

@@ -198,6 +198,17 @@ Die Ausgabe nennt jedes Mitglied mit Rolle, Adresse, Zustand und letztem Kontakt
 
 Dasselbe zeigt das Dashboard. Oben auf jeder Seite steht, ob der Server allein läuft („Einzelner Server“) oder Teil einer Gruppe ist („Gruppe · 3 Server“). Die Karte „Gruppe“ auf der Server-Seite nennt den Zustand des Abgleichs und jedes Gateway mit letztem Kontakt, Rückstand, Version und Konfiguration. Balancer-VMs stehen darunter für sich.
 
+Ein Klick auf diese Anzeige öffnet die Seite „Gruppe“. Dort steht jedes Gateway als Karte:
+
+- **Nimmt Anfragen an, wird angehalten oder ist noch nicht bereit.** Das ist die Antwort, die der Server dem Loadbalancer auf `/.schild/readyz` gibt.
+- **Anfragen pro Sekunde, Anteil gestoppter Anfragen und Antwortzeit** der letzten Minute.
+- **CPU, Arbeitsspeicher und Festplatte.** Ab 80 % wird der Balken orange, ab 95 % rot.
+- **Start, letzter Kontakt, Rückstand, Version und Konfiguration.**
+
+Darüber stehen die Summen: wie viele Server bereit sind, wie viele Anfragen die Gruppe pro Sekunde bedient, wie viele Sperren laufen und wie viele Balancer-VMs dazugehören.
+
+Jeder Server meldet diese Zahlen alle fünf Sekunden an die anderen. Die Seite zeigt, was dieser Server zuletzt gehört hat, und fragt dafür keinen anderen. Erreicht er einen Server nicht, steht dort „Nicht erreichbar“ ohne Zahlen. Ob jener Server trotzdem Besucher:innen bedient, ist von hier aus nicht zu sehen. Die Zahlen dienen nur der Anzeige, kein Server entscheidet danach.
+
 | Anzeige | Bedeutung |
 | --- | --- |
 | Abgleich aktiv | Der Server erreicht alle anderen Gateways. |

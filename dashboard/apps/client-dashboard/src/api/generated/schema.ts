@@ -1976,6 +1976,27 @@ export interface components {
             error?: string;
             /** @description Edges only: clients its firewall held at its last call to this node. */
             blocks_held?: number;
+            vitals?: components["schemas"]["GroupVitals"];
+        };
+        /** @description Gateways only: how the member said it is doing, as it told this node within the last 20 s (this node: read now). Absent when it said nothing lately or runs a build that tells no vitals. A value outside its range is null. Shown, never decided on. */
+        GroupVitals: {
+            /** @description When this node was told. */
+            at: components["schemas"]["Timestamp"];
+            /**
+             * @description What the member answers the balancer on /.schild/readyz. ready: 200. draining: it leaves traffic (`schild cluster drain` or a stop). not_ready: it has not taken the state of the group yet, or its rules are not loaded.
+             * @enum {string}
+             */
+            service: "ready" | "draining" | "not_ready";
+            /** @description Start of the member's schild process. */
+            started_at?: components["schemas"]["Timestamp"];
+            /** @description Requests per second over its last 60 s. */
+            requests_per_s: number;
+            stopped_share: components["schemas"]["NullableRatio"];
+            latency_p95_ms: components["schemas"]["NullableMs"];
+            cpu_usage: components["schemas"]["NullableRatio"];
+            memory_used_ratio: components["schemas"]["NullableRatio"];
+            /** @description The fullest shown mount. */
+            disk_used_ratio: components["schemas"]["NullableRatio"];
         };
         /** @description `local` is the gateway itself; agents have their agent id. */
         HostId: string;

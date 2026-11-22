@@ -57,3 +57,9 @@ func (a *App) AgeHumanCheckKeys(ctx context.Context, at time.Time) error {
 	a.HumanCheck.Store(next)
 	return nil
 }
+
+// CleanVitals bounds the vitals another node told (cluster_status.go).
+var CleanVitals = cleanVitals
+
+// LeaveTraffic marks the node as draining, as the first step of a stop does.
+func (a *App) LeaveTraffic() { a.setDraining() }

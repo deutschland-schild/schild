@@ -82,6 +82,62 @@ export const CONFIG_STATE: Record<NonNullable<GroupMember['config']>, string> = 
   unknown: 'unbekannt',
 }
 
+export interface NodeView {
+  tone: StatusTone
+  /** Whether the server takes traffic, in two or three words. */
+  label: string
+  /** One sentence on what that means. */
+  text: string
+}
+
+/**
+ * One gateway on the page of the group: whether it takes traffic. What this server last heard of it comes
+ * first (a server that is not reached may still serve visitors), then what the server said of itself.
+ */
+export function nodeView(m: GroupMember): NodeView {
+  if (m.state === 'unreachable' || m.state === 'no_contact') {
+    return { tone: 'warning', label: m.state === 'unreachable' ? 'Nicht erreichbar' : 'Kein Kontakt', text: 'Dieser Server erreicht ihn gerade nicht. Ob er Besucher:innen bedient, ist von hier aus nicht zu sehen.' }
+  }
+  switch (m.vitals?.service) {
+    case 'ready':
+      return { tone: 'success', label: 'Nimmt Anfragen an', text: 'Er meldet sich dem Loadbalancer als bereit.' }
+    case 'draining':
+      return { tone: 'warning', label: 'Wird angehalten', text: 'Er meldet sich beim Loadbalancer ab und bedient noch seine offenen Verbindungen.' }
+    case 'not_ready':
+      return { tone: 'warning', label: 'Noch nicht bereit', text: 'Er holt den Stand der Gruppe oder lädt seine Regeln. Der Loadbalancer schickt ihm bis dahin nichts.' }
+    default:
+      return { tone: 'neutral', label: 'Erreichbar', text: 'Er hat noch nicht gemeldet, wie es ihm geht. Eine ältere Version meldet das nicht.' }
+  }
+}
+
+export interface GroupTotals {
+  gateways: number
+  /** Gateways that said they are ready for the balancer, this one included. */
+  ready: number
+  /** Gateways this server does not reach. */
+  away: number
+  /** Sum of what the gateways told, null when none told anything. */
+  requestsPerS: number | null
+  /** Gateways whose numbers are in the sum. */
+  reporting: number
+}
+
+/** The numbers above the servers: how many take traffic and what they serve together. */
+export function groupTotals(s: GroupStatus): GroupTotals {
+  const all = gateways(s)
+  const told = all.filter(m => m.vitals && m.state !== 'unreachable' && m.state !== 'no_contact')
+  return {
+    gateways: all.length,
+    ready: told.filter(m => m.vitals?.service === 'ready').length,
+    away: all.filter(m => m.state === 'unreachable' || m.state === 'no_contact').length,
+    requestsPerS: told.length ? told.reduce((sum, m) => sum + (m.vitals?.requests_per_s ?? 0), 0) : null,
+    reporting: told.length,
+  }
+}
+
+/** Tone of a load bar: calm up to 80 %, a warning above, red from 95 %. */
+export const loadTone = (ratio: number | null | undefined): StatusTone => ratio == null ? 'neutral' : ratio >= 0.95 ? 'danger' : ratio >= 0.8 ? 'warning' : 'success'
+
 /** The hint on config drift; null when no gateway differs. */
 export function configHint(s: GroupStatus): string | null {
   const names = s.config?.differing ?? []

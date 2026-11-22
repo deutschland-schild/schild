@@ -280,7 +280,7 @@ func (a *App) leaveTraffic() {
 	if !cfg.Cluster.Enabled || a.opts.NoListeners {
 		return
 	}
-	a.draining.Store(true)
+	a.setDraining()
 	d := cfg.Cluster.Drain.Delay()
 	if d <= 0 {
 		return

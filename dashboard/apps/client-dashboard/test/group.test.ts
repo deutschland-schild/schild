@@ -1,6 +1,6 @@
 import type { GroupStatus } from '../src/api/group'
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest'
-import { blockNodeText, configHint, erasureNodesText, modeView, stateView } from '../src/lib/group'
+import { blockNodeText, configHint, erasureNodesText, groupTotals, loadTone, modeView, nodeView, stateView } from '../src/lib/group'
 import groupFixture from '../../../../contracts/api/fixtures/client/getGroupStatus.json'
 import noGroupFixture from '../../../../contracts/api/fixtures/client/getGroupStatus.no-group.json'
 import pausedFixture from '../../../../contracts/api/fixtures/client/getGroupStatus.paused.json'
@@ -19,6 +19,29 @@ afterAll(() => mock.server.close())
 const all = <T extends Element = HTMLElement>(sel: string) => [...document.querySelectorAll<T>(sel)]
 const group = groupFixture as GroupStatus
 const withState = (state: GroupStatus['state']): GroupStatus => ({ ...group, state })
+
+describe('the servers of a group on the page Gruppe (MVP-27)', () => {
+  const byName = (name: string) => group.members!.find(m => m.name === name)!
+  it('says whether a server takes traffic: what this server reaches first, then what the server said', () => {
+    expect(nodeView(byName('web-1'))).toMatchObject({ tone: 'success', label: 'Nimmt Anfragen an' })
+    expect(nodeView(byName('web-3'))).toMatchObject({ tone: 'warning', label: 'Nicht erreichbar' })
+    // Old vitals of a server that is no longer reached say nothing about now.
+    expect(nodeView({ ...byName('web-2'), state: 'unreachable' }).label).toBe('Nicht erreichbar')
+    expect(nodeView({ ...byName('web-2'), vitals: { ...byName('web-2').vitals!, service: 'draining' } })).toMatchObject({ tone: 'warning', label: 'Wird angehalten' })
+    expect(nodeView({ ...byName('web-2'), vitals: { ...byName('web-2').vitals!, service: 'not_ready' } })).toMatchObject({ tone: 'warning', label: 'Noch nicht bereit' })
+    // A server of an older build tells no vitals: reachable, nothing more is claimed.
+    expect(nodeView({ ...byName('web-2'), vitals: undefined })).toMatchObject({ tone: 'neutral', label: 'Erreichbar' })
+  })
+  it('adds up what the reached servers told and never counts edges or removed members', () => {
+    const t = groupTotals(group)
+    expect(t).toMatchObject({ gateways: 3, ready: 2, away: 1, reporting: 2 })
+    expect(t.requestsPerS).toBeCloseTo(80.5)
+    expect(groupTotals({ mode: 'group', members: [{ ...byName('web-1'), vitals: undefined }] }).requestsPerS).toBeNull()
+  })
+  it('colours a load bar calm up to 80 %, then a warning, red from 95 %', () => {
+    expect([null, 0.5, 0.8, 0.95].map(loadTone)).toEqual(['neutral', 'success', 'warning', 'danger'])
+  })
+})
 
 describe('words for the mode and the group (MVP-27)', () => {
   it('names the mode: alone, or a group with its number of gateways', () => {

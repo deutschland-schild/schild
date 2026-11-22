@@ -49,6 +49,23 @@ type GroupMember struct {
 	Config     string  `json:"config,omitempty"` // same | differs | unknown
 	Error      string  `json:"error,omitempty"`
 	BlocksHeld *int    `json:"blocks_held,omitempty"`
+	// Vitals: gateways only, absent when the member said nothing lately.
+	Vitals *GroupVitals `json:"vitals,omitempty"`
+}
+
+// GroupVitals is how a gateway said it is doing: whether it takes traffic
+// and the numbers of its last minute. The same object travels between the
+// nodes (contracts/cluster.md section 14).
+type GroupVitals struct {
+	At              string   `json:"at"`
+	Service         string   `json:"service"` // ready | draining | not_ready
+	StartedAt       string   `json:"started_at,omitempty"`
+	RequestsPerS    float64  `json:"requests_per_s"`
+	StoppedShare    *float64 `json:"stopped_share"`
+	LatencyP95MS    *float64 `json:"latency_p95_ms"`
+	CPUUsage        *float64 `json:"cpu_usage"`
+	MemoryUsedRatio *float64 `json:"memory_used_ratio"`
+	DiskUsedRatio   *float64 `json:"disk_used_ratio"`
 }
 
 // GroupShared counts what this node holds of the group's state.

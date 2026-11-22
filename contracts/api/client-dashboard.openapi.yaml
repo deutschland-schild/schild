@@ -2700,6 +2700,31 @@ components:
         config: { type: string, enum: [same, differs, unknown], description: "Gateways only: its config version against this node's; unknown until it told one, or when the last word is older than a minute." }
         error: { type: string, maxLength: 300, description: "Why the last call failed, in one line." }
         blocks_held: { type: integer, minimum: 0, description: "Edges only: clients its firewall held at its last call to this node." }
+        vitals: { $ref: "#/components/schemas/GroupVitals" }
+    GroupVitals:
+      type: object
+      additionalProperties: false
+      required: [at, service, requests_per_s, stopped_share, latency_p95_ms, cpu_usage, memory_used_ratio, disk_used_ratio]
+      description: >-
+        Gateways only: how the member said it is doing, as it told this node within the last 20 s (this node: read
+        now). Absent when it said nothing lately or runs a build that tells no vitals. A value outside its range is null.
+        Shown, never decided on.
+      properties:
+        at: { $ref: "#/components/schemas/Timestamp", description: "When this node was told." }
+        service:
+          type: string
+          enum: [ready, draining, not_ready]
+          description: >-
+            What the member answers the balancer on /.schild/readyz. ready: 200. draining: it leaves traffic
+            (`schild cluster drain` or a stop). not_ready: it has not taken the state of the group yet, or its rules
+            are not loaded.
+        started_at: { $ref: "#/components/schemas/Timestamp", description: "Start of the member's schild process." }
+        requests_per_s: { type: number, minimum: 0, description: "Requests per second over its last 60 s." }
+        stopped_share: { $ref: "#/components/schemas/NullableRatio" }
+        latency_p95_ms: { $ref: "#/components/schemas/NullableMs" }
+        cpu_usage: { $ref: "#/components/schemas/NullableRatio" }
+        memory_used_ratio: { $ref: "#/components/schemas/NullableRatio" }
+        disk_used_ratio: { $ref: "#/components/schemas/NullableRatio", description: "The fullest shown mount." }
 
     # ---- server check and agents (contracts/host-check.md)
     HostId:

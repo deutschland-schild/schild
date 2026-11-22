@@ -10,6 +10,8 @@ import { CONFIG_STATE, configHint, countersText, edges, gateways, MEMBER_STATE, 
  * the state of the sync in words, the gateways with their last contact, version and configuration, the
  * balancer VMs (edges) apart. Read only: membership is changed on the host with `schild cluster`.
  */
+/** `brief`: on the page of the group, which shows the state and the gateways itself: only the edges and the sync. */
+const props = withDefaults(defineProps<{ heading?: string, brief?: boolean }>(), { heading: 'Gruppe', brief: false })
 const q = useGroupStatus()
 const s = computed(() => q.data.value)
 const single = computed(() => s.value?.mode === 'single')
@@ -25,8 +27,8 @@ const lastContact = (m: { last_out?: string, last_in?: string }) => [m.last_out,
 <template>
   <Card class="min-w-0" data-testid="group-card" :data-mode="s?.mode ?? ''" :data-state="s?.state ?? ''">
     <CardHeader>
-      <CardTitle>Gruppe</CardTitle>
-      <CardDescription>
+      <CardTitle>{{ heading }}</CardTitle>
+      <CardDescription v-if="!props.brief">
         Mehrere Gateways können als Gruppe laufen und Sperren, Einstellungen und Logins teilen.
       </CardDescription>
     </CardHeader>
@@ -38,7 +40,7 @@ const lastContact = (m: { last_out?: string, last_in?: string }) => [m.last_out,
           <strong class="font-medium">Einzelner Server.</strong>
           Dieses Gateway läuft allein und teilt nichts mit anderen.
         </p>
-        <p v-if="state" class="flex flex-wrap items-start gap-x-3 gap-y-1" data-testid="group-state">
+        <p v-if="state && !props.brief" class="flex flex-wrap items-start gap-x-3 gap-y-1" data-testid="group-state">
           <StatusPill :tone="state.tone" size="sm" class="shrink-0">
             {{ state.label }}
           </StatusPill>
@@ -49,12 +51,12 @@ const lastContact = (m: { last_out?: string, last_in?: string }) => [m.last_out,
             </template>
           </span>
         </p>
-        <p v-if="hint" class="rounded-lg border border-status-warning/30 bg-status-warning-subtle px-3 py-2" role="note" data-testid="group-config-hint">
+        <p v-if="hint && !props.brief" class="rounded-lg border border-status-warning/30 bg-status-warning-subtle px-3 py-2" role="note" data-testid="group-config-hint">
           {{ hint }}
         </p>
 
         <template v-if="!single">
-          <div class="overflow-x-auto rounded-md focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none" tabindex="0" role="region" aria-label="Gateways der Gruppe">
+          <div v-if="!props.brief" class="overflow-x-auto rounded-md focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none" tabindex="0" role="region" aria-label="Gateways der Gruppe">
             <table class="w-full text-sm" data-testid="group-members">
               <caption class="sr-only">
                 Gateways der Gruppe

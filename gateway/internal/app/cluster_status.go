@@ -29,6 +29,8 @@ const (
 	// configFresh is how long the last word of a node counts.
 	configTellEvery = 5 * time.Second
 	configFresh     = time.Minute
+	// vitalsFresh is how long the vitals a node told are shown.
+	vitalsFresh = 20 * time.Second
 	// Bounds of what a node is told.
 	maxVersionText = 128
 )
@@ -39,6 +41,9 @@ const (
 type nodeVersions struct {
 	Config  string `json:"config"`
 	Version string `json:"version"`
+	// Vitals: how the node is doing right now, for the page of the group.
+	// Absent from a node of an older build.
+	Vitals *dashboard.GroupVitals `json:"vitals,omitempty"`
 }
 
 type toldVersions struct {
@@ -84,6 +89,7 @@ func (a *App) startGroupVersions(ctx context.Context) {
 		if len(body) > 1024 || json.Unmarshal(body, &v) != nil || !hexText(v.Config, 64) || len(v.Version) > maxVersionText {
 			return
 		}
+		v.Vitals = cleanVitals(v.Vitals, time.Now())
 		a.groupVersions.mu.Lock()
 		defer a.groupVersions.mu.Unlock()
 		// The mesh takes a Tell from members only; the map is bounded all
@@ -97,11 +103,7 @@ func (a *App) startGroupVersions(ctx context.Context) {
 		if a.Cluster.Removed() {
 			return
 		}
-		body, err := json.Marshal(a.ownVersions())
-		if err != nil {
-			return
-		}
-		a.Cluster.Tell(ctx, tellConfig, body)
+		a.tellVersions(ctx)
 		a.groupVersions.mu.Lock()
 		for id := range a.groupVersions.told {
 			if !a.Cluster.IsMember(id) {
@@ -110,6 +112,29 @@ func (a *App) startGroupVersions(ctx context.Context) {
 		}
 		a.groupVersions.mu.Unlock()
 	}))
+}
+
+// tellVersions tells the gateways this node reaches its versions and how
+// it is doing.
+func (a *App) tellVersions(ctx context.Context) {
+	node := a.Cluster
+	if node == nil || node.Removed() {
+		return
+	}
+	body, err := json.Marshal(a.ownVersions())
+	if err != nil {
+		return
+	}
+	node.Tell(ctx, tellConfig, body)
+}
+
+// setDraining marks this node as leaving traffic and says so to the group
+// at once: the loop that tells every five seconds may have ended by then.
+func (a *App) setDraining() {
+	a.draining.Store(true)
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+	a.tellVersions(ctx)
 }
 
 const clusterMaxGateways = 16
@@ -123,11 +148,70 @@ func hexText(s string, n int) bool {
 }
 
 func (a *App) ownVersions() nodeVersions {
-	v := nodeVersions{Version: buildinfo.String()}
+	v := nodeVersions{Version: buildinfo.String(), Vitals: a.ownVitals(time.Now())}
 	if p := a.groupConfig.Load(); p != nil {
 		v.Config = *p
 	}
 	return v
+}
+
+// ownVitals is how this node is doing right now: whether the balancer may
+// send it traffic, and the numbers of the last minute. Read from the
+// monitor of this node; nothing of it is stored or decided on.
+func (a *App) ownVitals(now time.Time) *dashboard.GroupVitals {
+	v := &dashboard.GroupVitals{At: dashboard.Stamp(now), Service: "not_ready", StartedAt: dashboard.Stamp(a.started)}
+	switch {
+	case a.draining.Load():
+		v.Service = "draining"
+	case a.Gate != nil && a.Gate.Ready():
+		v.Service = "ready"
+	}
+	if a.Monitor == nil {
+		return v
+	}
+	n, err := a.Monitor.Now("", now)
+	if err != nil {
+		return v
+	}
+	v.RequestsPerS = n.Traffic.RequestsPerS
+	v.StoppedShare, v.LatencyP95MS = n.Traffic.StoppedShare, n.Traffic.LatencyTotalP95MS
+	if s := n.Server; s != nil {
+		v.CPUUsage, v.MemoryUsedRatio = s.CPUUsage, s.MemoryUsedRatio
+		if s.Disk != nil {
+			r := s.Disk.UsedRatio
+			v.DiskUsedRatio = &r
+		}
+	}
+	return cleanVitals(v, now)
+}
+
+// cleanVitals bounds what another node said of itself: a value outside its
+// range is dropped, the time is the one of this node. Nil for a word that
+// names no known service state.
+func cleanVitals(v *dashboard.GroupVitals, now time.Time) *dashboard.GroupVitals {
+	if v == nil || (v.Service != "ready" && v.Service != "draining" && v.Service != "not_ready") {
+		return nil
+	}
+	out := dashboard.GroupVitals{At: dashboard.Stamp(now), Service: v.Service}
+	if t, err := time.Parse(time.RFC3339, v.StartedAt); err == nil && !t.After(now.Add(time.Minute)) {
+		out.StartedAt = dashboard.Stamp(t)
+	}
+	if v.RequestsPerS >= 0 && v.RequestsPerS < 1e9 {
+		out.RequestsPerS = v.RequestsPerS
+	}
+	ratio := func(p *float64) *float64 {
+		if p == nil || !(*p >= 0 && *p <= 1) {
+			return nil
+		}
+		r := *p
+		return &r
+	}
+	out.StoppedShare, out.CPUUsage, out.MemoryUsedRatio, out.DiskUsedRatio = ratio(v.StoppedShare), ratio(v.CPUUsage), ratio(v.MemoryUsedRatio), ratio(v.DiskUsedRatio)
+	if p := v.LatencyP95MS; p != nil && *p >= 0 && *p < 1e7 {
+		ms := *p
+		out.LatencyP95MS = &ms
+	}
+	return &out
 }
 
 // GroupStatus is what the dashboard shows of the mode this gateway runs in
@@ -173,7 +257,7 @@ func (a *App) GroupStatus() dashboard.GroupStatus {
 			removed = append(removed, row)
 			continue
 		case m.Self:
-			row.State, row.Version, row.Config = "self", own.Version, "same"
+			row.State, row.Version, row.Config, row.Vitals = "self", own.Version, "same", own.Vitals
 			gateways = append(gateways, row)
 			continue
 		case m.Member.Role == contract.RoleEdge:
@@ -204,6 +288,9 @@ func (a *App) GroupStatus() dashboard.GroupStatus {
 		row.Config = "unknown"
 		if v, ok := told[m.ID]; ok {
 			row.Version = v.Version
+			if now.Sub(v.at) < vitalsFresh {
+				row.Vitals = v.Vitals
+			}
 			if now.Sub(v.at) < configFresh && own.Config != "" {
 				row.Config = "same"
 				if v.Config != own.Config {
