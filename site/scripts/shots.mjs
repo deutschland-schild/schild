@@ -37,6 +37,7 @@ const DOCS = { width: 1440, height: 900, scale: 1.5, widths: [], full: 1600 } //
 const site = 'verein.example'
 
 // name: file name without extension. route: dashboard route, or page: one of the gateway's pages.
+// scenario: mock scenario of the dashboard (default 'default').
 // run(page, ctx): steps before the screenshot. top: text of a heading to scroll to,
 // gap: how far below the upper edge it ends up (pixels, default 110).
 const SHOTS = [
@@ -62,6 +63,16 @@ const SHOTS = [
     await page.getByTestId('access-ways').evaluate(e => e.scrollIntoView({ block: 'center' }))
   }, ...DESKTOP },
   { name: 'funktionen-admin-login', page: 'login.html', ...DESKTOP },
+
+  // /funktionen: several gateways as a cluster (mock scenario `group`: three gateways, one not reached, one
+  // with another configuration)
+  { name: 'funktionen-cluster-seite', scenario: 'group', route: '/server/group', ...DESKTOP },
+  { name: 'funktionen-cluster-server', scenario: 'group', route: '/server/group', run: async (page) => {
+    await page.locator('[data-testid="group-map-node"][data-name="web-2"]').click()
+    await page.getByTestId('group-node-sheet').waitFor()
+    await page.waitForTimeout(600)
+  }, ...DESKTOP },
+  { name: 'funktionen-cluster-hinweis', scenario: 'group', route: '/settings', ...DESKTOP },
 
   // Gateway docs (docs/gateway/01-funktionen.md)
   { name: 'doku-regeln', route: '/settings/rules', ...DOCS },
@@ -172,9 +183,9 @@ try {
     return contexts.get(key)
   }
   // `live` far in the future: no new live events while the pictures are taken.
-  const open = async (page, route) => {
+  const open = async (page, route, scenario = 'default') => {
     await page.goto('about:blank')
-    await page.goto(`${BASE}/?scenario=default&live=9999999#${route}`)
+    await page.goto(`${BASE}/?scenario=${scenario}&live=9999999#${route}`)
     await page.locator('h1').first().waitFor({ timeout: 10_000 })
     await page.waitForFunction(() => !document.querySelector('[data-slot="skeleton"], .animate-pulse'), null, { timeout: 8000 }).catch(() => {})
     await page.waitForTimeout(1200)
@@ -206,7 +217,7 @@ try {
       await page.evaluate(() => document.activeElement?.blur())
     }
     else {
-      await open(page, typeof s.route === 'function' ? s.route(ctx) : s.route)
+      await open(page, typeof s.route === 'function' ? s.route(ctx) : s.route, s.scenario)
       if (s.top) {
         // The first element with exactly this text that is not a tab (the page "Zugriffe" has a tab "Länder" too).
         const found = await page.evaluate(([text, gap]) => {

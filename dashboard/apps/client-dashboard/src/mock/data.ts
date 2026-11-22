@@ -439,6 +439,13 @@ export function createState(opts: CreateStateOptions = {}): MockState {
   settings.profile = mode === 'observe' ? 'test' : 'production'
   const standalone = scenario === 'standalone'
 
+  const overview = shiftTimes((standalone ? overviewStandalone : scenario === 'degraded' ? overviewDegraded : overviewNormal) as Overview, delta)
+  // MVP-27: the group fixture has one gateway that is not reached and one whose configuration differs; the
+  // overview of that group names both, as the gateway does.
+  if (scenario === 'group') {
+    overview.baseline = { state: 'degraded', reasons: [{ code: 'cluster_peers_unreachable', since: iso(t0 - 7 * 60_000) }, { code: 'cluster_config_drift', since: iso(t0 - 5 * 3600_000) }] }
+  }
+
   const st: MockState = {
     scenario,
     now,
@@ -449,7 +456,7 @@ export function createState(opts: CreateStateOptions = {}): MockState {
         : { authenticated: true, first_run: false, user: 'admin', role: 'admin', csrf_token: CSRF, expires_at: iso(t0 + 12 * 3600_000), via: 'password' },
     password: scenario === 'first-run' ? null : 'mock-passwort-123',
     failedLogins: 0,
-    overview: shiftTimes((standalone ? overviewStandalone : scenario === 'degraded' ? overviewDegraded : overviewNormal) as Overview, delta),
+    overview,
     events: [],
     ruleRepos: createRulesState(scenario, t0),
     access: {},
