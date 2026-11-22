@@ -73,6 +73,8 @@ type Node struct {
 
 	// Counters of schild cluster status.
 	Applied, Rejected, Deferred, Unread atomic.Uint64
+	// Compressed counts the answers this node sent compressed.
+	Compressed atomic.Uint64
 
 	addr    atomic.Pointer[string]
 	seeking atomic.Bool
@@ -500,6 +502,52 @@ func peerKey(cs *tls.ConnectionState) (ed25519.PublicKey, bool) {
 	return k, ok
 }
 
+// watchEvery is how often a node looks whether a command on the host wrote
+// into its store.
+const watchEvery = 500 * time.Millisecond
+
+// watchStore wakes the sync calls that wait for news when something wrote
+// into the store that did not wake them itself: a command on the host
+// (schild cluster remove, invite) writes into the same file. One look for
+// the whole node, where every waiting call used to look for itself: with
+// fifteen members waiting that was thirty queries a second on an idle node.
+//
+// SQLite counts the commits of other connections per connection (PRAGMA
+// data_version), so the look keeps one connection of its own. Should that
+// fail, the node falls back to waking the calls on every look, which is
+// what they did before.
+func (n *Node) watchStore(ctx context.Context) {
+	conn, err := n.db.Conn(ctx)
+	if err == nil {
+		defer conn.Close()
+	}
+	t := time.NewTicker(watchEvery)
+	defer t.Stop()
+	var last int64 = -1
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-t.C:
+		}
+		if conn == nil {
+			n.wake()
+			continue
+		}
+		var v int64
+		if err := conn.QueryRowContext(ctx, "PRAGMA data_version").Scan(&v); err != nil {
+			n.wake()
+			continue
+		}
+		if v != last {
+			if last != -1 {
+				n.wake()
+			}
+			last = v
+		}
+	}
+}
+
 // Run serves the mesh and keeps in step with every member until ctx ends.
 func (n *Node) Run(ctx context.Context) error {
 	srv, ln, err := n.listen()
@@ -511,6 +559,7 @@ func (n *Node) Run(ctx context.Context) error {
 	n.log.Info("cluster: mesh listening", "listen", a, "group", n.group, "node", n.id)
 	done := make(chan error, 1)
 	go func() { done <- srv.ServeTLS(ln, "", "") }()
+	go n.watchStore(ctx)
 	n.seek(ctx)
 	tick := time.NewTicker(time.Second)
 	defer tick.Stop()

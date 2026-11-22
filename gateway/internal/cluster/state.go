@@ -119,7 +119,7 @@ func openState(dir string, create bool, now func() time.Time) (*state, error) {
 	if err != nil {
 		return nil, err
 	}
-	db.SetMaxOpenConns(4)
+	db.SetMaxOpenConns(5) // one is kept by watchStore
 	if _, err := db.Exec(schema); err != nil {
 		db.Close()
 		return nil, fmt.Errorf("cluster: %s: %w", path, err)

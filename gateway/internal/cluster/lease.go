@@ -160,6 +160,13 @@ func (n *Node) waitFor(ctx context.Context, r release, limit time.Duration) {
 	deadline := n.now().Add(limit)
 	for n.now().Before(deadline) && ctx.Err() == nil {
 		if v, err := n.vector(); err == nil && v[r.Origin] >= r.Seq {
+			// The records are held; what they bring (the files of a
+			// certificate) is written by the handlers of the take that
+			// stored them, which still holds takeMu until they are through.
+			// Taking and giving back the lock waits for that take; there is
+			// nothing to protect in between.
+			n.takeMu.Lock()
+			n.takeMu.Unlock()
 			return
 		}
 		time.Sleep(50 * time.Millisecond)

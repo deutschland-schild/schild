@@ -312,6 +312,46 @@ func (r *Ring) AddForeign(e *Entry) {
 	}
 }
 
+// AddForeignWait is AddForeign for a caller that is not in the request path
+// and may wait: it hands over rows in order while the writer keeps up, and
+// waits for it otherwise, so a burst of another node's requests is not
+// dropped at a full queue. It uses the lower half of the queue only; the
+// upper half stays free for the requests this node serves itself, which are
+// never made to wait. It returns how many rows it handed over; fewer than
+// len(rows) when ctx ended first.
+func (r *Ring) AddForeignWait(ctx context.Context, rows []Entry) int {
+	half := cap(r.ch) / 2
+	for i := range rows {
+		for len(r.ch) >= half {
+			select {
+			case <-ctx.Done():
+				return i
+			case <-time.After(2 * time.Millisecond):
+			}
+		}
+		x := rows[i]
+		x.Seq = 0 // the number counts on the node that served it, not here
+		select {
+		case r.ch <- x:
+		case <-ctx.Done():
+			return i
+		}
+	}
+	return len(rows)
+}
+
+// ServedNext is the number the next request this node serves gets: it
+// moves whenever the served log grows. 0 without a served log.
+func (r *Ring) ServedNext() uint64 {
+	t := r.tee.Load()
+	if t == nil {
+		return 0
+	}
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	return t.next
+}
+
 // Start runs the writer and the closer until ctx ends or Close.
 func (r *Ring) Start(ctx context.Context) {
 	if !r.started.CompareAndSwap(false, true) {

@@ -118,3 +118,27 @@ func (s *Store) MergeIncident(ctx context.Context, in *Incident) error {
 		WHERE incident = ?`, max(in.Count, 1), ms(in.LastSeen), unblocked, in.Status, unblocked, in.Incident)
 	return err
 }
+
+// A group of gateways pulls events and incidents from a member only when
+// the member wrote some of its own (MVP-27). OwnGen is the sign for it: a
+// number that grows with every write of an event or an incident that did
+// not come from another node. It says that something changed, not what; it
+// starts at 0 with every start.
+
+type foreignKey struct{}
+
+// Foreign marks ctx for writes of rows another node of the group wrote:
+// they do not count in OwnGen, or every node would ask every other again
+// for what it just took from one of them.
+func Foreign(ctx context.Context) context.Context {
+	return context.WithValue(ctx, foreignKey{}, true)
+}
+
+func (s *Store) noteOwn(ctx context.Context) {
+	if ctx.Value(foreignKey{}) == nil {
+		s.ownGen.Add(1)
+	}
+}
+
+// OwnGen returns the number described above.
+func (s *Store) OwnGen() int64 { return s.ownGen.Load() }

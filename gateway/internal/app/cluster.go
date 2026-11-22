@@ -182,7 +182,8 @@ func (a *App) noteGroupIncident(b *contract.Block, key behaviour.Key, since time
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()
 	in := &store.Incident{Incident: b.Incident, EventID: b.EventID, Time: since, IP: key.Addr().String(), Status: "blocked", Sources: []string{b.Source}}
-	if err := a.Store.InsertIncident(ctx, in); err != nil {
+	// Another node's incident: no news of this node (store.OwnGen).
+	if err := a.Store.InsertIncident(store.Foreign(ctx), in); err != nil {
 		ratelog.Warn(a.log, "cluster: incident of a block of another node not stored; it follows with that node's events", "err", err)
 	}
 }

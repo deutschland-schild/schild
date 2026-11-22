@@ -68,6 +68,7 @@ func (s *Store) InsertIncident(ctx context.Context, in *Incident) error {
 		n, ms(first), ms(last))
 	if err == nil {
 		s.written.Add(incidentBytes(in))
+		s.noteOwn(ctx)
 	}
 	return err
 }
@@ -125,6 +126,7 @@ func (s *Store) AddIncidentHits(ctx context.Context, hits []IncidentHits) (missi
 	// An update rewrites the row in place; it still costs WAL and page
 	// churn, so it counts towards the next size-cap pass (D38).
 	s.written.Add(int64(len(hits)-len(missing)) * incidentHitBytes)
+	s.noteOwn(ctx)
 	return missing, nil
 }
 
@@ -150,6 +152,7 @@ func (s *Store) MarkUnblocked(ctx context.Context, id string, at time.Time, allo
 	if n, _ := r.RowsAffected(); n == 0 {
 		return ErrNotFound
 	}
+	s.noteOwn(ctx)
 	return nil
 }
 

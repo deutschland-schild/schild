@@ -44,18 +44,36 @@ const (
 	// What one answer and one message hold at most.
 	dataBatch = 500
 	dataScan  = 4000
-	// Single requests: one answer holds at most requestsBatch entries and
-	// about requestsBytes of their strings, a node asks a member at most
-	// requestsRounds times a second, and the log a node answers from holds
-	// its newest requestsLog requests within requestsLogBytes.
+	// Single requests: one answer in JSON holds at most requestsBatch
+	// entries and about requestsBytes of their strings, and the log a node
+	// answers from holds its newest requestsLog requests within
+	// requestsLogBytes. A node asks a member again at once while the member
+	// has more: four times in any case, then for as long as requestsSpan has
+	// not passed, and requestsRounds times at most. What bounds it besides
+	// is its own writer (the backlog check, requestsPlace).
 	requestsBatch    = 2000
 	requestsBytes    = 1 << 20
-	requestsRounds   = 4
+	requestsRounds   = 64
+	requestsSpan     = 800 * time.Millisecond
 	requestsLogBytes = 24 << 20
+	// In the compact form (cluster_heads.go) an answer holds up to
+	// requestsBlockBatch entries and requestsBlockBytes of their strings: a
+	// node that is behind catches up in fewer, fuller calls. Less than half
+	// of what waits for the writer at most (reqring.ChanSize), so a full
+	// answer always fits behind the check of the backlog.
+	requestsBlockBatch = 4096
+	requestsBlockBytes = 2 << 20
+	// requestsPlace is how long a node waits for its own writer before it
+	// leaves the rest of an answer for the next call.
+	requestsPlace = 2 * time.Second
 	// incidentOverlap: incidents are asked for again this far back, because
 	// one that aggregates the requests of a minute still changes.
 	incidentOverlap = 2 * time.Minute
 )
+
+// startAsBuildBefore makes the nodes started from now on speak as the build
+// before this one (groupData.before). Tests only.
+var startAsBuildBefore bool
 
 // requestsLog is how many of its newest requests a node holds in memory for
 // the others; a cursor further back is answered from its request store on
@@ -84,6 +102,12 @@ type incidentsAnswer struct {
 
 type requestsQuestion struct {
 	After uint64 `json:"after"`
+	// Enc names the form of the answer the asking node takes besides JSON
+	// ("b1", the compact one), Limit how many entries it takes at most. A
+	// node of an earlier build sends neither and gets JSON, and a node of an
+	// earlier build that is asked ignores both and answers JSON.
+	Enc   string `json:"enc,omitempty"`
+	Limit int    `json:"limit,omitempty"`
 }
 
 type requestsAnswer struct {
@@ -96,14 +120,25 @@ type requestsAnswer struct {
 	First uint64          `json:"first"`
 	Next  uint64          `json:"next"`
 	Rows  []reqring.Entry `json:"rows"`
+	// Heads: how far the answering node's own data went (cluster_heads.go).
+	Heads *heads `json:"heads,omitempty"`
 }
 
 type groupData struct {
 	a *App
+	// heads: who was told what, and what the others said (cluster_heads.go).
+	heads *headsState
 	// requestsMissed counts the numbers of requests of other nodes that
 	// may have left their request store (retention, the size cap) before
 	// this node asked for them. An upper bound: numbers have holes.
 	requestsMissed atomic.Uint64
+	// asks counts the questions this node asked the members for events,
+	// incidents and requests (a number for measurements and tests).
+	asks atomic.Int64
+	// before: this node speaks as the build before this one did: it says
+	// no heads, asks for requests as JSON and answers them so. Only tests
+	// set it, to run two builds side by side.
+	before atomic.Bool
 }
 
 func (a *App) dataEpoch(ctx context.Context) string {
@@ -115,94 +150,145 @@ func (a *App) dataEpoch(ctx context.Context) string {
 // group holds what every node wrote (initiator 2026-11-22, no switch).
 func (a *App) startGroupData(ctx context.Context) {
 	a.reapplyErasures(ctx, 0) // what was erased while this node was away
-	g := &groupData{a: a}
+	g := &groupData{a: a, heads: newHeadsState(a.started)}
+	g.before.Store(startAsBuildBefore)
 	a.groupData = g
 	node := a.Cluster
-	node.OnAsk(askEvents, func(_ string, body []byte) ([]byte, error) {
+	// Each answer notes what the asking member has now seen of this node,
+	// read before the answer is made: what is written meanwhile is told.
+	node.OnAsk(askEvents, func(from string, body []byte) ([]byte, error) {
 		var q eventsQuestion
 		if err := json.Unmarshal(body, &q); err != nil {
 			return nil, err
 		}
 		actx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
+		gen := a.Store.OwnGen()
 		rows, next, err := a.Store.EventsOfSource(actx, a.Events.Source(), q.After, dataScan, dataBatch)
 		if err != nil {
 			return nil, err
 		}
+		if len(rows) < dataBatch && next-q.After < dataScan {
+			g.noteAsked(from, func(s *peerSeen) { s.events, s.eOK = gen, true })
+		}
 		return json.Marshal(eventsAnswer{Epoch: a.dataEpoch(actx), Next: next, Rows: rows})
 	})
-	node.OnAsk(askIncidents, func(_ string, body []byte) ([]byte, error) {
+	node.OnAsk(askIncidents, func(from string, body []byte) ([]byte, error) {
 		var q incidentsQuestion
 		if err := json.Unmarshal(body, &q); err != nil {
 			return nil, err
 		}
 		actx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
+		gen := a.Store.OwnGen()
 		rows, err := a.Store.IncidentsOfSource(actx, a.Events.Source(), q.SinceMS, dataBatch)
 		if err != nil {
 			return nil, err
+		}
+		if len(rows) < dataBatch {
+			g.noteAsked(from, func(s *peerSeen) { s.incidents, s.iOK = gen, true })
 		}
 		return json.Marshal(incidentsAnswer{Rows: rows})
 	})
 	if a.Requests != nil {
 		a.Requests.Tee(requestsLog, requestsLogBytes)
-		node.OnAsk(askRequests, func(_ string, body []byte) ([]byte, error) {
+		node.OnAsk(askRequests, func(from string, body []byte) ([]byte, error) {
 			var q requestsQuestion
 			if err := json.Unmarshal(body, &q); err != nil {
 				return nil, err
 			}
-			rows, first, next := a.Requests.Served(q.After, requestsBatch, requestsBytes)
+			block := q.Enc == encBlock && !g.before.Load()
+			limit, size := requestsBatch, requestsBytes
+			if block {
+				limit, size = requestsBlockBatch, requestsBlockBytes
+				if q.Limit > 0 && q.Limit < limit {
+					limit = q.Limit
+				}
+			}
+			own := g.ownHeads()
+			rows, first, next := a.Requests.Served(q.After, limit, size)
 			if rows == nil {
 				rows = []reqring.Entry{}
 			}
-			return json.Marshal(requestsAnswer{Epoch: a.Cluster.ID() + "@" + a.Requests.ServedEpoch(), First: first, Next: next, Rows: rows})
+			now := time.Now()
+			g.noteAsked(from, func(s *peerSeen) {
+				if next+1 >= own.Requests {
+					// It holds everything this node had served when it asked.
+					s.requests, s.rOK = own.Requests, true
+				}
+				if len(rows) > 0 {
+					// It is fetching: it asks again by itself, and the answer
+					// tells it the heads.
+					s.expect = now.Add(headsExpect)
+				}
+			})
+			ans := requestsAnswer{Epoch: a.Cluster.ID() + "@" + a.Requests.ServedEpoch(), First: first, Next: next, Rows: rows, Heads: &own}
+			if block {
+				return encodeRequestsBlock(&ans), nil
+			}
+			if g.before.Load() {
+				ans.Heads = nil
+			}
+			return json.Marshal(ans)
 		})
 	}
-	var round int
-	a.goLoop(ctx, "cluster-data", tick(time.Second, func() {
-		for _, peer := range node.Reachable() {
-			g.pullEvents(ctx, peer)
-			g.pullIncidents(ctx, peer)
-			g.pullRequests(ctx, peer)
+	node.OnTell(tellHeads, func(from string, body []byte) {
+		var hd heads
+		if len(body) <= 512 && json.Unmarshal(body, &hd) == nil {
+			g.takeHeads(from, hd)
 		}
-		if round++; round%30 == 0 {
-			// An event of an erased address may have come from a node that
-			// had not erased yet.
-			a.reapplyErasures(ctx, 10*time.Minute)
-		}
-	}))
+	})
+	a.goLoop(ctx, "cluster-heads", tick(headsEvery, func() { g.tellHeadsRound(ctx) }))
+	a.goLoop(ctx, "cluster-data", g.pullLoop)
 }
 
 // pullRequests asks a member for the requests it served after this node's
 // cursor. The member answers from memory or, for a cursor further back,
 // from its request store on disk: a node that was away, however long,
-// takes everything the member still keeps. Bounded on both sides: an answer holds at most requestsBatch
+// takes everything the member still keeps.
+//
+// Bounded on both sides: an answer holds at most requestsBlockBatch
 // entries, a round asks at most requestsRounds times, and it stops while
 // the writer of this node's ring is behind, so a node that returns after an
 // outage neither floods a member nor itself. Nothing here is in the request
-// path: the ring takes the entries like its own, without blocking.
-func (g *groupData) pullRequests(ctx context.Context, peer string) {
+// path, so it may wait for the writer: what it took of an answer is handed
+// over in order, and what did not fit within requestsPlace is asked for
+// again, never dropped.
+//
+// It returns how many requests it took, whether the member had no more,
+// the heads the member said with its answer (zero from a member of an
+// earlier build), and whether the member answered at all.
+func (g *groupData) pullRequests(ctx context.Context, peer string) (got int, drained bool, said heads, ok bool) {
 	a := g.a
 	if a.Requests == nil {
-		return
+		return 0, true, heads{}, true
 	}
 	key := "requests:" + peer
-	for round := 0; round < requestsRounds && ctx.Err() == nil; round++ {
+	for round, began := 0, time.Now(); round < requestsRounds && ctx.Err() == nil && (round < 4 || time.Since(began) < requestsSpan); round++ {
 		if waiting, room := a.Requests.Backlog(); waiting > room/2 {
-			return // the rest comes with a later round
+			return got, false, said, ok // the rest comes with a later round
 		}
 		epoch, cur := g.cursor(key)
 		after := uint64(max(cur, 0))
-		q, _ := json.Marshal(requestsQuestion{After: after})
+		question := requestsQuestion{After: after, Enc: encBlock, Limit: requestsBlockBatch}
+		if g.before.Load() {
+			question = requestsQuestion{After: after}
+		}
+		q, _ := json.Marshal(question)
 		actx, cancel := context.WithTimeout(ctx, 5*time.Second)
+		g.asks.Add(1)
 		raw, err := a.Cluster.Ask(actx, peer, askRequests, q)
 		cancel()
 		if err != nil {
-			return
+			return got, false, said, ok
 		}
-		var ans requestsAnswer
-		if json.Unmarshal(raw, &ans) != nil || ans.Epoch == "" || len(ans.Epoch) > 128 {
-			return
+		ans, err := decodeRequestsAnswer(raw, requestsBlockBatch)
+		if err != nil || ans.Epoch == "" || len(ans.Epoch) > 128 {
+			return got, false, said, ok
+		}
+		ok = true
+		if ans.Heads != nil && ans.Heads.Boot != "" && len(ans.Heads.Boot) <= 64 && !g.before.Load() {
+			said = *ans.Heads
 		}
 		if ans.Epoch != epoch {
 			// Another request store of the member than last time: its numbers start anew.
@@ -212,7 +298,7 @@ func (g *groupData) pullRequests(ctx context.Context, peer string) {
 			}
 		}
 		if ans.Next < after || ans.Next > 1<<62 {
-			return // no answer of this version of schild
+			return got, false, said, false // no answer of this version of schild
 		}
 		// A number may jump ahead (the member restarted): the cursor follows
 		// whatever it says. It is the member's own cursor and bounds nothing
@@ -226,19 +312,43 @@ func (g *groupData) pullRequests(ctx context.Context, peer string) {
 			ratelog.Warn(a.log, "cluster: requests of another node left its request store before this node asked for them", "from", a.Cluster.PeerName(peer), "numbers", missed)
 		}
 		now := time.Now()
-		for i := range ans.Rows[:min(len(ans.Rows), requestsBatch)] {
-			if e := &ans.Rows[i]; g.takesRequest(e, now) {
-				a.Requests.AddForeign(e)
+		nrows := len(ans.Rows)
+		take := ans.Rows[:0]
+		for i := range ans.Rows {
+			if g.takesRequest(&ans.Rows[i], now) {
+				take = append(take, ans.Rows[i])
 			}
 		}
+		pctx, cancel := context.WithTimeout(ctx, requestsPlace)
+		placed := a.Requests.AddForeignWait(pctx, take)
+		cancel()
+		got += placed
+		if placed < len(take) {
+			// The writer did not keep up: go on after the last request that
+			// was handed over. Without numbers (a member of an earlier
+			// draft) the rest of this answer is lost, as it always was.
+			next := ans.Next
+			if placed > 0 && take[placed-1].Seq > after {
+				next = take[placed-1].Seq
+			} else if take[placed].Seq > 0 {
+				next = after
+			}
+			if next != after {
+				_ = a.Cluster.SetMark(key, ans.Epoch+":"+strconv.FormatUint(next, 10))
+			}
+			return got, false, said, ok
+		}
 		if ans.Next == after {
-			return
+			return got, true, said, ok
 		}
 		_ = a.Cluster.SetMark(key, ans.Epoch+":"+strconv.FormatUint(ans.Next, 10))
-		if len(ans.Rows) < requestsBatch/2 {
-			return
+		// Half an answer of the earlier size or less: the member has no
+		// more for now.
+		if nrows < requestsBatch/2 {
+			return got, true, said, ok
 		}
 	}
+	return got, false, said, ok
 }
 
 // Bounds of a request another node hands over: what a member sends is input
@@ -288,20 +398,23 @@ func (g *groupData) cursor(key string) (epoch string, n int64) {
 }
 
 // pullEvents asks a member for the events it wrote after this node's
-// cursor, a few batches at most per round.
-func (g *groupData) pullEvents(ctx context.Context, peer string) {
+// cursor, a few batches at most per round. It reports whether the member
+// has more after these batches, and whether it answered and all of it was
+// stored.
+func (g *groupData) pullEvents(ctx context.Context, peer string) (more, ok bool) {
 	a := g.a
 	key := "events:" + peer
 	for batch := 0; batch < 4 && ctx.Err() == nil; batch++ {
 		epoch, after := g.cursor(key)
 		q, _ := json.Marshal(eventsQuestion{After: after})
+		g.asks.Add(1)
 		raw, err := a.Cluster.Ask(ctx, peer, askEvents, q)
 		if err != nil {
-			return
+			return false, false
 		}
 		var ans eventsAnswer
 		if json.Unmarshal(raw, &ans) != nil || ans.Epoch == "" {
-			return
+			return false, false
 		}
 		if ans.Epoch != epoch {
 			// Another store than last time: its numbers start anew.
@@ -323,47 +436,54 @@ func (g *groupData) pullEvents(ctx context.Context, peer string) {
 			r.Seq = 0
 			rows = append(rows, r)
 		}
-		ictx, cancel := context.WithTimeout(ctx, 10*time.Second)
+		// Marked as another node's rows: they are no news of this node, so
+		// they move nothing the others would ask this node for.
+		ictx, cancel := context.WithTimeout(store.Foreign(ctx), 10*time.Second)
 		err = a.Events.Ingest(ictx, rows)
 		cancel()
 		if err != nil {
 			ratelog.Warn(a.log, "cluster: events of another node not stored, asked for again", "from", a.Cluster.PeerName(peer), "err", err)
-			return
+			return false, false
 		}
 		if ans.Next <= after {
-			return
+			return false, true
 		}
 		_ = a.Cluster.SetMark(key, fmt.Sprintf("%s:%d", ans.Epoch, ans.Next))
 		if len(ans.Rows) < dataBatch && ans.Next-after < dataScan {
-			return
+			return false, true
 		}
 	}
+	return true, true
 }
 
-func (g *groupData) pullIncidents(ctx context.Context, peer string) {
+// pullIncidents asks a member for the incidents of its own that changed
+// since this node's mark. It reports whether the member answered and all of
+// it was stored.
+func (g *groupData) pullIncidents(ctx context.Context, peer string) bool {
 	a := g.a
 	key := "incidents:" + peer
 	since, _ := strconv.ParseInt(a.Cluster.Mark(key), 10, 64)
 	q, _ := json.Marshal(incidentsQuestion{SinceMS: since})
+	g.asks.Add(1)
 	raw, err := a.Cluster.Ask(ctx, peer, askIncidents, q)
 	if err != nil {
-		return
+		return false
 	}
 	var ans incidentsAnswer
 	if json.Unmarshal(raw, &ans) != nil {
-		return
+		return false
 	}
 	latest := since
 	for _, in := range ans.Rows[:min(len(ans.Rows), dataBatch)] {
 		if in == nil || in.Incident == "" || len(in.Incident) > 64 || in.Time.IsZero() {
 			continue
 		}
-		ictx, cancel := context.WithTimeout(ctx, 5*time.Second)
+		ictx, cancel := context.WithTimeout(store.Foreign(ctx), 5*time.Second)
 		err := a.Store.MergeIncident(ictx, in)
 		cancel()
 		if err != nil {
 			ratelog.Warn(a.log, "cluster: incident of another node not stored, asked for again", "from", a.Cluster.PeerName(peer), "err", err)
-			return
+			return false
 		}
 		for _, t := range []time.Time{in.Time, in.LastSeen, in.UnblockedAt} {
 			if !t.IsZero() && t.UnixMilli() > latest {
@@ -376,6 +496,7 @@ func (g *groupData) pullIncidents(ctx context.Context, peer string) {
 	} else if len(ans.Rows) >= dataBatch && latest > since {
 		_ = a.Cluster.SetMark(key, strconv.FormatInt(latest, 10))
 	}
+	return true
 }
 
 // reapplyErasures erases again what the group erased in the last maxAge

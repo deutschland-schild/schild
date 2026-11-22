@@ -33,6 +33,9 @@ type Store struct {
 	// capDeleted is when a size-cap pass last deleted rows that counters
 	// may cover (unix ns; Overview.counters_24h.partial, D36 open items).
 	capDeleted atomic.Int64
+	// ownGen counts the writes of events and incidents that did not come
+	// from another node of a group (OwnGen).
+	ownGen atomic.Int64
 }
 
 const baseSchema = `
