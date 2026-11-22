@@ -122,6 +122,9 @@ test('sixteen gateways stay readable: side by side below the internet, a table i
     await expect(map.locator('[data-testid="group-map-link"][data-kind="not"]')).toHaveCount(3)
     const widths = await map.locator('[data-testid="group-map-node"] rect').evaluateAll(els => els.map(e => Math.round(e.getBoundingClientRect().width)))
     expect(new Set(widths).size).toBe(1)
+    // All sixteen stand in one row.
+    const rowTops = await map.locator('[data-testid="group-map-node"] rect').evaluateAll(els => els.map(e => Math.round(e.getBoundingClientRect().top)))
+    expect(new Set(rowTops).size).toBe(1)
     // No two gateways overlap.
     const boxes = await map.locator('[data-testid="group-map-node"] rect').evaluateAll(els => els.map((e) => { const r = e.getBoundingClientRect(); return [r.left, r.top, r.right, r.bottom] }))
     const hit = boxes.some((a, i) => boxes.some((b, j) => j > i && a[0]! < b[2]! && b[0]! < a[2]! && a[1]! < b[3]! && b[1]! < a[3]!))

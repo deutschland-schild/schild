@@ -198,7 +198,7 @@ Die Ausgabe nennt jedes Mitglied mit Rolle, Adresse, Zustand und letztem Kontakt
 
 Dasselbe zeigt das Dashboard. Oben auf jeder Seite steht, ob der Server allein läuft („Einzelner Server“) oder Teil eines Clusters ist („Cluster · 3 Server“). Die Karte „Cluster“ auf der Server-Seite nennt den Zustand des Abgleichs und jedes Gateway mit letztem Kontakt, Rückstand, Version und Konfiguration. Balancer-VMs stehen darunter für sich.
 
-Ein Klick auf diese Anzeige öffnet die Seite „Cluster“. Oben zeigt eine Karte des Clusters das Internet und darunter alle Gateways nebeneinander, jedes mit dem Internet verbunden. Kein Gateway steht über einem anderen, weil der Cluster keinen Hauptserver hat. Die Linie eines Gateways ist grün, wenn es Anfragen annimmt, und orange gestrichelt, wenn es gerade keine annimmt oder von diesem Server aus nicht erreichbar ist. Ein Klick auf einen Server öffnet seine Details.
+Ein Klick auf diese Anzeige öffnet die Seite „Cluster“. Oben zeigt eine Karte des Clusters das Internet und darunter alle Gateways nebeneinander, jedes mit dem Internet verbunden. Kein Gateway steht über einem anderen, weil der Cluster keinen Hauptserver hat. Ab neun Gateways sind die Kästen schmal und hochkant beschriftet, damit auch 16 in eine Reihe passen. Die Linie eines Gateways ist grün, wenn es Anfragen annimmt, und orange gestrichelt, wenn es gerade keine annimmt oder von diesem Server aus nicht erreichbar ist. Ein Klick auf einen Server öffnet seine Details.
 
 Darunter steht jedes Gateway als Karte, ab sieben Gateways als Zeile einer Tabelle. Die Details nennen:
 
