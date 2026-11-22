@@ -153,6 +153,9 @@ func PrepareIngress(o IngressOptions) (*Ingress, error) {
 	if err := json.Unmarshal(raw, &m); err != nil {
 		return nil, fmt.Errorf("caddyfile: adapted config: %w", err)
 	}
+	if hasHandler(m, "acme_server") {
+		return nil, errors.New("caddyfile: acme_server is not available under schild: a gateway obtains certificates and issues none (Caddy's ACME server parses keys and tokens that its clients send, through a library with known flaws, GHSA-mgcc-cww5-fp2q)")
+	}
 	if a, ok := m["admin"].(map[string]any); ok && a["disabled"] != true {
 		ing.Check.Warnings = append(ing.Check.Warnings, "the admin option of the Caddyfile is ignored: the Caddy admin API stays disabled under schild (changes need a restart)")
 	}
@@ -192,6 +195,30 @@ func PrepareIngress(o IngressOptions) (*Ingress, error) {
 		return nil, err
 	}
 	return ing, ing.Check.Err()
+}
+
+// hasHandler reports whether a handler of that name appears anywhere in the
+// adapted config: routes nest in subroutes, handle_response, errors and
+// named routes, so the whole tree is searched.
+func hasHandler(v any, name string) bool {
+	switch x := v.(type) {
+	case map[string]any:
+		if h, ok := x["handler"].(string); ok && h == name {
+			return true
+		}
+		for _, e := range x {
+			if hasHandler(e, name) {
+				return true
+			}
+		}
+	case []any:
+		for _, e := range x {
+			if hasHandler(e, name) {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 // refuseEarlyData turns off QUIC 0-RTT on every server. Caddy allows it unless a
@@ -433,7 +460,7 @@ type handler struct {
 // this list is something the check does not understand; reached without
 // schild it is refused (when unsure, refuse).
 var knownHandlers = map[string]bool{
-	"acme_server": true, "authentication": true, "copy_response": true, "copy_response_headers": true, "encode": true, "error": true,
+	"authentication": true, "copy_response": true, "copy_response_headers": true, "encode": true, "error": true,
 	"file_server": true, "headers": true, "intercept": true, "invoke": true, "log_append": true, "map": true, "metrics": true, "push": true,
 	"request_body": true, "reverse_proxy": true, "rewrite": true, "schild": true, "static_response": true, "subroute": true,
 	"templates": true, "tracing": true, "vars": true, "waf": true,
