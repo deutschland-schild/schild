@@ -1,7 +1,10 @@
 #!/usr/bin/env python3
-"""Raw results of the lab scenarios (raw-s*.json) to tests/results/MVP-27-lab.json (contracts/results.schema.json).
+"""Raw results of the lab scenarios (raw-s*.json) to a results file (contracts/results.schema.json), by default
+tests/results/MVP-27-lab-run2.json; the first run of 2026-11-22 is tests/results/MVP-27-lab.json.
 
-usage: report.py RAW_DIR RESULTS_FILE
+usage: report.py RAW_DIR RESULTS_FILE [TABLES.md]
+
+With a third argument the checks are also written as Markdown tables, one per scenario, for the report.
 
 Every check becomes one metric `check` (1 pass, 0 fail) with its id; every number of a check a metric `value`
 with the id of the check and the name of the number. The kill criteria of the spec are filled from the checks
@@ -23,22 +26,26 @@ KILL = [
      ["2.12", "2.22", "2.32", "2.42", "2.52", "2.62", "2.72", "2.82", "5.11"],
      "direct load on every node while peers were delayed, lossy, cut off, hanging or killed"),
     ("a lost, empty or returning member deletes or weakens access state on another",
-     ["1.24", "1.26", "1.28", "2.54", "2.64", "5.10", "5.14"],
-     "kill and return, partition and one-way cut with writes on both sides, five of sixteen lost, rolling restart"),
+     ["1.24", "1.26", "1.28", "2.54", "2.64", "5.10", "5.14", "9.05", "9.06", "9.07", "9.08"],
+     "kill and return, partition and one-way cut with writes on both sides, five of sixteen lost, rolling restart, "
+     "a new group secret server by server. Not counted here, for people to place: scenario 11, where a block lifted on "
+     "another node within a second stays listed on every node and is dropped by an edge (no member was lost or returned)"),
     ("a record that fails signature, schema or caps is applied", [],
      "NOT MEASURED here: see the loopback harness (tests/results/MVP-27.json)"),
     ("an edge or a removed member reads events, requests, settings, logins or keys", ["4.13", "4.14"],
      "edge on the balancer VM: its files and its mesh calls; a removed member was NOT MEASURED here"),
-    ("an erased address returns", ["4.12"],
-     "only the firewall of the edge was looked at; returning nodes NOT MEASURED here"),
+    ("an erased address returns", ["4.12", "9.09"],
+     "the firewall of the edge; two erased addresses across a change of the group secret (one erased before, one "
+     "erased on a node of the old group after another node had carried its block into the new group)"),
     ("an address outside the proxy allow list can get another address blocked", ["1.15", "1.16", "1.17", "1.18", "1.20"],
      "PROXY header and X-Forwarded-For of senders outside the allow list; start without an allow list"),
-    ("a partial answer is shown as complete", [], "NOT MEASURABLE: group queries with partial answers are not built"),
+    ("a partial answer is shown as complete", ["10.20", "10.20b", "10.20c"],
+     "counters across nodes with one node killed: whether the answer for the group names it under partial_nodes"),
     ("a copy outlives its origin's retention", [], "NOT MEASURED: needs days of retention"),
-    ("certificates are lost or issued again by the move into the group", ["7.06", "7.07"],
-     "ACME test server pebble: no certificate was lost and the CA issued none twice. But a node that enters a group "
-     "which holds the certificate asks the CA for an order of its own at once (7.04), and two nodes started together "
-     "both ask (7.10); no second certificate was issued in these runs only because the CA's checks failed (7.08)"),
+    ("certificates are lost or issued again by the move into the group", ["7.04", "7.06", "7.07", "7.10b", "9.10"],
+     "ACME test server pebble: a node that enters a group which holds the certificate, two nodes started together, "
+     "a restart with no member reachable, a change of the group secret on three nodes. The count of orders at the CA "
+     "(7.10: the one node that orders may place two, its first fails on TLS-ALPN-01) is not part of this criterion"),
 ]
 
 
@@ -77,8 +84,9 @@ def read(path, default=""):
 
 def main():
     raw_dir, out_file = sys.argv[1], sys.argv[2]
+    report_md = re.sub(r"\.json$", ".md", "tests/results/" + os.path.basename(out_file))
     rows, started, finished = [], [], []
-    for name in sorted(os.listdir(raw_dir)):
+    for name in sorted(os.listdir(raw_dir), key=lambda n: int(re.sub(r"\D", "", n) or 0)):
         if re.fullmatch(r"raw-s\d+\.json", name):
             d = json.load(open(os.path.join(raw_dir, name)))
             rows += d["rows"]
@@ -144,8 +152,8 @@ def main():
         "notes": ("Black-box measurement of the group of gateways on real Linux VMs of one lab host (Apple container, one VM per node, "
                   "HAProxy on a balancer VM, nftables for the edge and for faults, a TUN based delay in place of netem). "
                   "Development build of schild, never a release. Not the testlab profiles pair and fleet of the spec. "
-                  "Report: tests/results/MVP-27-lab.md. FAIL checks: %s" % (", ".join(r["id"] for r in fails) or "none"))[:8192],
-        "artifacts": ["tests/results/MVP-27-lab.md", "tests/testlab/measure/group-lab/run.py"],
+                  "Report: %s. FAIL checks: %s" % (report_md, ", ".join(r["id"] for r in fails) or "none"))[:8192],
+        "artifacts": [report_md, "tests/testlab/measure/group-lab/run.py", "tests/testlab/measure/group-lab/run_more.py"],
     }
     if re.fullmatch(r"[0-9a-f]{7,40}", rev):
         out["git_rev"] = rev
@@ -155,6 +163,47 @@ def main():
     print("%s: %d checks, %d PASS, %d FAIL, %d numbers without a pass mark; %d metrics" % (out_file, len(rows), by["PASS"], by["FAIL"], by["INFO"], len(metrics)))
     for r in fails:
         print("FAIL %s %s" % (r["id"], r["title"]))
+    if len(sys.argv) > 3:
+        tables(rows, sys.argv[3])
+
+
+def flat(v):
+    """Numbers of a check as one line of text, as the tables of the report show them."""
+    if isinstance(v, dict):
+        return ", ".join("%s %s" % (k.replace("_", " "), flat(x) if not isinstance(x, dict) else "(" + flat(x) + ")") for k, v2 in v.items() for x in [v2])
+    if isinstance(v, list):
+        return "[" + ", ".join(flat(x) if not isinstance(x, dict) else "(" + flat(x) + ")" for x in v) + "]"
+    if v is None:
+        return "none"
+    if isinstance(v, bool):
+        return "yes" if v else "no"
+    return str(v)
+
+
+TITLES = {"s1": "a pair behind HAProxy, set up as the guide says", "s2": "network faults between the node VMs (three nodes)",
+          "s3": "clocks (three nodes, n3 shifted)", "s4": "the edge on the balancer VM, real nftables", "s5": "sixteen gateways",
+          "s7": "certificates with an ACME test server", "s8": "readiness of a node that reaches no member",
+          "s9": "a new group secret, server by server (three nodes, a TLS site, an edge)",
+          "s10": "the page data of the group and the counters across nodes (three nodes)",
+          "s11": "a block set on one node and lifted on another a moment later (three nodes)"}
+
+
+def tables(rows, path):
+    out = []
+    for sc in sorted(set(r["scenario"] for r in rows), key=lambda k: int(k[1:])):
+        mine = [r for r in rows if r["scenario"] == sc]
+        n = {v: sum(1 for r in mine if r["result"] == v) for v in ("PASS", "FAIL", "INFO")}
+        out += ["### Scenario %s: %s" % (sc[1:], TITLES.get(sc, "")), "", "%d checks: %d PASS, %d FAIL, %d numbers without a pass mark." % (len(mine), n["PASS"], n["FAIL"], n["INFO"]), "",
+                "| # | Check | Result | Numbers |", "| --- | --- | --- | --- |"]
+        for r in mine:
+            num = "; ".join("%s %s" % (k.replace("_", " "), flat(v) if not isinstance(v, dict) else flat(v)) for k, v in r["numbers"].items())
+            if len(num) > 700:
+                num = num[:700] + "..."
+            res = {"PASS": "PASS", "FAIL": "**FAIL**", "INFO": "number"}[r["result"]]
+            out.append("| %s | %s | %s | %s |" % (r["id"], r["title"].replace("|", "/"), res, num.replace("|", "/")))
+        out.append("")
+    with open(path, "w") as f:
+        f.write("\n".join(out))
 
 
 if __name__ == "__main__":

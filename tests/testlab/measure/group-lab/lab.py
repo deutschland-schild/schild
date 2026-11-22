@@ -160,6 +160,7 @@ class Conn:
         self.c = None
         self.error = ""
         self.body, self.headers = b"", {}
+        self.asked_to_close = 0      # answers that carried `Connection: close` without the client having asked for it
 
     def _open(self):
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -186,6 +187,8 @@ class Conn:
             r = self.c.getresponse()
             self.body = r.read()
             self.headers = dict(r.getheaders())
+            if r.will_close and not close:
+                self.asked_to_close += 1
             if r.will_close or close:
                 self.close()
             return r.status
@@ -202,6 +205,112 @@ class Conn:
             self.c = None
 
 
+class RawConn:
+    """A client that keeps its connection whatever the answer says: it does not look at `Connection: close` and
+    sends its next request on the same socket. Same interface as Conn. get() answers 0 when the request got no
+    answer (the socket was closed or reset)."""
+
+    def __init__(self, ip, port=WEB_PORT, claim=None, bind=None, timeout=5.0, host=SITE):
+        self.ip, self.port, self.claim, self.bind, self.timeout, self.host = ip, port, claim, bind, timeout, host
+        self.c = None                # the socket; named as in Conn, the load client asks `c.c is None`
+        self.buf = b""
+        self.error = ""
+        self.body, self.headers = b"", {}
+        self.asked_to_close = 0
+
+    def _open(self):
+        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        s.settimeout(self.timeout)
+        s.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
+        if self.bind:
+            s.bind((self.bind, 0))
+        s.connect((self.ip, self.port))
+        if self.claim:
+            s.sendall(proxy_v1(self.claim, self.ip, dport=self.port))
+        self.c, self.buf = s, b""
+
+    def _more(self):
+        chunk = self.c.recv(65536)
+        if not chunk:
+            raise EOFError("closed by the server without an answer" if not self.buf else "closed by the server inside an answer")
+        self.buf += chunk
+
+    def _take(self, n):
+        while len(self.buf) < n:
+            self._more()
+        out, self.buf = self.buf[:n], self.buf[n:]
+        return out
+
+    def _line(self):
+        while b"\r\n" not in self.buf:
+            self._more()
+        line, self.buf = self.buf.split(b"\r\n", 1)
+        return line
+
+    def get(self, path="/", close=False, headers=None):
+        h = {"Host": self.host, "User-Agent": "Mozilla/5.0 (measure MVP-27 lab, keeps its connection)"}
+        h.update(headers or {})
+        req = "GET %s HTTP/1.1\r\n%s\r\n\r\n" % (path, "\r\n".join("%s: %s" % kv for kv in h.items()))
+        try:
+            if self.c is None:
+                self._open()
+            self.c.sendall(req.encode())
+            status = int(self._line().split()[1])
+            hdrs = {}
+            while True:
+                line = self._line()
+                if not line:
+                    break
+                k, _, v = line.decode("latin-1").partition(":")
+                hdrs[k.strip().title()] = v.strip()
+            if hdrs.get("Transfer-Encoding", "").lower() == "chunked":
+                body = b""
+                while True:
+                    n = int(self._line().split(b";")[0], 16)
+                    if n == 0:
+                        while self._line():
+                            pass
+                        break
+                    body += self._take(n)
+                    self._take(2)
+            else:
+                body = self._take(int(hdrs.get("Content-Length", "0")))
+            self.body, self.headers = body, hdrs
+            if hdrs.get("Connection", "").lower() == "close":
+                self.asked_to_close += 1          # and stays on the connection all the same
+            if close:
+                self.close()
+            return status
+        except Exception as e:
+            self.error = repr(e)
+            self.close()
+            return 0
+
+    def close(self):
+        try:
+            if self.c:
+                self.c.close()
+        except OSError:
+            pass
+        finally:
+            self.c, self.buf = None, b""
+
+
+def tcp_open(ip, port, bind=None, timeout=0.5):
+    """Whether a TCP connection from the source address `bind` is accepted (what a firewall drop ends)."""
+    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    s.settimeout(timeout)
+    try:
+        if bind:
+            s.bind((bind, 0))
+        s.connect((ip, port))
+        return True
+    except OSError:
+        return False
+    finally:
+        s.close()
+
+
 def get(ip, path="/", claim=None, bind=None, timeout=5.0, port=WEB_PORT, host=SITE, headers=None):
     """One request on a new connection; answers the status (0: failed)."""
     c = Conn(ip, port, claim, bind, timeout, host)
@@ -211,7 +320,7 @@ def get(ip, path="/", claim=None, bind=None, timeout=5.0, port=WEB_PORT, host=SI
         c.close()
 
 
-def tls_get(ip, path, sni, claim=None, port=443, timeout=5.0):
+def tls_get(ip, path, sni, claim=None, port=443, timeout=5.0, bind=None):
     """One HTTPS request without checking the certificate; answers (status, SHA-256 of the certificate shown, session reused).
     Status 0: no TLS answer."""
     import hashlib
@@ -220,7 +329,7 @@ def tls_get(ip, path, sni, claim=None, port=443, timeout=5.0):
     ctx.check_hostname = False
     ctx.verify_mode = ssl.CERT_NONE
     try:
-        raw = socket.create_connection((ip, port), timeout=timeout)
+        raw = socket.create_connection((ip, port), timeout=timeout, source_address=(bind, 0) if bind else None)
         if claim:
             raw.sendall(proxy_v1(claim, ip, dport=port))
         t = ctx.wrap_socket(raw, server_hostname=sni)
@@ -244,20 +353,23 @@ class Load:
 
     mode "new": a new connection per request (what a balancer spreads). mode "keep": one connection per worker,
     kept open; a request that fails on a kept connection is tried once more on a new one and counted as retried,
-    as a browser does with a connection the server closed.
+    as a browser does with a connection the server closed. This client honours `Connection: close`: after such an
+    answer it opens a new connection for its next request (counted in `asked_to_close`). mode "deaf": like keep,
+    but the client ignores `Connection: close` and stays on its connection until the server ends it.
     """
 
     def __init__(self, ip, rate, workers=8, mode="new", claim=None, bind=None, path="/", timeout=5.0, port=WEB_PORT):
         self.ip, self.rate, self.workers, self.mode, self.path, self.timeout, self.port = ip, rate, workers, mode, path, timeout, port
         self.claim, self.bind = claim, bind
         self.rows, self.retried, self.stop_flag, self.tag = [], 0, False, ""
+        self.asked_to_close = 0
         self.lock = threading.Lock()
         self.threads = [threading.Thread(target=self._run, args=(i,), daemon=True) for i in range(workers)]
 
     def _run(self, i):
         gap = self.workers / float(self.rate)
         nxt = now() + gap * i / self.workers
-        c = Conn(self.ip, self.port, self.claim, self.bind, self.timeout)
+        c = (RawConn if self.mode == "deaf" else Conn)(self.ip, self.port, self.claim, self.bind, self.timeout)
         while not self.stop_flag:
             d = nxt - now()
             if d > 0:
@@ -267,12 +379,14 @@ class Load:
             fresh = c.c is None
             st = c.get(self.path, close=self.mode == "new")
             retried = False
-            if st == 0 and self.mode == "keep" and not fresh:
+            if st == 0 and self.mode in ("keep", "deaf") and not fresh:
                 retried = True
                 st = c.get(self.path)
             with self.lock:
                 self.rows.append((t0, now() - t0, st, self.tag, c.error if st == 0 else "", retried))
                 self.retried += 1 if retried else 0
+        with self.lock:
+            self.asked_to_close += c.asked_to_close
         c.close()
 
     def start(self):
@@ -295,7 +409,7 @@ class Load:
         lat = [r[1] * 1000 for r in rows if r[2] != 0]
         return {"requests": len(rows), "codes": {str(k): v for k, v in sorted(codes.items())},
                 "failed": codes.get(0, 0), "not_200": len(rows) - codes.get(200, 0),
-                "latency_ms": summary(lat, 2), "retried": self.retried,
+                "latency_ms": summary(lat, 2), "retried": self.retried, "asked_to_close": self.asked_to_close,
                 "errors": sorted(set(r[4] for r in rows if r[4]))[:5]}
 
     def failures(self):
@@ -305,6 +419,49 @@ class Load:
     def retries(self):
         """Start (seconds since the start of the load) of every request that had to be sent a second time."""
         return [round(r[0] - self.t0, 3) for r in self.rows if r[5]]
+
+
+class TlsLoad:
+    """A light load over TLS: every request on a new connection (and a new handshake), certificate not checked.
+    rows: (start, seconds, status); status 0 is a request without an answer."""
+
+    def __init__(self, ip, sni, rate=5, workers=2, bind=None, port=443):
+        self.ip, self.sni, self.rate, self.workers, self.bind, self.port = ip, sni, rate, workers, bind, port
+        self.rows, self.stop_flag = [], False
+        self.threads = [threading.Thread(target=self._run, args=(i,), daemon=True) for i in range(workers)]
+
+    def _run(self, i):
+        gap = self.workers / float(self.rate)
+        nxt = now() + gap * i / self.workers
+        while not self.stop_flag:
+            d = nxt - now()
+            if d > 0:
+                time.sleep(d)
+            nxt = max(nxt + gap, now() - 5 * gap)
+            t0 = now()
+            st, what = tls_get(self.ip, "/tls", self.sni, port=self.port, bind=self.bind)
+            self.rows.append((t0, now() - t0, st, what if st == 0 else ""))
+
+    def start(self):
+        self.t0 = now()
+        for t in self.threads:
+            t.start()
+        return self
+
+    def stop(self):
+        self.stop_flag = True
+        for t in self.threads:
+            t.join(8)
+        return self
+
+    def stats(self):
+        codes = {}
+        for r in self.rows:
+            codes[r[2]] = codes.get(r[2], 0) + 1
+        return {"requests": len(self.rows), "codes": {str(k): v for k, v in sorted(codes.items())},
+                "not_200": len(self.rows) - codes.get(200, 0),
+                "failed_at_s": [round(r[0] - self.t0, 1) for r in self.rows if r[2] != 200][:20],
+                "errors": sorted(set(r[3] for r in self.rows if r[3]))[:4]}
 
 
 # ---------------------------------------------------------------------------------------------------------------
@@ -391,6 +548,20 @@ class Dash:
         st, js = self.call("GET", "/group")
         return js if st == 200 else {"status": st, "body": js}
 
+    def member(self, node_ip):
+        """The GroupMember of the node with that mesh address, as this node shows it."""
+        for m in self.group().get("members", []):
+            if m.get("address", "").startswith(node_ip + ":"):
+                return m
+        return {}
+
+    def reasons(self):
+        """Codes of the reasons the overview (start page) carries."""
+        st, js = self.call("GET", "/overview")
+        if st != 200 or not isinstance(js, dict):
+            return None
+        return sorted(r.get("code") for r in (js.get("baseline") or {}).get("reasons", []))
+
 
 # ---------------------------------------------------------------------------------------------------------------
 # gateway nodes
@@ -410,10 +581,11 @@ class Node(VM):
         self.binary = "schild"
 
     def write_files(self, peers, balancers, node_name=None, cluster=True, drain=None, extra="", caddy_global="", site_extra="",
-                    site_addr=None):
+                    site_addr=None, name_from_host=False):
         """The deployment: schild.yaml, the Caddyfile and the group secret, as docs/gateway/03-cluster.md says.
 
-        Only cluster.listen differs from node to node (and node_name, when one is given)."""
+        Only cluster.listen differs from node to node (and node_name, when one is given). name_from_host: the line
+        `name_from_host: true` of the guide, with which one node_name for all nodes still gives every node its own name."""
         y = ["config_version: 0"]
         if node_name:
             y.append("node_name: %s" % node_name)
@@ -437,6 +609,8 @@ class Node(VM):
             if peers is not None:
                 y += ["  secret_file: /etc/schild/cluster.secret",
                       "  peers: [%s]" % ", ".join('"%s:%d"' % (p, MESH_PORT) for p in peers)]
+                if name_from_host:
+                    y += ["  name_from_host: true"]
             if drain:
                 y += ["  drain:", "    delay_s: %d" % drain[0], "    grace_s: %d" % drain[1]]
         if extra:
@@ -530,6 +704,12 @@ class Node(VM):
     def logtext(self):
         return self.get(self.LOG)
 
+    def count(self, pattern, path=None):
+        """Lines of the log (or of `path`) that match; 0 when the file is not there."""
+        rc, out = self.run("grep -c -E %s %s 2>/dev/null" % (json.dumps(pattern), path or self.LOG))
+        out = out.strip().splitlines()[-1] if out.strip() else "0"
+        return int(out) if out.isdigit() else 0
+
     def grep(self, pattern, n=5):
         rc, out = self.run("grep -E %s %s | tail -%d" % (json.dumps(pattern), self.LOG, n))
         return out
@@ -546,6 +726,19 @@ class Node(VM):
 
     def status(self):
         return self.cli("cluster status")[1]
+
+    def hostname(self):
+        """The first label of the host name of the VM: what `cluster.name_from_host` names the node."""
+        return self.run("hostname")[1].strip().split(".")[0].lower()
+
+    def disk(self):
+        """KiB below storage.path: all of it, the stores of the other nodes' metrics, the node's own metrics.db."""
+        rc, out = self.run("du -sk %s 2>/dev/null | cut -f1; du -sk %s/metrics-nodes 2>/dev/null | cut -f1 || echo 0; "
+                           "ls %s/metrics-nodes 2>/dev/null | grep -c '\\.db$'; du -sk %s/metrics.db 2>/dev/null | cut -f1"
+                           % (self.DATA, self.DATA, self.DATA, self.DATA))
+        v = [int(x) for x in out.split() if x.isdigit()]
+        v += [0] * (4 - len(v))
+        return {"storage_kib": v[0], "metrics_nodes_kib": v[1], "metrics_nodes_files": v[2], "metrics_db_kib": v[3]}
 
 
 def wait_until(fn, timeout=10.0, pause=0.05):

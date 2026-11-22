@@ -31,9 +31,10 @@ case "${1:-}" in
       if container list --all --quiet | grep -qx "sg27-$name"; then continue; fi
       container run -d --name "sg27-$name" -m "${mem:-512M}" -c "${cpus:-2}" --network "$NET" --cap-add ALL \
         --progress none "$IMAGE" >/dev/null || { echo "could not start sg27-$name" >&2; exit 1; }
-      container exec "sg27-$name" mkdir -p /opt/sg27
-      for f in ctl.py app.py netdelay.py; do container cp "$WORK/lab/$f" "sg27-$name:/opt/sg27/$f"; done
-      container exec -d "sg27-$name" python3 /opt/sg27/ctl.py
+      # nothing but the inventory may reach stdout: `container cp` and `container exec -d` print what they did
+      container exec "sg27-$name" mkdir -p /opt/sg27 >&2
+      for f in ctl.py app.py netdelay.py; do container cp "$WORK/lab/$f" "sg27-$name:/opt/sg27/$f" >/dev/null; done
+      container exec -d "sg27-$name" python3 /opt/sg27/ctl.py >/dev/null
     done
     inventory
     ;;
