@@ -88,7 +88,7 @@ RESULT_LIMITS = {"bot-match": 4 << 20, "geo-map": 64 << 10,
                  "access-gate": 64 << 10,  # D56 (MVP-14 step 1)
                  "crawler-policy": 4 << 20,  # D57 (MVP-29)
                  "human-check": 64 << 10,  # MVP-12 v1_cut
-                 "cluster-record": 4 << 20}  # D103 (MVP-27)
+                 "cluster-record": 4 << 20}  # D105 (MVP-27)
 FORBIDDEN_FIELDS = [
     "ip", "ips", "ip_address", "ip_prefix", "ip_hash", "ip_pseudonym", "oprf", "client_ip", "remote_addr", "remote_ip",
     "remote_host", "src_ip", "source_ip", "client_address", "address", "addr", "ipv4", "ipv6", "peer", "peer_ip",
@@ -4042,7 +4042,7 @@ def crowdsec_hub(d):
 
 
 
-# ---------------------------------------------------------------- group records (D103, cluster.md)
+# ---------------------------------------------------------------- group records (D105, cluster.md)
 #
 # Whether a node of a group of gateways takes a record, and whether it
 # replaces the record held (cluster.md sections 3 to 5). Written from the

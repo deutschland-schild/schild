@@ -1,6 +1,6 @@
-# Group of gateways (unreleased, D103, MVP-27)
+# Group of gateways (unreleased, D105, MVP-27)
 
-How several gateways of one operator share their state from node to node: no store beside them, no majority, so two nodes are a group. Direction given by the initiator on 2026-11-21, recorded in [DECISIONS](DECISIONS.md) D103; the whole plan is [MVP-27](../tests/specs/MVP-27-ha-group.yaml).
+How several gateways of one operator share their state from node to node: no store beside them, no majority, so two nodes are a group. Direction given by the initiator on 2026-11-21, recorded in [DECISIONS](DECISIONS.md) D105; the whole plan is [MVP-27](../tests/specs/MVP-27-ha-group.yaml).
 
 Go: `contract/cluster`. Vectors: `cluster-record` (input [cluster-record.schema.json](cluster-record.schema.json)): whether a node takes a record, why not, and whether it replaces the record held (sections 3 to 5), cross-checked by `tools/crosscheck.py`. The mesh calls (sections 7 to 11) have no vectors; the gateway's tests cover them. Everything here may still change before a release.
 

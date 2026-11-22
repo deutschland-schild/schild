@@ -158,7 +158,7 @@ export function buildNav(i: NavInput): NavGroup[] {
     { to: '/own-ips', label: 'Eigene IPs', icon: Network, keywords: ['allowlist', 'ip', 'freischalten', 'dyndns'] },
   ]
   const settings: NavItem[] = [
-    { to: '/settings', label: 'Allgemein', icon: Settings, exact: true, keywords: ['settings', 'schutzstatus', 'grundschutz', 'version', 'aufbewahrung', 'passwort'] },
+    { to: '/settings', label: 'Allgemein', icon: Settings, exact: true, keywords: ['settings', 'schutzstatus', 'grundschutz', 'version', 'aufbewahrung', 'passwort', 'agent', 'agent-api', 'ki-agent', 'token'] },
     { to: '/privacy', label: 'Datenschutz', icon: Lock, keywords: ['privacy', 'dsgvo', 'löschen', 'export'] },
   ]
   if (i.server)

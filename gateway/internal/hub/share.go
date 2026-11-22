@@ -13,7 +13,7 @@ import (
 	"github.com/deutschland-schild/schild/contract/crowdsec"
 )
 
-// A group of gateways runs one set of hub rules (MVP-27, D103). Every node
+// A group of gateways runs one set of hub rules (MVP-27, D105). Every node
 // may download the index; the node that took a new one hands it to the
 // others, which take it through the same checks as a download of their own
 // (CheckIndex, the compile check, the cost check, the build), under the

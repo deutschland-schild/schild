@@ -265,7 +265,7 @@ const faqMore = [
     <section id="funktionen" class="border-b border-line bg-mist" aria-labelledby="features-title">
       <div class="mx-auto max-w-6xl px-5 py-20 sm:px-8 lg:py-24">
         <h2 id="features-title" class="text-2xl font-bold tracking-tight sm:text-3xl">Was das Gateway mitbringt</h2>
-        <!-- Agent API (MVP-28, D54/D55): built, off by default, loopback listener only. -->
+        <!-- Agent API (MVP-28, D54/D55): built, on by default (D103), answers nothing without a token. -->
         <div id="ki-agent" class="mt-8 grid scroll-mt-20 gap-6 rounded-xl border border-mist-line bg-white p-6 shadow-xs sm:p-8 lg:grid-cols-[1fr_1.4fr] lg:gap-10">
           <div>
             <p class="kicker">KI-native</p>

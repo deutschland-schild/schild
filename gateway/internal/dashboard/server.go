@@ -123,6 +123,10 @@ type Server struct {
 	// BlockNode names the node of the group that decided a block; nil
 	// without a group.
 	BlockNode func(key behaviour.Key, incident string) (name string, self, ok bool)
+	// AgentAPI and SetAgentAPI are the switch of the agent API (D103). nil:
+	// schild.yaml decides and nothing can be switched (tests, no listeners).
+	AgentAPI    func(ctx context.Context) AgentAPIState
+	SetAgentAPI func(ctx context.Context, enabled *bool, user string) (AgentAPIState, error)
 	// FirewallState is what `schild firewall run` said in its last call
 	// (D87); nil or ok false: no firewall has called.
 	FirewallState func() (firewall.Report, bool)

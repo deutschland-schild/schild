@@ -96,7 +96,7 @@ Usage:
   schild allow    IP|CIDR|HOST [-ttl 24h|7d|30d|never] [-label TEXT] [-level no_block|bypass_waf]
   schild allow    --mine [-ttl ...] [-label TEXT] allow the address of the current SSH session (SSH_CONNECTION)
   schild allow    list | rm ID                   show or remove local allowlist entries
-  schild token    add --scope SCOPE --expires 90d [--label TEXT] | list | revoke ID | log [ID]
+  schild token    add [--scope SCOPE] [--expires 90d] [--label TEXT] | list | revoke ID | log [ID]
                                                  agent API tokens (agent_api in schild.yaml); shown once, stored hashed;
                                                  SCOPE: `+contractapi.ScopeList()+`; write scopes need --label
   schild status   [-config FILE]                 show profile, backend, allowlist and health; says when settings

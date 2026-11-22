@@ -7,7 +7,7 @@ import (
 )
 
 // What a group of gateways reads and writes of events and incidents
-// (MVP-27, D103): every node keeps the events of every node, so each
+// (MVP-27, D105): every node keeps the events of every node, so each
 // dashboard shows the group, also what a node wrote that is gone.
 
 // sourceOf reads the CloudEvents source of a stored event.

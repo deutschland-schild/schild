@@ -11,7 +11,7 @@ import (
 )
 
 // A node that starts takes the running counts of its group before it serves
-// (behaviour/warm.go, MVP-27, D103): the per-second counts tell it only what
+// (behaviour/warm.go, MVP-27, D105): the per-second counts tell it only what
 // the others count from now on, and without what they hold already a client
 // one failed login short of a block would start anew on it.
 //

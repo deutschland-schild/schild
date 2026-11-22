@@ -17,7 +17,7 @@ import (
 	"github.com/deutschland-schild/schild/gateway/internal/store"
 )
 
-// The group of MVP-27 (D103): what happened is on every node. Every node
+// The group of MVP-27 (D105): what happened is on every node. Every node
 // keeps the events, the incidents and the single requests of every node in
 // its own store, so every list, search, chart of the requests and the live
 // view of its dashboard show the group without a query going from node to

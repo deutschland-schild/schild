@@ -8,7 +8,7 @@ The section of a version becomes the text of its GitHub release, so its heading 
 
 ### Cluster of gateways (experimental)
 
-Two to sixteen gateways of one operator can form a cluster (in the code and the contract: a group) that shares its state from node to node, with no database, cache or queue beside it (D103, MVP-27). It is off by default and set up from `schild.yaml` alone: `cluster.enabled`, `cluster.listen`, `cluster.secret_file` and `cluster.peers`, the same on every node. How to run it is described in German under [docs/gateway/03-cluster.md](docs/gateway/03-cluster.md), the wire in [contracts/cluster.md](contracts/cluster.md).
+Two to sixteen gateways of one operator can form a cluster (in the code and the contract: a group) that shares its state from node to node, with no database, cache or queue beside it (D105, MVP-27). It is off by default and set up from `schild.yaml` alone: `cluster.enabled`, `cluster.listen`, `cluster.secret_file` and `cluster.peers`, the same on every node. How to run it is described in German under [docs/gateway/03-cluster.md](docs/gateway/03-cluster.md), the wire in [contracts/cluster.md](contracts/cluster.md).
 
 Measured by agents that did not build it: three gateways on one machine ([report](tests/results/MVP-27-group-measurement.md), last run 92 of 92 judged checks), faults, crashes, load, sixteen gateways, clocks and an upgrade in turn on one machine ([report](tests/results/MVP-27-hardening.md)), and sixteen gateways on Linux VMs behind HAProxy with an edge and an ACME test server ([first](tests/results/MVP-27-lab.md) and [second run](tests/results/MVP-27-lab-run2.md)). What the runs found is fixed below; what was built after the second lab run is not measured independently yet. Not measured: real servers with real visitors.
 
@@ -79,9 +79,19 @@ Measured by agents that did not build it: three gateways on one machine ([report
 
 - A block set by hand in the dashboard or by an agent for less than 7 days ended within a minute, at the engine's next sweep. It now runs until its end.
 
+## 0.1.0-alpha.5
+
 ### Rules
 
 - Strictness (paranoia level) and blocking threshold of the OWASP CRS are set in the dashboard (D101): "Strenge und Schwelle anpassen" on the page of the CRS. A change holds at once, without a restart, and wins over `schild.yaml`; "Werte aus schild.yaml einsetzen" gives both back to the file. A threshold above 5 points is named on the page, because a request with a single critical hit then passes.
+
+### Agent API
+
+- The agent API is on by default (D103). Without a token it answers every call with 401, and tokens are still created on the server only (`schild token add`). After the update an existing gateway listens on `127.0.0.1:8789`; `agent_api: {enabled: false}` in `schild.yaml` keeps it off, and the dashboard cannot switch it on against that. If the port is taken, only this listener does not start, requests are not affected.
+- The dashboard has a card "Agent-API" under Einstellungen: a switch that opens and closes the listener without a restart, the address, and the tokens with scope, expiry and last use. A value set there holds until "Wert aus schild.yaml einsetzen".
+- `schild token add` needs no flags: without them the token reads only and holds 90 days. `--expires` takes 1d to 365d as before.
+- Docker: the agent API can be reached from the host. `agent_api.listen` also takes `0.0.0.0:8789`, and the quickstart files publish the port on `127.0.0.1` of the host. Outside a container schild does not open a listener on every interface. An existing installation adds `agent_api: {listen: "0.0.0.0:8789"}` to `schild.yaml` and `"127.0.0.1:8789:8789"` to the ports in `compose.yaml`.
+- The docs describe the setup step by step under "Agent-API einrichten", and the features page says what an agent does with it.
 
 ### Server check
 
@@ -94,6 +104,12 @@ Measured by agents that did not build it: three gateways on one machine ([report
 - A report written in the same second as the one before is no longer skipped by the gateway.
 - Findings about open ports say what the check can know: a service listens on a public interface and "könnte von außen erreichbar sein". Whether a firewall on the server or at the hoster closes the port, the check cannot see from inside; the text says so and points to accepting the finding. "Keine Firewall auf dem Server aktiv" names the firewall of the hoster the same way.
 - The results of the server check are one list in the dashboard: one line per check with level, title, area and the main fact, the detail opens on click. The list can be searched (title, explanation, port, package, path) and filtered by state (open, not readable, accepted, in order) and area. The installed software has its own section.
+
+### Upgrade
+
+- From 0.1.0-alpha.4: change the image tag, run `sudo apt update && sudo apt install schild` and `sudo systemctl restart schild`, or replace the binary and restart. `schild.yaml` and `schild.db` need no change.
+- After the update the agent API listens on `127.0.0.1:8789` and answers 401 without a token. `agent_api: {enabled: false}` in `schild.yaml` keeps it off.
+- The server check is new to set up: `sudo schild check install` on the host. With Docker, copy the binary out of the container first and add the two mounts and the variable the command prints; the docs describe it under "Server-Check einrichten". With the check set up by hand before, run the command once as well: it replaces the units.
 
 ## 0.1.0-alpha.4
 

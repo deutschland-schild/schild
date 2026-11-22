@@ -16,7 +16,7 @@ import (
 	"github.com/deutschland-schild/schild/gateway/internal/ratelog"
 )
 
-// The stored history across the nodes of a group (MVP-27, D103, contracts/
+// The stored history across the nodes of a group (MVP-27, D105, contracts/
 // cluster.md section 9a). Every gateway keeps the buckets of every other
 // gateway next to its own: one ring store per member under
 // storage.path/metrics-nodes, with the rings and so the bounds of its own

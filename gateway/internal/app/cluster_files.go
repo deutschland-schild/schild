@@ -20,7 +20,7 @@ import (
 	"github.com/deutschland-schild/schild/gateway/internal/ratelog"
 )
 
-// The group of MVP-27 (D103): the storage of the embedded Caddy holds on
+// The group of MVP-27 (D105): the storage of the embedded Caddy holds on
 // every node. Certificates with their keys, ACME accounts, the local CA,
 // challenge tokens and the keys of TLS session tickets are files below the
 // storage root; the Caddy module caddymod.ClusterStorage writes them there

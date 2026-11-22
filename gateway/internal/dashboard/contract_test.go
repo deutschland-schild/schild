@@ -139,6 +139,7 @@ func TestFixturesRoundTrip(t *testing.T) {
 		"getWebsiteKpis": {"WebsiteKpis", websites.Kpis{}}, "getWebsiteRealtime": {"WebsiteRealtime", websites.Realtime{}},
 		"listAnnotations": {"AnnotationList", websites.AnnotationList{}}, "listAlerts": {"AlertFeed", websites.AlertFeed{}},
 		"listIncidents": {"IncidentPage", dashboard.IncidentPage{}}, "listAgentCalls": {"AgentCallLog", dashboard.AgentCallLog{}},
+		"getAgentAPI": {"AgentAPIState", dashboard.AgentAPIState{}}, "setAgentAPI": {"AgentAPIState", dashboard.AgentAPIState{}},
 		// v0.5 D36 fix round 1: served by the monitoring package.
 		"getTrafficBreakdown": {"TrafficBreakdown", monitoring.TrafficBreakdown{}},
 		// v0.5 (D39, MVP-26)
@@ -154,7 +155,7 @@ func TestFixturesRoundTrip(t *testing.T) {
 		"removeRuleExceptionRule": {"RuleExceptionList", agentapi.ExceptionList{}},
 		// D87: the address blocks that run.
 		"listBlocks": {"BlockList", dashboard.BlockList{}},
-		// D103: the group of gateways.
+		// D105: the group of gateways.
 		"getGroupStatus": {"GroupStatus", dashboard.GroupStatus{}},
 		"createBlock":    {"RunningBlock", dashboard.RunningBlock{}},
 		// D56 (MVP-14 step 1)

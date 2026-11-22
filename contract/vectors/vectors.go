@@ -214,7 +214,7 @@ func (r *Runner) Run(v *Vector) (Verdict, error) {
 		result, verr = bodylimit.RunVector(raw)
 	case "agent-block": // D42
 		result, verr = agentapi.RunBlockVector(raw)
-	case "cluster-record": // D103
+	case "cluster-record": // D105
 		result, verr = cluster.RunVector(raw, ctx.Now)
 	case "access-gate": // D56
 		result, verr = access.RunVector(raw)

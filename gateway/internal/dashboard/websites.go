@@ -38,6 +38,8 @@ func (s *Server) websiteRoutes(a func(string, http.HandlerFunc)) {
 	a("GET "+apiPrefix+"/websites/{website}/annotations", s.listAnnotations)
 	a("GET "+apiPrefix+"/websites/{website}/alerts", s.listAlerts)
 	a("GET "+apiPrefix+"/incidents", s.listIncidents)
+	a("GET "+apiPrefix+"/agent-api", s.getAgentAPI)
+	a("PUT "+apiPrefix+"/agent-api", s.setAgentAPI)
 	a("GET "+apiPrefix+"/agent-api/calls", s.listAgentCalls)
 	s.accessRoutes(a)
 	s.humanCheckRoutes(a)
@@ -964,7 +966,7 @@ func (s *Server) listAgentCalls(w http.ResponseWriter, r *http.Request) {
 		from = to.Add(-30 * 24 * time.Hour)
 	}
 	c := s.Config().AgentAPI
-	out := AgentCallLog{Enabled: c.On(), LogDays: min(max(c.LogDays, 1), 90), Tokens: []AgentTokenInfo{}, Items: []AgentCall{}}
+	out := AgentCallLog{Enabled: s.agentAPIState(r.Context()).Enabled, LogDays: min(max(c.LogDays, 1), 90), Tokens: []AgentTokenInfo{}, Items: []AgentCall{}}
 	ctx := r.Context()
 	toks, err := s.St.ListAgentTokens(ctx)
 	if err != nil {

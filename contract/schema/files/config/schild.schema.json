@@ -243,7 +243,7 @@
       }
     },
     "cluster": {
-      "description": "Unreleased (MVP-27, D103, cluster.md): this gateway is one node of a group that shares its state from node to node. Off by default; without it nothing of the group runs, no file is written and no listener opened. The node's key and its copy of the group's records lie in <storage.path>/cluster. A node enters a group on the host: `schild cluster init` on the first, `schild cluster invite` there and `schild cluster join` on every other.",
+      "description": "Unreleased (MVP-27, D105, cluster.md): this gateway is one node of a group that shares its state from node to node. Off by default; without it nothing of the group runs, no file is written and no listener opened. The node's key and its copy of the group's records lie in <storage.path>/cluster. A node enters a group on the host: `schild cluster init` on the first, `schild cluster invite` there and `schild cluster join` on every other.",
       "type": "object",
       "additionalProperties": false,
       "properties": {
@@ -267,12 +267,12 @@
       }
     },
     "agent_api": {
-      "description": "v0.4 (MVP-21, D33): API for agents (e.g. Claude Code), described by the OpenAPI document it serves (D61), on its own loopback listener, read only except the CrowdSec Hub switch for tokens with scope crowdsec:write (D39 amendment) and single blocks for tokens with scope blocks:write (D42), reached through an SSH tunnel; the same read surface the MVP-20 export joins. Bearer tokens are created, listed and revoked only on the host (`schild token add --scope agent:read --expires 90d`), stored hashed, never in this file. IPs leave it only as keyed pseudonyms and /24 or /48 networks. Off by default.",
+      "description": "v0.4 (MVP-21, D33): API for agents (e.g. Claude Code), described by the OpenAPI document it serves (D61), on its own loopback listener, read only except the CrowdSec Hub switch for tokens with scope crowdsec:write (D39 amendment) and single blocks for tokens with scope blocks:write (D42), reached through an SSH tunnel; the same read surface the MVP-20 export joins. Bearer tokens are created, listed and revoked only on the host (`schild token add --scope agent:read --expires 90d`), stored hashed, never in this file. On by default (D103): without a token every call answers 401.",
       "type": "object",
       "additionalProperties": false,
       "properties": {
-        "enabled": { "type": "boolean", "default": false },
-        "listen": { "description": "Loopback only (127.0.0.0/8, [::1] or localhost) and different from listen.dashboard and listen.metrics (semantic check, code config).", "type": "string", "pattern": "^(127\\.[0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}|\\[::1\\]|localhost):[0-9]{1,5}$", "default": "127.0.0.1:8789" },
+        "enabled": { "description": "D103: on by default. false is final: the dashboard cannot switch the agent API on against it. With true the dashboard can switch it off, until its value is reset.", "type": "boolean", "default": true },
+        "listen": { "description": "Loopback (127.0.0.0/8, [::1] or localhost) or, for a container whose port is published on the loopback of its host, every interface (0.0.0.0 or [::], D103); no other address. Outside a container schild does not open a listener on every interface unless SCHILD_AGENT_API_ANY_INTERFACE=1. Different from listen.dashboard and listen.metrics (semantic check, code config).", "type": "string", "pattern": "^(127\\.[0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}|0\\.0\\.0\\.0|\\[::1?\\]|localhost):[0-9]{1,5}$", "default": "127.0.0.1:8789" },
         "requests_per_minute": { "description": "Per token; above it 429 with Retry-After.", "type": "integer", "minimum": 1, "maximum": 600, "default": 120 },
         "max_concurrent": { "description": "Requests in flight per token; above it 429.", "type": "integer", "minimum": 1, "maximum": 8, "default": 2 },
         "log_days": { "description": "How long the local call log (token id, time, operation, status, rows, bytes) is kept.", "type": "integer", "minimum": 1, "maximum": 90, "default": 30 },

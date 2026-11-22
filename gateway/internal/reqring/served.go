@@ -16,7 +16,7 @@ import (
 	cr "github.com/deutschland-schild/schild/contract/requests"
 )
 
-// The served log on disk (MVP-27, D103). A node of a group numbers every
+// The served log on disk (MVP-27, D105). A node of a group numbers every
 // request it serves itself (Entry.Seq). The newest are held in memory
 // (teeBuf); all of them are in the segments, as long as the ring keeps
 // those. Another node asks for what came after its cursor (Served) and so

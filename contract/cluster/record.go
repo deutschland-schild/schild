@@ -1,5 +1,5 @@
 // Package cluster is the contract of a group of gateways that share their
-// state from node to node (MVP-27, DECISIONS D103, contracts/cluster.md):
+// state from node to node (MVP-27, DECISIONS D105, contracts/cluster.md):
 // the signed record every change travels in, the clock that orders two
 // writes of the same thing, who may sign, and the join code.
 //

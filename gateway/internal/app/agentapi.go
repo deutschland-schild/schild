@@ -7,7 +7,6 @@ import (
 	"errors"
 	"maps"
 	"net"
-	"net/http"
 	"net/netip"
 	"os"
 	"time"
@@ -21,12 +20,9 @@ import (
 	"github.com/deutschland-schild/schild/gateway/internal/store"
 )
 
-// newAgentAPI returns the read-only agent API (MVP-21, D33) when
-// agent_api.enabled is set; its own loopback listener starts in Run.
-func (a *App) newAgentAPI(cfg *config.Site) *agentapi.Server {
-	if !cfg.AgentAPI.On() {
-		return nil
-	}
+// newAgentAPI returns the agent API (MVP-21, D33). Its own listener starts
+// in Run when the switch is on (D103).
+func (a *App) newAgentAPI() *agentapi.Server {
 	blocks := &agentapi.BlockDeps{Engine: a.Behaviour, Mode: func() string { return a.Gate.Settings().Mode }, Own: a.ownAddress,
 		Released: func(ip netip.Addr) bool { return a.Gate.Exceptions.Running(ip, time.Now()) },
 		NetClass: func(ip netip.Addr) string {
@@ -170,22 +166,4 @@ func profileOf(c *config.Site) string {
 		return "test"
 	}
 	return "production"
-}
-
-// startAgentAPI starts the agent API listener (loopback only, checked by the
-// config) and its call log writer.
-func (a *App) startAgentAPI(ctx context.Context, servers *[]*http.Server) {
-	if a.AgentAPI == nil {
-		return
-	}
-	addr := a.Config().AgentAPI.Listen
-	srv := &http.Server{Addr: addr, Handler: a.AgentAPI.Handler(addr), ReadHeaderTimeout: 10 * time.Second, IdleTimeout: 2 * time.Minute}
-	*servers = append(*servers, srv)
-	a.goLoop(ctx, "agent-api-log", a.AgentAPI.Run)
-	go func() {
-		if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
-			a.log.Error("agent API listener stopped (request handling is not affected)", "addr", addr, "err", err)
-		}
-	}()
-	a.log.Info("agent API listening (bearer tokens from `schild token add`)", "addr", addr, "openapi", "http://"+addr+"/agent/v0/openapi.json")
 }

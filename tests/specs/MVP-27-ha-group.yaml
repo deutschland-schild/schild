@@ -1,5 +1,5 @@
 id: MVP-27
-# Direction given by the initiator 2026-11-21 (DECISIONS D103, draft; replaces the Valkey store of D53): a group of
+# Direction given by the initiator 2026-11-21 (DECISIONS D105, draft; replaces the Valkey store of D53): a group of
 # gateways shares its state from node to node, with no database, cache or queue to run next to it. Two shapes: a pair
 # of two nodes, and a fleet of about ten nodes behind a balancer tier (a hoster's general service). Every event and
 # request is reachable from every node, a failed node costs neither the protection nor the data, and blocks act in
@@ -26,7 +26,7 @@ ships: false                        # draft, experimental, in no release. What i
 status: ENTWURF
 image: schild                       # same binary on gateways and on balancer VMs (role edge); nothing else to install
 hypotheses: [D3]
-refs: [MVP-15, MVP-17, MVP-18, MVP-19, MVP-20, MVP-21, MVP-22, MVP-26, DECISIONS-D29, DECISIONS-D32, DECISIONS-D36, DECISIONS-D38, DECISIONS-D42, DECISIONS-D46, DECISIONS-D49, DECISIONS-D51, DECISIONS-D53, DECISIONS-D73, DECISIONS-D87, DECISIONS-D89, DECISIONS-D91, DECISIONS-D103]
+refs: [MVP-15, MVP-17, MVP-18, MVP-19, MVP-20, MVP-21, MVP-22, MVP-26, DECISIONS-D29, DECISIONS-D32, DECISIONS-D36, DECISIONS-D38, DECISIONS-D42, DECISIONS-D46, DECISIONS-D49, DECISIONS-D51, DECISIONS-D53, DECISIONS-D73, DECISIONS-D87, DECISIONS-D89, DECISIONS-D91, DECISIONS-D105]
 depends_on: [MVP-17, MVP-19, MVP-21, MVP-22]
 why: >-
   One website on several servers, so a server can fail or be updated without an outage, and a hoster can put many
@@ -169,7 +169,7 @@ enforcement:                        # where a block acts, from the outside in
 
 configuration:
   - 'schild.yaml, rules.d and the Caddyfile stay files, deployed to every node as code (D32). Every node sends a config version (hash of schild.yaml without cluster.node, rules.d, Caddyfile) and the versions of its rule sets, bot ranges and geo database with its heartbeat; a difference raises the hint cluster_config_drift and names the nodes'
-  - 'what is set in the dashboard or by an agent is class `settings` and holds on every node within seconds. This amends D53, where a group made the dashboard read-only (D103)'
+  - 'what is set in the dashboard or by an agent is class `settings` and holds on every node within seconds. This amends D53, where a group made the dashboard read-only (D105)'
   - 'one member fetches the CrowdSec hub and the bot ranges (the one that holds the lock of `certificates`) and the others take the set from it, so every node decides with the same rules'
   - 'the first node to be set up owns the first-run setup; a node that joins takes users and settings from the group and never offers a setup of its own'
 

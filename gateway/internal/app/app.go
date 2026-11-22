@@ -138,8 +138,10 @@ type App struct {
 	botEngine *bots.Engine
 	robots    *bots.Robots
 	botDir    botDir
-	// AgentAPI is the read-only agent API (MVP-21); nil when off.
+	// AgentAPI is the agent API (MVP-21). It is always built; whether its
+	// listener is open is the switch (D103, agentSwitch).
 	AgentAPI *agentapi.Server
+	agent    agentSwitch
 	// blockOps feeds the writer of kept behaviour blocks (D29 amendment).
 	blockOps chan blockOp
 	// Sites are the websites of this gateway (v0.5, D36).
@@ -169,7 +171,7 @@ type App struct {
 	// Crawlers is crawler control (D57, MVP-29); crawlersMu around changes.
 	Crawlers   *crawlers.Control
 	crawlersMu sync.Mutex
-	// Cluster is this gateway as a node of its group (MVP-27, D103); nil
+	// Cluster is this gateway as a node of its group (MVP-27, D105); nil
 	// without cluster.enabled or before the node joined a group.
 	Cluster     *cluster.Node
 	groupBlocks groupBlocks
@@ -569,11 +571,13 @@ func New(ctx context.Context, opts Options) (*App, error) {
 	a.Dashboard.Sites = a.Sites
 	a.logConfigChange(ctx, a.started, "", cfg)
 	a.setConfigHash(a.Repos.LocalText())
-	a.AgentAPI = a.newAgentAPI(cfg)
-	if a.AgentAPI != nil {
-		// D87: what `schild firewall run` said in its last call.
-		a.Dashboard.FirewallState = a.AgentAPI.Firewall.State
-	}
+	a.AgentAPI = a.newAgentAPI()
+	// D87: what `schild firewall run` said in its last call.
+	a.Dashboard.FirewallState = a.AgentAPI.Firewall.State
+	a.loadAgentSwitch(ctx)
+	a.OnSharedKey(agentAPIStoreKey, a.followAgentSwitch)
+	a.Dashboard.AgentAPI = a.agentAPIState
+	a.Dashboard.SetAgentAPI = a.setAgentAPI
 	a.Gate.SetReady(true)
 	return a, nil
 }
@@ -807,7 +811,7 @@ func (a *App) Run(ctx context.Context) error {
 			go func() { errc <- listen(ds, "dashboard") }()
 		}
 		a.startAgentListener(&servers)
-		a.startAgentAPI(inner, &servers)
+		a.startAgentAPI(inner)
 		// A start that is refused here (another gate bound, a Caddyfile
 		// schild does not accept, a port in use) ends like a run: loops
 		// stopped, events flushed, stores closed. Returning at once left
@@ -846,6 +850,7 @@ func (a *App) Run(ctx context.Context) error {
 	for _, s := range servers {
 		_ = s.Shutdown(sctx)
 	}
+	a.stopAgentAPI()
 	a.Events.Flush(sctx)
 	a.flushSummaries(sctx)
 	cancel()

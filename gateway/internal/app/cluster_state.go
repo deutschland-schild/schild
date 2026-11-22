@@ -22,7 +22,7 @@ import (
 	"github.com/deutschland-schild/schild/gateway/internal/store"
 )
 
-// The group of MVP-27 (D103): what the dashboard and the agent API set, who
+// The group of MVP-27 (D105): what the dashboard and the agent API set, who
 // passes and who may sign in hold on every node.
 //
 // Each of these things is a value in schild.db (a row of kv, or a small

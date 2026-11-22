@@ -15,7 +15,7 @@ import (
 	"github.com/deutschland-schild/schild/gateway/internal/ratelog"
 )
 
-// The counters and charts of a group (MVP-27, D103, contracts/cluster.md
+// The counters and charts of a group (MVP-27, D105, contracts/cluster.md
 // section 9a). Every gateway keeps the metric buckets of every other
 // gateway, so each dashboard shows the sum of the group and any one node,
 // also of a node that is gone. Pulled, like the events: every 10 s a

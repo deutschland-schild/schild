@@ -11,7 +11,7 @@ description: "Was das Schild Gateway heute kann und wie es selbst abgesichert is
 
 - Das Schild Gateway ist ein Programm (`schild`), das auf deinem Server vor deiner Website läuft und jede Anfrage prüft, bevor sie deine Anwendung erreicht.
 - Es arbeitet allein, ohne Konto und ohne Verbindung zu Labs oder Relays. Aus deinem Traffic verlässt nichts den Server.
-- Diese Seite beschreibt nur, was gebaut ist. Was noch fehlt, steht gesammelt am Ende unter [Geplant](#geplant-noch-nicht-gebaut).
+- Diese Seite beschreibt nur, was gebaut ist.
 - Installieren: [Installieren](00-installieren.md). Einbauen, Schalter, Ausfall und Rückbau: [Betrieb](02-betrieb.md).
 
 ## Was das Gateway ist
@@ -41,7 +41,7 @@ Ein Programm, das vor deiner Website steht, muss selbst wenig Angriffsfläche bi
 - **Ohne Root.** Im Docker-Image läuft Schild als Benutzer ohne Root-Rechte. Die mitgelieferte Compose-Datei macht das Dateisystem schreibgeschützt und nimmt dem Container alle Sonderrechte. Die systemd-Unit lässt Schild als Benutzer `schild` laufen, der nur in `/var/lib/schild` schreiben darf.
 - **Im Zweifel 503.** Dauert die Prüfung zu lange oder bricht sie ab, antwortet Schild mit 503 und lässt nichts ungeprüft durch.
 - **Prüfbare Releases.** Du kannst nachprüfen, dass Image und Archive unverändert aus dem öffentlichen Quellcode gebaut wurden (Signatur mit cosign, Prüfsummen, Herkunftsnachweis). Eine Stückliste (SBOM) nennt alle enthaltenen Bibliotheken.
-- **Agent-API ab Werk aus.** Eingeschaltet hört sie nur auf Loopback und verlangt ein Token.
+- **Agent-API nur mit Token.** Sie hört nur auf Loopback, und ohne ein Token, das du auf dem Server anlegst, lehnt sie jeden Aufruf ab. Im Dashboard schaltest du sie mit einem Klick aus, in `schild.yaml` sperrst du sie fest.
 
 Eine Sicherheitslücke meldest du vertraulich. Der Weg steht in [SECURITY.md](https://github.com/deutschland-schild/schild/blob/main/SECURITY.md).
 
@@ -318,32 +318,47 @@ Manche Befunde stimmen für den Server und sind für dich trotzdem in Ordnung. E
 
 ## Agent-API für KI-Agenten
 
-Ein KI-Agent, der deine Anwendung kennt, kann die Firewall an sie anpassen: Er sieht alle Regeln, testet Beispielanfragen gegen sie und legt eng begrenzte Ausnahmen an, bevor eine Regel echte Eingaben sperrt. Mit eigener Berechtigung darf er außerdem einzelne Sperren setzen und aufheben, die Crawler-Regeln ändern, die Regel-Repositories schalten und einzelne Regeln ausschalten.
+Dein Coding-Agent kennt deine Anwendung: ihre Formulare, ihre API und was dort normale Eingaben sind. Über die Agent-API wendet er dieses Wissen auf die Firewall an. Du sagst ihm in normaler Sprache, was du brauchst, und er erledigt es mit ein paar Aufrufen. Schild bringt dafür keinen eigenen Agenten mit, du nimmst den, mit dem du ohnehin arbeitest.
 
-- Ab Werk ausgeschaltet. Eingeschaltet nur auf dem Server selbst erreichbar (`127.0.0.1:8789`); dein Agent kommt per SSH-Tunnel oder läuft auf dem Server.
-- Zugang mit Tokens (`schild token add`), jeweils mit Berechtigung und Ablaufdatum, nur einmal angezeigt. Wie du sie einschaltest: [Agent-API einschalten](02-betrieb.md#agent-api-einschalten).
-- Die API beschreibt sich selbst: `/agent/v0/openapi.json` reicht dem Agenten als Anleitung. Für Menschen steht dieselbe Beschreibung in der [API-Referenz](/api).
-- Ereignisse, Vorfälle und Einzelanfragen nennen die IP-Adresse, solange Schild sie aufbewahrt. Du kannst deinen Agenten also fragen, was eine bestimmte Adresse gemacht hat. Läuft er mit einem Modell in der Cloud, verlässt alles, was er liest, deinen Server.
-- Jeder Aufruf steht im Protokoll (`schild token log`), jede Änderung mit Begründung.
+So kann ein Auftrag klingen:
 
-Nutzt dein Agent ein Cloud-Modell, verlassen die Daten, die er liest, dein Netz.
+- „Unser neues Kontaktformular geht morgen live. Prüf, ob eine Regel es sperren würde.“
+- „Beim Speichern im Editor sehen manche eine Sperrseite. Finde die Regel und schlag mir eine Ausnahme vor.“
+- „Was hat die Adresse 203.0.113.7 heute gemacht?“
+
+### Was dein Agent damit tut
+
+- **Anfragen testen, bevor sie echt sind.** Er schickt eine Beispielanfrage, so wie dein Code sie sendet, durch die laufenden Regeln einer Website. Schild antwortet, welche Regel an welchem Feld anschlägt und ob sie sperren würde, und schlägt die passende Ausnahme gleich vor. Dabei wird nichts weitergeleitet, gezählt oder gespeichert.
+- **Fehlalarme beheben.** Schild nennt die Regeln, an denen vor allem normale Besucher:innen hängen bleiben. Dein Agent sieht sich die Anfragen dazu an und legt eine [Ausnahme](#ausnahmen) an: einzelne Regeln, für ein Feld auf einer Seite einer Website. Alles andere bleibt geprüft.
+- **Nachsehen, was los ist.** Status, Last, Ereignisse, Vorfälle, einzelne Anfragen und Bots, je Website. Ereignisse, Vorfälle und Anfragen nennen die IP-Adresse, solange Schild sie aufbewahrt. Dein Agent kann also sagen, was eine bestimmte Adresse gemacht hat.
+- **Eine Adresse sperren.** Für eine begrenzte Zeit und mit Begründung: höchstens 24 Stunden, Adressen aus Rechenzentren höchstens 7 Tage. Aufheben kann er die Sperre auch.
+- **Crawler steuern.** KI-Crawler und andere Bots je Website erlauben oder sperren, siehe [Bots und KI-Crawler](#bots-und-ki-crawler).
+- **Regeln schalten.** Ein [Regel-Repository](#regeln) auf Aus, Erkennen oder Sperren stellen und einzelne Regeln ausschalten.
+
+Lesen und testen darf jedes Token. Jede der vier schreibenden Aufgaben braucht eine eigene Berechtigung, die du beim Anlegen des Tokens vergibst. Ein Token hat genau eine davon.
+
+### Wie sie abgesichert ist
+
+- **Ohne Token passiert nichts.** Die Agent-API ist ab Werk an, lehnt aber jeden Aufruf ohne gültiges Token ab. Unter „Einstellungen“ im Dashboard schaltest du sie mit einem Klick aus. Steht sie in `schild.yaml` auf aus, lässt sie sich auch im Dashboard nicht einschalten.
+- **Nur auf dem Server erreichbar.** Sie hört auf `127.0.0.1:8789`. Dein Agent läuft auf dem Server oder kommt per SSH-Tunnel. Eine Adresse aus deinem Netz nimmt sie nicht an.
+- **Tokens entstehen nur auf dem Server** (`schild token add`). Schild zeigt ein Token einmal und speichert nur seinen Hash. Jedes läuft ab, ohne Angabe nach 90 Tagen, höchstens nach 365, und lässt sich sofort widerrufen.
+- **Feste Grenzen je Token:** 120 Anfragen pro Minute, 2 gleichzeitig. Für Sperren gilt zusätzlich eine Grenze je Stunde und eine für alle laufenden Sperren zusammen. Private Adressen kann kein Agent sperren.
+- **Alles ist nachvollziehbar.** Jeder Aufruf steht im Protokoll (`schild token log`). Jede Änderung braucht eine Begründung und erscheint als Ereignis mit dem Namen des Tokens im Dashboard. Ausnahmen und Sperren eines Agenten nimmst du dort wieder zurück.
+- **Text von Besucher:innen ist markiert.** Pfade, User-Agents und Referrer stammen von Fremden und können Anweisungen an deinen Agenten enthalten. Die API kennzeichnet diese Felder als nicht vertrauenswürdig. Das senkt das Risiko, nimmt es aber nicht weg: Gib einem Agenten nur die Berechtigung, die er für seine Aufgabe braucht.
+
+Was dein Agent liest, bleibt nur auf deinem Server, wenn auch sein Modell dort läuft. Nutzt er ein Modell in der Cloud, verlässt alles, was er liest, deinen Server, auch IP-Adressen.
+
+### Einrichten
+
+Zwei Schritte: auf dem Server ein Token anlegen und den Agenten verbinden. Die Befehle für Paket, Binary und Docker stehen unter [Agent-API einrichten](02-betrieb.md#agent-api-einrichten).
+
+Die API beschreibt sich selbst: `/agent/v0/openapi.json` reicht deinem Agenten als Anleitung. Für Menschen steht dieselbe Beschreibung in der [API-Referenz](/api).
+
+## Mehrere Gateways als Cluster (experimentell)
+
+Zwei bis sechzehn Gateways können als Cluster laufen. Sie teilen Sperren, Einstellungen, Logins, Zertifikate, Zähler, Ereignisse und Anfragen direkt untereinander, ohne Datenbank daneben. Fällt ein Server aus, bedienen die anderen weiter. Der Cluster ist experimentell. Wie du ihn einrichtest und wo seine Grenzen liegen, steht unter [Mehrere Gateways als Cluster betreiben](03-cluster.md).
 
 ## Metriken und Geodaten
 
 - **Metriken** für Prometheus unter `127.0.0.1:9101/metrics`, dazu `/healthz` und `/readyz`. Keine Besucherdaten in den Labels.
 - **Geodaten:** Land und Netzbetreiber aus DB-IP Lite (CC BY 4.0) sind dabei. Wer genauere Daten will, bindet IPinfo oder MaxMind mit eigenem Zugang an. Nachgeschlagen wird immer lokal.
-
-## Geplant, noch nicht gebaut
-
-Diese Funktionen sind beschrieben oder angefangen, im Gateway aber noch nicht nutzbar:
-
-- **Formularschutz:** eine Prüfung auch für abgeschickte Formulare. Die [Kurze Prüfung](#kurze-prüfung-im-browser-und-under-attack) gilt heute nur für Seitenaufrufe.
-- **[Zugriffsregeln pro URL-Bereich](../concept/25-zugriffsregeln.md):** eine geordnete Regelliste je Website, später mit Passkey-Login.
-- **Schild Agent** für interne App-Server hinter dem Gateway (Server-Check mit signierten Berichten).
-- **Abgleich mit Sicherheitswarnungen:** „Betrifft diese neue Lücke meine Software?“
-- **Einbruch bemerken** (zum Beispiel CPU hoch ohne Besucher, neue PHP-Dateien im Upload-Ordner) und **App-Logs und Fehler** im Dashboard.
-- **Admin-Zugänge „nur über VPN“** per Schalter.
-- **Zentrales Dashboard** für mehrere Gateways.
-- **Pakete für dnf** (Fedora, RHEL und Verwandte). Heute gibt es das Docker-Image, ein Paket für Debian und Ubuntu mit eigenem apt-Repository und ein Binary mit systemd-Unit ([Schild bekommen](00-installieren.md#schild-bekommen)).
-- **Windows und Shared Hosting ohne Root.**
-- **Regeln aus dem Schild-Netz:** geprüfte Regeln aus einem Netz unabhängiger Labs, später als weiteres Regel-Repository. Die erste Gateway-Version enthält dafür keinen Code. Wie das Netz funktionieren soll, steht unter [Das Schild-Netz](/netz).

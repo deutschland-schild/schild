@@ -1,4 +1,4 @@
-/** Words for the mode a gateway runs in and for the state of its group (MVP-27, D103). */
+/** Words for the mode a gateway runs in and for the state of its group (MVP-27, D105). */
 import type { StatusTone } from '@schild/ui'
 import type { GroupMember, GroupState, GroupStatus } from '@/api/group'
 import { formatDuration, formatNumber } from '@schild/ui'

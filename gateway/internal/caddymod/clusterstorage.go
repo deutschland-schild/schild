@@ -10,7 +10,7 @@ import (
 )
 
 // GroupFiles is the group of gateways as the certificate storage needs it
-// (MVP-27, D103): told what changed here, and asked for the lock of an
+// (MVP-27, D105): told what changed here, and asked for the lock of an
 // order. The gateway's app implements it.
 type GroupFiles interface {
 	// Changed: the file key of the storage was written or deleted on this

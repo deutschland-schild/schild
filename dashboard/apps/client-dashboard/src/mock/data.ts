@@ -31,10 +31,12 @@ import groupFixture from '../../../../../contracts/api/fixtures/client/getGroupS
 import overviewNormal from '../../../../../contracts/api/fixtures/client/getOverview.json'
 import overviewStandalone from '../../../../../contracts/api/fixtures/client/getOverview.standalone.json'
 import settingsFixture from '../../../../../contracts/api/fixtures/client/getSettings.json'
+import type { AgentApiMock } from './agentapi'
 import type { BehaviourMock } from './behaviour'
 import type { HostMock } from './hosts'
 import type { MonitoringMock } from './monitoring'
 import type { RulesMock } from './rules'
+import { createAgentApiState } from './agentapi'
 import { createBehaviourState } from './behaviour'
 import { createHostState, serversSummary } from './hosts'
 import { seedWebsites } from './websites'
@@ -228,6 +230,8 @@ export interface MockState {
   monitoring: MonitoringMock
   /** MVP-27: the mode this gateway runs in. A single gateway in every scenario but `group`. */
   group: GroupStatus
+  /** D103: the switch of the agent API and its tokens (mock/agentapi.ts). */
+  agentApi: AgentApiMock
 }
 
 const CSRF = 'mock-csrf-token-7f3a9c22b1e04d55'
@@ -477,6 +481,7 @@ export function createState(opts: CreateStateOptions = {}): MockState {
     group: scenario === 'group' || scenario === 'group-large'
       ? shiftTimes(scenario === 'group' ? groupFixture as GroupStatus : largeGroup(groupFixture as GroupStatus), t0 - Date.parse(groupFixture.generated_at))
       : { mode: 'single' },
+    agentApi: createAgentApiState(scenario, t0),
   }
   // MVP-22 (D35): which geo database is in use. The degraded gateway downloads IPinfo with the operator's
   // own key and its last download failed, so it keeps the previous database.

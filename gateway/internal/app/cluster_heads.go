@@ -13,7 +13,7 @@ import (
 	"github.com/deutschland-schild/schild/gateway/internal/reqring"
 )
 
-// A group that has nothing to say says nothing (MVP-27, D103). Every node
+// A group that has nothing to say says nothing (MVP-27, D105). Every node
 // keeps the events, incidents and requests of every node by asking each
 // member for what came after its cursor. Asked once a second whether or not
 // there is anything, that is three calls per member and second, each with a

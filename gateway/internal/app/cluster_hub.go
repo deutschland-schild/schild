@@ -10,14 +10,14 @@ import (
 	"github.com/deutschland-schild/schild/gateway/internal/ratelog"
 )
 
-// The group of MVP-27 (D103) runs one set of CrowdSec Hub rules. Every node
+// The group of MVP-27 (D105) runs one set of CrowdSec Hub rules. Every node
 // may download the hub index; the node that took a new one says so, and the
 // others fetch it from that node and take it through their own update
 // (hub/share.go): the same checks as for a download, under the time of the
 // first download. The rules are then the same on every node, first seen at
 // the same moment, and none waits for its own daily check.
 //
-// Own rules (rules.d) are files of the deployment and are not shared (D103).
+// Own rules (rules.d) are files of the deployment and are not shared (D105).
 
 // hubIndex is what the group needs of the hub source.
 type hubIndex interface {

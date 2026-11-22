@@ -97,9 +97,8 @@ func (a *App) InService() bool { return a.inService() }
 // SetFirstSyncWait shortens how long a node that reaches no member waits
 // before it serves with the state it has, and returns how to undo it.
 func SetFirstSyncWait(d time.Duration) (undo func()) {
-	old := firstSyncWait
-	firstSyncWait = d
-	return func() { firstSyncWait = old }
+	old := firstSyncWaitNS.Swap(int64(d))
+	return func() { firstSyncWaitNS.Store(old) }
 }
 
 // WaitInStep blocks until the node may act for its group on its own

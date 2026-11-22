@@ -175,6 +175,24 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/agent-api": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** D103: the switch of the agent API - whether it is on, where the value comes from (the dashboard or schild.yaml), the address of its listener, whether the listener is open, and how many tokens are valid. */
+        get: operations["getAgentAPI"];
+        /** D103: switch the agent API on or off, or give the switch back to schild.yaml (reset). The value is stored in schild.db and holds until it is reset. agent_api.enabled false in schild.yaml is final: switching on against it answers 409 `config_limit`. In force before the answer returns, without a restart: the listener opens or closes, and calls in flight end. No password: every call of the agent API still needs a token, and tokens are created on the host only. Off also stops `schild firewall run` from getting blocks; the blocks it holds end by their own timeout. 409 `conflict`: the listener did not open (the port is in use, or the address names every interface outside a container); the switch stays as it was. */
+        put: operations["setAgentAPI"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/agent-api/calls": {
         parameters: {
             query?: never;
@@ -182,7 +200,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** The agent API call log, read-only - every token (id, label, scope, created, expiry, revoked, last use; never the token or its hash) and the calls with time in [from, to), newest first (token id, operation or MCP tool, status, rows, bytes), kept agent_api.log_days. Index range on the call time. Nothing here creates, changes or revokes a token: that stays `schild token` on the host. agent_api off and no tokens: enabled false with empty lists. */
+        /** The agent API call log, read-only - every token (id, label, scope, created, expiry, revoked, last use; never the token or its hash) and the calls with time in [from, to), newest first (token id, operation or MCP tool, status, rows, bytes), kept agent_api.log_days. Index range on the call time. Nothing here creates, changes or revokes a token: that stays `schild token` on the host. The agent API off and no tokens: enabled false with empty lists. */
         get: operations["listAgentCalls"];
         put?: never;
         post?: never;
@@ -3723,8 +3741,43 @@ export interface components {
             rows: number;
             bytes: number;
         };
+        /** @description D103, the switch of the agent API. */
+        AgentAPIState: {
+            /** @description What holds: false when agent_api.enabled of schild.yaml is false, else the value set in the dashboard, else true. */
+            enabled: boolean;
+            /** @description agent_api.enabled of schild.yaml (on by default), what a reset gives back. false: nothing can be switched in the dashboard. */
+            config_enabled: boolean;
+            /**
+             * @description config: schild.yaml or its default decides, always so with config_enabled false. dashboard: the switch was set here.
+             * @enum {string}
+             */
+            state_source: "config" | "dashboard";
+            /** @description agent_api.listen, e.g. 127.0.0.1:8789. */
+            listen: string;
+            /** @description The listener is open. false with enabled true: it did not open (error), or this process serves no listeners. */
+            listening: boolean;
+            /** @description Why the listener is not open while enabled: the port is in use, or the address names every interface outside a container. Absent otherwise. */
+            error?: string;
+            /** @description Tokens that are neither revoked nor expired. */
+            active_tokens: number;
+            /** @description Of those, tokens with scope firewall:sync: `schild firewall run` depends on the agent API, so the UI warns before switching off. */
+            firewall_tokens: number;
+            /** @description When the switch was set in the dashboard; null with state_source config. */
+            updated_at: components["schemas"]["NullableTimestamp"];
+            /** @description The dashboard user who set it; null with state_source config. */
+            actor: string | null;
+        };
+        /** @description Exactly one of enabled and reset. */
+        AgentAPIInput: {
+            enabled?: boolean;
+            /**
+             * @description Drop the value of the dashboard: agent_api.enabled of schild.yaml decides again.
+             * @constant
+             */
+            reset?: true;
+        };
         AgentCallLog: {
-            /** @description agent_api.enabled. */
+            /** @description The agent API is on (AgentAPIState.enabled). */
             enabled: boolean;
             log_days: number;
             tokens: components["schemas"]["AgentTokenInfo"][];
@@ -5512,6 +5565,56 @@ export interface operations {
                 };
             };
             400: components["responses"]["Problem"];
+            default: components["responses"]["Problem"];
+        };
+    };
+    getAgentAPI: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The switch. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AgentAPIState"];
+                };
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    setAgentAPI: {
+        parameters: {
+            query?: never;
+            header: {
+                "X-CSRF-Token": components["parameters"]["CSRF"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AgentAPIInput"];
+            };
+        };
+        responses: {
+            /** @description The switch now in force. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AgentAPIState"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            409: components["responses"]["Problem"];
             default: components["responses"]["Problem"];
         };
     };

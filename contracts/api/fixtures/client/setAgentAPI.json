@@ -1,0 +1,11 @@
+{
+  "enabled": false,
+  "config_enabled": true,
+  "state_source": "dashboard",
+  "listen": "localhost:8789",
+  "listening": false,
+  "active_tokens": 2,
+  "firewall_tokens": 1,
+  "updated_at": "2026-11-21T15:04:05Z",
+  "actor": "admin"
+}

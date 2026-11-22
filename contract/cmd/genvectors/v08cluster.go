@@ -14,7 +14,7 @@ import (
 	"github.com/deutschland-schild/schild/contract/vectors"
 )
 
-// D103 (MVP-27, cluster.md): whether a node of a group takes a record, and
+// D105 (MVP-27, cluster.md): whether a node of a group takes a record, and
 // whether it replaces the one held. The expected results are written out
 // here, not computed: the Go and the Python implementation both have to
 // arrive at them.

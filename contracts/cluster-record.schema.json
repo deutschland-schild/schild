@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://contracts.schild.invalid/v0/cluster-record.schema.json",
-  "title": "Group record check input (unreleased, D103, cluster.md)",
+  "title": "Group record check input (unreleased, D105, cluster.md)",
   "description": "Input of the cluster-record vectors: the member records a node holds, one record it is handed, and optionally the record it holds of the same thing (contract/cluster Roster.Check, Wins). The expected result says whether the record is taken, why not, and whether it replaces the held one. The clock of the node is the vector's context.now.",
   "type": "object",
   "additionalProperties": false,

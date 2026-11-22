@@ -1,4 +1,4 @@
-/** The group of gateways this gateway belongs to (contracts/cluster.md, D103): mode, members, what is shared. */
+/** The group of gateways this gateway belongs to (contracts/cluster.md, D105): mode, members, what is shared. */
 import type { MaybeRefOrGetter } from 'vue'
 import type { components } from './generated/schema'
 import { unwrap } from '@schild/app-kit'

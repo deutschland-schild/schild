@@ -10,7 +10,7 @@ import (
 	"github.com/deutschland-schild/schild/contract/config"
 )
 
-// The detectors of distributed attacks in a group (MVP-18 in MVP-27, D103).
+// The detectors of distributed attacks in a group (MVP-18 in MVP-27, D105).
 // A wave is a sum over many senders, and behind a balancer every node sees a
 // part of them: with n nodes a threshold would mean n times as much. So what
 // the detectors compare travels with the counts of shared.go, once a

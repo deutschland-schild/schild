@@ -41,7 +41,8 @@ The VM joins as an edge first (on a gateway: schild cluster invite -role edge; o
 schild cluster join ADDRESS CODE -edge -name NAME -data DIR). It gets the block list and
 nothing else, over the mesh, without a token.
 
-On the gateway's own host it needs the agent API (agent_api.enabled) and a token of its own:
+On the gateway's own host it needs the agent API (on by default; agent_api.enabled or the
+switch in the dashboard) and a token of its own:
   schild token add --scope firewall:sync --expires 365d --label firewall
 given as $SCHILD_FIREWALL_TOKEN or in -token-file.
 

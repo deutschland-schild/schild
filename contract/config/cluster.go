@@ -10,7 +10,7 @@ import (
 )
 
 // Cluster makes this gateway one node of a group that shares its state from
-// node to node (MVP-27, D103, contracts/cluster.md). Off by default.
+// node to node (MVP-27, D105, contracts/cluster.md). Off by default.
 type Cluster struct {
 	Enabled bool `json:"enabled"`
 	// Name is the name of this node in its group (see MemberName).

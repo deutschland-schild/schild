@@ -9,7 +9,7 @@ import (
 	"github.com/deutschland-schild/schild/contract/config"
 )
 
-// Counting across the nodes of a group (MVP-27, D103). Behind a balancer a
+// Counting across the nodes of a group (MVP-27, D105). Behind a balancer a
 // client's requests land on every node, so a limit or a scenario that
 // counts on one node sees a part of them. There is no shared counter and
 // nothing in the request path asks another node: every node counts as on a

@@ -11,7 +11,7 @@ import (
 // when it is behind, it holds nothing the others write. Every gateway knows
 // how far the clock of each member it reaches is off its own
 // (cluster_status.go). When a node can know that it is the odd one, it
-// takes itself out of traffic until its clock is right (MVP-27, D103).
+// takes itself out of traffic until its clock is right (MVP-27, D105).
 //
 // It can know with two other gateways in reach whose clocks agree with each
 // other and differ from its own by a minute or more. With one other gateway

@@ -18,7 +18,7 @@ import (
 	"github.com/deutschland-schild/schild/gateway/internal/dashboard"
 )
 
-// The group in the dashboard (MVP-27, D103): the mode this gateway runs in,
+// The group in the dashboard (MVP-27, D105): the mode this gateway runs in,
 // the members as this node sees them, and a hint when the configuration of
 // the nodes differs. Everything is read from this node; the answer to the
 // dashboard asks no other node.
@@ -377,7 +377,7 @@ func (a *App) GroupStatus() dashboard.GroupStatus {
 		}
 	case others > 0 && reached == 0:
 		out.State = "interrupted"
-		if !node.Synced() && now.Sub(a.started) < firstSyncWait {
+		if !node.Synced() && now.Sub(a.started) < firstSyncWait() {
 			out.State = "syncing"
 		}
 	case !node.Synced():

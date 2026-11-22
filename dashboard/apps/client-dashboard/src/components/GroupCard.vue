@@ -6,7 +6,7 @@ import { useGroupStatus } from '@/api/group'
 import { CONFIG_STATE, configHint, countersText, edges, gateways, MEMBER_STATE, removedMembers, sharedText, shortVersion, stateView } from '@/lib/group'
 
 /**
- * Card "Cluster" of the server page (MVP-27, D103): whether this gateway runs alone or as a node of a group,
+ * Card "Cluster" of the server page (MVP-27, D105): whether this gateway runs alone or as a node of a group,
  * the state of the sync in words, the gateways with their last contact, version and configuration, the
  * balancer VMs (edges) apart. Read only: membership is changed on the host with `schild cluster`.
  */

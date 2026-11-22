@@ -30,6 +30,7 @@ import { useBehaviourSettings } from '@/api/behaviour'
 import { useServerSnapshot } from '@/api/monitoring'
 import { useOverview, useSettings, useUpdateSettings } from '@/api/queries'
 import { useRuleRepositories, useRules } from '@/api/rules'
+import AgentApiCard from '@/components/AgentApiCard.vue'
 import ServersCard from '@/components/ServersCard.vue'
 import { versionText } from '@/lib/labels'
 import { BEHAVIOUR_RULES_PATH } from '@/lib/nav'
@@ -325,6 +326,9 @@ async function changePassword() {
         <!-- v0.3: server check (only when host_check is configured) -->
         <ServersCard v-if="o?.servers" :servers="o.servers" class="lg:col-span-2" />
       </div>
+
+      <!-- D103: the switch of the agent API -->
+      <AgentApiCard />
 
       <ErrorState v-if="q.isError.value" title="Die Einstellungen lassen sich gerade nicht laden" :description="errorMessage(q.error.value)" @retry="q.refetch()" />
       <div v-else-if="!s" class="space-y-4">

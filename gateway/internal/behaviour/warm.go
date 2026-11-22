@@ -10,7 +10,7 @@ import (
 // the windows that are still open: the per-second counts of shared.go tell
 // it only what comes after. A client four failed logins into a window of
 // five would get a fresh allowance on it. So before it serves, a starting
-// node takes the running state from one member (MVP-27, D103): the tokens
+// node takes the running state from one member (MVP-27, D105): the tokens
 // used of every rate limit, what the scenarios count per client and per
 // website, what the detectors of distributed attacks hold per route and
 // account and have learned, and the waves that run.

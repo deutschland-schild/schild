@@ -1,4 +1,4 @@
-// Package cluster is the group of gateways of MVP-27 (DECISIONS D103,
+// Package cluster is the group of gateways of MVP-27 (DECISIONS D105,
 // contracts/cluster.md): this node's key, its copy of the group's records in
 // <data>/cluster/cluster.db, and the mesh that carries records from node to
 // node.

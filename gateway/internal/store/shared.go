@@ -8,7 +8,7 @@ import (
 	"strings"
 )
 
-// Tables a group of gateways shares as a whole (MVP-27, D103): the rows of
+// Tables a group of gateways shares as a whole (MVP-27, D105): the rows of
 // one node replace the rows of the others. They are small and changed by a
 // person or an agent, not by traffic.
 var sharedTables = map[string]struct {

@@ -17,7 +17,7 @@ import (
 
 var tokenUsage = func() string {
 	var b strings.Builder
-	b.WriteString("schild token add --scope SCOPE --expires 90d [--label TEXT]   create a token (shown once)\n")
+	b.WriteString("schild token add [--scope SCOPE] [--expires 90d] [--label TEXT]   create a token (shown once; agent:read and 90 days unless given)\n")
 	for _, sc := range contractapi.Scopes {
 		fmt.Fprintf(&b, "  %-17s %s\n", sc, contractapi.ScopeHelp[sc])
 	}
@@ -44,7 +44,7 @@ func runToken(args []string, out io.Writer, now func() time.Time) error {
 	cfgPath := fs.String("config", "", "schild.yaml")
 	data := fs.String("data", "", "data directory")
 	scope := fs.String("scope", contractapi.ScopeAgentRead, contractapi.ScopeList())
-	expires := fs.String("expires", "", "lifetime in days, 1d to 365d (required)")
+	expires := fs.String("expires", "90d", "lifetime in days, 1d to 365d")
 	label := fs.String("label", "", "label, e.g. \"Claude Code Laptop\"")
 	n := fs.Int("n", 50, "number of log entries")
 	// Accept flags before and after a positional argument (revoke ID, log ID).
@@ -69,9 +69,6 @@ func runToken(args []string, out io.Writer, now func() time.Time) error {
 	case "add":
 		if !contractapi.ValidScope(*scope) {
 			return fmt.Errorf("token add: scope %q: want one of %s", *scope, contractapi.ScopeList())
-		}
-		if *expires == "" {
-			return errors.New("token add: --expires is required (1d to 365d)")
 		}
 		ttl, err := contractapi.ParseTTL(*expires)
 		if err != nil {

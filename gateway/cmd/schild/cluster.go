@@ -43,7 +43,7 @@ Two ways into a group:
   by hand           init on the first node, invite there, join on every other, then restart schild.`
 
 // cmdCluster sets up and shows the group of this gateway on the host
-// (MVP-27, D103). Like tokens, membership is never changed through the
+// (MVP-27, D105). Like tokens, membership is never changed through the
 // dashboard or an API.
 func cmdCluster(args []string) error {
 	return runCluster(args, os.Stdout, time.Now)

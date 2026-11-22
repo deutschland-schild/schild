@@ -10,7 +10,7 @@ import { configHint, edges, gateways, groupTotals, nodeView, stateText, stateVie
 import { plural } from '@/lib/summary'
 
 /**
- * Page "Cluster" (/server/group, MVP-27, D103): the totals, a map of the gateways and their links, every gateway
+ * Page "Cluster" (/server/group, MVP-27, D105): the totals, a map of the gateways and their links, every gateway
  * with its state and its load of the last minute, the sync in detail below. Every number is what a server told this one within
  * the last seconds; nothing is asked of another server for this page. Read only: membership is changed on the
  * host with `schild cluster`.

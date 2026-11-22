@@ -22,7 +22,7 @@ Website und Dokumentation: [deutschland-schild.de](https://deutschland-schild.de
 - **Dashboard:** Besucher:innen, Angriffsversuche, Vorfälle und Regeln an einem Ort, getrennt nach Mensch, Suchmaschine und KI-Crawler.
 - **Monitoring:** Antwortzeit, Fehlerquote und Hinweise, etwa wenn die Festplatte vollzulaufen droht.
 - **Zugriffsschutz und Wartungsmodus:** eine Website oder einzelne Pfade nur mit Passwort erreichbar machen.
-- **Für KI-Agenten gebaut:** Über die Agent-API passt dein Agent die Firewall an deine Anwendung an. Sie ist ab Werk aus und hört nur lokal.
+- **Für KI-Agenten gebaut:** Über die Agent-API passt dein Agent die Firewall an deine Anwendung an. Sie hört nur lokal und antwortet nur mit einem Token, das du auf dem Server anlegst.
 - **Deine Daten bleiben bei dir:** Nichts aus deinem Traffic verlässt den Server. Schild holt nur öffentliche Regeln und Listen ab.
 
 Alle Funktionen im Detail: [docs/gateway/01-funktionen.md](docs/gateway/01-funktionen.md).
@@ -48,8 +48,8 @@ Lieber als Container, oder ein anderes Linux? Dasselbe mit Docker Compose:
 
 ```bash
 mkdir schild && cd schild
-curl -fsSLO https://raw.githubusercontent.com/deutschland-schild/schild/v0.1.0-alpha.4/gateway/deploy/quickstart/compose.yaml
-curl -fsSLO https://raw.githubusercontent.com/deutschland-schild/schild/v0.1.0-alpha.4/gateway/deploy/quickstart/schild.yaml
+curl -fsSLO https://raw.githubusercontent.com/deutschland-schild/schild/v0.1.0-alpha.5/gateway/deploy/quickstart/compose.yaml
+curl -fsSLO https://raw.githubusercontent.com/deutschland-schild/schild/v0.1.0-alpha.5/gateway/deploy/quickstart/schild.yaml
 # In schild.yaml unter upstream.url die Adresse deiner Anwendung eintragen, dann:
 docker compose up -d
 docker compose exec schild schild dashboard setup-code

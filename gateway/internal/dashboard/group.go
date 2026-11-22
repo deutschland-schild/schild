@@ -5,7 +5,7 @@ import (
 	"time"
 )
 
-// The group of gateways in the dashboard (MVP-27, D103, contracts/
+// The group of gateways in the dashboard (MVP-27, D105, contracts/
 // cluster.md): the mode this gateway runs in. The server only passes on
 // what the running node knows (Server.Group); a single gateway needs
 // nothing of the group for its answer.

@@ -8,7 +8,7 @@ import (
 )
 
 // ApplyBlock starts a block another node of the group decided (MVP-27,
-// D103): the same client key, source, step, incident and end, so the block
+// D105): the same client key, source, step, incident and end, so the block
 // page shows the incident number of the node that decided, and the block
 // ends on every node at the same second. Nothing is counted and no event or
 // incident is written: the deciding node did that.

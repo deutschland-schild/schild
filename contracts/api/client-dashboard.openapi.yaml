@@ -35,8 +35,8 @@ info:
     - `requests`: single requests of the request ring (no query string, a visitor key valid for one day),
       "Kontext" around an event, the bot overview with verification and robots.txt behaviour, alert rates per
       rule and per page, possible false positives with a narrow exception to copy.
-    - `agent-api`: listAgentCalls, the call log of the agent API tokens, read only in the dashboard (tokens are
-      managed on the host only).
+    - `agent-api`: getAgentAPI and setAgentAPI, the switch of the agent API (D103), and listAgentCalls, the call
+      log of its tokens, read only in the dashboard (tokens are managed on the host only).
   license:
     name: see repository
 servers:
@@ -366,6 +366,47 @@ paths:
             application/json:
               schema: { $ref: "#/components/schemas/IncidentPage" }
         "400": { $ref: "#/components/responses/Problem" }
+  /agent-api:
+    get:
+      tags: [agent-api]
+      operationId: getAgentAPI
+      summary: >-
+        D103: the switch of the agent API - whether it is on, where the value comes from (the dashboard or
+        schild.yaml), the address of its listener, whether the listener is open, and how many tokens are valid.
+      responses:
+        default: { $ref: "#/components/responses/Problem" }
+        "200":
+          description: The switch.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AgentAPIState" }
+    put:
+      tags: [agent-api]
+      operationId: setAgentAPI
+      summary: >-
+        D103: switch the agent API on or off, or give the switch back to schild.yaml (reset). The value is stored
+        in schild.db and holds until it is reset. agent_api.enabled false in schild.yaml is final: switching on
+        against it answers 409 `config_limit`. In force before the answer returns, without a restart: the listener
+        opens or closes, and calls in flight end. No password: every call of the agent API
+        still needs a token, and tokens are created on the host only. Off also stops `schild firewall run` from
+        getting blocks; the blocks it holds end by their own timeout. 409 `conflict`: the listener did not open
+        (the port is in use, or the address names every interface outside a container); the switch stays as it was.
+      parameters:
+        - { $ref: "#/components/parameters/CSRF" }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/AgentAPIInput" }
+      responses:
+        default: { $ref: "#/components/responses/Problem" }
+        "200":
+          description: The switch now in force.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AgentAPIState" }
+        "400": { $ref: "#/components/responses/Problem" }
+        "409": { $ref: "#/components/responses/Problem" }
   /agent-api/calls:
     get:
       tags: [agent-api]
@@ -374,8 +415,8 @@ paths:
         The agent API call log, read-only - every token (id, label, scope,
         created, expiry, revoked, last use; never the token or its hash) and the calls with time in [from, to), newest
         first (token id, operation or MCP tool, status, rows, bytes), kept agent_api.log_days. Index range on the call
-        time. Nothing here creates, changes or revokes a token: that stays `schild token` on the host. agent_api off and
-        no tokens: enabled false with empty lists.
+        time. Nothing here creates, changes or revokes a token: that stays `schild token` on the host. The agent API
+        off and no tokens: enabled false with empty lists.
       parameters:
         - { $ref: "#/components/parameters/From" }
         - { $ref: "#/components/parameters/To" }
@@ -2621,7 +2662,7 @@ components:
             reached: { type: array, maxItems: 16, items: { type: string, maxLength: 63 }, description: "Names of the gateways that hold the erasure, this node first." }
             open: { type: array, maxItems: 16, items: { type: string, maxLength: 63 }, description: "Names of the gateways that have not said yet that they hold it: away, paused or slow." }
 
-    # ---- group of gateways (contracts/cluster.md, D103)
+    # ---- group of gateways (contracts/cluster.md, D105)
     GroupStatus:
       type: object
       additionalProperties: false
@@ -4921,12 +4962,37 @@ components:
         status: { type: integer, minimum: 100, maximum: 599 }
         rows: { type: integer, minimum: 0 }
         bytes: { type: integer, minimum: 0 }
+    AgentAPIState:
+      description: D103, the switch of the agent API.
+      type: object
+      additionalProperties: false
+      required: [enabled, config_enabled, state_source, listen, listening, active_tokens, firewall_tokens, updated_at, actor]
+      properties:
+        enabled: { type: boolean, description: "What holds: false when agent_api.enabled of schild.yaml is false, else the value set in the dashboard, else true." }
+        config_enabled: { type: boolean, description: "agent_api.enabled of schild.yaml (on by default), what a reset gives back. false: nothing can be switched in the dashboard." }
+        state_source: { type: string, enum: [config, dashboard], description: "config: schild.yaml or its default decides, always so with config_enabled false. dashboard: the switch was set here." }
+        listen: { type: string, maxLength: 64, description: "agent_api.listen, e.g. 127.0.0.1:8789." }
+        listening: { type: boolean, description: "The listener is open. false with enabled true: it did not open (error), or this process serves no listeners." }
+        error: { type: string, maxLength: 300, description: "Why the listener is not open while enabled: the port is in use, or the address names every interface outside a container. Absent otherwise." }
+        active_tokens: { type: integer, minimum: 0, description: "Tokens that are neither revoked nor expired." }
+        firewall_tokens: { type: integer, minimum: 0, description: "Of those, tokens with scope firewall:sync: `schild firewall run` depends on the agent API, so the UI warns before switching off." }
+        updated_at: { $ref: "#/components/schemas/NullableTimestamp", description: "When the switch was set in the dashboard; null with state_source config." }
+        actor: { type: [string, "null"], maxLength: 64, description: "The dashboard user who set it; null with state_source config." }
+    AgentAPIInput:
+      description: Exactly one of enabled and reset.
+      type: object
+      additionalProperties: false
+      minProperties: 1
+      maxProperties: 1
+      properties:
+        enabled: { type: boolean }
+        reset: { type: boolean, const: true, description: "Drop the value of the dashboard: agent_api.enabled of schild.yaml decides again." }
     AgentCallLog:
       type: object
       additionalProperties: false
       required: [enabled, log_days, tokens, items, next_cursor]
       properties:
-        enabled: { type: boolean, description: "agent_api.enabled." }
+        enabled: { type: boolean, description: "The agent API is on (AgentAPIState.enabled)." }
         log_days: { type: integer, minimum: 1, maximum: 90 }
         tokens: { type: array, maxItems: 256, items: { $ref: "#/components/schemas/AgentTokenInfo" } }
         items: { type: array, maxItems: 500, items: { $ref: "#/components/schemas/AgentCall" } }

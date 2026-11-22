@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	contract "github.com/deutschland-schild/schild/contract/cluster"
@@ -20,7 +21,7 @@ import (
 	"github.com/deutschland-schild/schild/gateway/internal/store"
 )
 
-// The group of MVP-27 (D103), first version: the address blocks of every
+// The group of MVP-27 (D105), first version: the address blocks of every
 // node act on every node.
 //
 // The request path does not come here. A block starts and ends in the
@@ -325,7 +326,12 @@ func (a *App) publishGroupBlocks() {
 
 // firstSyncWait is how long a node that reaches no member waits before it
 // says it is in service with the state it has.
-var firstSyncWait = 10 * time.Second
+var firstSyncWaitNS atomic.Int64 // set in init; tests shorten it
+
+func init() { firstSyncWaitNS.Store(int64(10 * time.Second)) }
+
+// firstSyncWait reads it: loops of a node read while a test sets.
+func firstSyncWait() time.Duration { return time.Duration(firstSyncWaitNS.Load()) }
 
 // inService is the readiness of a node of a group, next to the gate's own
 // (/.schild/readyz, the health check of the balancer): not while it drains,
@@ -363,7 +369,7 @@ func (a *App) inService() bool {
 		// one (cluster_clock.go).
 		return !a.clockOut.Load()
 	}
-	if time.Since(a.started) <= firstSyncWait || len(node.Reachable()) > 0 {
+	if time.Since(a.started) <= firstSyncWait() || len(node.Reachable()) > 0 {
 		return false
 	}
 	return node.Mark(markInStep) != ""
@@ -379,7 +385,7 @@ func (a *App) waitInStep(ctx context.Context) error {
 		if node == nil || node.Removed() || node.Paused() || node.Synced() {
 			return nil
 		}
-		if time.Since(a.started) > firstSyncWait && len(node.Reachable()) == 0 && node.Mark(markInStep) != "" {
+		if time.Since(a.started) > firstSyncWait() && len(node.Reachable()) == 0 && node.Mark(markInStep) != "" {
 			return nil
 		}
 		t := time.NewTimer(100 * time.Millisecond)
@@ -416,7 +422,7 @@ func (a *App) noteReadiness() {
 	case node.Mark(markInStep) == "":
 		a.log.Warn("cluster: this node is out of traffic (readiness 503): it never was in step with its group and reaches no member (cluster.peers, the mesh port, the cluster secret); it stays out until it reaches one")
 	default:
-		a.log.Info("cluster: this node is out of traffic (readiness 503): it reaches no member yet and serves alone with the state it has after the wait", "wait", firstSyncWait.String())
+		a.log.Info("cluster: this node is out of traffic (readiness 503): it reaches no member yet and serves alone with the state it has after the wait", "wait", firstSyncWait().String())
 	}
 }
 

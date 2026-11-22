@@ -74,7 +74,7 @@ const (
 	CrawlerPolicy = "crawler-policy"
 	// MVP-12 v1_cut: browser verification ("Kurze Prüfung") and Under Attack.
 	HumanCheck = "human-check"
-	// D103 (unreleased, MVP-27): whether a node of a group takes a record.
+	// D105 (unreleased, MVP-27): whether a node of a group takes a record.
 	ClusterRecord = "cluster-record"
 )
 
