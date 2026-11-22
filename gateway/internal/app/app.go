@@ -173,6 +173,9 @@ type App struct {
 	// without cluster.enabled or before the node joined a group.
 	Cluster     *cluster.Node
 	groupBlocks groupBlocks
+	// groupLiftsLate counts lifts told to the group for a block whose record
+	// came after the lift was made here (cluster.go liftForGroup).
+	groupLiftsLate atomic.Uint64
 	// groupData shares events, incidents and requests (cluster_data.go);
 	// erased: when each address was erased in the group.
 	groupData *groupData
