@@ -63,14 +63,14 @@ const bus = computed(() => {
   return { x1: Math.min(NET.x, ...xs), x2: Math.max(NET.x, ...xs) }
 })
 const TONE: Record<string, string> = { success: 'fill-status-success', warning: 'fill-status-warning', danger: 'fill-status-danger', neutral: 'fill-status-neutral', info: 'fill-status-info', signal: 'fill-status-signal' }
-const label = computed(() => `Karte des Clusters: ${nodes.value.length} Gateways nebeneinander hinter dem Loadbalancer. Jeder Server lässt sich öffnen.`)
+const label = computed(() => `Karte des Clusters: ${nodes.value.length} Gateways nebeneinander, jedes mit dem Internet verbunden. Jeder Server lässt sich öffnen.`)
 </script>
 
 <template>
   <figure class="hidden rounded-xl border bg-card p-4 md:block" data-testid="group-map">
     <svg :viewBox="`0 0 ${W} ${H}`" class="h-auto w-full" role="group" :aria-label="label">
       <g fill="none" stroke-linecap="round">
-        <path :d="`M${NET.x} ${NET.y + 24} V${BUS_Y} M${bus.x1} ${BUS_Y} H${bus.x2}`" class="stroke-muted-foreground opacity-50" stroke-width="2" />
+        <path :d="`M${NET.x} ${NET.y + 22} V${BUS_Y} M${bus.x1} ${BUS_Y} H${bus.x2}`" class="stroke-muted-foreground opacity-50" stroke-width="2" />
         <template v-for="p in placed" :key="`l-${p.m.id}`">
           <g v-if="p.kind === 'ready'" data-testid="group-map-link" data-kind="ready">
             <line :x1="p.x" :y1="BUS_Y" :x2="p.x" :y2="p.y - boxH / 2" class="stroke-status-success opacity-35" stroke-width="2.5" />
@@ -82,10 +82,9 @@ const label = computed(() => `Karte des Clusters: ${nodes.value.length} Gateways
       </g>
 
       <g data-testid="group-map-internet">
-        <rect :x="NET.x - 92" :y="NET.y - 24" width="184" height="48" rx="24" class="fill-muted stroke-border" stroke-width="1" />
-        <path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z" :transform="`translate(${NET.x - 78} ${NET.y - 15}) scale(1.2)`" fill="none" class="stroke-muted-foreground" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
-        <text :x="NET.x - 40" :y="NET.y - 2" class="fill-foreground text-[13px] font-medium">Internet</text>
-        <text :x="NET.x - 40" :y="NET.y + 13" class="fill-muted-foreground text-[11px]">über den Loadbalancer</text>
+        <rect :x="NET.x - 70" :y="NET.y - 22" width="140" height="44" rx="22" class="fill-muted stroke-border" stroke-width="1" />
+        <path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z" :transform="`translate(${NET.x - 52} ${NET.y - 15}) scale(1.2)`" fill="none" class="stroke-muted-foreground" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
+        <text :x="NET.x - 14" :y="NET.y + 5" class="fill-foreground text-[14px] font-medium">Internet</text>
       </g>
 
       <g

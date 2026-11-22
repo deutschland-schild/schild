@@ -100,11 +100,11 @@ export function nodeView(m: GroupMember): NodeView {
   }
   switch (m.vitals?.service) {
     case 'ready':
-      return { tone: 'success', label: 'Nimmt Anfragen an', text: 'Er meldet sich dem Loadbalancer als bereit.' }
+      return { tone: 'success', label: 'Nimmt Anfragen an', text: 'Er meldet sich als bereit.' }
     case 'draining':
-      return { tone: 'warning', label: 'Wird angehalten', text: 'Er meldet sich beim Loadbalancer ab und bedient noch seine offenen Verbindungen.' }
+      return { tone: 'warning', label: 'Wird angehalten', text: 'Er meldet sich als nicht mehr bereit und bedient noch seine offenen Verbindungen.' }
     case 'not_ready':
-      return { tone: 'warning', label: 'Noch nicht bereit', text: 'Er holt den Stand des Clusters oder lädt seine Regeln. Der Loadbalancer schickt ihm bis dahin nichts.' }
+      return { tone: 'warning', label: 'Noch nicht bereit', text: 'Er holt den Stand des Clusters oder lädt seine Regeln. Bis dahin meldet er sich nicht als bereit.' }
     default:
       return { tone: 'neutral', label: 'Erreichbar', text: 'Er hat noch nicht gemeldet, wie es ihm geht. Eine ältere Version meldet das nicht.' }
   }

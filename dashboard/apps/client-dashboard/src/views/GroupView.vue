@@ -35,13 +35,13 @@ const readyHint = computed(() => {
   const t = totals.value
   if (!t) return ''
   if (away.value.length) return `${away.value.join(', ')} von hier nicht erreichbar`
-  return t.ready === t.gateways ? 'Alle melden sich dem Loadbalancer als bereit' : 'Nicht alle melden sich als bereit'
+  return t.ready === t.gateways ? 'Alle melden sich als bereit' : 'Nicht alle melden sich als bereit'
 })
 </script>
 
 <template>
   <div data-testid="group-page" :data-mode="s?.mode ?? ''">
-    <PageHeader title="Cluster" description="Mehrere Gateways hinter einem Loadbalancer, die Sperren, Einstellungen und Logins teilen. Fällt ein Server aus, bedienen die anderen weiter. Für mehr Last nimmst du weitere Server dazu.">
+    <PageHeader title="Cluster" description="Mehrere Gateways, die Sperren, Einstellungen und Logins teilen. Fällt ein Server aus, bedienen die anderen weiter. Für mehr Last nimmst du weitere Server dazu.">
       <template v-if="state" #meta>
         <StatusPill :tone="state.tone" size="sm" data-testid="group-page-state">
           {{ state.label }}
