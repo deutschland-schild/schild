@@ -98,11 +98,29 @@ func (g *groupFiles) ChangedNow(ctx context.Context, key string) {
 // both order (finding F6 of the lab measurement). With the lock in hand
 // certmagic looks into the storage again, which by then holds what the group
 // handed over.
+//
+// Only the locks of an order wait. Caddy takes another lock while it starts,
+// for the keys of the session tickets, before a single listener is up: a
+// wait there kept the web ports of a node closed for as long as it was not
+// in step, where a balancer and a person expect the readiness answer 503
+// (finding N3 of the second lab run).
 func (g *groupFiles) Lock(ctx context.Context, name string) error {
-	if err := g.a.waitInStep(ctx); err != nil {
-		return err
+	if orderLock(name) {
+		if err := g.a.waitInStep(ctx); err != nil {
+			return err
+		}
 	}
 	return g.node.Lock(ctx, name)
+}
+
+// orderLock reports whether a lock of the certificate storage guards an
+// order at the certificate authority: the issue and the renewal of a
+// certificate ("issue_cert_<name>") and the registration of the account
+// ("register_acme_account..."), as certmagic names them. Every other lock
+// (session ticket keys, storage cleaning, renewal information) guards work
+// on what the node holds already.
+func orderLock(name string) bool {
+	return strings.HasPrefix(name, "issue_cert_") || strings.HasPrefix(name, "register_acme_account")
 }
 
 // Unlock implements caddymod.GroupFiles. What this node stored under the

@@ -403,13 +403,18 @@ func maxClients(dst, src *cm.BucketClients) {
 }
 
 // nodeArrival is how long a finished bucket of another node may take to
-// arrive before the node counts as missing in an answer.
-const nodeArrival = 45 * time.Second
+// arrive before the node counts as missing in an answer: the 10 s bucket
+// closes, the pull comes within ten seconds, and a margin for a slow round.
+const nodeArrival = 30 * time.Second
 
 // Scope says which nodes an answer adds up and which of them lack a part
 // of the span [from, to]; nil on a single gateway. A node lacks a part when
-// the newest bucket this gateway holds of it ends before the span does,
-// with the time a bucket needs to arrive allowed for.
+// what this gateway holds of it ends before the span does, with the time a
+// bucket needs to arrive allowed for. How long the span is plays no part: a
+// node that has been silent for minutes is named in an answer about the
+// last minute as in one about the last day (finding N2 of the second lab
+// run: a rule by the 1 min ring named a killed node in a 2 min span only
+// in the first seconds of each minute, and never in the answer for now).
 func (v NodeView) Scope(from, to, now time.Time) *cm.ClusterScope {
 	s := &v.Monitor.nodes
 	s.mu.RLock()
@@ -429,28 +434,39 @@ func (v NodeView) Scope(from, to, now time.Time) *cm.ClusterScope {
 	if to.After(now) {
 		to = now
 	}
-	// By the 1 min ring: a bucket arrives within its minute, the pull
-	// interval and a margin.
-	ring := v.rings[1]
-	need := ring.Start(to).Add(-ring.Step - nodeArrival)
+	need := to.Add(-nodeArrival)
 	for _, n := range others {
 		name := *n.name.Load()
 		out.Nodes = append(out.Nodes, cm.ClusterNode{ID: n.id, Name: name})
-		if !need.After(from) {
-			continue
-		}
-		newest := n.newest[1].Load()
-		if newest == 0 {
+		held := n.heldUntil(v.rings)
+		switch {
+		case held.IsZero():
 			out.PartialNodes = append(out.PartialNodes, cm.ClusterPartialNode{Node: n.id, Name: name})
-			continue
-		}
-		if end := time.Unix(newest, 0).Add(ring.Step); end.Before(need) {
-			u := ts(end)
+		case held.Before(need):
+			u := ts(held)
 			out.PartialNodes = append(out.PartialNodes, cm.ClusterPartialNode{Node: n.id, Name: name, Until: &u})
 		}
 	}
 	out.ClientsAtLeast = v.only == "" && len(others) > 0
 	return out
+}
+
+// heldUntil is the end of what this gateway holds of the member: the end of
+// its newest bucket in any ring, so by the 10 s ring to ten seconds. Zero:
+// nothing held.
+func (n *nodeStore) heldUntil(rings []cm.Ring) time.Time {
+	var end time.Time
+	for i, r := range rings {
+		if i >= len(n.newest) {
+			break
+		}
+		if u := n.newest[i].Load(); u > 0 {
+			if e := time.Unix(u, 0).UTC().Add(r.Step); e.After(end) {
+				end = e
+			}
+		}
+	}
+	return end
 }
 
 // NodeNewest is the start of the newest bucket held of a member in a ring.

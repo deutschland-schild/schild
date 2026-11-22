@@ -25,7 +25,7 @@ Ohne Cluster wäre jedes Gateway für sich: Eine Sperre gälte nur auf einem Ser
 
 | Was | Wie es sich verhält |
 | --- | --- |
-| Gesperrte Adressen | Eine Sperre aus einem Szenario, aus dem Dashboard oder von einem Agenten gilt nach etwa einer Sekunde auf jedem Server. „Freigeben“ hebt sie überall auf, auf jedem Server, sobald er die Sperre zeigt. |
+| Gesperrte Adressen | Eine Sperre aus einem Szenario, aus dem Dashboard oder von einem Agenten gilt nach etwa einer Sekunde auf jedem Server. „Freigeben“ hebt sie überall auf, auf jedem Server, auch wenn du es klickst, bevor die Sperre dort angekommen ist. |
 | Einstellungen | Alles, was du im Dashboard oder über die Agent-API einstellst, gilt auf jedem Server: Schalter der Regelquellen, Schwellen, Limits, Crawler-Regeln, Zugriffssperre, Browser-Prüfung, Ausnahmen. Das gilt auch für Einstellungen künftiger Funktionen, ohne dass sie dafür etwas tun müssen. |
 | Eigene Adressen und Freigaben | Die Liste eigener Adressen und freigegebene Absender gelten überall. Die eigene Liste eines Servers gewinnt immer gegen eine Sperre aus dem Cluster. |
 | Logins | Ein Passwort und eine Anmeldung für das Dashboard jedes Servers. Agent-Tokens gelten auf allen. |
@@ -171,6 +171,19 @@ backend gateways443
   server web-2 10.0.0.2:443
 ```
 
+Die Zertifizierungsstelle kann einen Namen über Port 443 oder über Port 80 prüfen. Die Prüfung über Port 443 kommt hinter einem Balancer mit PROXY-Protokoll nicht an. In der Messung scheiterte sie, und der Server bestellte danach ein zweites Mal über Port 80. Schalte sie deshalb im Caddyfile der Website ab, dann bleibt es bei einer Bestellung über Port 80. Mit dieser Einstellung ist nicht gemessen:
+
+```caddyfile
+www.example.org {
+	tls {
+		issuer acme {
+			disable_tlsalpn_challenge
+		}
+	}
+	# ... der Rest der Website wie bisher
+}
+```
+
 **Verteilung.** Verteilt der Balancer nach der Adresse der Besucher:innen, landet ein Client immer auf demselben Server. Dann zählen Limits genau. Mit reihum verteilten Verbindungen zählen sie mit etwa einer Sekunde Verzug.
 
 ## Sperren schon vor den Gateways
@@ -265,7 +278,7 @@ Halte den Wechsel deshalb kurz, am besten wenige Minuten.
 
 Nicht von selbst wechseln:
 
-- **Balancer-VMs** und **von Hand aufgenommene Server**. Sie haben kein Geheimnis. Nimm sie mit einem neuen Code in den neuen Cluster auf (`schild cluster invite`).
+- **Balancer-VMs** und **von Hand aufgenommene Server**. Sie haben kein Geheimnis. Nimm sie mit einem neuen Code in den neuen Cluster auf (`schild cluster invite`). Eine Balancer-VM hält ihre alte Mitgliedschaft in ihrem Datenverzeichnis und lehnt den Beitritt sonst ab („this node belongs to a group already“). Halte dort zuerst `schild firewall run` an, leere das Datenverzeichnis, tritt mit dem neuen Code bei und starte die Firewall wieder.
 - **Entfernte Server.** Wer im alten Cluster entfernt war und das neue Geheimnis bekommt, ist im neuen Cluster wieder Mitglied, bringt aber nichts mit. Gib einem Server, der draußen bleiben soll, das neue Geheimnis nicht.
 
 Ein Geheimnis, das fehlt, zu kurz ist oder von anderen lesbar ist, ändert nichts. Der Server bleibt Mitglied seines Clusters, läuft aber allein, bis die Datei stimmt, und schreibt den Grund ins Log.
@@ -356,7 +369,7 @@ Jeder Server speichert damit, was der ganze Cluster aufzeichnet. Das lässt sich
 - **Wechsel des Geheimnisses.** Solange nicht alle Server mit dem neuen Geheimnis neu gestartet sind, laufen zwei Cluster nebeneinander (siehe „Das Cluster-Geheimnis wechseln“). Balancer-VMs und von Hand aufgenommene Server nimmst du danach neu auf.
 - **Harter Absturz.** Stürzt ein Server ab, ohne sich zu beenden (Stromausfall, `kill -9`), fehlen ihm selbst die Anfragen seiner letzten Sekunde. Die anderen Server halten sie.
 - **Sehr hohe Last.** In einer Messung mit drei Servern auf einem Rechner hielten alle Server bis 6 000 Anfragen pro Sekunde dieselben Anfragen. Darüber, mit ausgelastetem Rechner, fehlten jedem Server 3 bis 4 %. Keine Anfrage der Besucher:innen scheiterte daran, und Sperren und Limits griffen weiter.
-- **Uhr mehr als eine Minute daneben.** Einträge eines Servers, dessen Uhr mehr als 60 Sekunden vorgeht, nehmen die anderen erst an, wenn ihre eigene Uhr so weit ist. Seine Anfragen zeichnen sie nicht auf. Ein Server, dessen Uhr so weit nachgeht, bleibt nach einem Neustart auf 503, bis er den Stand der anderen halten kann. Das Dashboard zeigt den Abstand ab zehn Sekunden an.
+- **Uhr mehr als eine Minute daneben.** Einträge eines Servers, dessen Uhr mehr als 60 Sekunden vorgeht, nehmen die anderen erst an, wenn ihre eigene Uhr so weit ist. Seine Anfragen zeichnen sie nicht auf. Ein Server, dessen Uhr so weit nachgeht, bleibt nach einem Neustart auf 503, bis er den Stand der anderen halten kann. Das Dashboard zeigt den Abstand ab zehn Sekunden an. Hat ein Server mit einer so weit vorgehenden Uhr etwas geschrieben, tragen die Einträge der anderen bis zu einer Minute lang eine Zeit, die ihrer eigenen Uhr voraus ist. In dieser Minute nimmt auch ein Server, dessen Uhr nur eine halbe Minute nachgeht, nichts an.
 - **Höchstens 16 Gateways und 8 Balancer-VMs.** Mehr lehnt der Cluster ab. Im laufenden Betrieb erprobt sind bisher nur zwei und drei Gateways.
 
 ## Befehle

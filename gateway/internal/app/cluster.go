@@ -89,6 +89,7 @@ func (a *App) startCluster(ctx context.Context) {
 		}
 	})
 	a.goLoop(ctx, "cluster-blocks", tick(250*time.Millisecond, a.publishGroupBlocks))
+	a.goLoop(ctx, "cluster-ready", tick(time.Second, a.noteReadiness))
 	a.startSharedState(ctx)
 	a.startCounts(ctx)
 	a.startGroupData(ctx)
@@ -154,6 +155,17 @@ func (a *App) applyGroupBlock(rec *contract.Record) bool {
 		NetClass: b.NetClass, Duration: time.Duration(b.DurationS) * time.Second}
 	a.groupBlocks.mu.Lock()
 	defer a.groupBlocks.mu.Unlock()
+	// A lift may have been made here before the record of the block came:
+	// the incident of a block travels with the events of its node, on
+	// another way than the record, and "Freigeben" needs only the incident.
+	// The block must not start then, and nobody told the group yet (N1).
+	if a.liftedHere(b.Incident) {
+		// A block kept over a restart may run here all the same; ended
+		// first, so the loop does not hand it to the group as a new one.
+		a.Behaviour.LiftIncident(b.Incident)
+		a.liftForGroup(key, b.Incident)
+		return false
+	}
 	if !a.Behaviour.ApplyBlock(key, b.Bits, bi) {
 		// A block of this client runs here already. When it is the same
 		// one (a restart), the group knows it.
@@ -162,9 +174,49 @@ func (a *App) applyGroupBlock(rec *contract.Record) bool {
 		}
 		return false
 	}
+	// Looked at again now that the block runs: a lift that came between the
+	// first look and the start found no block to end. Its mark in the store
+	// is written before it ends the block, so one of the two sees the other.
+	if a.liftedHere(b.Incident) {
+		a.Behaviour.LiftIncident(b.Incident)
+		a.liftForGroup(key, b.Incident)
+		return false
+	}
 	a.groupBlocks.known[key] = groupBlock{incident: b.Incident, until: until, node: b.Node, self: rec.Origin == a.Cluster.ID()}
 	a.noteGroupIncident(b, key, since)
 	return true
+}
+
+// liftedHere reports whether this node holds the incident as unblocked: a
+// person or an agent released it here, or the node took that word from the
+// node that wrote the incident.
+func (a *App) liftedHere(incident string) bool {
+	if a.Store == nil || incident == "" {
+		return false
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+	in, err := a.Store.GetIncident(ctx, incident)
+	return err == nil && in.Status == "unblocked"
+}
+
+// liftForGroup tells the group that the block of an incident is lifted,
+// for a block this node never ran: the lift was made before the block's
+// record came. Called with groupBlocks.mu held, and only for the record
+// that is the group's state of the client at this moment, so the tombstone
+// replaces that block and no other.
+func (a *App) liftForGroup(key behaviour.Key, incident string) {
+	node := a.Cluster
+	if node == nil || node.Removed() {
+		return
+	}
+	delete(a.groupBlocks.known, key)
+	expires := time.Now().Add(contract.MaxBlockS*time.Second + time.Hour)
+	if _, err := node.Publish(contract.ClassBlocks, key.Addr().String(), &contract.Lift{Incident: incident, Node: node.Name()}, true, expires); err != nil {
+		ratelog.Warn(a.log, "cluster: lift not handed to the group (the block was lifted on this node before its record came)", "err", err)
+		return
+	}
+	a.groupLiftsLate.Add(1)
 }
 
 // noteGroupIncident stores the incident of a block another node set, from
@@ -337,6 +389,34 @@ func (a *App) waitInStep(ctx context.Context) error {
 			return ctx.Err()
 		case <-t.C:
 		}
+	}
+}
+
+// noteReadiness says in the log when this node leaves or enters traffic by
+// the rule of inService, and why it is out: a person who finds the
+// readiness answer 503 finds the reason there (N3 of the second lab run:
+// the log of a node that waited for its group said nothing).
+func (a *App) noteReadiness() {
+	node := a.Cluster
+	if node == nil || a.draining.Load() {
+		return
+	}
+	in := a.inService()
+	said := a.readyNotedOnce.Swap(true)
+	if was := a.readyNoted.Swap(in); said && was == in {
+		return
+	}
+	switch {
+	case in:
+		a.log.Info("cluster: this node is in service (readiness 200)")
+	case node.Synced():
+		a.log.Info("cluster: this node is out of traffic (readiness 503): it applies what it took of its group")
+	case len(node.Reachable()) > 0:
+		a.log.Warn("cluster: this node is out of traffic (readiness 503): it reaches a member and has not taken the state of the group yet; when this lasts, look at the clocks (schild cluster status)")
+	case node.Mark(markInStep) == "":
+		a.log.Warn("cluster: this node is out of traffic (readiness 503): it never was in step with its group and reaches no member (cluster.peers, the mesh port, the cluster secret); it stays out until it reaches one")
+	default:
+		a.log.Info("cluster: this node is out of traffic (readiness 503): it reaches no member yet and serves alone with the state it has after the wait", "wait", firstSyncWait.String())
 	}
 }
 

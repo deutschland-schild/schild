@@ -5,6 +5,7 @@ package app_test
 import (
 	"context"
 	"fmt"
+	"net/http"
 	"os"
 	"path/filepath"
 	"testing"
@@ -72,6 +73,88 @@ func TestFreshNodeThatReachesNoMemberStaysOutOfTraffic(t *testing.T) {
 	defer cancel()
 	if err := h.App.WaitInStep(ctx); err == nil {
 		t.Fatal("a node that never reached its group may take the lock of a certificate order")
+	}
+}
+
+// A node that is not in service listens all the same and answers 503 on the
+// readiness path: a balancer and a person who looks at the server see why
+// it is out, not a closed port (finding N3 of the second lab run: a fresh
+// node that reached nobody refused every connection on its web ports).
+func TestNodeNotInStepListensAndAnswers503(t *testing.T) {
+	secretFile := filepath.Join(t.TempDir(), "cluster.secret")
+	secret, err := cluster.NewSecret()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(secretFile, []byte(secret+"\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	start := time.Now()
+	h := apptest.New(t, apptest.Options{Listeners: true, Caddyfile: groupCaddyfile,
+		Extra: fmt.Sprintf("cluster: {enabled: true, listen: %q, secret_file: %q, peers: [%q]}\n", apptest.FreeAddr(t), secretFile, apptest.FreeAddr(t))})
+	if d := time.Since(start); d > 8*time.Second {
+		t.Fatalf("the web listener of a node that is not in step came up after %s", d)
+	}
+	req, _ := http.NewRequest("GET", "http://"+h.IngressAddr+"/.schild/readyz", nil)
+	req.Host = "shop.example"
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		t.Fatalf("readiness of a node that is not in step: %v", err)
+	}
+	resp.Body.Close()
+	if resp.StatusCode != http.StatusServiceUnavailable {
+		t.Fatalf("readiness of a node that never reached its group: %d, want 503", resp.StatusCode)
+	}
+}
+
+// A node that was in step once and restarts alone listens at once, answers
+// 503 during the wait and 200 after it (N3: its ports were closed for the
+// ten seconds of the wait, and with them the certificate it holds).
+func TestNodeThatRestartsAloneListensDuringTheWait(t *testing.T) {
+	defer app.SetFirstSyncWait(3 * time.Second)()
+	a, b := pair(t)
+	b.h.WaitFor("web-2 is in service", func() bool { return b.h.App.InService() })
+	if err := a.h.Stop(); err != nil {
+		t.Fatal(err)
+	}
+	if err := b.h.Stop(); err != nil {
+		t.Fatal(err)
+	}
+	start := time.Now()
+	h := apptest.New(t, apptest.Options{Dir: b.dir, Listeners: true, Caddyfile: groupCaddyfile, Extra: fmt.Sprintf("cluster: {enabled: true, listen: %q}\n", b.addr)})
+	listening := time.Since(start)
+	ready := func() int {
+		req, _ := http.NewRequest("GET", "http://"+h.IngressAddr+"/.schild/readyz", nil)
+		req.Host = "shop.example"
+		resp, err := http.DefaultClient.Do(req)
+		if err != nil {
+			return 0
+		}
+		resp.Body.Close()
+		return resp.StatusCode
+	}
+	if listening < 2500*time.Millisecond {
+		if got := ready(); got != http.StatusServiceUnavailable {
+			t.Fatalf("readiness during the wait: %d, want 503", got)
+		}
+	} else {
+		t.Logf("the start took %s on this machine, the 503 during the wait was not looked at", listening)
+	}
+	h.WaitFor("web-2 answers ready after the wait", func() bool { return ready() == http.StatusOK })
+}
+
+func TestOnlyLocksOfAnOrderWaitForTheGroup(t *testing.T) {
+	for name, want := range map[string]bool{
+		"issue_cert_shop.example":                  true,
+		"register_acme_account":                    true,
+		"register_acme_account_admin@shop.example": true,
+		"stek_check":                               false,
+		"storage_clean":                            false,
+		"ari_abc":                                  false,
+	} {
+		if got := app.OrderLock(name); got != want {
+			t.Errorf("lock %q waits for the group: %v, want %v", name, got, want)
+		}
 	}
 }
 

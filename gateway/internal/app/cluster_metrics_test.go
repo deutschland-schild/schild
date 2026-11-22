@@ -71,6 +71,22 @@ func TestGroupShowsTheCountersOfEveryNode(t *testing.T) {
 	if sc == nil || len(sc.Nodes) != 2 || !sc.ClientsAtLeast {
 		t.Fatalf("scope of the group on web-2: %+v", sc)
 	}
+	// Two running nodes name nobody as partial, also the one without a
+	// visitor: its buckets arrive like any other (the rule of N2 looks at the
+	// end of what is held, so an idle member must hand over buckets too).
+	if len(sc.PartialNodes) != 0 {
+		t.Fatalf("web-2 names web-1 as partial right after it took its buckets: %+v", sc.PartialNodes)
+	}
+	a.h.WaitFor("web-1 holds buckets of web-2, which had no visitor, and names nobody", func() bool {
+		a.h.App.PullGroupMetrics(context.Background())
+		v, err := a.h.App.Monitor.Nodes("")
+		if err != nil {
+			return false
+		}
+		now := time.Now()
+		s := v.Scope(now.Add(-time.Minute), now, now)
+		return s != nil && len(s.Nodes) == 2 && len(s.PartialNodes) == 0
+	})
 	// A node hands over what it measured itself, never what it holds of others.
 	a.h.App.PullGroupMetrics(context.Background())
 	if v, err := a.h.App.Monitor.Nodes(b.h.App.Cluster.ID()); err == nil && requests(v) >= 25 {
