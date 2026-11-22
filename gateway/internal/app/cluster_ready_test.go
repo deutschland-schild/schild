@@ -161,7 +161,12 @@ func TestOnlyLocksOfAnOrderWaitForTheGroup(t *testing.T) {
 // A node that was in step once and finds nobody after a restart serves with
 // the state it has, after the wait and not before.
 func TestNodeThatWasInStepServesAloneAfterTheWait(t *testing.T) {
-	defer app.SetFirstSyncWait(1500 * time.Millisecond)()
+	// The claim is "after the wait and not before", so the test measures
+	// from before the start: a slow machine (the race detector in CI) may
+	// take longer to start the node than the wait itself, and a look "right
+	// after the start" would then come after the wait.
+	const wait = 3 * time.Second
+	defer app.SetFirstSyncWait(wait)()
 	a, b := pair(t)
 	b.h.WaitFor("web-2 is in service", func() bool { return b.h.App.InService() })
 	if err := b.h.App.WaitInStep(context.Background()); err != nil {
@@ -173,9 +178,13 @@ func TestNodeThatWasInStepServesAloneAfterTheWait(t *testing.T) {
 	if err := b.h.Stop(); err != nil {
 		t.Fatal(err)
 	}
+	begun := time.Now()
 	b.start(t)
-	if b.h.App.InService() {
-		t.Fatal("web-2 answers ready at once although it reached nobody")
+	if early := b.h.App.InService(); early && time.Since(begun) < wait {
+		t.Fatal("web-2 answers ready before the wait although it reached nobody")
 	}
 	b.h.WaitFor("web-2 serves alone after the wait", func() bool { return b.h.App.InService() })
+	if since := time.Since(begun); since < wait {
+		t.Fatalf("web-2 serves alone after %s, before the wait of %s", since, wait)
+	}
 }

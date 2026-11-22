@@ -41,7 +41,9 @@ gateway-test:
 	cd gateway && $(GO) vet ./... && $(GO) vet -tags release ./... && $(GO) test $(GO_TEST_FLAGS) ./... && $(GO) test $(GO_TEST_FLAGS) -tags release ./internal/app
 
 gateway-race:
-	cd gateway && CGO_ENABLED=1 $(GO) test -race $(GO_TEST_FLAGS) ./...
+	# The tests of a group of gateways start several gateways each; under the race detector on a hosted
+	# runner the package internal/app needs more than go test's ten minutes.
+	cd gateway && CGO_ENABLED=1 $(GO) test -race -timeout 45m $(GO_TEST_FLAGS) ./...
 
 gateway-bench:
 	cd gateway && $(GO) test -run '^$$' -bench . -benchtime 3s ./internal/gate ./internal/waf ./internal/caddymod
