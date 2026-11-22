@@ -89,6 +89,7 @@ func (a *App) startCluster(ctx context.Context) {
 		}
 	})
 	a.goLoop(ctx, "cluster-blocks", tick(250*time.Millisecond, a.publishGroupBlocks))
+	a.goLoop(ctx, "cluster-ready", tick(time.Second, a.noteReadiness))
 	a.startSharedState(ctx)
 	a.startCounts(ctx)
 	a.startGroupData(ctx)
@@ -388,6 +389,34 @@ func (a *App) waitInStep(ctx context.Context) error {
 			return ctx.Err()
 		case <-t.C:
 		}
+	}
+}
+
+// noteReadiness says in the log when this node leaves or enters traffic by
+// the rule of inService, and why it is out: a person who finds the
+// readiness answer 503 finds the reason there (N3 of the second lab run:
+// the log of a node that waited for its group said nothing).
+func (a *App) noteReadiness() {
+	node := a.Cluster
+	if node == nil || a.draining.Load() {
+		return
+	}
+	in := a.inService()
+	said := a.readyNotedOnce.Swap(true)
+	if was := a.readyNoted.Swap(in); said && was == in {
+		return
+	}
+	switch {
+	case in:
+		a.log.Info("cluster: this node is in service (readiness 200)")
+	case node.Synced():
+		a.log.Info("cluster: this node is out of traffic (readiness 503): it applies what it took of its group")
+	case len(node.Reachable()) > 0:
+		a.log.Warn("cluster: this node is out of traffic (readiness 503): it reaches a member and has not taken the state of the group yet; when this lasts, look at the clocks (schild cluster status)")
+	case node.Mark(markInStep) == "":
+		a.log.Warn("cluster: this node is out of traffic (readiness 503): it never was in step with its group and reaches no member (cluster.peers, the mesh port, the cluster secret); it stays out until it reaches one")
+	default:
+		a.log.Info("cluster: this node is out of traffic (readiness 503): it reaches no member yet and serves alone with the state it has after the wait", "wait", firstSyncWait.String())
 	}
 }
 

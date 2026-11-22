@@ -168,3 +168,7 @@ func (a *App) SharedThingIDs() map[string][]string {
 	}
 	return out
 }
+
+// OrderLock reports whether a lock of the certificate storage waits for the
+// node to be in step (cluster_files.go).
+var OrderLock = orderLock
