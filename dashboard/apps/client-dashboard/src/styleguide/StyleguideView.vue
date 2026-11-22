@@ -172,6 +172,10 @@ const categories = [
 
 // Table
 const events = demoEvents(120)
+const recentEvents = events.slice(0, 30)
+
+// Traffic
+const demoStripAnchor = demoStrip[30]!.t
 const typeLabel: Record<DemoEvent['type'], string> = {
   'schild.request.blocked.v1': 'Abgewehrt',
   'schild.request.evaluated.v1': 'Geprüft',
@@ -771,7 +775,7 @@ const showError = ref(true)
         <Calendar v-model="calendarDate" class="w-fit rounded-lg border" :week-starts-on="1" />
         <ScrollArea class="h-56 rounded-lg border">
           <ul class="p-3 text-sm">
-            <li v-for="e in events.slice(0, 30)" :key="e.id" class="flex justify-between gap-2 border-b py-1.5 last:border-0">
+            <li v-for="e in recentEvents" :key="e.id" class="flex justify-between gap-2 border-b py-1.5 last:border-0">
               <span class="font-mono text-xs">{{ e.path }}</span><RelativeTime :value="e.time" class="text-muted-foreground" />
             </li>
           </ul>
@@ -867,7 +871,7 @@ const showError = ref(true)
           <VerificationBadge v-for="v in VERIFICATION_KEYS" :key="v" :state="v" name="Googlebot" />
         </div>
         <div class="grid gap-6 lg:grid-cols-2">
-          <SiteStrip :points="demoStrip" :anchor="demoStrip[30]!.t" />
+          <SiteStrip :points="demoStrip" :anchor="demoStripAnchor" />
           <WorldMap :items="demoCountries" active="DE" />
         </div>
       </div>
