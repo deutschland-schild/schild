@@ -1,7 +1,7 @@
 import type { NavGroup, NavItem, StatusTone } from '@schild/ui'
 import type { HostSummary } from '@/api/hosts'
 import type { ServerHealth } from '@/api/websites'
-import { Activity, Ban, Bot, ChartArea, ClipboardCheck, KeyRound, LayoutDashboard, Lock, Network, ScrollText, Settings, ShieldAlert, Waypoints } from '@lucide/vue'
+import { Activity, Ban, Bot, Boxes, ChartArea, ClipboardCheck, KeyRound, LayoutDashboard, Lock, Network, ScrollText, Settings, ShieldAlert } from '@lucide/vue'
 import { FEATURES, hostStatusText, hostTone } from './hosts'
 import { REPOSITORIES, REPOSITORY_IDS, RULES_PATH, rulesPath } from './rules'
 import { STATUS, WEBSITE_COPY } from './websites'
@@ -30,7 +30,7 @@ export interface NavInput {
   server?: string
   /** Current path: the rule pages are listed below Regeln while one of them is open. */
   path?: string
-  /** This gateway is a node of a group (MVP-27): the server lists the page "Gruppe". */
+  /** This gateway is a node of a group (MVP-27): the server lists the page "Cluster". */
   group?: boolean
 }
 
@@ -120,7 +120,7 @@ export function serverPages(server: string, group = false): NavItem[] {
     { to: '/server', label: WEBSITE_COPY.overview, icon: LayoutDashboard, exact: true, keywords: ['server', 'websites', 'zustand'] },
     { to: '/server/load', label: 'Auslastung', icon: Activity, keywords: ['cpu', 'arbeitsspeicher', 'festplatte', 'netzwerk', 'last'] },
     { to: '/server/check', label: 'Server-Check', icon: ClipboardCheck, keywords: ['updates', 'ports', 'ssh', 'firewall', 'befunde', 'agenten'] },
-    ...(group ? [{ to: GROUP_PATH, label: 'Gruppe', icon: Waypoints, keywords: ['cluster', 'knoten', 'nodes', 'loadbalancer', 'abgleich', 'hochverfügbar'] }] : []),
+    ...(group ? [{ to: GROUP_PATH, label: 'Cluster', icon: Boxes, keywords: ['gruppe', 'knoten', 'nodes', 'loadbalancer', 'abgleich', 'hochverfügbar'] }] : []),
   ]
 }
 

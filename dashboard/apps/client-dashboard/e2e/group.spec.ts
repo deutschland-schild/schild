@@ -35,7 +35,7 @@ test('a node of a group shows the group, its members and the hint on differing c
   await page.goto('./?scenario=group#/server')
   const mode = page.getByTestId('group-mode')
   await expect(mode).toHaveAttribute('data-mode', 'group')
-  await expect(mode).toContainText(isMobile ? 'Gruppe · 3' : 'Gruppe · 3 Server')
+  await expect(mode).toContainText(isMobile ? 'Cluster · 3' : 'Cluster · 3 Server')
   const card = page.getByTestId('group-card')
   await expect(card.getByTestId('group-state')).toContainText('Abgleich eingeschränkt')
   await expect(card.getByTestId('group-member')).toHaveCount(3)
@@ -53,7 +53,7 @@ test('a node of a group shows the group, its members and the hint on differing c
   await expect(page.getByTestId('group-mode')).toHaveAttribute('data-mode', 'group')
 })
 
-test('the page of the group shows every gateway with its state and load', async ({ page }) => {
+test('the page of the group shows every gateway with its state and load', async ({ page, isMobile }) => {
   await page.goto('./?scenario=group#/')
   await page.getByTestId('group-mode').click()
   await expect(page).toHaveURL(/#\/server\/group$/)
@@ -70,6 +70,16 @@ test('the page of the group shows every gateway with its state and load', async 
   const away = page.locator('[data-testid="group-node"][data-name="web-3"]')
   await expect(away.getByTestId('group-node-service')).toContainText('Nicht erreichbar')
   await expect(away.getByTestId('group-node-rps')).toHaveCount(0)
+  // The map draws the three gateways, the links of this server in colour and the one between the others in grey.
+  if (!isMobile) {
+    const map = page.getByTestId('group-map')
+    await expect(map.getByTestId('group-map-node')).toHaveCount(3)
+    await expect(map.locator('[data-testid="group-map-link"][data-kind="ok"]')).toHaveCount(1)
+    await expect(map.locator('[data-testid="group-map-link"][data-kind="away"]')).toHaveCount(1)
+    await expect(map.locator('[data-testid="group-map-link"][data-kind="unseen"]')).toHaveCount(1)
+    await expect(map.getByTestId('group-map-edge')).toHaveCount(2)
+    await expect(map.getByTestId('group-map-edge-link')).toHaveCount(1)
+  }
   await expect(page.getByTestId('group-page-config-hint')).toContainText('web-2')
   expect(await axe(page)).toEqual([])
   await noOverflow(page)
@@ -77,7 +87,7 @@ test('the page of the group shows every gateway with its state and load', async 
 
 test('a single gateway lists no page of the group', async ({ page }) => {
   await page.goto('./#/server')
-  await expect(page.getByRole('link', { name: 'Gruppe', exact: true })).toHaveCount(0)
+  await expect(page.getByRole('link', { name: 'Cluster', exact: true })).toHaveCount(0)
   await page.goto('./#/server/group')
   await expect(page.getByTestId('group-single')).toContainText('Dieses Gateway läuft allein')
 })

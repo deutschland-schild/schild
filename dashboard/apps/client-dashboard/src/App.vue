@@ -83,7 +83,7 @@ const nav = computed<NavGroup[]>(() => {
 /** A page of the open (or last) website, else of the top website; without any website the start page. */
 const sitePage = (sub: string) => websitePath(site.value || last.value || websites.value[0]?.id || '', sub)
 
-const SERVER_TABS: Record<string, string> = { 'server-load': 'Auslastung', 'server-check': 'Server-Check', 'server-group': 'Gruppe' }
+const SERVER_TABS: Record<string, string> = { 'server-load': 'Auslastung', 'server-check': 'Server-Check', 'server-group': 'Cluster' }
 const breadcrumbs = computed<BreadcrumbEntry[] | undefined>(() => {
   // An agent's Server-Check carries its own name; the gateway its node name.
   const agent = heldServer.value && heldServer.value !== 'local' ? servers.value.find(s => s.id === heldServer.value) : undefined

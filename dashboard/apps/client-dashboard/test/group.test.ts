@@ -20,7 +20,7 @@ const all = <T extends Element = HTMLElement>(sel: string) => [...document.query
 const group = groupFixture as GroupStatus
 const withState = (state: GroupStatus['state']): GroupStatus => ({ ...group, state })
 
-describe('the servers of a group on the page Gruppe (MVP-27)', () => {
+describe('the servers of a group on the page Cluster (MVP-27)', () => {
   const byName = (name: string) => group.members!.find(m => m.name === name)!
   it('says whether a server takes traffic: what this server reaches first, then what the server said', () => {
     expect(nodeView(byName('web-1'))).toMatchObject({ tone: 'success', label: 'Nimmt Anfragen an' })
@@ -47,8 +47,8 @@ describe('words for the mode and the group (MVP-27)', () => {
   it('names the mode: alone, or a group with its number of gateways', () => {
     expect(modeView({ mode: 'single' })).toMatchObject({ label: 'Einzelner Server', short: 'Einzeln', tone: 'neutral' })
     // Edges and removed members are no servers of the group.
-    expect(modeView(group)).toMatchObject({ label: 'Gruppe · 3 Server', short: 'Gruppe · 3', tone: 'warning' })
-    expect(modeView(withState('active'))).toMatchObject({ label: 'Gruppe · 3 Server', tone: 'success' })
+    expect(modeView(group)).toMatchObject({ label: 'Cluster · 3 Server', short: 'Cluster · 3', tone: 'warning' })
+    expect(modeView(withState('active'))).toMatchObject({ label: 'Cluster · 3 Server', tone: 'success' })
     // cluster.enabled without a group: it runs alone, and the indicator says that something is off.
     expect(modeView(noGroupFixture as GroupStatus)).toMatchObject({ label: 'Einzelner Server', tone: 'warning' })
   })
@@ -60,9 +60,9 @@ describe('words for the mode and the group (MVP-27)', () => {
     const cut = stateView(withState('interrupted'))
     expect(`${cut.label}. ${cut.text}`).toBe('Abgleich unterbrochen. Dieser Server arbeitet mit dem letzten Stand weiter.')
     expect(stateView(pausedFixture as GroupStatus).text).toContain('schild cluster resume')
-    expect(stateView(withState('removed')).label).toBe('Aus der Gruppe entfernt')
+    expect(stateView(withState('removed')).label).toBe('Aus dem Cluster entfernt')
     expect(stateView(withState('syncing')).text).toContain('holt gerade den Stand')
-    expect(stateView(noGroupFixture as GroupStatus).text).toContain('gehört zu keiner Gruppe')
+    expect(stateView(noGroupFixture as GroupStatus).text).toContain('gehört zu keinem Cluster')
     // No fear and no promise in any of it.
     for (const s of ['no_group', 'syncing', 'active', 'degraded', 'interrupted', 'paused', 'removed'] as const)
       expect(`${stateView(withState(s)).label} ${stateView(withState(s)).text}`).not.toMatch(/sicher|geschützt|Gefahr|Achtung|!/i)
@@ -101,7 +101,7 @@ describe('a single gateway', () => {
     await mountApp('/server')
     await waitFor(() => !!byTestId('group-state'))
     expect(byTestId('group-mode')!.textContent).toContain('Einzelner Server')
-    expect(byTestId('group-state')!.textContent).toContain('gehört zu keiner Gruppe')
+    expect(byTestId('group-state')!.textContent).toContain('gehört zu keinem Cluster')
     expect(byTestId('group-members')).toBeNull()
   })
 
@@ -122,7 +122,7 @@ describe('a node of a group', () => {
     await mountApp('/server')
     await waitFor(() => all('[data-testid="group-member"]').length === 3)
     expect(byTestId('group-mode')!.dataset.mode).toBe('group')
-    expect(byTestId('group-mode')!.textContent).toContain('Gruppe · 3 Server')
+    expect(byTestId('group-mode')!.textContent).toContain('Cluster · 3 Server')
     expect(byTestId('group-state')!.textContent).toContain('Abgleich eingeschränkt')
     const rows = all('[data-testid="group-member"]')
     expect(rows.map(r => [r.dataset.name, r.dataset.state])).toEqual([['web-1', 'self'], ['web-2', 'ok'], ['web-3', 'unreachable']])
@@ -158,7 +158,7 @@ describe('a node of a group', () => {
     mock.state.group = { ...mock.state.group, state: 'removed' }
     await mountApp('/server')
     await waitFor(() => !!byTestId('group-state'))
-    expect(byTestId('group-state')!.textContent).toContain('Aus der Gruppe entfernt')
+    expect(byTestId('group-state')!.textContent).toContain('Aus dem Cluster entfernt')
   })
 
   it('shows on the list of blocks which node decided', async () => {
@@ -168,7 +168,7 @@ describe('a node of a group', () => {
     const texts = all('[data-testid="block-node"]').map(n => n.textContent!.trim())
     expect(texts[0]).toBe('Von web-2 entschieden')
     expect(texts.slice(1).every(t => t === 'Auf diesem Server entschieden')).toBe(true)
-    expect(bodyText()).toContain('Gruppe · 3 Server')
+    expect(bodyText()).toContain('Cluster · 3 Server')
   })
 
   it('names the nodes an erasure reached and the ones still open', async () => {

@@ -6,12 +6,12 @@ import { useGroupStatus } from '@/api/group'
 import { CONFIG_STATE, configHint, countersText, edges, gateways, MEMBER_STATE, removedMembers, sharedText, shortVersion, stateView } from '@/lib/group'
 
 /**
- * Card "Gruppe" of the server page (MVP-27, D103): whether this gateway runs alone or as a node of a group,
+ * Card "Cluster" of the server page (MVP-27, D103): whether this gateway runs alone or as a node of a group,
  * the state of the sync in words, the gateways with their last contact, version and configuration, the
  * balancer VMs (edges) apart. Read only: membership is changed on the host with `schild cluster`.
  */
 /** `brief`: on the page of the group, which shows the state and the gateways itself: only the edges and the sync. */
-const props = withDefaults(defineProps<{ heading?: string, brief?: boolean }>(), { heading: 'Gruppe', brief: false })
+const props = withDefaults(defineProps<{ heading?: string, brief?: boolean }>(), { heading: 'Cluster', brief: false })
 const q = useGroupStatus()
 const s = computed(() => q.data.value)
 const single = computed(() => s.value?.mode === 'single')
@@ -29,11 +29,11 @@ const lastContact = (m: { last_out?: string, last_in?: string }) => [m.last_out,
     <CardHeader>
       <CardTitle>{{ heading }}</CardTitle>
       <CardDescription v-if="!props.brief">
-        Mehrere Gateways können als Gruppe laufen und Sperren, Einstellungen und Logins teilen.
+        Mehrere Gateways können als Cluster laufen und Sperren, Einstellungen und Logins teilen.
       </CardDescription>
     </CardHeader>
     <CardContent class="space-y-4 text-sm">
-      <ErrorState v-if="q.isError.value && !s" title="Der Stand der Gruppe lässt sich gerade nicht laden" :description="errorMessage(q.error.value)" @retry="q.refetch()" />
+      <ErrorState v-if="q.isError.value && !s" title="Der Stand des Clusters lässt sich gerade nicht laden" :description="errorMessage(q.error.value)" @retry="q.refetch()" />
       <Skeleton v-else-if="!s" class="h-16 w-full" />
       <template v-else>
         <p v-if="single && !state" data-testid="group-single">
@@ -56,10 +56,10 @@ const lastContact = (m: { last_out?: string, last_in?: string }) => [m.last_out,
         </p>
 
         <template v-if="!single">
-          <div v-if="!props.brief" class="overflow-x-auto rounded-md focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none" tabindex="0" role="region" aria-label="Gateways der Gruppe">
+          <div v-if="!props.brief" class="overflow-x-auto rounded-md focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none" tabindex="0" role="region" aria-label="Gateways des Clusters">
             <table class="w-full text-sm" data-testid="group-members">
               <caption class="sr-only">
-                Gateways der Gruppe
+                Gateways des Clusters
               </caption>
               <thead class="text-left text-xs text-muted-foreground">
                 <tr class="border-b">
@@ -130,7 +130,7 @@ const lastContact = (m: { last_out?: string, last_in?: string }) => [m.last_out,
               Balancer-VMs
             </h3>
             <p class="mb-2 text-xs text-muted-foreground">
-              Sie halten die Sperren der Gruppe in ihrer Firewall und lesen sonst nichts.
+              Sie halten die Sperren des Clusters in ihrer Firewall und lesen sonst nichts.
             </p>
             <ul class="divide-y rounded-lg border">
               <li v-for="m in edgeRows" :key="m.id" class="flex flex-wrap items-center gap-x-3 gap-y-1 px-3 py-2" data-testid="group-edge" :data-state="m.state">
@@ -149,7 +149,7 @@ const lastContact = (m: { last_out?: string, last_in?: string }) => [m.last_out,
           </section>
 
           <p v-if="gone.length" class="text-xs text-muted-foreground" data-testid="group-removed">
-            Aus der Gruppe genommen: {{ gone.map(m => m.name).join(', ') }}
+            Aus dem Cluster genommen: {{ gone.map(m => m.name).join(', ') }}
           </p>
           <p v-if="s.shared" class="text-muted-foreground" data-testid="group-shared">
             {{ sharedText(s) }}
@@ -157,7 +157,7 @@ const lastContact = (m: { last_out?: string, last_in?: string }) => [m.last_out,
           <p v-if="s.counters" class="text-xs text-muted-foreground" data-testid="group-counters">
             {{ countersText(s) }}
             <template v-if="s.replaced">
-              Beim ersten Abgleich hat dieser Server {{ formatNumber(s.replaced) }} eigene {{ s.replaced === 1 ? 'Wert' : 'Werte' }} durch die der Gruppe ersetzt. Die eigenen sind auf dem Server aufbewahrt.
+              Beim ersten Abgleich hat dieser Server {{ formatNumber(s.replaced) }} eigene {{ s.replaced === 1 ? 'Wert' : 'Werte' }} durch die des Clusters ersetzt. Die eigenen sind auf dem Server aufbewahrt.
             </template>
           </p>
         </template>

@@ -7,7 +7,7 @@ import ServerHeader from '@/components/ServerHeader.vue'
 
 /**
  * Server overview (/server): "Gerade jetzt" with the totals of all websites, CPU, memory, disk, network
- * and hints, then the card "Gruppe" (MVP-27): alone or a node of a group. Auslastung and Server-Check are tabs
+ * and hints, then the card "Cluster" (MVP-27): alone or a node of a group. Auslastung and Server-Check are tabs
  * of the same header.
  */
 const overview = useOverview()

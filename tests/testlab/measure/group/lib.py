@@ -2,7 +2,7 @@
 
 Python 3 standard library only. Everything runs on 127.0.0.1. Black box: the gateway is driven through its
 binary, its config file, its HTTP listeners and its command line, as contracts/cluster.md and
-docs/gateway/03-gruppe.md describe them.
+docs/gateway/03-cluster.md describe them.
 """
 import http.client
 import json

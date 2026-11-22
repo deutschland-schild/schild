@@ -12,7 +12,7 @@ export const edges = (s: GroupStatus): GroupMember[] => (s.members ?? []).filter
 export const removedMembers = (s: GroupStatus): GroupMember[] => (s.members ?? []).filter(m => m.state === 'removed')
 
 export interface ModeView {
-  /** "Einzelner Server" or "Gruppe · 3 Server". */
+  /** "Einzelner Server" or "Cluster · 3 Server". */
   label: string
   /** The same for narrow screens. */
   short: string
@@ -22,25 +22,25 @@ export interface ModeView {
 }
 
 const STATE: Record<GroupState, { tone: StatusTone, label: string }> = {
-  no_group: { tone: 'warning', label: 'Keine Gruppe' },
+  no_group: { tone: 'warning', label: 'Kein Cluster' },
   syncing: { tone: 'info', label: 'Abgleich startet' },
   active: { tone: 'success', label: 'Abgleich aktiv' },
   degraded: { tone: 'warning', label: 'Abgleich eingeschränkt' },
   interrupted: { tone: 'warning', label: 'Abgleich unterbrochen' },
   paused: { tone: 'warning', label: 'Abgleich pausiert' },
-  removed: { tone: 'danger', label: 'Aus der Gruppe entfernt' },
+  removed: { tone: 'danger', label: 'Aus dem Cluster entfernt' },
 }
 
 /** The indicator that is on every page: alone or a node of a group, and how the group is doing. */
 export function modeView(s: GroupStatus): ModeView {
   if (s.mode === 'single') {
     return s.state === 'no_group'
-      ? { label: 'Einzelner Server', short: 'Einzeln', tone: 'warning', title: 'Dieser Server läuft allein. In schild.yaml ist eine Gruppe eingeschaltet, er gehört aber zu keiner.' }
-      : { label: 'Einzelner Server', short: 'Einzeln', tone: 'neutral', title: 'Dieser Server läuft allein, ohne Gruppe.' }
+      ? { label: 'Einzelner Server', short: 'Einzeln', tone: 'warning', title: 'Dieser Server läuft allein. In schild.yaml ist ein Cluster eingeschaltet, er gehört aber zu keinem.' }
+      : { label: 'Einzelner Server', short: 'Einzeln', tone: 'neutral', title: 'Dieser Server läuft allein, ohne Cluster.' }
   }
   const n = gateways(s).length
   const st = STATE[s.state ?? 'active']
-  return { label: `Gruppe · ${formatNumber(n)} Server`, short: `Gruppe · ${formatNumber(n)}`, tone: st.tone, title: `Dieser Server ist Teil einer Gruppe aus ${formatNumber(n)} Servern. ${st.label}.` }
+  return { label: `Cluster · ${formatNumber(n)} Server`, short: `Cluster · ${formatNumber(n)}`, tone: st.tone, title: `Dieser Server ist Teil eines Clusters aus ${formatNumber(n)} Servern. ${st.label}.` }
 }
 
 export interface StateView {
@@ -56,13 +56,13 @@ export function stateView(s: GroupStatus): StateView {
   const all = gateways(s)
   const away = all.filter(m => m.state === 'unreachable' || m.state === 'no_contact').map(m => m.name)
   const text: Record<GroupState, string> = {
-    no_group: 'In schild.yaml ist cluster.enabled gesetzt, aber dieser Server gehört zu keiner Gruppe. Er läuft allein. Den Grund nennt das Server-Log.',
-    syncing: 'Dieser Server holt gerade den Stand der Gruppe.',
-    active: all.length > 1 ? `Alle ${formatNumber(all.length)} Server haben denselben Stand.` : 'Dieser Server ist bisher der einzige in der Gruppe.',
+    no_group: 'In schild.yaml ist cluster.enabled gesetzt, aber dieser Server gehört zu keinem Cluster. Er läuft allein. Den Grund nennt das Server-Log.',
+    syncing: 'Dieser Server holt gerade den Stand des Clusters.',
+    active: all.length > 1 ? `Alle ${formatNumber(all.length)} Server haben denselben Stand.` : 'Dieser Server ist bisher der einzige im Cluster.',
     degraded: `${list(away)} ${away.length === 1 ? 'ist' : 'sind'} gerade nicht erreichbar. Mit den anderen Servern läuft der Abgleich weiter.`,
     interrupted: 'Dieser Server arbeitet mit dem letzten Stand weiter.',
-    paused: 'Dieser Server nimmt nichts aus der Gruppe an und gibt nichts weiter. Er arbeitet mit seinem Stand, bis du auf dem Server „schild cluster resume“ aufrufst.',
-    removed: 'Dieser Server wurde aus der Gruppe genommen. Er arbeitet mit seinem letzten Stand weiter und teilt nichts mehr.',
+    paused: 'Dieser Server nimmt nichts aus dem Cluster an und gibt nichts weiter. Er arbeitet mit seinem Stand, bis du auf dem Server „schild cluster resume“ aufrufst.',
+    removed: 'Dieser Server wurde aus dem Cluster genommen. Er arbeitet mit seinem letzten Stand weiter und teilt nichts mehr.',
   }
   return { ...base, text: text[key] }
 }
@@ -104,7 +104,7 @@ export function nodeView(m: GroupMember): NodeView {
     case 'draining':
       return { tone: 'warning', label: 'Wird angehalten', text: 'Er meldet sich beim Loadbalancer ab und bedient noch seine offenen Verbindungen.' }
     case 'not_ready':
-      return { tone: 'warning', label: 'Noch nicht bereit', text: 'Er holt den Stand der Gruppe oder lädt seine Regeln. Der Loadbalancer schickt ihm bis dahin nichts.' }
+      return { tone: 'warning', label: 'Noch nicht bereit', text: 'Er holt den Stand des Clusters oder lädt seine Regeln. Der Loadbalancer schickt ihm bis dahin nichts.' }
     default:
       return { tone: 'neutral', label: 'Erreichbar', text: 'Er hat noch nicht gemeldet, wie es ihm geht. Eine ältere Version meldet das nicht.' }
   }
@@ -175,5 +175,5 @@ export function blockNodeText(b: { node?: string, node_self?: boolean }): string
 export function erasureNodesText(nodes: { reached: string[], open: string[] } | undefined): string {
   if (!nodes) return ''
   const done = `Gelöscht auf ${list(nodes.reached)}.`
-  return nodes.open.length ? `${done} Noch offen: ${list(nodes.open)}. Dort wird gelöscht, sobald der Server die Gruppe wieder erreicht.` : done
+  return nodes.open.length ? `${done} Noch offen: ${list(nodes.open)}. Dort wird gelöscht, sobald der Server den Cluster wieder erreicht.` : done
 }

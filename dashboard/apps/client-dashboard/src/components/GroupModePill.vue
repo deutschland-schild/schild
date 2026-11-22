@@ -7,8 +7,8 @@ import { GROUP_PATH } from '@/lib/nav'
 
 /**
  * The mode this gateway runs in, in the top bar of every page (MVP-27): "Einzelner Server" or
- * "Gruppe · 3 Server", coloured by the state of the group, never by colour alone. In a group it leads to the
- * page of the group, alone to the card "Gruppe" on the server page.
+ * "Cluster · 3 Server", coloured by the state of the group, never by colour alone. In a group it leads to the
+ * page of the group, alone to the card "Cluster" on the server page.
  */
 const props = defineProps<{ status: GroupStatus }>()
 const v = computed(() => modeView(props.status))

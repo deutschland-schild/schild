@@ -1,45 +1,45 @@
 ---
-short: Gruppe
-description: "Mehrere Schild Gateways als Gruppe betreiben: was sie teilen, wie du sie mit einer Konfigurationsdatei oder von Hand einrichtest, was der Loadbalancer davor braucht, wie Sperren schon auf den Balancer-VMs greifen, was beim Ausfall eines Servers passiert und wo die Grenzen liegen."
+short: Cluster
+description: "Mehrere Schild Gateways als Cluster betreiben: was sie teilen, wie du ihn mit einer Konfigurationsdatei oder von Hand einrichtest, was der Loadbalancer davor braucht, wie Sperren schon auf den Balancer-VMs greifen, was beim Ausfall eines Servers passiert und wo die Grenzen liegen."
 ---
 
-# Mehrere Gateways als Gruppe betreiben
+# Mehrere Gateways als Cluster betreiben
 
 **Status:** experimentell, noch in keinem Release enthalten · Stand 22.11.2026 · technische Quelle: [contracts/cluster.md](../../contracts/cluster.md) · unabhängig gemessen am 21.11.2026 mit drei Servern auf einem Rechner ([Bericht](../../tests/results/MVP-27-group-measurement.md)); was dort durchfiel, ist behoben, und der letzte Lauf desselben Messprogramms am 22.11.2026 bestand alle 92 bewerteten Prüfungen
 
 **Kurz:**
 
-- Eine Gruppe sind mehrere Gateways eines Betreibers hinter einem Loadbalancer. Sie teilen ihren Stand direkt untereinander. Du betreibst keine Datenbank, keinen Cache und keine Queue daneben.
-- Zwei Server reichen. Fällt einer aus, arbeitet der andere mit allem weiter, was die Gruppe wusste.
+- Ein Cluster sind mehrere Gateways eines Betreibers hinter einem Loadbalancer. Sie teilen ihren Stand direkt untereinander. Du betreibst keine Datenbank, keinen Cache und keine Queue daneben.
+- Zwei Server reichen. Fällt einer aus, arbeitet der andere mit allem weiter, was der Cluster wusste.
 - Geteilt werden Sperren, Einstellungen aus dem Dashboard, eigene Adressen, Logins, Zertifikate, die Zähler von Limits und Szenarien sowie Ereignisse und Anfragen.
-- Keine Anfrage wartet auf einen anderen Server. Erreicht ein Server die Gruppe nicht, entscheidet er mit seinem letzten Stand.
+- Keine Anfrage wartet auf einen anderen Server. Erreicht ein Server den Cluster nicht, entscheidet er mit seinem letzten Stand.
 - Ohne `cluster.enabled` ändert sich nichts. Ein einzelnes Gateway bleibt, wie es ist.
 
-## Wofür eine Gruppe gut ist
+## Wofür ein Cluster gut ist
 
 Mit einem Gateway hängt deine Website an einem Server. Mit zwei oder mehr kannst du einen Server aktualisieren oder verlieren, ohne dass die Website ausfällt. Ein Hoster kann viele Websites hinter eine Reihe von Gateways stellen und Server dazunehmen, wenn der Traffic wächst.
 
-Ohne Gruppe wäre jedes Gateway für sich: Eine Sperre gälte nur auf einem Server, ein Limit zählte pro Server, und Besucher:innen müssten die Browser-Prüfung auf jedem Server neu bestehen.
+Ohne Cluster wäre jedes Gateway für sich: Eine Sperre gälte nur auf einem Server, ein Limit zählte pro Server, und Besucher:innen müssten die Browser-Prüfung auf jedem Server neu bestehen.
 
-## Was die Gruppe teilt
+## Was der Cluster teilt
 
 | Was | Wie es sich verhält |
 | --- | --- |
 | Gesperrte Adressen | Eine Sperre aus einem Szenario, aus dem Dashboard oder von einem Agenten gilt nach etwa einer Sekunde auf jedem Server. „Freigeben“ hebt sie überall auf. |
 | Einstellungen | Was du im Dashboard oder über die Agent-API einstellst, gilt auf jedem Server: Schalter der Regelquellen, Schwellen, Limits, Crawler-Regeln, Zugriffssperre, Browser-Prüfung, Ausnahmen. |
-| Eigene Adressen und Freigaben | Die Liste eigener Adressen und freigegebene Absender gelten überall. Die eigene Liste eines Servers gewinnt immer gegen eine Sperre aus der Gruppe. |
+| Eigene Adressen und Freigaben | Die Liste eigener Adressen und freigegebene Absender gelten überall. Die eigene Liste eines Servers gewinnt immer gegen eine Sperre aus dem Cluster. |
 | Logins | Ein Passwort und eine Anmeldung für das Dashboard jedes Servers. Agent-Tokens gelten auf allen. |
 | Besucher:innen | Wer die Browser-Prüfung bestanden oder sich an der Zugriffssperre angemeldet hat, bleibt das auf dem nächsten Server. |
 | Zertifikate | Eine Bestellung pro Zertifikat. Die Prüfung der Zertifizierungsstelle klappt, egal auf welchem Server sie landet. |
 | Regeln aus dem CrowdSec Hub | Lädt ein Server einen neuen Stand, übernehmen ihn die anderen von ihm, nach denselben Prüfungen wie bei einem eigenen Download. Neue Regeln sperren auf allen Servern ab demselben Zeitpunkt. |
-| Limits und Szenarien | Jeder Server meldet den anderen einmal pro Sekunde, was er gezählt hat. Ein Limit gilt damit für die Gruppe und nicht pro Server. |
-| Verteilte Angriffe (Wellen) | Auch die Erkennung verteilter Angriffe zählt für die Gruppe. Eine Welle ist auf jedem Server dieselbe, ihre Reaktion greift überall, und „Beenden“ im Dashboard beendet sie auf allen. |
-| Ereignisse und Anfragen | Jeder Server hält auch die Ereignisse, Vorfälle und einzelnen Anfragen der anderen. Jedes Dashboard zeigt die ganze Gruppe. |
+| Limits und Szenarien | Jeder Server meldet den anderen einmal pro Sekunde, was er gezählt hat. Ein Limit gilt damit für den Cluster und nicht pro Server. |
+| Verteilte Angriffe (Wellen) | Auch die Erkennung verteilter Angriffe zählt für den Cluster. Eine Welle ist auf jedem Server dieselbe, ihre Reaktion greift überall, und „Beenden“ im Dashboard beendet sie auf allen. |
+| Ereignisse und Anfragen | Jeder Server hält auch die Ereignisse, Vorfälle und einzelnen Anfragen der anderen. Jedes Dashboard zeigt den ganzen Cluster. |
 | Löschung nach Art. 17 DSGVO | Eine gelöschte Adresse wird auf jedem Server gelöscht, auch auf einem, der gerade aus war und später zurückkommt. |
 
 Nicht geteilt werden `schild.yaml`, `rules.d` und dein Caddyfile. Die verteilst du wie bisher mit deinem Deployment auf jeden Server.
 
-## So ist eine Gruppe aufgebaut
+## So ist ein Cluster aufgebaut
 
 **Zwei Server.** Davor steht der Loadbalancer deines Hosters oder eine Floating-IP, die zum jeweils aktiven Server zeigt. Beide Server halten den vollen Stand. Eine dritte Maschine brauchst du nicht.
 
@@ -53,7 +53,7 @@ Die Server sprechen über einen eigenen Port miteinander (`cluster.listen`), ver
 
 Das ist der Weg für ein Deployment, das dieselben Dateien auf jeden Server schreibt. Du rufst auf keinem Server einen Befehl auf.
 
-1. Erzeuge einmal ein Gruppen-Geheimnis und lege es dort ab, wo dein Deployment Geheimnisse hält:
+1. Erzeuge einmal ein Cluster-Geheimnis und lege es dort ab, wo dein Deployment Geheimnisse hält:
 
    ```bash
    schild cluster secret
@@ -73,9 +73,9 @@ Das ist der Weg für ein Deployment, das dieselben Dateien auf jeden Server schr
 
    Nur `listen` unterscheidet sich von Server zu Server. `peers` nennt alle Server und darf die eigene Adresse enthalten.
 
-4. Starte Schild neu. Jeder Server nimmt sich beim Start selbst in die Gruppe auf und findet die anderen. Die Reihenfolge ist egal.
+4. Starte Schild neu. Jeder Server nimmt sich beim Start selbst in den Cluster auf und findet die anderen. Die Reihenfolge ist egal.
 
-Das Geheimnis lässt einen Server in die Gruppe und kann sonst nichts. Wer es hat, kann einen Server aufnehmen. Behandle es deshalb wie ein Passwort.
+Das Geheimnis lässt einen Server in den Cluster und kann sonst nichts. Wer es hat, kann einen Server aufnehmen. Behandle es deshalb wie ein Passwort.
 
 ## Einrichten von Hand
 
@@ -94,15 +94,15 @@ sudo systemctl restart schild
 
 ## Server mit unterschiedlichen Einstellungen zusammenführen
 
-Tritt ein Server einer Gruppe bei, bringt er mit, was er hat. Seine eigenen Adressen, Freigaben, Limits und Einstellungen kommen zur Gruppe dazu, und er übernimmt, was die Gruppe hat.
+Tritt ein Server einem Cluster bei, bringt er mit, was er hat. Seine eigenen Adressen, Freigaben, Limits und Einstellungen kommen zum Cluster dazu, und er übernimmt, was der Cluster hat.
 
-Nur wenn beide Seiten denselben Eintrag haben, etwa denselben Schalter mit verschiedenen Werten, gilt der Wert der Gruppe. Was der Server dazu selbst hatte, bewahrt Schild auf dem Server auf und nennt es in `schild cluster status`.
+Nur wenn beide Seiten denselben Eintrag haben, etwa denselben Schalter mit verschiedenen Werten, gilt der Wert des Clusters. Was der Server dazu selbst hatte, bewahrt Schild auf dem Server auf und nennt es in `schild cluster status`.
 
 ## Was der Loadbalancer braucht
 
-**Prüfung, ob ein Server bereit ist.** Lass den Balancer `/.schild/readyz` auf den Web-Ports abfragen. Ein Server antwortet mit 503, solange er den Stand der Gruppe noch nicht übernommen hat und während er anhält.
+**Prüfung, ob ein Server bereit ist.** Lass den Balancer `/.schild/readyz` auf den Web-Ports abfragen. Ein Server antwortet mit 503, solange er den Stand des Clusters noch nicht übernommen hat und während er anhält.
 
-**Echte Adresse der Besucher:innen.** Hinter einem Balancer im TCP-Modus kommt die Adresse über das PROXY-Protokoll. In einer Gruppe verlangt Schild dafür eine Liste erlaubter Absender im Caddyfile:
+**Echte Adresse der Besucher:innen.** Hinter einem Balancer im TCP-Modus kommt die Adresse über das PROXY-Protokoll. In einem Cluster verlangt Schild dafür eine Liste erlaubter Absender im Caddyfile:
 
 ```caddyfile
 {
@@ -117,7 +117,7 @@ Nur wenn beide Seiten denselben Eintrag haben, etwa denselben Schalter mit versc
 }
 ```
 
-Ohne diese Liste startet Schild in einer Gruppe nicht. Sonst könnte jeder, der einen Server direkt erreicht, eine beliebige Adresse als seine ausgeben, und eine Sperre dieser Adresse gälte dann auf jedem Server.
+Ohne diese Liste startet Schild in einem Cluster nicht. Sonst könnte jeder, der einen Server direkt erreicht, eine beliebige Adresse als seine ausgeben, und eine Sperre dieser Adresse gälte dann auf jedem Server.
 
 **Verteilung.** Verteilt der Balancer nach der Adresse der Besucher:innen, landet ein Client immer auf demselben Server. Dann zählen Limits genau. Mit reihum verteilten Verbindungen zählen sie mit etwa einer Sekunde Verzug.
 
@@ -125,7 +125,7 @@ Ohne diese Liste startet Schild in einer Gruppe nicht. Sonst könnte jeder, der 
 
 Hinter einem Balancer mit PROXY-Protokoll kommen alle Pakete vom Balancer. Die Firewall auf dem Gateway selbst (`schild firewall run`) kann gesperrte Adressen dort nicht erkennen. Der richtige Ort ist die Balancer-VM.
 
-Eine Balancer-VM tritt der Gruppe als Edge bei. Sie bekommt nur die Liste gesperrter Adressen mit ihrem Ende. Ereignisse, Einstellungen, Logins, Zertifikate und Schlüssel erreichen sie nie.
+Eine Balancer-VM tritt dem Cluster als Edge bei. Sie bekommt nur die Liste gesperrter Adressen mit ihrem Ende. Ereignisse, Einstellungen, Logins, Zertifikate und Schlüssel erreichen sie nie.
 
 ```bash
 # auf einem Gateway
@@ -138,11 +138,11 @@ schild firewall run -group -data /var/lib/schild-edge
 
 Jede Sperre endet in der Firewall von selbst, auch wenn die VM kein Gateway mehr erreicht. Wie bei der Firewall auf einem Gateway betrifft sie nur die Ports 80 und 443.
 
-Eine Edge lässt sich nur mit einem Code aufnehmen, nie mit dem Gruppen-Geheimnis. Das Geheimnis gehört nicht auf eine Balancer-VM.
+Eine Edge lässt sich nur mit einem Code aufnehmen, nie mit dem Cluster-Geheimnis. Das Geheimnis gehört nicht auf eine Balancer-VM.
 
 ## Aufgaben, die nur einmal laufen dürfen
 
-Manche Aufgaben sollen in der Gruppe einmal laufen und nicht einmal pro Server, zum Beispiel das Erneuern der Schlüssel der Browser-Prüfung. Dafür gibt es keinen Haupt-Server. Die Aufgabe übernimmt jeweils der erreichbare Server mit der kleinsten Kennung. Fällt er aus, übernimmt der nächste von selbst.
+Manche Aufgaben sollen im Cluster einmal laufen und nicht einmal pro Server, zum Beispiel das Erneuern der Schlüssel der Browser-Prüfung. Dafür gibt es keinen Haupt-Server. Die Aufgabe übernimmt jeweils der erreichbare Server mit der kleinsten Kennung. Fällt er aus, übernimmt der nächste von selbst.
 
 Wann eine Aufgabe zuletzt lief, weiß jeder Server. Ein Server, der übernimmt oder neu startet, führt sie deshalb nicht noch einmal aus, bevor sie wieder fällig ist.
 
@@ -170,15 +170,15 @@ Der Server antwortet dem Balancer sofort mit 503 und bedient noch 15 Sekunden la
 
 Beide Zeiten stellst du unter `cluster.drain` ein. `delay_s` sollte länger sein als das Prüfintervall deines Balancers mal die Zahl der Fehlversuche, nach denen er einen Server herausnimmt.
 
-## Einen Server aus der Gruppe nehmen
+## Einen Server aus dem Cluster nehmen
 
 ```bash
 schild cluster remove web-3
 ```
 
-Danach spricht kein Mitglied mehr mit diesem Server, und keines nimmt an, was er noch schickt. Das gilt auch, wenn der Server das Gruppen-Geheimnis hat. Der entfernte Server erfährt es und schreibt es in sein Log. Er bedient mit seinem letzten Stand weiter, bis du bei ihm `cluster.enabled: false` setzt oder ihn abschaltest.
+Danach spricht kein Mitglied mehr mit diesem Server, und keines nimmt an, was er noch schickt. Das gilt auch, wenn der Server das Cluster-Geheimnis hat. Der entfernte Server erfährt es und schreibt es in sein Log. Er bedient mit seinem letzten Stand weiter, bis du bei ihm `cluster.enabled: false` setzt oder ihn abschaltest.
 
-## Wenn in der Gruppe etwas Falsches unterwegs ist
+## Wenn im Cluster etwas Falsches unterwegs ist
 
 Eine Änderung erreicht jeden Server in etwa einer Sekunde, eine falsche auch. Für diesen Fall gibt es eine Notbremse:
 
@@ -186,7 +186,7 @@ Eine Änderung erreicht jeden Server in etwa einer Sekunde, eine falsche auch. F
 schild cluster pause
 ```
 
-Der Server bedient weiter mit dem Stand, den er hat. Er nimmt nichts mehr aus der Gruppe an und gibt nichts weiter. Was du währenddessen auf ihm änderst, wartet. Mit `schild cluster resume` nimmt er wieder teil und holt nach, was er verpasst hat.
+Der Server bedient weiter mit dem Stand, den er hat. Er nimmt nichts mehr aus dem Cluster an und gibt nichts weiter. Was du währenddessen auf ihm änderst, wartet. Mit `schild cluster resume` nimmt er wieder teil und holt nach, was er verpasst hat.
 
 ## Den Stand prüfen
 
@@ -196,16 +196,18 @@ schild cluster status
 
 Die Ausgabe nennt jedes Mitglied mit Rolle, Adresse, Zustand und letztem Kontakt, dazu die Zahl laufender Sperren und geteilter Einstellungen.
 
-Dasselbe zeigt das Dashboard. Oben auf jeder Seite steht, ob der Server allein läuft („Einzelner Server“) oder Teil einer Gruppe ist („Gruppe · 3 Server“). Die Karte „Gruppe“ auf der Server-Seite nennt den Zustand des Abgleichs und jedes Gateway mit letztem Kontakt, Rückstand, Version und Konfiguration. Balancer-VMs stehen darunter für sich.
+Dasselbe zeigt das Dashboard. Oben auf jeder Seite steht, ob der Server allein läuft („Einzelner Server“) oder Teil eines Clusters ist („Cluster · 3 Server“). Die Karte „Cluster“ auf der Server-Seite nennt den Zustand des Abgleichs und jedes Gateway mit letztem Kontakt, Rückstand, Version und Konfiguration. Balancer-VMs stehen darunter für sich.
 
-Ein Klick auf diese Anzeige öffnet die Seite „Gruppe“. Dort steht jedes Gateway als Karte:
+Ein Klick auf diese Anzeige öffnet die Seite „Cluster“. Oben zeigt eine Karte des Clusters alle Gateways und ihre Verbindungen. Farbig sind die Verbindungen dieses Servers: durchgezogen, wenn er den anderen erreicht, gestrichelt, wenn nicht. Die Verbindungen der anderen Server untereinander sind grau, weil ihr Zustand von hier aus nicht zu sehen ist. Balancer-VMs stehen darüber.
+
+Darunter steht jedes Gateway als Karte:
 
 - **Nimmt Anfragen an, wird angehalten oder ist noch nicht bereit.** Das ist die Antwort, die der Server dem Loadbalancer auf `/.schild/readyz` gibt.
 - **Anfragen pro Sekunde, Anteil gestoppter Anfragen und Antwortzeit** der letzten Minute.
 - **CPU, Arbeitsspeicher und Festplatte.** Ab 80 % wird der Balken orange, ab 95 % rot.
 - **Start, letzter Kontakt, Rückstand, Version und Konfiguration.**
 
-Darüber stehen die Summen: wie viele Server bereit sind, wie viele Anfragen die Gruppe pro Sekunde bedient, wie viele Sperren laufen und wie viele Balancer-VMs dazugehören.
+Darüber stehen die Summen: wie viele Server bereit sind, wie viele Anfragen der Cluster pro Sekunde bedient, wie viele Sperren laufen und wie viele Balancer-VMs dazugehören.
 
 Jeder Server meldet diese Zahlen alle fünf Sekunden an die anderen. Die Seite zeigt, was dieser Server zuletzt gehört hat, und fragt dafür keinen anderen. Erreicht er einen Server nicht, steht dort „Nicht erreichbar“ ohne Zahlen. Ob jener Server trotzdem Besucher:innen bedient, ist von hier aus nicht zu sehen. Die Zahlen dienen nur der Anzeige, kein Server entscheidet danach.
 
@@ -215,7 +217,7 @@ Jeder Server meldet diese Zahlen alle fünf Sekunden an die anderen. Die Seite z
 | Abgleich eingeschränkt | Mindestens ein Gateway ist nicht erreichbar. Mit den übrigen läuft der Abgleich weiter. |
 | Abgleich unterbrochen | Der Server erreicht kein anderes Gateway und arbeitet mit dem letzten Stand weiter. |
 | Abgleich pausiert | Auf dem Server wurde `schild cluster pause` aufgerufen. |
-| Aus der Gruppe entfernt | Ein Mitglied hat dem Server gemeldet, dass er entfernt wurde. |
+| Aus dem Cluster entfernt | Ein Mitglied hat dem Server gemeldet, dass er entfernt wurde. |
 
 **Unterschiedliche Konfiguration.** Jedes Gateway nennt den anderen alle fünf Sekunden eine Prüfsumme seiner Konfiguration: `schild.yaml` ohne `node_name`, `cluster.listen` und `cluster.advertise`, dazu `rules.d`. Weicht ein Server ab, steht das in der Karte. Das ist ein Hinweis. Schild verteilt keine Konfiguration, das bleibt Aufgabe deines Deployments. Das Caddyfile geht in die Prüfsumme noch nicht ein.
 
@@ -223,11 +225,11 @@ In der Liste gesperrter Adressen steht bei jeder Sperre, welcher Server sie ents
 
 ## Daten und Datenschutz
 
-Eine Gruppe ist ein Betreiber. Mit `cluster.share_data` (ab Werk an) hält jeder Server auch die Ereignisse und Anfragen der anderen, mit den Adressen der Besucher:innen. Sie reisen nur zwischen deinen eigenen Servern, über die verschlüsselte Verbindung der Gruppe. Nenne in deiner Datenschutzerklärung jeden Server als Ort der Verarbeitung.
+Ein Cluster ist ein Betreiber. Mit `cluster.share_data` (ab Werk an) hält jeder Server auch die Ereignisse und Anfragen der anderen, mit den Adressen der Besucher:innen. Sie reisen nur zwischen deinen eigenen Servern, über die verschlüsselte Verbindung des Clusters. Nenne in deiner Datenschutzerklärung jeden Server als Ort der Verarbeitung.
 
 Jeder Server wendet seine eigenen Aufbewahrungsfristen und Größengrenzen auf alles an, was er hält. Eine Löschung nach Art. 17 gilt auf jedem Server.
 
-Jeder Server speichert damit, was die ganze Gruppe aufzeichnet. In einer großen Gruppe kann das zu viel sein. Mit `share_data: false` bleiben Ereignisse und Anfragen auf dem Server, der sie geschrieben hat. Sperren, Einstellungen, Logins und Zähler teilt die Gruppe trotzdem.
+Jeder Server speichert damit, was der ganze Cluster aufzeichnet. In einem großen Cluster kann das zu viel sein. Mit `share_data: false` bleiben Ereignisse und Anfragen auf dem Server, der sie geschrieben hat. Sperren, Einstellungen, Logins und Zähler teilt der Cluster trotzdem.
 
 ## Grenzen
 
@@ -238,20 +240,20 @@ Jeder Server speichert damit, was die ganze Gruppe aufzeichnet. In einer großen
 - **Pro Server bleiben** die Zähler der Übersicht und die Server-Diagramme.
 - **Wellen mit Verzug.** Wie bei den Limits vergeht bis zu einer Sekunde, bis die Server voneinander wissen. Eine Welle wird deshalb erkannt, sobald die Summe über der Schwelle liegt und die nächste passende Anfrage einen Server erreicht. Wie viele Anfragen eine Reaktion gestoppt hat, zählt jeder Server für sich.
 - **Zertifikate bei Netztrennung.** Erreichen sich die Server nicht, kann jede Seite dasselbe Zertifikat bestellen. Das ist eine Bestellung zu viel, beide Zertifikate sind gültig.
-- **Neues Geheimnis heißt neue Gruppe.** Ist das Gruppen-Geheimnis bekannt geworden, verteilst du ein neues und lässt die Server mit leerem Verzeichnis `cluster` neu starten. Einen Wechsel im laufenden Betrieb gibt es noch nicht.
-- **Höchstens 16 Gateways und 8 Balancer-VMs.** Mehr lehnt die Gruppe ab. Im laufenden Betrieb erprobt sind bisher nur zwei und drei Gateways.
+- **Neues Geheimnis heißt neuer Cluster.** Ist das Cluster-Geheimnis bekannt geworden, verteilst du ein neues und lässt die Server mit leerem Verzeichnis `cluster` neu starten. Einen Wechsel im laufenden Betrieb gibt es noch nicht.
+- **Höchstens 16 Gateways und 8 Balancer-VMs.** Mehr lehnt der Cluster ab. Im laufenden Betrieb erprobt sind bisher nur zwei und drei Gateways.
 
 ## Befehle
 
 | Befehl | Was er tut |
 | --- | --- |
-| `schild cluster secret` | gibt ein neues Gruppen-Geheimnis aus |
+| `schild cluster secret` | gibt ein neues Cluster-Geheimnis aus |
 | `schild cluster status` | Mitglieder, letzter Kontakt, geteilter Stand |
 | `schild cluster drain` | nimmt diesen Server aus dem Traffic und hält ihn an |
-| `schild cluster pause` und `resume` | der Server bedient weiter, nimmt aber nichts aus der Gruppe an und gibt nichts weiter, bis du `resume` aufrufst |
+| `schild cluster pause` und `resume` | der Server bedient weiter, nimmt aber nichts aus dem Cluster an und gibt nichts weiter, bis du `resume` aufrufst |
 | `schild cluster remove NODE` | beendet die Mitgliedschaft eines Servers |
-| `schild cluster init` | macht diesen Server zum ersten einer neuen Gruppe (von Hand) |
+| `schild cluster init` | macht diesen Server zum ersten eines neuen Clusters (von Hand) |
 | `schild cluster invite [-role edge]` | gibt einen Beitrittscode aus, einmal gültig, eine Stunde lang |
-| `schild cluster join ADRESSE CODE` | tritt der Gruppe bei (von Hand) |
+| `schild cluster join ADRESSE CODE` | tritt dem Cluster bei (von Hand) |
 | `schild cluster join ADRESSE CODE -edge -name NAME -data DIR` | Balancer-VM tritt als Edge bei |
-| `schild firewall run -group -data DIR` | hält die Sperren der Gruppe in der Firewall der Balancer-VM |
+| `schild firewall run -group -data DIR` | hält die Sperren des Clusters in der Firewall der Balancer-VM |

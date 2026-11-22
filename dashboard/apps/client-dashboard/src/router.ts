@@ -42,7 +42,7 @@ export const routes: RouteRecordRaw[] = [
   { path: '/', name: 'websites', component: view.websites, meta: { title: 'Alle Websites' } },
   { path: '/server/load', name: 'server-load', component: view.load, meta: { title: 'Auslastung' } },
   { path: '/server/check', name: 'server-check', component: view.check, meta: { title: 'Server-Check' } },
-  { path: '/server/group', name: 'server-group', component: view.group, meta: { title: 'Gruppe' } },
+  { path: '/server/group', name: 'server-group', component: view.group, meta: { title: 'Cluster' } },
   { path: '/server', name: 'server', component: view.server, meta: { title: 'Server' } },
 
   // ---------------------------------------------------------------- websites (below the server)

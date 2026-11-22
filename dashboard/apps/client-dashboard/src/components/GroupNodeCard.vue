@@ -5,7 +5,7 @@ import { computed } from 'vue'
 import { CONFIG_STATE, loadTone, nodeView, shortVersion } from '@/lib/group'
 
 /**
- * One gateway of the group (MVP-27) on the page "Gruppe": whether it takes traffic, what it serves and how
+ * One gateway of the group (MVP-27) on the page "Cluster": whether it takes traffic, what it serves and how
  * loaded it is, as it told this server within the last seconds. Read only.
  */
 const props = defineProps<{ member: GroupMember, configVersion?: string }>()
