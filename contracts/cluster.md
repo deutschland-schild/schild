@@ -94,7 +94,7 @@ What the dashboard and the agent API set, who passes and who may sign in. Each t
 - Two changes of the very same entry on two nodes: the later clock stands, on every node. Nothing else is settled by a clock.
 - A node that enters a group publishes the entries it holds and the group does not, and takes the entries the group holds. Only an entry both hold is the group's; what the node held of it is kept (`cluster.db`, table `replaced`) and named in its log and in `schild cluster status`. Before its first sync a node publishes nothing: it does not know yet what the group holds.
 - `access_protections_v1` and `human_check_v1` hold the keys behind the cookies of visitors, `users` the password hashes, `sessions` and `agent_tokens` hashes of tokens. They travel between gateways of one operator over the mesh and nowhere else.
-- Not shared: `schild.yaml`, `rules.d` and the Caddyfile (a deployment), the state of the CrowdSec Hub download, `installed_at_v1`, the first-run setup code.
+- Not shared: `schild.yaml`, `rules.d` and the Caddyfile (a deployment), the status of the CrowdSec Hub download (the index itself is shared, see "One set of hub rules"), `installed_at_v1`, the first-run setup code.
 
 ### erasure
 
@@ -198,20 +198,32 @@ An edge is a member that only enforces: a balancer VM in front of the gateways t
 - **Whom it asks.** The gateways of the member list, one after the other until one answers; the one that answered last first. Every element of its table carries its end as the kernel timeout, so no block outlives its end when no gateway answers.
 - A removed edge is answered 410 and gets nothing more.
 
-## 12. Bounds and the brake
+## 12. One set of hub rules
+
+Every node may download the index of the CrowdSec Hub. The node that took a new one says which, and the others take it from that node, so the rules are the same on every node without each waiting for its own daily check.
+
+- A node tells every gateway it reaches the index it runs from a download (`POST /mesh/v0/tell`, kind `hub`): `digest` (SHA-256 of the index, hex), `etag`, `pin` (its `rules.crowdsec.pin`) and `fetched_at` (when it was downloaded from the hub). It says so within 2 s of a change and again every 30 s.
+- A node wants an announced index when its hub rules are on and updated, its pin is the same, the index is another one than it runs, it was downloaded later than its own (not more than a minute ahead of its clock, not more than 30 days ago), and the node did not refuse this very index before.
+- It then asks the announcing node for it (`POST /mesh/v0/ask`, kind `hub_index`, question the announcement, answer the index gzipped; empty when that node moved on) and checks the digest.
+- The index goes through the node's whole update, as a download of its own does: the index check, the compile check, the cost check, the build. What does not pass is refused, the running rules stay, and the node asks the hub itself at its next check. Nothing is taken on a member's word.
+- It is taken under the time of the first download, so a rule that is new was first seen at the same moment on every node and settles to block on all of them together. The node keeps the ETag, so its own next check finds nothing new.
+- A node that restarted holds its set and not the index: it hands none on until it downloaded or took one again.
+- Own rules (`rules.d`) are files of the deployment and are not shared.
+
+## 13. Bounds and the brake
 
 - A group of this version takes at most 16 gateways and 8 edges; a join or a hello beyond that is answered 409.
 - A node hands at most 200 new blocks a second to the group, and none while it knows 20 000 that run. What waits runs on its node all the same and leaves with a later round.
 - `schild cluster pause` on a node: it serves with the state it has, answers sync with 503, takes no record and no count and hands none over, also from calls that were under way. What is written on it waits. `schild cluster resume` ends it; the node then takes what it missed. For the day a record that should not be travels through the group: a change reaches every node within a second, a wrong one too.
 
-## 13. What a node says of itself, and what the dashboard shows
+## 14. What a node says of itself, and what the dashboard shows
 
 - **Versions.** Every 5 s a gateway tells the gateways it reaches (`POST /mesh/v0/tell`, kind `config`, at most 1 KiB): `config`, 64 hex characters, and `version`, the text of its build (at most 128 bytes). `config` is SHA-256 over `schild.yaml` as JSON with sorted keys, without `node_name`, `cluster.listen` and `cluster.advertise` (they differ from node to node by design), a zero byte and the text of `rules.d`. Nothing is stored and nothing is decided by it: a node compares what it was told in the last minute with its own and names the members that differ. No configuration travels (D32).
 - **Status.** `getGroupStatus` of the client dashboard API (`GET /group`, schema `GroupStatus`) answers from the running node alone, without a call to another node: `mode` (`single`, `group`) and `state` (`no_group`, `syncing`, `active`, `degraded`, `interrupted`, `paused`, `removed`), the members with role, address, state, last contact out and in, how far behind, version and config (`same`, `differs`, `unknown`), the edges with their last question and the clients their firewall held, what is shared, the counters of the sync and the members whose config version differs. A gateway without `cluster.enabled` answers `{"mode": "single"}`.
 - **Blocks.** `RunningBlock.node` is the `node` of the block's record, `node_self` whether this node signed it.
 - **Erasure.** The node that erases waits up to 2 s until the gateways it reaches said they hold its erasure record (the `vector` of their next sync call), and answers with `PrivacyDeleteResult.nodes`: `reached` (itself first) and `open`. A gateway holds the record before it has erased; it erases within the same call. An open node erases when it returns (section 5).
 
-## 14. Not built yet
+## 15. Not built yet
 
 The designs of the two larger parts, with the decisions they need, are at the end of [MVP-27](../tests/specs/MVP-27-ha-group.yaml) (`design_metrics_across_nodes`, `design_data_copies_and_queries`).
 

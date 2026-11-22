@@ -222,6 +222,10 @@ type Source struct {
 	cur  *loaded
 	st   persisted
 	seen map[int]bool // base ids loaded in this process
+	// share is the index this node can hand to its group; refusedShared the
+	// digest of one a member handed over and this node refused (share.go).
+	share         *shared
+	refusedShared string
 }
 
 // New returns a source. Call Prepare before the first WAF build.

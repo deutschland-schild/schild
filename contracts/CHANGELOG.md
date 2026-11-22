@@ -11,6 +11,8 @@ Not backwards compatible with v0.5 for the gateway; nothing is installed outside
 - **Store (no contract file):** `schild.db` has schema version 1 from 0.1.0-alpha.1 on and is upgraded forward only at the gateway's start, with a backup (D75).
 - **CLI (no contract file):** `schild init`, `schild dashboard setup-code` (D78); test lab switches are ignored by release builds (D77).
 
+**D103 (2026-11-22, draft): a group runs one set of CrowdSec Hub rules.** Mesh only ([cluster.md](cluster.md), section "One set of hub rules"), additive: Tell kind `hub` (`digest`, `etag`, `pin`, `fetched_at`), Ask kind `hub_index` (the index, gzipped). No vector change.
+
 **D103 (2026-11-22, draft): the detectors of distributed attacks count for the group.** Mesh only ([cluster.md](cluster.md) section 8), additive: the Tell kind `counts` gains `dist` (`routes`, `shapes`, `fps`, `accounts`, `waves`). In a group the id of a wave and of its end event and the incident number of a `shape_block` are derived instead of random; the events and their schema do not change. No config key, no vector change.
 
 **D103 (2026-11-21, draft): single requests of a group are asked for with a cursor.** Mesh only ([cluster.md](cluster.md) section 9), not compatible between nodes of the earlier draft: the Tell kind `requests` is gone, the Ask kind `requests` (`after`; `epoch`, `first`, `next`, `rows`) replaces it. A node that was away catches up within the log of the node that served. No config key, no vector change.

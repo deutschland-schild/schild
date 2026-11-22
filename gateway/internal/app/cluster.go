@@ -89,6 +89,7 @@ func (a *App) startCluster(ctx context.Context) {
 	a.startSharedState(ctx)
 	a.startCounts(ctx)
 	a.startGroupData(ctx)
+	a.startGroupHub(ctx)
 	a.startEdges()
 	a.startGroupVersions(ctx)
 	if cfg.CaddyIngress() {

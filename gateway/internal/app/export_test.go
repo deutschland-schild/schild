@@ -1,8 +1,10 @@
 package app
 
 import (
+	"context"
 	"time"
 
+	"github.com/deutschland-schild/schild/gateway/internal/hub"
 	"github.com/deutschland-schild/schild/gateway/internal/reqring"
 )
 
@@ -30,4 +32,14 @@ func (a *App) RequestsMissed() uint64 {
 		return 0
 	}
 	return a.groupData.requestsMissed.Load()
+}
+
+// SetHubShare puts another hub source in for the group (tests).
+func (a *App) SetHubShare(h interface {
+	SharedIndex() (hub.IndexInfo, []byte, bool)
+	WantsIndex(hub.IndexInfo) bool
+	TakeIndex(ctx context.Context, in hub.IndexInfo, gz []byte) error
+}) {
+	var x hubIndex = h
+	a.hubShare.Store(&x)
 }

@@ -191,6 +191,9 @@ type App struct {
 	sharedPending map[string]map[string]pendingEntry
 	sharedMarks   map[string]map[string]string
 	sharedCaught  map[string]bool
+	// hubShare is the hub source as the group shares its index
+	// (cluster_hub.go); tests put another one in.
+	hubShare atomic.Pointer[hubIndex]
 	// edges: what the edges of the group said in their last calls.
 	edgeMu sync.Mutex
 	edges  map[string]edgeReport

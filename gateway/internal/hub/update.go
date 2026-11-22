@@ -182,6 +182,7 @@ func (s *Source) Check(ctx context.Context) {
 		return
 	}
 	s.apply(ctx, raw, newTag, cfg.Pin, now)
+	s.remember(raw, newTag, cfg.Pin)
 }
 
 // apply takes a downloaded index through the update rules (opMu held).
