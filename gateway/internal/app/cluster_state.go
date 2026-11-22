@@ -433,6 +433,17 @@ func (a *App) syncThing(ctx context.Context, t sharedThing, synced bool) {
 			}
 		}
 	}
+	// A record that says what this node already brought in step is no news:
+	// the same entry carried into a new group by two nodes, or a value set
+	// back to what it was. It must not take back a change made on this node
+	// that has not left yet (a node publishes only once it is in step).
+	for k, p := range pending {
+		// A removal is always taken: an entry the group removed never
+		// comes back through a node that still holds it.
+		if m, seen := marks[k]; p.v != nil && seen && m == sum(p.v) {
+			delete(pending, k)
+		}
+	}
 	if len(pending) > 0 {
 		set, del := map[string][]byte{}, []string{}
 		from := ""

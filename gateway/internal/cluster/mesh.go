@@ -328,7 +328,7 @@ func (n *Node) seek(ctx context.Context) {
 		for _, addr := range todo {
 			var resp joinResponse
 			if err := postJSON(ctx, c, "https://"+addr+pathHello, helloRequest{Record: own}, &resp); err != nil {
-				if errors.Is(err, errRemoved) {
+				if n.removedHere(err) {
 					n.noteRemoved()
 				}
 				n.log.Debug("cluster: configured peer not reached", "peer", addr, "err", err)
@@ -382,8 +382,35 @@ func meshClient(cert tls.Certificate, accept func(ed25519.PublicKey) bool, timeo
 // errRemoved: a member answered that this node is no member any more.
 var errRemoved = errors.New("this node was removed from the group")
 
+// headerGroup names the group of the node that answers 410: a node that
+// moved to another group (a new group secret) may still be known as removed
+// to a node of the group before, and that says nothing about the new one.
+const headerGroup = "X-Schild-Group"
+
+// removedError is errRemoved with the group the answering node spoke for;
+// "" from a node that does not say.
+type removedError struct{ group string }
+
+func (e *removedError) Error() string        { return errRemoved.Error() }
+func (e *removedError) Is(target error) bool { return target == errRemoved }
+
+// removedHere reports whether err says that this node was removed from the
+// group it is in now.
+func (n *Node) removedHere(err error) bool {
+	var re *removedError
+	if errors.As(err, &re) {
+		return re.group == "" || re.group == n.group
+	}
+	return errors.Is(err, errRemoved)
+}
+
 func (n *Node) noteRemoved() {
 	if n.removed.CompareAndSwap(false, true) {
+		// Kept over a restart: a node that later moves to another group
+		// (move.go) takes nothing along from the one it was removed from.
+		n.wmu.Lock()
+		_, _ = n.db.Exec(`INSERT INTO meta(k, v) VALUES('removed', '1') ON CONFLICT(k) DO UPDATE SET v = excluded.v`)
+		n.wmu.Unlock()
 		n.log.Warn("cluster: this node was removed from its group. It serves with the state it has and shares nothing. To take it out for good: cluster.enabled false; to bring it back: delete its cluster directory and let it join again")
 	}
 }
@@ -406,7 +433,7 @@ func postJSON(ctx context.Context, c *http.Client, url string, in, out any) erro
 	if resp.StatusCode != http.StatusOK {
 		msg, _ := io.ReadAll(io.LimitReader(resp.Body, 256))
 		if resp.StatusCode == http.StatusGone {
-			return errRemoved
+			return &removedError{group: resp.Header.Get(headerGroup)}
 		}
 		return fmt.Errorf("%s: %s", resp.Status, bytes.TrimSpace(msg))
 	}
@@ -531,7 +558,7 @@ func (n *Node) runPeer(ctx context.Context, p *peer, key ed25519.PublicKey) {
 			return
 		}
 		if err != nil {
-			if errors.Is(err, errRemoved) {
+			if n.removedHere(err) {
 				n.noteRemoved()
 			}
 			p.mu.Lock()

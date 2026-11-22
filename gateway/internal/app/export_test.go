@@ -74,3 +74,11 @@ func SetRequestsLog(n int) (undo func()) {
 
 // ClusterReasons are the baseline reasons the overview takes from the group.
 func (a *App) ClusterReasons() []string { return a.clusterReasons() }
+
+// OneGroupHashKey makes every node started from now on hash under one key,
+// whatever its group: for tests that run two groups in one process. It
+// returns the function that ends it.
+func OneGroupHashKey() func() {
+	testGroupHashKey = &[16]byte{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16}
+	return func() { testGroupHashKey = nil }
+}

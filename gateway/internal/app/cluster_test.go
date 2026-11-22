@@ -892,3 +892,75 @@ func TestGroupNodeDoesNotRotateBrowserCheckKeysAtItsStart(t *testing.T) {
 		return string(a.h.App.HumanCheck.State().ClearanceKey) == string(b.h.App.HumanCheck.State().ClearanceKey)
 	})
 }
+
+// A group secret that became known is replaced server by server: the new
+// secret file and a restart, nothing else. Each server leaves the old group
+// and enters the new one with what it held, so nothing the group shared is
+// lost on the way, and what a server sets while the others still run the
+// old group reaches them when they follow.
+func TestNewGroupSecretServerByServerKeepsTheState(t *testing.T) {
+	// Two groups run in this process for a while (see OneGroupHashKey).
+	t.Cleanup(app.OneGroupHashKey())
+	dir := t.TempDir()
+	write := func(name string) string {
+		secret, err := cluster.NewSecret()
+		if err != nil {
+			t.Fatal(err)
+		}
+		p := filepath.Join(dir, name)
+		if err := os.WriteFile(p, []byte(secret+"\n"), 0o600); err != nil {
+			t.Fatal(err)
+		}
+		return p
+	}
+	oldSecret, newSecret := write("old.secret"), write("new.secret")
+	a := &groupNode{dir: t.TempDir(), addr: apptest.FreeAddr(t), name: "web-1"}
+	b := &groupNode{dir: t.TempDir(), addr: apptest.FreeAddr(t), name: "web-2"}
+	start := func(g *groupNode, secretFile string) {
+		g.h = apptest.New(t, apptest.Options{Dir: g.dir, Extra: fmt.Sprintf("cluster: {enabled: true, listen: %q, secret_file: %q, peers: [%q, %q]}\n", g.addr, secretFile, a.addr, b.addr)})
+		if g.h.App.Cluster == nil {
+			t.Fatalf("%s: no cluster node", g.name)
+		}
+	}
+	renew := func(g *groupNode) {
+		if err := g.h.Stop(); err != nil {
+			t.Fatal(err)
+		}
+		start(g, newSecret)
+	}
+	start(a, oldSecret)
+	start(b, oldSecret)
+	oldGroup := a.h.App.Cluster.Group()
+	a.block("203.0.113.180", "S-BEFORE", 15*time.Minute)
+	b.h.WaitFor("web-2 holds the block of the old group", func() bool { return b.blocked("203.0.113.180") == "S-BEFORE" })
+
+	// web-2 goes first. It is alone in the new group and keeps what it held.
+	renew(b)
+	if g := b.h.App.Cluster.Group(); g == oldGroup {
+		t.Fatal("the new secret made no new group")
+	}
+	if got := b.blocked("203.0.113.180"); got != "S-BEFORE" {
+		t.Fatalf("web-2 lost the block of the old group over the change: %q", got)
+	}
+	b.block("203.0.113.181", "S-BETWEEN", 15*time.Minute)
+	a.block("203.0.113.182", "S-OLD-SIDE", 15*time.Minute)
+	// A node of the old group takes nothing of the new one, and the other way round.
+	time.Sleep(2 * time.Second)
+	if a.blocked("203.0.113.181") != "" || b.blocked("203.0.113.182") != "" {
+		t.Fatal("a block crossed between the old and the new group")
+	}
+	if a.blocked("203.0.113.180") != "S-BEFORE" || a.blocked("203.0.113.182") != "S-OLD-SIDE" {
+		t.Fatal("web-1, still in the old group, lost a block when web-2 left")
+	}
+
+	// web-1 follows: both are in the new group and hold everything.
+	renew(a)
+	if a.h.App.Cluster.Group() != b.h.App.Cluster.Group() {
+		t.Fatal("the two servers ended in different groups")
+	}
+	for _, g := range []*groupNode{a, b} {
+		for ip, incident := range map[string]string{"203.0.113.180": "S-BEFORE", "203.0.113.181": "S-BETWEEN", "203.0.113.182": "S-OLD-SIDE"} {
+			g.h.WaitFor(g.name+" blocks "+ip+" in the new group", func() bool { return g.blocked(ip) == incident })
+		}
+	}
+}

@@ -290,6 +290,12 @@ func (a *App) leaveTraffic() {
 	time.Sleep(d)
 }
 
+// testGroupHashKey replaces the hash key of the group in tests that run
+// nodes of two groups in one process: the keyed hashes of the behaviour
+// package are one per process (behaviour.SetHashKey), so a second group
+// would break the tables of the first. Nil outside those tests.
+var testGroupHashKey *[16]byte
+
 // prepareCluster runs before the behaviour engine is made: a node set up by
 // configuration lets itself into its group (cluster.secret_file), and the
 // keyed hashes of the engine take the key of the group, so the nodes can
@@ -304,7 +310,12 @@ func (a *App) prepareCluster(cfg *config.Site) {
 		secret, err := cluster.ReadSecret(cfg.Cluster.SecretFile)
 		if err == nil {
 			host, _ := os.Hostname()
-			_, err = cluster.Configure(dir, cfg.MemberName(host), cfg.Cluster.Address(), secret, nil)
+			var moved *cluster.Moved
+			_, moved, err = cluster.Configure(dir, cfg.MemberName(host), cfg.Cluster.Address(), secret, nil)
+			if moved != nil {
+				a.log.Warn("cluster: cluster.secret_file names another group than this node was in: it moved there and took along what it held. The other nodes follow when they start with the same file",
+					"from", moved.From, "to", moved.To, "records", moved.Carried, "left", moved.Skipped, "old_directory", moved.Aside)
+			}
 		}
 		if err != nil {
 			a.clusterSetupErr = err
@@ -315,6 +326,9 @@ func (a *App) prepareCluster(cfg *config.Site) {
 		a.groupNodeID = id
 	}
 	if key, ok := cluster.HashKey(dir); ok {
+		if testGroupHashKey != nil {
+			key = *testGroupHashKey
+		}
 		behaviour.SetHashKey(key)
 		a.groupHash = true
 	}

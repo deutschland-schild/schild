@@ -4,7 +4,6 @@ import (
 	"context"
 	"crypto/ed25519"
 	"crypto/rand"
-	"crypto/sha256"
 	"database/sql"
 	"encoding/base64"
 	"encoding/hex"
@@ -422,10 +421,6 @@ func ReadStatus(dir string, now func() time.Time) (*Status, error) {
 	return st, nil
 }
 
-// ErrOtherGroup: the secret of the configuration names another group than
-// the one this node belongs to.
-var ErrOtherGroup = errors.New("cluster: this node belongs to another group than cluster.secret_file names")
-
 // ErrRemovedSelf: this node was removed from its group.
 var ErrRemovedSelf = errors.New("cluster: this node was removed from its group")
 
@@ -465,64 +460,60 @@ func ReadSecret(path string) ([]byte, error) {
 // the member record again when name or address changed in schild.yaml. A
 // deployment runs it on every node through the start of schild; nothing
 // goes from node to node by hand.
-func Configure(dir, name, address string, secret []byte, now func() time.Time) (group string, err error) {
+//
+// A node that belongs to another group than the secret names moves to the
+// secret's group and takes along what it held (move.go); moved then says
+// what happened. That is how a group secret is replaced: the new file on
+// every node, and a restart of each.
+func Configure(dir, name, address string, secret []byte, now func() time.Time) (group string, moved *Moved, err error) {
 	gk, err := contract.GroupKey(secret)
 	if err != nil {
-		return "", err
+		return "", nil, err
 	}
 	s, err := openState(dir, true, now)
 	if err != nil {
-		return "", err
+		return "", nil, err
 	}
 	defer s.close()
 	m, err := memberOf(name, address, s.pub, s.now())
 	if err != nil {
-		return "", err
+		return "", nil, err
 	}
 	group = m.AdmitWith(gk, s.pub)
 	switch s.group {
 	case group:
 	case "":
-		tx, err := s.db.Begin()
-		if err != nil {
-			return "", err
+		if err := s.enter(group, secret); err != nil {
+			return "", nil, err
 		}
-		if err := setMeta(tx, "group", []byte(group)); err != nil {
-			tx.Rollback()
-			return "", err
-		}
-		hk := sha256.Sum256(append([]byte("schild-group-hash-key:"), secret...))
-		if err := setMeta(tx, metaHashKey, hk[:16]); err != nil {
-			tx.Rollback()
-			return "", err
-		}
-		if err := tx.Commit(); err != nil {
-			return "", err
-		}
-		s.group = group
 	default:
-		return "", fmt.Errorf("%w (it is in %s; the secret is of %s). To move the node, delete %s", ErrOtherGroup, s.group, group, dir)
+		s.close()
+		moved, err = move(dir, name, address, secret, now)
+		if err != nil {
+			return "", nil, fmt.Errorf("cluster: this node is in group %s and the secret is of group %s; the move failed and the node stays where it was: %w", s.group, group, err)
+		}
+		return group, moved, nil
 	}
 	recs, _, err := s.winners(contract.ClassMembers)
 	if err != nil {
-		return "", err
+		return "", nil, err
 	}
 	for _, r := range recs {
 		if r.ID != s.id {
 			continue
 		}
 		if r.Deleted {
-			return "", ErrRemovedSelf
+			return "", nil, ErrRemovedSelf
 		}
 		if cur, err := contract.DecodeMember(r); err == nil {
 			if cur.Name == m.Name && cur.Address == m.Address && cur.AdmitKey == m.AdmitKey {
-				return group, nil // set up already
+				return group, nil, nil // set up already
 			}
 			m.Joined = cur.Joined
 		}
 	}
 	_, err = s.publish(contract.ClassMembers, s.id, m, false, time.Time{})
-	return group, err
+	return group, nil, err
 }
 
 // Identity returns the node id of a data directory; ok false: the node

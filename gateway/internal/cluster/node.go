@@ -308,6 +308,7 @@ func (n *Node) refuse(w http.ResponseWriter, pub ed25519.PublicKey) {
 	removed := n.roster.Removed(contract.NodeID(pub))
 	n.rmu.RUnlock()
 	if removed {
+		w.Header().Set(headerGroup, n.group)
 		http.Error(w, "removed from the group", http.StatusGone)
 		return
 	}

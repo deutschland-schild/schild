@@ -390,7 +390,7 @@ func TestGroupByConfiguration(t *testing.T) {
 	all := []string{a.addr, b.addr, c.addr}
 	var group string
 	for _, n := range []*testNode{a, b, c} {
-		g, err := Configure(n.dir, n.name, n.addr, secret, nil)
+		g, _, err := Configure(n.dir, n.name, n.addr, secret, nil)
 		if err != nil {
 			t.Fatalf("%s: %v", n.name, err)
 		}
@@ -416,7 +416,7 @@ func TestGroupByConfiguration(t *testing.T) {
 	// The same deployment again changes nothing; a new address is a new record.
 	b.stop()
 	before, _ := ReadStatus(b.dir, nil)
-	if _, err := Configure(b.dir, b.name, b.addr, secret, nil); err != nil {
+	if _, _, err := Configure(b.dir, b.name, b.addr, secret, nil); err != nil {
 		t.Fatal(err)
 	}
 	after, _ := ReadStatus(b.dir, nil)
@@ -426,7 +426,7 @@ func TestGroupByConfiguration(t *testing.T) {
 
 	// A node with another secret is in another group and gets nothing.
 	x := newTestNode(t, "stranger")
-	if g, err := Configure(x.dir, x.name, x.addr, []byte("another-file-another-file-another-file"), nil); err != nil || g == group {
+	if g, _, err := Configure(x.dir, x.name, x.addr, []byte("another-file-another-file-another-file"), nil); err != nil || g == group {
 		t.Fatalf("another secret: group %s, %v", g, err)
 	}
 	x.peers = all
@@ -440,17 +440,13 @@ func TestGroupByConfiguration(t *testing.T) {
 	if x.holds("203.0.113.8") != "" || x.holds("203.0.113.7") != "" {
 		t.Error("a node with another secret holds blocks of the group")
 	}
-	// And the secret of one group does not move a node out of another.
-	if _, err := Configure(x.dir, x.name, x.addr, secret, nil); !errors.Is(err, ErrOtherGroup) {
-		t.Errorf("a node of another group with this secret: %v", err)
-	}
 }
 
 func TestRemovedNodeStaysOutAlthoughItHoldsTheSecret(t *testing.T) {
 	secret := []byte("the-same-file-on-every-node-0123456789")
 	a, b := newTestNode(t, "web-1"), newTestNode(t, "web-2")
 	for _, n := range []*testNode{a, b} {
-		if _, err := Configure(n.dir, n.name, n.addr, secret, nil); err != nil {
+		if _, _, err := Configure(n.dir, n.name, n.addr, secret, nil); err != nil {
 			t.Fatal(err)
 		}
 		n.peers = []string{a.addr, b.addr}
@@ -466,7 +462,7 @@ func TestRemovedNodeStaysOutAlthoughItHoldsTheSecret(t *testing.T) {
 	b.stop()
 	// The next deployment starts it again with the same files: it is told
 	// again, and stays out.
-	if _, err := Configure(b.dir, b.name, b.addr, secret, nil); err != nil {
+	if _, _, err := Configure(b.dir, b.name, b.addr, secret, nil); err != nil {
 		t.Fatal(err)
 	}
 	b.start()

@@ -180,6 +180,32 @@ schild cluster remove web-3
 
 Danach spricht kein Mitglied mehr mit diesem Server, und keines nimmt an, was er noch schickt. Das gilt auch, wenn der Server das Cluster-Geheimnis hat. Der entfernte Server erfährt es und schreibt es in sein Log. Er bedient mit seinem letzten Stand weiter, bis du bei ihm `cluster.enabled: false` setzt oder ihn abschaltest.
 
+## Das Cluster-Geheimnis wechseln
+
+Ist das Cluster-Geheimnis bekannt geworden, ersetzt du es. Wer das alte Geheimnis hat, kommt danach nicht mehr in den Cluster.
+
+1. Erzeuge ein neues Geheimnis mit `schild cluster secret`.
+2. Schreibe es auf jedem Server in die Datei aus `cluster.secret_file`.
+3. Starte die Server nacheinander neu.
+
+Mehr ist nicht zu tun, du löschst kein Verzeichnis. Ein Server, der mit dem neuen Geheimnis startet, wechselt von selbst in den neuen Cluster. Er behält seinen Schlüssel und nimmt mit, was er im alten Cluster hielt: laufende Sperren und Freigaben, Einstellungen, eigene Adressen, Logins, Löschungen nach Art. 17, Zertifikate und den Stand der Aufgaben. Das alte Verzeichnis legt er daneben ab (`cluster.replaced-<Zeit>`). Die zwei neuesten bleiben liegen, ältere räumt er weg.
+
+Während des Wechsels gibt es zwei Cluster nebeneinander: Die Server, die schon neu gestartet sind, bilden den neuen, die übrigen den alten. Die beiden tauschen nichts aus. Das heißt:
+
+- Eine Sperre oder Einstellung, die du in dieser Zeit auf einem Server des alten Clusters setzt, gilt im neuen erst, wenn dieser Server folgt. Er bringt sie dann mit.
+- Ändern beide Seiten denselben Eintrag, gilt am Ende die spätere Änderung. Eine Freigabe schlägt die ältere Sperre, eine Löschung bleibt eine Löschung.
+- Limits und Szenarien zählen in dieser Zeit je Cluster, nicht über alle Server.
+- Der erste Server im neuen Cluster wartet bis zu zehn Sekunden auf die anderen, bevor er sich als bereit meldet. Die Dashboards zeigen die Server des jeweils anderen Clusters als nicht erreichbar.
+
+Halte den Wechsel deshalb kurz, am besten wenige Minuten.
+
+Nicht von selbst wechseln:
+
+- **Balancer-VMs** und **von Hand aufgenommene Server**. Sie haben kein Geheimnis. Nimm sie mit einem neuen Code in den neuen Cluster auf (`schild cluster invite`).
+- **Entfernte Server.** Wer im alten Cluster entfernt war und das neue Geheimnis bekommt, ist im neuen Cluster wieder Mitglied, bringt aber nichts mit. Gib einem Server, der draußen bleiben soll, das neue Geheimnis nicht.
+
+Ein Geheimnis, das fehlt, zu kurz ist oder von anderen lesbar ist, ändert nichts. Der Server bleibt Mitglied seines Clusters, läuft aber allein, bis die Datei stimmt, und schreibt den Grund ins Log.
+
 ## Wenn im Cluster etwas Falsches unterwegs ist
 
 Eine Änderung erreicht jeden Server in etwa einer Sekunde, eine falsche auch. Für diesen Fall gibt es eine Notbremse:
@@ -246,7 +272,7 @@ Jeder Server speichert damit, was der ganze Cluster aufzeichnet. Das lässt sich
 - **Pro Server bleiben** die Zähler der Übersicht und die Server-Diagramme.
 - **Wellen mit Verzug.** Wie bei den Limits vergeht bis zu einer Sekunde, bis die Server voneinander wissen. Eine Welle wird deshalb erkannt, sobald die Summe über der Schwelle liegt und die nächste passende Anfrage einen Server erreicht. Wie viele Anfragen eine Reaktion gestoppt hat, zählt jeder Server für sich.
 - **Zertifikate bei Netztrennung.** Erreichen sich die Server nicht, kann jede Seite dasselbe Zertifikat bestellen. Das ist eine Bestellung zu viel, beide Zertifikate sind gültig.
-- **Neues Geheimnis heißt neuer Cluster.** Ist das Cluster-Geheimnis bekannt geworden, verteilst du ein neues und lässt die Server mit leerem Verzeichnis `cluster` neu starten. Einen Wechsel im laufenden Betrieb gibt es noch nicht.
+- **Wechsel des Geheimnisses.** Solange nicht alle Server mit dem neuen Geheimnis neu gestartet sind, laufen zwei Cluster nebeneinander (siehe „Das Cluster-Geheimnis wechseln“). Balancer-VMs und von Hand aufgenommene Server nimmst du danach neu auf.
 - **Höchstens 16 Gateways und 8 Balancer-VMs.** Mehr lehnt der Cluster ab. Im laufenden Betrieb erprobt sind bisher nur zwei und drei Gateways.
 
 ## Befehle

@@ -145,9 +145,21 @@ cluster:
 - The secret is at least 32 bytes; `schild cluster secret` prints 32 random bytes in hex. It is made once and kept where the deployment keeps its secrets (Ansible Vault, for example).
 - From the secret comes one key pair, the group key: the Ed25519 key with the seed SHA-256 over `schild-group-secret:` and the secret. The group id is the id of its public half (section 1). Another secret is another group.
 - At its start a node writes its own member record, signed with its node key as every record, carrying `admit_public_key` (the public half of the group key) and `admit`: the group key's signature over `schild-admit:`, the group id, `:` and the node's public key. A record of a node about itself is taken when `admit_public_key` hashes to the group id and `admit` verifies. The admission of one node does not fit another key.
-- The secret admits and does nothing else. It signs no record but the admission, it never travels, and a removed node stays removed although it holds the secret (check 6 of section 4 comes before). To shut out whoever holds a leaked secret, deploy a new one: that is a new group, which the nodes enter with a new cluster directory.
+- The secret admits and does nothing else. It signs no record but the admission, it never travels, and a removed node stays removed although it holds the secret (check 6 of section 4 comes before). To shut out whoever holds a leaked secret, deploy a new one: that is a new group, and every node moves there by itself at its next start (below).
 - A node that holds no member for an address of `peers` sends its member record to that address (`POST /mesh/v0/hello`, section 7) and takes the member list it gets back, every second until it holds one. The order in which the nodes start does not matter.
 - Name and address come from `node_name` and `cluster.advertise` or `cluster.listen`. When they change in `schild.yaml`, the node writes its member record again at its next start.
+
+#### A new secret
+
+A node that starts with a secret of another group than the one its cluster directory holds moves to the secret's group. Nothing is wiped by hand.
+
+- It keeps its node key, so its id stays. It writes its member record for the new group and carries over every record that is the state of a class other than `members`, tombstones too, unless the record's time is over or its version is not read: blocks and lifts, settings, access, logins, erasures, certificates, jobs. The notes it keeps next to the records come along (what of its own values it brought in step, how far it read the events and requests of the others).
+- A carried record is a new record of this node in the new group: `group` the new id, `origin` this node, the next `seq`, a new signature, and `hlc`, `deleted`, `expires` and the data of the record it comes from. It is as old in the new group as it was in the old one, so section 3 settles it against whatever the new group holds: a later change made in the new group wins, and a lift or an erasure a node carries in later beats the block or value an earlier node carried. Two nodes that carry the same record carry the same data.
+- A record that tells a node the value it already brought in step never takes back a change of that node that has not left yet.
+- The directory of the group before is kept next to the new one (`cluster.replaced-<UTC time>`); the newest two stay. The new directory is built aside and takes the place of the old one only when it is complete; a move that fails leaves the node in the group it was in. A secret that is missing, shorter than 32 bytes or readable by others moves nothing.
+- A node that was removed from the group before carries nothing. Members are not carried: every node admits itself with the new secret, and an edge or a gateway that joined by a code is let in again by a code.
+- An answer 410 (removed, section 7) names the group of the node that answers in the header `X-Schild-Group`. A node believes it only for the group it is in: a node of the group before may still know a moved node as removed.
+- Until every node started with the new secret there are two groups. They exchange nothing: a node of one is no member of the other. Counts (section 8) are per group meanwhile, since the hash key comes from the secret.
 
 ### By hand
 
