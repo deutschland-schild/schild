@@ -55,3 +55,8 @@ __pycache__/
 /relay/schild-relay
 /gateway/schild
 /gateway/schild-agent
+
+# Built measuring tools
+tests/testlab/measure/monitoring/measure
+tests/testlab/measure/**/hostile/hostile
+tests/testlab/measure/**/tool/tool
