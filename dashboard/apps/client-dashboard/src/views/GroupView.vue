@@ -1,12 +1,12 @@
 <script setup lang="ts">
-import { ErrorState, formatDecimal, formatNumber, PageHeader, Skeleton, StatCard, StatusPill } from '@schild/ui'
-import { computed } from 'vue'
+import { ErrorState, formatDecimal, formatNumber, formatPercent, PageHeader, Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, Skeleton, StatCard, StatusDot, StatusPill } from '@schild/ui'
+import { computed, ref } from 'vue'
 import { errorMessage } from '@/api/client'
 import { useGroupStatus } from '@/api/group'
 import GroupCard from '@/components/GroupCard.vue'
 import GroupMap from '@/components/GroupMap.vue'
 import GroupNodeCard from '@/components/GroupNodeCard.vue'
-import { configHint, edges, gateways, groupTotals, stateView } from '@/lib/group'
+import { configHint, edges, gateways, groupTotals, nodeView, stateView } from '@/lib/group'
 import { plural } from '@/lib/summary'
 
 /**
@@ -25,6 +25,12 @@ const edgeRows = computed(() => s.value ? edges(s.value) : [])
 const edgesHere = computed(() => edgeRows.value.filter(e => e.state === 'ok').length)
 const hint = computed(() => s.value ? configHint(s.value) : null)
 const away = computed(() => nodes.value.filter(m => m.state === 'unreachable' || m.state === 'no_contact').map(m => m.name))
+/** Up to this many gateways each gets a card; above, a table whose rows open the details. */
+const CARDS_MAX = 6
+const selectedId = ref<string | null>(null)
+const selected = computed(() => nodes.value.find(m => m.id === selectedId.value))
+const detailOpen = computed({ get: () => !!selected.value, set: (v) => { if (!v) selectedId.value = null } })
+const vitalsOf = (m: (typeof nodes.value)[number]) => m.state === 'unreachable' || m.state === 'no_contact' ? undefined : m.vitals
 const readyHint = computed(() => {
   const t = totals.value
   if (!t) return ''
@@ -66,18 +72,80 @@ const readyHint = computed(() => {
         {{ hint }}
       </p>
 
-      <GroupMap :status="s" class="mt-6" />
+      <GroupMap :status="s" class="mt-6" @select="selectedId = $event" />
 
       <section aria-labelledby="group-nodes-title" class="mt-6">
         <h2 id="group-nodes-title" class="mb-3 text-lg font-semibold">
           Gateways
         </h2>
-        <div class="grid gap-4 md:grid-cols-2 2xl:grid-cols-3">
+        <div v-if="nodes.length <= CARDS_MAX" class="grid gap-4 md:grid-cols-2 2xl:grid-cols-3">
           <GroupNodeCard v-for="m in nodes" :key="m.id" :member="m" :config-version="s.config?.version" />
+        </div>
+        <div v-else class="overflow-x-auto rounded-xl border bg-card focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none" tabindex="0" role="region" aria-labelledby="group-nodes-title">
+          <table class="w-full text-sm" data-testid="group-node-table">
+            <thead class="text-left text-xs text-muted-foreground">
+              <tr class="border-b">
+                <th scope="col" class="px-4 py-2 font-medium">
+                  Server
+                </th>
+                <th scope="col" class="px-4 py-2 font-medium">
+                  Zustand
+                </th>
+                <th scope="col" class="px-4 py-2 text-right font-medium">
+                  Anfragen/s
+                </th>
+                <th scope="col" class="px-4 py-2 text-right font-medium">
+                  CPU
+                </th>
+                <th scope="col" class="px-4 py-2 text-right font-medium">
+                  Arbeitsspeicher
+                </th>
+                <th scope="col" class="px-4 py-2 text-right font-medium">
+                  Festplatte
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="m in nodes" :key="m.id" class="cursor-pointer border-b last:border-0 hover:bg-muted/50" data-testid="group-node-row" :data-name="m.name" @click="selectedId = m.id">
+                <td class="px-4 py-2 whitespace-nowrap">
+                  <button type="button" class="inline-flex items-center gap-2 rounded font-medium focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none" @click.stop="selectedId = m.id">
+                    <StatusDot :tone="nodeView(m).tone" />
+                    {{ m.name }}
+                  </button>
+                  <span v-if="m.state === 'self'" class="ml-2 text-xs text-muted-foreground">dieser Server</span>
+                </td>
+                <td class="px-4 py-2 whitespace-nowrap">
+                  {{ nodeView(m).label }}
+                </td>
+                <td class="px-4 py-2 text-right tabular-nums">
+                  {{ vitalsOf(m) ? formatDecimal(vitalsOf(m)!.requests_per_s) : '–' }}
+                </td>
+                <td class="px-4 py-2 text-right tabular-nums">
+                  {{ formatPercent(vitalsOf(m)?.cpu_usage) }}
+                </td>
+                <td class="px-4 py-2 text-right tabular-nums">
+                  {{ formatPercent(vitalsOf(m)?.memory_used_ratio) }}
+                </td>
+                <td class="px-4 py-2 text-right tabular-nums">
+                  {{ formatPercent(vitalsOf(m)?.disk_used_ratio) }}
+                </td>
+              </tr>
+            </tbody>
+          </table>
         </div>
       </section>
 
       <GroupCard class="mt-6" heading="Balancer-VMs und Abgleich" brief />
+
+      <Sheet v-model:open="detailOpen">
+        <SheetContent class="w-full gap-0 overflow-y-auto sm:max-w-lg" data-testid="group-node-sheet">
+          <SheetHeader class="border-b">
+            <SheetTitle>{{ selected?.name ?? 'Server' }}</SheetTitle>
+            <SheetDescription>Was dieser Server zuletzt von ihm gehört hat.</SheetDescription>
+          </SheetHeader>
+          <GroupNodeCard v-if="selected" :member="selected" :config-version="s.config?.version" class="rounded-none border-0 shadow-none" />
+        </SheetContent>
+      </Sheet>
     </template>
     <GroupCard v-else />
   </div>

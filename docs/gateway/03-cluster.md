@@ -198,9 +198,9 @@ Die Ausgabe nennt jedes Mitglied mit Rolle, Adresse, Zustand und letztem Kontakt
 
 Dasselbe zeigt das Dashboard. Oben auf jeder Seite steht, ob der Server allein läuft („Einzelner Server“) oder Teil eines Clusters ist („Cluster · 3 Server“). Die Karte „Cluster“ auf der Server-Seite nennt den Zustand des Abgleichs und jedes Gateway mit letztem Kontakt, Rückstand, Version und Konfiguration. Balancer-VMs stehen darunter für sich.
 
-Ein Klick auf diese Anzeige öffnet die Seite „Cluster“. Oben zeigt eine Karte des Clusters alle Gateways und ihre Verbindungen. Farbig sind die Verbindungen dieses Servers: durchgezogen, wenn er den anderen erreicht, gestrichelt, wenn nicht. Die Verbindungen der anderen Server untereinander sind grau, weil ihr Zustand von hier aus nicht zu sehen ist. Balancer-VMs stehen darüber.
+Ein Klick auf diese Anzeige öffnet die Seite „Cluster“. Oben zeigt eine Karte des Clusters alle Gateways und ihre Verbindungen. Farbig sind die Verbindungen dieses Servers: durchgezogen, wenn er den anderen erreicht, gestrichelt, wenn nicht. Bis sechs Gateways sind auch die Verbindungen der anderen untereinander gezeichnet, in Grau, weil ihr Zustand von hier aus nicht zu sehen ist. Ab sieben steht dieser Server in der Mitte und nur seine Verbindungen sind gezeichnet. Ein Klick auf einen Server öffnet seine Details.
 
-Darunter steht jedes Gateway als Karte:
+Darunter steht jedes Gateway als Karte, ab sieben Gateways als Zeile einer Tabelle. Die Details nennen:
 
 - **Nimmt Anfragen an, wird angehalten oder ist noch nicht bereit.** Das ist die Antwort, die der Server dem Loadbalancer auf `/.schild/readyz` gibt.
 - **Anfragen pro Sekunde, Anteil gestoppter Anfragen und Antwortzeit** der letzten Minute.

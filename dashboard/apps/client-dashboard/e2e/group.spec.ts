@@ -77,8 +77,9 @@ test('the page of the group shows every gateway with its state and load', async 
     await expect(map.locator('[data-testid="group-map-link"][data-kind="ok"]')).toHaveCount(1)
     await expect(map.locator('[data-testid="group-map-link"][data-kind="away"]')).toHaveCount(1)
     await expect(map.locator('[data-testid="group-map-link"][data-kind="unseen"]')).toHaveCount(1)
-    await expect(map.getByTestId('group-map-edge')).toHaveCount(2)
-    await expect(map.getByTestId('group-map-edge-link')).toHaveCount(1)
+    // Requests from the internet go to the two gateways that say they are ready, not to the one that is away.
+    await expect(map.getByTestId('group-map-internet')).toContainText('Internet')
+    await expect(map.getByTestId('group-map-intake')).toHaveCount(2)
   }
   await expect(page.getByTestId('group-page-config-hint')).toContainText('web-2')
   expect(await axe(page)).toEqual([])
@@ -90,4 +91,44 @@ test('a single gateway lists no page of the group', async ({ page }) => {
   await expect(page.getByRole('link', { name: 'Cluster', exact: true })).toHaveCount(0)
   await page.goto('./#/server/group')
   await expect(page.getByTestId('group-single')).toContainText('Dieses Gateway läuft allein')
+})
+
+test('a node of the map opens its details in a sheet', async ({ page, isMobile }) => {
+  test.skip(isMobile, 'the map is hidden on narrow screens')
+  await page.goto('./?scenario=group#/server/group')
+  await page.locator('[data-testid="group-map-node"][data-name="web-2"]').click()
+  const sheet = page.getByTestId('group-node-sheet')
+  await expect(sheet).toContainText('web-2')
+  await expect(sheet.getByTestId('group-node-service')).toContainText('Nimmt Anfragen an')
+  await expect(sheet.getByTestId('group-node-rps')).toHaveText('38,9')
+  expect(await axe(page)).toEqual([])
+  await page.keyboard.press('Escape')
+  await expect(sheet).toHaveCount(0)
+  // By keyboard too.
+  await page.locator('[data-testid="group-map-node"][data-name="web-3"]').focus()
+  await page.keyboard.press('Enter')
+  await expect(page.getByTestId('group-node-sheet').getByTestId('group-node-service')).toContainText('Nicht erreichbar')
+})
+
+test('sixteen gateways stay readable: this server in the middle, a table instead of cards', async ({ page, isMobile }) => {
+  await page.goto('./?scenario=group-large#/server/group')
+  await expect(page.getByTestId('group-total-ready')).toContainText('13 von 16')
+  await expect(page.getByTestId('group-node-row')).toHaveCount(16)
+  await expect(page.getByTestId('group-node')).toHaveCount(0)
+  if (!isMobile) {
+    const map = page.getByTestId('group-map')
+    await expect(map.getByTestId('group-map-node')).toHaveCount(16)
+    // Only the 15 links of this server are drawn, none between the others.
+    await expect(map.getByTestId('group-map-link')).toHaveCount(15)
+    await expect(map.locator('[data-testid="group-map-link"][data-kind="unseen"]')).toHaveCount(0)
+    // No two gateways overlap.
+    const boxes = await map.locator('[data-testid="group-map-node"] rect').evaluateAll(els => els.map((e) => { const r = e.getBoundingClientRect(); return [r.left, r.top, r.right, r.bottom] }))
+    const hit = boxes.some((a, i) => boxes.some((b, j) => j > i && a[0]! < b[2]! && b[0]! < a[2]! && a[1]! < b[3]! && b[1]! < a[3]!))
+    expect(hit).toBe(false)
+  }
+  await page.locator('[data-testid="group-node-row"][data-name="web-12"]').click()
+  await expect(page.getByTestId('group-node-sheet').getByTestId('group-node-service')).toContainText('Wird angehalten')
+  expect(await axe(page)).toEqual([])
+  await page.keyboard.press('Escape')
+  await noOverflow(page)
 })

@@ -2,47 +2,67 @@
 import type { GroupMember, GroupStatus } from '@/api/group'
 import { formatDecimal, formatPercent } from '@schild/ui'
 import { computed } from 'vue'
-import { edges, gateways, nodeView } from '@/lib/group'
+import { gateways, nodeView } from '@/lib/group'
 
 /**
- * Map of the cluster (MVP-27): the gateways on a ring, every one linked with every other, the balancer VMs
- * above. It draws only what this server knows: its own links in colour (reached or not), the links between
- * the other servers in grey, because their state is not visible from here. A picture next to the cards below,
- * which carry every value as text; hidden on narrow screens.
+ * Map of the cluster (MVP-27): the gateways on a ring, every one linked with every other, the internet above
+ * them. It draws only what this server knows: its own links in colour (reached or not), the links between
+ * the other servers in grey, because their state is not visible from here. Above six gateways this server
+ * stands in the middle and only its links are drawn. A node opens its details (`select`). Hidden on narrow
+ * screens, where the list below does the same.
  */
 const props = defineProps<{ status: GroupStatus }>()
 
+const emit = defineEmits<{ select: [id: string] }>()
+
 const W = 960
+/** Up to this many gateways the map draws every link; above, this server stands in the middle with its own links only. */
+const MESH_MAX = 6
 const nodes = computed(() => gateways(props.status))
-const edgeRows = computed(() => edges(props.status))
-const small = computed(() => nodes.value.length > 8)
-const box = computed(() => ({ w: small.value ? 118 : 176, h: 58 }))
-const top = computed(() => edgeRows.value.length ? 118 : 24)
+const hub = computed(() => nodes.value.length > MESH_MAX)
+const box = computed(() => ({ w: hub.value ? 118 : 176, h: hub.value ? 50 : 58 }))
+const top = computed(() => 104)
 const ry = computed(() => {
   const n = nodes.value.length
-  return n <= 2 ? 0 : n <= 4 ? 120 : n <= 8 ? 150 : 215
+  if (hub.value) return n <= 10 ? 165 : 215
+  return n <= 2 ? 0 : n <= 4 ? 120 : 150
 })
 const cy = computed(() => top.value + ry.value + box.value.h / 2 + 22)
 const H = computed(() => cy.value + ry.value + box.value.h / 2 + 24)
 const away = (m: GroupMember) => m.state === 'unreachable' || m.state === 'no_contact'
 
-interface Placed { m: GroupMember, x: number, y: number, tone: string, name: string, line: string, title: string }
+interface Placed { m: GroupMember, x: number, y: number, w: number, h: number, tone: string, name: string, line: string }
 const fit = (s: string, n: number) => s.length > n ? `${s.slice(0, n - 1)}…` : s
 
-/** This server stands at the left, the others follow clockwise. */
+/**
+ * Few gateways stand on a ring, this server at the left. Many stand around this server, so its links never
+ * cross: sixteen gateways would be 120 lines otherwise.
+ */
 const placed = computed<Placed[]>(() => {
   const all = [...nodes.value].sort((a, b) => Number(b.state === 'self') - Number(a.state === 'self'))
   const n = all.length
-  const rx = n === 1 ? 0 : Math.min(W / 2 - box.value.w / 2 - 28, n <= 2 ? 200 : n <= 4 ? 260 : n <= 8 ? 340 : W)
+  const w = box.value.w
+  const rx = hub.value ? W / 2 - w / 2 - 20 : n === 1 ? 0 : Math.min(W / 2 - w / 2 - 28, n <= 2 ? 200 : n <= 4 ? 260 : 340)
   return all.map((m, i) => {
-    const a = Math.PI + (2 * Math.PI * i) / n
+    const centre = hub.value && i === 0
+    // Around the hub no gateway stands straight above it, where the stem of the internet comes down.
+    const a = hub.value ? -Math.PI / 2 + (2 * Math.PI * (i - 0.5)) / (n - 1) : Math.PI + (2 * Math.PI * i) / n
     const view = nodeView(m)
     const v = away(m) ? undefined : m.vitals
+    const wide = !hub.value || centre
     const line = v ? `${formatDecimal(v.requests_per_s)}/s${v.cpu_usage == null ? '' : ` · CPU ${formatPercent(v.cpu_usage)}`}` : view.label
-    return { m, x: W / 2 + rx * Math.cos(a), y: cy.value + ry.value * Math.sin(a), tone: view.tone, name: fit(m.name, small.value ? 13 : 20), line: fit(line, small.value ? 16 : 26), title: `${m.name}: ${view.label}` }
+    return {
+      m,
+      x: centre ? W / 2 : W / 2 + rx * Math.cos(a),
+      y: centre ? cy.value : cy.value + ry.value * Math.sin(a),
+      w: wide ? 176 : w,
+      h: wide ? 58 : box.value.h,
+      tone: view.tone,
+      name: fit(m.name, m.state === 'self' ? 11 : wide ? 20 : 12),
+      line: fit(line, wide ? 26 : 17),
+    }
   })
 })
-const self = computed(() => placed.value.find(p => p.m.state === 'self'))
 
 interface Link { key: string, x1: number, y1: number, x2: number, y2: number, kind: 'ok' | 'away' | 'unseen' }
 const links = computed<Link[]>(() => {
@@ -53,6 +73,7 @@ const links = computed<Link[]>(() => {
       const a = p[i]!
       const b = p[j]!
       const own = a.m.state === 'self' ? b : b.m.state === 'self' ? a : null
+      if (!own && hub.value) continue
       out.push({ key: `${a.m.id}-${b.m.id}`, x1: a.x, y1: a.y, x2: b.x, y2: b.y, kind: own ? (away(own.m) ? 'away' : 'ok') : 'unseen' })
     }
   }
@@ -60,23 +81,22 @@ const links = computed<Link[]>(() => {
   return out.sort((a, b) => Number(a.kind !== 'unseen') - Number(b.kind !== 'unseen'))
 })
 
-/** Balancer VMs in a row above the ring; one that asks this server is linked with it. */
-const placedEdges = computed(() => {
-  const n = edgeRows.value.length
-  const gap = Math.min(190, (W - 80) / Math.max(n, 1))
-  return edgeRows.value.map((m, i) => ({ m, x: W / 2 + (i - (n - 1) / 2) * gap, y: 46, here: m.state === 'ok', name: fit(m.name, 16) }))
-})
+/**
+ * The internet stands above the cluster. With few gateways a dotted line leads to every one that says it is
+ * ready for the balancer; with many, one short stem stands for all of them.
+ */
+const NET = { x: W / 2, y: 40 }
+const intake = computed(() => hub.value ? [] : placed.value.filter(p => !away(p.m) && p.m.vitals?.service === 'ready'))
 const TONE: Record<string, string> = { success: 'fill-status-success', warning: 'fill-status-warning', danger: 'fill-status-danger', neutral: 'fill-status-neutral', info: 'fill-status-info', signal: 'fill-status-signal' }
-const label = computed(() => `Karte des Clusters: ${nodes.value.length} Gateways${edgeRows.value.length ? ` und ${edgeRows.value.length} Balancer-VMs` : ''}. Die Karten darunter nennen jeden Server mit allen Werten.`)
+const label = computed(() => `Karte des Clusters: ${nodes.value.length} Gateways hinter dem Loadbalancer. Jeder Server lässt sich öffnen.`)
 </script>
 
 <template>
   <figure class="hidden rounded-xl border bg-card p-4 md:block" data-testid="group-map">
-    <svg :viewBox="`0 0 ${W} ${H}`" class="h-auto w-full" role="img" :aria-label="label">
+    <svg :viewBox="`0 0 ${W} ${H}`" class="h-auto w-full" role="group" :aria-label="label">
       <g fill="none" stroke-linecap="round">
-        <template v-for="e in placedEdges" :key="`l-${e.m.id}`">
-          <line v-if="e.here && self" :x1="e.x" :y1="e.y" :x2="self.x" :y2="self.y" class="stroke-status-success" stroke-width="1.5" stroke-dasharray="2 6" data-testid="group-map-edge-link" />
-        </template>
+        <line v-for="p in intake" :key="`in-${p.m.id}`" :x1="NET.x" :y1="NET.y + 26" :x2="p.x" :y2="p.y" class="stroke-muted-foreground opacity-50" stroke-width="1.5" stroke-dasharray="1 7" data-testid="group-map-intake" />
+        <path v-if="hub" :d="`M${NET.x} ${NET.y + 26} V${NET.y + 58} m-6 -8 l6 8 l6 -8`" class="stroke-muted-foreground opacity-60" stroke-width="1.5" stroke-linejoin="round" />
         <template v-for="l in links" :key="l.key">
           <line v-if="l.kind === 'unseen'" :x1="l.x1" :y1="l.y1" :x2="l.x2" :y2="l.y2" class="stroke-border" stroke-width="1.5" data-testid="group-map-link" data-kind="unseen" />
           <line v-else-if="l.kind === 'away'" :x1="l.x1" :y1="l.y1" :x2="l.x2" :y2="l.y2" class="stroke-status-warning" stroke-width="2" stroke-dasharray="3 9" data-testid="group-map-link" data-kind="away" />
@@ -87,30 +107,37 @@ const label = computed(() => `Karte des Clusters: ${nodes.value.length} Gateways
         </template>
       </g>
 
-      <g v-for="e in placedEdges" :key="e.m.id" data-testid="group-map-edge" :data-state="e.m.state">
-        <title>{{ e.m.name }}: Balancer-VM, {{ e.here ? 'fragt diesen Server' : 'fragt einen anderen Server' }}</title>
-        <rect :x="e.x - 76" :y="e.y - 22" width="152" height="44" rx="22" class="fill-muted stroke-border" stroke-width="1" />
-        <circle :cx="e.x - 56" :cy="e.y" r="4.5" :class="e.here ? 'fill-status-success' : 'fill-status-neutral'" />
-        <text :x="e.x - 44" :y="e.y - 2" class="fill-foreground text-[13px] font-medium">{{ e.name }}</text>
-        <text :x="e.x - 44" :y="e.y + 13" class="fill-muted-foreground text-[11px]">Balancer-VM</text>
+      <g data-testid="group-map-internet">
+        <rect :x="NET.x - 92" :y="NET.y - 24" width="184" height="48" rx="24" class="fill-muted stroke-border" stroke-width="1" />
+        <path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z" :transform="`translate(${NET.x - 78} ${NET.y - 15}) scale(1.2)`" fill="none" class="stroke-muted-foreground" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
+        <text :x="NET.x - 40" :y="NET.y - 2" class="fill-foreground text-[13px] font-medium">Internet</text>
+        <text :x="NET.x - 40" :y="NET.y + 13" class="fill-muted-foreground text-[11px]">über den Loadbalancer</text>
       </g>
 
-      <g v-for="p in placed" :key="p.m.id" data-testid="group-map-node" :data-name="p.m.name" :data-state="p.m.state">
-        <title>{{ p.title }}</title>
+      <g
+        v-for="p in placed" :key="p.m.id" role="button" tabindex="0"
+        class="cursor-pointer outline-none [&:focus-visible>rect]:stroke-ring [&:focus-visible>rect]:stroke-[3px] [&:hover>rect]:stroke-foreground"
+        data-testid="group-map-node" :data-name="p.m.name" :data-state="p.m.state"
+        @click="emit('select', p.m.id)" @keydown.enter.prevent="emit('select', p.m.id)" @keydown.space.prevent="emit('select', p.m.id)"
+      >
         <rect
-          :x="p.x - box.w / 2" :y="p.y - box.h / 2" :width="box.w" :height="box.h" rx="12"
+          :x="p.x - p.w / 2" :y="p.y - p.h / 2" :width="p.w" :height="p.h" rx="12"
           :class="['fill-card', p.m.state === 'self' ? 'stroke-foreground' : 'stroke-border']" :stroke-width="p.m.state === 'self' ? 2 : 1.25"
         />
-        <circle :cx="p.x - box.w / 2 + 16" :cy="p.y - 9" r="5" :class="TONE[p.tone]" />
-        <text :x="p.x - box.w / 2 + 28" :y="p.y - 4" class="fill-foreground text-[14px] font-semibold">{{ p.name }}</text>
-        <text :x="p.x - box.w / 2 + 16" :y="p.y + 16" class="fill-muted-foreground text-[12px] tabular-nums">{{ p.line }}</text>
-        <text v-if="p.m.state === 'self'" :x="p.x - box.w / 2 + 4" :y="p.y - box.h / 2 - 7" class="fill-muted-foreground text-[11px]">dieser Server</text>
+        <circle :cx="p.x - p.w / 2 + 15" :cy="p.y - p.h / 2 + 19" r="4.5" :class="TONE[p.tone]" />
+        <text :x="p.x - p.w / 2 + 26" :y="p.y - p.h / 2 + 24" :class="['fill-foreground font-semibold', p.w > 150 ? 'text-[14px]' : 'text-[13px]']">{{ p.name }}</text>
+        <text :x="p.x - p.w / 2 + 15" :y="p.y + p.h / 2 - 10" :class="['fill-muted-foreground tabular-nums', p.w > 150 ? 'text-[12px]' : 'text-[11px]']">{{ p.line }}</text>
+        <text v-if="p.m.state === 'self'" :x="p.x + p.w / 2 - 12" :y="p.y - p.h / 2 + 23" text-anchor="end" class="fill-muted-foreground text-[11px]">dieser Server</text>
       </g>
     </svg>
     <figcaption class="mt-2 flex flex-wrap gap-x-5 gap-y-1 text-xs text-muted-foreground">
       <span><span class="mr-1.5 inline-block h-0.5 w-5 rounded bg-status-success align-middle" />von diesem Server erreicht</span>
       <span><span class="mr-1.5 inline-block w-5 border-t-2 border-dashed border-status-warning align-middle" />nicht erreicht</span>
-      <span v-if="nodes.length > 2"><span class="mr-1.5 inline-block h-0.5 w-5 rounded bg-border align-middle" />Verbindungen der anderen untereinander, von hier nicht zu sehen</span>
+      <span v-if="hub">Die Verbindungen der anderen Server untereinander sind nicht gezeichnet.</span>
+      <span v-else-if="nodes.length > 2"><span class="mr-1.5 inline-block h-0.5 w-5 rounded bg-border align-middle" />Verbindungen der anderen untereinander, von hier nicht zu sehen</span>
+      <span v-if="hub">Anfragen aus dem Internet verteilt der Loadbalancer auf die Server, die sich bereit melden.</span>
+      <span v-else><span class="mr-1.5 inline-block w-5 border-t-2 border-dotted border-muted-foreground align-middle" />Anfragen aus dem Internet, an Server, die sich bereit melden</span>
+      <span>Klick auf einen Server zeigt seine Details.</span>
     </figcaption>
   </figure>
 </template>

@@ -45,8 +45,8 @@ import { createRulesState } from './rules'
  * standalone: a gateway that started a few hours ago and cannot reach the CrowdSec Hub. observe: the test
  * profile, in which nothing is blocked (D89: there is no protection mode).
  */
-export type Scenario = 'default' | 'observe' | 'first-run' | 'login' | 'degraded' | 'empty' | 'error' | 'standalone' | 'group'
-export const SCENARIOS: Scenario[] = ['default', 'observe', 'first-run', 'login', 'degraded', 'empty', 'error', 'standalone', 'group']
+export type Scenario = 'default' | 'observe' | 'first-run' | 'login' | 'degraded' | 'empty' | 'error' | 'standalone' | 'group' | 'group-large'
+export const SCENARIOS: Scenario[] = ['default', 'observe', 'first-run', 'login', 'degraded', 'empty', 'error', 'standalone', 'group', 'group-large']
 
 /** What the gateway does with a decision, as the server derives it (D89): the test profile only observes. */
 export function gatewayMode(s: Pick<Settings, 'profile'>): Mode {
@@ -233,6 +233,21 @@ export interface MockState {
 const CSRF = 'mock-csrf-token-7f3a9c22b1e04d55'
 
 /** Deep-shift every RFC 3339 timestamp in a fixture object by `delta` ms. */
+/** A cluster of 16 gateways for the map and the table of many servers: one away, one draining, one not ready. */
+function largeGroup(base: GroupStatus): GroupStatus {
+  const [self, peer] = base.members!
+  const members = Array.from({ length: 16 }, (_, i) => {
+    if (i === 0) return self!
+    const k = i + 1
+    const id = `n-${k.toString(16).padStart(2, '0')}${peer!.id.slice(4)}`
+    const m = { ...peer!, id, name: `web-${k}`, address: `192.0.2.${k}:8790`, config: 'same' as const }
+    if (k === 7) return { ...m, state: 'unreachable' as const, vitals: undefined, config: 'unknown' as const, error: `dial tcp 192.0.2.${k}:8790: i/o timeout` }
+    const service = k === 12 ? 'draining' as const : k === 15 ? 'not_ready' as const : 'ready' as const
+    return { ...m, vitals: { ...peer!.vitals!, service, requests_per_s: service === 'ready' ? 30 + ((k * 37) % 23) : 0, cpu_usage: ((k * 17) % 70 + 12) / 100, memory_used_ratio: ((k * 29) % 55 + 30) / 100, disk_used_ratio: ((k * 13) % 40 + 25) / 100 } }
+  })
+  return { ...base, state: 'degraded', members: [...members, ...base.members!.filter(m => m.role === 'edge')], config: { version: base.config!.version, differing: [] } }
+}
+
 function shiftTimes<T>(value: T, delta: number): T {
   return JSON.parse(JSON.stringify(value), (_k, v) => {
     if (typeof v === 'string' && /^20\d\d-\d\d-\d\dT\d\d:\d\d:\d\d(\.\d+)?Z$/.test(v)) {
@@ -452,7 +467,9 @@ export function createState(opts: CreateStateOptions = {}): MockState {
     manualBlocks: [],
     monitoring: createMonitoringState(scenario, t0, mode === 'observe'),
     // The fixture is written around 14:05:30 of its day; shifted so its contacts are seconds old.
-    group: scenario === 'group' ? shiftTimes(groupFixture as GroupStatus, t0 - Date.parse(groupFixture.generated_at)) : { mode: 'single' },
+    group: scenario === 'group' || scenario === 'group-large'
+      ? shiftTimes(scenario === 'group' ? groupFixture as GroupStatus : largeGroup(groupFixture as GroupStatus), t0 - Date.parse(groupFixture.generated_at))
+      : { mode: 'single' },
   }
   // MVP-22 (D35): which geo database is in use. The degraded gateway downloads IPinfo with the operator's
   // own key and its last download failed, so it keeps the previous database.
