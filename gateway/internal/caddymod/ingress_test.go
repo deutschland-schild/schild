@@ -988,3 +988,25 @@ http://a.example.test:%[1]s {
 		t.Fatalf("backend hits %d, want 1", hits.Load())
 	}
 }
+
+// Caddy's ACME server is the only path of the gateway to go-jose v3, which
+// has known flaws and no fixed v3 release; a gateway issues no certificates,
+// so the directive is refused wherever it stands.
+func TestPrepareIngressRefusesACMEServer(t *testing.T) {
+	dir := caddyDir(t)
+	for name, body := range map[string]string{
+		"site":     "https://ca.example.test {\n\tacme_server\n}\n",
+		"handle":   "https://ca.example.test {\n\tschild\n\thandle /acme/* {\n\t\tacme_server\n\t}\n\treverse_proxy 127.0.0.1:9\n}\n",
+		"subroute": "https://ca.example.test {\n\troute {\n\t\tschild\n\t\tacme_server\n\t}\n}\n",
+	} {
+		p := writeFile(t, dir, "Caddyfile-"+name, body)
+		if _, err := PrepareIngress(IngressOptions{Caddyfile: p, DefaultStorage: filepath.Join(dir, "caddy")}); err == nil || !strings.Contains(err.Error(), "acme_server") {
+			t.Errorf("%s: acme_server accepted: %v", name, err)
+		}
+	}
+	// tls internal (Caddy's local CA for its own sites) stays available.
+	p := writeFile(t, dir, "Caddyfile-internal", "https://a.example.test {\n\ttls internal\n\tschild\n\treverse_proxy 127.0.0.1:9\n}\n")
+	if _, err := PrepareIngress(IngressOptions{Caddyfile: p, DefaultStorage: filepath.Join(dir, "caddy")}); err != nil {
+		t.Fatalf("tls internal refused: %v", err)
+	}
+}
