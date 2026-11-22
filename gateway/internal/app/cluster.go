@@ -309,6 +309,29 @@ func (a *App) inService() bool {
 	return node.Mark(markInStep) != ""
 }
 
+// waitInStep blocks until this node may act for its group on its own: it is
+// in step, or it was once and reaches no member after the wait (the rule of
+// inService, without the drain). A node that never was in step waits until
+// it reaches a member, or until ctx ends.
+func (a *App) waitInStep(ctx context.Context) error {
+	node := a.Cluster
+	for {
+		if node == nil || node.Removed() || node.Paused() || node.Synced() {
+			return nil
+		}
+		if time.Since(a.started) > firstSyncWait && len(node.Reachable()) == 0 && node.Mark(markInStep) != "" {
+			return nil
+		}
+		t := time.NewTimer(100 * time.Millisecond)
+		select {
+		case <-ctx.Done():
+			t.Stop()
+			return ctx.Err()
+		case <-t.C:
+		}
+	}
+}
+
 // markInStep notes in the node's store that it was in step with its group
 // once (see inService).
 const markInStep = "in_step"

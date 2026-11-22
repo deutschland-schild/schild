@@ -137,7 +137,7 @@ func TestGroupSharesCertificatesAsPairs(t *testing.T) {
 	b.h.WaitFor("web-2 holds the renewed pair", func() bool { return b.has(dir+"shop.example.crt", crt2) && b.has(dir+"shop.example.key", key2) })
 
 	// A challenge token is on the other node when the call returns.
-	token := "challenge_tokens/shop.example.json"
+	token := "acme/ca.example-directory/challenge_tokens/shop.example.json"
 	if err := os.MkdirAll(filepath.Dir(a.storage(token)), 0o700); err != nil {
 		t.Fatal(err)
 	}
@@ -149,6 +149,20 @@ func TestGroupSharesCertificatesAsPairs(t *testing.T) {
 	a.h.App.GroupFiles.ChangedNow(context.Background(), token)
 	if !b.has(token, []byte("token")) {
 		t.Error("the challenge token was not on web-2 when the call returned")
+	}
+	// The token of another name, written on the other node, is a record of
+	// its own: neither replaces the other (certmagic keeps all tokens of an
+	// issuer in one directory).
+	token2 := "acme/ca.example-directory/challenge_tokens/blog.example.json"
+	if err := os.MkdirAll(filepath.Dir(b.storage(token2)), 0o700); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(b.storage(token2), []byte("token2"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	b.h.App.GroupFiles.ChangedNow(context.Background(), token2)
+	if !a.has(token2, []byte("token2")) || !a.has(token, []byte("token")) || !b.has(token, []byte("token")) {
+		t.Error("the tokens of two names did not both lie on both nodes")
 	}
 	// And gone on both when the challenge is over.
 	if err := os.Remove(a.storage(token)); err != nil {

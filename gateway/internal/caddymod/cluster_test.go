@@ -77,16 +77,16 @@ func TestClusterStorageWritesTheFileFirstAndTellsTheGroup(t *testing.T) {
 	if err := st.Store(ctx, "certificates/ca/shop.example/shop.example.key", []byte("k")); err != nil {
 		t.Fatal(err)
 	}
-	if err := st.Store(ctx, "challenge_tokens/shop.example.json", []byte("t")); err != nil {
+	if err := st.Store(ctx, "acme/ca.example-directory/challenge_tokens/shop.example.json", []byte("t")); err != nil {
 		t.Fatal(err)
 	}
-	if err := st.Delete(ctx, "challenge_tokens/shop.example.json"); err != nil {
+	if err := st.Delete(ctx, "acme/ca.example-directory/challenge_tokens/shop.example.json"); err != nil {
 		t.Fatal(err)
 	}
-	if got := strings.Join(g.changed, " "); got != "certificates/ca/shop.example/shop.example.key challenge_tokens/shop.example.json" {
+	if got := strings.Join(g.changed, " "); got != "certificates/ca/shop.example/shop.example.key acme/ca.example-directory/challenge_tokens/shop.example.json" {
 		t.Errorf("told the group: %q", got)
 	}
-	if got := strings.Join(g.now, " "); got != "challenge_tokens/shop.example.json" {
+	if got := strings.Join(g.now, " "); got != "acme/ca.example-directory/challenge_tokens/shop.example.json" {
 		t.Errorf("a challenge token has to reach the group before Store returns: %q", got)
 	}
 	if b, err := st.Load(ctx, "certificates/ca/shop.example/shop.example.key"); err != nil || string(b) != "k" {

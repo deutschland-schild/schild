@@ -50,6 +50,9 @@ const quiet = 300 * time.Millisecond
 // unitOf returns the record a storage key belongs to, and whether that is
 // a directory of files that belong together.
 func unitOf(key string) (id string, dir bool) {
+	if caddymod.IsChallengeToken(key) {
+		return key, false
+	}
 	for _, p := range []string{"certificates/", "acme/", "pki/"} {
 		if strings.HasPrefix(key, p) && strings.Contains(key[len(p):], "/") {
 			return path.Dir(key), true
@@ -87,7 +90,20 @@ func (g *groupFiles) ChangedNow(ctx context.Context, key string) {
 }
 
 // Lock implements caddymod.GroupFiles.
-func (g *groupFiles) Lock(ctx context.Context, name string) error { return g.node.Lock(ctx, name) }
+//
+// The lock of an order is not taken before this node knows what the group
+// holds: a node that just started would find no certificate in its storage,
+// take the lock from itself (it reaches nobody yet, so it keeps its own
+// locks) and order what the group has, and two nodes started together would
+// both order (finding F6 of the lab measurement). With the lock in hand
+// certmagic looks into the storage again, which by then holds what the group
+// handed over.
+func (g *groupFiles) Lock(ctx context.Context, name string) error {
+	if err := g.a.waitInStep(ctx); err != nil {
+		return err
+	}
+	return g.node.Lock(ctx, name)
+}
 
 // Unlock implements caddymod.GroupFiles. What this node stored under the
 // lock goes to the group before the lock does, so the next holder finds it.

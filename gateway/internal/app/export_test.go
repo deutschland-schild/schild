@@ -101,3 +101,7 @@ func SetFirstSyncWait(d time.Duration) (undo func()) {
 	firstSyncWait = d
 	return func() { firstSyncWait = old }
 }
+
+// WaitInStep blocks until the node may act for its group on its own
+// (cluster.go).
+func (a *App) WaitInStep(ctx context.Context) error { return a.waitInStep(ctx) }

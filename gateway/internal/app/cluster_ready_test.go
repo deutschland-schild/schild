@@ -3,6 +3,7 @@
 package app_test
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -65,6 +66,13 @@ func TestFreshNodeThatReachesNoMemberStaysOutOfTraffic(t *testing.T) {
 	if h.App.InService() {
 		t.Fatal("a node that never reached its group answers ready")
 	}
+	// It orders no certificate either: the lock of an order waits until the
+	// node knows what the group holds (finding F6 of the lab measurement).
+	ctx, cancel := context.WithTimeout(context.Background(), 500*time.Millisecond)
+	defer cancel()
+	if err := h.App.WaitInStep(ctx); err == nil {
+		t.Fatal("a node that never reached its group may take the lock of a certificate order")
+	}
 }
 
 // A node that was in step once and finds nobody after a restart serves with
@@ -73,6 +81,9 @@ func TestNodeThatWasInStepServesAloneAfterTheWait(t *testing.T) {
 	defer app.SetFirstSyncWait(1500 * time.Millisecond)()
 	a, b := pair(t)
 	b.h.WaitFor("web-2 is in service", func() bool { return b.h.App.InService() })
+	if err := b.h.App.WaitInStep(context.Background()); err != nil {
+		t.Fatal(err)
+	}
 	if err := a.h.Stop(); err != nil {
 		t.Fatal(err)
 	}

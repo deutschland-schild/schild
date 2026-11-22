@@ -44,6 +44,18 @@ func boundGroup() GroupFiles {
 
 const clusterStorageName = "schild_cluster"
 
+// IsChallengeToken reports whether a storage key is the token of an ACME
+// challenge. certmagic keeps them below the directory of the issuer
+// (acme/<ca>/challenge_tokens/<name>.json), so the directory is looked for
+// anywhere in the key. A token is one file and one record of its own, and it
+// has to be on every node before the certificate authority is told to look:
+// its check may land on any of them (finding F6 of the lab measurement: the
+// tokens travelled as one directory of the issuer, late, and the node the
+// check landed on answered with a redirect).
+func IsChallengeToken(key string) bool {
+	return strings.Contains("/"+key, "/challenge_tokens/")
+}
+
 // ClusterStorage is the Caddy module caddy.storage.schild_cluster: the file
 // storage under Root, as a single gateway uses it, and next to it the group.
 // Every write goes to the file first and is told to the group after, so a
@@ -78,7 +90,7 @@ func (s *ClusterStorage) Store(ctx context.Context, key string, value []byte) er
 		return err
 	}
 	if g := boundGroup(); g != nil {
-		if strings.HasPrefix(key, "challenge_tokens/") {
+		if IsChallengeToken(key) {
 			g.ChangedNow(ctx, key)
 		} else {
 			g.Changed(key)
