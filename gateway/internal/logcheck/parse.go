@@ -273,7 +273,11 @@ func parseNginxJSON(line string) (Record, error) {
 		r.Method = anyStr(v)
 	}
 	if v, ok := first(m, "s", "status"); ok {
-		r.Status = int(anyNum(v))
+		// A status is three digits; anything else is no status (and never
+		// overflows an int on a 32-bit build).
+		if n := anyNum(v); n >= 0 && n <= 999 {
+			r.Status = int(n)
+		}
 	}
 	if v, ok := first(m, "cl", "content_length"); ok {
 		r.ContentLength = anyNum(v)
