@@ -1,12 +1,12 @@
 {
  "results_version": 0,
  "spec": "MVP-27",
- "run_id": "hardening-20261122T132036Z",
- "started_at": "2026-11-22T13:20:36Z",
- "finished_at": "2026-11-22T14:01:11Z",
+ "run_id": "hardening-20261122T164055Z",
+ "started_at": "2026-11-22T16:40:55Z",
+ "finished_at": "2026-11-22T17:36:22Z",
  "seed": 27,
  "profile": "unit",
- "git_rev": "e54c040100bb",
+ "git_rev": "3971e35c760c",
  "host": {
   "os": "darwin 25.5.0",
   "arch": "arm64",
@@ -15,13 +15,13 @@
  "images": [
   {
    "name": "schild-dev-build",
-   "digest": "sha256:7d5bdeb93ad8aba8a4f606580a04f5b18676b2c795b86093e6b1596b7986cccb"
+   "digest": "sha256:999ede9ef9832522a40067cec11ae255e177ef1a5cad5e587a9df332989a57bb"
   }
  ],
  "metrics": [
   {
    "name": "checks",
-   "value": 78.0,
+   "value": 75.0,
    "unit": "count",
    "labels": {
     "scenario": "s1_faults",
@@ -30,7 +30,7 @@
   },
   {
    "name": "checks",
-   "value": 0.0,
+   "value": 3.0,
    "unit": "count",
    "labels": {
     "scenario": "s1_faults",
@@ -48,7 +48,7 @@
   },
   {
    "name": "block_propagation_delay_300ms",
-   "value": 0.399,
+   "value": 0.438,
    "unit": "s",
    "labels": {
     "scenario": "s1_faults",
@@ -58,7 +58,7 @@
   },
   {
    "name": "block_propagation_delay_300ms",
-   "value": 0.383,
+   "value": 0.438,
    "unit": "s",
    "labels": {
     "scenario": "s1_faults",
@@ -68,7 +68,7 @@
   },
   {
    "name": "hung_peer_noticed",
-   "value": 2.03,
+   "value": 3.01,
    "unit": "s",
    "labels": {
     "scenario": "s1_faults",
@@ -78,7 +78,7 @@
   },
   {
    "name": "hung_peer_noticed",
-   "value": 0.23,
+   "value": 0.0,
    "unit": "s",
    "labels": {
     "scenario": "s1_faults",
@@ -88,7 +88,7 @@
   },
   {
    "name": "heal_converged",
-   "value": 0.42960150027647614,
+   "value": 0.4208587920293212,
    "unit": "s",
    "labels": {
     "scenario": "s1_faults",
@@ -97,7 +97,7 @@
   },
   {
    "name": "ready_after_restart_cut_off",
-   "value": 10.11,
+   "value": 10.12,
    "unit": "s",
    "labels": {
     "scenario": "s1_faults",
@@ -106,7 +106,7 @@
   },
   {
    "name": "ready_after_restart_300ms",
-   "value": 2.46,
+   "value": 3.67,
    "unit": "s",
    "labels": {
     "scenario": "s1_faults",
@@ -115,7 +115,7 @@
   },
   {
    "name": "block_propagation_delay_300ms",
-   "value": 0.409,
+   "value": 0.523,
    "unit": "s",
    "labels": {
     "scenario": "s1_faults",
@@ -125,7 +125,7 @@
   },
   {
    "name": "hung_peer_noticed",
-   "value": 2.06,
+   "value": 2.4,
    "unit": "s",
    "labels": {
     "scenario": "s1_faults",
@@ -135,7 +135,7 @@
   },
   {
    "name": "hung_peer_noticed",
-   "value": 0.22,
+   "value": 0.0,
    "unit": "s",
    "labels": {
     "scenario": "s1_faults",
@@ -145,7 +145,7 @@
   },
   {
    "name": "heal_converged",
-   "value": 0.41594762494787574,
+   "value": 0.3638439578935504,
    "unit": "s",
    "labels": {
     "scenario": "s1_faults",
@@ -154,7 +154,7 @@
   },
   {
    "name": "ready_after_restart_cut_off",
-   "value": 10.14,
+   "value": 10.1,
    "unit": "s",
    "labels": {
     "scenario": "s1_faults",
@@ -163,7 +163,7 @@
   },
   {
    "name": "ready_after_restart_300ms",
-   "value": 2.45,
+   "value": 3.64,
    "unit": "s",
    "labels": {
     "scenario": "s1_faults",
@@ -199,7 +199,7 @@
   },
   {
    "name": "ready_after_kill9",
-   "value": 5.516870874911547,
+   "value": 5.474624500144273,
    "unit": "s",
    "labels": {
     "scenario": "s2_crashes",
@@ -208,7 +208,7 @@
   },
   {
    "name": "requests_missing_on_killed_node",
-   "value": 287.0,
+   "value": 289.0,
    "unit": "count",
    "labels": {
     "scenario": "s2_crashes",
@@ -217,7 +217,7 @@
   },
   {
    "name": "ready_after_kill9",
-   "value": 5.506544834002852,
+   "value": 5.540833916049451,
    "unit": "s",
    "labels": {
     "scenario": "s2_crashes",
@@ -226,7 +226,7 @@
   },
   {
    "name": "requests_missing_on_killed_node",
-   "value": 211.0,
+   "value": 68.0,
    "unit": "count",
    "labels": {
     "scenario": "s2_crashes",
@@ -235,7 +235,7 @@
   },
   {
    "name": "ready_after_kill9",
-   "value": 5.551416415721178,
+   "value": 5.54305904218927,
    "unit": "s",
    "labels": {
     "scenario": "s2_crashes",
@@ -244,7 +244,7 @@
   },
   {
    "name": "requests_missing_on_killed_node",
-   "value": 143.0,
+   "value": 53.0,
    "unit": "count",
    "labels": {
     "scenario": "s2_crashes",
@@ -253,7 +253,7 @@
   },
   {
    "name": "ready_after_kill9",
-   "value": 5.516803625039756,
+   "value": 5.525814542081207,
    "unit": "s",
    "labels": {
     "scenario": "s2_crashes",
@@ -262,7 +262,7 @@
   },
   {
    "name": "requests_missing_on_killed_node",
-   "value": 287.0,
+   "value": 0.0,
    "unit": "count",
    "labels": {
     "scenario": "s2_crashes",
@@ -282,7 +282,7 @@
   },
   {
    "name": "ready_after_all_killed",
-   "value": 5.528309667017311,
+   "value": 5.566048374865204,
    "unit": "s",
    "labels": {
     "scenario": "s2_crashes",
@@ -291,7 +291,7 @@
   },
   {
    "name": "ready_after_all_killed",
-   "value": 5.58538524992764,
+   "value": 5.563613166566938,
    "unit": "s",
    "labels": {
     "scenario": "s2_crashes",
@@ -300,7 +300,7 @@
   },
   {
    "name": "ready_after_all_killed",
-   "value": 5.584317791741341,
+   "value": 5.562123874668032,
    "unit": "s",
    "labels": {
     "scenario": "s2_crashes",
@@ -309,7 +309,7 @@
   },
   {
    "name": "ready_after_all_killed",
-   "value": 5.545472416095436,
+   "value": 5.53739408403635,
    "unit": "s",
    "labels": {
     "scenario": "s2_crashes",
@@ -318,7 +318,7 @@
   },
   {
    "name": "ready_after_all_killed",
-   "value": 5.5430057919584215,
+   "value": 5.533909916877747,
    "unit": "s",
    "labels": {
     "scenario": "s2_crashes",
@@ -327,7 +327,7 @@
   },
   {
    "name": "ready_after_all_killed",
-   "value": 5.5419475003145635,
+   "value": 5.532134749926627,
    "unit": "s",
    "labels": {
     "scenario": "s2_crashes",
@@ -336,7 +336,7 @@
   },
   {
    "name": "ready_after_all_killed",
-   "value": 5.593959290999919,
+   "value": 5.585973291192204,
    "unit": "s",
    "labels": {
     "scenario": "s2_crashes",
@@ -345,7 +345,7 @@
   },
   {
    "name": "ready_after_all_killed",
-   "value": 5.591332791373134,
+   "value": 5.5828438750468194,
    "unit": "s",
    "labels": {
     "scenario": "s2_crashes",
@@ -354,7 +354,7 @@
   },
   {
    "name": "ready_after_all_killed",
-   "value": 5.590006459038705,
+   "value": 5.581216167192906,
    "unit": "s",
    "labels": {
     "scenario": "s2_crashes",
@@ -363,7 +363,7 @@
   },
   {
    "name": "checks",
-   "value": 18.0,
+   "value": 17.0,
    "unit": "count",
    "labels": {
     "scenario": "s3_load",
@@ -372,7 +372,7 @@
   },
   {
    "name": "checks",
-   "value": 0.0,
+   "value": 1.0,
    "unit": "count",
    "labels": {
     "scenario": "s3_load",
@@ -423,7 +423,7 @@
   },
   {
    "name": "load_latency_p50",
-   "value": 1.036,
+   "value": 1.101,
    "unit": "ms",
    "labels": {
     "scenario": "s3_load",
@@ -434,7 +434,7 @@
   },
   {
    "name": "load_latency_p99",
-   "value": 3.115,
+   "value": 4.459,
    "unit": "ms",
    "labels": {
     "scenario": "s3_load",
@@ -478,7 +478,7 @@
   },
   {
    "name": "load_latency_p50",
-   "value": 0.595,
+   "value": 0.628,
    "unit": "ms",
    "labels": {
     "scenario": "s3_load",
@@ -489,7 +489,7 @@
   },
   {
    "name": "load_latency_p99",
-   "value": 2.777,
+   "value": 2.271,
    "unit": "ms",
    "labels": {
     "scenario": "s3_load",
@@ -533,7 +533,7 @@
   },
   {
    "name": "load_latency_p50",
-   "value": 0.591,
+   "value": 0.61,
    "unit": "ms",
    "labels": {
     "scenario": "s3_load",
@@ -544,7 +544,7 @@
   },
   {
    "name": "load_latency_p99",
-   "value": 7.528,
+   "value": 8.959,
    "unit": "ms",
    "labels": {
     "scenario": "s3_load",
@@ -588,7 +588,7 @@
   },
   {
    "name": "load_latency_p50",
-   "value": 0.563,
+   "value": 0.561,
    "unit": "ms",
    "labels": {
     "scenario": "s3_load",
@@ -599,7 +599,7 @@
   },
   {
    "name": "load_latency_p99",
-   "value": 17.666,
+   "value": 12.092,
    "unit": "ms",
    "labels": {
     "scenario": "s3_load",
@@ -643,7 +643,7 @@
   },
   {
    "name": "load_latency_p50",
-   "value": 0.587,
+   "value": 0.62,
    "unit": "ms",
    "labels": {
     "scenario": "s3_load",
@@ -654,7 +654,7 @@
   },
   {
    "name": "load_latency_p99",
-   "value": 32.24,
+   "value": 36.063,
    "unit": "ms",
    "labels": {
     "scenario": "s3_load",
@@ -676,7 +676,7 @@
   },
   {
    "name": "requests_held_share",
-   "value": 1.0,
+   "value": 0.9899,
    "unit": "ratio",
    "labels": {
     "scenario": "s3_load",
@@ -698,7 +698,7 @@
   },
   {
    "name": "load_latency_p50",
-   "value": 1.351,
+   "value": 6.213,
    "unit": "ms",
    "labels": {
     "scenario": "s3_load",
@@ -709,7 +709,7 @@
   },
   {
    "name": "load_latency_p99",
-   "value": 66.038,
+   "value": 151.746,
    "unit": "ms",
    "labels": {
     "scenario": "s3_load",
@@ -720,7 +720,7 @@
   },
   {
    "name": "latency_p50",
-   "value": 0.541,
+   "value": 0.577,
    "unit": "ms",
    "labels": {
     "scenario": "s3_load",
@@ -732,7 +732,7 @@
   },
   {
    "name": "latency_p99",
-   "value": 14.35,
+   "value": 20.444,
    "unit": "ms",
    "labels": {
     "scenario": "s3_load",
@@ -744,7 +744,7 @@
   },
   {
    "name": "latency_p50",
-   "value": 0.563,
+   "value": 0.571,
    "unit": "ms",
    "labels": {
     "scenario": "s3_load",
@@ -756,7 +756,7 @@
   },
   {
    "name": "latency_p99",
-   "value": 22.12,
+   "value": 16.924,
    "unit": "ms",
    "labels": {
     "scenario": "s3_load",
@@ -768,7 +768,7 @@
   },
   {
    "name": "latency_p50",
-   "value": 0.556,
+   "value": 0.582,
    "unit": "ms",
    "labels": {
     "scenario": "s3_load",
@@ -780,7 +780,7 @@
   },
   {
    "name": "latency_p99",
-   "value": 16.301,
+   "value": 19.882,
    "unit": "ms",
    "labels": {
     "scenario": "s3_load",
@@ -792,7 +792,7 @@
   },
   {
    "name": "latency_p50",
-   "value": 0.573,
+   "value": 0.58,
    "unit": "ms",
    "labels": {
     "scenario": "s3_load",
@@ -804,7 +804,7 @@
   },
   {
    "name": "latency_p99",
-   "value": 22.817,
+   "value": 22.973,
    "unit": "ms",
    "labels": {
     "scenario": "s3_load",
@@ -816,7 +816,7 @@
   },
   {
    "name": "latency_p50",
-   "value": 0.565,
+   "value": 0.583,
    "unit": "ms",
    "labels": {
     "scenario": "s3_load",
@@ -828,7 +828,7 @@
   },
   {
    "name": "latency_p99",
-   "value": 21.805,
+   "value": 21.166,
    "unit": "ms",
    "labels": {
     "scenario": "s3_load",
@@ -852,7 +852,7 @@
   },
   {
    "name": "latency_p99",
-   "value": 16.317,
+   "value": 19.84,
    "unit": "ms",
    "labels": {
     "scenario": "s3_load",
@@ -864,7 +864,7 @@
   },
   {
    "name": "block_propagation_under_load_p95",
-   "value": 0.588,
+   "value": 0.583,
    "unit": "s",
    "labels": {
     "scenario": "s3_load",
@@ -894,7 +894,7 @@
   },
   {
    "name": "main_latency_p50",
-   "value": 0.602,
+   "value": 0.573,
    "unit": "ms",
    "labels": {
     "scenario": "s3_load",
@@ -904,7 +904,7 @@
   },
   {
    "name": "main_latency_p99",
-   "value": 25.261,
+   "value": 19.682,
    "unit": "ms",
    "labels": {
     "scenario": "s3_load",
@@ -914,7 +914,7 @@
   },
   {
    "name": "rss_under_load",
-   "value": 363.5,
+   "value": 367.0,
    "unit": "count",
    "labels": {
     "scenario": "s3_load",
@@ -925,7 +925,7 @@
   },
   {
    "name": "rss_under_load",
-   "value": 365.1,
+   "value": 365.5,
    "unit": "count",
    "labels": {
     "scenario": "s3_load",
@@ -936,7 +936,7 @@
   },
   {
    "name": "rss_under_load",
-   "value": 362.0,
+   "value": 369.8,
    "unit": "count",
    "labels": {
     "scenario": "s3_load",
@@ -984,7 +984,7 @@
   },
   {
    "name": "group_converged_after_start",
-   "value": 4.23,
+   "value": 7.18,
    "unit": "s",
    "labels": {
     "scenario": "s4_sizes",
@@ -993,7 +993,7 @@
   },
   {
    "name": "ready_after_first_start",
-   "value": 1.8977289171889424,
+   "value": 1.9014913332648575,
    "unit": "s",
    "labels": {
     "scenario": "s4_sizes",
@@ -1002,7 +1002,7 @@
   },
   {
    "name": "ready_after_first_start",
-   "value": 1.8951827907003462,
+   "value": 2.0128400828689337,
    "unit": "s",
    "labels": {
     "scenario": "s4_sizes",
@@ -1011,7 +1011,7 @@
   },
   {
    "name": "ready_after_first_start",
-   "value": 1.8939237501472235,
+   "value": 2.0095527078956366,
    "unit": "s",
    "labels": {
     "scenario": "s4_sizes",
@@ -1020,7 +1020,7 @@
   },
   {
    "name": "ready_after_first_start",
-   "value": 1.8928045420907438,
+   "value": 2.0054601249285042,
    "unit": "s",
    "labels": {
     "scenario": "s4_sizes",
@@ -1029,7 +1029,7 @@
   },
   {
    "name": "ready_after_first_start",
-   "value": 1.8915699166245759,
+   "value": 2.002763249911368,
    "unit": "s",
    "labels": {
     "scenario": "s4_sizes",
@@ -1038,7 +1038,7 @@
   },
   {
    "name": "ready_after_first_start",
-   "value": 1.8895249576307833,
+   "value": 1.9988447921350598,
    "unit": "s",
    "labels": {
     "scenario": "s4_sizes",
@@ -1047,7 +1047,7 @@
   },
   {
    "name": "ready_after_first_start",
-   "value": 1.9352913331240416,
+   "value": 1.9691449999809265,
    "unit": "s",
    "labels": {
     "scenario": "s4_sizes",
@@ -1056,7 +1056,7 @@
   },
   {
    "name": "ready_after_first_start",
-   "value": 1.933391208294779,
+   "value": 2.0015166248194873,
    "unit": "s",
    "labels": {
     "scenario": "s4_sizes",
@@ -1065,7 +1065,7 @@
   },
   {
    "name": "ready_after_first_start",
-   "value": 1.9304824168793857,
+   "value": 1.9872449580579996,
    "unit": "s",
    "labels": {
     "scenario": "s4_sizes",
@@ -1074,7 +1074,7 @@
   },
   {
    "name": "ready_after_first_start",
-   "value": 1.927853750064969,
+   "value": 1.9836591249331832,
    "unit": "s",
    "labels": {
     "scenario": "s4_sizes",
@@ -1083,7 +1083,7 @@
   },
   {
    "name": "ready_after_first_start",
-   "value": 1.923426290974021,
+   "value": 1.9738587918691337,
    "unit": "s",
    "labels": {
     "scenario": "s4_sizes",
@@ -1092,7 +1092,7 @@
   },
   {
    "name": "ready_after_first_start",
-   "value": 1.919810791965574,
+   "value": 1.9648880418390036,
    "unit": "s",
    "labels": {
     "scenario": "s4_sizes",
@@ -1101,7 +1101,7 @@
   },
   {
    "name": "ready_after_first_start",
-   "value": 1.9697348750196397,
+   "value": 1.9596094167791307,
    "unit": "s",
    "labels": {
     "scenario": "s4_sizes",
@@ -1110,7 +1110,7 @@
   },
   {
    "name": "ready_after_first_start",
-   "value": 1.966788582969457,
+   "value": 1.9544905829243362,
    "unit": "s",
    "labels": {
     "scenario": "s4_sizes",
@@ -1119,7 +1119,7 @@
   },
   {
    "name": "ready_after_first_start",
-   "value": 1.9585479171946645,
+   "value": 1.9456512499600649,
    "unit": "s",
    "labels": {
     "scenario": "s4_sizes",
@@ -1128,7 +1128,7 @@
   },
   {
    "name": "ready_after_first_start",
-   "value": 1.956542917061597,
+   "value": 1.9389932500198483,
    "unit": "s",
    "labels": {
     "scenario": "s4_sizes",
@@ -1137,7 +1137,7 @@
   },
   {
    "name": "rss_idle",
-   "value": 201.1,
+   "value": 194.2,
    "unit": "count",
    "labels": {
     "scenario": "s4_sizes",
@@ -1158,7 +1158,7 @@
   },
   {
    "name": "rss_idle",
-   "value": 193.8,
+   "value": 177.2,
    "unit": "count",
    "labels": {
     "scenario": "s4_sizes",
@@ -1179,7 +1179,7 @@
   },
   {
    "name": "rss_idle",
-   "value": 182.7,
+   "value": 170.4,
    "unit": "count",
    "labels": {
     "scenario": "s4_sizes",
@@ -1200,7 +1200,7 @@
   },
   {
    "name": "rss_idle",
-   "value": 189.3,
+   "value": 186.2,
    "unit": "count",
    "labels": {
     "scenario": "s4_sizes",
@@ -1221,7 +1221,7 @@
   },
   {
    "name": "rss_idle",
-   "value": 187.6,
+   "value": 184.6,
    "unit": "count",
    "labels": {
     "scenario": "s4_sizes",
@@ -1242,7 +1242,7 @@
   },
   {
    "name": "rss_idle",
-   "value": 187.7,
+   "value": 179.4,
    "unit": "count",
    "labels": {
     "scenario": "s4_sizes",
@@ -1263,7 +1263,7 @@
   },
   {
    "name": "rss_idle",
-   "value": 186.4,
+   "value": 180.8,
    "unit": "count",
    "labels": {
     "scenario": "s4_sizes",
@@ -1284,7 +1284,7 @@
   },
   {
    "name": "rss_idle",
-   "value": 186.3,
+   "value": 181.9,
    "unit": "count",
    "labels": {
     "scenario": "s4_sizes",
@@ -1305,7 +1305,7 @@
   },
   {
    "name": "rss_idle",
-   "value": 190.5,
+   "value": 184.6,
    "unit": "count",
    "labels": {
     "scenario": "s4_sizes",
@@ -1326,7 +1326,7 @@
   },
   {
    "name": "rss_idle",
-   "value": 191.5,
+   "value": 175.2,
    "unit": "count",
    "labels": {
     "scenario": "s4_sizes",
@@ -1347,7 +1347,7 @@
   },
   {
    "name": "rss_idle",
-   "value": 195.4,
+   "value": 183.0,
    "unit": "count",
    "labels": {
     "scenario": "s4_sizes",
@@ -1368,7 +1368,7 @@
   },
   {
    "name": "rss_idle",
-   "value": 190.5,
+   "value": 180.7,
    "unit": "count",
    "labels": {
     "scenario": "s4_sizes",
@@ -1389,7 +1389,7 @@
   },
   {
    "name": "rss_idle",
-   "value": 184.5,
+   "value": 173.7,
    "unit": "count",
    "labels": {
     "scenario": "s4_sizes",
@@ -1410,7 +1410,7 @@
   },
   {
    "name": "rss_idle",
-   "value": 191.6,
+   "value": 182.3,
    "unit": "count",
    "labels": {
     "scenario": "s4_sizes",
@@ -1431,7 +1431,7 @@
   },
   {
    "name": "rss_idle",
-   "value": 188.7,
+   "value": 183.4,
    "unit": "count",
    "labels": {
     "scenario": "s4_sizes",
@@ -1452,7 +1452,7 @@
   },
   {
    "name": "rss_idle",
-   "value": 196.8,
+   "value": 177.4,
    "unit": "count",
    "labels": {
     "scenario": "s4_sizes",
@@ -1473,7 +1473,7 @@
   },
   {
    "name": "block_propagation_p95",
-   "value": 0.685,
+   "value": 0.826,
    "unit": "s",
    "labels": {
     "scenario": "s4_sizes",
@@ -1483,7 +1483,7 @@
   },
   {
    "name": "block_propagation_max",
-   "value": 0.699,
+   "value": 0.974,
    "unit": "s",
    "labels": {
     "scenario": "s4_sizes",
@@ -1493,7 +1493,7 @@
   },
   {
    "name": "state_converged",
-   "value": 0.7849602913483977,
+   "value": 0.9011695003136992,
    "unit": "s",
    "labels": {
     "scenario": "s4_sizes",
@@ -1502,7 +1502,7 @@
   },
   {
    "name": "rate_limit_passed",
-   "value": 74.0,
+   "value": 75.0,
    "unit": "count",
    "labels": {
     "scenario": "s4_sizes",
@@ -1524,7 +1524,7 @@
   },
   {
    "name": "rss_under_load",
-   "value": 337.9,
+   "value": 374.4,
    "unit": "count",
    "labels": {
     "scenario": "s4_sizes",
@@ -1535,7 +1535,7 @@
   },
   {
    "name": "cpu_under_load",
-   "value": 40.3,
+   "value": 21.5,
    "unit": "percent",
    "labels": {
     "scenario": "s4_sizes",
@@ -1545,7 +1545,7 @@
   },
   {
    "name": "rss_under_load",
-   "value": 354.0,
+   "value": 368.2,
    "unit": "count",
    "labels": {
     "scenario": "s4_sizes",
@@ -1556,7 +1556,7 @@
   },
   {
    "name": "cpu_under_load",
-   "value": 40.2,
+   "value": 29.9,
    "unit": "percent",
    "labels": {
     "scenario": "s4_sizes",
@@ -1566,7 +1566,7 @@
   },
   {
    "name": "rss_under_load",
-   "value": 342.0,
+   "value": 348.8,
    "unit": "count",
    "labels": {
     "scenario": "s4_sizes",
@@ -1577,7 +1577,7 @@
   },
   {
    "name": "cpu_under_load",
-   "value": 37.0,
+   "value": 49.6,
    "unit": "percent",
    "labels": {
     "scenario": "s4_sizes",
@@ -1587,7 +1587,7 @@
   },
   {
    "name": "rss_under_load",
-   "value": 346.7,
+   "value": 362.5,
    "unit": "count",
    "labels": {
     "scenario": "s4_sizes",
@@ -1598,7 +1598,7 @@
   },
   {
    "name": "cpu_under_load",
-   "value": 44.2,
+   "value": 19.2,
    "unit": "percent",
    "labels": {
     "scenario": "s4_sizes",
@@ -1608,7 +1608,7 @@
   },
   {
    "name": "rss_under_load",
-   "value": 338.4,
+   "value": 376.4,
    "unit": "count",
    "labels": {
     "scenario": "s4_sizes",
@@ -1619,7 +1619,7 @@
   },
   {
    "name": "cpu_under_load",
-   "value": 60.6,
+   "value": 21.9,
    "unit": "percent",
    "labels": {
     "scenario": "s4_sizes",
@@ -1629,7 +1629,7 @@
   },
   {
    "name": "rss_under_load",
-   "value": 337.4,
+   "value": 382.2,
    "unit": "count",
    "labels": {
     "scenario": "s4_sizes",
@@ -1640,7 +1640,7 @@
   },
   {
    "name": "cpu_under_load",
-   "value": 40.2,
+   "value": 33.2,
    "unit": "percent",
    "labels": {
     "scenario": "s4_sizes",
@@ -1650,7 +1650,7 @@
   },
   {
    "name": "rss_under_load",
-   "value": 346.4,
+   "value": 372.6,
    "unit": "count",
    "labels": {
     "scenario": "s4_sizes",
@@ -1661,7 +1661,7 @@
   },
   {
    "name": "cpu_under_load",
-   "value": 25.7,
+   "value": 19.8,
    "unit": "percent",
    "labels": {
     "scenario": "s4_sizes",
@@ -1671,7 +1671,7 @@
   },
   {
    "name": "rss_under_load",
-   "value": 343.8,
+   "value": 376.8,
    "unit": "count",
    "labels": {
     "scenario": "s4_sizes",
@@ -1682,7 +1682,7 @@
   },
   {
    "name": "cpu_under_load",
-   "value": 51.9,
+   "value": 26.1,
    "unit": "percent",
    "labels": {
     "scenario": "s4_sizes",
@@ -1692,7 +1692,7 @@
   },
   {
    "name": "rss_under_load",
-   "value": 345.5,
+   "value": 372.5,
    "unit": "count",
    "labels": {
     "scenario": "s4_sizes",
@@ -1703,7 +1703,7 @@
   },
   {
    "name": "cpu_under_load",
-   "value": 39.2,
+   "value": 25.6,
    "unit": "percent",
    "labels": {
     "scenario": "s4_sizes",
@@ -1713,7 +1713,7 @@
   },
   {
    "name": "rss_under_load",
-   "value": 335.2,
+   "value": 363.2,
    "unit": "count",
    "labels": {
     "scenario": "s4_sizes",
@@ -1724,7 +1724,7 @@
   },
   {
    "name": "cpu_under_load",
-   "value": 27.6,
+   "value": 21.5,
    "unit": "percent",
    "labels": {
     "scenario": "s4_sizes",
@@ -1734,7 +1734,7 @@
   },
   {
    "name": "rss_under_load",
-   "value": 340.0,
+   "value": 362.8,
    "unit": "count",
    "labels": {
     "scenario": "s4_sizes",
@@ -1745,7 +1745,7 @@
   },
   {
    "name": "cpu_under_load",
-   "value": 39.8,
+   "value": 16.7,
    "unit": "percent",
    "labels": {
     "scenario": "s4_sizes",
@@ -1755,7 +1755,7 @@
   },
   {
    "name": "rss_under_load",
-   "value": 332.3,
+   "value": 362.1,
    "unit": "count",
    "labels": {
     "scenario": "s4_sizes",
@@ -1766,7 +1766,7 @@
   },
   {
    "name": "cpu_under_load",
-   "value": 26.2,
+   "value": 26.6,
    "unit": "percent",
    "labels": {
     "scenario": "s4_sizes",
@@ -1776,7 +1776,7 @@
   },
   {
    "name": "rss_under_load",
-   "value": 338.6,
+   "value": 389.6,
    "unit": "count",
    "labels": {
     "scenario": "s4_sizes",
@@ -1787,7 +1787,7 @@
   },
   {
    "name": "cpu_under_load",
-   "value": 43.9,
+   "value": 27.5,
    "unit": "percent",
    "labels": {
     "scenario": "s4_sizes",
@@ -1797,7 +1797,7 @@
   },
   {
    "name": "rss_under_load",
-   "value": 333.1,
+   "value": 356.1,
    "unit": "count",
    "labels": {
     "scenario": "s4_sizes",
@@ -1808,7 +1808,7 @@
   },
   {
    "name": "cpu_under_load",
-   "value": 56.9,
+   "value": 27.1,
    "unit": "percent",
    "labels": {
     "scenario": "s4_sizes",
@@ -1818,7 +1818,7 @@
   },
   {
    "name": "rss_under_load",
-   "value": 332.6,
+   "value": 372.8,
    "unit": "count",
    "labels": {
     "scenario": "s4_sizes",
@@ -1829,7 +1829,7 @@
   },
   {
    "name": "cpu_under_load",
-   "value": 37.9,
+   "value": 32.5,
    "unit": "percent",
    "labels": {
     "scenario": "s4_sizes",
@@ -1839,7 +1839,7 @@
   },
   {
    "name": "rss_under_load",
-   "value": 334.0,
+   "value": 369.4,
    "unit": "count",
    "labels": {
     "scenario": "s4_sizes",
@@ -1850,7 +1850,7 @@
   },
   {
    "name": "cpu_under_load",
-   "value": 27.0,
+   "value": 30.5,
    "unit": "percent",
    "labels": {
     "scenario": "s4_sizes",
@@ -1860,7 +1860,7 @@
   },
   {
    "name": "latency_p50",
-   "value": 1.717,
+   "value": 4.637,
    "unit": "ms",
    "labels": {
     "scenario": "s4_sizes",
@@ -1871,7 +1871,7 @@
   },
   {
    "name": "latency_p99",
-   "value": 115.75,
+   "value": 243.283,
    "unit": "ms",
    "labels": {
     "scenario": "s4_sizes",
@@ -1882,7 +1882,7 @@
   },
   {
    "name": "ready_after_return",
-   "value": 1.904219957999885,
+   "value": 1.669524332974106,
    "unit": "s",
    "labels": {
     "scenario": "s4_sizes",
@@ -1891,7 +1891,7 @@
   },
   {
    "name": "ready_after_return",
-   "value": 1.9023724999278784,
+   "value": 1.6681312089785933,
    "unit": "s",
    "labels": {
     "scenario": "s4_sizes",
@@ -1900,7 +1900,7 @@
   },
   {
    "name": "ready_after_return",
-   "value": 1.9011968751437962,
+   "value": 1.666878666728735,
    "unit": "s",
    "labels": {
     "scenario": "s4_sizes",
@@ -1909,7 +1909,7 @@
   },
   {
    "name": "ready_after_return",
-   "value": 1.9000683329068124,
+   "value": 1.6656674579717219,
    "unit": "s",
    "labels": {
     "scenario": "s4_sizes",
@@ -1918,7 +1918,7 @@
   },
   {
    "name": "ready_after_return",
-   "value": 1.8982117921113968,
+   "value": 1.6643713749945164,
    "unit": "s",
    "labels": {
     "scenario": "s4_sizes",
@@ -1937,7 +1937,7 @@
   },
   {
    "name": "rolling_restart_took",
-   "value": 177.97801308287308,
+   "value": 196.33429525000975,
    "unit": "s",
    "labels": {
     "scenario": "s4_sizes",
@@ -1946,7 +1946,7 @@
   },
   {
    "name": "group_converged_after_start",
-   "value": 2.46,
+   "value": 5.31,
    "unit": "s",
    "labels": {
     "scenario": "s4_sizes",
@@ -1955,7 +1955,7 @@
   },
   {
    "name": "ready_after_first_start",
-   "value": 1.4846260827034712,
+   "value": 1.4780345000326633,
    "unit": "s",
    "labels": {
     "scenario": "s4_sizes",
@@ -1964,7 +1964,7 @@
   },
   {
    "name": "ready_after_first_start",
-   "value": 1.4821224170736969,
+   "value": 1.475619750097394,
    "unit": "s",
    "labels": {
     "scenario": "s4_sizes",
@@ -1973,7 +1973,7 @@
   },
   {
    "name": "rss_idle",
-   "value": 174.0,
+   "value": 176.1,
    "unit": "count",
    "labels": {
     "scenario": "s4_sizes",
@@ -1994,7 +1994,7 @@
   },
   {
    "name": "rss_idle",
-   "value": 153.2,
+   "value": 155.9,
    "unit": "count",
    "labels": {
     "scenario": "s4_sizes",
@@ -2015,7 +2015,7 @@
   },
   {
    "name": "block_propagation_p95",
-   "value": 0.988,
+   "value": 1.0,
    "unit": "s",
    "labels": {
     "scenario": "s4_sizes",
@@ -2025,7 +2025,7 @@
   },
   {
    "name": "block_propagation_max",
-   "value": 0.988,
+   "value": 1.0,
    "unit": "s",
    "labels": {
     "scenario": "s4_sizes",
@@ -2035,7 +2035,7 @@
   },
   {
    "name": "state_converged",
-   "value": 1.0432605827227235,
+   "value": 1.0664239171892405,
    "unit": "s",
    "labels": {
     "scenario": "s4_sizes",
@@ -2044,7 +2044,7 @@
   },
   {
    "name": "rate_limit_passed",
-   "value": 75.0,
+   "value": 74.0,
    "unit": "count",
    "labels": {
     "scenario": "s4_sizes",
@@ -2066,7 +2066,7 @@
   },
   {
    "name": "rss_under_load",
-   "value": 261.9,
+   "value": 277.1,
    "unit": "count",
    "labels": {
     "scenario": "s4_sizes",
@@ -2077,7 +2077,7 @@
   },
   {
    "name": "cpu_under_load",
-   "value": 12.3,
+   "value": 14.4,
    "unit": "percent",
    "labels": {
     "scenario": "s4_sizes",
@@ -2087,7 +2087,7 @@
   },
   {
    "name": "rss_under_load",
-   "value": 262.8,
+   "value": 274.8,
    "unit": "count",
    "labels": {
     "scenario": "s4_sizes",
@@ -2098,7 +2098,7 @@
   },
   {
    "name": "cpu_under_load",
-   "value": 13.1,
+   "value": 14.5,
    "unit": "percent",
    "labels": {
     "scenario": "s4_sizes",
@@ -2108,7 +2108,7 @@
   },
   {
    "name": "latency_p50",
-   "value": 0.843,
+   "value": 1.338,
    "unit": "ms",
    "labels": {
     "scenario": "s4_sizes",
@@ -2119,7 +2119,7 @@
   },
   {
    "name": "latency_p99",
-   "value": 3.174,
+   "value": 3.476,
    "unit": "ms",
    "labels": {
     "scenario": "s4_sizes",
@@ -2130,7 +2130,7 @@
   },
   {
    "name": "ready_after_return",
-   "value": 1.4993171659298241,
+   "value": 1.4725487921386957,
    "unit": "s",
    "labels": {
     "scenario": "s4_sizes",
@@ -2149,7 +2149,7 @@
   },
   {
    "name": "rolling_restart_took",
-   "value": 19.35420004185289,
+   "value": 18.748757041990757,
    "unit": "s",
    "labels": {
     "scenario": "s4_sizes",
@@ -2185,7 +2185,7 @@
   },
   {
    "name": "ready_after_long_absence",
-   "value": 1.5207191659137607,
+   "value": 1.476887000259012,
    "unit": "s",
    "labels": {
     "scenario": "s5_absence"
@@ -2202,7 +2202,7 @@
   },
   {
    "name": "request_catch_up",
-   "value": 9.442242583725601,
+   "value": 9.463943375274539,
    "unit": "s",
    "labels": {
     "scenario": "s5_absence"
@@ -2238,7 +2238,7 @@
   },
   {
    "name": "block_of_node_120s_ahead_acts_after",
-   "value": 60.4,
+   "value": 60.3,
    "unit": "s",
    "labels": {
     "scenario": "s6_clocks"
@@ -2254,7 +2254,7 @@
   },
   {
    "name": "requests_of_node_120s_ahead_missing_on_others",
-   "value": 5765.0,
+   "value": 5029.0,
    "unit": "count",
    "labels": {
     "scenario": "s6_clocks"
@@ -2262,7 +2262,7 @@
   },
   {
    "name": "block_on_node_120s_behind_acts_after",
-   "value": 60.3,
+   "value": 61.3,
    "unit": "s",
    "labels": {
     "scenario": "s6_clocks"
@@ -2361,7 +2361,7 @@
   }
  ],
  "verdict": "fail",
- "notes": "Hardening measurement of the group of gateways on one machine (127.0.0.1, macOS): faults between nodes through a userspace TCP proxy, hard crashes, load, 2 and 16 gateways, long absence, clocks, mixed versions. Scenarios in this file: s1_faults (git e54c040100bb), s2_crashes (git e54c040100bb), s3_load (git e54c040100bb), s4_sizes (git e54c040100bb), s5_absence (git e54c040100bb), s6_clocks (git e54c040100bb), s7_versions (git e54c040100bb). Never 'pass': one machine, no balancer, no real network; see tests/results/MVP-27-hardening.md. FAIL checks: s2_crashes c.kill9 round 1: afterwards the three nodes hold the same number of single requests (25 s); s2_crashes c.kill9 round 2: afterwards the three nodes hold the same number of single requests (25 s); s2_crashes c.kill9 round 3: afterwards the three nodes hold the same number of single requests (25 s); s2_crashes c.kill9 round 4: afterwards the three nodes hold the same number of single requests (25 s); s6_clocks k.plus120 an address erased on k3 (120 s ahead) is gone on the two reachable others within 30 s (spec, must); s6_clocks k.plus120 once the clocks of the others have passed the time of those requests (125 s later), they hold what k3 served; s6_clocks k.minus120 k3 restarts 120 s behind: at its first ready answer the block set on k1 while it was down acts",
+ "notes": "Hardening measurement of the group of gateways on one machine (127.0.0.1, macOS): faults between nodes through a userspace TCP proxy, hard crashes, load, 2 and 16 gateways, long absence, clocks, mixed versions. Scenarios in this file: s1_faults (git 3971e35c760c), s2_crashes (git 3971e35c760c), s3_load (git 3971e35c760c), s4_sizes (git 3971e35c760c), s5_absence (git 3971e35c760c), s6_clocks (git 3971e35c760c), s7_versions (git 3971e35c760c). Never 'pass': one machine, no balancer, no real network; see tests/results/MVP-27-hardening.md. FAIL checks: s1_faults t.all the proxy identified the calling node of every connection; s1_faults p.setup the mesh runs through the fault proxy and it knows every caller; s1_faults p.all the proxy identified the calling node of every connection; s2_crashes c.kill9 round 1: afterwards the three nodes hold the same number of single requests (25 s); s2_crashes c.kill9 round 2: afterwards the three nodes hold the same number of single requests (25 s); s2_crashes c.kill9 round 3: afterwards the three nodes hold the same number of single requests (25 s); s2_crashes c.kill9 round 4: afterwards the three nodes hold the same number of single requests (25 s); s3_load l.ladder 9000 requests a second for 30 s over three nodes: afterwards every node holds every request; s6_clocks k.plus120 an address erased on k3 (120 s ahead) is gone on the two reachable others within 30 s (spec, must); s6_clocks k.plus120 once the clocks of the others have passed the time of those requests (125 s later), they hold what k3 served; s6_clocks k.minus120 k3 restarts 120 s behind: at its first ready answer the block set on k1 while it was down acts",
  "artifacts": [
   "tests/results/MVP-27-hardening.md",
   "tests/results/MVP-27-hardening-checks.json",

@@ -230,3 +230,14 @@ Not by the measuring agent: the builder ran the unchanged harness (`run.sh`, eve
 - Scenario 7: an upgrade in turn from `e0349dc` to `e54c040` under load passed all 18 checks.
 
 An independent second run on real VMs is under way separately (`MVP-27-lab-run2`).
+
+## Third run on the tree with every change of 2026-11-22 (same day)
+
+Not by the measuring agent: the builder ran the unchanged harness (`run.sh`, every scenario, one continuous run, then scenario 3 once more alone) on `3971e35`, with `e54c040` as the older build of scenario 7. The JSON files next to this report hold this run, with scenario 3 from its repetition. The machine did other work during both runs (a build for another measurement, test suites), so the load numbers are indications.
+
+236 judged checks: 225 pass, 11 fail in the continuous run.
+
+- **Pass now:** sixteen gateways and the pair (44 of 44), the long absence (13 of 13; the returning node is in step at its first ready answer), the upgrade in turn from `e54c040` under load (18 of 18), which crosses the new form of the request exchange.
+- **Still failing, 7 checks, named as limits in the guide:** the requests of the last second of a gateway killed with `kill -9` (4), a node 120 s ahead (2), a node that restarts 120 s behind and therefore never answers ready (1, see the second run).
+- **New, 3 checks, about the harness's fault proxy:** it could not name the calling node of 1 of 182 and 1 of 252 connections. Not looked into; for the measuring agent.
+- **Load ladder, 1 check, not judged as a failure of schild:** in the continuous run the rung of 6 000 requests a second lost 1 355 and 924 of 180 000 on two nodes while 47 requests were answered 503 and the client's p99 was 159 ms; the rung of 9 000 held everything. In the repetition 6 000 held everything and 9 000 (8 553 achieved, 101 answers of 503) lost 2 727 of 270 000 on one node. Each loss came with 503 answers on a saturated machine, on one node only, while the others held every request: a node whose own writer cannot keep up drops requests it served itself, and they are not brought back to it (the same gap as after `kill -9`).
