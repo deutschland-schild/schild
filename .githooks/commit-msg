@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+# Refuses a commit without the sign-off of its author (Developer Certificate of
+# Origin, CONTRIBUTING.md), as the CI job `dco` does for every commit of a pull
+# request. A merge commit needs none. The hook checks and adds nothing: the
+# sign-off is a statement of the person who commits. Use: git commit -s
+set -eu
+git rev-parse -q --verify MERGE_HEAD >/dev/null 2>&1 && exit 0
+author=$(git var GIT_AUTHOR_IDENT | sed -E 's/ [0-9]+ [+-][0-9]{4}$//')
+if ! grep -qiF "Signed-off-by: $author" "$1"; then
+	echo "commit-msg: no \"Signed-off-by: $author\" in the message. Commit with: git commit -s" >&2
+	exit 1
+fi

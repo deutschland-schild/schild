@@ -39,6 +39,10 @@ cd dashboard && pnpm check      # dashboards: typecheck, lint, tests, build
 
 More in [DEVELOPMENT.md](DEVELOPMENT.md). Website: `cd site && npm run dev`.
 
+## Commits
+
+Commit with `git commit -s`: every commit carries `Signed-off-by:` with the name and address of its author ([CONTRIBUTING.md](CONTRIBUTING.md)). The CI job `dco` checks every commit of a pull request, and the hook `.githooks/commit-msg` refuses a commit without it. An agent commits under the maintainer's identity only in a checkout where the maintainer asked it to work, and signs off the same way.
+
 ## Leak guard
 
-`git config core.hooksPath .githooks` once per clone enables the pre-commit check (`scripts/leak-guard.sh`): gitleaks on the staged changes when it is installed, a local denylist of terms when you keep one, and `scripts/key-guard.sh`, which refuses an OpenPGP secret key in a staged key file. The signing key of the apt repository exists as a secret of the release workflow only; in the tree lies its public part.
+`git config core.hooksPath .githooks` once per clone enables the hooks: `commit-msg` (see Commits) and the pre-commit check (`scripts/leak-guard.sh`): gitleaks on the staged changes when it is installed, a local denylist of terms when you keep one, and `scripts/key-guard.sh`, which refuses an OpenPGP secret key in a staged key file. The signing key of the apt repository exists as a secret of the release workflow only; in the tree lies its public part.
