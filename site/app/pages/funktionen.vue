@@ -9,7 +9,8 @@ import { SHOTS_DATE } from '~/utils/shots'
 // Screenshots: retaken with `npm run shots` (site/scripts/shots.mjs), dashboard in mock mode at 1440×900; block page and login
 // page are the HTML the gateway serves (gateway/internal/blockpage, gateway/internal/accesslock). IP addresses are
 // blurred at capture time: they are documentation addresses, but a reader cannot tell that from the picture.
-// The cluster example uses the mock scenario `group` (three gateways, one not reached). The cluster is experimental and
+// The cluster example shows three gateways: the page and a server's details with everything in order (mock scenario
+// `group-ok`), the hints with one gateway not reached (`group`). The cluster is experimental and
 // in no release yet (docs/gateway/03-cluster.md): the section says so, and it claims only what that guide states.
 
 useHead({ title: 'Funktionen – Deutschland-Schild' })
@@ -84,15 +85,15 @@ const clusterShots: DashboardShot[] = [
     summary: 'Alle Server auf einen Blick',
     text: 'Die Seite „Cluster“ zeigt jeden Server unter dem Internet: ob er Anfragen annimmt, wie viele er gerade bedient und wie ausgelastet er ist. Darüber stehen die Summen aller Server.',
     benefit: 'Oben wählst du, ob Zahlen und Diagramme alle Server zusammen zeigen oder einen einzelnen.',
-    alt: 'Schild Dashboard, Seite Cluster: Abgleich eingeschränkt, 2 von 3 Servern bereit, 80,5 Anfragen pro Sekunde, 2 laufende Sperren. Darunter eine Karte mit dem Internet und den drei Servern web-1, web-2 und web-3; web-3 ist nicht erreichbar. Oben die Auswahl „Zahlen von: Alle Server“ und der Hinweis, dass Daten von web-3 fehlen. Testdaten.',
+    alt: 'Schild Dashboard, Seite Cluster: Abgleich aktiv, alle 3 Server haben denselben Stand. 3 von 3 Servern bereit, 124 Anfragen pro Sekunde, 2 laufende Sperren. Darunter eine Karte mit dem Internet und den drei Servern web-1, web-2 und web-3, die alle Anfragen annehmen. Oben die Auswahl „Zahlen von: Alle Server“. Testdaten.',
   },
   {
     src: '/img/dashboards/funktionen-cluster-server.webp',
     title: '2. Ein Server',
     summary: 'Die Details eines Servers',
     text: 'Ein Klick auf einen Server öffnet seine Details: Auslastung, Start, letzter Kontakt, Version, Uhr und ob sein Stand mit dem dieses Servers übereinstimmt.',
-    benefit: 'Du siehst, welcher Server abweicht, ohne dich auf jedem einzeln anzumelden.',
-    alt: 'Schild Dashboard, Details des Servers web-2: nimmt Anfragen an, 38,9 Anfragen pro Sekunde, CPU 64 %, Arbeitsspeicher 83 %, Festplatte 41 %, gestartet vor 5 Stunden, letzter Kontakt gerade eben, Uhr gleich, Konfiguration weicht ab. IP-Adresse unkenntlich gemacht. Testdaten.',
+    benefit: 'Weicht ein Server ab, siehst du das hier, ohne dich auf jedem einzeln anzumelden.',
+    alt: 'Schild Dashboard, Details des Servers web-2: nimmt Anfragen an, 38,9 Anfragen pro Sekunde, CPU 34 %, Arbeitsspeicher 52 %, Festplatte 41 %, gestartet vor 5 Stunden, letzter Kontakt gerade eben, Uhr, Stand und Konfiguration gleich. IP-Adresse unkenntlich gemacht. Testdaten.',
   },
   {
     src: '/img/dashboards/funktionen-cluster-hinweis.webp',

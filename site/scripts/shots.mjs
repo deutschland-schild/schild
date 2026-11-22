@@ -64,10 +64,11 @@ const SHOTS = [
   }, ...DESKTOP },
   { name: 'funktionen-admin-login', page: 'login.html', ...DESKTOP },
 
-  // /funktionen: several gateways as a cluster (mock scenario `group`: three gateways, one not reached, one
-  // with another configuration)
-  { name: 'funktionen-cluster-seite', scenario: 'group', route: '/server/group', ...DESKTOP },
-  { name: 'funktionen-cluster-server', scenario: 'group', route: '/server/group', run: async (page) => {
+  // /funktionen: several gateways as a cluster. The page and a server's details show a cluster with nothing to
+  // look at (mock scenario `group-ok`: three gateways, all reached and in step); the hints show the scenario
+  // `group` (one gateway not reached, one with another configuration).
+  { name: 'funktionen-cluster-seite', scenario: 'group-ok', route: '/server/group', ...DESKTOP },
+  { name: 'funktionen-cluster-server', scenario: 'group-ok', route: '/server/group', run: async (page) => {
     await page.locator('[data-testid="group-map-node"][data-name="web-2"]').click()
     await page.getByTestId('group-node-sheet').waitFor()
     await page.waitForTimeout(600)

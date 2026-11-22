@@ -47,8 +47,8 @@ import { createRulesState } from './rules'
  * standalone: a gateway that started a few hours ago and cannot reach the CrowdSec Hub. observe: the test
  * profile, in which nothing is blocked (D89: there is no protection mode).
  */
-export type Scenario = 'default' | 'observe' | 'first-run' | 'login' | 'degraded' | 'empty' | 'error' | 'standalone' | 'group' | 'group-large'
-export const SCENARIOS: Scenario[] = ['default', 'observe', 'first-run', 'login', 'degraded', 'empty', 'error', 'standalone', 'group', 'group-large']
+export type Scenario = 'default' | 'observe' | 'first-run' | 'login' | 'degraded' | 'empty' | 'error' | 'standalone' | 'group' | 'group-ok' | 'group-large'
+export const SCENARIOS: Scenario[] = ['default', 'observe', 'first-run', 'login', 'degraded', 'empty', 'error', 'standalone', 'group', 'group-ok', 'group-large']
 
 /** What the gateway does with a decision, as the server derives it (D89): the test profile only observes. */
 export function gatewayMode(s: Pick<Settings, 'profile'>): Mode {
@@ -250,6 +250,32 @@ function largeGroup(base: GroupStatus): GroupStatus {
     return { ...m, vitals: { ...peer!.vitals!, service, requests_per_s: service === 'ready' ? 30 + ((k * 37) % 23) : 0, cpu_usage: ((k * 17) % 70 + 12) / 100, memory_used_ratio: ((k * 29) % 55 + 30) / 100, disk_used_ratio: ((k * 13) % 40 + 25) / 100 } }
   })
   return { ...base, state: 'degraded', members: [...members, ...base.members!.filter(m => m.role === 'edge')], config: { version: base.config!.version, differing: [] } }
+}
+
+/** The same cluster with nothing to look at: every gateway reached, ready, in step and configured alike. */
+function healthyGroup(base: GroupStatus): GroupStatus {
+  const peer = base.members!.find(m => m.role === 'gateway' && m.state === 'ok')!
+  const same = { blocks: 'same', settings: 'same', access: 'same', logins: 'same' } as const
+  const load: Record<string, [number, number, number, number]> = { 'web-2': [38.9, 0.34, 0.52, 0.41], 'web-3': [43.2, 0.27, 0.46, 0.39] }
+  const members = base.members!.filter(m => m.state !== 'removed').map((m) => {
+    if (m.role !== 'gateway') return m
+    if (m.state === 'self') return { ...m, config: 'same' as const }
+    const [rps, cpu, memory, disk] = load[m.name] ?? [40, 0.3, 0.5, 0.4]
+    return {
+      ...m,
+      state: 'ok' as const,
+      error: undefined,
+      last_out: peer.last_out,
+      last_in: peer.last_in,
+      behind: 0,
+      version: peer.version,
+      config: 'same' as const,
+      clock_skew_ms: 120,
+      shared_state: same,
+      vitals: { ...peer.vitals!, requests_per_s: rps, cpu_usage: cpu, memory_used_ratio: memory, disk_used_ratio: disk },
+    }
+  })
+  return { ...base, state: 'active', members, config: { version: base.config!.version, differing: [] } }
 }
 
 function shiftTimes<T>(value: T, delta: number): T {
@@ -478,8 +504,8 @@ export function createState(opts: CreateStateOptions = {}): MockState {
     manualBlocks: [],
     monitoring: createMonitoringState(scenario, t0, mode === 'observe'),
     // The fixture is written around 14:05:30 of its day; shifted so its contacts are seconds old.
-    group: scenario === 'group' || scenario === 'group-large'
-      ? shiftTimes(scenario === 'group' ? groupFixture as GroupStatus : largeGroup(groupFixture as GroupStatus), t0 - Date.parse(groupFixture.generated_at))
+    group: scenario === 'group' || scenario === 'group-ok' || scenario === 'group-large'
+      ? shiftTimes(scenario === 'group' ? groupFixture as GroupStatus : scenario === 'group-ok' ? healthyGroup(groupFixture as GroupStatus) : largeGroup(groupFixture as GroupStatus), t0 - Date.parse(groupFixture.generated_at))
       : { mode: 'single' },
     agentApi: createAgentApiState(scenario, t0),
   }
