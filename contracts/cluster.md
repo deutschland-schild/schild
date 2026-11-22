@@ -54,6 +54,8 @@ In this order; the first failing check decides.
 | 7 | `signature` | does not verify with the origin's key | never |
 | 8 | `schema` | the data does not fit its class (section 5), unknown fields included | never |
 
+Rule 4 reaches further than the node whose clock is wrong. A node takes the time of every record it takes into its own hybrid clock, so after a node that was up to 60 s ahead wrote, the records of the others carry a time up to 60 s ahead of their own wall clocks, for as long as that lead lasts (at most a minute after the last such record). A third node whose clock is behind by less than 60 s may put their records off in that time: with one node 57 s ahead before, a node 30 s behind took nothing for about half a minute (second lab run, N4). The rule is not changed; clocks have to agree.
+
 A record that is refused for good is counted and never applied or stored. A record that may pass later holds back the sequence number the node asks its peers from, so it comes again.
 
 Records a removed member signed before its removal stand: what it decided while it was a member reads the same on a node that joins later.
@@ -72,6 +74,8 @@ Records a removed member signed before its removal stand: what it decided while 
 - A lift is a tombstone. Data: `incident` (the block it ends), `node`. Its `expires` lies 7 days and an hour after the lift, the longest any block from before could run.
 
 A node that receives a block decides again with what it holds itself: an address on its own allowlist is not blocked, the test profile blocks nothing, and a block of the same client that already runs there stands. Only the deciding node writes the event and the incident; the others show its incident number.
+
+A lift holds whatever arrives first. The incident of a block travels with the events of its node, on another way than the block's record, so a node may hold the incident, and release it, before it holds the record. A node that takes a block record whose incident it holds as unblocked does not start the block and writes the tombstone itself; it does the same at its start for a record it holds. So a release made on any node ends the block for the group, for an edge too, and a block released before its record came does not return.
 
 ### settings, access, logins
 
