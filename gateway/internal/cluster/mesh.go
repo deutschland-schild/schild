@@ -572,7 +572,10 @@ func (n *Node) runPeer(ctx context.Context, p *peer, key ed25519.PublicKey) {
 		}
 		backoff = 250 * time.Millisecond
 		applied, err := n.take(resp.Records, resp.Covered)
-		if err == nil && !resp.More {
+		// In step only when nothing was put off: a node whose clock is far
+		// behind takes the records of the others a minute late, and must not
+		// call itself in step before it holds them.
+		if err == nil && !resp.More && !n.heldBack.Load() {
 			n.synced.Store(true)
 		}
 		var behind uint64

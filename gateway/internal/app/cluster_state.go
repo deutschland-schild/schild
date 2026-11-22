@@ -377,6 +377,14 @@ func (a *App) syncShared(ctx context.Context) {
 	for _, t := range a.shared {
 		a.syncThing(ctx, t, synced)
 	}
+	if synced {
+		// Noted in the node's store, not only in memory: after a restart
+		// that finds no member it decides whether the node may serve alone.
+		if !a.inStepNoted.Swap(true) && node.Mark(markInStep) == "" {
+			_ = node.SetMark(markInStep, "1")
+		}
+		a.sharedApplied.Store(true)
+	}
 }
 
 // syncThing is syncShared for one thing. Called with sharedMu held.

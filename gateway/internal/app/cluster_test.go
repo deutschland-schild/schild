@@ -899,6 +899,7 @@ func TestGroupNodeDoesNotRotateBrowserCheckKeysAtItsStart(t *testing.T) {
 // lost on the way, and what a server sets while the others still run the
 // old group reaches them when they follow.
 func TestNewGroupSecretServerByServerKeepsTheState(t *testing.T) {
+	defer app.SetFirstSyncWait(1500 * time.Millisecond)()
 	// Two groups run in this process for a while (see OneGroupHashKey).
 	t.Cleanup(app.OneGroupHashKey())
 	dir := t.TempDir()
@@ -934,11 +935,15 @@ func TestNewGroupSecretServerByServerKeepsTheState(t *testing.T) {
 	a.block("203.0.113.180", "S-BEFORE", 15*time.Minute)
 	b.h.WaitFor("web-2 holds the block of the old group", func() bool { return b.blocked("203.0.113.180") == "S-BEFORE" })
 
+	b.h.WaitFor("web-2 is in service in the old group", func() bool { return b.h.App.InService() })
 	// web-2 goes first. It is alone in the new group and keeps what it held.
 	renew(b)
 	if g := b.h.App.Cluster.Group(); g == oldGroup {
 		t.Fatal("the new secret made no new group")
 	}
+	// It was in step with the old group and carries that along: alone in
+	// the new one it serves after the wait, like a node that finds nobody.
+	b.h.WaitFor("web-2 serves alone in the new group", func() bool { return b.h.App.InService() })
 	if got := b.blocked("203.0.113.180"); got != "S-BEFORE" {
 		t.Fatalf("web-2 lost the block of the old group over the change: %q", got)
 	}

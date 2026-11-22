@@ -78,6 +78,8 @@ type Node struct {
 	// removed: a member answered that this node was removed.
 	removed atomic.Bool
 	synced  atomic.Bool
+	// heldBack: the last take put records off (see take).
+	heldBack atomic.Bool
 	// paused: schild cluster pause (setup.go).
 	paused atomic.Bool
 }
@@ -448,6 +450,9 @@ func (n *Node) take(raws []json.RawMessage, covered map[string]uint64) (applied 
 			won = append(won, rec)
 		}
 	}
+	// Records put off (a clock ahead, an origin not known yet) are asked for
+	// again: until they are taken this node is not in step with the member.
+	n.heldBack.Store(len(held) > 0)
 	tx, err := n.db.Begin()
 	if err != nil {
 		return applied, err

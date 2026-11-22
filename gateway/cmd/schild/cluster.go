@@ -31,9 +31,11 @@ schild cluster drain                   take this node out of traffic and stop it
                                        503, it stops after cluster.drain.delay_s (as on systemctl stop)
 Common flags: -config FILE, -data DIR
 
-A group shares the address blocks of every node (MVP-27, first version). The
-node's name is node_name, its address cluster.advertise or cluster.listen of
-schild.yaml.
+A group shares address blocks, the settings made in the dashboard, logins,
+certificates, counts, events and requests between its gateways (MVP-27). The
+node's name is cluster.name, else its host name when the group is set up by
+cluster.secret_file, else node_name; its address is cluster.advertise or
+cluster.listen of schild.yaml.
 
 Two ways into a group:
   by configuration  the same cluster.secret_file and cluster.peers on every node, deployed like the

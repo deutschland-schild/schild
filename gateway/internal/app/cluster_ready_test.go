@@ -3,8 +3,15 @@
 package app_test
 
 import (
+	"fmt"
+	"os"
+	"path/filepath"
 	"testing"
 	"time"
+
+	"github.com/deutschland-schild/schild/gateway/internal/app"
+	"github.com/deutschland-schild/schild/gateway/internal/apptest"
+	"github.com/deutschland-schild/schild/gateway/internal/cluster"
 )
 
 // An address with a running block is erased while a node is down. When the
@@ -33,4 +40,48 @@ func TestReturningNodeDropsTheBlockOfAnErasedAddressBeforeItIsInStep(t *testing.
 	if resp := b.h.Visit("GET", "/", ip, "", ""); resp.StatusCode != 200 {
 		t.Errorf("a request of the erased address on web-2: %d", resp.StatusCode)
 	}
+}
+
+// A node that never was in step with its group holds nothing of it: it
+// stays out of traffic however long it reaches no member (finding H1 of the
+// hardening measurement: it answered ready after ten seconds and let an
+// address pass that the group blocks).
+func TestFreshNodeThatReachesNoMemberStaysOutOfTraffic(t *testing.T) {
+	defer app.SetFirstSyncWait(300 * time.Millisecond)()
+	secretFile := filepath.Join(t.TempDir(), "cluster.secret")
+	secret, err := cluster.NewSecret()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(secretFile, []byte(secret+"\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	// The named peer is an address nothing listens on.
+	h := apptest.New(t, apptest.Options{Extra: fmt.Sprintf("cluster: {enabled: true, listen: %q, secret_file: %q, peers: [%q]}\n", apptest.FreeAddr(t), secretFile, apptest.FreeAddr(t))})
+	if h.App.Cluster == nil {
+		t.Fatal("no cluster node")
+	}
+	time.Sleep(1500 * time.Millisecond)
+	if h.App.InService() {
+		t.Fatal("a node that never reached its group answers ready")
+	}
+}
+
+// A node that was in step once and finds nobody after a restart serves with
+// the state it has, after the wait and not before.
+func TestNodeThatWasInStepServesAloneAfterTheWait(t *testing.T) {
+	defer app.SetFirstSyncWait(1500 * time.Millisecond)()
+	a, b := pair(t)
+	b.h.WaitFor("web-2 is in service", func() bool { return b.h.App.InService() })
+	if err := a.h.Stop(); err != nil {
+		t.Fatal(err)
+	}
+	if err := b.h.Stop(); err != nil {
+		t.Fatal(err)
+	}
+	b.start(t)
+	if b.h.App.InService() {
+		t.Fatal("web-2 answers ready at once although it reached nobody")
+	}
+	b.h.WaitFor("web-2 serves alone after the wait", func() bool { return b.h.App.InService() })
 }

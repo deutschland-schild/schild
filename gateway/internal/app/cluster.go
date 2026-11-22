@@ -251,20 +251,45 @@ func (a *App) publishGroupBlocks() {
 
 // firstSyncWait is how long a node that reaches no member waits before it
 // says it is in service with the state it has.
-const firstSyncWait = 10 * time.Second
+var firstSyncWait = 10 * time.Second
 
 // inService is the readiness of a node of a group, next to the gate's own
 // (/.schild/readyz, the health check of the balancer): not while it drains,
-// and not before it took the state of the group, so a node that just
-// started lets nobody pass whom the group blocks. A node that reaches no
-// member serves after ten seconds with the state it has.
+// and not before it took the state of the group and applied it, so a node
+// that just started lets nobody pass whom the group blocks.
+//
+// A node that reaches no member serves after ten seconds with the state it
+// has, but only when it was in step with its group once: a node that never
+// was (a fresh one, one the group refused) holds nothing of the group and
+// stays out of traffic until it reaches a member. A node that reaches a
+// member and cannot take what it has (its clock is far behind) stays out
+// too, as long as that lasts.
 func (a *App) inService() bool {
 	if a.draining.Load() {
 		return false
 	}
 	node := a.Cluster
-	return node == nil || node.Synced() || time.Since(a.started) > firstSyncWait
+	if node == nil || node.Removed() || node.Paused() {
+		// Removed or paused, it serves with the state it has and says so.
+		return true
+	}
+	if node.Synced() {
+		// What was taken is applied by syncShared; the first round after
+		// the node came in step has to be through.
+		if !a.sharedApplied.Load() {
+			return false
+		}
+		return true
+	}
+	if time.Since(a.started) <= firstSyncWait || len(node.Reachable()) > 0 {
+		return false
+	}
+	return node.Mark(markInStep) != ""
 }
+
+// markInStep notes in the node's store that it was in step with its group
+// once (see inService).
+const markInStep = "in_step"
 
 // Drain takes this node out of traffic and stops it, like SIGTERM.
 func (a *App) Drain() { a.drainOnce.Do(func() { close(a.drainCh) }) }

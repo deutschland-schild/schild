@@ -182,7 +182,10 @@ type App struct {
 	// groupVersions: the config and build versions the other gateways of
 	// the group told; groupConfig is this node's (cluster_status.go).
 	groupVersions groupVersions
-	groupConfig   atomic.Pointer[string]
+	// sharedApplied: what the node took of its group was applied once since
+	// it came in step; inStepNoted: the mark for it is written (inService).
+	sharedApplied, inStepNoted atomic.Bool
+	groupConfig                atomic.Pointer[string]
 	// shared are the whole values the group shares (cluster_state.go);
 	// sharedMu around taking and publishing them.
 	shared   []sharedThing
