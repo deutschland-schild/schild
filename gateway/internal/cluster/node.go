@@ -99,6 +99,8 @@ type Node struct {
 	heldBack atomic.Bool
 	// storeGen moves when the store of the node changed (watchStore).
 	storeGen atomic.Uint64
+	// taking counts the takes under way (Taking).
+	taking atomic.Int32
 	// retake: a Resync is under way (resync.go).
 	retake atomic.Int32
 	// paused: schild cluster pause (setup.go).
@@ -441,6 +443,10 @@ func (n *Node) take(raws []json.RawMessage, covered map[string]uint64) (applied 
 	// applies what it took (an erasure takes a moment).
 	n.takeMu.Lock()
 	defer n.takeMu.Unlock()
+	// Counted until the handlers below have run (deferred later, so they
+	// run before this).
+	n.taking.Add(1)
+	defer n.taking.Add(-1)
 	type item struct {
 		rec contract.Record
 		raw []byte

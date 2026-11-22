@@ -2761,9 +2761,13 @@ components:
           required: [blocks, settings, access, logins]
           description: >-
             Gateways only, not for this node: per class whether what is in force on the member is what is in force on
-            this node, by the keyed hashes the gateways tell each other every 5 s (contracts/cluster.md section 14).
-            same: equal, or differing for less than 10 s (a change on its way). differs: differing for 10 s or longer.
-            unknown: the member is not reached, told no hash lately or runs a build that tells none.
+            this node, by the keyed hashes the gateways tell each other every 5 s, each with the point of the state it
+            was computed at (contracts/cluster.md section 14). Hashes are compared only at the same point, so a change
+            on its way is never a difference. same: equal at the last point both were at, within the last minute.
+            differs: different at the same point (what is in force differs although both hold the same records), or
+            different records at the same vector for 10 s. unknown: the member is not reached, told no hash lately,
+            runs a build that tells no points, or the two were at no common point for a minute (changes without a
+            pause, or a member that is behind).
           properties:
             blocks: { $ref: "#/components/schemas/GroupSameState" }
             settings: { $ref: "#/components/schemas/GroupSameState" }

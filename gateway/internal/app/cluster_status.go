@@ -50,6 +50,10 @@ type nodeVersions struct {
 	// State: per class a keyed hash of what is in force on the node
 	// (cluster_fingerprint.go). Absent from a node of an older build.
 	State map[string]string `json:"state,omitempty"`
+	// StateAt: the points the hashes of State were computed at, per class
+	// and for the vector ("v"); a class without a point is not compared
+	// (cluster_fingerprint.go). Absent from a node of an older build.
+	StateAt map[string]string `json:"state_at,omitempty"`
 }
 
 type toldVersions struct {
@@ -122,6 +126,9 @@ func (a *App) startGroupVersions(ctx context.Context) {
 		}
 		v.Vitals = cleanVitals(v.Vitals, time.Now())
 		v.State = cleanState(v.State)
+		v.StateAt = cleanStatePoints(v.StateAt)
+		// Compared now, at the moment the word describes.
+		defer a.noteMemberState(context.Background(), from, v.State, v.StateAt)
 		a.groupVersions.mu.Lock()
 		defer a.groupVersions.mu.Unlock()
 		// The mesh takes a Tell from members only; the map is bounded all
@@ -202,10 +209,14 @@ func (a *App) ownVersions() nodeVersions {
 		v.Config = *p
 	}
 	a.stateWatch.mu.Lock()
-	if len(a.stateWatch.own) > 0 {
-		v.State = make(map[string]string, len(a.stateWatch.own))
-		for class, h := range a.stateWatch.own {
+	if own := a.stateWatch.own; own != nil {
+		v.State = make(map[string]string, len(own.hashes))
+		for class, h := range own.hashes {
 			v.State[class] = h
+		}
+		v.StateAt = make(map[string]string, len(own.points))
+		for key, p := range own.points {
+			v.StateAt[key] = p
 		}
 	}
 	a.stateWatch.mu.Unlock()
