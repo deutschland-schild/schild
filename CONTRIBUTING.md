@@ -51,6 +51,8 @@ git config core.hooksPath .githooks
 
 Keep a pull request to one topic, describe the why, and link the issue. Tests must pass.
 
+New functionality and bug fixes come with automated tests: a test that fails without the change and passes with it, next to the code (Go `_test.go`, dashboard `test/` and `e2e/`) or, for behaviour across components, in `tests/`. A pull request without a test says why, for example a change to copy or docs only.
+
 Every commit needs a sign-off under the [Developer Certificate of Origin](https://developercertificate.org/). It states that you may submit the change under this project's license:
 
 ```bash
