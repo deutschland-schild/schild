@@ -101,7 +101,8 @@ classes:                            # what leaves a node, and how two writes of 
     - 'wave and distributed detectors (MVP-18, D97) compare the sum of every node''s fixed-size aggregates of the last 10 s, so a threshold means the website, not a tenth of it'
     - 'stays per node: open connections and waiting requests (D46, D60), the waiting page, memory limits. They protect the machine'
     - 'a balancer that picks the node by the client address makes every count exact while the set of nodes is unchanged; the runbook recommends it, nothing depends on it'
-  data:                             # large, stays where it was written, plus copies
+  data:                             # as first written: large, stays where it was written, plus copies. Replaced 2026-11-22 by the
+                                    # initiator: every node holds everything of every node (contracts/cluster.md section 9)
     - 'events, incidents, the request ring and the metric rings stay on the node that wrote them, each row with origin_node'
     - 'every gateway keeps a copy of one other gateway''s data (cluster.data_copies 1, up to 2): events and incidents by cursor in sequence order, sealed request segments as files, the open segment and the metric rings as a tail. In a pair each node holds the other''s; in a fleet the holder is picked by rendezvous hash over the member list'
     - 'pulled, not pushed: the holder resumes at its cursor after an outage, and a slow holder slows nobody. Target: a copy is at most 5 s behind at p95'
@@ -256,7 +257,9 @@ open_questions:                     # for the initiator
   - '1 settings in a group: shared from the dashboard as written here, or read-only as in D53?'
   - '2 a full mesh up to 16 gateways, or gossip (memberlist) from the start for larger fleets?'
   - '3 behind the PROXY protocol: close a blocked client before TLS (cheap, no block page), or always answer with the block page?'
-  - '4 one copy of events and requests per node as the default, or none in a fleet where disk is the cost?'
+  # 4 closed by the initiator 2026-11-22: every node holds the events, incidents and requests of every node, with no switch
+  #   (cluster.share_data is gone, cluster.data_copies is not built): all nodes have to be in step to judge by what they hold.
+  #   A node that returns catches up on everything it missed by itself.
   - '5 the caps (200 blocks per second, 2 000 hot keys, 20 000 running blocks, 131 072 addresses on an edge): confirm in the testlab'
   - '6 a block list as plain text for a hoster''s routers and appliances (as CrowdSec''s blocklist mirror), in a later step?'
 
@@ -292,7 +295,7 @@ design_metrics_across_nodes:        # `queries` (counters, histograms, unique cl
     - '3 the overview counters of 24 h: the sum of the group as the default on every node, or this node with the group next to it?'
 
 design_data_copies_and_queries:     # `classes.data` and `queries` for groups too large to keep everything on every node
-  status: ENTWURF
+  status: VERWORFEN                 # initiator 2026-11-22: every node holds everything, always; kept for the record
   what_exists:
     - 'cluster.share_data true: every node pulls the events and incidents of every member by cursor (Ask `events`, `incidents`) and the single requests from a bounded log in memory (Ask `requests`); every list and search is local. share_data false: nothing is pulled, a dashboard shows its node only'
     - 'events carry a source that is unique in the group (schild://<node_name>.<12 hex of the node id>) and a random UUID as id; store.EventsOfSource and IncidentsOfSource answer a member by cursor; store.ListEvents pages by sequence number, which is local to a node'

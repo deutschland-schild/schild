@@ -91,8 +91,7 @@
     "blocks": 2,
     "settings": 7,
     "access": 3,
-    "logins": 3,
-    "share_data": true
+    "logins": 3
   },
   "counters": {
     "taken": 1284,

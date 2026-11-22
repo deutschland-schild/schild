@@ -134,7 +134,7 @@ func TestGroupStatusOfAPair(t *testing.T) {
 	if st.Config == nil || len(st.Config.Version) != 12 || !slices.Equal(st.Config.Differing, []string{"web-2"}) {
 		t.Errorf("config hint: %+v", st.Config)
 	}
-	if st.Shared == nil || !st.Shared.ShareData || st.Counters == nil || st.Replaced == nil {
+	if st.Shared == nil || st.Counters == nil || st.Replaced == nil {
 		t.Errorf("shared %+v counters %+v replaced %v", st.Shared, st.Counters, st.Replaced)
 	}
 

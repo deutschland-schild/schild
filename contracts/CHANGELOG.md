@@ -11,6 +11,8 @@ Not backwards compatible with v0.5 for the gateway; nothing is installed outside
 - **Store (no contract file):** `schild.db` has schema version 1 from 0.1.0-alpha.1 on and is upgraded forward only at the gateway's start, with a backup (D75).
 - **CLI (no contract file):** `schild init`, `schild dashboard setup-code` (D78); test lab switches are ignored by release builds (D77).
 
+**D103 (2026-11-22, draft): every node of a group holds what every node wrote, with no switch.** Not compatible with the earlier draft: config `cluster.share_data` is gone (a file that sets it is refused as an unknown key), `GroupStatus.shared.share_data` is gone from the client dashboard API. No vector used the key.
+
 **D103 (2026-11-22, draft): a gateway tells its group how it is doing.** Additive. Mesh ([cluster.md](cluster.md) section 14): the Tell kind `config` may carry `vitals` (`service`, `started_at`, `requests_per_s`, `stopped_share`, `latency_p95_ms`, `cpu_usage`, `memory_used_ratio`, `disk_used_ratio`); a node of an earlier build sends none and ignores them. Client dashboard API: `GroupMember.vitals` (schema `GroupVitals`), fixture `getGroupStatus` updated. No config key, no vector change.
 
 **D103 (2026-11-22, draft): tasks that run once for a group.** New class `jobs` ([cluster.md](cluster.md), section 5): when a task last started, Go `cluster.Job`. Vectors `cluster-record` +4 (80 valid, 13 invalid in all; 2147 vectors, Go and Python agree). The mesh watches its connections with HTTP/2 pings.

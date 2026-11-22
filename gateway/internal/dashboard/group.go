@@ -74,7 +74,6 @@ type GroupShared struct {
 	Settings  int  `json:"settings"`
 	Access    int  `json:"access"`
 	Logins    int  `json:"logins"`
-	ShareData bool `json:"share_data"`
 }
 
 // GroupCounters are the records of other nodes since the start.

@@ -225,11 +225,11 @@ In der Liste gesperrter Adressen steht bei jeder Sperre, welcher Server sie ents
 
 ## Daten und Datenschutz
 
-Ein Cluster ist ein Betreiber. Mit `cluster.share_data` (ab Werk an) hält jeder Server auch die Ereignisse und Anfragen der anderen, mit den Adressen der Besucher:innen. Sie reisen nur zwischen deinen eigenen Servern, über die verschlüsselte Verbindung des Clusters. Nenne in deiner Datenschutzerklärung jeden Server als Ort der Verarbeitung.
+Ein Cluster ist ein Betreiber. In einem Cluster hält jeder Server auch die Ereignisse und Anfragen der anderen, mit den Adressen der Besucher:innen. Sie reisen nur zwischen deinen eigenen Servern, über die verschlüsselte Verbindung des Clusters. Nenne in deiner Datenschutzerklärung jeden Server als Ort der Verarbeitung.
 
 Jeder Server wendet seine eigenen Aufbewahrungsfristen und Größengrenzen auf alles an, was er hält. Eine Löschung nach Art. 17 gilt auf jedem Server.
 
-Jeder Server speichert damit, was der ganze Cluster aufzeichnet. In einem großen Cluster kann das zu viel sein. Mit `share_data: false` bleiben Ereignisse und Anfragen auf dem Server, der sie geschrieben hat. Sperren, Einstellungen, Logins und Zähler teilt der Cluster trotzdem.
+Jeder Server speichert damit, was der ganze Cluster aufzeichnet. Das lässt sich nicht abschalten: Alle Server sollen denselben Stand haben. Plane den Speicherplatz jedes Servers für die Daten des ganzen Clusters.
 
 ## Grenzen
 

@@ -152,9 +152,7 @@ export const shortVersion = (v: string | undefined) => (v ?? '').replace(/^schil
 export function sharedText(s: GroupStatus): string {
   const sh = s.shared
   if (!sh) return ''
-  const data = sh.share_data
-    ? 'Ereignisse und Anfragen hält jeder Server auch von den anderen.'
-    : 'Ereignisse und Anfragen bleiben auf dem Server, der sie geschrieben hat.'
+  const data = 'Ereignisse und Anfragen hält jeder Server auch von den anderen.'
   return `Geteilt: ${plural(sh.blocks, 'laufende Sperre', 'laufende Sperren')}, ${plural(sh.settings, 'Einstellung', 'Einstellungen')}, ${plural(sh.access, 'Liste', 'Listen')} mit Freigaben und ${plural(sh.logins, 'Liste', 'Listen')} mit Logins. ${data}`
 }
 

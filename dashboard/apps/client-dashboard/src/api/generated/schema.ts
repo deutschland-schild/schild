@@ -1915,8 +1915,6 @@ export interface components {
                 access: number;
                 /** @description Lists of who signs in: users, sessions, agent tokens. */
                 logins: number;
-                /** @description cluster.share_data: every node keeps the events, incidents and requests of every node. */
-                share_data: boolean;
             };
             /** @description Records of other nodes since the start of this node. */
             counters?: {

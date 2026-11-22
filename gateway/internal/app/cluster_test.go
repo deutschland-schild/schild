@@ -538,36 +538,6 @@ func TestGroupSharesEventsIncidentsAndRequests(t *testing.T) {
 	}
 }
 
-func TestGroupKeepsDataPerNodeWhenToldSo(t *testing.T) {
-	a := &groupNode{dir: t.TempDir(), addr: apptest.FreeAddr(t), name: "web-1"}
-	b := &groupNode{dir: t.TempDir(), addr: apptest.FreeAddr(t), name: "web-2"}
-	if _, err := cluster.Init(a.clusterDir(), a.name, a.addr, nil); err != nil {
-		t.Fatal(err)
-	}
-	start := func(g *groupNode) {
-		g.h = apptest.New(t, apptest.Options{Dir: g.dir, Extra: fmt.Sprintf("cluster: {enabled: true, listen: %q, share_data: false}\n", g.addr)})
-	}
-	start(a)
-	a.h.WaitFor("the mesh of web-1 listens", func() bool { return a.h.App.Cluster.Addr() != "" })
-	code, _, err := cluster.Invite(a.clusterDir(), nil)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if _, _, err := cluster.Join(context.Background(), b.clusterDir(), b.name, b.addr, a.addr, code, nil); err != nil {
-		t.Fatal(err)
-	}
-	start(b)
-	const ip = "203.0.113.170"
-	a.h.Visit("GET", attack, ip, "", "")
-	a.h.Flush()
-	a.block("203.0.113.171", "S-STILL-SHARED", 15*time.Minute)
-	b.h.WaitFor("blocks are shared all the same", func() bool { return b.blocked("203.0.113.171") == "S-STILL-SHARED" })
-	time.Sleep(2 * time.Second)
-	if eventsOf(t, b, ip) != 0 || requestsOf(t, b, ip) != 0 {
-		t.Error("with share_data false web-2 holds events or requests of web-1")
-	}
-}
-
 // A flood of blocks leaves in rounds: every one reaches the other node, and
 // none is lost on the way.
 func TestGroupBlockFloodArrivesInRounds(t *testing.T) {

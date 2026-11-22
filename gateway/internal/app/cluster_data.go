@@ -107,12 +107,10 @@ func (a *App) dataEpoch(ctx context.Context) string {
 	return a.Cluster.ID() + "@" + string(at)
 }
 
-// startGroupData shares events, incidents and requests (cluster.share_data).
+// startGroupData shares events, incidents and requests: every node of a
+// group holds what every node wrote (initiator 2026-11-22, no switch).
 func (a *App) startGroupData(ctx context.Context) {
 	a.reapplyErasures(ctx, 0) // what was erased while this node was away
-	if !a.Config().Cluster.SharesData() {
-		return
-	}
 	g := &groupData{a: a, requestsEpoch: a.Cluster.ID() + "@" + strconv.FormatInt(a.started.UnixNano(), 36)}
 	a.groupData = g
 	node := a.Cluster

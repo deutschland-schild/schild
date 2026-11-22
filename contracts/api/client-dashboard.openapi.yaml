@@ -2639,14 +2639,13 @@ components:
         shared:
           type: object
           additionalProperties: false
-          required: [blocks, settings, access, logins, share_data]
+          required: [blocks, settings, access, logins]
           description: "What this node holds of the group's state."
           properties:
             blocks: { type: integer, minimum: 0, description: "Address blocks of the group that run." }
             settings: { type: integer, minimum: 0, description: "Things of class settings (contracts/cluster.md section 5)." }
             access: { type: integer, minimum: 0, description: "Lists of who passes: allowlist, released senders, disabled rules." }
             logins: { type: integer, minimum: 0, description: "Lists of who signs in: users, sessions, agent tokens." }
-            share_data: { type: boolean, description: "cluster.share_data: every node keeps the events, incidents and requests of every node." }
         counters:
           type: object
           additionalProperties: false

@@ -326,7 +326,7 @@ func (a *App) GroupStatus() dashboard.GroupStatus {
 		out.State = "active"
 	}
 	out.Shared = &dashboard.GroupShared{Blocks: st.Records[contract.ClassBlocks], Settings: st.Records[contract.ClassSettings], Access: st.Records[contract.ClassAccess],
-		Logins: st.Records[contract.ClassLogins], ShareData: a.Config().Cluster.SharesData()}
+		Logins: st.Records[contract.ClassLogins]}
 	out.Counters = &dashboard.GroupCounters{Taken: st.Counters["applied"], Refused: st.Counters["rejected"], Deferred: st.Counters["deferred"], Unread: st.Counters["unread"]}
 	out.Replaced = &st.Replaced
 	if len(own.Config) >= 12 {
