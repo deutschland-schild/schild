@@ -10,7 +10,7 @@ Measured 2026-11-22 by a measuring agent, not by the builder. Black box, as in t
 
 ## What this is and what it is not
 
-The same lab as in the first run: nineteen Linux VMs on one lab host (macOS on arm64, 10 cores, 24 GB, Apple `container` 1.5.0; each VM its own kernel, address and packet filter): sixteen gateways, one balancer VM with HAProxy 3.0 in TCP mode, one application VM, one client VM. Visitors come from 203.0.113.0/24 with real packets. Groups are set up by configuration. Its limits are the first run's: not the testlab of the spec, one host and one virtual switch, a Python load client, blocks set by hand. The verdict in the JSON cannot be `pass`; it is `fail` because of the checks below. What a hit kill criterion means is for people to decide.
+The same lab as in the first run: nineteen Linux VMs on one lab host (10 cores and 24 GB of memory; each VM its own kernel, address and packet filter): sixteen gateways, one balancer VM with HAProxy 3.0 in TCP mode, one application VM, one client VM. Visitors come from 203.0.113.0/24 with real packets. Groups are set up by configuration. Its limits are the first run's: not the testlab of the spec, one host and one virtual switch, a Python load client, blocks set by hand. The verdict in the JSON cannot be `pass`; it is `fail` because of the checks below. What a hit kill criterion means is for people to decide.
 
 What differs from the first run, because the documents changed:
 

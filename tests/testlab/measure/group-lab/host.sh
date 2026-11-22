@@ -1,5 +1,5 @@
 #!/bin/bash
-# Runs ON the lab host (macOS with Apple's `container` CLI). Creates and removes the VMs of the MVP-27 lab
+# Runs ON the lab host (which has the `container` command line: one Linux VM per container). Creates and removes the VMs of the MVP-27 lab
 # measurement. Everything it creates is named sg27-*; it touches nothing else.
 #
 #   host.sh up NAME[:MEM[:CPUS]] ...   create the test network (if missing) and the named VMs, start their agents

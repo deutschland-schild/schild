@@ -10,7 +10,7 @@ This extends the first measurement (three gateways, no faults, no load, 92 of 92
 
 ## What this is and what it is not
 
-Real `schild run` processes on 127.0.0.1 of one machine (macOS, arm64, 12 cores, 64 GiB), groups set up by `cluster.secret_file` and `cluster.peers`, one application that answers 200. Faults between nodes come from a userspace TCP proxy in front of every mesh listener (`cluster.advertise` names the proxy): it holds the bytes of one direction between two nodes (a cut: the connection stays open, nothing arrives), refuses connections or delays bytes. Load comes from an open-loop client that spreads requests round robin and, where said, follows `/.schild/readyz` every 200 ms as a balancer does.
+Real `schild run` processes on 127.0.0.1 of one machine (12 cores), groups set up by `cluster.secret_file` and `cluster.peers`, one application that answers 200. Faults between nodes come from a userspace TCP proxy in front of every mesh listener (`cluster.advertise` names the proxy): it holds the bytes of one direction between two nodes (a cut: the connection stays open, nothing arrives), refuses connections or delays bytes. Load comes from an open-loop client that spreads requests round robin and, where said, follows `/.schild/readyz` every 200 ms as a balancer does.
 
 It is not a real network: no balancer, no PROXY protocol, no ACME, no nftables, no packet loss, no latency but the delay the proxy adds. A cut by the proxy holds bytes instead of dropping packets. The builder worked on the same machine meanwhile; single latency values carry that noise. The verdict in the JSON can therefore not be `pass`; it is `fail` because of the checks below. What a failure means is for people to decide.
 
@@ -61,7 +61,7 @@ One of three gateways got another wall clock (a library that shifts `CLOCK_REALT
 - **120 s behind, restart:** the node answers ready after 1.25 s; a block set on another node while it was down acts on it 59.0 s later. Until then it serves the blocked address. FAIL against section 10 (ready only after it took the records of the group).
 - No client request waited or failed on the nodes with the right clock (slowest 25.7 ms).
 
-Reproduce: `run.sh --only s6` (macOS, needs `cc`).
+Reproduce: `run.sh --only s6` (needs `cc` and the dynamic loader the harness's README names).
 
 ### H5. A returning node answers ready 0.2 s before the logins are in step (FAIL, minor, s5 `a.return`, 2 of 2 runs)
 

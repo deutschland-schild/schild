@@ -59,7 +59,7 @@ lab 'container image load -i ~/sg27-work/sg27-node.tar >/dev/null && rm ~/sg27-w
 VMS="client:1G:4 app:512M:2 lb:512M:2 n1:768M:2 n2:768M:2"
 for i in $(seq 3 16); do VMS="$VMS n$i:512M:2"; done
 lab "bash ~/sg27-work/lab/host.sh up $VMS > ~/sg27-work/lab/inventory.json"
-lab 'cd ~/sg27-work && sw_vers -productVersion > out/host-os; sysctl -n hw.ncpu > out/host-cpus; sysctl -n hw.memsize > out/host-mem
+lab 'cd ~/sg27-work && sysctl -n hw.ncpu > out/host-cpus; sysctl -n hw.memsize > out/host-mem
   for f in lab/*.py lab/inventory.json; do container cp $f sg27-client:/opt/sg27/$(basename $f) >/dev/null; done
   [ -f extra/pebble ] && for f in pebble pebble.minica.pem pebble-cert.pem pebble-key.pem; do container cp extra/$f sg27-app:/opt/sg27/$f >/dev/null; done
   container cp extra/hostile sg27-lb:/opt/sg27/hostile >/dev/null
@@ -72,7 +72,7 @@ for s in "${SCENARIOS[@]}"; do
   lab "container cp sg27-client:/opt/sg27/out/raw-$s.json ~/sg27-work/out/raw-$s.json >/dev/null && cat ~/sg27-work/out/raw-$s.json" > "$OUT/raw-$s.json" \
     || { echo "no result of $s: see $OUT/$s.log" >&2; rm -f "$OUT/raw-$s.json"; }
 done
-for f in host-os host-cpus host-mem; do lab "cat ~/sg27-work/out/$f" > "$OUT/$f"; done
+for f in host-cpus host-mem; do lab "cat ~/sg27-work/out/$f" > "$OUT/$f"; done
 # the evidence scenario 11 keeps when a block is left over
 lab 'for f in $(container exec sg27-client sh -c "ls /opt/sg27/out/ 2>/dev/null" | grep evidence); do container cp sg27-client:/opt/sg27/out/$f ~/sg27-work/out/$f >/dev/null; done; true'
 push "${SCHILD_LAB_HOST}:sg27-work/out/" "$OUT/host-out/" || true

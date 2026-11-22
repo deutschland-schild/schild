@@ -141,7 +141,7 @@ def main():
         "finished_at": stamp(max(finished)),
         "seed": 27,
         "profile": "unit",
-        "host": {"os": ("macOS " + read(os.path.join(raw_dir, "host-os"), "?") + ", Linux VMs")[:64], "arch": "arm64",
+        "host": {"os": "Linux VMs on one host", "arch": "arm64",
                  "cpus": int(read(os.path.join(raw_dir, "host-cpus"), "1")),
                  "mem_mb": max(1, int(read(os.path.join(raw_dir, "host-mem"), "1048576")) // 1048576)},
         "images": [{"name": "sg27-node:dev", "digest": image if re.fullmatch(r"sha256:[0-9a-f]{64}", image) else "sha256:" + "0" * 64}],
@@ -149,7 +149,7 @@ def main():
         "kill_criteria": kill,
         # never 'pass': this is one part of `measure`; a failed check makes it 'fail'
         "verdict": "fail" if fails else "inconclusive",
-        "notes": ("Black-box measurement of the group of gateways on real Linux VMs of one lab host (Apple container, one VM per node, "
+        "notes": ("Black-box measurement of the group of gateways on real Linux VMs of one lab host (one VM per node, "
                   "HAProxy on a balancer VM, nftables for the edge and for faults, a TUN based delay in place of netem). "
                   "Development build of schild, never a release. Not the testlab profiles pair and fleet of the spec. "
                   "Report: %s. FAIL checks: %s" % (report_md, ", ".join(r["id"] for r in fails) or "none"))[:8192],

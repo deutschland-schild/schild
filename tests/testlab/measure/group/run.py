@@ -1376,7 +1376,7 @@ def results_json(lab, started, finished, out_path):
         "results_version": 0, "spec": "MVP-27", "run_id": "group-%s" % started.strftime("%Y%m%dT%H%M%SZ"),
         "started_at": started.strftime("%Y-%m-%dT%H:%M:%SZ"), "finished_at": finished.strftime("%Y-%m-%dT%H:%M:%SZ"),
         "seed": SEED, "profile": "unit", "git_rev": rev + ("-dirty" if dirty else ""),
-        "host": {"os": platform.system().lower() + " " + platform.release(), "arch": platform.machine(), "cpus": os.cpu_count() or 1},
+        "host": {"os": platform.system().lower(), "arch": platform.machine(), "cpus": os.cpu_count() or 1},
         "images": [{"name": "schild-dev-build", "digest": "sha256:" + digest}],
         "metrics": m, "kill_criteria": kcs, "verdict": verdict,
         "notes": ("Black-box measurement of the group of gateways on one machine: real `schild run` processes (development build) on 127.0.0.1, "

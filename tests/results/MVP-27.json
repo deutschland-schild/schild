@@ -8,7 +8,7 @@
  "profile": "unit",
  "git_rev": "ea35ba8a99b9-dirty",
  "host": {
-  "os": "darwin 25.5.0",
+  "os": "darwin",
   "arch": "arm64",
   "cpus": 12
  },

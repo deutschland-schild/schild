@@ -8,7 +8,7 @@ Measured 2026-11-21 by the measuring agent, not by the builder. Black box: the g
 
 ## What this is and what it is not
 
-Real `schild run` processes on 127.0.0.1 of one machine (macOS, arm64, 12 cores): one single gateway without `cluster`, group A of three gateways by `cluster.secret_file` and `cluster.peers` (n1 to n3), group B of three gateways by `schild cluster init`, `invite`, `join` (m1 to m3), one application that answers 200. The load client does the round robin. Client addresses come from `X-Forwarded-For` out of the documentation ranges.
+Real `schild run` processes on 127.0.0.1 of one machine (12 cores): one single gateway without `cluster`, group A of three gateways by `cluster.secret_file` and `cluster.peers` (n1 to n3), group B of three gateways by `schild cluster init`, `invite`, `join` (m1 to m3), one application that answers 200. The load client does the round robin. Client addresses come from `X-Forwarded-For` out of the documentation ranges.
 
 It is not the testlab of the spec: no profiles `pair` and `fleet`, no balancer, no keepalived, no PROXY protocol, no ACME server, no nftables, three gateways instead of ten, no network between the nodes (loopback, no latency, no loss). Every time below is a lower bound for a real network. The verdict in the JSON can therefore not be `pass`; it is `fail` because of the checks below. What a hit kill criterion means is for people to decide.
 
@@ -154,5 +154,5 @@ Not built according to contract section 13, so not counted as failures: where ea
 - Propagation is timed by polling the other nodes with requests from the blocked address every 2 ms on keep-alive connections, from the moment the API call is sent. The API call itself took 2.1 ms at p50.
 - Latency is one keep-alive connection, sequential, from a Python client: the absolute values carry its overhead, the comparison between modes does not.
 - The drain load closes its connections to a node whose readiness is not 200, as a balancer does. A first version kept them and counted 12 failed requests on the stale connections after each restart; that was the client, not the gateway.
-- Data directories lie below `/tmp/sg27-*` because the control socket lies below the data directory and a unix socket path on macOS is short. With a long data path `schild cluster status`, `drain`, `pause` are not available (the gateway logs `control path not available`).
+- Data directories lie below `/tmp/sg27-*` because the control socket lies below the data directory and a unix socket path is short on the measuring machine. With a long data path `schild cluster status`, `drain`, `pause` are not available (the gateway logs `control path not available`).
 - Documents read besides the ones named in the task: `gateway/deploy/dev.schild.yaml` for the keys of `schild.yaml`. The mesh request and answer bodies were learned from the contract and from one sync call with a member key.

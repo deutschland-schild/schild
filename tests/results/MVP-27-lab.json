@@ -7,7 +7,7 @@
  "seed": 27,
  "profile": "unit",
  "host": {
-  "os": "macOS 27.2.1, Linux VMs",
+  "os": "Linux VMs on one host",
   "arch": "arm64",
   "cpus": 10,
   "mem_mb": 24576
@@ -7812,7 +7812,7 @@
   }
  ],
  "verdict": "fail",
- "notes": "Black-box measurement of the group of gateways on real Linux VMs of one lab host (Apple container, one VM per node, HAProxy on a balancer VM, nftables for the edge and for faults, a TUN based delay in place of netem). Development build of schild, never a release. Not the testlab profiles pair and fleet of the spec. Report: tests/results/MVP-27-lab.md. FAIL checks: 1.05, 1.12b, 1.30, 1.33, 3.16, 3.23, 3.26, 3.62, 3.36, 3.43, 3.46, 3.50, 5.13, 7.02, 7.04, 7.05, 7.08, 7.09, 7.10",
+ "notes": "Black-box measurement of the group of gateways on real Linux VMs of one lab host (one VM per node, HAProxy on a balancer VM, nftables for the edge and for faults, a TUN based delay in place of netem). Development build of schild, never a release. Not the testlab profiles pair and fleet of the spec. Report: tests/results/MVP-27-lab.md. FAIL checks: 1.05, 1.12b, 1.30, 1.33, 3.16, 3.23, 3.26, 3.62, 3.36, 3.43, 3.46, 3.50, 5.13, 7.02, 7.04, 7.05, 7.08, 7.09, 7.10",
  "artifacts": [
   "tests/results/MVP-27-lab.md",
   "tests/testlab/measure/group-lab/run.py"

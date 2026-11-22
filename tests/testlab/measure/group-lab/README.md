@@ -11,7 +11,7 @@ SCHILD_LAB_HOST=<ssh alias of the lab host> tests/testlab/measure/group-lab/run.
 SCHILD_LAB_HOST=<ssh alias of the lab host> tests/testlab/measure/group-lab/run.sh s2 s3      # single scenarios
 ```
 
-Needs on this machine: Go, Docker (the image is built here), `rsync`, `ssh` to the lab host without a password. Needs on the lab host: macOS on arm64 with Apple's `container` CLI (1.5.0 was used) and `python3`. The name of the lab host is read from `SCHILD_LAB_HOST` only; no file of this directory and no result names it.
+Needs on this machine: Go, Docker (the image is built here), `rsync`, `ssh` to the lab host without a password. Needs on the lab host: an arm64 machine with the `container` command line that `host.sh` calls (one Linux VM per container) and `python3`. The name of the lab host is read from `SCHILD_LAB_HOST` only; no file of this directory and no result names it.
 
 `run.sh` builds a development `schild` for linux/arm64 (a test binary, never a release), the mesh client of the loopback harness (`../group/hostile`) and the ACME test server pebble, builds the image `sg27-node:dev`, copies it to the lab host, creates 19 VMs there, runs the scenarios in the client VM, writes `tests/results/MVP-27-lab-run2.json` (`RESULTS=<file>` names another file; the first run's file is never written again) and removes every container, the network, the image and the work directory from the lab host again. `KEEP=1` leaves the VMs up; `ssh <lab host> 'bash ~/sg27-work/lab/host.sh down'` removes them later. `WORK=<directory>` keeps the build between runs; keep it short (the ssh control socket lies in it). Next to the results, `$OUT/tables.md` holds the checks as Markdown tables for the report.
 

@@ -63,11 +63,11 @@ def results_json(out_dir, path, repo):
         "run_id": "hardening-%s" % min(r["started"] for r in raws).replace("-", "").replace(":", ""),
         "started_at": min(r["started"] for r in raws), "finished_at": max(r["finished"] for r in raws),
         "seed": hard.SEED, "profile": "unit", "git_rev": raws[-1]["git_rev"],
-        "host": {"os": platform.system().lower() + " " + platform.release(), "arch": platform.machine(), "cpus": os.cpu_count() or 1},
+        "host": {"os": platform.system().lower(), "arch": platform.machine(), "cpus": os.cpu_count() or 1},
         "images": [{"name": "schild-dev-build", "digest": "sha256:" + raws[-1]["bin_sha256"]}],
         "metrics": metrics[:1024], "kill_criteria": kcs,
         "verdict": "error" if harness else ("fail" if fails else "inconclusive"),
-        "notes": ("Hardening measurement of the group of gateways on one machine (127.0.0.1, macOS): faults between nodes through a userspace "
+        "notes": ("Hardening measurement of the group of gateways on one machine (127.0.0.1): faults between nodes through a userspace "
                   "TCP proxy, hard crashes, load, 2 and 16 gateways, long absence, clocks, mixed versions. Scenarios in this file: %s. "
                   "Never 'pass': one machine, no balancer, no real network; see tests/results/MVP-27-hardening.md. FAIL checks: %s" % (
                       ", ".join("%s (git %s)" % (r["scenario"], r["git_rev"]) for r in raws),
