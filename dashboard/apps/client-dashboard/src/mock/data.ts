@@ -257,8 +257,8 @@ function healthyGroup(base: GroupStatus): GroupStatus {
   const peer = base.members!.find(m => m.role === 'gateway' && m.state === 'ok')!
   const same = { blocks: 'same', settings: 'same', access: 'same', logins: 'same' } as const
   const load: Record<string, [number, number, number, number]> = { 'web-2': [38.9, 0.34, 0.52, 0.41], 'web-3': [43.2, 0.27, 0.46, 0.39] }
-  const members = base.members!.filter(m => m.state !== 'removed').map((m) => {
-    if (m.role !== 'gateway') return m
+  // No balancer VMs: most clusters stand behind a balancer nothing of schild runs on.
+  const members = base.members!.filter(m => m.state !== 'removed' && m.role === 'gateway').map((m) => {
     if (m.state === 'self') return { ...m, config: 'same' as const }
     const [rps, cpu, memory, disk] = load[m.name] ?? [40, 0.3, 0.5, 0.4]
     return {

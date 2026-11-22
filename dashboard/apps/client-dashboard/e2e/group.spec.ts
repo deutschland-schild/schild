@@ -166,3 +166,15 @@ test('the filter "Server" picks whose numbers the counters and charts show', asy
   await expect(page.getByTestId('node-filter-select')).toHaveValue('all')
   await expect(page.getByTestId('cluster-node-note')).toHaveCount(0)
 })
+
+test('a cluster without balancer VMs shows no tile for them', async ({ page }) => {
+  await page.goto('./?scenario=group-ok#/server/group')
+  await expect(page.getByTestId('group-page-state')).toContainText('Abgleich aktiv')
+  await expect(page.getByTestId('group-total-ready')).toContainText('3 von 3')
+  await expect(page.getByTestId('group-total-edges')).toHaveCount(0)
+  await expect(page.getByTestId('group-edges')).toHaveCount(0)
+  expect(await axe(page)).toEqual([])
+  await noOverflow(page)
+  await page.goto('./?scenario=group#/server/group')
+  await expect(page.getByTestId('group-total-edges')).toContainText('2')
+})

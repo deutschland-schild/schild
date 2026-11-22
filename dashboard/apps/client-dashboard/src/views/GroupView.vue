@@ -55,16 +55,17 @@ const readyHint = computed(() => {
       <Skeleton v-for="i in 3" :key="i" class="h-64 w-full" />
     </div>
     <template v-else-if="inGroup && totals">
-      <section aria-label="Der Cluster in Zahlen" class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4" data-testid="group-totals">
+      <section aria-label="Der Cluster in Zahlen" :class="['grid gap-4', edgeRows.length ? 'sm:grid-cols-2 xl:grid-cols-4' : 'sm:grid-cols-3']" data-testid="group-totals">
         <StatCard label="Server bereit" :value="`${formatNumber(totals.ready)} von ${formatNumber(totals.gateways)}`" :hint="readyHint" :tone="totals.ready === totals.gateways ? 'success' : 'warning'" data-testid="group-total-ready" />
         <StatCard
           label="Anfragen pro Sekunde" :value="totals.requestsPerS === null ? '–' : formatDecimal(totals.requestsPerS)"
           :hint="totals.reporting === totals.gateways ? 'Alle Server zusammen, letzte Minute' : `Summe aus ${plural(totals.reporting, 'Server', 'Servern')}, letzte Minute`" data-testid="group-total-rps"
         />
         <StatCard label="Laufende Sperren" :value="s.shared?.blocks ?? null" hint="Gelten auf jedem Server des Clusters" data-testid="group-total-blocks" />
+        <!-- Only a cluster with balancer VMs (edges) shows them; most have none. -->
         <StatCard
-          label="Balancer-VMs" :value="edgeRows.length"
-          :hint="edgeRows.length ? `${formatNumber(edgesHere)} fragen gerade diesen Server` : 'Keine im Cluster. Sperren greifen auf den Gateways.'" data-testid="group-total-edges"
+          v-if="edgeRows.length" label="Balancer-VMs" :value="edgeRows.length"
+          :hint="`${formatNumber(edgesHere)} fragen gerade diesen Server`" data-testid="group-total-edges"
         />
       </section>
 
@@ -141,7 +142,7 @@ const readyHint = computed(() => {
         </div>
       </section>
 
-      <GroupCard class="mt-6" heading="Balancer-VMs und Abgleich" brief />
+      <GroupCard class="mt-6" :heading="edgeRows.length ? 'Balancer-VMs und Abgleich' : 'Abgleich'" brief />
 
       <Sheet v-model:open="detailOpen">
         <SheetContent class="w-full gap-0 overflow-y-auto sm:max-w-lg" data-testid="group-node-sheet">
