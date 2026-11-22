@@ -185,7 +185,14 @@ type App struct {
 	// sharedApplied: what the node took of its group was applied once since
 	// it came in step; inStepNoted: the mark for it is written (inService).
 	sharedApplied, inStepNoted atomic.Bool
-	groupConfig                atomic.Pointer[string]
+	// warmDone: the running counts of the group were taken at the start, or
+	// there was nobody to take them from; warmFailed: a member was in reach
+	// and they were not taken (cluster_warm.go). clockOut: the node left
+	// traffic because its clock is off the group's (cluster_clock.go).
+	warmDone, warmFailed, clockOut atomic.Bool
+	// testClocks stands in for the clocks of the members in reach (tests).
+	testClocks  atomic.Pointer[func() []time.Duration]
+	groupConfig atomic.Pointer[string]
 	// shared are the whole values the group shares (cluster_state.go);
 	// sharedMu around taking and publishing them.
 	shared   []sharedThing

@@ -118,3 +118,14 @@ func (t *table[K, V]) evictions() uint64 {
 	}
 	return n
 }
+
+// each visits the entries of shard i under its lock (0 <= i < shards). f
+// must not call back into the table.
+func (t *table[K, V]) each(i int, f func(K, *V)) {
+	s := &t.shards[i]
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	for k, v := range s.m {
+		f(k, v)
+	}
+}

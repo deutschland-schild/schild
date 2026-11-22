@@ -434,6 +434,12 @@ func (a *App) clusterReasons() []string {
 	if st.State == "degraded" || st.State == "interrupted" {
 		out = append(out, "cluster_peers_unreachable")
 	}
+	if a.clockOut.Load() {
+		out = append(out, "cluster_clock_out_of_service")
+	}
+	if a.warmFailed.Load() {
+		out = append(out, "cluster_counts_not_taken")
+	}
 	if st.Config != nil && len(st.Config.Differing) > 0 {
 		out = append(out, "cluster_config_drift")
 	}

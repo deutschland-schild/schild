@@ -98,6 +98,7 @@ func (a *App) startCluster(ctx context.Context) {
 	a.oncePerGroup(ctx, jobHumanCheckKeys, time.Hour, a.rotateHumanCheckKeys)
 	a.startEdges()
 	a.startGroupVersions(ctx)
+	a.startClockWatch(ctx)
 	if cfg.CaddyIngress() {
 		a.startGroupFiles(ctx, a.storageRoot())
 	}
@@ -301,7 +302,15 @@ func (a *App) inService() bool {
 		if !a.sharedApplied.Load() {
 			return false
 		}
-		return true
+		// The running counts of the group are taken too, or it is settled
+		// that they cannot be (cluster_warm.go): limits and scenarios judge
+		// the first request with what the group counted before.
+		if !a.warmDone.Load() {
+			return false
+		}
+		// A clock a minute off the group's, and the node knows it is the odd
+		// one (cluster_clock.go).
+		return !a.clockOut.Load()
 	}
 	if time.Since(a.started) <= firstSyncWait || len(node.Reachable()) > 0 {
 		return false
@@ -426,9 +435,11 @@ const tellCounts = "counts"
 func (a *App) startCounts(ctx context.Context) {
 	if !a.groupHash {
 		a.log.Warn("cluster: this node holds no hash key of its group (it joined with an older schild): limits and scenarios count per node. Let it join again")
+		a.warmDone.Store(true) // nothing is counted for the group, nothing to take
 		return
 	}
 	a.Behaviour.EnableSharing()
+	a.startWarm(ctx)
 	a.Cluster.OnTell(tellCounts, func(_ string, body []byte) {
 		var c behaviour.Counts
 		if json.Unmarshal(body, &c) == nil {
