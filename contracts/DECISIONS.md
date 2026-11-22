@@ -953,18 +953,6 @@ Two findings before the release. First: the session cookie was `Secure` for ever
 - **Certificates.** A Caddy storage module on the mesh. The lock is held by the reachable member with the lowest id; in a split a certificate may be ordered twice, which is accepted and counted.
 - **Open for the initiator:** the six questions at the end of the spec, the first being whether settings are shared or read-only.
 
-## D104 Notifications deliver the inbox, and a weekly report per instance (DRAFT / ENTWURF, asked for by the initiator 2026-11-22; MVP-32, not built)
-
-- **Finding (initiator).** "Eigentlich wäre es gut per Email oder Slack, etc alarmiert werden zu können und auch ein wöchentliches reporting wäre super." Small websites have nobody who opens the dashboard every day. MVP-30 left notifications out of scope. Spec: [MVP-32](../tests/specs/MVP-32-notifications-and-weekly-report.yaml).
-- **No second alert logic.** An alert is about an inbox item (D62) and nothing else: an item of severity danger that stays open 2 min alerts once per id, items within 5 min go out as one message, an item that ends gets a short "erledigt". What should alert and has no item yet becomes an inbox kind first (`site_disrupted`, `cert_failing`, `rules_stale`, `node_missing`, `host_suspect`, `notify_failing`). A dismissal in the dashboard silences the channels too. Waves and blocked attacks need no decision and go into the report.
-- **Channels of the operator, no service of Schild.** E-mail over the operator's SMTP (TLS required), Slack and Mattermost incoming webhooks, Discord, ntfy, and a generic webhook signed with HMAC-SHA256 (`Schild-Signature`). Fits D72: the gateway has no network side and sends only where the operator points it.
-- **Nothing a visitor controls leaves the gateway.** A message carries kinds, counts, rule ids and categories, configured names and a dashboard link; never addresses, pseudonyms, User-Agents, paths, hosts seen in traffic or incident numbers. The payload type enforces it, escaping per channel stays as a second net.
-- **The gateway writes German text for messages.** Amends the MVP-30 rule "no item text from the gateway" for messages only: one package of templates, humanizer rules, a test against forbidden words.
-- **Set up in the dashboard and in `schild.yaml`** (D84). Secrets in `schild.yaml` only as files; secrets typed into the dashboard are never read back.
-- **Weekly report.** Per instance, at a weekday and time (default Monday 08:00, Europe/Berlin), from the monitoring rings (`ten_minute_days` default 14 covers the week and the week before) and the inbox. A quiet week is short.
-- **Group (D105).** Alerts and the report are jobs that run once for the group. Jobs gain an optional time of day, and a record class `notify` keeps what was alerted, so a takeover neither repeats nor drops an alert. In a split an alert or report may go out twice, accepted as for certificates.
-- **Open for the initiator:** Teams, reports per website to another recipient, a daily digest, quiet hours, secrets in the dashboard at all (end of the spec).
-
 ## D103 The agent API is on by default, has a switch in the dashboard and is reachable in a container (2026-11-21, initiator)
 
 - **Finding (initiator).** The agent API is an important feature, and setting it up took an edit of `schild.yaml`, a restart and a token. With Docker, the second way to install, it could not be reached from the host at all: the listener took loopback only, which inside a container is the container. Nothing in the dashboard showed that the API exists.
