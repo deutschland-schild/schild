@@ -89,6 +89,7 @@ func (a *App) startCluster(ctx context.Context) {
 	a.startSharedState(ctx)
 	a.startCounts(ctx)
 	a.startGroupData(ctx)
+	a.startGroupMetrics(ctx)
 	a.startGroupHub(ctx)
 	// Tasks that run once for the group, on whichever node keeps its locks.
 	a.oncePerGroup(ctx, jobHumanCheckKeys, time.Hour, a.rotateHumanCheckKeys)

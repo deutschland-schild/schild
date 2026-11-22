@@ -269,7 +269,14 @@ open_questions:                     # for the initiator
 # initiator has to take before it is built.
 
 design_metrics_across_nodes:        # `queries` (counters, histograms, unique clients) and `ui` (filter "Server") for metrics.db
-  status: ENTWURF
+  status: GEBAUT                    # 2026-11-22, contracts/cluster.md section 9a; not measured independently. Decisions as
+                                    # recommended: 1 pull every 10 s, 2 every node keeps the buckets of every member, 3 the sum of
+                                    # the group is the default. Built differently from the text below: one ring store per member
+                                    # under metrics-nodes instead of a table in metrics.db; all three rings are pulled, not the
+                                    # 1 min ring alone; the last minute comes from the 10 s ring (about 20 s behind), there is no
+                                    # Tell `live`; what an answer covers is one object `cluster` (node, nodes, partial_nodes,
+                                    # clients_at_least); the filter "Server" is one choice in the top bar for all counters and
+                                    # charts; Overview.counters_24h (the gate's memory) and the host sample stay per node.
   what_exists:
     - 'every node keeps its MetricBucket rings in metrics.db (10 s, 1 min, 10 min); monitoring.Monitor.Buckets(res, from, cursor, limit) already hands them out by cursor (GET /monitoring/buckets, the export of MVP-20)'
     - 'monitoring.mergeBucket adds two parts of one bucket by the rules of MVP-20: counters and latency histograms add, top lists merge as space-saving summaries, gauges average. It adds the estimates of distinct clients, which is right for two parts of one process and wrong for two nodes'

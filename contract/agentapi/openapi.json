@@ -49,6 +49,15 @@
      "type": "integer"
     }
    },
+   "Node": {
+    "description": "In a group of gateways (contracts/cluster.md section 9a): the node whose numbers the answer shows. Absent or `all`: every node of the group added up, the default. A node id (GroupMember.id of getGroupStatus): that node alone, this gateway or another member, from the history this gateway holds of it. An id that is no gateway of the group, and any id on a single gateway: 400 invalid (pointer #/query/node). The answer says what it covers in `cluster`.",
+    "in": "query",
+    "name": "node",
+    "schema": {
+     "pattern": "^(all|n-[0-9a-f]{32})$",
+     "type": "string"
+    }
+   },
    "Rule": {
     "in": "path",
     "name": "rule",
@@ -2127,6 +2136,88 @@
     "pattern": "^p1-[0-9a-f]{16}$",
     "type": "string"
    },
+   "ClusterNode": {
+    "additionalProperties": false,
+    "properties": {
+     "id": {
+      "pattern": "^n-[0-9a-f]{32}$",
+      "type": "string"
+     },
+     "name": {
+      "maxLength": 63,
+      "type": "string"
+     },
+     "self": {
+      "description": "This gateway.",
+      "type": "boolean"
+     }
+    },
+    "required": [
+     "id",
+     "name"
+    ],
+    "type": "object"
+   },
+   "ClusterPartialNode": {
+    "additionalProperties": false,
+    "properties": {
+     "name": {
+      "maxLength": 63,
+      "type": "string"
+     },
+     "node": {
+      "pattern": "^n-[0-9a-f]{32}$",
+      "type": "string"
+     },
+     "until": {
+      "$ref": "#/components/schemas/Timestamp",
+      "description": "End of what this gateway holds of the node; absent: nothing yet."
+     }
+    },
+    "required": [
+     "node",
+     "name"
+    ],
+    "type": "object"
+   },
+   "ClusterScope": {
+    "additionalProperties": false,
+    "description": "In a group of gateways: which nodes the numbers of an answer cover (contracts/cluster.md section 9a). Absent on a single gateway. Every gateway keeps the metric buckets of every other gateway and asks for new ones every 10 s, so the numbers of another node end up to that long, plus the step of the ring, before the present.",
+    "properties": {
+     "clients_at_least": {
+      "description": "true when the answer adds up several nodes. Counters, latency histograms and top lists add. Estimates of distinct clients (visitors, unique and new clients) do not, because a visitor may have reached several nodes: the answer carries the largest estimate of the nodes, a lower bound of the group's (UI \"mindestens\"). Gauges and host values (CPU, memory, disk, network) are never added: an answer over several nodes carries those of this gateway, ask for one node to see another's.",
+      "type": "boolean"
+     },
+     "node": {
+      "description": "all, or the id of the one node asked for.",
+      "pattern": "^(all|n-[0-9a-f]{32})$",
+      "type": "string"
+     },
+     "nodes": {
+      "description": "The nodes whose numbers the answer holds: this gateway first when it is among them, then the others by id.",
+      "items": {
+       "$ref": "#/components/schemas/ClusterNode"
+      },
+      "maxItems": 33,
+      "type": "array"
+     },
+     "partial_nodes": {
+      "description": "Nodes of `nodes` whose history on this gateway ends before the span of the answer does: they were not reached, or they were down. From `until` on the answer lacks their part, so its sums are lower bounds.",
+      "items": {
+       "$ref": "#/components/schemas/ClusterPartialNode"
+      },
+      "maxItems": 32,
+      "type": "array"
+     }
+    },
+    "required": [
+     "node",
+     "nodes",
+     "partial_nodes",
+     "clients_at_least"
+    ],
+    "type": "object"
+   },
    "ContainerSnapshot": {
     "additionalProperties": false,
     "description": "cgroup v2 of schild's own container (cpu.max, cpu.stat, memory.current, memory.max, memory.events).",
@@ -3567,6 +3658,9 @@
    "MonitoringNow": {
     "additionalProperties": false,
     "properties": {
+     "cluster": {
+      "$ref": "#/components/schemas/ClusterScope"
+     },
      "generated_at": {
       "$ref": "#/components/schemas/Timestamp"
      },
@@ -4908,6 +5002,9 @@
       ],
       "type": "integer"
      },
+     "cluster": {
+      "$ref": "#/components/schemas/ClusterScope"
+     },
      "filters": {
       "description": "The filters applied (traffic.requests, stopped, would_block and detections only).",
       "items": {
@@ -5709,6 +5806,9 @@
      },
      "by": {
       "$ref": "#/components/schemas/BreakdownDimension"
+     },
+     "cluster": {
+      "$ref": "#/components/schemas/ClusterScope"
      },
      "exact": {
       "description": "How the numbers are made, never the coverage of the window. false for path, asn, referrer and rule (bounded top lists, see TopEntry.error), for country per website when several websites share the gateway (K = 16), and for a sampled request ring (source requests); true otherwise. A gap or restart in the range no longer turns exact false; that is partial.",
@@ -6983,6 +7083,9 @@
     "operationId": "getMonitoringNow",
     "parameters": [
      {
+      "$ref": "#/components/parameters/Node"
+     },
+     {
       "$ref": "#/components/parameters/Site"
      }
     ],
@@ -7012,6 +7115,9 @@
     "description": "Up to 16 metrics over a range, at 10 s, 1 min or 10 min resolution. The metric ids are in getMetricCatalogue.\n\nErrors: 400 `too_many_points` (over 1000: choose a coarser resolution or a shorter range), 409 `monitoring_off`, `filter_unavailable` (this filter needs the request ring).",
     "operationId": "queryMetricSeries",
     "parameters": [
+     {
+      "$ref": "#/components/parameters/Node"
+     },
      {
       "explode": true,
       "in": "query",
@@ -7150,6 +7256,9 @@
     "description": "The top values of one dimension over a range: paths, countries, networks, referrers, browsers, bot categories, WAF rules and more. `filter` narrows it, e.g. country:DE. `by=ip` lists full client addresses, `by=user_agent` the User-Agent as sent; both come from the request ring.\n\nErrors: 409 `monitoring_off`, `filter_unavailable` (this filter needs the request ring).",
     "operationId": "getTrafficBreakdown",
     "parameters": [
+     {
+      "$ref": "#/components/parameters/Node"
+     },
      {
       "in": "query",
       "name": "by",

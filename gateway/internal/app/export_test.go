@@ -71,3 +71,11 @@ func SetRequestsLog(n int) (undo func()) {
 	requestsLog = n
 	return func() { requestsLog = old }
 }
+
+// PullGroupMetrics asks the members for their metric buckets now, as the
+// loop does every ten seconds (cluster_metrics.go).
+func (a *App) PullGroupMetrics(ctx context.Context) {
+	if a.groupMetrics != nil {
+		a.groupMetrics.round(ctx)
+	}
+}

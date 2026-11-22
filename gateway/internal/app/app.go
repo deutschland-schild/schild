@@ -176,7 +176,9 @@ type App struct {
 	// groupData shares events, incidents and requests (cluster_data.go);
 	// erased: when each address was erased in the group.
 	groupData *groupData
-	erased    erasedSet
+	// groupMetrics: the metric buckets of the other gateways (cluster_metrics.go).
+	groupMetrics *groupMetrics
+	erased       erasedSet
 	// groupVersions: the config and build versions the other gateways of
 	// the group told; groupConfig is this node's (cluster_status.go).
 	groupVersions groupVersions

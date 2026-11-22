@@ -223,6 +223,16 @@ Jeder Server meldet diese Zahlen alle fünf Sekunden an die anderen. Die Seite z
 
 In der Liste gesperrter Adressen steht bei jeder Sperre, welcher Server sie entschieden hat. Löschst du unter „Datenschutz“ eine Adresse, nennt das Dashboard die Server, die die Löschung schon erreicht hat, und die, bei denen sie noch aussteht.
 
+## Zahlen und Diagramme im Cluster
+
+Jeder Server hält auch die Messwerte der anderen. Deshalb zeigen Zähler und Diagramme auf jedem Dashboard die Summe aller Server: Anfragen, gestoppte Anfragen, Antwortzeiten, die Ranglisten nach Pfad, Land oder Netz.
+
+Oben auf jeder Seite steht der Filter „Zahlen von“. „Alle Server“ ist die Vorgabe. Wählst du einen Server, zeigen Zähler und Diagramme nur ihn. Das geht auch für einen Server, der gerade aus ist: Seine Werte bis zum Ausfall liegen auf den anderen. Die Listen der Ereignisse und Anfragen zeigen immer alle Server.
+
+Erreicht ein Server einen anderen nicht, fehlen dessen Werte ab diesem Zeitpunkt. Das Dashboard nennt den Server und die Uhrzeit: „Daten von web-3 fehlen seit …“. Die Summen sind ab da ohne diesen Server.
+
+Die Messwerte der anderen Server liegen unter `metrics-nodes` im Datenverzeichnis, eine Datei je Server, mit denselben Fristen wie die eigenen Messwerte (`monitoring.keep`). Plane den Platz dafür ein: bei zehn Servern das Zehnfache der eigenen `metrics.db`. Nimmst du einen Server aus dem Cluster, löschen die anderen seine Messwerte.
+
 ## Daten und Datenschutz
 
 Ein Cluster ist ein Betreiber. In einem Cluster hält jeder Server auch die Ereignisse und Anfragen der anderen, mit den Adressen der Besucher:innen. Sie reisen nur zwischen deinen eigenen Servern, über die verschlüsselte Verbindung des Clusters. Nenne in deiner Datenschutzerklärung jeden Server als Ort der Verarbeitung.
@@ -237,7 +247,8 @@ Jeder Server speichert damit, was der ganze Cluster aufzeichnet. Das lässt sich
 - **Dieselbe Einstellung auf zwei Servern geändert.** Änderst du denselben Schalter oder denselben Eintrag gleichzeitig auf zwei Servern, gilt überall die spätere Änderung. Verschiedene Einträge derselben Liste bleiben beide erhalten, auch wenn sich die Server zwischendurch nicht erreicht haben.
 - **Limits mit Verzug.** Ein Client, der seine Anfragen über die Server verteilt, kommt um das hinaus, was die Server in einer Sekunde annehmen.
 - **Einzelne Anfragen nach einem langen Ausfall.** Ein Server, der aus war, holt alle Anfragen nach, die die anderen inzwischen bedient haben, auch wenn einer von ihnen selbst neu gestartet ist. Die Grenze ist die Aufbewahrung der anderen Server: Was dort schon gelöscht ist (`requests.keep_hours`, `requests.max_size_mb`), kommt nicht mehr. Der Server schreibt dann in sein Log, dass ihm Anfragen fehlen. Unter hoher Last speichert ein Server nur einen Teil der Anfragen. Was er nicht gespeichert hat, kann er später auch nicht nachliefern.
-- **Pro Server bleiben** die Zähler der Übersicht und die Server-Diagramme.
+- **Zahlen der anderen Server mit Verzug.** Diagramme und Zähler zeigen die anderen Server mit etwa 10 bis 20 Sekunden Verzug, bei Minutenwerten bis zu einer Minute mehr. Besucherzahlen aus mehreren Servern sind eine Untergrenze („mindestens“), weil dieselbe Person mehrere Server erreicht haben kann.
+- **Pro Server bleiben** die Werte von diesem Moment auf der Seite „Auslastung“ (Prozesse, Festplatten, Verbindungen), die Live-Ansicht im Sekundentakt und die Zähler unter „Schutzstatus“. Sie zeigen den Server, dessen Dashboard du geöffnet hast.
 - **Wellen mit Verzug.** Wie bei den Limits vergeht bis zu einer Sekunde, bis die Server voneinander wissen. Eine Welle wird deshalb erkannt, sobald die Summe über der Schwelle liegt und die nächste passende Anfrage einen Server erreicht. Wie viele Anfragen eine Reaktion gestoppt hat, zählt jeder Server für sich.
 - **Zertifikate bei Netztrennung.** Erreichen sich die Server nicht, kann jede Seite dasselbe Zertifikat bestellen. Das ist eine Bestellung zu viel, beide Zertifikate sind gültig.
 - **Neues Geheimnis heißt neuer Cluster.** Ist das Cluster-Geheimnis bekannt geworden, verteilst du ein neues und lässt die Server mit leerem Verzeichnis `cluster` neu starten. Einen Wechsel im laufenden Betrieb gibt es noch nicht.

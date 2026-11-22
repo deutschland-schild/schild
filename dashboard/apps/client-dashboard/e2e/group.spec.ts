@@ -136,3 +136,33 @@ test('sixteen gateways stay readable: side by side below the internet, a table i
   await page.keyboard.press('Escape')
   await noOverflow(page)
 })
+
+// MVP-27: in a cluster the counters and charts show every gateway added up, or one gateway alone.
+test('the filter "Server" picks whose numbers the counters and charts show', async ({ page }) => {
+  await page.goto('./#/')
+  await expect(page.getByTestId('node-filter')).toHaveCount(0)
+
+  await page.goto('./?scenario=group#/server')
+  const select = page.getByTestId('node-filter-select')
+  await expect(select).toHaveValue('all')
+  await expect(select.locator('option')).toHaveCount(4)
+  // A gateway that is not reached is named: the sums lack its part.
+  await expect(page.getByTestId('cluster-partial-note')).toContainText('Daten von web-3 fehlen seit')
+  await expect(page.getByTestId('cluster-node-note')).toHaveCount(0)
+
+  const asked = page.waitForRequest(r => r.url().includes('/monitoring/now') && r.url().includes('node=n-1b2c3d4e5f60718293a4b5c6d7e8f90a'))
+  await select.selectOption({ label: 'web-2' })
+  await asked
+  await expect(page.getByTestId('cluster-node-note')).toContainText('Zahlen und Diagramme zeigen nur web-2')
+  // web-2 is reached: its numbers lack nothing.
+  await expect(page.getByTestId('cluster-partial-note')).toHaveCount(0)
+  expect(await axe(page)).toEqual([])
+  await noOverflow(page)
+
+  // The choice holds on the next page and ends with one click.
+  await page.goto('./?scenario=group#/server/group')
+  await expect(page.getByTestId('node-filter-select')).toHaveValue('n-1b2c3d4e5f60718293a4b5c6d7e8f90a')
+  await page.getByTestId('cluster-node-all').click()
+  await expect(page.getByTestId('node-filter-select')).toHaveValue('all')
+  await expect(page.getByTestId('cluster-node-note')).toHaveCount(0)
+})

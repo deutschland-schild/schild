@@ -27,10 +27,13 @@ func dimFilters(fs []Filter) []reqring.DimFilter {
 	return out
 }
 
-// ringFor returns the request ring when it covers [from, to).
-func (m *Monitor) ringFor(from, to, now time.Time) *reqring.Ring {
+// ringFor returns the request ring when it covers [from, to) and the view
+// is not one node of a group.
+func (m NodeView) ringFor(from, to, now time.Time) *reqring.Ring {
 	r := m.cfg.Requests
-	if r == nil || !r.Covers(from, to, now) {
+	// The ring holds the requests of every node without their node: it
+	// answers for the group, never for one node of it.
+	if r == nil || m.One() || !r.Covers(from, to, now) {
 		return nil
 	}
 	return r
@@ -61,7 +64,7 @@ var ErrRingBusy = errors.New("request ring busy")
 // cannot: visitors (distinct visitor keys per day), page views, latency
 // and the error rate under a filter, and every value under two or more
 // filters.
-func (m *Monitor) Kpis(site string, from, to time.Time, filters []string, now time.Time) (websites.KpiSet, error) {
+func (m NodeView) Kpis(site string, from, to time.Time, filters []string, now time.Time) (websites.KpiSet, error) {
 	sel, err := m.selectSite(site)
 	if err != nil {
 		return websites.KpiSet{}, err
@@ -107,7 +110,7 @@ func (m *Monitor) Kpis(site string, from, to time.Time, filters []string, now ti
 // KpisSource is WebsiteKpis.source: requests when the request ring
 // answers a filter (one filter adds visitors, page views, latency and the
 // error rate from it; two or more filters take every value from it).
-func (m *Monitor) KpisSource(filters []string, from, to, now time.Time) string {
+func (m NodeView) KpisSource(filters []string, from, to, now time.Time) string {
 	if len(filters) > 0 && m.ringFor(from, to, now) != nil {
 		return "requests"
 	}
@@ -115,7 +118,7 @@ func (m *Monitor) KpisSource(filters []string, from, to, now time.Time) string {
 }
 
 // breakdownRing answers a breakdown under filters from the request ring.
-func (m *Monitor) breakdownRing(by string, from, to time.Time, site string, sel siteSel, fs []Filter, top int, now time.Time) (TrafficBreakdown, error) {
+func (m NodeView) breakdownRing(by string, from, to time.Time, site string, sel siteSel, fs []Filter, top int, now time.Time) (TrafficBreakdown, error) {
 	r := m.ringFor(from, to, now)
 	if r == nil {
 		return TrafficBreakdown{}, ErrFilterUnavailable
@@ -148,7 +151,7 @@ var ringMetrics = map[string]func(p *reqring.SeriesPoint) float64{
 
 // seriesRing answers a series under filters the rings cannot serve: the
 // request counters of the ring per point (sum or rate).
-func (m *Monitor) seriesRing(q SeriesQuery, sel siteSel, fs []Filter, qs []cm.Query, now time.Time) (cm.SeriesResult, error) {
+func (m NodeView) seriesRing(q SeriesQuery, sel siteSel, fs []Filter, qs []cm.Query, now time.Time) (cm.SeriesResult, error) {
 	r := m.ringFor(q.From, q.To, now)
 	if r == nil {
 		return cm.SeriesResult{}, ErrFilterUnavailable
@@ -209,9 +212,9 @@ func (m *Monitor) seriesRing(q SeriesQuery, sel siteSel, fs []Filter, qs []cm.Qu
 // Strip returns the site-wide strip of [from, to] in 10 s steps from the
 // 10 s ring (getRequestContext, at most 61 points; steps without a bucket
 // count 0). A website without numbers gives an empty strip.
-func (m *Monitor) Strip(site string, from, to time.Time) []cr.StripPoint {
+func (m NodeView) Strip(site string, from, to time.Time) []cr.StripPoint {
 	out := []cr.StripPoint{}
-	if m == nil {
+	if m.Monitor == nil {
 		return out
 	}
 	sel, err := m.selectSite(site)
@@ -229,7 +232,7 @@ func (m *Monitor) Strip(site string, from, to time.Time) []cr.StripPoint {
 		parts.core = coreSites
 	}
 	pts := map[int64]cr.StripPoint{}
-	_ = m.store.read(ring, first, last, parts, func(t time.Time, b *cm.MetricBucket) {
+	_ = m.readNodes(ring, first, last, parts, func(t time.Time, b *cm.MetricBucket) {
 		sb := siteBucket(b, sel)
 		if sb == nil {
 			return
