@@ -12,6 +12,7 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -637,5 +638,41 @@ func TestGroupIsFullAtSixteenGateways(t *testing.T) {
 	ecode, _, _ := InviteRole(a.dir, contract.RoleEdge, nil)
 	if _, _, err := Join(context.Background(), filepath.Join(t.TempDir(), "cluster"), "lb-1", "", a.addr, ecode, nil); err != nil {
 		t.Errorf("an edge next to sixteen gateways: %v", err)
+	}
+}
+
+// A node asks several members at once and each brings the same records. It
+// is in step only when what it took is applied, not when a second answer
+// found nothing new while the first was still at work.
+func TestInStepOnlyAfterWhatWasTakenIsApplied(t *testing.T) {
+	a, b, c := threeNodes(t)
+	a.publishBlock("203.0.113.1")
+	waitFor(t, "web-3 holds the first block", func() bool { return c.holds("203.0.113.1") == "block" })
+	c.stop()
+	a.publishBlock("203.0.113.2")
+	waitFor(t, "web-2 holds the second block", func() bool { return b.holds("203.0.113.2") == "block" })
+	// web-3 returns with a handler that takes its time, as an erasure does.
+	n, err := Open(Options{Dir: c.dir, Listen: c.addr, Log: quiet(), Hold: 300 * time.Millisecond})
+	if err != nil {
+		t.Fatal(err)
+	}
+	var applied atomic.Bool
+	n.On(contract.ClassBlocks, func(*contract.Record) {
+		time.Sleep(400 * time.Millisecond)
+		applied.Store(true)
+	})
+	ctx, cancel := context.WithCancel(context.Background())
+	done := make(chan struct{})
+	go func() { defer close(done); _ = n.Run(ctx) }()
+	defer func() { cancel(); <-done; n.Close() }()
+	deadline := time.Now().Add(10 * time.Second)
+	for !n.Synced() {
+		if time.Now().After(deadline) {
+			t.Fatal("web-3 never in step")
+		}
+		time.Sleep(time.Millisecond)
+	}
+	if !applied.Load() {
+		t.Error("web-3 says it is in step while it still applies what it took")
 	}
 }

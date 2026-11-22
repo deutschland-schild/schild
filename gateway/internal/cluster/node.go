@@ -64,6 +64,8 @@ type Node struct {
 	cert tls.Certificate
 
 	leases leases
+	// takeMu: see take.
+	takeMu sync.Mutex
 
 	// Counters of schild cluster status.
 	Applied, Rejected, Deferred, Unread atomic.Uint64
@@ -319,6 +321,12 @@ func (n *Node) take(raws []json.RawMessage, covered map[string]uint64) (applied 
 	if n.paused.Load() {
 		return 0, nil
 	}
+	// One take at a time, to its end: a node calls several members at once
+	// and each brings the same records. Without this the second call finds
+	// nothing new and reports the node in step while the first still
+	// applies what it took (an erasure takes a moment).
+	n.takeMu.Lock()
+	defer n.takeMu.Unlock()
 	type item struct {
 		rec contract.Record
 		raw []byte
