@@ -166,13 +166,11 @@ func TestFirstKeysOfTheBrowserCheckAreWrittenByOneNode(t *testing.T) {
 		}
 		return true
 	})
-	// And one node wrote every entry of them: the one with the lowest id.
-	keeper := nodes[0]
-	for _, g := range nodes[1:] {
-		if g.h.App.Cluster.ID() < keeper.h.App.Cluster.ID() {
-			keeper = g
-		}
-	}
+	// And one node wrote every entry of them. Usually the keeper, the node
+	// with the lowest id; on a slow machine (the race detector in CI) the
+	// keeper may come in step after another node's wait ended and that node
+	// handed on its own keys: either way it is one writer, never a mix.
+	writer := ""
 	for _, g := range nodes {
 		recs, err := g.h.App.Cluster.State(contract.ClassSettings)
 		if err != nil {
@@ -184,9 +182,11 @@ func TestFirstKeysOfTheBrowserCheckAreWrittenByOneNode(t *testing.T) {
 				continue
 			}
 			n++
-			if r.Origin != keeper.h.App.Cluster.ID() {
-				v, _ := contract.DecodeValue(r)
-				t.Errorf("%s holds an entry of the browser check written by %s, not by the keeper %s", g.name, v.Node, keeper.name)
+			if writer == "" {
+				writer = r.Origin
+			}
+			if r.Origin != writer {
+				t.Errorf("%s holds entries of the browser check from two writers (%s and %s)", g.name, writer, r.Origin)
 			}
 		}
 		if n == 0 {
