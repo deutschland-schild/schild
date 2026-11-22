@@ -25,12 +25,12 @@ Ohne Cluster wäre jedes Gateway für sich: Eine Sperre gälte nur auf einem Ser
 
 | Was | Wie es sich verhält |
 | --- | --- |
-| Gesperrte Adressen | Eine Sperre aus einem Szenario, aus dem Dashboard oder von einem Agenten gilt nach etwa einer Sekunde auf jedem Server. „Freigeben“ hebt sie überall auf. |
+| Gesperrte Adressen | Eine Sperre aus einem Szenario, aus dem Dashboard oder von einem Agenten gilt nach etwa einer Sekunde auf jedem Server. „Freigeben“ hebt sie überall auf, auf jedem Server, sobald er die Sperre zeigt. |
 | Einstellungen | Was du im Dashboard oder über die Agent-API einstellst, gilt auf jedem Server: Schalter der Regelquellen, Schwellen, Limits, Crawler-Regeln, Zugriffssperre, Browser-Prüfung, Ausnahmen. |
 | Eigene Adressen und Freigaben | Die Liste eigener Adressen und freigegebene Absender gelten überall. Die eigene Liste eines Servers gewinnt immer gegen eine Sperre aus dem Cluster. |
 | Logins | Ein Passwort und eine Anmeldung für das Dashboard jedes Servers. Agent-Tokens gelten auf allen. |
 | Besucher:innen | Wer die Browser-Prüfung bestanden oder sich an der Zugriffssperre angemeldet hat, bleibt das auf dem nächsten Server. |
-| Zertifikate | Eine Bestellung pro Zertifikat. Die Prüfung der Zertifizierungsstelle klappt, egal auf welchem Server sie landet. |
+| Zertifikate | Eine Bestellung pro Zertifikat, solange sich die Server erreichen. Ein Server, der startet, bestellt erst, wenn er weiß, was der Cluster schon hat. Die Prüfung der Zertifizierungsstelle über HTTP landet auf einem beliebigen Server, deshalb liegt ihr Prüfwert vorher auf jedem. Mit einer echten Zertifizierungsstelle ist das bisher nur vor diesen Korrekturen gemessen. |
 | Regeln aus dem CrowdSec Hub | Lädt ein Server einen neuen Stand, übernehmen ihn die anderen von ihm, nach denselben Prüfungen wie bei einem eigenen Download. Neue Regeln sperren auf allen Servern ab demselben Zeitpunkt. |
 | Limits und Szenarien | Jeder Server meldet den anderen einmal pro Sekunde, was er gezählt hat. Ein Limit gilt damit für den Cluster und nicht pro Server. |
 | Verteilte Angriffe (Wellen) | Auch die Erkennung verteilter Angriffe zählt für den Cluster. Eine Welle ist auf jedem Server dieselbe, ihre Reaktion greift überall, und „Beenden“ im Dashboard beendet sie auf allen. |
@@ -121,6 +121,55 @@ Nur wenn beide Seiten denselben Eintrag haben, etwa denselben Schalter mit versc
 
 Ohne diese Liste startet Schild in einem Cluster nicht. Sonst könnte jeder, der einen Server direkt erreicht, eine beliebige Adresse als seine ausgeben, und eine Sperre dieser Adresse gälte dann auf jedem Server.
 
+**Die Prüfung muss sprechen wie der Verkehr.** Schickt der Balancer den Verkehr mit PROXY-Protokoll, muss auch seine Prüfung es senden. Sonst lehnt der Server die Prüfung ab und gilt als ausgefallen.
+
+**Beispiel für HAProxy, Website ohne TLS auf den Gateways.** So lief der Balancer in der Messung mit zwei und mit sechzehn Servern:
+
+```haproxy
+defaults
+  mode tcp
+  timeout connect 2s
+  timeout client 60s
+  timeout server 60s
+
+frontend web80
+  bind :80
+  default_backend gateways80
+
+backend gateways80
+  balance roundrobin
+  option httpchk
+  http-check send meth GET uri /.schild/readyz ver HTTP/1.1 hdr Host www.example.org
+  http-check expect status 200
+  default-server send-proxy-v2 check inter 2s fall 2 rise 2
+  server web-1 10.0.0.1:80
+  server web-2 10.0.0.2:80
+```
+
+Fällt ein Server hart aus, schickt HAProxy ihm noch Verbindungen, bis die Prüfung ihn herausnimmt, in der Messung gut drei Sekunden lang. Mit `option redispatch` im Backend versucht HAProxy eine abgelehnte Verbindung auf einem anderen Server. Das war in der Messung nicht gesetzt und ist deshalb nicht gemessen.
+
+**Wenn TLS auf den Gateways endet.** Dann verhalten sich die beiden Ports verschieden:
+
+- **Port 80** leitet nur auf HTTPS um und beantwortet die Prüfung der Zertifizierungsstelle. Er nimmt kein PROXY-Protokoll an, und `/.schild/readyz` beantwortet er mit einer Umleitung. Schick dorthin ohne PROXY-Protokoll und prüfe nur, ob der Port offen ist.
+- **Port 443** nimmt das PROXY-Protokoll an. Die Bereitschaft gibt es nur hier, über TLS und mit dem Namen der Website. Ein neuer Server besteht diese Prüfung erst, wenn er sein Zertifikat hat. Im Cluster bekommt er es beim ersten Abgleich von den anderen.
+
+```haproxy
+backend gateways80
+  balance roundrobin
+  default-server check inter 1s fall 2 rise 1
+  server web-1 10.0.0.1:80
+  server web-2 10.0.0.2:80
+
+backend gateways443
+  balance roundrobin
+  option httpchk
+  http-check send meth GET uri /.schild/readyz ver HTTP/1.1 hdr Host www.example.org
+  http-check expect status 200
+  default-server send-proxy-v2 check check-ssl verify none check-sni www.example.org check-alpn http/1.1 inter 1s fall 2 rise 1
+  server web-1 10.0.0.1:443
+  server web-2 10.0.0.2:443
+```
+
 **Verteilung.** Verteilt der Balancer nach der Adresse der Besucher:innen, landet ein Client immer auf demselben Server. Dann zählen Limits genau. Mit reihum verteilten Verbindungen zählen sie mit etwa einer Sekunde Verzug.
 
 ## Sperren schon vor den Gateways
@@ -168,7 +217,7 @@ Für ein Update oder eine Wartung:
 schild cluster drain
 ```
 
-Der Server antwortet dem Balancer sofort mit 503 und bedient noch 15 Sekunden lang, was ankommt. So schickt der Balancer neue Verbindungen woanders hin, bevor eine einzige abgewiesen wird. Dann hält Schild an und gibt laufenden Anfragen 30 Sekunden, um fertig zu werden. `systemctl stop schild` macht dasselbe. Nach der Wartung startest du den Server mit `systemctl start schild` wieder.
+Der Server antwortet dem Balancer sofort mit 503 und bedient noch 15 Sekunden lang, was ankommt. So schickt der Balancer neue Verbindungen woanders hin, bevor eine einzige abgewiesen wird. Ein Balancer im TCP-Modus lässt offene Verbindungen aber auf ihrem Server. Deshalb bittet der Server in diesen 15 Sekunden mit jeder Antwort darum, die Verbindung zu schließen (`Connection: close`, bei HTTP/2 ein GOAWAY). Ein Client, der danach eine neue Verbindung öffnet, landet auf einem anderen Server. Eine Verbindung, auf der in dieser Zeit keine Anfrage kommt, endet mit dem Server. Dann hält Schild an und gibt laufenden Anfragen 30 Sekunden, um fertig zu werden. `systemctl stop schild` macht dasselbe. Nach der Wartung startest du den Server mit `systemctl start schild` wieder.
 
 Beide Zeiten stellst du unter `cluster.drain` ein. `delay_s` sollte länger sein als das Prüfintervall deines Balancers mal die Zahl der Fehlversuche, nach denen er einen Server herausnimmt.
 
@@ -247,7 +296,7 @@ Jeder Server meldet diese Zahlen alle fünf Sekunden an die anderen. Die Seite z
 | Abgleich pausiert | Auf dem Server wurde `schild cluster pause` aufgerufen. |
 | Aus dem Cluster entfernt | Ein Mitglied hat dem Server gemeldet, dass er entfernt wurde. |
 
-**Uhren.** Im Cluster gilt bei zwei Änderungen am selben Eintrag die spätere. Dafür brauchen die Server gleiche Uhren. Jedes Gateway nennt den anderen alle fünf Sekunden seine Uhrzeit. Auf der Seite „Cluster“ steht bei jedem Server, wie weit seine Uhr von der dieses Servers abweicht. Ab zehn Sekunden steht ein Hinweis auf der Startseite. Richte auf jedem Server eine Zeitsynchronisation ein, etwa chrony oder systemd-timesyncd. Einen Eintrag, dessen Uhrzeit mehr als 60 Sekunden voraus liegt, nimmt kein Server an.
+**Uhren.** Im Cluster gilt bei zwei Änderungen am selben Eintrag die spätere. Dafür brauchen die Server gleiche Uhren. Jedes Gateway nennt den anderen alle fünf Sekunden seine Uhrzeit. Auf der Seite „Cluster“ steht bei jedem Server, wie weit seine Uhr von der dieses Servers abweicht. `schild cluster status` nennt einen Server ab fünf Sekunden Abstand, und ein Server schreibt in sein Log, wenn er einen Eintrag wegen der Uhr zurückstellt. Ab zehn Sekunden steht ein Hinweis auf der Startseite. Richte auf jedem Server eine Zeitsynchronisation ein, etwa chrony oder systemd-timesyncd. Einen Eintrag, dessen Uhrzeit mehr als 60 Sekunden voraus liegt, nimmt kein Server an.
 
 **Hinweise auf der Startseite.** Erreicht ein Server einen anderen nicht, weicht eine Konfiguration ab oder geht eine Uhr auseinander, steht das auch auf der Startseite jedes Dashboards, mit einem Link zur Seite „Cluster“.
 
