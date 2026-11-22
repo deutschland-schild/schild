@@ -1,19 +1,23 @@
 # Group of gateways on real VMs: lab measurement (MVP-27)
 
-Black-box measurement of [MVP-27](../../../specs/MVP-27-ha-group.yaml) on real Linux VMs with a real network between them, against [contracts/cluster.md](../../../../contracts/cluster.md) and the operator guide [docs/gateway/03-cluster.md](../../../../docs/gateway/03-cluster.md). Written by a measuring agent, not by the builder. Results: the first run on commit `e0349dc` is [tests/results/MVP-27-lab.md](../../../results/MVP-27-lab.md) and [MVP-27-lab.json](../../../results/MVP-27-lab.json); the second run, after the builder answered its findings, is [tests/results/MVP-27-lab-run2.md](../../../results/MVP-27-lab-run2.md) and [MVP-27-lab-run2.json](../../../results/MVP-27-lab-run2.json). The harness as it is now is the one of the second run: where the documented behaviour changed, the checks follow the documents of the second run (listed in its report).
+Black-box measurement of [MVP-27](../../../specs/MVP-27-ha-group.yaml) on real Linux VMs with a real network between them, against [contracts/cluster.md](../../../../contracts/cluster.md) and the operator guide [docs/gateway/03-cluster.md](../../../../docs/gateway/03-cluster.md). Written by a measuring agent, not by the builder. Results: the first run on commit `e0349dc` is [tests/results/MVP-27-lab.md](../../../results/MVP-27-lab.md) and [MVP-27-lab.json](../../../results/MVP-27-lab.json); the second run, after the builder answered its findings, is [tests/results/MVP-27-lab-run2.md](../../../results/MVP-27-lab-run2.md) and [MVP-27-lab-run2.json](../../../results/MVP-27-lab-run2.json); the third run, on `3971e35`, is [tests/results/MVP-27-lab-run3.md](../../../results/MVP-27-lab-run3.md) and [MVP-27-lab-run3.json](../../../results/MVP-27-lab-run3.json). The harness as it is now is the one of the third run: the scenarios `s1` to `s11` are kept as the second run left them, so their checks can be compared run by run, and `s12` to `s25` (`run3.py`) are new. Where the documented behaviour changed since the second run, a new scenario follows the documents as they are now (`s19` to `s21` for the findings N1 to N3 and the certificates); the third report lists what changed and why.
 
 The loopback harness next to it ([../group](../group/README.md)) runs every node on 127.0.0.1 of one machine. This one puts every node into a VM of its own, with its own kernel, clock, packet filter and address, a balancer VM with HAProxy in front and a client VM that sends the traffic.
 
 ## Rerun
 
 ```sh
-SCHILD_LAB_HOST=<ssh alias of the lab host> tests/testlab/measure/group-lab/run.sh            # everything, about two hours
+SCHILD_LAB_HOST=<ssh alias of the lab host> tests/testlab/measure/group-lab/run.sh            # everything, about six hours
 SCHILD_LAB_HOST=<ssh alias of the lab host> tests/testlab/measure/group-lab/run.sh s2 s3      # single scenarios
+# in parts: keep the VMs, then run more scenarios on them without building again
+KEEP=1 WORK=<directory> SCHILD_LAB_HOST=<alias> tests/testlab/measure/group-lab/run.sh s1 s2
+KEEP=1 REUSE=1 WORK=<directory> SCHILD_LAB_HOST=<alias> tests/testlab/measure/group-lab/run.sh s12 s13
+REUSE=1 WORK=<directory> SCHILD_LAB_HOST=<alias> tests/testlab/measure/group-lab/run.sh s18   # the last call cleans the lab host
 ```
 
 Needs on this machine: Go, Docker (the image is built here), `rsync`, `ssh` to the lab host without a password. Needs on the lab host: an arm64 machine with the `container` command line that `host.sh` calls (one Linux VM per container) and `python3`. The name of the lab host is read from `SCHILD_LAB_HOST` only; no file of this directory and no result names it.
 
-`run.sh` builds a development `schild` for linux/arm64 (a test binary, never a release), the mesh client of the loopback harness (`../group/hostile`) and the ACME test server pebble, builds the image `sg27-node:dev`, copies it to the lab host, creates 19 VMs there, runs the scenarios in the client VM, writes `tests/results/MVP-27-lab-run2.json` (`RESULTS=<file>` names another file; the first run's file is never written again) and removes every container, the network, the image and the work directory from the lab host again. `KEEP=1` leaves the VMs up; `ssh <lab host> 'bash ~/sg27-work/lab/host.sh down'` removes them later. `WORK=<directory>` keeps the build between runs; keep it short (the ssh control socket lies in it). Next to the results, `$OUT/tables.md` holds the checks as Markdown tables for the report.
+`run.sh` builds a development `schild` for linux/arm64 (a test binary, never a release), the same of the earlier commit `OLD_REV` (default `e54c040`, in the image as `schild-old`, for the rolling upgrade of `s23`), the mesh client of the loopback harness (`../group/hostile`), the load client `loadgen` and the ACME test server pebble, builds the image `sg27-node:dev`, copies it to the lab host, creates 19 VMs there, runs the scenarios in the client VM, writes `tests/results/MVP-27-lab-run3.json` (`RESULTS=<file>` names another file; the files of the earlier runs are never written again) and removes every container, the network, the image and the work directory from the lab host again. `KEEP=1` leaves the VMs up; `ssh <lab host> 'bash ~/sg27-work/lab/host.sh down'` removes them later. `WORK=<directory>` keeps the build between runs; keep it short (the ssh control socket lies in it) or name a short directory for the socket with `CM_DIR`. With `REUSE=1` and the `WORK` of an earlier `KEEP=1` call nothing is built or created: the scripts are copied again and the scenarios run on the VMs that are up. A scenario that is run again keeps its earlier raw result and log next to the new one (`raw-s<N>.json.<time>.old`); the results file is written from the newest of each. Next to the results, `$OUT/tables.md` holds the checks as Markdown tables for the report.
 
 Everything on the lab host is named `sg27-*` (containers, the network `sg27-net`, the image, `~/sg27-work`). The harness touches nothing else there.
 
@@ -44,6 +48,20 @@ The client VM is in the PROXY allow list of the gateways next to the balancer VM
 | `s9` | a new group secret, server by server as the guide says, with a TLS site, an edge and a light load: what survives, whether a certificate is ordered again, what the edge needs | n1 to n3, lb |
 | `s10` | the page data of the group (`GET /api/v0/group`: names, vitals, clock difference) and the counters across nodes (`node` on the monitoring calls, a killed node as partial) | n1 to n3 |
 | `s11` | a block set on one node and lifted on another 0.2 to 1 s later, 200 times, two rounds | n1 to n3 |
+| `s12` | the running counts at a node's start: a rate limit spread over three nodes with one node killed and started in the middle (through the balancer and straight), the login scenario's hit, time to ready with a slow and a hanging member | n1 to n3, lb |
+| `s13` | the clock rule: one of three nodes 90 s ahead and behind (readiness, balancer, overview, `schild cluster status`, log), three different clocks, a pair | n1 to n3, lb |
+| `s14` | everything set at runtime is shared: every write operation of the dashboard API and of the agent API and the command line (`schild allow`, `schild token`), made on one node and read on the two others | n1 to n3 |
+| `s15` | the state comparison: `shared_state` of `GET /api/v0/group` once a second for five minutes, idle and under a stream of changes, on 3 and on 16 nodes; a paused node, a record put off by the clock, twelve fresh starts | n1 to n16 |
+| `s16` | the cheaper exchange: CPU of sixteen idle gateways over five minutes; how fast a single request and an event show on the other nodes (idle, under load, with 10 % packet loss) | n1 to n16 |
+| `s17` | tasks once per cluster: the keys of the browser check with every clock a day ahead, the keeper killed, the keeper back | n1 to n3 |
+| `s18` | throughput on three nodes with `loadgen`, the site answering by itself: three steps of 40 s up to 2 000 requests a second, kept below what saturates the lab host | n1 to n3 |
+| `s19` | N1 again: eight rounds of 200 blocks lifted on another node within a second, four of them with an edge running, and an edge that joins afterwards | n1 to n3, lb, app |
+| `s20` | N2 again: a killed node as partial in every answer over several nodes, every 5 s from the kill on, in every resolution | n1 to n3 |
+| `s21` | N3 again: readiness answers 503 with the port open; certificates with the guide's TLS example and `disable_tlsalpn_challenge`, five starts of two nodes together | n1 to n3, lb, app |
+| `s23` | a rolling upgrade from the earlier build (`schild-old`) to the current one under load: blocks, lifts and logins cross at every stage, every request and event once on every node afterwards | n1 to n3, lb |
+| `s24` | the state comparison under a stream of changes at four rates and for single classes: how often `differs` shows, the hint, the repair | n1 to n3 |
+| `s25` | three wiped nodes started together, up to 40 times, until a start leaves a member reading `differs`; then how long it lasts and whether a restart heals it | n1 to n3 |
+| `s22` | N4 again: one node 90 s ahead writes, is set right and then 30 s behind: how long it takes nothing, three runs | n1 to n3 |
 
 There is no `s6` (mixed versions): [contracts/CHANGELOG.md](../../../../contracts/CHANGELOG.md) names no earlier commit whose nodes have to work with the current ones.
 
@@ -62,6 +80,8 @@ There is no `s6` (mixed versions): [contracts/CHANGELOG.md](../../../../contract
 | `host.sh` | runs on the lab host: creates and removes the `sg27-*` VMs |
 | `run.py` | the scenarios `s1` to `s7`, one function each |
 | `run_more.py` | the scenarios `s8` to `s11`, added for the second run |
+| `run3.py` | the scenarios `s12` to `s25`, added for the third run |
+| `loadgen/` | the load client of `s18` (Go, standard library): kept connections with the PROXY protocol at a fixed rate |
 | `lab.py` | VMs, gateway nodes, the dashboard API, the load client, faults |
 | `ctl.py` | the control agent in every VM |
 | `app.py` | the application behind the gateways |
@@ -76,5 +96,6 @@ There is no `s6` (mixed versions): [contracts/CHANGELOG.md](../../../../contract
 - The builtin network `default` of the lab host carried no packets when this was written, and its VMs have no route to the internet; the harness creates its own network `sg27-net` and builds the image on the developer machine.
 - HTTP on port 80 in every scenario but `s7` and `s9`; TLS on the gateways only there. There the balancer runs the guide's example for a TLS site: port 80 without the PROXY protocol and with a TCP check, port 443 with PROXY v2 and the readiness check over TLS (checks 7.02, 7.02b).
 - The balancer configurations are the two examples of the guide line by line; the harness adds a section `global` with the stats socket it reads the state of the servers from.
-- The load client is Python: a few hundred requests a second. This is a measurement of behaviour under faults, not of throughput.
-- One site, one application, dashboard blocks only: scenarios, limits and waves need 14 days of learning before they block and are not driven here.
+- The load client of every scenario but `s18` is Python: a few hundred requests a second. `s18` uses `loadgen` and a site that answers by itself (`respond` in the Caddyfile), so neither the client nor the Python application is the limit; the gateways have two cores each.
+- One site, one application. Scenarios observe for 14 days after the installation, so `s12` counts with a rate limit made in the dashboard, which acts at once, and reads the hit of the login scenario ("hätte gesperrt"). Waves are not driven here.
+- `s17` and `s13` move clocks with `clockhold.py`: the hypervisor sets the clock of a VM right about every 30 s and the tool puts it back within 2 ms.

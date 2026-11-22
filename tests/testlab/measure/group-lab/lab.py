@@ -573,6 +573,7 @@ class Node(VM):
     CFG = "/etc/schild/schild.yaml"
     LOG = "/var/log/schild/log"
     DATA = "/var/lib/schild"
+    PROC = "'schild(-old)?'"      # the process of the current build or of the earlier one (run.sh, OLD_REV), for pgrep and pkill -x
 
     def __init__(self, name, ip, lab):
         super().__init__(name, ip)
@@ -658,19 +659,19 @@ class Node(VM):
         return self
 
     def alive(self):
-        return self.run("pgrep -x schild >/dev/null")[0] == 0
+        return self.run("pgrep -x %s >/dev/null" % self.PROC)[0] == 0
 
     def kill9(self):
-        self.run("pkill -9 -x schild; true")
+        self.run("pkill -9 -x %s; true" % self.PROC)
 
     def term(self):
-        self.run("pkill -TERM -x schild; true")
+        self.run("pkill -TERM -x %s; true" % self.PROC)
 
     def freeze(self):
-        self.run("pkill -STOP -x schild; true")
+        self.run("pkill -STOP -x %s; true" % self.PROC)
 
     def thaw(self):
-        self.run("pkill -CONT -x schild; true")
+        self.run("pkill -CONT -x %s; true" % self.PROC)
 
     def wait_exit(self, timeout=90):
         end = now() + timeout
@@ -716,7 +717,7 @@ class Node(VM):
 
     def usage(self):
         """Resident memory (MiB) and CPU seconds of the schild process."""
-        rc, out = self.run("p=$(pgrep -x schild | head -1); awk '/VmRSS/{print $2}' /proc/$p/status; "
+        rc, out = self.run("p=$(pgrep -x 'schild(-old)?' | head -1); awk '/VmRSS/{print $2}' /proc/$p/status; "
                            "awk '{print $14+$15}' /proc/$p/stat; getconf CLK_TCK")
         try:
             rss, ticks, hz = out.split()

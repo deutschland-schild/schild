@@ -17,6 +17,10 @@ class Handler(http.server.BaseHTTPRequestHandler):
 
     def do_GET(self):
         u = urllib.parse.urlparse(self.path)
+        # read the body of a POST: left in the socket it would be taken for the start of the next request on a kept connection
+        n = int(self.headers.get("Content-Length") or 0)
+        if n:
+            self.rfile.read(n)
         if u.path == "/slow":
             time.sleep(int(urllib.parse.parse_qs(u.query).get("ms", ["1000"])[0]) / 1000.0)
         body = ("ok xff=%s\n" % self.headers.get("X-Forwarded-For", "-")).encode()

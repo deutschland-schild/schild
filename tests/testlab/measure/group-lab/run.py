@@ -1692,7 +1692,9 @@ def main():
     random.seed(SEED)
     lab = Lab()
     import run_more
+    import run3
     SCENARIOS.update(run_more.SCENARIOS)
+    SCENARIOS.update(run3.SCENARIOS)
     only = [s for s in a.only.split(",") if s] or sorted(SCENARIOS, key=lambda k: int(k[1:]))
     R.name = a.name or "-".join(only)
     ok = lab.prepare()

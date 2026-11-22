@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Raw results of the lab scenarios (raw-s*.json) to a results file (contracts/results.schema.json), by default
-tests/results/MVP-27-lab-run2.json; the first run of 2026-11-22 is tests/results/MVP-27-lab.json.
+tests/results/MVP-27-lab-run3.json; the earlier runs are tests/results/MVP-27-lab.json and MVP-27-lab-run2.json.
 
 usage: report.py RAW_DIR RESULTS_FILE [TABLES.md]
 
@@ -23,12 +23,12 @@ SPEC = "MVP-27"
 # what is outside this harness
 KILL = [
     ("any request waits for a peer or fails because of one (ACME challenge lookups aside)",
-     ["2.12", "2.22", "2.32", "2.42", "2.52", "2.62", "2.72", "2.82", "5.11"],
-     "direct load on every node while peers were delayed, lossy, cut off, hanging or killed"),
+     ["2.12", "2.22", "2.32", "2.42", "2.52", "2.62", "2.72", "2.82", "5.11", "20.03", "23.02"],
+     "direct load on every node while peers were delayed, lossy, cut off, hanging or killed; a rolling upgrade under load"),
     ("a lost, empty or returning member deletes or weakens access state on another",
-     ["1.24", "1.26", "1.28", "2.54", "2.64", "5.10", "5.14", "9.05", "9.06", "9.07", "9.08"],
+     ["1.24", "1.26", "1.28", "2.54", "2.64", "5.10", "5.14", "9.05", "9.06", "9.07", "9.08", "12.11", "12.13", "23.03"],
      "kill and return, partition and one-way cut with writes on both sides, five of sixteen lost, rolling restart, "
-     "a new group secret server by server. Not counted here, for people to place: scenario 11, where a block lifted on "
+     "a new group secret server by server, a node restarted in the middle of a count (scenario 12), a rolling upgrade. Not counted here, for people to place: scenario 11, where a block lifted on "
      "another node within a second stays listed on every node and is dropped by an edge (no member was lost or returned)"),
     ("a record that fails signature, schema or caps is applied", [],
      "NOT MEASURED here: see the loopback harness (tests/results/MVP-27.json)"),
@@ -39,10 +39,10 @@ KILL = [
      "erased on a node of the old group after another node had carried its block into the new group)"),
     ("an address outside the proxy allow list can get another address blocked", ["1.15", "1.16", "1.17", "1.18", "1.20"],
      "PROXY header and X-Forwarded-For of senders outside the allow list; start without an allow list"),
-    ("a partial answer is shown as complete", ["10.20", "10.20b", "10.20c"],
+    ("a partial answer is shown as complete", ["10.20", "10.20b", "10.20c", "20.02"],
      "counters across nodes with one node killed: whether the answer for the group names it under partial_nodes"),
     ("a copy outlives its origin's retention", [], "NOT MEASURED: needs days of retention"),
-    ("certificates are lost or issued again by the move into the group", ["7.04", "7.06", "7.07", "7.10b", "9.10"],
+    ("certificates are lost or issued again by the move into the group", ["7.04", "7.06", "7.07", "7.10b", "9.10", "21.10", "21.11"],
      "ACME test server pebble: a node that enters a group which holds the certificate, two nodes started together, "
      "a restart with no member reachable, a change of the group secret on three nodes. The count of orders at the CA "
      "(7.10: the one node that orders may place two, its first fails on TLS-ALPN-01) is not part of this criterion"),
@@ -153,7 +153,8 @@ def main():
                   "HAProxy on a balancer VM, nftables for the edge and for faults, a TUN based delay in place of netem). "
                   "Development build of schild, never a release. Not the testlab profiles pair and fleet of the spec. "
                   "Report: %s. FAIL checks: %s" % (report_md, ", ".join(r["id"] for r in fails) or "none"))[:8192],
-        "artifacts": [report_md, "tests/testlab/measure/group-lab/run.py", "tests/testlab/measure/group-lab/run_more.py"],
+        "artifacts": [report_md, "tests/testlab/measure/group-lab/run.py", "tests/testlab/measure/group-lab/run_more.py",
+                      "tests/testlab/measure/group-lab/run3.py"],
     }
     if re.fullmatch(r"[0-9a-f]{7,40}", rev):
         out["git_rev"] = rev
@@ -185,7 +186,21 @@ TITLES = {"s1": "a pair behind HAProxy, set up as the guide says", "s2": "networ
           "s7": "certificates with an ACME test server", "s8": "readiness of a node that reaches no member",
           "s9": "a new group secret, server by server (three nodes, a TLS site, an edge)",
           "s10": "the page data of the group and the counters across nodes (three nodes)",
-          "s11": "a block set on one node and lifted on another a moment later (three nodes)"}
+          "s11": "a block set on one node and lifted on another a moment later (three nodes)",
+          "s12": "the running counts at a node's start (three nodes behind the balancer)",
+          "s13": "the clock rule: the node with the odd clock leaves traffic",
+          "s14": "everything set at runtime is shared: every write operation of the dashboard API, the agent API and the command line",
+          "s15": "the state comparison (`shared_state`) on three and on sixteen nodes",
+          "s16": "the cheaper exchange: idle CPU, events and requests on the other nodes, packet loss",
+          "s17": "tasks once per cluster: the keys of the browser check",
+          "s18": "throughput on three nodes",
+          "s19": "N1 again: a block lifted on another node within a second, eight rounds, an edge running and an edge that joins",
+          "s20": "N2 again: a killed node as partial in every answer over several nodes",
+          "s21": "N3 again: readiness answers 503, and certificates with the guide's TLS example as it is now",
+          "s23": "a rolling upgrade from the earlier build (e54c040) to the current one under load (three nodes behind the balancer)",
+          "s24": "the state comparison under changes, by how often something changes",
+          "s25": "a difference in settings right after the birth of a group",
+          "s22": "N4 again: a node 30 s behind after another was 90 s ahead, as the documents now describe it"}
 
 
 def tables(rows, path):
