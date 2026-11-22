@@ -194,11 +194,19 @@ Eine Edge lässt sich nur mit einem Code aufnehmen, nie mit dem Cluster-Geheimni
 
 ## Aufgaben, die nur einmal laufen dürfen
 
-Manche Aufgaben sollen im Cluster einmal laufen und nicht einmal pro Server, zum Beispiel das Erneuern der Schlüssel der Browser-Prüfung. Dafür gibt es keinen Haupt-Server. Die Aufgabe übernimmt jeweils der erreichbare Server mit der kleinsten Kennung. Fällt er aus, übernimmt der nächste von selbst.
+Manche Aufgaben sollen im Cluster einmal laufen und nicht einmal pro Server, zum Beispiel das Erneuern der Schlüssel der Browser-Prüfung oder später eine Zusammenfassung per E-Mail. Dafür gibt es keinen Haupt-Server. Die Aufgabe übernimmt jeweils der erreichbare Server mit der kleinsten Kennung. Fällt er aus, übernimmt der nächste von selbst.
 
-Wann eine Aufgabe zuletzt lief, weiß jeder Server. Ein Server, der übernimmt oder neu startet, führt sie deshalb nicht noch einmal aus, bevor sie wieder fällig ist.
+Was eine Aufgabe schon erledigt hat, weiß jeder Server: wann sie zuletzt gestartet ist, für welchen Zeitraum sie läuft, ob sie fertig wurde und welche einzelnen Schritte erledigt sind. Daraus folgt:
 
-Erreichen sich die Server nicht, kann eine Aufgabe auf beiden Seiten laufen. Für die Schlüssel der Browser-Prüfung ist das unkritisch.
+- Ein Server, der übernimmt oder neu startet, führt eine fertige Aufgabe nicht noch einmal aus.
+- Bricht eine Aufgabe mittendrin ab, weil der Server ausfällt oder ein Schritt fehlschlägt, nimmt der zuständige Server sie nach einer Wartezeit wieder auf. Er erledigt dann nur die Schritte, die noch fehlen. Die Wartezeit beträgt zwei Minuten, wenn die Aufgabe nichts anderes festlegt.
+- Eine Aufgabe mit fester Uhrzeit läuft in der Zeitzone, die du einstellst, auch über die Zeitumstellung hinweg. Eine Uhrzeit, die es an einem Tag nicht gibt, fällt auf die nächste Minute, die es gibt. Eine Uhrzeit, die es zweimal gibt, zählt einmal.
+- War zur fälligen Zeit kein Server in Betrieb, läuft die Aufgabe einmal nach, sobald wieder einer läuft und der Zeitraum noch der aktuelle ist. Ältere Zeiträume werden nicht nachgeholt.
+- Änderst du die Uhrzeit einer Aufgabe, läuft sie für einen Tag, an dem sie schon gelaufen ist, kein zweites Mal.
+
+Eine Grenze bleibt: Eine Aufgabe läuft mindestens einmal, aber nicht garantiert genau einmal. Erreichen sich die Server nicht, kann sie auf beiden Seiten laufen. Fällt ein Server genau zwischen einem Schritt und dessen Vermerk aus, wiederholt der nächste Server diesen einen Schritt. Eine E-Mail kann in diesen Fällen doppelt ankommen. Für die Schlüssel der Browser-Prüfung ist das unkritisch.
+
+Ein einzelnes Gateway führt dieselben Aufgaben nach denselben Regeln aus. Es erneuert die Schlüssel der Browser-Prüfung deshalb jetzt auch im laufenden Betrieb und nicht mehr nur beim Start.
 
 ## Wenn ein Server ausfällt
 

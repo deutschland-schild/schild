@@ -94,8 +94,6 @@ func (a *App) startCluster(ctx context.Context) {
 	a.startGroupData(ctx)
 	a.startGroupMetrics(ctx)
 	a.startGroupHub(ctx)
-	// Tasks that run once for the group, on whichever node keeps its locks.
-	a.oncePerGroup(ctx, jobHumanCheckKeys, time.Hour, a.rotateHumanCheckKeys)
 	a.startEdges()
 	a.startGroupVersions(ctx)
 	a.startClockWatch(ctx)
@@ -530,18 +528,4 @@ type EdgeReport struct {
 	Applied string
 	Held    int
 	Error   string
-}
-
-// oncePerGroup runs f once per interval for the whole group, on the node
-// that keeps the group's locks (cluster.Node.Every): the way for anything
-// that must not happen once per node, such as a rotation of keys, a
-// notification or a report. Every node calls it with the same name and
-// interval. f has to be safe to run again: a group whose nodes cannot reach
-// each other may run it on both sides.
-func (a *App) oncePerGroup(ctx context.Context, name string, every time.Duration, f func(context.Context) error) {
-	node := a.Cluster
-	if node == nil {
-		return
-	}
-	a.goLoop(ctx, "cluster-job-"+name, func(ctx context.Context) { node.Every(ctx, name, every, f) })
 }

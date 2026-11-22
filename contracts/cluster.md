@@ -119,15 +119,28 @@ The storage of the embedded Caddy: certificates with their keys, ACME accounts, 
 
 ### jobs
 
-When a task that runs once for the whole group last started. `id` is the task's name (1 to 64 of `a-z`, `0-9`, `_`, `.`, `-`). Data: `at` (UTC, seconds) and `node`, the name of the node that ran it. No tombstone: a job is never removed, only run again.
+What the tasks that run once per period for the whole group have done. Data of every record: `at` (UTC, seconds) and `node`, the name of the node that wrote it. No tombstone. `id` is one of four, for a task named `<name>` (1 to 40 of `a-z`, `0-9`, `_`, `-`; an id is at most 64 characters):
 
-A task that must not happen once per node (a rotation of keys; later a notification or a report) is asked for on every node with the same name and interval, and runs like this:
+| `id` | `at` is |
+| --- | --- |
+| `<name>` | when the latest run started, or last said that it is still at work (while a task works, the node writes this again every third of the grace time) |
+| `<name>.period` | the period of the latest run: the instant it was due |
+| `<name>.done` | the latest period that was finished |
+| `<name>.i.<16 hex>` | the period for which one item of the task is done; the hex digits are the start of the SHA-256 of the item's name. It carries `expires`: two periods and a day after it was written, 40 days at most |
+
+A period is finished when `<name>.done` is not before `<name>.period`. A record `<name>` without `<name>.period` (written by a build that knew the start only) counts as a finished period.
+
+A task that must not happen once per node (a rotation of keys, a summary by mail) is asked for on every node under the same name, and runs like this:
 
 - There is no main node and no election. The task is run by the node that keeps the group's locks (section "certificates": the lowest node id among the gateways a node reaches). When that node is gone, the role moves by itself.
-- A node runs a task when it is in step with the group, keeps the locks, and the record says the last start is an interval ago or there is none. It has to have been in that position for 3 s without a break: a node that just started has not heard from every member, and one failed call does not make it the keeper.
-- It writes the record first and runs the task after. So a task runs at most once per interval while the nodes reach each other, a node that takes over does not run it again before it is due, and a run that fails is tried again with the next interval.
-- Nodes that cannot reach each other each find a keeper on their side, and the task may run on both. A task has to be safe to run again; one that must never run twice, whatever the network does, does not belong here.
-- First user: `human_check_keys`, looked at every hour. The keys of the browser check are rotated when they are older than a day, once for the group; a node of a group no longer rotates them at its own start.
+- **When it is due.** With an interval: when the interval has passed since `<name>.period`, and at once when there is none; the new period is the moment it starts. With a time of day (optionally on one day of the week, in a named time zone): the latest occurrence at or before now, when it is later than `<name>.period` by at least half the usual distance (12 h for a daily task, 3.5 days for a weekly one), so a time of day that is changed brings no second run of a day that ran. A time that does not exist on a day (the clock is put forward) falls on the next minute that does; a time that exists twice falls on the first. A task with a time of day that is seen for the first time starts with its next occurrence: the current one is written as finished without a run.
+- **Who and when.** A node runs a task when it is in step with the group, keeps the locks, and has been in that position for 3 s without a break: a node that just started has not heard from every member, and one failed call does not make it the keeper. It takes the lock `job:<name>` and looks again under it.
+- **A run.** It writes `<name>.period` and `<name>`, runs the task, and writes `<name>.done` when the task succeeded. A task with several items (the recipients of a mail) asks before each whether its item record carries this period, and writes the record after the item. At most 256 items a run.
+- **A run that broke off.** A period that is started and not finished, whose `<name>` is older than the task's grace time (default 2 minutes, 5 s to 1 h), is taken up again by the node that keeps the locks then: the same period, and only the items that are not written. That holds after a failure on the same node and after a takeover alike, and again after every grace time until the period is finished or the next one is due.
+- **A period nobody was up for** runs once when a node is up again and it is still the current one (a task may bound how late, `MaxLate`); earlier ones are left out. Never several in a row.
+- **At least once, not exactly once.** An item is done again when the run broke off between the item and its record. Nodes that cannot reach each other each find a keeper on their side, and a period may run on both: a mail can arrive twice. A task that must never happen twice, whatever the network does, does not belong here.
+- A single gateway runs the same tasks by the same rules; it keeps the four notes in its own store (`schild.db`, key `jobs_local_v1`, per node, not shared) instead of records.
+- First user: `human_check_keys`, an interval of one hour. The keys of the browser check are rotated when they are older than a day, once for the group; a node of a group does not rotate them at its own start. A single gateway rotates them at its start and, new, while it runs.
 
 ## 6. Joining
 

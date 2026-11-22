@@ -696,6 +696,7 @@ func (a *App) Loops(ctx context.Context) {
 	a.goLoop(ctx, "allowlist-dns", tick(5*time.Minute, func() { a.Allow.RefreshDNS(ctx) }))
 	a.goLoop(ctx, "behaviour-sweep", tick(time.Minute, a.Behaviour.Sweep))
 	a.startCluster(ctx)
+	a.startJobs(ctx)
 	a.goLoop(ctx, "summaries", tick(time.Minute, func() {
 		a.flushSummaries(ctx)
 		if xs, err := a.Store.ActiveExceptions(ctx, time.Now()); err == nil {
