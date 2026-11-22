@@ -101,4 +101,3 @@ func SetFirstSyncWait(d time.Duration) (undo func()) {
 	firstSyncWait = d
 	return func() { firstSyncWait = old }
 }
-

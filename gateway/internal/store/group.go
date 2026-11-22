@@ -102,6 +102,16 @@ func (s *Store) MergeIncident(ctx context.Context, in *Incident) error {
 	if !in.UnblockedAt.IsZero() {
 		unblocked = ms(in.UnblockedAt)
 	}
+	// A row a node made from a block's record (it knew no more than the
+	// address and the source) takes what the incident says.
+	if _, err := s.db.ExecContext(ctx, `UPDATE incidents SET reason = ?, site = ?,
+		event_id = CASE WHEN event_id = '' THEN ? ELSE event_id END,
+		sources = CASE WHEN ? != '' THEN ? ELSE sources END,
+		time_ms = ?, first_ms = min(first_ms, ?)
+		WHERE incident = ? AND reason = '' AND site = '' AND ? != ''`,
+		in.Reason, in.Site, in.EventID, joinList(in.Sources), joinList(in.Sources), ms(in.Time), ms(in.Time), in.Incident, in.Reason+in.Site); err != nil {
+		return err
+	}
 	_, err := s.db.ExecContext(ctx, `UPDATE incidents SET count = max(count, ?), last_ms = max(last_ms, ?),
 		status = CASE WHEN ? != 0 AND unblocked_ms = 0 THEN ? ELSE status END,
 		unblocked_ms = CASE WHEN unblocked_ms = 0 THEN ? ELSE unblocked_ms END

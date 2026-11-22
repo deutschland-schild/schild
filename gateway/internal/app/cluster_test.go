@@ -969,3 +969,23 @@ func TestNewGroupSecretServerByServerKeepsTheState(t *testing.T) {
 		}
 	}
 }
+
+// "Freigeben" on another node works from the moment that node holds the
+// block: it does not wait for the incident, which follows with the events of
+// the node that blocked (finding F2 of the lab measurement).
+func TestUnblockOnAnotherNodeAsSoonAsItHoldsTheBlock(t *testing.T) {
+	a, b := pair(t)
+	b.h.Login()
+	for i, incident := range []string{"K7QM-4XWA", "K7QM-4XWB", "K7QM-4XWC", "K7QM-4XWD", "K7QM-4XWE"} {
+		ip := fmt.Sprintf("203.0.113.%d", 210+i)
+		a.block(ip, incident, 15*time.Minute)
+		b.h.WaitFor("web-2 holds the block "+incident, func() bool { return b.blocked(ip) == incident })
+		if code, body := b.h.API("POST", "/incidents/"+incident+"/unblock", map[string]any{}); code != 200 {
+			t.Fatalf("unblock of %s on web-2 right after the block arrived: %d %s", incident, code, body)
+		}
+		a.h.WaitFor("web-1 serves "+ip+" again", func() bool { return a.blocked(ip) == "" })
+		if got := b.blocked(ip); got != "" {
+			t.Fatalf("web-2 still blocks %s after its own unblock (%s)", ip, got)
+		}
+	}
+}

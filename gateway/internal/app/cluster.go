@@ -17,6 +17,7 @@ import (
 	"github.com/deutschland-schild/schild/gateway/internal/behaviour"
 	"github.com/deutschland-schild/schild/gateway/internal/cluster"
 	"github.com/deutschland-schild/schild/gateway/internal/ratelog"
+	"github.com/deutschland-schild/schild/gateway/internal/store"
 )
 
 // The group of MVP-27 (D103), first version: the address blocks of every
@@ -162,7 +163,27 @@ func (a *App) applyGroupBlock(rec *contract.Record) bool {
 		return false
 	}
 	a.groupBlocks.known[key] = groupBlock{incident: b.Incident, until: until, node: b.Node, self: rec.Origin == a.Cluster.ID()}
+	a.noteGroupIncident(b, key, since)
 	return true
+}
+
+// noteGroupIncident stores the incident of a block another node set, from
+// what the block's record says. The incident itself follows with the events
+// of that node, up to a second later; until then the dashboard of this node
+// lists the block, and "Freigeben" on it has to find its incident (finding
+// F2 of the lab measurement: 404 for a block the page showed). What the
+// record does not say (website, reason) is filled in when the incident
+// arrives (store.MergeIncident).
+func (a *App) noteGroupIncident(b *contract.Block, key behaviour.Key, since time.Time) {
+	if a.Store == nil || b.Incident == "" {
+		return
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+	in := &store.Incident{Incident: b.Incident, EventID: b.EventID, Time: since, IP: key.Addr().String(), Status: "blocked", Sources: []string{b.Source}}
+	if err := a.Store.InsertIncident(ctx, in); err != nil {
+		ratelog.Warn(a.log, "cluster: incident of a block of another node not stored; it follows with that node's events", "err", err)
+	}
 }
 
 // applyGroupLift ends the block another node lifted.

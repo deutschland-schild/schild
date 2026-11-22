@@ -96,3 +96,37 @@ func TestSchemaVersion(t *testing.T) {
 		}
 	}
 }
+
+// A node of a group stores the incident of a block of another node from the
+// block's record, before the incident itself arrives: the incident then
+// fills in what the record did not say, and an incident this node wrote
+// itself keeps its own values.
+func TestMergeIncidentFillsARowMadeFromABlock(t *testing.T) {
+	s := open(t)
+	ctx := context.Background()
+	t0 := time.Date(2026, 11, 22, 12, 0, 10, 0, time.UTC)
+	if err := s.InsertIncident(ctx, &Incident{Incident: "K7QM-4XWD", Time: t0, IP: "203.0.113.42", Status: "blocked", Sources: []string{"dashboard"}}); err != nil {
+		t.Fatal(err)
+	}
+	full := &Incident{Incident: "K7QM-4XWD", EventID: "00000000-0000-4000-8000-000000000001", Time: t0.Add(-time.Second), IP: "203.0.113.42", Status: "blocked",
+		Reason: "Manuell gesperrt", Sources: []string{"dashboard"}, Site: "shop"}
+	if err := s.MergeIncident(ctx, full); err != nil {
+		t.Fatal(err)
+	}
+	in, err := s.GetIncident(ctx, "K7QM-4XWD")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if in.Reason != "Manuell gesperrt" || in.Site != "shop" || in.EventID != full.EventID || !in.Time.Equal(full.Time) {
+		t.Fatalf("the row made from the block was not filled in: %+v", in)
+	}
+	// Another incident with other values does not rewrite one that is complete.
+	other := *full
+	other.Reason, other.Site = "anders", "blog"
+	if err := s.MergeIncident(ctx, &other); err != nil {
+		t.Fatal(err)
+	}
+	if in, _ = s.GetIncident(ctx, "K7QM-4XWD"); in.Reason != "Manuell gesperrt" || in.Site != "shop" {
+		t.Fatalf("a complete incident was rewritten: %+v", in)
+	}
+}
