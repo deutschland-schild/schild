@@ -74,6 +74,7 @@ var PerNodeSettings = map[string]string{
 	"crowdsec_hub_status_v1":  "when this node last downloaded the hub index and what it answered",
 	"crowdsec_hub_set_v1":     "the hub rules this node holds; the group hands the index on by its own messages (hub, hub_index)",
 	"allow_version":           "a counter of this node's allowlist changes for its own caches",
+	"jobs_local_v1":           "when a once-per-period task last ran on a single gateway; a node of a group keeps that in the shared jobs records, and sharing this key would double them",
 }
 
 // SettingKey reports whether s can be a thing of class settings: a named

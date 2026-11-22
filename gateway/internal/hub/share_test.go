@@ -153,3 +153,69 @@ func digest(raw []byte) string {
 	sum := sha256.Sum256(raw)
 	return hex.EncodeToString(sum[:])
 }
+
+// A reset of the rules holds for a group: the node that was reset no longer
+// hands its index on and does not take the index of before back from a
+// member, and a member that hears of the reset drops its stored set too.
+func TestResetHoldsForTheGroup(t *testing.T) {
+	ctx := context.Background()
+	a := newEnv(t, setup{auto: true})
+	a.serve(index("one", "two", "three", "four", "five"))
+	a.src.Check(ctx)
+	info, blob, ok := a.src.SharedIndex()
+	if !ok {
+		t.Fatal("no index to hand on")
+	}
+	b := newEnv(t, setup{auto: true})
+	later := a.now.Load().Add(10 * time.Minute)
+	b.now.Store(&later)
+	if err := b.src.TakeIndex(ctx, info, blob); err != nil {
+		t.Fatal(err)
+	}
+	if b.status2().SetSource != crowdsec.SetStored {
+		t.Fatal("the second node does not run the index")
+	}
+
+	// The reset on the first node, half an hour after the download.
+	resetAt := a.now.Load().Add(30 * time.Minute)
+	a.now.Store(&resetAt)
+	var told time.Time
+	a.src.SetOnReset(func(at time.Time) { told = at })
+	if err := a.src.Reset(ctx); err != nil {
+		t.Fatal(err)
+	}
+	if told.IsZero() {
+		t.Fatal("the reset was not told")
+	}
+	if _, _, ok := a.src.SharedIndex(); ok {
+		t.Error("after its reset the node still hands the index of before on")
+	}
+	if a.src.WantsIndex(info) {
+		t.Error("after its reset the node would take the index of before back from a member")
+	}
+	// The member follows, and tells nobody again.
+	b.now.Store(&resetAt)
+	again := false
+	b.src.SetOnReset(func(time.Time) { again = true })
+	if err := b.src.ResetOfGroup(ctx, told); err != nil {
+		t.Fatal(err)
+	}
+	if got := b.status2().SetSource; got == crowdsec.SetStored {
+		t.Errorf("the member still runs the stored set after the reset of the group: %s", got)
+	}
+	if again {
+		t.Error("the member told the reset on")
+	}
+	if b.src.WantsIndex(info) {
+		t.Error("the member would take the index of before back")
+	}
+	// A download after the reset is taken as ever.
+	newer := info
+	newer.Digest = strings.Repeat("1", 64)
+	newer.FetchedAt = resetAt.Add(time.Minute).Format(time.RFC3339)
+	after := resetAt.Add(2 * time.Minute)
+	b.now.Store(&after)
+	if !b.src.WantsIndex(newer) {
+		t.Error("the member does not want an index downloaded after the reset")
+	}
+}

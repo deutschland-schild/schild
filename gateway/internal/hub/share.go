@@ -95,8 +95,11 @@ func (s *Source) WantsIndex(in IndexInfo) bool {
 	}
 	s.mu.Lock()
 	refused := s.refusedShared == in.Digest
+	resetAt := s.resetAt
 	s.mu.Unlock()
-	if refused {
+	// An index downloaded before the rules were reset is what the reset
+	// threw away: it does not come back from a member.
+	if refused || !at.After(resetAt) {
 		return false
 	}
 	cur := s.running()
@@ -144,4 +147,35 @@ func (s *Source) TakeIndex(ctx context.Context, in IndexInfo, gz []byte) error {
 	}
 	s.remember(raw, in.ETag, in.Pin)
 	return nil
+}
+
+// SetOnReset names what tells the group that the rules were reset here.
+func (s *Source) SetOnReset(f func(at time.Time)) {
+	s.mu.Lock()
+	s.onReset = f
+	s.mu.Unlock()
+}
+
+// ResetOfGroup follows a reset made on another node of the group at the
+// time at: a stored set downloaded before it is dropped and the image
+// snapshot runs, as on the node that was reset; no index from before is
+// taken from a member afterwards. A node whose set is newer, or that runs
+// the snapshot already, only notes the time.
+func (s *Source) ResetOfGroup(ctx context.Context, at time.Time) error {
+	at = at.UTC().Truncate(time.Second)
+	s.mu.Lock()
+	if !at.After(s.resetAt) || at.After(s.now().Add(time.Minute)) {
+		s.mu.Unlock()
+		return nil
+	}
+	s.resetAt = at
+	s.mu.Unlock()
+	cur := s.running()
+	if cur == nil || cur.source != crowdsec.SetStored {
+		return nil
+	}
+	if mine, err := time.Parse(time.RFC3339, cur.fetchedAt); err == nil && mine.After(at) {
+		return nil
+	}
+	return s.reset(ctx, false)
 }

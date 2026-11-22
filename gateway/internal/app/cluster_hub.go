@@ -26,6 +26,17 @@ type hubIndex interface {
 	TakeIndex(ctx context.Context, in hub.IndexInfo, gz []byte) error
 }
 
+// hubReset is the part of the hub source that makes a reset hold for the
+// group.
+type hubReset interface {
+	SetOnReset(func(at time.Time))
+	ResetOfGroup(ctx context.Context, at time.Time) error
+}
+
+// hubResetKey holds when the hub rules were last reset to the image
+// snapshot, on any node of the group.
+const hubResetKey = "crowdsec_hub_reset_v1"
+
 const (
 	tellHub     = "hub"
 	askHubIndex = "hub_index"
@@ -47,6 +58,29 @@ func (a *App) startGroupHub(ctx context.Context) {
 	if a.hubShare.Load() == nil {
 		var h hubIndex = a.Repos.Hub()
 		a.hubShare.Store(&h)
+	}
+	// A reset of the rules holds for the group: the node that was reset
+	// writes when under a key of the store, which is shared like every
+	// other, and each node that takes it resets too (hub/share.go).
+	if h, ok := any(a.Repos.Hub()).(hubReset); ok && a.Repos.Hub() != nil {
+		h.SetOnReset(func(at time.Time) {
+			if err := a.Store.Put(context.Background(), hubResetKey, []byte(at.UTC().Format(time.RFC3339))); err != nil {
+				a.log.Warn("cluster: the reset of the hub rules was not noted for the group; it holds on this node", "err", err)
+			}
+		})
+		follow := func(ctx context.Context, v []byte) {
+			at, err := time.Parse(time.RFC3339, string(v))
+			if err != nil {
+				return
+			}
+			if err := h.ResetOfGroup(ctx, at); err != nil {
+				a.log.Warn("cluster: the hub rules were reset on another node; this node could not follow", "err", err)
+			}
+		}
+		a.OnSharedKey(hubResetKey, follow)
+		if v, err := a.Store.Get(ctx, hubResetKey); err == nil {
+			follow(ctx, v)
+		}
 	}
 	node := a.Cluster
 	var taking atomic.Bool

@@ -4058,7 +4058,7 @@ CL_THINGS = {
     "logins": {"users", "sessions", "agent_tokens"},
 }
 # Keys of the gateway's store that describe one node and never travel.
-CL_PER_NODE_SETTINGS = {"installed_at_v1", "dashboard_setup_code_v1", "crowdsec_hub_status_v1", "crowdsec_hub_set_v1", "allow_version"}
+CL_PER_NODE_SETTINGS = {"installed_at_v1", "dashboard_setup_code_v1", "crowdsec_hub_status_v1", "crowdsec_hub_set_v1", "allow_version", "jobs_local_v1"}
 CL_SETTING_KEY = re.compile(r"^[a-z][a-z0-9_]{0,63}\Z")
 CL_TIME_PLAIN = re.compile(r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}([.,]\d+)?Z$")
 CL_TIME = re.compile(r"^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})([.,]\d+)?Z$")
