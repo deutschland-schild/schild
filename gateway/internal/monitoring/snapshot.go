@@ -200,7 +200,9 @@ type MonitoringNow struct {
 	Traffic     TrafficNow      `json:"traffic"`
 	Server      *cm.ServerNow   `json:"server"`
 	Hints       []cm.HealthHint `json:"hints"`
-	Sites       []SiteNow       `json:"sites,omitempty"`
+	// Cluster: in a group of gateways, the nodes the answer covers.
+	Cluster *cm.ClusterScope `json:"cluster,omitempty"`
+	Sites   []SiteNow        `json:"sites,omitempty"`
 }
 
 // BreakdownCounts are the totals of a breakdown.
@@ -228,4 +230,6 @@ type TrafficBreakdown struct {
 	Total           BreakdownCounts `json:"total"`
 	Items           []cm.TopEntry   `json:"items"`
 	Other           BreakdownCounts `json:"other"`
+	// Cluster: in a group of gateways, the nodes the answer adds up.
+	Cluster *cm.ClusterScope `json:"cluster,omitempty"`
 }

@@ -521,7 +521,28 @@ export function createHandlers(st: MockState, opts: HandlerOptions = {}): HttpHa
     ...behaviourHandlers({ base, behaviour: () => st.behaviour, allowlist: () => st.allowlist, scenario: () => st.scenario, now, hex: n => st.rand.hex(n), guard, problem, page, read }),
 
     // ---------------------------------------------------------------- v0.4 monitoring (mock/monitoring.ts, MVP-21)
-    ...monitoringHandlers({ base, monitoring: () => st.monitoring, scenario: () => st.scenario, now, guard, problem, tickMs: opts.monitoringTickMs }),
+    ...monitoringHandlers({
+      base,
+      monitoring: () => st.monitoring,
+      scenario: () => st.scenario,
+      now,
+      guard,
+      problem,
+      tickMs: opts.monitoringTickMs,
+      // MVP-27: in a cluster an answer names the gateways it adds up; one that is not reached lacks its part.
+      cluster: (node) => {
+        if (st.group.mode !== 'group') return node && node !== 'all' ? 'invalid' : undefined
+        const all = (st.group.members ?? []).filter(m => m.role === 'gateway' && m.state !== 'removed')
+        const chosen = !node || node === 'all' ? all : all.filter(m => m.id === node)
+        if (!chosen.length) return 'invalid'
+        return {
+          node: !node || node === 'all' ? 'all' : node,
+          nodes: chosen.map(m => ({ id: m.id, name: m.name, ...(m.state === 'self' ? { self: true } : {}) })),
+          partial_nodes: chosen.filter(m => m.state === 'unreachable' || m.state === 'no_contact').map(m => ({ node: m.id, name: m.name, ...(m.last_out ? { until: m.last_out } : {}) })),
+          clients_at_least: chosen.length > 1,
+        }
+      },
+    }),
 
     // ---------------------------------------------------------------- v0.5 websites (mock/websites.ts, D36)
     ...websiteHandlers({ base, state: () => st, now, guard, problem }),

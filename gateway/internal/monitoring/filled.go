@@ -18,7 +18,7 @@ import (
 // and, for a refilled one, its minute buckets one by one. cov gets every
 // 10 min bucket in time order; a bucket built from minutes is partial
 // unless all ten minutes are there and complete.
-func (m *Monitor) readFilled(start, end, now time.Time, parts readParts, fine bool, cov *coverage, fn func(t time.Time, b *cm.MetricBucket)) error {
+func (m NodeView) readFilled(start, end, now time.Time, parts readParts, fine bool, cov *coverage, fn func(t time.Time, b *cm.MetricBucket)) error {
 	return m.fill(start, end, now, parts, fine, cov, false, func(t time.Time, b *cm.MetricBucket, _ float64) { fn(t, b) })
 }
 
@@ -29,11 +29,11 @@ func (m *Monitor) readFilled(start, end, now time.Time, parts readParts, fine bo
 // summaries, estimates of distinct clients an upper bound), marked partial
 // when a minute is missing or partial. span is the seconds the bucket
 // covers (bucketSpan; for a refilled bucket the sum over its minutes).
-func (m *Monitor) readFilledMerged(start, end, now time.Time, parts readParts, fine bool, cov *coverage, fn func(t time.Time, b *cm.MetricBucket, span float64)) error {
+func (m NodeView) readFilledMerged(start, end, now time.Time, parts readParts, fine bool, cov *coverage, fn func(t time.Time, b *cm.MetricBucket, span float64)) error {
 	return m.fill(start, end, now, parts, fine, cov, true, fn)
 }
 
-func (m *Monitor) fill(start, end, now time.Time, parts readParts, fine bool, cov *coverage, merge bool, fn func(t time.Time, b *cm.MetricBucket, span float64)) error {
+func (m NodeView) fill(start, end, now time.Time, parts readParts, fine bool, cov *coverage, merge bool, fn func(t time.Time, b *cm.MetricBucket, span float64)) error {
 	ring, ring1 := m.rings[2], m.rings[1]
 	cov.step = ring.Step
 	oldest1, cur := ring1.Oldest(now), ring.Start(now)
@@ -53,7 +53,7 @@ func (m *Monitor) fill(start, end, now time.Time, parts readParts, fine bool, co
 	}
 	seen := map[int64]bool{}
 	var redo []time.Time
-	err := m.store.read(ring, start, end, parts, func(t time.Time, b *cm.MetricBucket) {
+	err := m.readNodes(ring, start, end, parts, func(t time.Time, b *cm.MetricBucket) {
 		seen[t.Unix()] = true
 		if b.Partial && byMinute(t) {
 			redo = append(redo, t)
@@ -97,7 +97,7 @@ func (m *Monitor) fill(start, end, now time.Time, parts readParts, fine bool, co
 	for _, t := range redo {
 		slots[t.Unix()] = &slot{}
 	}
-	err = m.store.read(ring1, redo[0], redo[len(redo)-1].Add(ring.Step-ring1.Step), parts, func(t1 time.Time, b *cm.MetricBucket) {
+	err = m.readNodes(ring1, redo[0], redo[len(redo)-1].Add(ring.Step-ring1.Step), parts, func(t1 time.Time, b *cm.MetricBucket) {
 		s := slots[ring.Start(t1).Unix()]
 		if s == nil {
 			return

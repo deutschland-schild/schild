@@ -60,9 +60,11 @@ type Config struct {
 
 // Monitor collects, aggregates, stores and serves the monitoring data.
 type Monitor struct {
-	cfg     Config
-	rec     *recorder
-	store   *ringStore
+	cfg   Config
+	rec   *recorder
+	store *ringStore
+	// nodes: the ring stores of the other members of a group (nodes.go).
+	nodes   nodeSet
 	sampler *sampler
 	// sampleMu serialises Sample: the sampler keeps the previous reading
 	// for its rates, and Snapshot samples on the HTTP goroutine until the
@@ -250,6 +252,7 @@ func (m *Monitor) Close() error {
 		}
 		m.store.swapRunState(runStateClean)
 		err = m.store.close()
+		m.closeNodes()
 	})
 	return err
 }

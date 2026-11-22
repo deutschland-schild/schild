@@ -270,7 +270,7 @@ func TestFillFarRangeIsCheap(t *testing.T) {
 		t.Fatal(err)
 	}
 	var cov coverage
-	if err := m.readFilled(from, to, now, readParts{}, true, &cov, func(time.Time, *cm.MetricBucket) {}); err != nil {
+	if err := m.all().readFilled(from, to, now, readParts{}, true, &cov, func(time.Time, *cm.MetricBucket) {}); err != nil {
 		t.Fatal(err)
 	}
 	if d := time.Since(start); d > 2*time.Second {

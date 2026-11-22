@@ -82,3 +82,11 @@ func OneGroupHashKey() func() {
 	testGroupHashKey = &[16]byte{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16}
 	return func() { testGroupHashKey = nil }
 }
+
+// PullGroupMetrics asks the members for their metric buckets now, as the
+// loop does every ten seconds (cluster_metrics.go).
+func (a *App) PullGroupMetrics(ctx context.Context) {
+	if a.groupMetrics != nil {
+		a.groupMetrics.round(ctx)
+	}
+}

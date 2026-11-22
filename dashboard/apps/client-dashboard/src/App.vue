@@ -9,7 +9,9 @@ import { computed, defineAsyncComponent, onBeforeUnmount, onMounted, ref, shallo
 import { useRoute, useRouter } from 'vue-router'
 import { api, csrf, errorMessage, session } from './api/client'
 import { deleteAllowlistEntry, keys, useAllowMyIp, useOverview } from './api/queries'
+import ClusterDataBanner from './components/ClusterDataBanner.vue'
 import GroupModePill from './components/GroupModePill.vue'
+import NodeFilter from './components/NodeFilter.vue'
 import TestProfileBanner from './components/TestProfileBanner.vue'
 import { useGroupStatus } from './api/group'
 import { useHosts } from './api/hosts'
@@ -219,6 +221,7 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKey))
         <WebsiteSwitcher v-else :websites="websites" :servers="servers" :site="held" :server="heldServer" :subpage="subpage" />
       </template>
       <template v-if="group" #status>
+        <NodeFilter :status="group" />
         <GroupModePill :status="group" />
       </template>
       <template #sidebar-footer>
@@ -236,6 +239,7 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKey))
         </div>
       </template>
       <TestProfileBanner v-if="ov?.profile === 'test'" />
+      <ClusterDataBanner v-if="group" :status="group" />
       <RouterView />
     </RouterShell>
     <ShortcutHelp v-model:open="helpOpen" />

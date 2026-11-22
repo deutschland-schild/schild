@@ -167,7 +167,7 @@ func (s *Server) serverState(now time.Time) (websites.Server, websites.ServerHea
 	return srv, websites.ServerHealth{Node: node, This: true, Status: websites.ServerStatus(srv), Baseline: gs, Hints: hints}
 }
 
-func (s *Server) summary(v *sites.View, w websites.Website, srv websites.Server, health websites.ServerHealth, now time.Time) websites.Summary {
+func (s *Server) summary(v *sites.View, w websites.Website, srv websites.Server, health websites.ServerHealth, now time.Time, group map[string]*monitoring.TrafficNow) websites.Summary {
 	out := websites.Summary{ID: w.ID, Label: w.Label, Hosts: w.Hosts, HostsTotal: len(w.Hosts), Source: v.Source, Protection: w.Protection, Tracked: w.Tracked,
 		RunsOn: []websites.ServerHealth{health}}
 	if out.Hosts == nil {
@@ -194,6 +194,14 @@ func (s *Server) summary(v *sites.View, w websites.Website, srv websites.Server,
 		for _, h := range n.Hints {
 			in.SiteHints = append(in.SiteHints, websites.Hint{Code: h.Code, Level: h.Level, Object: h.Object})
 		}
+		// In a group the numbers shown are those of every node; the status
+		// above stays this server's, as runs_on says.
+		if group != nil {
+			out.Now = group[w.ID]
+			if out.Now == nil && in.Traffic != nil {
+				out.Now = &monitoring.TrafficNow{WindowS: 60}
+			}
+		}
 	}
 	st := websites.Status(in)
 	out.Status, out.Reasons = st.Status, st.Reasons
@@ -203,16 +211,26 @@ func (s *Server) summary(v *sites.View, w websites.Website, srv websites.Server,
 	return out
 }
 
+// groupSitesNow are the last 60 s of every website over the nodes of a
+// group; nil on a single gateway.
+func (s *Server) groupSitesNow(now time.Time) map[string]*monitoring.TrafficNow {
+	if s.Monitor == nil {
+		return nil
+	}
+	return s.Monitor.GroupSitesNow(now)
+}
+
 // WebsiteList is listWebsites (also the agent API).
 func (s *Server) WebsiteList(now time.Time) websites.List {
 	v := s.view()
 	srv, health := s.serverState(now)
 	out := websites.List{GeneratedAt: ts(now), Node: srv.Node, Server: &health, Websites: []websites.Summary{}}
+	group := s.groupSitesNow(now)
 	for _, w := range v.Websites() {
 		if len(out.Websites) == 500 {
 			break
 		}
-		out.Websites = append(out.Websites, s.summary(v, w, srv, health, now))
+		out.Websites = append(out.Websites, s.summary(v, w, srv, health, now, group))
 	}
 	if n := v.Untracked(); n > 0 {
 		o := &websites.Other{Websites: n}
@@ -235,7 +253,7 @@ func (s *Server) WebsiteDetail(ctx context.Context, id string, now time.Time) (w
 		return websites.Detail{}, false
 	}
 	srv, health := s.serverState(now)
-	d := websites.Detail{GeneratedAt: ts(now), Website: s.summary(v, w, srv, health, now)}
+	d := websites.Detail{GeneratedAt: ts(now), Website: s.summary(v, w, srv, health, now, s.groupSitesNow(now))}
 	if s.Monitor != nil && w.Tracked && w.Protection != websites.Unprotected {
 		if tc, cov, err := s.Monitor.TotalsCovered(id, now.Add(-24*time.Hour), now, now); err == nil && tc != nil {
 			d.Traffic24h = tc
@@ -312,17 +330,24 @@ func (s *Server) getWebsiteKpis(w http.ResponseWriter, r *http.Request) {
 	filters := r.URL.Query()["filter"]
 	now := s.now()
 	span := to.Sub(from)
-	cur, err := s.Monitor.Kpis(ws.ID, from, to, filters, now)
+	// node: every node of a group (absent, all) or one of them.
+	nodes, err := s.Monitor.Nodes(r.URL.Query().Get("node"))
 	if err != nil {
 		s.monitoringFailed(w, err)
 		return
 	}
-	prev, err := s.Monitor.Kpis(ws.ID, from.Add(-span), from, filters, now)
+	cur, err := nodes.Kpis(ws.ID, from, to, filters, now)
 	if err != nil {
 		s.monitoringFailed(w, err)
 		return
 	}
-	out := websites.Kpis{Site: ws.ID, From: ts(from), To: ts(to), PreviousFrom: ts(from.Add(-span)), PreviousTo: ts(from), Source: s.Monitor.KpisSource(filters, from, to, now), Current: cur, Previous: prev}
+	prev, err := nodes.Kpis(ws.ID, from.Add(-span), from, filters, now)
+	if err != nil {
+		s.monitoringFailed(w, err)
+		return
+	}
+	out := websites.Kpis{Site: ws.ID, From: ts(from), To: ts(to), PreviousFrom: ts(from.Add(-span)), PreviousTo: ts(from), Source: nodes.KpisSource(filters, from, to, now), Current: cur, Previous: prev,
+		Cluster: nodes.Scope(from, to, now)}
 	if len(filters) > 0 {
 		out.Filters = filters
 	}
@@ -334,11 +359,18 @@ func (s *Server) getWebsiteRealtime(w http.ResponseWriter, r *http.Request) {
 	if !ok || s.monitoringOff(w) {
 		return
 	}
-	out, err := s.Monitor.Realtime(ws.ID, s.now())
+	nodes, err := s.Monitor.Nodes(r.URL.Query().Get("node"))
 	if err != nil {
 		s.monitoringFailed(w, err)
 		return
 	}
+	now := s.now()
+	out, err := nodes.Realtime(ws.ID, now)
+	if err != nil {
+		s.monitoringFailed(w, err)
+		return
+	}
+	out.Cluster = nodes.Scope(now.Add(-30*time.Minute), now, now)
 	writeJSON(w, 200, out)
 }
 

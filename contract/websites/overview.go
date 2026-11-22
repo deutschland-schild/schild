@@ -1,6 +1,10 @@
 package websites
 
-import "strconv"
+import (
+	"strconv"
+
+	"github.com/deutschland-schild/schild/contract/monitoring"
+)
 
 // Wire types of the website overview (v0.5, D36 addendum: modelled on
 // Plausible): KPI row, Echtzeit, annotations, "Letzte Alarme". OpenAPI
@@ -44,6 +48,8 @@ type Kpis struct {
 	Source       string   `json:"source"`
 	Current      KpiSet   `json:"current"`
 	Previous     KpiSet   `json:"previous"`
+	// Cluster: in a group of gateways, the nodes the answer adds up.
+	Cluster *monitoring.ClusterScope `json:"cluster,omitempty"`
 }
 
 // RealtimePoint is one minute of WebsiteRealtime.
@@ -67,6 +73,8 @@ type Realtime struct {
 	Stopped5m    int64           `json:"stopped_5m"`
 	WouldBlock5m int64           `json:"would_block_5m"`
 	Points       []RealtimePoint `json:"points"`
+	// Cluster: in a group of gateways, the nodes the answer adds up.
+	Cluster *monitoring.ClusterScope `json:"cluster,omitempty"`
 }
 
 // Annotation kinds.

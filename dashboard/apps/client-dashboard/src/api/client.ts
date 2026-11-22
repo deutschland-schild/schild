@@ -2,6 +2,7 @@ import type { paths } from './generated/schema'
 import type { Problem, Session } from './types'
 import { ApiError, createApi } from '@schild/app-kit'
 import { reactive } from 'vue'
+import { withNode } from '../lib/node-filter'
 import { apiPrefix } from './generated/operations'
 
 /**
@@ -25,7 +26,8 @@ export const api = createApi<paths>({
   prefix: apiPrefix,
   credentials: 'same-origin',
   // Resolve fetch per call (not at import time), so test interceptors and polyfills apply.
-  fetch: (req: Request) => globalThis.fetch(req),
+  // In a cluster the counters and charts take the gateway chosen in the filter "Server" (lib/node-filter).
+  fetch: (req: Request) => globalThis.fetch(withNode(req)),
   auth: {
     headers: (): Record<string, string> => {
       const token = session.value?.csrf_token

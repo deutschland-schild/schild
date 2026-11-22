@@ -37,7 +37,10 @@ const tiles = computed(() => KPIS.map((d) => {
   const cur: KpiValue | undefined = props.kpis?.current[src]
   const prev: KpiValue | undefined = props.kpis?.previous[src]
   const ch = changeText(cur?.value, prev?.value)
-  const label = d.key === 'stopped' && props.observe ? 'Erkannt' : d.label
+  // In a cluster the visitors of the metric rings are the largest estimate of the servers, never their sum
+  // (ClusterScope.clients_at_least): a lower bound. The request ring counts them over all servers.
+  const atLeast = d.key === 'visitors' && !!props.kpis?.cluster?.clients_at_least && props.kpis.source === 'rings'
+  const label = d.key === 'stopped' && props.observe ? 'Erkannt' : atLeast ? 'Besucher (mindestens)' : d.label
   return { d, label, cur, ch, estimate: cur ? !cur.exact && cur.value !== null : false, partial: !!cur?.partial && cur.value !== null }
 }))
 const would = computed(() => props.kpis?.current.would_block)

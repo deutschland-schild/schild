@@ -2668,7 +2668,31 @@ export interface components {
             /** @description One value per step from `from`; null = no data for that step. */
             values: (number | null)[];
         };
+        /** @description In a group of gateways: which nodes the numbers of an answer cover (contracts/cluster.md section 9a). Absent on a single gateway. Every gateway keeps the metric buckets of every other gateway and asks for new ones every 10 s, so the numbers of another node end up to that long, plus the step of the ring, before the present. */
+        ClusterScope: {
+            /** @description all, or the id of the one node asked for. */
+            node: string;
+            /** @description The nodes whose numbers the answer holds: this gateway first when it is among them, then the others by id. */
+            nodes: components["schemas"]["ClusterNode"][];
+            /** @description Nodes of `nodes` whose history on this gateway ends before the span of the answer does: they were not reached, or they were down. From `until` on the answer lacks their part, so its sums are lower bounds. */
+            partial_nodes: components["schemas"]["ClusterPartialNode"][];
+            /** @description true when the answer adds up several nodes. Counters, latency histograms and top lists add. Estimates of distinct clients (visitors, unique and new clients) do not, because a visitor may have reached several nodes: the answer carries the largest estimate of the nodes, a lower bound of the group's (UI "mindestens"). Gauges and host values (CPU, memory, disk, network) are never added: an answer over several nodes carries those of this gateway, ask for one node to see another's. */
+            clients_at_least: boolean;
+        };
+        ClusterNode: {
+            id: string;
+            name: string;
+            /** @description This gateway. */
+            self?: boolean;
+        };
+        ClusterPartialNode: {
+            node: string;
+            name: string;
+            /** @description End of what this gateway holds of the node; absent: nothing yet. */
+            until?: components["schemas"]["Timestamp"];
+        };
         SeriesResult: {
+            cluster?: components["schemas"]["ClusterScope"];
             from: components["schemas"]["Timestamp"];
             to: components["schemas"]["Timestamp"];
             resolution: components["schemas"]["Resolution"];
@@ -2808,6 +2832,7 @@ export interface components {
             would_block: number;
         };
         TrafficBreakdown: {
+            cluster?: components["schemas"]["ClusterScope"];
             by: components["schemas"]["BreakdownDimension"];
             from: components["schemas"]["Timestamp"];
             to: components["schemas"]["Timestamp"];
@@ -2905,6 +2930,7 @@ export interface components {
             stopped_share: components["schemas"]["NullableRatio"];
         };
         MonitoringNow: {
+            cluster?: components["schemas"]["ClusterScope"];
             generated_at: components["schemas"]["Timestamp"];
             /** @description Start of this schild process (counters before it are in the rings, not in TrafficNow). */
             started_at: components["schemas"]["Timestamp"];
@@ -3729,6 +3755,7 @@ export interface components {
             error_rate: components["schemas"]["KpiValue"];
         };
         WebsiteKpis: {
+            cluster?: components["schemas"]["ClusterScope"];
             site: components["schemas"]["WebsiteId"];
             from: components["schemas"]["Timestamp"];
             to: components["schemas"]["Timestamp"];
@@ -3750,6 +3777,7 @@ export interface components {
             partial: boolean;
         };
         WebsiteRealtime: {
+            cluster?: components["schemas"]["ClusterScope"];
             site: components["schemas"]["WebsiteId"];
             generated_at: components["schemas"]["Timestamp"];
             /** @description Visitors of the last 5 minutes (estimate, ±3.3 %): distinct clients with a browser request schild forwarded; bots, tools and stopped clients are not counted (UI "≈ N Besucher · letzte 5 Min."). */
@@ -5103,6 +5131,8 @@ export interface components {
         LimitId: string;
         WaveId: components["schemas"]["uuid"];
         AgentId: components["schemas"]["AgentId"];
+        /** @description In a group of gateways (contracts/cluster.md section 9a): the node whose numbers the answer shows. Absent or `all`: every node of the group added up, the default. A node id (GroupMember.id of getGroupStatus): that node alone, this gateway or another member, from the history this gateway holds of it. An id that is no gateway of the group, and any id on a single gateway: 400 invalid (pointer #/query/node). The answer says what it covers in `cluster`. */
+        Node: string;
         /** @description Only this website (WebsiteId from listWebsites). Without it: all websites together. Events, incidents, behaviour hits and waves belong to the website their request Host resolves to (contract/websites Set.Resolve; site-wide behaviour hits and waves by their host); monitoring and requests by the website the gate counted them for. An id this gateway does not serve: 400 invalid (pointer #/query/site). An unprotected website: empty results (schild sees none of its requests). */
         Site: components["schemas"]["WebsiteId"];
         /** @description "click to filter" in the website overview: `<dimension>:<value>`, repeated for a combination. One filter is answered from the per-website top lists of the 10 min ring (approximate when the value is outside a space-saving list: exact false, "Näherungswert"); two or more, or a filter on visitors or latency, only from the request ring (RequestPage.keep_hours back, by default 14 days); otherwise 409 filter_unavailable. `ip:<address>` and `user_agent:<part>` (case-insensitive part of the User-Agent) filter like a dimension; only the request ring answers them, also on their own. They are breakdown dimensions too. */
@@ -5164,6 +5194,8 @@ export interface operations {
     getWebsiteKpis: {
         parameters: {
             query: {
+                /** @description In a group of gateways (contracts/cluster.md section 9a): the node whose numbers the answer shows. Absent or `all`: every node of the group added up, the default. A node id (GroupMember.id of getGroupStatus): that node alone, this gateway or another member, from the history this gateway holds of it. An id that is no gateway of the group, and any id on a single gateway: 400 invalid (pointer #/query/node). The answer says what it covers in `cluster`. */
+                node?: components["parameters"]["Node"];
                 from: components["schemas"]["Timestamp"];
                 to: components["schemas"]["Timestamp"];
                 /** @description "click to filter" in the website overview: `<dimension>:<value>`, repeated for a combination. One filter is answered from the per-website top lists of the 10 min ring (approximate when the value is outside a space-saving list: exact false, "Näherungswert"); two or more, or a filter on visitors or latency, only from the request ring (RequestPage.keep_hours back, by default 14 days); otherwise 409 filter_unavailable. `ip:<address>` and `user_agent:<part>` (case-insensitive part of the User-Agent) filter like a dimension; only the request ring answers them, also on their own. They are breakdown dimensions too. */
@@ -5194,7 +5226,10 @@ export interface operations {
     };
     getWebsiteRealtime: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description In a group of gateways (contracts/cluster.md section 9a): the node whose numbers the answer shows. Absent or `all`: every node of the group added up, the default. A node id (GroupMember.id of getGroupStatus): that node alone, this gateway or another member, from the history this gateway holds of it. An id that is no gateway of the group, and any id on a single gateway: 400 invalid (pointer #/query/node). The answer says what it covers in `cluster`. */
+                node?: components["parameters"]["Node"];
+            };
             header?: never;
             path: {
                 website: components["parameters"]["Website"];
@@ -7200,6 +7235,8 @@ export interface operations {
     getMonitoringNow: {
         parameters: {
             query?: {
+                /** @description In a group of gateways (contracts/cluster.md section 9a): the node whose numbers the answer shows. Absent or `all`: every node of the group added up, the default. A node id (GroupMember.id of getGroupStatus): that node alone, this gateway or another member, from the history this gateway holds of it. An id that is no gateway of the group, and any id on a single gateway: 400 invalid (pointer #/query/node). The answer says what it covers in `cluster`. */
+                node?: components["parameters"]["Node"];
                 /** @description Only this website (WebsiteId from listWebsites). Without it: all websites together. Events, incidents, behaviour hits and waves belong to the website their request Host resolves to (contract/websites Set.Resolve; site-wide behaviour hits and waves by their host); monitoring and requests by the website the gate counted them for. An id this gateway does not serve: 400 invalid (pointer #/query/site). An unprotected website: empty results (schild sees none of its requests). */
                 site?: components["parameters"]["Site"];
             };
@@ -7253,6 +7290,8 @@ export interface operations {
     queryMetricSeries: {
         parameters: {
             query: {
+                /** @description In a group of gateways (contracts/cluster.md section 9a): the node whose numbers the answer shows. Absent or `all`: every node of the group added up, the default. A node id (GroupMember.id of getGroupStatus): that node alone, this gateway or another member, from the history this gateway holds of it. An id that is no gateway of the group, and any id on a single gateway: 400 invalid (pointer #/query/node). The answer says what it covers in `cluster`. */
+                node?: components["parameters"]["Node"];
                 /** @description `<metric id>[:<stat>]`, repeated. Default stat by kind: counter rate, gauge avg, histogram p95, estimate value. Allowed stats per metric in getMetricCatalogue. */
                 metric: components["schemas"]["MetricQuery"][];
                 from?: components["parameters"]["From"];
@@ -7288,6 +7327,8 @@ export interface operations {
     getTrafficBreakdown: {
         parameters: {
             query: {
+                /** @description In a group of gateways (contracts/cluster.md section 9a): the node whose numbers the answer shows. Absent or `all`: every node of the group added up, the default. A node id (GroupMember.id of getGroupStatus): that node alone, this gateway or another member, from the history this gateway holds of it. An id that is no gateway of the group, and any id on a single gateway: 400 invalid (pointer #/query/node). The answer says what it covers in `cluster`. */
+                node?: components["parameters"]["Node"];
                 by: components["schemas"]["BreakdownDimension"];
                 from?: components["parameters"]["From"];
                 to?: components["parameters"]["To"];

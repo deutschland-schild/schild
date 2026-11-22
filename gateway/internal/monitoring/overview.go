@@ -17,7 +17,7 @@ import (
 // Totals sums the counters of a website (or the gateway for "") over
 // [from, to) from the 10 min ring, lost 10 min buckets from the 1 min ring
 // (readFilled). nil: no numbers for the website.
-func (m *Monitor) Totals(site string, from, to, now time.Time) (*cm.TrafficCounters, error) {
+func (m NodeView) Totals(site string, from, to, now time.Time) (*cm.TrafficCounters, error) {
 	tc, _, err := m.TotalsCovered(site, from, to, now)
 	return tc, err
 }
@@ -36,7 +36,7 @@ type Coverage struct {
 }
 
 // TotalsCovered is Totals with the coverage of the range.
-func (m *Monitor) TotalsCovered(site string, from, to, now time.Time) (*cm.TrafficCounters, Coverage, error) {
+func (m NodeView) TotalsCovered(site string, from, to, now time.Time) (*cm.TrafficCounters, Coverage, error) {
 	var out Coverage
 	sel, err := m.selectSite(site)
 	if err != nil {
@@ -86,7 +86,7 @@ func (m *Monitor) TotalsCovered(site string, from, to, now time.Time) (*cm.Traff
 // stopped and would_block from the per-website top lists; the other KPIs
 // then need the request ring (unavailable filter_needs_requests). Two or
 // more filters, or an ip or user_agent filter (D64): ErrFilterUnavailable.
-func (m *Monitor) kpisRings(site string, from, to time.Time, filters []string, now time.Time) (websites.KpiSet, error) {
+func (m NodeView) kpisRings(site string, from, to time.Time, filters []string, now time.Time) (websites.KpiSet, error) {
 	sel, err := m.selectSite(site)
 	if err != nil {
 		return websites.KpiSet{}, err
@@ -195,7 +195,7 @@ func (m *Monitor) kpisRings(site string, from, to time.Time, filters []string, n
 
 // Realtime returns Echtzeit of a website: the last 5 minutes from memory
 // and 30 one-minute points from the 1 min ring plus the current minute.
-func (m *Monitor) Realtime(site string, now time.Time) (websites.Realtime, error) {
+func (m NodeView) Realtime(site string, now time.Time) (websites.Realtime, error) {
 	sel, err := m.selectSite(site)
 	if err != nil {
 		return websites.Realtime{}, err
@@ -208,7 +208,12 @@ func (m *Monitor) Realtime(site string, now time.Time) (websites.Realtime, error
 	if v := m.view(); v != nil && slot < 0 {
 		slot = v.SlotOf(site)
 	}
-	out.Requests5m, out.Stopped5m, out.WouldBlock5m, out.Visitors5m = m.Recent(slot, 5*time.Minute, now)
+	// What is in memory is this gateway's: the group and another member
+	// take the last five minutes from the minute points below.
+	fromRing := m.Merged() || m.Foreign()
+	if !fromRing {
+		out.Requests5m, out.Stopped5m, out.WouldBlock5m, out.Visitors5m = m.Recent(slot, 5*time.Minute, now)
+	}
 	ring := m.rings[1]
 	cur := ring.Start(now)
 	first := cur.Add(-30 * ring.Step)
@@ -218,7 +223,7 @@ func (m *Monitor) Realtime(site string, now time.Time) (websites.Realtime, error
 	if !sel.whole {
 		parts.core = coreSites
 	}
-	_ = m.store.read(ring, first, cur.Add(-ring.Step), parts, func(t time.Time, b *cm.MetricBucket) {
+	_ = m.readNodes(ring, first, cur.Add(-ring.Step), parts, func(t time.Time, b *cm.MetricBucket) {
 		sb := siteBucket(b, sel)
 		if sb == nil {
 			return
@@ -233,8 +238,23 @@ func (m *Monitor) Realtime(site string, now time.Time) (websites.Realtime, error
 		}
 		out.Points = append(out.Points, p)
 	}
+	if fromRing {
+		for _, p := range out.Points[max(0, len(out.Points)-5):] {
+			out.Requests5m += p.Requests
+			out.Stopped5m += p.Stopped
+			out.WouldBlock5m += p.WouldBlock
+			if p.Visitors != nil && (out.Visitors5m == nil || *p.Visitors > *out.Visitors5m) {
+				x := *p.Visitors
+				out.Visitors5m = &x
+			}
+		}
+	}
 	// The minute that runs now (partial).
 	p := websites.RealtimePoint{T: ts(cur), Partial: true}
+	if m.Foreign() {
+		out.Points = append(out.Points, p)
+		return out, nil
+	}
 	m.mu.Lock()
 	var s *siteAcc
 	if sel.whole && (m.view() == nil || slot < 0) {

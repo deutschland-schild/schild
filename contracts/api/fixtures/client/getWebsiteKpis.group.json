@@ -1,0 +1,98 @@
+{
+  "site": "verein.example",
+  "from": "2026-10-28T12:00:00Z",
+  "to": "2026-10-29T12:00:00Z",
+  "previous_from": "2026-10-27T12:00:00Z",
+  "previous_to": "2026-10-28T12:00:00Z",
+  "source": "rings",
+  "current": {
+    "visitors": {
+      "value": 1830,
+      "exact": false,
+      "error_bound": 0.033
+    },
+    "page_views": {
+      "value": 5120,
+      "exact": true
+    },
+    "requests": {
+      "value": 48000,
+      "exact": true
+    },
+    "stopped": {
+      "value": 310,
+      "exact": true
+    },
+    "would_block": {
+      "value": 12,
+      "exact": true
+    },
+    "latency_p95_ms": {
+      "value": 91.3,
+      "exact": false,
+      "error_bound": 0.25
+    },
+    "error_rate": {
+      "value": 0.002,
+      "exact": true
+    }
+  },
+  "previous": {
+    "visitors": {
+      "value": 1712,
+      "exact": false,
+      "error_bound": 0.033
+    },
+    "page_views": {
+      "value": 4870,
+      "exact": true
+    },
+    "requests": {
+      "value": 51200,
+      "exact": true
+    },
+    "stopped": {
+      "value": 1250,
+      "exact": true
+    },
+    "would_block": {
+      "value": 9,
+      "exact": true
+    },
+    "latency_p95_ms": {
+      "value": 87.4,
+      "exact": false,
+      "error_bound": 0.25
+    },
+    "error_rate": {
+      "value": 0.001,
+      "exact": true
+    }
+  },
+  "cluster": {
+    "node": "all",
+    "nodes": [
+      {
+        "id": "n-0a1b2c3d4e5f60718293a4b5c6d7e8f9",
+        "name": "web-1",
+        "self": true
+      },
+      {
+        "id": "n-1b2c3d4e5f60718293a4b5c6d7e8f90a",
+        "name": "web-2"
+      },
+      {
+        "id": "n-2c3d4e5f60718293a4b5c6d7e8f90a1b",
+        "name": "web-3"
+      }
+    ],
+    "partial_nodes": [
+      {
+        "node": "n-2c3d4e5f60718293a4b5c6d7e8f90a1b",
+        "name": "web-3",
+        "until": "2026-11-21T13:58:00Z"
+      }
+    ],
+    "clients_at_least": true
+  }
+}
