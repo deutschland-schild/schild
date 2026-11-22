@@ -20,6 +20,7 @@ from lab import (Conn, Dash, Load, Node, VM, Watch, MESH_PORT, SITE, get, load_i
 OUT = "/opt/sg27/out"
 SEED = 27
 CLIENT_NET = "203.0.113."          # documentation range: the addresses visitors come from (TEST ONLY geo fixture)
+ONE_NAME = "web"                   # the node_name of the one schild.yaml a deployment writes to every node
 
 
 class Results:
@@ -79,13 +80,18 @@ class Lab(dict):
         nodes as a second balancer would."""
         return [self.lb.ip, self.client.ip]
 
-    def haproxy(self, nodes, inter="2s", fall=2, rise=2, balance="roundrobin", ports=(80,)):
-        """HAProxy in TCP mode on the balancer VM: health check on /.schild/readyz, PROXY protocol v2 to the gateways."""
+    def haproxy(self, nodes, inter="2s", fall=2, rise=2, balance="roundrobin", ports=(80,), redispatch=False):
+        """HAProxy in TCP mode on the balancer VM: health check on /.schild/readyz, PROXY protocol v2 to the gateways.
+
+        This is the example of the guide ("Beispiel für HAProxy, Website ohne TLS auf den Gateways") line by line; the
+        harness adds the section `global` with the stats socket it reads the state of the servers from."""
         cfg = ["global", "  maxconn 20000", "  stats socket /run/sg27-haproxy.sock mode 600 level admin", "",
                "defaults", "  mode tcp", "  timeout connect 2s", "  timeout client 60s", "  timeout server 60s", ""]
         for port in ports:
             cfg += ["frontend web%d" % port, "  bind :%d" % port, "  default_backend gateways%d" % port, "",
                     "backend gateways%d" % port, "  balance %s" % balance]
+            if redispatch:
+                cfg += ["  option redispatch"]
             if port == 80:
                 cfg += ["  option httpchk", "  http-check send meth GET uri /.schild/readyz ver HTTP/1.1 hdr Host %s" % SITE,
                         "  http-check expect status 200"]
@@ -121,10 +127,17 @@ class Lab(dict):
 
 
 def fresh_group(lab, nodes, names=None, drain=None, extra="", start=True, settle=3.0):
-    """Wipe the nodes, deploy the same files to each and start them together. Answers seconds to ready per node."""
+    """Wipe the nodes, deploy the same files to each and start them together. Answers seconds to ready per node.
+
+    Without `names` the files are the guide's: one node_name for all nodes and `name_from_host: true`, so only
+    cluster.listen differs. With `names` every node gets its own node_name and no name_from_host (a deployment
+    that sets the name per node)."""
     for i, n in enumerate(nodes):
         n.wipe()
-        n.write_files([m.ip for m in nodes], lab.balancers(), node_name=(names[i] if names else n.name), drain=drain, extra=extra)
+        if names:
+            n.write_files([m.ip for m in nodes], lab.balancers(), node_name=names[i], drain=drain, extra=extra)
+        else:
+            n.write_files([m.ip for m in nodes], lab.balancers(), node_name=ONE_NAME, name_from_host=True, drain=drain, extra=extra)
     if not start:
         return {}
     for n in nodes:
@@ -201,19 +214,19 @@ def s1(lab):
     S = "s1"
     n1, n2 = lab.nodes[0], lab.nodes[1]
     pair = [n1, n2]
-    # "Nur listen unterscheidet sich von Server zu Server": the same schild.yaml on both, node_name included
+    # "Nur listen unterscheidet sich von Server zu Server": the same schild.yaml on both, with the guide's cluster
+    # block (name_from_host: true included) and one node_name for both
     for n in pair:
         n.wipe()
-        n.write_files([m.ip for m in pair], lab.balancers(), node_name=None)
+        n.write_files([m.ip for m in pair], lab.balancers(), node_name=None, name_from_host=True)
     rc, out = n1.cli("ingress validate")
     R.check(S, "1.01", "a schild.yaml with the guide's cluster block and no node_name: what schild says", None, {"exit": rc},
             out.splitlines()[0] if out else "")
-    if rc != 0:
-        # the guide does not say so, but node_name is required: every node gets the same one, as "only listen differs" says
-        for n in pair:
-            n.write_files([m.ip for m in pair], lab.balancers(), node_name="web")
-        rc, out = n1.cli("ingress validate")
-        R.check(S, "1.01b", "the same files with one node_name for both nodes are accepted", rc == 0, {}, out.splitlines()[-1])
+    for n in pair:
+        n.write_files([m.ip for m in pair], lab.balancers(), node_name=ONE_NAME, name_from_host=True)
+    rc, out = n1.cli("ingress validate")
+    R.check(S, "1.01b", "the same files with one node_name for both nodes are accepted", rc == 0, {}, out.splitlines()[-1])
+    hosts = [n.hostname() for n in pair]
     R.check(S, "1.02", "the HAProxy configuration of the balancer is valid (TCP mode, httpchk on /.schild/readyz, send-proxy-v2)",
             True, {}, lab.haproxy(pair))
     for n in pair:
@@ -227,7 +240,10 @@ def s1(lab):
     names = re.findall(r"^(\S+)\s+gateway", st1, re.M)
     R.check(S, "1.04", "schild cluster status on n1 lists two gateways", two, {}, st1)
     R.check(S, "1.05", "the two members can be told apart by name in schild cluster status (guide: remove NODE by name)",
-            len(set(names)) == 2, {"names": names}, "both nodes carry the node_name the one deployed file gives them")
+            len(set(names)) == 2, {"names": names, "host_names": hosts},
+            "the same schild.yaml on both nodes: node_name %s, cluster.name_from_host true" % ONE_NAME)
+    R.check(S, "1.05b", "with name_from_host every node is named after its host (the first label of the host name)", sorted(names) == sorted(hosts),
+            {"names": names, "host_names": hosts})
     up = lab.wait_lb({"n1": "UP", "n2": "UP"}, 20)
     R.check(S, "1.06", "HAProxy marks both gateways UP by /.schild/readyz over the PROXY protocol", up is not None,
             {"seconds": round(up, 1) if up else None}, json.dumps(lab.lb_state()))
@@ -308,6 +324,8 @@ def s1(lab):
     row = [b for b in blk if b["client"] == a]
     R.check(S, "1.14", "the block list of n2 names the node that decided", bool(row) and bool(row[0].get("node")) and row[0].get("node_self") is False,
             {}, json.dumps({k: row[0].get(k) for k in ("node", "node_self", "incident")} if row else {}))
+    R.check(S, "1.14b", "that name is the name of n1 and of no other member, so the list says which server decided", bool(row) and row[0].get("node") == hosts[0] != hosts[1],
+            {"node_named": row[0].get("node") if row else None, "name_of_n1": hosts[0], "name_of_n2": hosts[1]})
 
     # spoofing (the app VM is no balancer: it is not in the allow list of the Caddyfile)
     victim = CLIENT_NET + "66"
@@ -428,6 +446,7 @@ def s1(lab):
         time.sleep(1)
         load = Load(lab.lb.ip, rate=200, workers=16, mode="new", bind=CLIENT_NET + "30").start()
         keep = Load(lab.lb.ip, rate=50, workers=10, mode="keep", bind=CLIENT_NET + "32").start()
+        deaf = Load(lab.lb.ip, rate=50, workers=10, mode="deaf", bind=CLIENT_NET + "34").start()
         slow = Load(lab.lb.ip, rate=4, workers=8, mode="new", bind=CLIENT_NET + "31", path="/slow?ms=1500", timeout=6).start()
         time.sleep(4)
         t0 = now()
@@ -445,8 +464,8 @@ def s1(lab):
         gone = n1.wait_exit(90)
         t_exit = now() - t0
         time.sleep(3)
-        load.stop(); keep.stop(); slow.stop()
-        st, kst, sst = load.stats(), keep.stats(), slow.stats()
+        load.stop(); keep.stop(); slow.stop(); deaf.stop()
+        st, kst, sst, dst = load.stats(), keep.stats(), slow.stats(), deaf.stats()
         label = "schild cluster drain" if how == "drain" else "SIGTERM (systemctl stop)"
         R.check(S, cid, "%s under load: no request on a new connection fails" % label, st["not_200"] == 0 and sst["not_200"] == 0,
                 {"requests": st["requests"], "codes": st["codes"], "slow_requests": sst["requests"], "slow_codes": sst["codes"]},
@@ -455,8 +474,14 @@ def s1(lab):
                 kst["not_200"] == 0 and kst["retried"] == 0,
                 {"requests": kst["requests"], "codes": kst["codes"], "cut_without_answer_and_sent_again": kst["retried"],
                  "cut_at_s_after_stop_began": [round(x - (t0 - keep.t0), 2) for x in keep.retries()],
-                 "connection_header_of_an_answer_during_the_delay": conn_hdr},
-                "a request on a kept connection that the node closed without an answer is sent once more on a new connection; %s" % kst["errors"])
+                 "connection_header_of_an_answer_during_the_delay": conn_hdr,
+                 "connections_the_client_left_because_the_answer_said_close": kst["asked_to_close"]},
+                "this client honours `Connection: close`: after such an answer it opens a new connection through the balancer. "
+                "A request on a kept connection that the node closed without an answer is sent once more on a new connection; %s" % kst["errors"])
+        R.check(S, "%.2fb" % (float(cid) + 0.01), "%s: what a client sees that ignores `Connection: close` and stays on its connection (10 connections, 5 requests a second each)" % label,
+                None, {"requests": dst["requests"], "codes": dst["codes"], "cut_without_answer_and_sent_again": dst["retried"],
+                       "cut_at_s_after_stop_began": [round(x - (t0 - deaf.t0), 2) for x in deaf.retries()],
+                       "answers_that_said_close": dst["asked_to_close"]}, str(dst["errors"]))
         R.check(S, "%.2f" % (float(cid) + 0.02), "%s: readiness 503 at once, the node serves 15 s more, then stops" % label,
                 t503 is not None and t503 < 1.0 and gone and 14.5 <= t_exit <= 15 + 30 + 3,
                 {"readyz_503_after_s": round(t503, 2) if t503 is not None else None,
@@ -466,9 +491,33 @@ def s1(lab):
     lab.wait_lb({"n1": "UP", "n2": "UP"}, 30)
 
     # the commands of the guide on a pair
-    rc, out = n1.cli("cluster remove web")
-    R.check(S, "1.35", "schild cluster remove NODE by the name both nodes carry: what the command does", None, {"exit": rc}, out[:400])
-    time.sleep(2)
+    # what the guide leaves unmeasured: `option redispatch` in the backend, one node killed under the same load as 1.21
+    lab.haproxy(pair, redispatch=True)
+    lab.wait_lb({"n1": "UP", "n2": "UP"}, 30)
+    time.sleep(1)
+    load = Load(lab.lb.ip, rate=200, workers=16, mode="new", bind=CLIENT_NET + "30").start()
+    time.sleep(5)
+    t_kill = now()
+    n2.kill9()
+    down = lab.wait_lb({"n2": "DOWN"}, 20)
+    time.sleep(6)
+    load.stop()
+    fails = load.failures()
+    st = load.stats()
+    R.check(S, "1.21r", "the same kill with `option redispatch` in the backend (guide: not measured): failed requests", None,
+            {"requests": st["requests"], "failed_or_not_200": st["not_200"], "codes": st["codes"],
+             "last_failure_s_after_kill": round(max(f[0] for f in fails) - (t_kill - load.t0), 2) if fails else None,
+             "haproxy_marks_down_after_s": round(down, 2) if down else None}, "errors: %s" % st["errors"])
+    n2.start()
+    n2.wait_ready(60)
+    lab.haproxy(pair)
+    lab.wait_lb({"n1": "UP", "n2": "UP"}, 30)
+    time.sleep(3)
+
+    # the command of the guide on a pair: schild cluster remove NODE, by name
+    rc, out = n1.cli("cluster remove %s" % hosts[1])
+    R.check(S, "1.35", "schild cluster remove NODE by the name of the other node, as the guide writes it (schild cluster remove web-3)", rc == 0, {"exit": rc}, out[:400])
+    time.sleep(3)
     R.check(S, "1.36", "state of the pair after that command", None, {}, n1.status() + "\n--- n2 ---\n" + n2.status())
 
 
@@ -516,11 +565,16 @@ def s2(lab):
     S = "s2"
     nodes = lab.nodes[:3]
     n1, n2, n3 = nodes
-    ready = fresh_group(lab, nodes)
+    # this scenario gives every node a node_name of its own and no name_from_host, as the first run did everywhere
+    own = ["gw-%s" % n.name for n in nodes]
+    ready = fresh_group(lab, nodes, names=own)
     d1, d2, d3 = first_login(nodes)
     ok = wait_until(lambda: members_ok(d1, 3) and members_ok(d3, 3), 20)
     R.check(S, "2.01", "three nodes on three VMs form a group from the same files", ok is not None,
             {"ready_s": {k: round(v, 2) if v else None for k, v in ready.items()}})
+    got = sorted(m.get("name") for m in d1.group().get("members", []))
+    R.check(S, "2.01b", "a node_name the deployment sets per node, without name_from_host, is the name of the node in the group (not the host name)",
+            got == sorted(own), {"names": got, "node_names": own, "host_names": [n.hostname() for n in nodes]})
 
     # baseline
     loads = direct_load(nodes, 15)
@@ -695,10 +749,18 @@ def s3(lab):
     def operator_view(n, d):
         g = d.group()
         st = n.status()
+        # the table of members has a column BEHIND (records, not time): only lines that speak of a clock count
         hint = [l for l in st.splitlines() if re.search(r"clock|skew|ahead|Uhr", l, re.I) and not l.startswith("Since the start")]
         count = [l for l in st.splitlines() if l.startswith("Since the start")]
         return {"state": g.get("state"), "members": sorted(m.get("state") for m in g.get("members", [])), "counters": g.get("counters"),
-                "status_lines_that_name_a_clock": hint, "status_counter_line": count, "readyz": n.ready()}
+                "status_lines_that_name_a_clock": hint, "status_counter_line": count, "readyz": n.ready(),
+                "clock_skew_ms_of_each_other_member": {m.get("name"): m.get("clock_skew_ms") for m in g.get("members", []) if m.get("state") != "self"},
+                "service_of_each_member": {m.get("name"): (m.get("vitals") or {}).get("service") for m in g.get("members", [])},
+                "overview_reasons": d.reasons(),
+                "log_lines_that_name_a_clock": n.count("[Cc]lock|ahead of")}
+
+    def skew(d, node):
+        return d.member(node.ip).get("clock_skew_ms")
 
     def many(setter, watchers, count=5, timeout=4):
         """Blocks set one after the other; answers (ms of every watcher that refused in time, how many did not)."""
@@ -791,8 +853,28 @@ def s3(lab):
                 {"login_on_n3_valid_on_n1_after_s": round(v13, 2) if v13 is not None else None,
                  "login_on_n1_valid_on_n3_after_s": round(v31, 2) if v31 is not None else None})
 
+        time.sleep(6)       # the clock travels with a word every 5 s
         v1, v3 = operator_view(n1, d1), operator_view(n3, Dash(n3, d3) if to_n3 else dl)
         R.check(S, cid + "5", "n3 %s: what the operator sees on n1 and on n3" % label, None, {"n1": v1, "n3": v3})
+        s13, s31 = skew(d1, n3), skew(Dash(n3, d3) if to_n3 else dl, n1)
+        R.check(S, cid + "8", "n3 %s: the dashboard API shows the difference: GroupMember.clock_skew_ms of n3 on n1 is the shift, and of n1 on n3 its opposite (within 2 s)" % label,
+                s13 is not None and s31 is not None and abs(s13 - shift * 1000) < 2000 and abs(s31 + shift * 1000) < 2000,
+                {"n3_as_n1_shows_it_ms": s13, "n1_as_n3_shows_it_ms": s31, "shift_ms": shift * 1000})
+        R.check(S, cid + "9", "n3 %s: the overview (start page) of n1 and of n3 carries the reason cluster_clock_skew (from 10 s on)" % label,
+                "cluster_clock_skew" in (v1["overview_reasons"] or []) and "cluster_clock_skew" in (v3["overview_reasons"] or []),
+                {"n1": v1["overview_reasons"], "n3": v3["overview_reasons"]})
+        if abs(shift) > 60:
+            # the node that puts records off: the others when n3 is ahead, n3 when it is behind
+            who = n1 if shift > 0 else n3
+            lines = who.grep("clock|ahead of", 3)
+            R.check(S, cid + "9b", "n3 %s: the node that puts records off because of the clock (%s) says so in its log" % (label, who.name),
+                    bool(lines.strip()), {"lines": who.count("[Cc]lock|ahead of")}, lines[:700])
+            # is a node whose records are put off, or that puts off everything, still shown as fine?
+            fine = {"readyz_n1": v1["readyz"], "readyz_n3": v3["readyz"], "state_on_n1": v1["state"], "state_on_n3": v3["state"],
+                    "n3_as_n1_lists_it": d1.member(n3.ip).get("state"), "service_of_n3_as_n1_shows_it": (d1.member(n3.ip).get("vitals") or {}).get("service"),
+                    "service_n3_says_of_itself": v3["service_of_each_member"].get(n3.hostname())}
+            R.check(S, cid + "9c", "n3 %s while running: what readiness, the state of the sync and the vitals say (a node that takes nothing, or from which nothing is taken)" % label,
+                    None, fine, "reported, not judged: contract section 10 speaks of a node that starts; the hints are 3.x6, 3.x8 and 3.x9")
         R.check(S, cid + "7", "n3 %s: the clock stayed there to the end of the step" % label, abs(offset(n3) - shift) < 2,
                 {"offset_s_at_the_end": offset(n3), "times_the_holder_put_the_clock_back": n3.clock_corrections()},
                 "each time the hypervisor set the clock right, it was right for a few milliseconds")
@@ -830,7 +912,9 @@ def s3(lab):
                 on_n3 == [403] * 3 and missing == 0 and summary(times)["p95"] <= 1000,
                 {"offset_s": offset(n3), "n3_answers_6_s_after_each_block": on_n3, "not_within_6s": missing, "ms": summary(times),
                  "login_on_n1_valid_on_n3_after_s": round(v31, 2) if v31 is not None else None, "counters_n3": counters(d3),
-                 "times_the_holder_put_the_clock_back": n3.clock_corrections()}, n3.grep("clock|ahead|put off", 2)[:400])
+                 "times_the_holder_put_the_clock_back": n3.clock_corrections(),
+                 "how_far_ahead_n3_says_the_records_it_puts_off_are": re.findall(r'"ahead":"([^"]+)"', n3.grep("put off", 40))[-3:]},
+                n3.grep("clock|ahead|put off", 2)[:400])
     n3.clock_release()
 
     step("3.3", "30 s behind", -30, True, True)
@@ -843,17 +927,55 @@ def s3(lab):
     n3.kill9()
     time.sleep(1)
     n3.start()
-    t = n3.wait_ready(40)
-    at_ready = get(n3.ip, "/x", claim=a) if t is not None else None
-    time.sleep(3)
-    R.check(S, "3.50", "n3 restarted while its clock is 90 s behind: at its first ready answer it refuses the address the group blocked while it was down",
-            t is not None and at_ready == 403, {"ready_after_s": round(t, 2) if t is not None else None, "blocked_address_at_ready": at_ready,
-                                                "3_s_later": get(n3.ip, "/x", claim=a), "offset_s": offset(n3)}, json.dumps(operator_view(n3, Dash(n3, d1))))
+    # The first run asked: at its first ready answer the node holds the block. Contract section 10 now says such a
+    # node stays out of traffic (503) until it holds what the others wrote. Both are the same demand: it must never
+    # answer ready without the block. Watched for 45 s.
+    t0 = now()
+    seen, t, at_ready = {}, None, None
+    while now() - t0 < 45:
+        r = n3.ready(1.0)
+        seen[r] = seen.get(r, 0) + 1
+        if r == 200:
+            t = now() - t0
+            at_ready = get(n3.ip, "/x", claim=a)
+            break
+        time.sleep(0.1)
+    view = operator_view(n3, Dash(n3, d1))
+    as_n1 = d1.member(n3.ip)
+    R.check(S, "3.50", "n3 restarted while its clock is 90 s behind: it never answers ready without the block the group set while it was down (it holds it at its first 200, or stays on 503 for the 45 s watched)",
+            at_ready == 403 if t is not None else seen.get(503, 0) > 50,
+            {"ready_after_s": round(t, 2) if t is not None else None, "blocked_address_at_ready": at_ready, "answers_of_readyz": {str(k): v for k, v in seen.items()},
+             "a_request_sent_straight_to_n3_for_the_blocked_address": get(n3.ip, "/x", claim=a), "offset_s": offset(n3),
+             "state_of_n3_as_n1_lists_it": as_n1.get("state"), "service_of_n3_as_n1_shows_it": (as_n1.get("vitals") or {}).get("service"),
+             "clock_skew_ms_of_n3_on_n1": as_n1.get("clock_skew_ms"), "status_of_n1_names_the_clock": operator_view(n1, d1)["status_lines_that_name_a_clock"]},
+            json.dumps(view)[:900] + " | " + n3.grep("clock|ahead of", 2)[:300])
     n3.clock_release()
     t0 = now()
+    rdy = wait_until(lambda: n3.ready(1.0) == 200, 60, 0.05)
+    at_ready = get(n3.ip, "/x", claim=a) if rdy is not None else None
     conv = wait_until(lambda: d1.blocks() is not None and d1.blocks() == Dash(n3, d1).blocks(), 60, 0.2)
-    R.check(S, "3.51", "clock of n3 corrected: n3 takes what it had put off and holds the same blocks as n1", conv is not None,
-            {"seconds": round(now() - t0, 2) if conv is not None else None, "counters_n3": counters(d3)})
+    R.check(S, "3.51", "clock of n3 corrected: n3 takes what it had put off, answers ready with the block, and holds the same blocks as n1", conv is not None and at_ready == 403,
+            {"seconds": round(now() - t0, 2) if conv is not None else None, "ready_s_after_the_correction": round(rdy, 2) if rdy is not None else None,
+             "blocked_address_at_ready": at_ready, "counters_n3": counters(d3)})
+
+    # small differences: `schild cluster status` from 5 s on, the overview from 10 s on (same processes, clocks right again)
+    reset_clocks()
+    time.sleep(8)
+    quiet = {"status_n1": operator_view(n1, d1)["status_lines_that_name_a_clock"], "reasons_n1": d1.reasons(), "skew_n3_on_n1_ms": skew(d1, n3)}
+    R.check(S, "3.70", "clocks right: schild cluster status names no clock and the overview carries no cluster_clock_skew",
+            not quiet["status_n1"] and "cluster_clock_skew" not in (quiet["reasons_n1"] or []), quiet)
+    for cid, shift, want_status, want_reason in (("3.71", 3, False, False), ("3.72", 7, True, False), ("3.73", 12, True, True)):
+        n3.clock_shift(shift)
+        time.sleep(13)
+        v = operator_view(n1, d1)
+        sk = skew(d1, n3)
+        has_status, has_reason = bool(v["status_lines_that_name_a_clock"]), "cluster_clock_skew" in (v["overview_reasons"] or [])
+        R.check(S, cid, "n3 %d s ahead: schild cluster status on n1 %s it (from 5 s on), the overview %s cluster_clock_skew (from 10 s on), clock_skew_ms shows the difference"
+                % (shift, "names" if want_status else "does not name", "carries" if want_reason else "does not carry"),
+                has_status == want_status and has_reason == want_reason and sk is not None and abs(sk - shift * 1000) < 2000,
+                {"clock_skew_ms": sk, "status_lines": v["status_lines_that_name_a_clock"], "overview_reasons": v["overview_reasons"], "offset_s": offset(n3)})
+        n3.clock_release()
+        time.sleep(1)
     reset_clocks()
     R.check(S, "3.52", "clocks at the end (seconds against the client VM)", all(abs(offset(n)) < 2 for n in nodes), {n.name: offset(n) for n in nodes})
 
@@ -1061,7 +1183,7 @@ def s5(lab):
     n1 = nodes[0]
     for n in nodes:
         n.wipe()
-        n.write_files([m.ip for m in nodes], lab.balancers(), node_name=n.name, drain=(5, 10))
+        n.write_files([m.ip for m in nodes], lab.balancers(), node_name=ONE_NAME, name_from_host=True, drain=(5, 10))
     lab.haproxy(nodes, inter="1s", fall=2, rise=2)
     t0 = now()
     threads = [threading.Thread(target=n.start) for n in nodes]
@@ -1085,8 +1207,12 @@ def s5(lab):
         return all(members_ok(x, count) for x in (who or d))
     conv = wait_until(lambda: all_see(16), 90, 0.5)
     R.check(S, "5.02", "every one of the sixteen dashboards shows sixteen gateways, all reachable, state active", conv is not None,
-            {"seconds_since_start": round(now() - t0, 1) if conv is not None else None},
+            {"seconds_since_start": round(now() - t0, 1) if conv is not None else None,
+             "of_which_the_harness_waited_before_it_looked": round(max(vals or [0]) + 2 + 1.5, 1)},
             "" if conv is not None else json.dumps({x.node.name: [x.group().get("state"), len(x.group().get("members", []))] for x in d}))
+    names = sorted(m.get("name") for m in d[0].group().get("members", []))
+    R.check(S, "5.02b", "the sixteen carry sixteen different names, their host names (one schild.yaml with name_from_host for all)",
+            len(set(names)) == 16 and names == sorted(n.hostname() for n in nodes), {"different_names": len(set(names))}, " ".join(names))
     sess = [x.session()[1].get("authenticated") is True for x in d]
     R.check(S, "5.03", "the login made on n1 is valid on all sixteen", all(sess), {"valid_on": sum(sess)})
     up = lab.wait_lb({n.name: "UP" for n in nodes}, 30)
@@ -1126,6 +1252,25 @@ def s5(lab):
     R.check(S, "5.07", "300 requests a second through the balancer over sixteen nodes (about 19 a node): no failure; per node memory and CPU", st["not_200"] == 0,
             {"requests": st["requests"], "codes": st["codes"], "latency_ms": st["latency_ms"], "rss_mib": summary([u1[k]["rss_mib"] for k in u1 if u1[k]]),
              "cpu_percent_of_one_core": summary(cpu, 2)})
+    # ten minutes of that load: memory and what lies below storage.path, per node
+    disk0 = {n.name: n.disk() for n in nodes}
+    while now() - load.t0 < 600:
+        time.sleep(5)
+    u2 = {n.name: n.usage() for n in nodes}
+    disk1 = {n.name: n.disk() for n in nodes}
+    span = now() - tu0
+    cpu = [round((u2[k]["cpu_s"] - u0[k]["cpu_s"]) / span * 100, 2) for k in u0 if u0[k] and u2[k]]
+    st = load.stats()
+    rc, tree = n1.run("cd %s && du -sk * 2>/dev/null | sort -rn | head -12; ls -la metrics-nodes | head -20" % Node.DATA)
+    R.check(S, "5.07b", "after 10 minutes of 300 requests a second over sixteen nodes, per node: resident memory (MiB), CPU, and KiB below storage.path (all, the stores of the other nodes' metrics, the own metrics.db)",
+            None, {"requests": st["requests"], "not_200": st["not_200"], "rss_mib": summary([u2[k]["rss_mib"] for k in u2 if u2[k]]),
+                   "rss_mib_at_40_s": summary([u1[k]["rss_mib"] for k in u1 if u1[k]]), "cpu_percent_of_one_core": summary(cpu, 2),
+                   "storage_kib": summary([v["storage_kib"] for v in disk1.values()], 0), "storage_kib_at_40_s": summary([v["storage_kib"] for v in disk0.values()], 0),
+                   "metrics_nodes_kib": summary([v["metrics_nodes_kib"] for v in disk1.values()], 0),
+                   "metrics_nodes_files": sorted(set(v["metrics_nodes_files"] for v in disk1.values())),
+                   "own_metrics_db_kib": summary([v["metrics_db_kib"] for v in disk1.values()], 0)}, "n1, below storage.path (KiB):\n" + tree[:1500])
+    R.check(S, "5.07c", "every node holds a store for the metrics of each of the fifteen others (storage.path/metrics-nodes, one file per member)",
+            all(v["metrics_nodes_files"] == 15 for v in disk1.values()), {"files_per_node": sorted(set(v["metrics_nodes_files"] for v in disk1.values()))})
     lost = nodes[11:16]
     t_kill = now()
     threads = [threading.Thread(target=n.kill9) for n in lost]
@@ -1176,6 +1321,7 @@ def s5(lab):
     # rolling restart of all sixteen under load
     load = Load(lab.lb.ip, rate=300, workers=24, mode="new", bind=CLIENT_NET + "30").start()
     keep = Load(lab.lb.ip, rate=60, workers=12, mode="keep", bind=CLIENT_NET + "32").start()
+    deaf = Load(lab.lb.ip, rate=60, workers=12, mode="deaf", bind=CLIENT_NET + "34").start()
     time.sleep(3)
     t0 = now()
     per = []
@@ -1191,21 +1337,31 @@ def s5(lab):
                     "haproxy_up": up is not None})
     total = now() - t0
     time.sleep(3)
-    load.stop(); keep.stop()
-    st, kst = load.stats(), keep.stats()
+    load.stop(); keep.stop(); deaf.stop()
+    st, kst, dst = load.stats(), keep.stats(), deaf.stats()
     R.check(S, "5.12", "rolling restart of all sixteen (schild cluster drain, start, wait for ready and the balancer; delay_s 5, check every 1 s, fall 2) under load: no request on a new connection fails",
             st["not_200"] == 0 and all(p["exited"] and p["ready_after_start_s"] is not None for p in per),
             {"requests": st["requests"], "codes": st["codes"], "seconds_for_all": round(total, 1),
              "ready_after_start_s": summary([p["ready_after_start_s"] for p in per if p["ready_after_start_s"]], 2)}, str(st["errors"]))
     R.check(S, "5.13", "rolling restart: kept connections through the balancer lose no request", kst["not_200"] == 0 and kst["retried"] == 0,
-            {"requests": kst["requests"], "codes": kst["codes"], "cut_without_answer_and_sent_again": kst["retried"]}, str(kst["errors"]))
+            {"requests": kst["requests"], "codes": kst["codes"], "cut_without_answer_and_sent_again": kst["retried"],
+             "connections_the_client_left_because_the_answer_said_close": kst["asked_to_close"]},
+            "this client honours `Connection: close`; %s" % kst["errors"])
+    R.check(S, "5.13b", "rolling restart: what a client sees that ignores `Connection: close` (12 connections, 5 requests a second each)", None,
+            {"requests": dst["requests"], "codes": dst["codes"], "cut_without_answer_and_sent_again": dst["retried"],
+             "answers_that_said_close": dst["asked_to_close"]}, str(dst["errors"]))
     conv = wait_until(lambda: all_see(16), 60, 0.5)
     blocks = [x.blocks() for x in d]
     sess = [x.session()[1].get("authenticated") is True for x in d]
     R.check(S, "5.14", "after the rolling restart: all sixteen active, the same blocks on every node, the login still valid everywhere",
             conv is not None and all(b == blocks[0] and b for b in blocks) and all(sess),
             {"blocks_per_node": sorted(set(len(b or []) for b in blocks)), "login_valid_on": sum(sess)})
-    R.check(S, "5.15", "after all of it, per node: resident memory (MiB)", None, {"rss_mib": summary([n.usage().get("rss_mib", 0) for n in nodes])})
+    R.check(S, "5.15", "after all of it, per node: resident memory (MiB) and KiB below storage.path", None,
+            {"rss_mib": summary([n.usage().get("rss_mib", 0) for n in nodes]),
+             "storage_kib": summary([n.disk()["storage_kib"] for n in nodes], 0),
+             "metrics_nodes_kib": summary([n.disk()["metrics_nodes_kib"] for n in nodes], 0)})
+    for n in nodes[3:]:
+        n.kill9()
 
 
 # ---------------------------------------------------------------------------------------------------------------
@@ -1215,19 +1371,19 @@ def s5(lab):
 CERT_SITE = "cert.sg27.test"
 
 
-def s7(lab):
-    S = "s7"
-    from lab import tls_get
-    n1, n2 = lab.nodes[0], lab.nodes[1]
-    pair = [n1, n2]
-    app = lab.app
-    if app.run("test -x /opt/sg27/pebble && test -f /opt/sg27/pebble.minica.pem")[0] != 0:
-        R.check(S, "7.00", "the ACME test server (pebble) is on the application VM", None, {}, "not measured: pebble was not copied to the lab")
-        return
-    ca = app.get("/opt/sg27/pebble.minica.pem")
+class Certs:
+    """A TLS site on some nodes, the ACME test server pebble on the application VM, and the balancer in front as
+    the guide writes it for "Wenn TLS auf den Gateways endet"."""
 
-    def pebble_start():
-        app.run("pkill -x pebble; sleep 0.3; rm -f /var/log/pebble.log; grep -q %s /etc/hosts || echo '%s %s' >> /etc/hosts" % (CERT_SITE, lab.lb.ip, CERT_SITE))
+    def __init__(self, lab, nodes):
+        self.lab, self.nodes, self.app = lab, nodes, lab.app
+
+    def there(self):
+        return self.app.run("test -x /opt/sg27/pebble && test -f /opt/sg27/pebble.minica.pem")[0] == 0
+
+    def pebble_start(self):
+        app = self.app
+        app.run("pkill -x pebble; sleep 0.3; rm -f /var/log/pebble.log; grep -q %s /etc/hosts || echo '%s %s' >> /etc/hosts" % (CERT_SITE, self.lab.lb.ip, CERT_SITE))
         app.put("/opt/sg27/pebble.json", json.dumps({"pebble": {
             "listenAddress": "0.0.0.0:14000", "managementListenAddress": "0.0.0.0:15000",
             "certificate": "/opt/sg27/pebble-cert.pem", "privateKey": "/opt/sg27/pebble-key.pem",
@@ -1237,54 +1393,94 @@ def s7(lab):
         app.spawn("PEBBLE_VA_NOSLEEP=1 PEBBLE_WFE_NONCEREJECT=0 exec /opt/sg27/pebble -config /opt/sg27/pebble.json >/var/log/pebble.log 2>&1")
         time.sleep(1.0)
 
-    def issued():
-        rc, out = app.run("grep -c 'Issued certificate serial' /var/log/pebble.log")
-        return int(out or 0)
+    def pebble_stop(self, forget=False):
+        self.app.run("pkill -x pebble; %s true" % ("rm -f /var/log/pebble.log;" if forget else ""))
 
-    def deploy():
+    def _count(self, text):
+        rc, out = self.app.run("grep -c %s /var/log/pebble.log" % json.dumps(text))
+        return int(out or 0) if (out or "0").strip().isdigit() else 0
+
+    def issued(self):
+        return self._count("Issued certificate serial")
+
+    def placed(self):
+        """Orders the CA was asked for so far."""
+        return self._count("Added order")
+
+    def checks(self):
+        """HTTP-01 checks the CA made so far."""
+        return self._count("Attempting to validate w/ HTTP")
+
+    def askers(self):
+        """Names of the nodes whose log says they went to the CA for a certificate."""
+        return [n.name for n in self.nodes if n.count("obtaining certificate") > 0]
+
+    def answered(self, n):
+        """HTTP-01 checks of the CA this node answered with the token."""
+        return n.count("served key authentication")
+
+    def deploy(self):
+        ca = self.app.get("/opt/sg27/pebble.minica.pem")
         glob = "\tacme_ca https://pebble:14000/dir\n\tacme_ca_root /etc/schild/pebble.minica.pem"
-        for n in pair:
+        for n in self.nodes:
             n.wipe()
-            n.run("grep -q pebble /etc/hosts || echo '%s pebble' >> /etc/hosts" % app.ip)
-            n.write_files([m.ip for m in pair], lab.balancers(), node_name=n.name, caddy_global=glob, site_addr=CERT_SITE)
+            n.run("grep -q pebble /etc/hosts || echo '%s pebble' >> /etc/hosts" % self.app.ip)
+            n.write_files([m.ip for m in self.nodes], self.lab.balancers(), node_name=ONE_NAME, name_from_host=True, caddy_global=glob, site_addr=CERT_SITE)
             n.put("/etc/schild/pebble.minica.pem", ca)
 
-    def cert_of(n):
+    def cert_of(self, n):
+        from lab import tls_get
         return tls_get(n.ip, "/", CERT_SITE, claim=CLIENT_NET + "70")
 
-    def wait_cert(n, timeout=60):
-        """Seconds until the node shows a certificate pebble issued (not a self-made one) and answers 200."""
+    def wait_cert(self, n, timeout=60):
+        """Seconds until the node shows a certificate and answers 200 over TLS; (None, why) when it never did."""
         t0 = now()
         while now() - t0 < timeout:
-            st, fp = cert_of(n)
+            st, fp = self.cert_of(n)
             if st == 200:
                 return now() - t0, fp
             time.sleep(0.25)
-        return None, cert_of(n)[1]
+        return None, self.cert_of(n)[1]
 
-    # The balancer for a TLS site. Port 80 of such a node is the redirect listener: it does not speak the PROXY
-    # protocol and answers /.schild/readyz with a redirect (check 7.02), so port 80 goes without PROXY and with a
-    # TCP check, and port 443 with PROXY v2 and the readiness check over TLS.
-    cfg = ["global", "  maxconn 20000", "  stats socket /run/sg27-haproxy.sock mode 600 level admin", "",
-           "defaults", "  mode tcp", "  timeout connect 2s", "  timeout client 60s", "  timeout server 60s", "",
-           "frontend web80", "  bind :80", "  default_backend gateways80", "",
-           "backend gateways80", "  balance roundrobin", "  default-server check inter 1s fall 2 rise 1"]
-    cfg += ["  server %s %s:80" % (n.name, n.ip) for n in pair]
-    cfg += ["", "frontend web443", "  bind :443", "  default_backend gateways443", "",
-            "backend gateways443", "  balance roundrobin", "  option httpchk",
-            "  http-check send meth GET uri /.schild/readyz ver HTTP/1.1 hdr Host %s" % CERT_SITE, "  http-check expect status 200",
-            "  default-server send-proxy-v2 check check-ssl verify none check-sni %s check-alpn http/1.1 inter 1s fall 2 rise 1" % CERT_SITE]
-    cfg += ["  server %s %s:443" % (n.name, n.ip) for n in pair]
-    lab.haproxy_raw(cfg + [""])
+    def haproxy(self):
+        """The guide's example for a TLS site, line by line: port 80 without the PROXY protocol and with a check
+        that only asks whether the port is open; port 443 with PROXY v2 and the readiness check over TLS with the
+        name of the website. The harness adds the section `global` (stats socket) and the two frontends."""
+        cfg = ["global", "  maxconn 20000", "  stats socket /run/sg27-haproxy.sock mode 600 level admin", "",
+               "defaults", "  mode tcp", "  timeout connect 2s", "  timeout client 60s", "  timeout server 60s", "",
+               "frontend web80", "  bind :80", "  default_backend gateways80", "",
+               "backend gateways80", "  balance roundrobin", "  default-server check inter 1s fall 2 rise 1"]
+        cfg += ["  server %s %s:80" % (n.name, n.ip) for n in self.nodes]
+        cfg += ["", "frontend web443", "  bind :443", "  default_backend gateways443", "",
+                "backend gateways443", "  balance roundrobin", "  option httpchk",
+                "  http-check send meth GET uri /.schild/readyz ver HTTP/1.1 hdr Host %s" % CERT_SITE, "  http-check expect status 200",
+                "  default-server send-proxy-v2 check check-ssl verify none check-sni %s check-alpn http/1.1 inter 1s fall 2 rise 1" % CERT_SITE]
+        cfg += ["  server %s %s:443" % (n.name, n.ip) for n in self.nodes]
+        return self.lab.haproxy_raw(cfg + [""])
 
-    def lb443():
-        rc, out = lab.lb.run("echo 'show servers state gateways443' | nc -U /run/sg27-haproxy.sock")
+    def lb_state(self, backend):
+        rc, out = self.lab.lb.run("echo 'show servers state %s' | nc -U /run/sg27-haproxy.sock" % backend)
         return {f[3]: ("UP" if f[5] in ("2", "3") else "DOWN") for f in (l.split() for l in out.splitlines()) if len(f) > 6 and f[0].isdigit()}
 
-    def placed():
-        """Orders the CA was asked for so far."""
-        rc, out = app.run("grep -c 'Added order' /var/log/pebble.log")
-        return int(out or 0)
+    def lb443(self):
+        return self.lb_state("gateways443")
+
+    def lb80(self):
+        return self.lb_state("gateways80")
+
+
+def s7(lab):
+    S = "s7"
+    from lab import tls_get
+    n1, n2 = lab.nodes[0], lab.nodes[1]
+    pair = [n1, n2]
+    app = lab.app
+    tls = Certs(lab, pair)
+    if not tls.there():
+        R.check(S, "7.00", "the ACME test server (pebble) is on the application VM", None, {}, "not measured: pebble was not copied to the lab")
+        return
+    pebble_start, issued, placed, deploy, cert_of, wait_cert, lb443 = tls.pebble_start, tls.issued, tls.placed, tls.deploy, tls.cert_of, tls.wait_cert, tls.lb443
+    hap = tls.haproxy()
 
     def both_serve(timeout):
         t0 = now()
@@ -1300,100 +1496,186 @@ def s7(lab):
     deploy()
     rc, out = n1.cli("ingress validate")
     R.check(S, "7.01", "the Caddyfile with a TLS site and the ACME test server is accepted in a cluster", rc == 0, {}, out.splitlines()[-1] if out else "")
+    # n1 fresh and alone: its peer n2 is not started. A node that never was in step orders nothing (contract
+    # section 5), so the first run's "n1 alone obtains the certificate" is no longer what the documents say.
     n1.start()
-    time.sleep(1.0)
+    t1, fp1 = wait_cert(n1, 40)
+    from lab import tcp_open
+    alone = {"seconds_to_certificate": round(t1, 1) if t1 else None, "orders_placed": placed(), "issued_by_the_ca": issued(),
+             "readyz_over_tls": tls_get(n1.ip, "/.schild/readyz", CERT_SITE, claim=lab.client.ip)[0], "n1_went_to_the_ca": "n1" in tls.askers(),
+             "port_80_open": tcp_open(n1.ip, 80, timeout=1.0), "port_443_open": tcp_open(n1.ip, 443, timeout=1.0),
+             "readyz_on_port_80_without_proxy_header": Conn(n1.ip, host=CERT_SITE).get("/.schild/readyz")}
+    R.check(S, "7.03a", "n1 fresh with its peer not started, 40 s: a node that never was in step orders no certificate (contract section 5) and is not ready (section 10)",
+            t1 is None and placed() == 0, alone, n1.grep("certificate|in step|obtain", 3)[:500])
+    n2.start()
+    t1, fp1 = wait_cert(n1, 150)
+    t2s, fp2s = wait_cert(n2, 60)
+    up = wait_until(lambda: lb443() == {"n1": "UP", "n2": "UP"}, 20, 0.2)
+    R.check(S, "7.03", "the second node starts: the pair obtains the certificate through the balancer, one certificate from the CA, both are then ready on port 443 (readiness asked over TLS and PROXY)",
+            t1 is not None and t2s is not None and issued() == 1 and up is not None and fp1 == fp2s,
+            {"seconds_from_the_start_of_n2_to_the_certificate_on_n1": round(t1, 1) if t1 else None, "then_on_n2_after_s": round(t2s, 1) if t2s is not None else None,
+             "orders_placed": placed(), "issued_by_the_ca": issued(), "nodes_that_went_to_the_ca": tls.askers(), "haproxy_443": lb443(),
+             "ca_checks_on_port_80": tls.checks(), "checks_answered_by": {"n1": tls.answered(n1), "n2": tls.answered(n2)}},
+            n1.grep("will retry|challenge failed", 2)[:400])
+
+    # port 80 of a TLS site, on a node that serves
     c = Conn(n1.ip, claim=lab.client.ip, host=CERT_SITE)
     with_proxy = c.get("/.schild/readyz")
     c2 = Conn(n1.ip, host=CERT_SITE)
     without = c2.get("/.schild/readyz")
-    R.check(S, "7.02", "a TLS site with the listener_wrappers of the guide: /.schild/readyz on port 80, asked by a balancer that speaks the PROXY protocol, answers 200 or 503 (guide: 'auf den Web-Ports')",
+    open80 = wait_until(lambda: tls.lb80() == {"n1": "UP", "n2": "UP"}, 10, 0.2)
+    R.check(S, "7.02", "a TLS site with the listener_wrappers of the guide: /.schild/readyz on port 80, asked by a balancer that speaks the PROXY protocol, answers 200 or 503 (guide of the first run: 'auf den Web-Ports')",
             with_proxy in (200, 503), {"port_80_with_proxy_header": with_proxy, "port_80_without_proxy_header": without, "location": c2.headers.get("Location")},
             "port 80 is the redirect listener there: the PROXY wrapper of the global options is not on it, and the readiness answer is a redirect to HTTPS; "
             + n1.grep("schild_redirects|server running", 2)[:300])
-    t1, fp1 = wait_cert(n1, 150)
-    up = wait_until(lambda: lb443().get("n1") == "UP", 20, 0.2)
-    R.check(S, "7.03", "n1 alone obtains the certificate through the balancer and is then ready on port 443 (readiness asked over TLS and PROXY)",
-            t1 is not None and issued() == 1 and up is not None,
-            {"seconds_from_start_to_certificate": round(t1 + 1, 1) if t1 else None, "orders_placed": placed(), "issued_by_the_ca": issued(), "haproxy_443": lb443()},
-            "before a node has a certificate the readiness check over TLS cannot pass, so the CA reaches it on port 80 only (HTTP-01); "
-            + n1.grep("will retry", 1)[:300])
+    R.check(S, "7.02b", "what the guide now says of a TLS site holds: port 80 takes no PROXY protocol, /.schild/readyz there is answered with a redirect to HTTPS, readiness is on port 443 over TLS with the name of the website, and the guide's HAProxy example (TCP check on 80, readiness check on 443) has both nodes UP on both ports",
+            with_proxy not in (200, 503) and without in (301, 302, 307, 308) and "https://" in (c2.headers.get("Location") or "") and open80 is not None and up is not None
+            and tls_get(n1.ip, "/.schild/readyz", CERT_SITE, claim=lab.client.ip)[0] == 200,
+            {"port_80_with_proxy_header": with_proxy, "port_80_without_proxy_header": without, "location": c2.headers.get("Location"),
+             "readyz_on_port_443_over_tls_with_proxy_header": tls_get(n1.ip, "/.schild/readyz", CERT_SITE, claim=lab.client.ip)[0],
+             "haproxy_port_80": tls.lb80(), "haproxy_port_443": lb443()}, hap)
 
-    # n2 starts later with an empty storage: the group holds the certificate
-    before = placed()
-    n2.start()
-    t_first = wait_until(lambda: placed() > before, 20, 0.2)
-    t2, fp2 = wait_cert(n2, 150)
-    R.check(S, "7.04", "n2 starts later with an empty storage while n1 holds the certificate: n2 asks the CA for no order of its own (guide: 'Eine Bestellung pro Zertifikat')",
-            t_first is None, {"orders_placed_before": before, "orders_placed_after": placed(), "first_order_of_n2_s_after_its_start": round(t_first, 2) if t_first is not None else None,
-                              "issued_by_the_ca": issued()}, n2.grep("obtaining certificate|lock acquired|took a change", 4)[:700])
-    R.check(S, "7.05", "n2 shows the certificate n1 obtained within 10 s of its start", t2 is not None and t2 <= 10 and fp2 == fp1,
-            {"seconds": round(t2, 1) if t2 else None, "same_certificate": fp2 == fp1, "issued_by_the_ca": issued(),
-             "certificate_files_on_n2": int(n2.run("find /var/lib/schild/caddy/certificates -name '*.crt' | wc -l")[1] or 0)},
-            n2.grep("certificate obtained|will retry|loaded", 2)[:500])
+    # n2 joins later with an empty storage: the group holds the certificate. Three runs.
+    joins = []
+    for i in range(3):
+        n2.kill9()
+        n2.run("rm -rf %s /var/log/schild/*; mkdir -p %s" % (Node.DATA, Node.DATA))
+        if i == 0:
+            time.sleep(2)
+        before, before_issued = placed(), issued()
+        n2.start()
+        t2, fp2 = wait_cert(n2, 150)
+        rdy = wait_until(lambda: lb443().get("n2") == "UP", 20, 0.1)
+        up_after = round(now() - n2.started_at, 1) if rdy is not None else None
+        time.sleep(max(0, 20 - (now() - n2.started_at)))
+        joins.append({"seconds_until_n2_serves_the_certificate": round(t2, 1) if t2 is not None else None, "same_certificate": fp2 == fp1,
+                      "orders_placed_before": before, "orders_placed_20_s_after_its_start": placed(), "issued_before": before_issued, "issued_after": issued(),
+                      "n2_went_to_the_ca": n2.count("obtaining certificate") > 0,
+                      "balancer_has_n2_up_on_443_after_s": up_after,
+                      "certificate_files_on_n2": int(n2.run("find /var/lib/schild/caddy/certificates -name '*.crt' | wc -l")[1] or 0)})
+    R.check(S, "7.04", "n2 starts later with an empty storage while n1 holds the certificate: n2 asks the CA for no order of its own (guide: 'Eine Bestellung pro Zertifikat'), 3 runs",
+            all(j["orders_placed_20_s_after_its_start"] == j["orders_placed_before"] and not j["n2_went_to_the_ca"] and j["issued_after"] == j["issued_before"] for j in joins),
+            {"runs": joins}, n2.grep("obtaining certificate|lock acquired|took a change", 4)[:700])
+    R.check(S, "7.05", "n2 shows the certificate n1 obtained within 10 s of its start, 3 runs",
+            all(j["seconds_until_n2_serves_the_certificate"] is not None and j["seconds_until_n2_serves_the_certificate"] <= 10 and j["same_certificate"] for j in joins),
+            {"seconds": [j["seconds_until_n2_serves_the_certificate"] for j in joins], "same_certificate": [j["same_certificate"] for j in joins],
+             "issued_by_the_ca": issued()}, n2.grep("certificate obtained|will retry|loaded", 2)[:500])
     wait_until(lambda: lb443() == {"n1": "UP", "n2": "UP"}, 20, 0.2)
     codes = [tls_get(lab.lb.ip, "/", CERT_SITE)[0] for _ in range(6)]
     fps = sorted(set(tls_get(lab.lb.ip, "/", CERT_SITE)[1] for _ in range(6)))
     R.check(S, "7.06", "through the balancer every TLS connection gets one and the same certificate", codes == [200] * 6 and len(fps) == 1, {"codes": codes, "certificates": fps,
                                                                                                                                        "issued_by_the_ca": issued()})
 
+    # A planned stop over HTTP/2: the guide says the node sends GOAWAY during the delay. curl keeps one HTTP/2
+    # connection through the balancer and sends 2 requests a second for 80 s. n1 is drained and started again,
+    # then n2: whichever node the connection is on at first, one of the two stops hits it.
+    lab.client.run("rm -f /tmp/sg27-h2.out /tmp/sg27-h2.err")
+    lab.client.spawn("curl -sk --http2 --rate 2/s --interface %s --resolve %s:443:%s -o /dev/null -w '%%{http_code} %%{http_version} %%{num_connects}\\n' 'https://%s/h2?i=[1-160]' "
+                     ">/tmp/sg27-h2.out 2>/tmp/sg27-h2.err" % (CLIENT_NET + "36", CERT_SITE, lab.lb.ip, CERT_SITE))
+    t0 = now()
+    time.sleep(6)
+    stops = []
+    for n in pair:
+        t1 = now()
+        n.cli("cluster drain", 90)
+        n.wait_exit(60)
+        n.start()
+        wait_cert(n, 60)
+        up = wait_until(lambda: lb443() == {"n1": "UP", "n2": "UP"}, 20, 0.2)
+        stops.append({"node": n.name, "drain_began_at_s": round(t1 - t0, 1), "back_in_the_balancer_at_s": round(now() - t0, 1) if up is not None else None})
+        time.sleep(3)
+    time.sleep(max(0, 86 - (now() - t0)))
+    rows = [l.split() for l in lab.client.get("/tmp/sg27-h2.out").split("\n") if l.strip()]
+    codes = {}
+    for r in rows:
+        codes[r[0]] = codes.get(r[0], 0) + 1
+    opened = sum(int(r[2]) for r in rows if len(r) > 2 and r[2].isdigit())
+    R.check(S, "7.20", "schild cluster drain of n1, then of n2, while a client keeps one HTTP/2 connection through the balancer (2 requests a second, 160 requests): every request is answered 200",
+            len(rows) == 160 and codes == {"200": 160} and opened >= 2,
+            {"requests": len(rows), "codes": codes, "http_versions": sorted(set(r[1] for r in rows if len(r) > 1)),
+             "connections_opened": opened, "stops": stops},
+            "curl: one line per request (status, HTTP version, connections opened for it); more than one connection opened shows the client was moved. "
+            + lab.client.get("/tmp/sg27-h2.err")[:300])
+
     # a node restarted with no member reachable serves its certificate
     n1.kill9()
     n2.kill9()
-    count = issued()
+    count, orders = issued(), placed()
     n2.start()
+    # The first run asked for 200 over TLS within 5 s. Since then a node that restarts with no member reachable is
+    # not ready for 10 s (contract section 10, guide "Was der Loadbalancer braucht"); the limit here is 15 s, and
+    # the time to the first handshake that shows the certificate is reported next to it.
+    t0 = now()
+    t_shown = wait_until(lambda: len(cert_of(n2)[1]) == 16 and cert_of(n2)[0] != 0, 40, 0.1)
+    first_status = cert_of(n2)[0]
     t, fp = wait_cert(n2, 40)
+    t = (now() - t0) if t is not None else None
     time.sleep(3)
-    R.check(S, "7.07", "n2 restarted with n1 down: it serves a certificate from its own copy at once, no new order", t is not None and t <= 5 and issued() == count,
-            {"seconds": round(t, 1) if t else None, "issued_by_the_ca_before": count, "after": issued()})
+    R.check(S, "7.07", "n2 restarted with n1 down: it serves the certificate from its own copy (the same as before), no new order; 200 over TLS within 15 s (first run: within 5 s, see the report)",
+            t is not None and t <= 15 and issued() == count and placed() == orders and fp == fp1,
+            {"seconds": round(t, 1) if t else None, "seconds_until_a_handshake_shows_the_certificate": round(t_shown, 1) if t_shown is not None else None,
+             "status_of_a_request_then": first_status, "same_certificate_as_before": fp == fp1,
+             "issued_by_the_ca_before": count, "after": issued(), "orders_before": orders, "orders_after": placed()})
     n2.kill9()
 
-    # Only n1 asks the CA while both nodes are behind the round-robin balancer and in step: the CA is down at
-    # first, n1 starts, n2 starts 20 s later, the CA comes up at 30 s. A node tries again a minute after a
-    # failed try, so n1 asks at about 60 s and n2 not before 80 s. The CA's three checks on port 80 land on both.
+    # The CA's check on whichever node it lands. Both nodes fresh, started together with the CA down; both are in
+    # step and behind the round-robin balancer on port 80 within seconds. The first try of the node that orders
+    # fails (no CA). The CA comes up at 25 s; a node tries again about a minute after a failed try. The checks of
+    # the CA on port 80 then land on both nodes in turn.
     runs = []
     last_err = ""
     for i in range(3):
-        app.run("pkill -x pebble; rm -f /var/log/pebble.log; true")
+        tls.pebble_stop(forget=True)
         deploy()
         t0 = now()
-        n1.start()
-        time.sleep(20)
-        n2.start()
-        time.sleep(10)
+        n1.start(); n2.start()
+        time.sleep(25)
+        both80 = tls.lb80()
         pebble_start()
-        # the first try of n1 failed because the CA was down; wait for the end of its second
-        w = wait_until(lambda: issued() >= 1 or int(n1.run("grep -c 'will retry' %s" % Node.LOG)[1] or 0) >= 2, 60, 0.5)
+        w = wait_until(lambda: issued() >= 1 or sum(n.count("will retry") for n in pair) >= 2, 100, 0.5)
         time.sleep(0.5)
-        at = round(now() - t0, 1)
-        first = {"second_try_of_n1_ended_at_s": at, "issued_by_the_ca_then": issued(), "orders_placed_then": placed(),
-                 "challenge_answers_of_n1": int(n1.run("grep -c 'served key authentication' %s" % Node.LOG)[1] or 0),
-                 "challenge_answers_of_n2": int(n2.run("grep -c 'served key authentication' %s" % Node.LOG)[1] or 0),
-                 "ca_checks_on_port_80": int(app.run("grep -c 'Attempting to validate w/ HTTP' /var/log/pebble.log")[1] or 0)}
-        last_err = (n1.grep("challenge failed.*http-01", 1))[:600] or last_err
+        first = {"first_try_with_the_ca_up_ended_at_s": round(now() - t0, 1), "issued_by_the_ca_then": issued(), "orders_placed_then": placed(),
+                 "nodes_that_went_to_the_ca": tls.askers(), "challenge_answers_of_n1": tls.answered(n1), "challenge_answers_of_n2": tls.answered(n2),
+                 "ca_checks_on_port_80": tls.checks(), "balancer_port_80_before_the_ca_came_up": both80}
+        last_err = (n1.grep("challenge failed.*http-01", 1) + n2.grep("challenge failed.*http-01", 1))[:600] or last_err
         t, fa, fb = both_serve(120)
-        first.update({"both_serve_s_after_n1_started": round(now() - t0, 1) if t is not None else None, "same_certificate": fa == fb and t is not None,
+        first.update({"both_serve_s_after_the_start": round(now() - t0, 1) if t is not None else None, "same_certificate": fa == fb and t is not None,
                       "orders_placed": placed(), "issued_by_the_ca": issued()})
         runs.append(first)
         n1.kill9(); n2.kill9()
     R.check(S, "7.08", "one node asks the CA while both are behind the round-robin balancer and in step, 3 runs: its first try with the CA up gets the certificate (guide: the CA's check works on whichever server it lands)",
             all(r["issued_by_the_ca_then"] == 1 for r in runs), {"runs": runs}, last_err)
+    R.check(S, "7.08b", "in those runs the check of the CA did land on the node that had not ordered, and that node answered it with the token (else 7.08 says nothing about the other node)",
+            all(len(r["nodes_that_went_to_the_ca"]) == 1 and (r["challenge_answers_of_n2"] if r["nodes_that_went_to_the_ca"] == ["n1"] else r["challenge_answers_of_n1"]) >= 1 for r in runs),
+            {"answered_by_the_node_that_did_not_order": [(r["challenge_answers_of_n2"] if r["nodes_that_went_to_the_ca"] == ["n1"] else r["challenge_answers_of_n1"]) for r in runs],
+             "answered_by_the_ordering_node": [(r["challenge_answers_of_n1"] if r["nodes_that_went_to_the_ca"] == ["n1"] else r["challenge_answers_of_n2"]) for r in runs]})
     R.check(S, "7.09", "the same 3 runs: one certificate issued per run in the end, and both nodes show it (guide: 'Eine Bestellung pro Zertifikat')",
             all(r["issued_by_the_ca"] == 1 and r["same_certificate"] for r in runs),
             {"issued": [r["issued_by_the_ca"] for r in runs], "orders_placed": [r["orders_placed"] for r in runs],
-             "both_serve_s_after_n1_started": [r["both_serve_s_after_n1_started"] for r in runs]})
+             "both_serve_s_after_the_start": [r["both_serve_s_after_the_start"] for r in runs]})
 
-    # both nodes started fresh at the same moment with the CA up, as a deployment does that starts every node
-    pebble_start()
-    deploy()
-    n1.start(); n2.start()
-    time.sleep(8)
-    o1 = int(n1.run("grep -c 'obtaining certificate' %s" % Node.LOG)[1] or 0)
-    o2 = int(n2.run("grep -c 'obtaining certificate' %s" % Node.LOG)[1] or 0)
-    R.check(S, "7.10", "both nodes started fresh at the same moment with the CA reachable: one of them asks the CA, the other waits (first 8 s)",
-            placed() <= 1, {"orders_placed_in_8_s": placed(), "n1_started_obtaining": o1, "n2_started_obtaining": o2, "issued_by_the_ca": issued()},
-            (n1.grep("lock acquired", 1) + " | " + n2.grep("lock acquired", 1))[:500])
-    n1.kill9(); n2.kill9()
-    app.run("pkill -x pebble; true")
+    # both nodes started fresh at the same moment with the CA up, as a deployment does that starts every node: 3 runs
+    runs = []
+    for i in range(3):
+        pebble_start()
+        deploy()
+        n1.start(); n2.start()
+        time.sleep(8)
+        r = {"orders_placed_in_8_s": placed(), "nodes_that_went_to_the_ca": tls.askers(), "issued_by_the_ca_in_8_s": issued()}
+        t, fa, fb = both_serve(60)
+        r.update({"both_serve_after_s": round(t + 8, 1) if t is not None else None, "same_certificate": fa == fb and t is not None,
+                  "orders_placed_in_the_end": placed(), "issued_in_the_end": issued(),
+                  "checks_answered_by": {"n1": tls.answered(n1), "n2": tls.answered(n2)}})
+        runs.append(r)
+        last = (n1.grep("lock acquired", 1) + " | " + n2.grep("lock acquired", 1))[:500]
+        n1.kill9(); n2.kill9()
+    R.check(S, "7.10", "both nodes started fresh at the same moment with the CA reachable: one of them asks the CA, the other waits (first 8 s), 3 runs",
+            all(r["orders_placed_in_8_s"] <= 1 for r in runs), {"runs": runs}, last)
+    R.check(S, "7.10b", "in those 3 runs exactly one node went to the CA and the CA issued one certificate, which both nodes show",
+            all(len(r["nodes_that_went_to_the_ca"]) == 1 and r["issued_in_the_end"] == 1 and r["same_certificate"] for r in runs),
+            {"nodes_that_went_to_the_ca": [r["nodes_that_went_to_the_ca"] for r in runs], "issued": [r["issued_in_the_end"] for r in runs],
+             "orders_placed": [r["orders_placed_in_the_end"] for r in runs]})
+    tls.pebble_stop()
 
 
 # ---------------------------------------------------------------------------------------------------------------
@@ -1409,7 +1691,9 @@ def main():
     a = ap.parse_args()
     random.seed(SEED)
     lab = Lab()
-    only = [s for s in a.only.split(",") if s] or sorted(SCENARIOS)
+    import run_more
+    SCENARIOS.update(run_more.SCENARIOS)
+    only = [s for s in a.only.split(",") if s] or sorted(SCENARIOS, key=lambda k: int(k[1:]))
     R.name = a.name or "-".join(only)
     ok = lab.prepare()
     print("lab: %d gateways, secret made: %s" % (len(lab.nodes), ok), flush=True)
@@ -1426,4 +1710,6 @@ def main():
 SCENARIOS.update({"s1": s1, "s2": s2, "s3": s3, "s4": s4, "s5": s5, "s7": s7})
 
 if __name__ == "__main__":
-    main()
+    # run_more.py imports this module by its name; run it under that name, so both see the same results and lab
+    import run
+    run.main()
