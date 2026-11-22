@@ -33,9 +33,8 @@ Common flags: -config FILE, -data DIR
 
 A group shares address blocks, the settings made in the dashboard, logins,
 certificates, counts, events and requests between its gateways (MVP-27). The
-node's name is cluster.name, else its host name when the group is set up by
-cluster.secret_file, else node_name; its address is cluster.advertise or
-cluster.listen of schild.yaml.
+node's name is cluster.name, with cluster.name_from_host its host name, else
+node_name; its address is cluster.advertise or cluster.listen of schild.yaml.
 
 Two ways into a group:
   by configuration  the same cluster.secret_file and cluster.peers on every node, deployed like the
@@ -100,13 +99,9 @@ func runCluster(args []string, out io.Writer, now func() time.Time) error {
 		}
 		return nil
 	}
-	// The name of this node in its group: cluster.name, else node_name. By
-	// hand nothing says the files are the same on every node, so the host
-	// name is not taken here (config.Site.MemberName).
-	member := cfg.NodeName
-	if cfg.Cluster.Name != "" {
-		member = cfg.Cluster.Name
-	}
+	// The name of this node in its group (config.Site.MemberName).
+	host, _ := os.Hostname()
+	member := cfg.MemberName(host)
 	switch sub {
 	case "init":
 		if err := needAddress(); err != nil {

@@ -69,11 +69,12 @@ Das ist der Weg für ein Deployment, das dieselben Dateien auf jeden Server schr
      listen: "10.0.0.2:8790"                  # die private Adresse dieses Servers
      secret_file: /etc/schild/cluster.secret
      peers: ["10.0.0.1:8790", "10.0.0.2:8790", "10.0.0.3:8790"]
+     name_from_host: true                     # jeder Server heißt wie sein Host
    ```
 
    Nur `listen` unterscheidet sich von Server zu Server. `peers` nennt alle Server und darf die eigene Adresse enthalten.
 
-   Im Cluster heißt jeder Server nach seinem Hostnamen (der Teil vor dem ersten Punkt), auch wenn `node_name` überall gleich ist. So unterscheidest du die Server im Dashboard. Einen anderen Namen setzt du mit `cluster.name`. Der Name gilt ab der Aufnahme in den Cluster. Um ihn später zu ändern, nimmst du den Server aus dem Cluster und lässt ihn neu hinein.
+   Mit `name_from_host: true` heißt jeder Server im Cluster nach seinem Hostnamen (der Teil vor dem ersten Punkt). So unterscheidest du die Server im Dashboard, auch wenn `node_name` in der Datei überall gleich ist. Ohne diese Zeile heißt ein Server wie sein `node_name`; dann muss dein Deployment jedem Server einen eigenen geben. Einen festen Namen setzt du mit `cluster.name`. Der Name gilt ab der Aufnahme in den Cluster. Um ihn später zu ändern, nimmst du den Server aus dem Cluster und lässt ihn neu hinein.
 
 4. Starte Schild neu. Jeder Server nimmt sich beim Start selbst in den Cluster auf und findet die anderen. Die Reihenfolge ist egal.
 

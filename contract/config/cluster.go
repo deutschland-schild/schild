@@ -15,6 +15,9 @@ type Cluster struct {
 	Enabled bool `json:"enabled"`
 	// Name is the name of this node in its group (see MemberName).
 	Name string `json:"name"`
+	// NameFromHost: the node is named after its host (see MemberName), for
+	// a deployment that writes the same schild.yaml to every node.
+	NameFromHost bool `json:"name_from_host"`
 	// Listen is host:port of the mesh listener.
 	Listen string `json:"listen"`
 	// Advertise is host:port under which the other nodes reach it; empty:
@@ -73,6 +76,9 @@ func (c *Cluster) check() error {
 	if !c.AllowPublicListen && !a.IsPrivate() && !a.IsLoopback() && !a.IsLinkLocalUnicast() {
 		return contract.Errf(contract.CodeConfig, "cluster.listen %s is no private or loopback address: put the mesh on a private network, or set cluster.allow_public_listen", c.Listen)
 	}
+	if c.Name != "" && c.NameFromHost {
+		return contract.Errf(contract.CodeConfig, "cluster.name and cluster.name_from_host: set one of them")
+	}
 	for _, p := range c.Peers {
 		if ap, err := netip.ParseAddrPort(p); err != nil || ap.Port() == 0 || ap.Addr().IsUnspecified() {
 			return contract.Errf(contract.CodeConfig, "cluster.peers: %q is no address and port of another node", p)
@@ -90,16 +96,14 @@ func (c *Cluster) check() error {
 
 var memberNameRe = regexp.MustCompile(`^[a-z0-9][a-z0-9-]{0,62}$`)
 
-// MemberName is the name a node takes in its group: cluster.name when set.
-// Otherwise, in a group set up by configuration (cluster.secret_file: the
-// same files lie on every node, so node_name is the same on all of them),
-// the first label of the host name in lower case when it is a valid name.
-// In every other case node_name.
+// MemberName is the name a node takes in its group: cluster.name when set;
+// with cluster.name_from_host the first label of the host name in lower
+// case when that is a valid name; in every other case node_name.
 func (s *Site) MemberName(hostname string) string {
 	if s.Cluster.Name != "" {
 		return s.Cluster.Name
 	}
-	if s.Cluster.SecretFile != "" {
+	if s.Cluster.NameFromHost {
 		h, _, _ := strings.Cut(strings.ToLower(hostname), ".")
 		if memberNameRe.MatchString(h) {
 			return h

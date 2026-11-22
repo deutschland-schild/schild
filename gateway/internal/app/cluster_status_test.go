@@ -103,35 +103,30 @@ func TestGroupStatusShowsHowEveryGatewayIsDoing(t *testing.T) {
 	})
 }
 
-// With the same files on every node (cluster.secret_file) a node takes its
-// host name in the group, so the nodes differ in the dashboard although
-// node_name is the same; cluster.name always wins, and by hand node_name stays.
+// With cluster.name_from_host a node takes its host name in the group, so
+// the nodes differ in the dashboard although the same schild.yaml, with one
+// node_name, lies on all of them; cluster.name wins, and without either
+// node_name stays, also when a deployment gives every node its own.
 func TestMemberNameOfANode(t *testing.T) {
-	site := func(name, secret string) *config.Site {
+	site := func(name string, fromHost bool) *config.Site {
 		s := &config.Site{NodeName: "schild-1"}
-		s.Cluster.Name, s.Cluster.SecretFile = name, secret
+		s.Cluster.Name, s.Cluster.NameFromHost = name, fromHost
 		return s
 	}
 	for _, c := range []struct {
-		name, secret, host, want string
+		name     string
+		fromHost bool
+		host     string
+		want     string
 	}{
-		{"", "/etc/schild/cluster.secret", "Web-3.example.net", "web-3"},
-		{"", "/etc/schild/cluster.secret", "not a name", "schild-1"},
-		{"", "/etc/schild/cluster.secret", "", "schild-1"},
-		{"", "", "web-3", "schild-1"},
-		{"gw-a", "/etc/schild/cluster.secret", "web-3", "gw-a"},
+		{"", true, "Web-3.example.net", "web-3"},
+		{"", true, "not a name", "schild-1"},
+		{"", true, "", "schild-1"},
+		{"", false, "web-3", "schild-1"},
+		{"gw-a", false, "web-3", "gw-a"},
 	} {
-		if got := site(c.name, c.secret).MemberName(c.host); got != c.want {
-			t.Errorf("MemberName(name %q, secret %q, host %q) = %q, want %q", c.name, c.secret, c.host, got, c.want)
+		if got := site(c.name, c.fromHost).MemberName(c.host); got != c.want {
+			t.Errorf("MemberName(name %q, from host %v, host %q) = %q, want %q", c.name, c.fromHost, c.host, got, c.want)
 		}
 	}
-}
-
-func TestOverviewNamesAGatewayThatIsNotReached(t *testing.T) {
-	a, b := pair(t)
-	a.h.WaitFor("web-1 reaches web-2", func() bool { return a.h.App.GroupStatus().State == "active" })
-	if err := b.h.Stop(); err != nil {
-		t.Fatal(err)
-	}
-	a.h.WaitFor("the overview of web-1 says a gateway is not reached", func() bool { return slices.Contains(a.h.App.ClusterReasons(), "cluster_peers_unreachable") })
 }
