@@ -216,3 +216,17 @@ Unclear in the documents: what happens to the former identity of a node that ret
 - Timing: every failure above was seen in every run made (the number of runs is given), except the one listed under "seen once". No failure rests on a single latency value.
 - Checks first tagged with a kill clause and then untagged, because the clause speaks of state "on another" node or of an address that "returns": the fresh node and the 17th gateway (H1), the late erasure (H4), the logins at ready (H5). They stay failures of the statements named.
 - Documents read besides those named in the task: `contracts/config/schild.schema.json`, `contracts/results.schema.json`, `contracts/CHANGELOG.md`, the first harness.
+
+## Second run after the fixes (2026-11-22)
+
+Not by the measuring agent: the builder ran the unchanged harness (`run.sh`, every scenario, one continuous run) on `e54c040`, with `e0349dc` as the older build of scenario 7. The JSON files next to this report hold this run; the text above describes the first run on `e0349dc`.
+
+236 judged checks: 229 pass, 7 fail (first run: 223 and 13).
+
+- **Gone:** H1 (a node that never reached the group no longer answers ready; the refused 17th gateway stays out of traffic), H5 (ready only when logins are in step), the divergence at 9 000 requests a second asked (8 999 achieved this time, one node lacked 39 of 270 000), the clock line of `schild cluster status`.
+- **Still failing, 4 checks:** H2. A gateway killed with `kill -9` under load lacks the requests of its last second (287, 211, 143 and 287 in four rounds); the others hold them. Not fixed; the guide names it as a limit.
+- **Still failing, 2 checks:** a node 120 s ahead. Its erasure reaches the others after 60.3 s, and they do not store the requests it serves. Not fixed; the guide names it as a limit and the dashboard, the command line and the log name the clock.
+- **Still marked as failing, 1 check:** a node that restarts 120 s behind. It now never answers ready while it cannot take what the others wrote (`ready after None s`), which is what the fix intends; the check waits for a first ready answer and has none to judge. Asked directly, past the balancer, the node still serves the blocked address until it holds the block (20.3 s here).
+- Scenario 7: an upgrade in turn from `e0349dc` to `e54c040` under load passed all 18 checks.
+
+An independent second run on real VMs is under way separately (`MVP-27-lab-run2`).
