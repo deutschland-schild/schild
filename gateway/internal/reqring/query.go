@@ -373,7 +373,7 @@ func parseCursor(s string) (cursor, bool) {
 		return cursor{}, false
 	}
 	st, err1 := strconv.ParseInt(a, 36, 64)
-	i, err2 := strconv.ParseInt(b, 36, 64)
+	i, err2 := strconv.ParseInt(b, 36, strconv.IntSize) // the index is an int
 	if err1 != nil || err2 != nil || st <= 0 || i < 0 {
 		return cursor{}, false
 	}
