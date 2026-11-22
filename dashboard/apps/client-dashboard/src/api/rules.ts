@@ -143,6 +143,16 @@ export function useUpdateRuleRepository() {
   })
 }
 
+/** crs: paranoia level and blocking threshold (D101). The body replaces what the dashboard set, {} removes it. */
+export function useUpdateRuleRepositorySettings() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, body }: { id: RuleRepositoryId, body: components['schemas']['RuleRepositorySettingsPatch'] }) =>
+      unwrap(api.PATCH('/rule-repositories/{repository}/settings', { params: { header: csrf(), path: { repository: id } }, body })),
+    onSuccess: repo => afterRepository(qc, repo),
+  })
+}
+
 /** crowdsec: check the hub now. local: load rules.d again (409 sync_refused keeps the running rules). */
 export function useSyncRuleRepository() {
   const qc = useQueryClient()

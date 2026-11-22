@@ -1,7 +1,7 @@
 # schild check: read-only host findings of the gateway (MVP-11, contracts/host-check.md).
-# Install: /etc/systemd/system/schild-check.service, together with schild-check.timer,
-# schild-check.path ("Jetzt prüfen", optional) and schild-host-check.tmpfiles.conf
-# (gateway/README.md, "Server check").
+# Install: `sudo schild check install` writes this unit, schild-check.timer,
+# schild-check.path ("Jetzt prüfen") and schild-host-check.tmpfiles.conf from the
+# copies in the binary and enables them (gateway/README.md, "Server check").
 #
 # Runs as root inside a tight sandbox: root only to read what an unprivileged
 # user cannot (sshd -T, nft ruleset, /var/log/auth.log); the capability

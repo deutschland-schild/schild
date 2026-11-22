@@ -35,3 +35,20 @@ listen:
   # publishes it on the host's 127.0.0.1 only. Keep it that way: never
   # publish port 8788 on a public address.
   dashboard: "0.0.0.0:8788"
+
+# The agent API (docs: "Agent-API einrichten") is on by default and answers
+# nothing without a token (schild token add). Inside a container it has to
+# listen on all interfaces of the container, like the dashboard; compose.yaml
+# publishes it on the host's 127.0.0.1 only. Never publish port 8789 on a
+# public address. To switch it off: the dashboard under Einstellungen, or
+# enabled: false here, which the dashboard cannot undo.
+agent_api:
+  listen: "0.0.0.0:8789"
+
+# The server check: schild shows the reports of "schild check" under "Server"
+# in the dashboard. The check runs on the host, not in the container, and
+# reads only. Set it up once (docs: "Server-Check einrichten"):
+#   docker cp <container>:/usr/local/bin/schild /tmp/schild
+#   sudo /tmp/schild check install
+# and remove the "#" of the server check lines in compose.yaml.
+host_check: {}

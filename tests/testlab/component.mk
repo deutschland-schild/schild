@@ -83,6 +83,10 @@ testlab-readonly-proof: ## MVP-11: `schild check` in a disposable app VM contain
 testlab-readonly-proof-selftest: ## MVP-11: the read-only proof passes a clean fake check and catches a writing one (no backend needed)
 	DOCKER=$(DOCKER) tests/testlab/scripts/readonly-proof-selftest.sh
 
+.PHONY: testlab-check-install
+testlab-check-install: ## D100: `schild check install` on hosts with systemd (Debian, Ubuntu, Rocky, Alma), gateway as container and as service
+	DOCKER=$(DOCKER) tests/testlab/scripts/check-install-proof.sh
+
 .PHONY: testlab-keys
 testlab-keys: testlab-secrets ## old name of testlab-secrets
 

@@ -17,6 +17,7 @@
       "low": 1,
       "info": 1
     },
+    "accepted": 0,
     "unreadable": 0,
     "os": {
       "name": "Debian GNU/Linux 12 (bookworm)",
@@ -97,7 +98,7 @@
         "severity": "high",
         "status": "finding",
         "subject": "tcp/6379",
-        "title": "Redis ist aus dem Netz erreichbar"
+        "title": "Redis könnte von außen erreichbar sein"
       },
       {
         "area": "ports",
@@ -309,5 +310,6 @@
       }
     }
   ],
-  "last_rejected": null
+  "last_rejected": null,
+  "accepted": []
 }

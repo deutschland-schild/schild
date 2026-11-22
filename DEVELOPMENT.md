@@ -29,6 +29,7 @@ make ui                                    # build both dashboards and copy them
                                            # and the schild-lab image (the schild image builds its dashboard itself)
 BUILDX_BUILDER=desktop-linux make images   # schild, schild-lab, schild-relay, schild-testlab, schild-testlab-app-vm, schild-traffic, schild-adversary (:dev)
 make testlab-readonly-proof                # MVP-11: schild check (root and nobody) in a disposable app VM changes nothing but its report dir
+make testlab-check-install                 # D100: schild check install under systemd on six distributions, gateway as container and as service
 
 make testlab-up PROFILE=t0                 # TEST ONLY secrets, lab users, the stack; waits until healthy
 make smoke PROFILE=t0                      # gateway end-to-end proof (lab chain skipped, D72) + evaluator + browser check

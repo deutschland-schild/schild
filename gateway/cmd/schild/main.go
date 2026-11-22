@@ -21,6 +21,7 @@
 //	schild geo-fixture -out geo.mmdb   (TEST ONLY database of documentation ranges)
 //	schild health | logcheck ...   (container health check, D23 log check)
 //	schild check    [-dir DIR] ...   (read-only server check of this host, MVP-11)
+//	schild check install | uninstall   (D100: the check's systemd units, from this binary)
 //
 // `schild help` prints the full usage with flags and exit codes. Multipath
 // TCP stays off for every listener (multipath_test.go).
@@ -59,6 +60,7 @@ import (
 	"github.com/deutschland-schild/schild/gateway/internal/failopen"
 	"github.com/deutschland-schild/schild/gateway/internal/geo"
 	"github.com/deutschland-schild/schild/gateway/internal/hostcli"
+	"github.com/deutschland-schild/schild/gateway/internal/hostsetup"
 	"github.com/deutschland-schild/schild/gateway/internal/ratelog"
 	"github.com/deutschland-schild/schild/gateway/internal/store"
 )
@@ -94,7 +96,7 @@ Usage:
   schild allow    IP|CIDR|HOST [-ttl 24h|7d|30d|never] [-label TEXT] [-level no_block|bypass_waf]
   schild allow    --mine [-ttl ...] [-label TEXT] allow the address of the current SSH session (SSH_CONNECTION)
   schild allow    list | rm ID                   show or remove local allowlist entries
-  schild token    add --scope SCOPE --expires 90d [--label TEXT] | list | revoke ID | log [ID]
+  schild token    add [--scope SCOPE] [--expires 90d] [--label TEXT] | list | revoke ID | log [ID]
                                                  agent API tokens (agent_api in schild.yaml); shown once, stored hashed;
                                                  SCOPE: `+contractapi.ScopeList()+`; write scopes need --label
   schild status   [-config FILE]                 show profile, backend, allowlist and health; says when settings
@@ -132,6 +134,12 @@ Usage:
                                                  read-only server check of this host, writes a host report (0640);
                                                  exit 0 written, 1 error, 2 usage, 3 -fail-on hit, 4 report invalid
                                                  (schild check -h)
+  schild check install [-mode auto|container|service] [-gid N] [-app PATH]... [-cert GLOB]... [-caddyfile FILE]
+                       [-no-start] [-dry-run]
+                                                 as root on the host: set up the daily check and "Jetzt prüfen" as
+                                                 systemd units from this binary and run the first check; a binary
+                                                 copied out of the image is put at /usr/local/bin/schild
+  schild check uninstall                         remove those units again; reports and binary stay
   schild firewall run | status | off            CAP_NET_ADMIN on the host's network: keep schild's address blocks
                                                  in the nftables table "inet schild" (ports 80 and 443, kernel
                                                  timeouts), from the agent API (schild firewall -h)
@@ -192,6 +200,11 @@ func main() {
 	case "logcheck":
 		err = cmdLogcheck(os.Args[2:])
 	case "check":
+		// D100: install and uninstall set up the check's systemd units; the
+		// check itself stays read only.
+		if len(os.Args) > 2 && (os.Args[2] == "install" || os.Args[2] == "uninstall") {
+			os.Exit(hostsetup.Main(os.Args[2], os.Args[3:], buildinfo.Version))
+		}
 		os.Exit(hostcli.Check("schild check", os.Args[2:]))
 	case "firewall":
 		err = cmdFirewall(os.Args[2:])

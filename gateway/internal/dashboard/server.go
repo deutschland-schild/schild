@@ -105,6 +105,10 @@ type Server struct {
 	Crawlers CrawlerFuncs
 	// Behaviour is MVP-17 (v0.4); nil disables the behaviour operations.
 	Behaviour *behaviour.Engine
+	// AgentAPI and SetAgentAPI are the switch of the agent API (D103). nil:
+	// schild.yaml decides and nothing can be switched (tests, no listeners).
+	AgentAPI    func(ctx context.Context) AgentAPIState
+	SetAgentAPI func(ctx context.Context, enabled *bool, user string) (AgentAPIState, error)
 	// FirewallState is what `schild firewall run` said in its last call
 	// (D87); nil or ok false: no firewall has called.
 	FirewallState func() (firewall.Report, bool)
@@ -182,6 +186,7 @@ func (s *Server) Handler() http.Handler {
 	a("GET "+apiPrefix+"/rule-repositories", s.listRuleRepositories)
 	a("GET "+apiPrefix+"/rule-repositories/{repository}", s.getRuleRepository)
 	a("PATCH "+apiPrefix+"/rule-repositories/{repository}", s.updateRuleRepository)
+	a("PATCH "+apiPrefix+"/rule-repositories/{repository}/settings", s.updateRuleRepositorySettings)
 	a("POST "+apiPrefix+"/rule-repositories/{repository}/sync", s.syncRuleRepository)
 	a("POST "+apiPrefix+"/rule-repositories/{repository}/reset", s.resetRuleRepository)
 	a("GET "+apiPrefix+"/rule-exceptions", s.listRuleExceptions)

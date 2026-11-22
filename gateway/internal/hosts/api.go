@@ -51,6 +51,15 @@ func (g *Gateway) summary(ctx context.Context, id, hostname, role string, agentI
 		h.LastReportAt, h.ReceivedAt = tsp(n.Started), tsp(n.Received)
 		h.Counts, h.Unreadable = n.Counts, n.Unreadable
 		if body, err := g.newestBody(ctx, id); err == nil && body != nil {
+			// D102: accepted findings are not open. Without an acceptance
+			// the counts stored with the report stand.
+			if rows, err := g.acceptedRows(ctx, id); err != nil {
+				return h, err
+			} else if len(rows) > 0 {
+				var active map[findingKey]bool
+				h.Counts, active = applyAccepted(body, rows)
+				h.Accepted = int64(len(active))
+			}
 			var r struct {
 				Host struct {
 					Hostname string `json:"hostname"`
@@ -182,7 +191,7 @@ func (g *Gateway) Host(ctx context.Context, id string) (*HostDetail, error) {
 		if h.ID != id {
 			continue
 		}
-		d := &HostDetail{Host: h, History: []HostReportRef{}}
+		d := &HostDetail{Host: h, History: []HostReportRef{}, Accepted: []AcceptedFinding{}}
 		body, err := g.newestBody(ctx, id)
 		if err != nil {
 			return nil, err
@@ -194,8 +203,15 @@ func (g *Gateway) Host(ctx context.Context, id string) (*HostDetail, error) {
 		if err != nil {
 			return nil, err
 		}
-		for _, r := range hist {
-			d.History = append(d.History, HostReportRef{ReportID: r.ReportID, StartedAt: ts(r.Started), ReceivedAt: ts(r.Received), Counts: r.Counts})
+		for i, r := range hist {
+			ref := HostReportRef{ReportID: r.ReportID, StartedAt: ts(r.Started), ReceivedAt: ts(r.Received), Counts: r.Counts}
+			if i == 0 {
+				ref.Counts = h.Counts // the newest report, as the host shows it (D102)
+			}
+			d.History = append(d.History, ref)
+		}
+		if d.Accepted, err = g.accepted(ctx, id, body); err != nil {
+			return nil, err
 		}
 		if id != LocalID {
 			if d.LastRejected, err = g.lastRejected(ctx, id); err != nil {
@@ -249,6 +265,7 @@ func (g *Gateway) Summary(ctx context.Context) (*ServersSummary, error) {
 			s.Hosts--
 			continue
 		}
+		s.Reported = s.Reported || h.LastReportAt != nil
 		s.Findings.Critical += h.Counts.Critical
 		s.Findings.High += h.Counts.High
 		s.Findings.Medium += h.Counts.Medium

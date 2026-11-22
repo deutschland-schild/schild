@@ -56,7 +56,7 @@ open:                               # the initiator decides
   - 'restart on upgrade: off in this spec. A switch for single servers once a restart leaves no gap (socket activation); never in an HA group (MVP-27), where the deployment updates node by node'
   - 'Valid-Until in the Release file: without it a mirror can serve an old signed state forever; with it the repository has to be signed again on a schedule, also without a release'
   - 'the two dashboard hints still name /usr/local/bin/schild; with the package it is /usr/bin/schild and plain `sudo schild` works'
-  - 'the public docs (docs/gateway/00-installieren.md, 02-betrieb.md "Aktualisieren", the planned list in 01-funktionen.md) change with the first release that carries packages, not before'
+  - 'the public docs (docs/gateway/00-installieren.md, 02-betrieb.md "Aktualisieren") change with the first release that carries packages, not before'
   - 'dnf and rpm: not in this spec'
 must:
   - 'on Debian 12 and 13 and Ubuntu 22.04 and 24.04, amd64 and arm64, the installer ends with schild installed and nothing running'

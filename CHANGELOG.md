@@ -4,6 +4,38 @@ Notable changes per release. Contract changes are in [contracts/CHANGELOG.md](co
 
 The section of a version becomes the text of its GitHub release, so its heading stays `## <version>`. The date of a release is the one GitHub shows.
 
+## 0.1.0-alpha.5
+
+### Rules
+
+- Strictness (paranoia level) and blocking threshold of the OWASP CRS are set in the dashboard (D101): "Strenge und Schwelle anpassen" on the page of the CRS. A change holds at once, without a restart, and wins over `schild.yaml`; "Werte aus schild.yaml einsetzen" gives both back to the file. A threshold above 5 points is named on the page, because a request with a single critical hit then passes.
+
+### Agent API
+
+- The agent API is on by default (D103). Without a token it answers every call with 401, and tokens are still created on the server only (`schild token add`). After the update an existing gateway listens on `127.0.0.1:8789`; `agent_api: {enabled: false}` in `schild.yaml` keeps it off, and the dashboard cannot switch it on against that. If the port is taken, only this listener does not start, requests are not affected.
+- The dashboard has a card "Agent-API" under Einstellungen: a switch that opens and closes the listener without a restart, the address, and the tokens with scope, expiry and last use. A value set there holds until "Wert aus schild.yaml einsetzen".
+- `schild token add` needs no flags: without them the token reads only and holds 90 days. `--expires` takes 1d to 365d as before.
+- Docker: the agent API can be reached from the host. `agent_api.listen` also takes `0.0.0.0:8789`, and the quickstart files publish the port on `127.0.0.1` of the host. Outside a container schild does not open a listener on every interface. An existing installation adds `agent_api: {listen: "0.0.0.0:8789"}` to `schild.yaml` and `"127.0.0.1:8789:8789"` to the ports in `compose.yaml`.
+- The docs describe the setup step by step under "Agent-API einrichten", and the features page says what an agent does with it.
+
+### Server check
+
+- `schild check install` sets the server check up with one command (D100): as root on the host it writes the systemd units from the binary, enables the daily run and "Jetzt prüfen" and runs the first check. For a gateway in Docker: `docker cp <container>:/usr/local/bin/schild /tmp/schild && sudo /tmp/schild check install`. `schild check uninstall` removes the units. The docs describe it under "Server-Check einrichten".
+- "Jetzt prüfen" no longer gets stuck when `schild.yaml` does not load: the check removes the request before it reads the config.
+- A server without any firewall rule and without iptables is reported as "Keine Firewall auf dem Server aktiv" instead of "nicht lesbar".
+- The dashboard names the install command where the server check is not set up yet, and the overview shows the Server card only once a report exists.
+- Findings can be marked as accepted in the dashboard, with a note (D102): for example an open port that a firewall in front of the server closes. An accepted finding no longer counts as open, stays listed and can be opened again; it is open by itself when the check reports it with a higher severity.
+- `schild init` and the quickstart files turn the Server section on (`host_check: {}`); the compose templates carry the mounts of the server check as comments.
+- A report written in the same second as the one before is no longer skipped by the gateway.
+- Findings about open ports say what the check can know: a service listens on a public interface and "könnte von außen erreichbar sein". Whether a firewall on the server or at the hoster closes the port, the check cannot see from inside; the text says so and points to accepting the finding. "Keine Firewall auf dem Server aktiv" names the firewall of the hoster the same way.
+- The results of the server check are one list in the dashboard: one line per check with level, title, area and the main fact, the detail opens on click. The list can be searched (title, explanation, port, package, path) and filtered by state (open, not readable, accepted, in order) and area. The installed software has its own section.
+
+### Upgrade
+
+- From 0.1.0-alpha.4: change the image tag, run `sudo apt update && sudo apt install schild` and `sudo systemctl restart schild`, or replace the binary and restart. `schild.yaml` and `schild.db` need no change.
+- After the update the agent API listens on `127.0.0.1:8789` and answers 401 without a token. `agent_api: {enabled: false}` in `schild.yaml` keeps it off.
+- The server check is new to set up: `sudo schild check install` on the host. With Docker, copy the binary out of the container first and add the two mounts and the variable the command prints; the docs describe it under "Server-Check einrichten". With the check set up by hand before, run the command once as well: it replaces the units.
+
 ## 0.1.0-alpha.4
 
 ### Release

@@ -42,6 +42,7 @@ dashboard:
 deploy:
   - systemd units and timer for `schild check` and `schild-agent` (examples in docs/ops/), docker compose snippet mounting the report directory read-only into the schild container
   - runbook section (the runbooks of the prototype are not part of this repository; the units are in docs/ops/systemd)
+  - 'D100 (initiator, 2026-11-21): `schild check install` writes these units from the binary, enables them and runs the first check; `schild check uninstall` removes them. Own commands in internal/hostsetup: `schild check` itself stays read only (kill criterion unchanged). Builder proof: make testlab-check-install (six distributions, both modes); the independent measurement is open'
 measure:
   - unit tests per check with fixture files (os-release, apt/dnf outputs, ss output, nft ruleset, sshd -T) for Debian 11/12, Ubuntu 22.04/24.04, Rocky/Alma 9 and one EOL system
   - testlab: an app VM container with the agent delivering to the gateway schild; enrolment, delivery, replay, unknown key, revoked key, gateway down (agent retries with backoff, no effect on traffic)

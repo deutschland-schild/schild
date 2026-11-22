@@ -17,6 +17,7 @@
       "low": 1,
       "info": 0
     },
+    "accepted": 0,
     "unreadable": 2,
     "os": {
       "name": "Ubuntu 24.04.1 LTS",
@@ -82,7 +83,7 @@
         "severity": "high",
         "status": "finding",
         "subject": "tcp/3306",
-        "title": "MySQL ist aus dem Netz erreichbar"
+        "title": "MySQL/MariaDB könnte von außen erreichbar sein"
       },
       {
         "area": "firewall",
@@ -255,8 +256,8 @@
     {
       "id": "ports.public_service",
       "subject": "tcp/3306",
-      "title": "Dienst von außen erreichbar",
-      "explanation": "Der Check listet Dienste, die auf einer Netzwerkadresse statt nur lokal lauschen. Was niemand von außen braucht, gehört an localhost oder hinter die Firewall.",
+      "title": "Dienst könnte von außen erreichbar sein",
+      "explanation": "Der Check listet Dienste, die auf einer Netzwerkadresse statt nur lokal lauschen. Ob eine Firewall davor sie von außen sperrt, sieht er vom Server aus nicht. Was niemand von außen braucht, gehört an localhost oder hinter die Firewall.",
       "fix_verified": true
     },
     {
@@ -287,5 +288,6 @@
       "explanation": "Der Check liest die Version erkannter Anwendungen (WordPress, TYPO3, Laravel, Nextcloud) unter den angegebenen Pfaden.",
       "fix_verified": false
     }
-  ]
+  ],
+  "accepted": []
 }

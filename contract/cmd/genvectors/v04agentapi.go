@@ -23,7 +23,7 @@ func genSiteConfigV04AgentAPI(g *gen) {
 	add(true, "", "agent-api-defaults", "v0.4 MVP-21: agent API on with the defaults (127.0.0.1:8789, 120 requests per minute, 2 in flight).", with(map[string]any{"enabled": true}))
 	add(true, "", "agent-api-full", "v0.4 MVP-21: every agent_api key.", with(map[string]any{"enabled": true, "listen": "127.0.0.1:9790", "requests_per_minute": 30, "max_concurrent": 1, "log_days": 90}))
 	add(true, "", "agent-api-ipv6-loopback", "v0.4 MVP-21: IPv6 loopback listener.", with(map[string]any{"enabled": true, "listen": "[::1]:8789"}))
-	add(true, "", "agent-api-off", "v0.4 MVP-21: section present, API off (default).", with(map[string]any{"enabled": false, "listen": "localhost:8789"}))
+	add(true, "", "agent-api-off", "v0.4 MVP-21: section present, API off.", with(map[string]any{"enabled": false, "listen": "localhost:8789"}))
 	m := with(map[string]any{"enabled": true, "listen": "127.0.0.1:8788"})
 	m["listen"] = map[string]any{"dashboard": "127.0.0.1:8790"}
 	add(true, "", "agent-api-moved-dashboard", "v0.4 MVP-21: the default dashboard port is free when the dashboard moved.", m)
@@ -34,10 +34,10 @@ func genSiteConfigV04AgentAPI(g *gen) {
 		a    map[string]any
 		desc string
 	}{
-		{"agent-api-all-interfaces", contract.CodeSchema, map[string]any{"enabled": true, "listen": "0.0.0.0:8789"}, "v0.4 MVP-21: loopback only; reach it through an SSH tunnel."},
+		{"agent-api-public-address", contract.CodeSchema, map[string]any{"enabled": true, "listen": "203.0.113.5:8789"}, "v0.4 MVP-21, D103: no address of a network; loopback, or every interface in a container."},
 		{"agent-api-port-only", contract.CodeSchema, map[string]any{"enabled": true, "listen": ":8789"}, "v0.4 MVP-21: a bare port listens on every interface."},
 		{"agent-api-private-address", contract.CodeSchema, map[string]any{"enabled": true, "listen": "10.0.0.1:8789"}, "v0.4 MVP-21: not even a private network address in v0.4."},
-		{"agent-api-ipv6-any", contract.CodeSchema, map[string]any{"enabled": true, "listen": "[::]:8789"}, "v0.4 MVP-21: IPv6 any address."},
+		{"agent-api-ipv6-address", contract.CodeSchema, map[string]any{"enabled": true, "listen": "[2001:db8::1]:8789"}, "v0.4 MVP-21, D103: no IPv6 address of a network."},
 		{"agent-api-token-in-yaml", contract.CodeSchema, map[string]any{"enabled": true, "tokens": []string{"sat1_AAAA"}}, "v0.4 MVP-21: tokens never live in schild.yaml (host CLI, stored hashed)."},
 		{"agent-api-enabled-string", contract.CodeSchema, map[string]any{"enabled": "true"}, "v0.4 MVP-21: enabled is a boolean."},
 		{"agent-api-rpm-zero", contract.CodeSchema, map[string]any{"requests_per_minute": 0}, "v0.4 MVP-21: at least one request per minute."},

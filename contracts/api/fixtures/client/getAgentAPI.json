@@ -1,0 +1,11 @@
+{
+  "enabled": true,
+  "config_enabled": true,
+  "state_source": "config",
+  "listen": "localhost:8789",
+  "listening": true,
+  "active_tokens": 2,
+  "firewall_tokens": 1,
+  "updated_at": null,
+  "actor": null
+}

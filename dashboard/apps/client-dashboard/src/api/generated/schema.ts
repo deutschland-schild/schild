@@ -175,6 +175,24 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/agent-api": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** D103: the switch of the agent API - whether it is on, where the value comes from (the dashboard or schild.yaml), the address of its listener, whether the listener is open, and how many tokens are valid. */
+        get: operations["getAgentAPI"];
+        /** D103: switch the agent API on or off, or give the switch back to schild.yaml (reset). The value is stored in schild.db and holds until it is reset. agent_api.enabled false in schild.yaml is final: switching on against it answers 409 `config_limit`. In force before the answer returns, without a restart: the listener opens or closes, and calls in flight end. No password: every call of the agent API still needs a token, and tokens are created on the host only. Off also stops `schild firewall run` from getting blocks; the blocks it holds end by their own timeout. 409 `conflict`: the listener did not open (the port is in use, or the address names every interface outside a container); the switch stays as it was. */
+        put: operations["setAgentAPI"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/agent-api/calls": {
         parameters: {
             query?: never;
@@ -182,7 +200,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** The agent API call log, read-only - every token (id, label, scope, created, expiry, revoked, last use; never the token or its hash) and the calls with time in [from, to), newest first (token id, operation or MCP tool, status, rows, bytes), kept agent_api.log_days. Index range on the call time. Nothing here creates, changes or revokes a token: that stays `schild token` on the host. agent_api off and no tokens: enabled false with empty lists. */
+        /** The agent API call log, read-only - every token (id, label, scope, created, expiry, revoked, last use; never the token or its hash) and the calls with time in [from, to), newest first (token id, operation or MCP tool, status, rows, bytes), kept agent_api.log_days. Index range on the call time. Nothing here creates, changes or revokes a token: that stays `schild token` on the host. The agent API off and no tokens: enabled false with empty lists. */
         get: operations["listAgentCalls"];
         put?: never;
         post?: never;
@@ -478,6 +496,23 @@ export interface paths {
         patch: operations["updateRuleRepository"];
         trace?: never;
     };
+    "/rule-repositories/{repository}/settings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** crs: set the paranoia level and the blocking threshold (D101). The body replaces what the dashboard set before: a field left out falls back to schild.yaml or the built-in default, an empty object removes the entry. Written to the settings overlay and validated like schild.yaml; the WAF is rebuilt next to the running rules and swapped in, no restart. crowdsec and local: 409 not_supported. Session and CSRF header, no password. */
+        patch: operations["updateRuleRepositorySettings"];
+        trace?: never;
+    };
     "/rule-repositories/{repository}/sync": {
         parameters: {
             query?: never;
@@ -708,6 +743,40 @@ export interface paths {
         put?: never;
         /** "Jetzt prüfen": ask for a check run of the local host (gateway only; agents check on their own schedule, the gateway never sends them commands). The run itself happens outside the container (`schild check`, read-only); poll getHost until last_report_at changes. */
         post: operations["runLocalCheck"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/hosts/{host_id}/findings/accept": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Mark an open finding of the newest report as accepted (D102): it no longer counts as open and stays listed under `accepted`. The severity is taken from the report. The acceptance holds for later reports until it is reopened or the finding comes back with a higher severity. 404 when the host or an open finding with this id and subject does not exist. */
+        post: operations["acceptHostFinding"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/hosts/{host_id}/findings/reopen": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Take an acceptance back (D102): the finding counts as open again when a report holds it. 404 when the host or the acceptance does not exist. */
+        post: operations["reopenHostFinding"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1503,8 +1572,14 @@ export interface components {
             local?: components["schemas"]["RuleRepositoryLocal"];
         } & (unknown | unknown | unknown);
         RuleRepositoryCRS: {
+            /** @description The level that runs: the value set in the dashboard, else config_paranoia_level. */
             paranoia_level: number;
+            /** @description The threshold that runs: the value set in the dashboard, else config_inbound_anomaly_threshold. */
             inbound_anomaly_threshold: number;
+            /** @description The value of schild.yaml (or its default 1). Differs from paranoia_level when the dashboard set one (D101). */
+            config_paranoia_level: number;
+            /** @description The value of schild.yaml (or its default 5). Differs from inbound_anomaly_threshold when the dashboard set one (D101). */
+            config_inbound_anomaly_threshold: number;
             livewire_exception: boolean;
             /** @description CRS version of the image. */
             version: string;
@@ -1611,6 +1686,11 @@ export interface components {
              */
             reset_state?: true;
         } & (unknown | unknown);
+        /** @description The values of the crs repository the dashboard sets (D101). A field left out falls back to schild.yaml or the built-in default; an empty object removes what the dashboard set. */
+        RuleRepositorySettingsPatch: {
+            paranoia_level?: number;
+            inbound_anomaly_threshold?: number;
+        };
         /** @description One rule of one repository. The CRS blocks by anomaly score: a CRS rule's effect is that of its repository. */
         Rule: {
             repository: components["schemas"]["RuleRepositoryId"];
@@ -1822,7 +1902,7 @@ export interface components {
             low: number;
             info: number;
         };
-        /** @description Optional: the compact Server card of the overview. Absent when host_check is not configured. */
+        /** @description Optional: the compact Server card of the overview. Absent when host_check is not configured, and until the first host has reported (D100). */
         ServersSummary: {
             hosts: number;
             findings: components["schemas"]["SeverityCounts"];
@@ -1848,7 +1928,10 @@ export interface components {
             /** @description Expected report interval (agents and the local timer). */
             interval_minutes?: number | null;
             duration_ms?: number | null;
+            /** @description Open findings of the newest report without the accepted ones (D102). */
             counts: components["schemas"]["SeverityCounts"];
+            /** @description Findings of the newest report that are accepted and therefore not in counts (D102). */
+            accepted: number;
             /** @description Checks of the newest report that were not readable. */
             unreadable: number;
             os: {
@@ -1868,6 +1951,8 @@ export interface components {
         };
         HostDetail: {
             host: components["schemas"]["HostSummary"];
+            /** @description Accepted findings of this host (D102), newest first. The counts of the newest report in `history` leave them out, the counts of older reports are as stored. */
+            accepted: components["schemas"]["AcceptedFinding"][];
             /** @description The newest host report exactly as stored (schild.host_report/0.1); null before the first report. */
             report: components["schemas"]["host-report.schema"] | null;
             /** @description Kept reports, newest first (host_check.keep_reports). The newest is `report`. */
@@ -1888,6 +1973,27 @@ export interface components {
             title: string | null;
             explanation: string | null;
             fix_verified: boolean;
+        };
+        /** @description A finding of a host by its check id and subject (null or absent: the check has one result). */
+        FindingRef: {
+            id: string;
+            subject?: string | null;
+        };
+        FindingAccept: {
+            id: string;
+            subject?: string | null;
+            /** @description Why it is accepted (one line), e.g. a firewall in front of the server. Stays on this gateway. */
+            note?: string;
+        };
+        AcceptedFinding: {
+            id: string;
+            subject: string | null;
+            /** @description Severity of the finding when it was accepted. A later report with a higher severity is open again. */
+            severity: components["schemas"]["Severity"];
+            note: string | null;
+            accepted_at: components["schemas"]["Timestamp"];
+            /** @description true: the newest report holds this finding at this severity or lower, and it is left out of counts. false: the finding is gone or came back higher. */
+            active: boolean;
         };
         LocalCheckRun: {
             requested_at: components["schemas"]["Timestamp"];
@@ -3464,8 +3570,43 @@ export interface components {
             rows: number;
             bytes: number;
         };
+        /** @description D103, the switch of the agent API. */
+        AgentAPIState: {
+            /** @description What holds: false when agent_api.enabled of schild.yaml is false, else the value set in the dashboard, else true. */
+            enabled: boolean;
+            /** @description agent_api.enabled of schild.yaml (on by default), what a reset gives back. false: nothing can be switched in the dashboard. */
+            config_enabled: boolean;
+            /**
+             * @description config: schild.yaml or its default decides, always so with config_enabled false. dashboard: the switch was set here.
+             * @enum {string}
+             */
+            state_source: "config" | "dashboard";
+            /** @description agent_api.listen, e.g. 127.0.0.1:8789. */
+            listen: string;
+            /** @description The listener is open. false with enabled true: it did not open (error), or this process serves no listeners. */
+            listening: boolean;
+            /** @description Why the listener is not open while enabled: the port is in use, or the address names every interface outside a container. Absent otherwise. */
+            error?: string;
+            /** @description Tokens that are neither revoked nor expired. */
+            active_tokens: number;
+            /** @description Of those, tokens with scope firewall:sync: `schild firewall run` depends on the agent API, so the UI warns before switching off. */
+            firewall_tokens: number;
+            /** @description When the switch was set in the dashboard; null with state_source config. */
+            updated_at: components["schemas"]["NullableTimestamp"];
+            /** @description The dashboard user who set it; null with state_source config. */
+            actor: string | null;
+        };
+        /** @description Exactly one of enabled and reset. */
+        AgentAPIInput: {
+            enabled?: boolean;
+            /**
+             * @description Drop the value of the dashboard: agent_api.enabled of schild.yaml decides again.
+             * @constant
+             */
+            reset?: true;
+        };
         AgentCallLog: {
-            /** @description agent_api.enabled. */
+            /** @description The agent API is on (AgentAPIState.enabled). */
             enabled: boolean;
             log_days: number;
             tokens: components["schemas"]["AgentTokenInfo"][];
@@ -5247,6 +5388,56 @@ export interface operations {
             default: components["responses"]["Problem"];
         };
     };
+    getAgentAPI: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The switch. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AgentAPIState"];
+                };
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    setAgentAPI: {
+        parameters: {
+            query?: never;
+            header: {
+                "X-CSRF-Token": components["parameters"]["CSRF"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AgentAPIInput"];
+            };
+        };
+        responses: {
+            /** @description The switch now in force. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AgentAPIState"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            409: components["responses"]["Problem"];
+            default: components["responses"]["Problem"];
+        };
+    };
     listAgentCalls: {
         parameters: {
             query?: {
@@ -5792,6 +5983,38 @@ export interface operations {
             default: components["responses"]["Problem"];
         };
     };
+    updateRuleRepositorySettings: {
+        parameters: {
+            query?: never;
+            header: {
+                "X-CSRF-Token": components["parameters"]["CSRF"];
+            };
+            path: {
+                repository: components["parameters"]["RuleRepository"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RuleRepositorySettingsPatch"];
+            };
+        };
+        responses: {
+            /** @description The repository after the change. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RuleRepository"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
+            409: components["responses"]["Problem"];
+            default: components["responses"]["Problem"];
+        };
+    };
     syncRuleRepository: {
         parameters: {
             query?: never;
@@ -6270,6 +6493,75 @@ export interface operations {
                     "application/problem+json": components["schemas"]["Problem"];
                 };
             };
+            default: components["responses"]["Problem"];
+        };
+    };
+    acceptHostFinding: {
+        parameters: {
+            query?: never;
+            header: {
+                "X-CSRF-Token": components["parameters"]["CSRF"];
+            };
+            path: {
+                host_id: components["parameters"]["HostId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FindingAccept"];
+            };
+        };
+        responses: {
+            /** @description Accepted; the host as it is now. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HostDetail"];
+                };
+            };
+            404: components["responses"]["Problem"];
+            /** @description The host already has 200 accepted findings (code `conflict`). */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    reopenHostFinding: {
+        parameters: {
+            query?: never;
+            header: {
+                "X-CSRF-Token": components["parameters"]["CSRF"];
+            };
+            path: {
+                host_id: components["parameters"]["HostId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FindingRef"];
+            };
+        };
+        responses: {
+            /** @description Reopened; the host as it is now. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HostDetail"];
+                };
+            };
+            404: components["responses"]["Problem"];
             default: components["responses"]["Problem"];
         };
     };

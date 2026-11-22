@@ -47,10 +47,13 @@ func TestInitWritesAValidConfig(t *testing.T) {
 		t.Fatalf("directory writable by others: %v (%v)", di.Mode().Perm(), err)
 	}
 	lines := strings.Split(strings.TrimSpace(out.String()), "\n")
-	if len(lines) != 4 || !strings.HasPrefix(lines[0], "wrote "+path) {
+	if cfg.HostCheck == nil {
+		t.Fatal("the starter config has no host_check: the Server section would stay empty")
+	}
+	if len(lines) != 5 || !strings.HasPrefix(lines[0], "wrote "+path) {
 		t.Fatalf("output:\n%s", out.String())
 	}
-	for i, want := range []string{"schild run -config " + path, "http://127.0.0.1:8788", "schild dashboard setup-code"} {
+	for i, want := range []string{"schild run -config " + path, "http://127.0.0.1:8788", "schild dashboard setup-code", "schild check install"} {
 		if !strings.Contains(lines[i+1], want) {
 			t.Errorf("next step %d %q lacks %q", i+1, lines[i+1], want)
 		}

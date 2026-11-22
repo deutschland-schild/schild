@@ -165,6 +165,7 @@ func main() {
 	genSiteConfigD92(g)
 	// D95 (2026-11-19): preset limits switched one by one.
 	genSiteConfigD95(g)
+	genSiteConfigD103(g)
 	g.summary()
 }
 

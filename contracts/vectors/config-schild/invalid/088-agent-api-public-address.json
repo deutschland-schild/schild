@@ -1,14 +1,14 @@
 {
   "contract": "config/schild",
-  "description": "v0.4 MVP-21: loopback only; reach it through an SSH tunnel.",
+  "description": "v0.4 MVP-21, D103: no address of a network; loopback, or every interface in a container.",
   "context": {
     "now": "2026-10-26T12:00:00Z"
   },
-  "input_raw": "{\"agent_api\":{\"enabled\":true,\"listen\":\"0.0.0.0:8789\"},\"config_version\":0,\"mode\":\"autoblock\",\"node_name\":\"web-1\",\"profile\":\"production\",\"upstream\":{\"url\":\"http://app:80\"}}",
+  "input_raw": "{\"agent_api\":{\"enabled\":true,\"listen\":\"203.0.113.5:8789\"},\"config_version\":0,\"mode\":\"autoblock\",\"node_name\":\"web-1\",\"profile\":\"production\",\"upstream\":{\"url\":\"http://app:80\"}}",
   "input_decoded": {
     "agent_api": {
       "enabled": true,
-      "listen": "0.0.0.0:8789"
+      "listen": "203.0.113.5:8789"
     },
     "config_version": 0,
     "mode": "autoblock",

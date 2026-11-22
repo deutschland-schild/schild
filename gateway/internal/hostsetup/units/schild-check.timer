@@ -1,0 +1,13 @@
+# Daily schild check (MVP-11). `systemctl enable --now schild-check.timer`.
+# On demand: `systemctl start schild-check.service`.
+[Unit]
+Description=Daily Schild server check
+
+[Timer]
+OnBootSec=15min
+OnCalendar=daily
+RandomizedDelaySec=1h
+Persistent=true
+
+[Install]
+WantedBy=timers.target

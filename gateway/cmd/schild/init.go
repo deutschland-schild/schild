@@ -86,6 +86,11 @@ listen:
   proxy: "127.0.0.1:8080"
   # dashboard: "127.0.0.1:8788"  # this server only; reach it with ssh -L
 
+# The server check: schild shows the reports of "schild check" under "Server"
+# in the dashboard. The check runs on the host and reads only; set it up
+# once with: sudo schild check install   (docs: "Server-Check einrichten")
+host_check: {}
+
 # Defaults you may want to change (remove the "#" of a whole block):
 #
 # dashboard:
@@ -284,5 +289,6 @@ func runInit(w io.Writer, path, upstream, nodeName string, force bool, hostname 
 	fmt.Fprintf(w, "1. start:      %s   (or: systemctl enable --now schild)\n", run)
 	fmt.Fprintln(w, "2. dashboard:  http://127.0.0.1:8788 on this server; from your machine: ssh -N -L 8788:127.0.0.1:8788 you@this-server")
 	fmt.Fprintln(w, "3. setup code: in the start log (setup_code), or: schild dashboard setup-code")
+	fmt.Fprintln(w, "4. server check (optional): sudo schild check install")
 	return nil
 }

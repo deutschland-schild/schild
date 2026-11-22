@@ -93,3 +93,74 @@ func (a *App) SetRuleState(ctx context.Context, repository, state string, reset 
 	}
 	return nil
 }
+
+// crsNumber reads a whole number of rules.crs from a config map, whatever
+// number type the YAML or JSON decoder left there.
+func crsNumber(m map[string]any, key string) int {
+	sec, _ := m["rules"].(map[string]any)
+	crs, _ := sec[rules.RepoCRS].(map[string]any)
+	switch v := crs[key].(type) {
+	case int:
+		return v
+	case int64:
+		return int(v)
+	case uint64:
+		return int(v)
+	case float64:
+		return int(v)
+	case json.Number:
+		n, _ := v.Int64()
+		return int(n)
+	}
+	return 0
+}
+
+// CRSSettings returns the paranoia level and the blocking threshold of
+// schild.yaml, zero where the file leaves one open (ruleset.Settings).
+func (a *App) CRSSettings() ruleset.CRSSettings {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	return ruleset.CRSSettings{ParanoiaLevel: crsNumber(a.base, "paranoia_level"), InboundAnomalyThreshold: crsNumber(a.base, "inbound_anomaly_threshold")}
+}
+
+// SetCRSSettings replaces the overlay values of rules.crs set in the
+// dashboard (D101, ruleset.Settings): a zero drops the value, so schild.yaml
+// or the built-in default holds again. The result is validated like
+// schild.yaml and effective at once; the repository state in the overlay
+// stays.
+func (a *App) SetCRSSettings(ctx context.Context, s ruleset.CRSSettings) error {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	ov := cloneMap(a.overlay)
+	sec := sub(ov, "rules")
+	crs := sub(sec, rules.RepoCRS)
+	for key, v := range map[string]int{"paranoia_level": s.ParanoiaLevel, "inbound_anomaly_threshold": s.InboundAnomalyThreshold} {
+		if v == 0 {
+			delete(crs, key)
+		} else {
+			crs[key] = v
+		}
+	}
+	if len(crs) == 0 {
+		delete(sec, rules.RepoCRS)
+	}
+	if len(sec) == 0 {
+		delete(ov, "rules")
+	}
+	next, err := a.merged(ov)
+	if err != nil {
+		return err
+	}
+	b, err := json.Marshal(ov)
+	if err != nil {
+		return err
+	}
+	if err := a.Store.Put(ctx, overlayKey, b); err != nil {
+		return err
+	}
+	a.overlay = ov
+	a.droppedOverlay.Store(false)
+	a.cfg.Store(next)
+	a.logConfigChange(ctx, time.Now().UTC(), next.Mode, next)
+	return nil
+}

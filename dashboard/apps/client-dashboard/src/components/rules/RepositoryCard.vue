@@ -2,11 +2,12 @@
 import type { SegmentOption } from '@schild/ui'
 import type { RuleRepository, RuleRepositoryState } from '@/api/types'
 import { Button, Card, CardContent, formatDuration, formatNumber, MetaLine, RelativeTime, SegmentedControl, toast } from '@schild/ui'
-import { Info, RefreshCw, RotateCcw } from '@lucide/vue'
-import { computed } from 'vue'
+import { Info, RefreshCw, RotateCcw, SlidersHorizontal } from '@lucide/vue'
+import { computed, ref } from 'vue'
 import { ruleError, useResetRuleRepository, useSyncRuleRepository, useUpdateRuleRepository } from '@/api/rules'
 import { changeText, setText, skipText, updateText } from '@/lib/crowdsec'
-import { countFacts, effectText, LOCAL_RULES, ownerText, REPOSITORIES, REPOSITORY_STATES, stateExplain, switchedText } from '@/lib/rules'
+import { countFacts, CRS_SINGLE_HIT, crsSettingsChanged, effectText, LOCAL_RULES, ownerText, REPOSITORIES, REPOSITORY_STATES, stateExplain, switchedText } from '@/lib/rules'
+import CrsSettingsDialog from './CrsSettingsDialog.vue'
 
 /**
  * The head of a repository page (D73): the one switch Aus / Erkennen / Sperren (no password, D39
@@ -27,6 +28,8 @@ const owner = computed(() => ownerText(props.repo))
 const counts = computed(() => countFacts(props.repo))
 const cs = computed(() => props.repo.crowdsec)
 const crs = computed(() => props.repo.crs)
+const crsChanged = computed(() => crs.value ? crsSettingsChanged(crs.value) : { level: false, threshold: false })
+const crsDialog = ref(false)
 const every = (s: number) => s === 3600 ? 'prüft stündlich' : s === 86400 ? 'prüft täglich' : `prüft alle ${formatDuration(s)}`
 const local = computed(() => props.repo.local)
 
@@ -36,6 +39,13 @@ const crsHint = computed(() => {
   if (props.repo.state === 'off') return 'Solange OWASP CRS aus ist, ist der Grundschutz aus. Anfragen kommen ungeprüft durch.'
   if (props.repo.state === 'detect') return 'Solange OWASP CRS nur erkennt, ist der Grundschutz eingeschränkt. Bekannte Angriffsmuster kommen durch und stehen nur als „Erkannt“ in den Ereignissen.'
   return null
+})
+
+/** A threshold above one critical hit while the CRS blocks: single hits pass. */
+const crsThresholdHint = computed(() => {
+  const th = crs.value?.inbound_anomaly_threshold ?? 0
+  if (props.repo.state !== 'block' || th <= CRS_SINGLE_HIT) return null
+  return `Mit einer Schwelle von ${th} Punkten kommt eine Anfrage mit einem einzelnen kritischen Treffer durch. Ein kritischer Treffer zählt 5 Punkte.`
 })
 
 async function setState(state: RuleRepositoryState) {
@@ -121,17 +131,30 @@ async function doReset() {
 
       <MetaLine :items="counts" data-testid="repository-counts" />
 
-      <!-- OWASP CRS: the values of rules.crs in schild.yaml -->
+      <p v-if="crsThresholdHint" class="flex items-start gap-3 rounded-xl border border-status-warning/40 bg-status-warning-subtle p-3" role="status" data-testid="repository-threshold-hint">
+        <Info class="mt-0.5 size-4 shrink-0 text-status-warning" aria-hidden="true" />
+        <span>{{ crsThresholdHint }}</span>
+      </p>
+
+      <!-- OWASP CRS: the values of rules.crs, from schild.yaml or set here (D101) -->
       <section v-if="crs" class="border-t pt-4" data-testid="repository-crs">
         <dl class="grid grid-cols-[minmax(0,7.5rem)_1fr] gap-x-3 gap-y-1.5 sm:grid-cols-[minmax(0,11rem)_1fr]">
           <dt class="text-muted-foreground">
             Strenge (Paranoia-Level)
           </dt>
-          <dd>Stufe {{ crs.paranoia_level }} von 4</dd>
+          <dd data-testid="crs-level">
+            Stufe {{ crs.paranoia_level }} von 4<template v-if="crsChanged.level">
+              (angepasst, in schild.yaml: {{ crs.config_paranoia_level }})
+            </template>
+          </dd>
           <dt class="text-muted-foreground">
             Sperrt ab
           </dt>
-          <dd>{{ crs.inbound_anomaly_threshold }} Punkten</dd>
+          <dd data-testid="crs-threshold">
+            {{ crs.inbound_anomaly_threshold }} Punkten<template v-if="crsChanged.threshold">
+              (angepasst, in schild.yaml: {{ crs.config_inbound_anomaly_threshold }})
+            </template>
+          </dd>
           <dt class="text-muted-foreground">
             Ausnahme für Livewire
           </dt>
@@ -141,9 +164,14 @@ async function doReset() {
           </dt>
           <dd>{{ crs.version }}<template v-if="repo.licence">, Lizenz {{ repo.licence }}</template></dd>
         </dl>
+        <Button class="mt-3" size="sm" variant="outline" data-testid="crs-settings-open" @click="crsDialog = true">
+          <SlidersHorizontal aria-hidden="true" />
+          Strenge und Schwelle anpassen
+        </Button>
         <p class="mt-2 text-xs text-muted-foreground">
-          Diese Werte stehen in schild.yaml unter rules.crs. Die Regeln kommen mit Schild und ändern sich mit einem neuen Image.
+          Strenge und Schwelle stellst du hier ein oder in schild.yaml unter rules.crs. Was du hier einstellst, gilt vor der Datei. Die Regeln kommen mit Schild und ändern sich mit einem neuen Image.
         </p>
+        <CrsSettingsDialog v-model:open="crsDialog" :repo="repo" />
       </section>
 
       <!-- CrowdSec Hub: updates, the image snapshot, rules that did not load -->

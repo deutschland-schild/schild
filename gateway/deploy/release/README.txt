@@ -124,6 +124,20 @@ pass SSH_CONNECTION on, so "sudo schild allow --mine" finds no address):
 
   sudo /usr/local/bin/schild allow "${SSH_CONNECTION%% *}"
 
+Server check
+------------
+
+The dashboard shows under "Server" what a read-only check of this host
+found: pending updates, open ports, firewall, SSH, certificates, logs. Set
+it up once; it writes the systemd units of the daily check from the binary
+and runs the first check:
+
+  sudo /usr/local/bin/schild check install
+
+"schild init" has put host_check into schild.yaml already. Restart schild
+afterwards (sudo systemctl restart schild). To remove the units again:
+sudo /usr/local/bin/schild check uninstall.
+
 Check and stop
 --------------
 

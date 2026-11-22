@@ -19,7 +19,7 @@ name: schild
 services:
   schild:
     # A fixed version, never "latest": you decide when to update.
-    image: ${SCHILD_IMAGE:-ghcr.io/deutschland-schild/schild:0.1.0-alpha.4}
+    image: ${SCHILD_IMAGE:-ghcr.io/deutschland-schild/schild:0.1.0-alpha.5}
     restart: unless-stopped
     # Locked down: read-only root file system, no capabilities, no new
     # privileges. schild runs as an unprivileged user (65532) and writes only
@@ -36,12 +36,22 @@ services:
       - "127.0.0.1:8080:8080"
       # The dashboard, on this host's loopback only. Do not remove 127.0.0.1.
       - "127.0.0.1:8788:8788"
+      # The agent API for your AI agent, on this host's loopback only. Do not
+      # remove 127.0.0.1, and keep the port number: schild refuses calls that
+      # name another port.
+      - "127.0.0.1:8789:8789"
     extra_hosts:
       # Lets schild reach an application that listens on the Docker host.
       - "host.docker.internal:host-gateway"
     volumes:
       - ./schild.yaml:/etc/schild/schild.yaml:ro
       - schild-data:/var/lib/schild
+      # Server check (after "sudo schild check install" on the host): the
+      # reports, read only, and the request directory of "Jetzt prüfen".
+      # - /var/lib/schild/host-check:/var/lib/schild/host-check:ro
+      # - /run/schild-check:/run/schild-check
+    # environment:
+    #   SCHILD_HOST_CHECK_TRIGGER: /run/schild-check/request
     # Container logs stay bounded: at most 5 files of 10 MB.
     logging:
       options:

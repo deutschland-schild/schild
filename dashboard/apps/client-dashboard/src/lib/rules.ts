@@ -59,6 +59,27 @@ export function stateExplain(r: Pick<RuleRepository, 'id' | 'state' | 'crs'>): s
   return REPOSITORY_STATES[r.state].explain
 }
 
+// ------------------------------------------------------------------ the values of the CRS (D101)
+
+export const CRS_LEVELS = [
+  { value: 1, label: 'Stufe 1 (ab Werk)' },
+  { value: 2, label: 'Stufe 2' },
+  { value: 3, label: 'Stufe 3' },
+  { value: 4, label: 'Stufe 4' },
+]
+
+/** Points of one critical CRS hit: a threshold above it lets a request with a single such hit through. */
+export const CRS_SINGLE_HIT = 5
+
+export function crsSettingsText(level: number, threshold: number): string {
+  return `Stufe ${level}, sperrt ab ${threshold} Punkten`
+}
+
+/** The dashboard set a value that differs from schild.yaml. */
+export function crsSettingsChanged(c: NonNullable<RuleRepository['crs']>): { level: boolean, threshold: boolean } {
+  return { level: c.paranoia_level !== c.config_paranoia_level, threshold: c.inbound_anomaly_threshold !== c.config_inbound_anomaly_threshold }
+}
+
 /**
  * What the repository does right now. The switch keeps showing what was chosen; this line says when the
  * test profile holds Sperren back, and how updates wait (D89: they settle, nobody approves them).

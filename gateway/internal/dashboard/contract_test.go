@@ -122,8 +122,9 @@ func TestFixturesRoundTrip(t *testing.T) {
 		"getSettings": {"Settings", dashboard.Settings{}}, "getSession": {"Session", dashboard.Session{}}, "privacySearch": {"PrivacySummary", dashboard.PrivacySummary{}},
 		"privacyDelete": {"PrivacyDeleteResult", dashboard.PrivacyDeleteResult{}},
 		// v0.3 (MVP-11): types of the hosts package, served unchanged.
-		"listHosts": {"HostPage", hosts.HostPage{}}, "getHost": {"HostDetail", hosts.HostDetail{}}, "runLocalCheck": {"LocalCheckRun", hosts.LocalCheckRun{}},
-		"listAgents": {"AgentPage", hosts.AgentPage{}}, "createEnrolment": {"Enrolment", hosts.Enrolment{}}, "confirmAgent": {"Agent", hosts.Agent{}},
+		"listHosts": {"HostPage", hosts.HostPage{}}, "getHost": {"HostDetail", hosts.HostDetail{}}, "acceptHostFinding": {"HostDetail", hosts.HostDetail{}}, "reopenHostFinding": {"HostDetail", hosts.HostDetail{}},
+		"runLocalCheck": {"LocalCheckRun", hosts.LocalCheckRun{}},
+		"listAgents":    {"AgentPage", hosts.AgentPage{}}, "createEnrolment": {"Enrolment", hosts.Enrolment{}}, "confirmAgent": {"Agent", hosts.Agent{}},
 		"revokeAgent": {"Agent", hosts.Agent{}},
 		// v0.4 (MVP-17)
 		"listBehaviourHits": {"BehaviourHitPage", dashboard.BehaviourHitPage{}}, "getBehaviourHit": {"BehaviourHitDetail", dashboard.BehaviourHitDetail{}},
@@ -138,12 +139,14 @@ func TestFixturesRoundTrip(t *testing.T) {
 		"getWebsiteKpis": {"WebsiteKpis", websites.Kpis{}}, "getWebsiteRealtime": {"WebsiteRealtime", websites.Realtime{}},
 		"listAnnotations": {"AnnotationList", websites.AnnotationList{}}, "listAlerts": {"AlertFeed", websites.AlertFeed{}},
 		"listIncidents": {"IncidentPage", dashboard.IncidentPage{}}, "listAgentCalls": {"AgentCallLog", dashboard.AgentCallLog{}},
+		"getAgentAPI": {"AgentAPIState", dashboard.AgentAPIState{}}, "setAgentAPI": {"AgentAPIState", dashboard.AgentAPIState{}},
 		// v0.5 D36 fix round 1: served by the monitoring package.
 		"getTrafficBreakdown": {"TrafficBreakdown", monitoring.TrafficBreakdown{}},
 		// v0.5 (D39, MVP-26)
 		// D73: rule repositories and rules.
 		"listRuleRepositories": {"RuleRepositoryList", dashboard.RuleRepositoryList{}}, "getRuleRepository": {"RuleRepository", dashboard.RuleRepository{}},
-		"updateRuleRepository": {"RuleRepository", dashboard.RuleRepository{}}, "syncRuleRepository": {"RuleRepository", dashboard.RuleRepository{}},
+		"updateRuleRepositorySettings": {"RuleRepository", dashboard.RuleRepository{}},
+		"updateRuleRepository":         {"RuleRepository", dashboard.RuleRepository{}}, "syncRuleRepository": {"RuleRepository", dashboard.RuleRepository{}},
 		"resetRuleRepository": {"RuleRepository", dashboard.RuleRepository{}}, "updateRule": {"RuleDetail", dashboard.RuleDetail{}},
 
 		// D83: the exceptions of the agent API, read only.

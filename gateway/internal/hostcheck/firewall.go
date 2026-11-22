@@ -257,11 +257,13 @@ func (c *checker) checkFirewall() {
 	var rs, rs6 *Ruleset // IPv4 and IPv6
 	src := ""
 	var rerr error
+	nftEmpty, noIptables := false, false
 	if res, err := c.env.Run(c.ctx, CmdNft); err == nil && res.Exit == 0 && len(bytes.TrimSpace(res.Stdout)) > 0 {
 		r, r6 := ParseNftFamily(res.Stdout, "ip"), ParseNftFamily(res.Stdout, "ip6")
 		rs, rs6, src = &r, &r6, "nft"
 	} else {
 		rerr = err
+		nftEmpty = err == nil && res.Exit == 0
 		if res2, err2 := c.env.Run(c.ctx, CmdIptablesSave); err2 == nil && res2.Exit == 0 && len(bytes.TrimSpace(res2.Stdout)) > 0 {
 			r := ParseIptablesSave(res2.Stdout)
 			rs, src, rerr = &r, "iptables", nil
@@ -270,12 +272,18 @@ func (c *checker) checkFirewall() {
 				r6 := ParseIptablesSave(res6.Stdout)
 				rs6 = &r6
 			}
-		} else if rerr == nil || readErr(rerr) == ReasonNotInstalled {
+		} else if noIptables = err2 == ErrNotInstalled; rerr == nil || readErr(rerr) == ReasonNotInstalled {
 			rerr = err2
 			if err2 == nil {
 				rerr = errPermissionLike
 			}
 		}
+	}
+	// nft answered as root with no table at all and there is no iptables
+	// that could hold rules nft does not show: the host has no rules. That
+	// is a result ("Keine Firewall auf dem Server aktiv"), not an unreadable ruleset.
+	if rs == nil && nftEmpty && noIptables && c.env.IsRoot() {
+		rs, rs6, src, rerr = &Ruleset{}, &Ruleset{}, "nft", nil
 	}
 	if rs != nil && rs.Docker {
 		c.facts.dockerPresent = true
@@ -312,8 +320,8 @@ func (c *checker) checkFirewall() {
 	case active:
 		c.add(ok("firewall.active", area, "Firewall ist aktiv", "Eingehende Verbindungen werden gefiltert ("+how+").", ev))
 	case rs != nil:
-		c.add(finding("firewall.active", area, "high", "Keine Firewall aktiv",
-			"Eingehende Verbindungen werden nicht gefiltert: jeder Dienst, der auf einer Netzwerkadresse lauscht, ist von außen erreichbar. Eine Firewall lässt nur durch, was du freigibst. Gib vor dem Einschalten den SSH-Port frei, sonst sperrst du dich aus.",
+		c.add(finding("firewall.active", area, "high", "Keine Firewall auf dem Server aktiv",
+			"Auf dem Server selbst werden eingehende Verbindungen nicht gefiltert. Jeder Dienst, der auf einer Netzwerkadresse lauscht, ist dann von außen erreichbar, wenn nicht eine Firewall deines Hosters davor filtert. Die sieht der Check vom Server aus nicht. Hast du eine solche Firewall, kannst du den Befund im Dashboard als akzeptiert markieren. Eine Firewall lässt nur durch, was du freigibst. Gib vor dem Einschalten den SSH-Port frei, sonst sperrst du dich aus.",
 			fixOn, ev))
 	default:
 		c.add(unreadable("firewall.active", area, "Ob eine Firewall filtert, ließ sich nicht lesen (weder ufw noch firewalld eingerichtet, Regeln nicht lesbar).", reasonOr(rerr, ReasonPermission), needs, hc.Evidence{Source: "nft"}))

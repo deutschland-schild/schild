@@ -7,6 +7,9 @@ import (
 	"net/http"
 	"regexp"
 	"strconv"
+	"strings"
+	"unicode"
+	"unicode/utf8"
 
 	"github.com/deutschland-schild/schild/gateway/internal/hosts"
 	"github.com/deutschland-schild/schild/gateway/internal/ratelog"
@@ -20,6 +23,8 @@ func (s *Server) hostRoutes(a func(string, http.HandlerFunc)) {
 	a("GET "+apiPrefix+"/hosts", s.listHosts)
 	a("POST "+apiPrefix+"/hosts/local/check", s.runLocalCheck)
 	a("GET "+apiPrefix+"/hosts/{host_id}", s.getHost)
+	a("POST "+apiPrefix+"/hosts/{host_id}/findings/accept", s.acceptHostFinding)
+	a("POST "+apiPrefix+"/hosts/{host_id}/findings/reopen", s.reopenHostFinding)
 	a("GET "+apiPrefix+"/agents", s.listAgents)
 	a("POST "+apiPrefix+"/agents/enrolments", s.createEnrolment)
 	a("POST "+apiPrefix+"/agents/{agent_id}/confirm", s.confirmAgent)
@@ -43,7 +48,16 @@ type AgentRevoke struct {
 	Note string `json:"note,omitempty"`
 }
 
+// FindingAccept is the request of acceptHostFinding, FindingRef (without
+// the note) the one of reopenHostFinding.
+type FindingAccept struct {
+	ID      string  `json:"id"`
+	Subject *string `json:"subject,omitempty"`
+	Note    string  `json:"note,omitempty"`
+}
+
 var (
+	findingIDRe   = regexp.MustCompile(`^[a-z]+\.[a-z_]+$`)
 	hostIDRe      = regexp.MustCompile(`^[a-z0-9][a-z0-9-]{0,62}$`)
 	fingerprintRe = regexp.MustCompile(`^sha256:[0-9a-f]{64}$`)
 )
@@ -71,6 +85,11 @@ func (s *Server) serversSummary(ctx context.Context) *ServersSummary {
 		if s.Log != nil {
 			ratelog.Warn(s.Log, "server card", "err", err)
 		}
+		return nil
+	}
+	// host_check is in every starter config (D100); until the check is set
+	// up on the host there is nothing to sum up.
+	if !sum.Reported && sum.Silent == 0 && (sum.PendingAgents == nil || *sum.PendingAgents == 0) {
 		return nil
 	}
 	return &ServersSummary{Hosts: sum.Hosts, Silent: sum.Silent, Unreadable: sum.Unreadable, PendingAgents: sum.PendingAgents,
@@ -147,6 +166,76 @@ func (s *Server) getHost(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, 200, d)
 }
 
+// findingInput reads and checks the body of accept and reopen.
+func (s *Server) findingInput(w http.ResponseWriter, r *http.Request, withNote bool) (hostID, id, subject, note string, ok bool) {
+	if s.hostsOff(w) {
+		return
+	}
+	hostID = r.PathValue("host_id")
+	if !hostIDRe.MatchString(hostID) {
+		problem(w, http.StatusNotFound, "not_found", "Diesen Server gibt es nicht.", nil)
+		return
+	}
+	var in FindingAccept
+	if !decode(w, r, &in) {
+		return
+	}
+	if len(in.ID) > 64 || !findingIDRe.MatchString(in.ID) {
+		invalid(w, "Unbekannte Prüfung.", FieldError{Pointer: "/id", Detail: "Kennung einer Prüfung, zum Beispiel ports.public_service"})
+		return
+	}
+	if in.Subject != nil {
+		if subject = *in.Subject; subject == "" || len(subject) > 128 {
+			invalid(w, "Der Gegenstand des Befunds ist leer oder zu lang.", FieldError{Pointer: "/subject", Detail: "1 bis 128 Zeichen"})
+			return
+		}
+	}
+	if !withNote && in.Note != "" {
+		invalid(w, "Beim Öffnen gibt es keine Notiz.", FieldError{Pointer: "/note", Detail: "nicht erlaubt"})
+		return
+	}
+	if utf8.RuneCountInString(in.Note) > 200 || strings.ContainsFunc(in.Note, unicode.IsControl) {
+		invalid(w, "Die Notiz ist eine Zeile mit höchstens 200 Zeichen.", FieldError{Pointer: "/note", Detail: "eine Zeile, höchstens 200 Zeichen"})
+		return
+	}
+	return hostID, in.ID, subject, strings.TrimSpace(in.Note), true
+}
+
+func (s *Server) acceptHostFinding(w http.ResponseWriter, r *http.Request) {
+	hostID, id, subject, note, ok := s.findingInput(w, r, true)
+	if !ok {
+		return
+	}
+	d, err := s.Hosts.AcceptFinding(r.Context(), hostID, id, subject, note)
+	switch {
+	case errors.Is(err, hosts.ErrNotFound):
+		problem(w, http.StatusNotFound, "not_found", "Diesen Befund gibt es im neuesten Bericht nicht mehr. Lade die Seite neu.", nil)
+	case errors.Is(err, hosts.ErrConflict):
+		hostProblem(w, http.StatusConflict, "conflict", "Zu viele akzeptierte Befunde",
+			"Für diesen Server sind schon 200 Befunde akzeptiert. Öffne erst welche wieder, die es nicht mehr braucht.", nil)
+	case err != nil:
+		s.internal(w, err)
+	default:
+		writeJSON(w, 200, d)
+	}
+}
+
+func (s *Server) reopenHostFinding(w http.ResponseWriter, r *http.Request) {
+	hostID, id, subject, _, ok := s.findingInput(w, r, false)
+	if !ok {
+		return
+	}
+	d, err := s.Hosts.ReopenFinding(r.Context(), hostID, id, subject)
+	switch {
+	case errors.Is(err, hosts.ErrNotFound):
+		problem(w, http.StatusNotFound, "not_found", "Dieser Befund ist nicht als akzeptiert markiert.", nil)
+	case err != nil:
+		s.internal(w, err)
+	default:
+		writeJSON(w, 200, d)
+	}
+}
+
 func (s *Server) runLocalCheck(w http.ResponseWriter, r *http.Request) {
 	if s.hostsOff(w) {
 		return
@@ -158,7 +247,7 @@ func (s *Server) runLocalCheck(w http.ResponseWriter, r *http.Request) {
 			"Eine Prüfung ist schon angefordert oder läuft. Das Ergebnis erscheint hier, sobald sie fertig ist.", nil)
 	case errors.Is(err, hosts.ErrCheckUnavailable):
 		hostProblem(w, http.StatusServiceUnavailable, "check_unavailable", "Prüfung von hier aus nicht möglich",
-			"Der Server-Check läuft außerhalb des Containers über den systemd-Timer (einmal am Tag). Sofort prüfen kannst du auf dem Server mit: sudo systemctl start schild-check.service", nil)
+			"Der Server-Check läuft außerhalb des Containers über den systemd-Timer (einmal am Tag). Sofort prüfen kannst du auf dem Server mit: sudo systemctl start schild-check.service. Ist er dort noch nicht eingerichtet: sudo schild check install", nil)
 	case err != nil:
 		s.internal(w, err)
 	default:
