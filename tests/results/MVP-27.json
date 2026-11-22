@@ -1,12 +1,12 @@
 {
  "results_version": 0,
  "spec": "MVP-27",
- "run_id": "group-20261122T062840Z",
- "started_at": "2026-11-22T06:28:40Z",
- "finished_at": "2026-11-22T06:41:11Z",
+ "run_id": "group-20261122T082844Z",
+ "started_at": "2026-11-22T08:28:44Z",
+ "finished_at": "2026-11-22T08:41:13Z",
  "seed": 27,
  "profile": "unit",
- "git_rev": "8dca3888e876-dirty",
+ "git_rev": "ea35ba8a99b9-dirty",
  "host": {
   "os": "darwin 25.5.0",
   "arch": "arm64",
@@ -15,13 +15,13 @@
  "images": [
   {
    "name": "schild-dev-build",
-   "digest": "sha256:a039e671edb96d35186ef2bff27ef972770ad93a9b0ee640cc0c5047441fda45"
+   "digest": "sha256:bdda019b4f63e6e1fb9fc3627e1858ecd204ed42dfffeb49a655b3a02130ee11"
   }
  ],
  "metrics": [
   {
    "name": "block_set_propagation",
-   "value": 236.9,
+   "value": 344.3,
    "unit": "ms",
    "labels": {
     "quantile": "p50",
@@ -32,7 +32,7 @@
   },
   {
    "name": "block_set_propagation",
-   "value": 822.2,
+   "value": 825.7,
    "unit": "ms",
    "labels": {
     "quantile": "p95",
@@ -43,7 +43,7 @@
   },
   {
    "name": "block_set_propagation",
-   "value": 845.5,
+   "value": 835.5,
    "unit": "ms",
    "labels": {
     "quantile": "max",
@@ -54,7 +54,7 @@
   },
   {
    "name": "block_lift_propagation",
-   "value": 79.3,
+   "value": 88.4,
    "unit": "ms",
    "labels": {
     "quantile": "p50",
@@ -65,7 +65,7 @@
   },
   {
    "name": "block_lift_propagation",
-   "value": 242.0,
+   "value": 120.8,
    "unit": "ms",
    "labels": {
     "quantile": "p95",
@@ -76,7 +76,7 @@
   },
   {
    "name": "block_lift_propagation",
-   "value": 306.8,
+   "value": 330.4,
    "unit": "ms",
    "labels": {
     "quantile": "max",
@@ -87,7 +87,7 @@
   },
   {
    "name": "request_latency",
-   "value": 0.613,
+   "value": 0.593,
    "unit": "ms",
    "labels": {
     "mode": "off_1",
@@ -97,7 +97,7 @@
   },
   {
    "name": "request_latency",
-   "value": 0.722,
+   "value": 0.698,
    "unit": "ms",
    "labels": {
     "mode": "off_1",
@@ -107,7 +107,7 @@
   },
   {
    "name": "request_latency",
-   "value": 0.844,
+   "value": 1.365,
    "unit": "ms",
    "labels": {
     "mode": "off_1",
@@ -117,7 +117,7 @@
   },
   {
    "name": "request_latency",
-   "value": 5.197,
+   "value": 5.755,
    "unit": "ms",
    "labels": {
     "mode": "off_1",
@@ -136,7 +136,7 @@
   },
   {
    "name": "request_latency",
-   "value": 0.62,
+   "value": 0.586,
    "unit": "ms",
    "labels": {
     "mode": "on_1",
@@ -146,7 +146,7 @@
   },
   {
    "name": "request_latency",
-   "value": 0.747,
+   "value": 0.744,
    "unit": "ms",
    "labels": {
     "mode": "on_1",
@@ -156,7 +156,7 @@
   },
   {
    "name": "request_latency",
-   "value": 0.844,
+   "value": 1.445,
    "unit": "ms",
    "labels": {
     "mode": "on_1",
@@ -166,7 +166,7 @@
   },
   {
    "name": "request_latency",
-   "value": 3.154,
+   "value": 8.02,
    "unit": "ms",
    "labels": {
     "mode": "on_1",
@@ -185,7 +185,7 @@
   },
   {
    "name": "request_latency",
-   "value": 0.625,
+   "value": 0.591,
    "unit": "ms",
    "labels": {
     "mode": "off_2",
@@ -195,7 +195,7 @@
   },
   {
    "name": "request_latency",
-   "value": 0.752,
+   "value": 0.719,
    "unit": "ms",
    "labels": {
     "mode": "off_2",
@@ -205,7 +205,7 @@
   },
   {
    "name": "request_latency",
-   "value": 0.919,
+   "value": 1.299,
    "unit": "ms",
    "labels": {
     "mode": "off_2",
@@ -215,7 +215,7 @@
   },
   {
    "name": "request_latency",
-   "value": 5.994,
+   "value": 5.716,
    "unit": "ms",
    "labels": {
     "mode": "off_2",
@@ -234,7 +234,7 @@
   },
   {
    "name": "request_latency",
-   "value": 0.634,
+   "value": 0.574,
    "unit": "ms",
    "labels": {
     "mode": "on_2",
@@ -244,7 +244,7 @@
   },
   {
    "name": "request_latency",
-   "value": 0.804,
+   "value": 0.676,
    "unit": "ms",
    "labels": {
     "mode": "on_2",
@@ -254,7 +254,7 @@
   },
   {
    "name": "request_latency",
-   "value": 2.134,
+   "value": 0.793,
    "unit": "ms",
    "labels": {
     "mode": "on_2",
@@ -264,7 +264,7 @@
   },
   {
    "name": "request_latency",
-   "value": 27.118,
+   "value": 4.01,
    "unit": "ms",
    "labels": {
     "mode": "on_2",
@@ -283,43 +283,43 @@
   },
   {
    "name": "request_latency",
-   "value": 0.631,
+   "value": 0.589,
    "unit": "ms",
    "labels": {
     "mode": "during_peer_kill",
     "quantile": "p50"
    },
-   "samples": 11909
+   "samples": 13043
   },
   {
    "name": "request_latency",
-   "value": 0.813,
+   "value": 0.691,
    "unit": "ms",
    "labels": {
     "mode": "during_peer_kill",
     "quantile": "p95"
    },
-   "samples": 11909
+   "samples": 13043
   },
   {
    "name": "request_latency",
-   "value": 1.309,
+   "value": 1.134,
    "unit": "ms",
    "labels": {
     "mode": "during_peer_kill",
     "quantile": "p99"
    },
-   "samples": 11909
+   "samples": 13043
   },
   {
    "name": "request_latency",
-   "value": 18.696,
+   "value": 7.335,
    "unit": "ms",
    "labels": {
     "mode": "during_peer_kill",
     "quantile": "max"
    },
-   "samples": 11909
+   "samples": 13043
   },
   {
    "name": "request_failed",
@@ -328,11 +328,11 @@
    "labels": {
     "mode": "during_peer_kill"
    },
-   "samples": 11909
+   "samples": 13043
   },
   {
    "name": "request_latency",
-   "value": 0.615,
+   "value": 0.597,
    "unit": "ms",
    "labels": {
     "mode": "peers_stopped",
@@ -342,7 +342,7 @@
   },
   {
    "name": "request_latency",
-   "value": 0.738,
+   "value": 0.685,
    "unit": "ms",
    "labels": {
     "mode": "peers_stopped",
@@ -352,7 +352,7 @@
   },
   {
    "name": "request_latency",
-   "value": 0.866,
+   "value": 1.231,
    "unit": "ms",
    "labels": {
     "mode": "peers_stopped",
@@ -362,7 +362,7 @@
   },
   {
    "name": "request_latency",
-   "value": 4.507,
+   "value": 5.77,
    "unit": "ms",
    "labels": {
     "mode": "peers_stopped",
@@ -381,43 +381,43 @@
   },
   {
    "name": "request_latency",
-   "value": 0.594,
+   "value": 0.589,
    "unit": "ms",
    "labels": {
     "mode": "during_peer_freeze",
     "quantile": "p50"
    },
-   "samples": 19288
+   "samples": 19402
   },
   {
    "name": "request_latency",
-   "value": 0.719,
+   "value": 0.708,
    "unit": "ms",
    "labels": {
     "mode": "during_peer_freeze",
     "quantile": "p95"
    },
-   "samples": 19288
+   "samples": 19402
   },
   {
    "name": "request_latency",
-   "value": 0.897,
+   "value": 1.274,
    "unit": "ms",
    "labels": {
     "mode": "during_peer_freeze",
     "quantile": "p99"
    },
-   "samples": 19288
+   "samples": 19402
   },
   {
    "name": "request_latency",
-   "value": 16.046,
+   "value": 11.111,
    "unit": "ms",
    "labels": {
     "mode": "during_peer_freeze",
     "quantile": "max"
    },
-   "samples": 19288
+   "samples": 19402
   },
   {
    "name": "request_failed",
@@ -426,7 +426,7 @@
    "labels": {
     "mode": "during_peer_freeze"
    },
-   "samples": 19288
+   "samples": 19402
   },
   {
    "name": "request_latency",
@@ -440,7 +440,7 @@
   },
   {
    "name": "request_latency",
-   "value": 0.801,
+   "value": 0.731,
    "unit": "ms",
    "labels": {
     "mode": "peers_frozen",
@@ -450,7 +450,7 @@
   },
   {
    "name": "request_latency",
-   "value": 2.037,
+   "value": 1.542,
    "unit": "ms",
    "labels": {
     "mode": "peers_frozen",
@@ -460,7 +460,7 @@
   },
   {
    "name": "request_latency",
-   "value": 10.207,
+   "value": 5.321,
    "unit": "ms",
    "labels": {
     "mode": "peers_frozen",
@@ -479,7 +479,7 @@
   },
   {
    "name": "request_latency",
-   "value": 0.609,
+   "value": 0.6,
    "unit": "ms",
    "labels": {
     "mode": "peers_blackhole",
@@ -489,7 +489,7 @@
   },
   {
    "name": "request_latency",
-   "value": 0.779,
+   "value": 0.712,
    "unit": "ms",
    "labels": {
     "mode": "peers_blackhole",
@@ -499,7 +499,7 @@
   },
   {
    "name": "request_latency",
-   "value": 1.221,
+   "value": 1.272,
    "unit": "ms",
    "labels": {
     "mode": "peers_blackhole",
@@ -509,7 +509,7 @@
   },
   {
    "name": "request_latency",
-   "value": 5.348,
+   "value": 12.75,
    "unit": "ms",
    "labels": {
     "mode": "peers_blackhole",
@@ -528,7 +528,7 @@
   },
   {
    "name": "request_latency",
-   "value": 0.664,
+   "value": 0.583,
    "unit": "ms",
    "labels": {
     "mode": "off_3",
@@ -538,7 +538,7 @@
   },
   {
    "name": "request_latency",
-   "value": 0.89,
+   "value": 0.728,
    "unit": "ms",
    "labels": {
     "mode": "off_3",
@@ -548,7 +548,7 @@
   },
   {
    "name": "request_latency",
-   "value": 1.835,
+   "value": 1.148,
    "unit": "ms",
    "labels": {
     "mode": "off_3",
@@ -558,7 +558,7 @@
   },
   {
    "name": "request_latency",
-   "value": 7.058,
+   "value": 17.653,
    "unit": "ms",
    "labels": {
     "mode": "off_3",
@@ -577,7 +577,7 @@
   },
   {
    "name": "request_latency",
-   "value": 0.653,
+   "value": 0.564,
    "unit": "ms",
    "labels": {
     "mode": "on_3",
@@ -587,7 +587,7 @@
   },
   {
    "name": "request_latency",
-   "value": 0.832,
+   "value": 0.798,
    "unit": "ms",
    "labels": {
     "mode": "on_3",
@@ -597,7 +597,7 @@
   },
   {
    "name": "request_latency",
-   "value": 1.107,
+   "value": 1.776,
    "unit": "ms",
    "labels": {
     "mode": "on_3",
@@ -607,7 +607,7 @@
   },
   {
    "name": "request_latency",
-   "value": 4.4,
+   "value": 6.164,
    "unit": "ms",
    "labels": {
     "mode": "on_3",
@@ -628,16 +628,16 @@
    "name": "kill_failed_requests_other_nodes",
    "value": 0.0,
    "unit": "count",
-   "samples": 1989
+   "samples": 2001
   },
   {
    "name": "kill_events_written",
-   "value": 241.0,
+   "value": 244.0,
    "unit": "count"
   },
   {
    "name": "kill_events_missing",
-   "value": 34.0,
+   "value": 28.0,
    "unit": "count",
    "labels": {
     "node": "n1"
@@ -645,7 +645,7 @@
   },
   {
    "name": "kill_events_missing",
-   "value": 10.0,
+   "value": 20.0,
    "unit": "count",
    "labels": {
     "node": "n2"
@@ -653,7 +653,7 @@
   },
   {
    "name": "kill_oldest_missing_event_age",
-   "value": 0.84,
+   "value": 0.68,
    "unit": "s"
   },
   {
@@ -663,69 +663,69 @@
    "labels": {
     "step": "cluster_drain_n2"
    },
-   "samples": 2528
+   "samples": 2541
   },
   {
    "name": "drain_readyz_503_after",
-   "value": 0.087,
+   "value": 0.102,
    "unit": "s",
    "labels": {
     "step": "cluster_drain_n2"
-   }
-  },
-  {
-   "name": "drain_served_after_503",
-   "value": 4.0,
-   "unit": "s",
-   "labels": {
-    "step": "cluster_drain_n2"
-   }
-  },
-  {
-   "name": "drain_failed_requests",
-   "value": 0.0,
-   "unit": "count",
-   "labels": {
-    "step": "sigterm_n3"
-   },
-   "samples": 2505
-  },
-  {
-   "name": "drain_readyz_503_after",
-   "value": 0.021,
-   "unit": "s",
-   "labels": {
-    "step": "sigterm_n3"
-   }
-  },
-  {
-   "name": "drain_served_after_503",
-   "value": 3.98,
-   "unit": "s",
-   "labels": {
-    "step": "sigterm_n3"
-   }
-  },
-  {
-   "name": "drain_failed_requests",
-   "value": 0.0,
-   "unit": "count",
-   "labels": {
-    "step": "cluster_drain_n1"
-   },
-   "samples": 2548
-  },
-  {
-   "name": "drain_readyz_503_after",
-   "value": 0.108,
-   "unit": "s",
-   "labels": {
-    "step": "cluster_drain_n1"
    }
   },
   {
    "name": "drain_served_after_503",
    "value": 3.97,
+   "unit": "s",
+   "labels": {
+    "step": "cluster_drain_n2"
+   }
+  },
+  {
+   "name": "drain_failed_requests",
+   "value": 0.0,
+   "unit": "count",
+   "labels": {
+    "step": "sigterm_n3"
+   },
+   "samples": 2524
+  },
+  {
+   "name": "drain_readyz_503_after",
+   "value": 0.018,
+   "unit": "s",
+   "labels": {
+    "step": "sigterm_n3"
+   }
+  },
+  {
+   "name": "drain_served_after_503",
+   "value": 3.96,
+   "unit": "s",
+   "labels": {
+    "step": "sigterm_n3"
+   }
+  },
+  {
+   "name": "drain_failed_requests",
+   "value": 0.0,
+   "unit": "count",
+   "labels": {
+    "step": "cluster_drain_n1"
+   },
+   "samples": 2540
+  },
+  {
+   "name": "drain_readyz_503_after",
+   "value": 0.114,
+   "unit": "s",
+   "labels": {
+    "step": "cluster_drain_n1"
+   }
+  },
+  {
+   "name": "drain_served_after_503",
+   "value": 3.98,
    "unit": "s",
    "labels": {
     "step": "cluster_drain_n1"
@@ -823,22 +823,22 @@
   },
   {
    "name": "erasure_gone_on_other_node",
-   "value": 2.047926124650985,
+   "value": 0.9693492911756039,
    "unit": "s"
   },
   {
    "name": "pause_resume_catch_up",
-   "value": 3.209340624976903,
+   "value": 2.7121002916246653,
    "unit": "s"
   },
   {
    "name": "setting_propagation",
-   "value": 0.4902917076833546,
+   "value": 0.19425499998033047,
    "unit": "s"
   },
   {
    "name": "allowlist_propagation",
-   "value": 0.4889778336510062,
+   "value": 0.99194754101336,
    "unit": "s"
   },
   {
