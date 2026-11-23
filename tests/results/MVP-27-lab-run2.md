@@ -199,8 +199,8 @@ On n1 after the ten minutes (KiB): `schild.db` 107 456, `metrics-nodes` 29 252, 
 | 1.13 | a blocked address is refused through the balancer whichever node it lands on, others pass | PASS | blocked [403, 403, 403, 403, 403, 403, 403, 403, 403, 403]; other [200, 200, 200, 200] |
 | 1.14 | the block list of n2 names the node that decided | PASS |  |
 | 1.14b | that name is the name of n1 and of no other member, so the list says which server decided | PASS | node named sg27-n1; name of n1 sg27-n1; name of n2 sg27-n2 |
-| 1.15 | a PROXY header from a sender outside the allow list is not believed: the claimed (blocked) address is not the client | PASS | status 200; client seen by app 192.168.65.3 |
-| 1.15b | what such a sender gets (spec, measure: 'a PROXY header from a sender outside the allow list is refused') | number | status 200; client seen by app 192.168.65.3 |
+| 1.15 | a PROXY header from a sender outside the allow list is not believed: the claimed (blocked) address is not the client | PASS | status 200; client seen by app 198.51.100.3 |
+| 1.15b | what such a sender gets (spec, measure: 'a PROXY header from a sender outside the allow list is refused') | number | status 200; client seen by app 198.51.100.3 |
 | 1.16 | an X-Forwarded-For header of a sender that is no trusted proxy is not believed either | PASS |  |
 | 1.17 | a visitor behind the balancer who sends X-Forwarded-For with a blocked address is served as itself | PASS |  |
 | 1.18 | in a cluster schild refuses to start with a proxy_protocol wrapper: no allow list | PASS | refused yes |
