@@ -345,10 +345,6 @@ Wer im alten Cluster entfernt war und das neue Secret bekommt, ist im neuen Clus
 
 Fehlt die Datei, ist das Secret zu kurz oder darf die Datei außer dem Dienst noch jemand lesen, startet der Server nicht und nennt im Log den Grund. Das gilt auch, wenn der Wechsel in den neuen Cluster scheitert.
 
-## Eine falsche Einstellung
-
-Eine falsche Einstellung aus dem Dashboard korrigierst du dort, und die Korrektur erreicht jeden Server wie die Änderung selbst in etwa einer Sekunde. Steht der Fehler in `schild.yaml`, verteilst du die korrigierte Datei wie bisher auf jeden Server.
-
 ## Aufgaben, die nur einmal laufen dürfen
 
 Manche Aufgaben sollen im Cluster einmal laufen und nicht einmal pro Server, zum Beispiel das Erneuern der Schlüssel der Browser-Prüfung oder später eine Zusammenfassung per E-Mail. Dafür gibt es keinen Haupt-Server. Die Aufgabe übernimmt jeweils der erreichbare Server mit der kleinsten Kennung. Fällt er aus, übernimmt der nächste von selbst.
