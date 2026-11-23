@@ -349,8 +349,8 @@ func (a *App) inService() bool {
 		return false
 	}
 	node := a.Cluster
-	if node == nil || node.Removed() || node.Paused() {
-		// Removed or paused, it serves with the state it has and says so.
+	if node == nil || node.Removed() {
+		// Removed, it serves with the state it has and says so.
 		return true
 	}
 	if node.Synced() {
@@ -382,7 +382,7 @@ func (a *App) inService() bool {
 func (a *App) waitInStep(ctx context.Context) error {
 	node := a.Cluster
 	for {
-		if node == nil || node.Removed() || node.Paused() || node.Synced() {
+		if node == nil || node.Removed() || node.Synced() {
 			return nil
 		}
 		if time.Since(a.started) > firstSyncWait() && len(node.Reachable()) == 0 && node.Mark(markInStep) != "" {

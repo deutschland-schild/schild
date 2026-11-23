@@ -381,8 +381,6 @@ type Status struct {
 	// Replaced counts the values this node gave up for the group's at its
 	// first sync; they are kept in cluster.db.
 	Replaced int
-	// Paused: since when the node is paused; "": it is not.
-	Paused string
 	// ClockOut: when the running node last noted that it left traffic
 	// because its clock is off the group's (NoteClockOut); zero: it did not.
 	ClockOut time.Time
@@ -482,9 +480,6 @@ func ReadStatus(dir string, now func() time.Time) (*Status, error) {
 		rows.Close()
 	}
 	_ = s.db.QueryRow(`SELECT count(*) FROM replaced`).Scan(&st.Replaced)
-	if v, err := s.meta(metaPaused); err == nil {
-		st.Paused = string(v)
-	}
 	if v, err := s.meta("mark:" + markClockOut); err == nil {
 		var noted int64
 		if _, err := fmt.Sscanf(string(v), "%d", &noted); err == nil && noted > 0 {
@@ -636,36 +631,6 @@ func (n *Node) full(role string) bool {
 	return count >= MaxGateways
 }
 
-const metaPaused = "paused"
-
-// Pause stops this node from taking and handing over anything, without
-// stopping it: it serves with the state it has. For the day a record that
-// should not be travels through the group. Resume ends it; the node then
-// takes what it missed.
-func Pause(dir string, on bool, now func() time.Time) error {
-	s, err := openState(dir, false, now)
-	if err != nil {
-		return err
-	}
-	defer s.close()
-	if s.group == "" {
-		return ErrNoGroup
-	}
-	tx, err := s.db.Begin()
-	if err != nil {
-		return err
-	}
-	defer tx.Rollback()
-	v := []byte{}
-	if on {
-		v = []byte(contract.TimeText(s.now()))
-	}
-	if err := setMeta(tx, metaPaused, v); err != nil {
-		return err
-	}
-	return tx.Commit()
-}
-
 // Live is Status as the running node holds it: members, contacts and
 // counters from memory, the number of records per class from its own
 // database. The dashboard reads it; nothing is asked of another node.
@@ -709,11 +674,6 @@ func (n *Node) Live() (*Status, error) {
 	}
 	rows.Close()
 	_ = n.db.QueryRow(`SELECT count(*) FROM replaced`).Scan(&st.Replaced)
-	if n.paused.Load() {
-		if v, err := n.meta(metaPaused); err == nil {
-			st.Paused = string(v)
-		}
-	}
 	return st, nil
 }
 

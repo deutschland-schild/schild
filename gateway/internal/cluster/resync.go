@@ -18,7 +18,7 @@ const maxResyncPages = 64
 // compared and left as it is, so the call changes nothing on a node that
 // is in step. It returns how many records it applied.
 func (n *Node) Resync(ctx context.Context, id string) (applied int, err error) {
-	if n.paused.Load() || n.Removed() {
+	if n.Removed() {
 		return 0, nil
 	}
 	n.pmu.Lock()

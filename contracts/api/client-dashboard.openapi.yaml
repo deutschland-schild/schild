@@ -2660,7 +2660,7 @@ components:
             again; the erasure waits for it for 31 days.
           properties:
             reached: { type: array, maxItems: 16, items: { type: string, maxLength: 63 }, description: "Names of the gateways that hold the erasure, this node first." }
-            open: { type: array, maxItems: 16, items: { type: string, maxLength: 63 }, description: "Names of the gateways that have not said yet that they hold it: away, paused or slow." }
+            open: { type: array, maxItems: 16, items: { type: string, maxLength: 63 }, description: "Names of the gateways that have not said yet that they hold it: away or slow." }
 
     # ---- group of gateways (contracts/cluster.md, D105)
     GroupStatus:
@@ -2674,15 +2674,13 @@ components:
         mode: { type: string, enum: [single, group] }
         state:
           type: string
-          enum: [no_group, syncing, active, degraded, interrupted, paused, removed]
+          enum: [no_group, syncing, active, degraded, interrupted, removed]
           description: >-
             Absent without `cluster.enabled`. no_group (mode single): `cluster.enabled` is set, but the node belongs to
             no group or could not be set up from schild.yaml; it runs alone. syncing: the node has not taken the state
             of the group since its start. active: it is in step with every gateway. degraded: at least one gateway is
             not reached, at least one is. interrupted: no other gateway is reached; the node serves with the state it
-            has. paused: `schild cluster pause`; the node takes and hands over nothing. removed: a member said this node
-            was removed; it serves with the state it has and shares nothing.
-        paused_since: { $ref: "#/components/schemas/Timestamp" }
+            has. removed: a member said this node was removed; it serves with the state it has and shares nothing.
         generated_at: { $ref: "#/components/schemas/Timestamp" }
         group: { type: string, pattern: "^g-[0-9a-f]{32}$" }
         node: { $ref: "#/components/schemas/GroupNode" }

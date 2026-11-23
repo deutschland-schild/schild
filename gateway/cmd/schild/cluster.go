@@ -25,8 +25,6 @@ schild cluster join ADDRESS CODE -edge -name NAME -data DIR
 schild cluster join ADDRESS CODE       join the group of the node at ADDRESS (its cluster.listen) with its code
 schild cluster status                  members, last contact, records held
 schild cluster remove NODE             end the membership of a node (name or id); no member talks to it afterwards
-schild cluster pause | resume          stop taking and handing over anything, without stopping the gateway:
-                                       for the day a record that should not be travels through the group
 schild cluster drain                   take this node out of traffic and stop it: the readiness answer turns to
                                        503, it stops after cluster.drain.delay_s (as on systemctl stop)
 Common flags: -config FILE, -data DIR
@@ -158,15 +156,6 @@ func runCluster(args []string, out io.Writer, now func() time.Time) error {
 			return errors.New("cluster drain: " + resp.Error)
 		}
 		fmt.Fprintf(out, "%s left traffic: /.schild/readyz answers 503. It stops in %s, running requests get %s to finish.\n", cfg.NodeName, cfg.Cluster.Drain.Delay(), cfg.Cluster.Drain.Grace())
-	case "pause", "resume":
-		if err := cluster.Pause(dir, sub == "pause", now); err != nil {
-			return err
-		}
-		if sub == "pause" {
-			fmt.Fprintf(out, "%s is paused: it serves with the state it has, takes nothing from the group and hands nothing over. Blocks and changes made here wait. End it with: schild cluster resume\n", cfg.NodeName)
-		} else {
-			fmt.Fprintf(out, "%s takes part in the group again and takes what it missed.\n", cfg.NodeName)
-		}
 	case "status":
 		st, err := cluster.ReadStatus(dir, now)
 		if err != nil {
@@ -182,9 +171,6 @@ func runCluster(args []string, out io.Writer, now func() time.Time) error {
 func printClusterStatus(out io.Writer, st *cluster.Status, cfg *config.Site, now time.Time) {
 	fmt.Fprintf(out, "Group %s\n", st.Group)
 	running := !st.Seen.IsZero() && now.Sub(st.Seen) < 10*time.Second
-	if st.Paused != "" {
-		fmt.Fprintf(out, "PAUSED since %s: this node takes and hands over nothing (schild cluster resume).\n", st.Paused)
-	}
 	switch {
 	case !cfg.Cluster.Enabled:
 		fmt.Fprintln(out, "cluster.enabled is false: this gateway runs alone.")

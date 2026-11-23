@@ -3,7 +3,6 @@ import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest'
 import { blockNodeText, clockText, configHint, stateText, erasureNodesText, groupTotals, loadTone, modeView, nodeView, stateView } from '../src/lib/group'
 import groupFixture from '../../../../contracts/api/fixtures/client/getGroupStatus.json'
 import noGroupFixture from '../../../../contracts/api/fixtures/client/getGroupStatus.no-group.json'
-import pausedFixture from '../../../../contracts/api/fixtures/client/getGroupStatus.paused.json'
 import { bodyText, byTestId, cleanup, mockServer, mountApp, waitFor } from './helpers'
 
 const BASE = 'http://dashboard.schild.test/api/v0'
@@ -70,12 +69,11 @@ describe('words for the mode and the group (MVP-27)', () => {
     expect(stateView(group).text).toContain('web-3 ist gerade nicht erreichbar')
     const cut = stateView(withState('interrupted'))
     expect(`${cut.label}. ${cut.text}`).toBe('Abgleich unterbrochen. Dieser Server arbeitet mit dem letzten Stand weiter.')
-    expect(stateView(pausedFixture as GroupStatus).text).toContain('schild cluster resume')
     expect(stateView(withState('removed')).label).toBe('Aus dem Cluster entfernt')
     expect(stateView(withState('syncing')).text).toContain('holt gerade den Stand')
     expect(stateView(noGroupFixture as GroupStatus).text).toContain('gehört zu keinem Cluster')
     // No fear and no promise in any of it.
-    for (const s of ['no_group', 'syncing', 'active', 'degraded', 'interrupted', 'paused', 'removed'] as const)
+    for (const s of ['no_group', 'syncing', 'active', 'degraded', 'interrupted', 'removed'] as const)
       expect(`${stateView(withState(s)).label} ${stateView(withState(s)).text}`).not.toMatch(/sicher|geschützt|Gefahr|Achtung|!/i)
   })
 
@@ -151,7 +149,7 @@ describe('a node of a group', () => {
     expect(byTestId('group-counters')!.textContent).toContain('1.284 Änderungen übernommen')
   })
 
-  it('says when the sync is interrupted, paused or the server was removed', async () => {
+  it('says when the sync is interrupted or the server was removed', async () => {
     mock.reset({ scenario: 'group' })
     mock.state.group = { ...mock.state.group, state: 'interrupted' }
     await mountApp('/server')
@@ -160,16 +158,11 @@ describe('a node of a group', () => {
     expect(byTestId('group-state')!.textContent).toContain('Dieser Server arbeitet mit dem letzten Stand weiter.')
     expect(byTestId('group-mode')!.dataset.state).toBe('interrupted')
     cleanup()
-    mock.state.group = pausedFixture as GroupStatus
-    await mountApp('/server')
-    await waitFor(() => !!byTestId('group-state'))
-    expect(byTestId('group-state')!.textContent).toContain('Abgleich pausiert')
-    expect(byTestId('group-counters')!.textContent).toContain('2 eigene Werte')
-    cleanup()
-    mock.state.group = { ...mock.state.group, state: 'removed' }
+    mock.state.group = { ...mock.state.group, state: 'removed', replaced: 2 }
     await mountApp('/server')
     await waitFor(() => !!byTestId('group-state'))
     expect(byTestId('group-state')!.textContent).toContain('Aus dem Cluster entfernt')
+    expect(byTestId('group-counters')!.textContent).toContain('2 eigene Werte')
   })
 
   it('shows on the list of blocks which node decided', async () => {

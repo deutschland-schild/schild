@@ -149,7 +149,7 @@ func safetyOf(peer string) time.Duration {
 // holds now.
 func (g *groupData) tellHeadsRound(ctx context.Context) {
 	node := g.a.Cluster
-	if node.Removed() || node.Paused() || g.asBuildBefore() {
+	if node.Removed() || g.asBuildBefore() {
 		return
 	}
 	cur := g.ownHeads()

@@ -430,7 +430,7 @@ func (a *App) saveMarks(t sharedThing) {
 // that changed on this node.
 func (a *App) syncShared(ctx context.Context) {
 	node := a.Cluster
-	if node == nil || node.Removed() || node.Paused() {
+	if node == nil || node.Removed() {
 		return
 	}
 	// The look comes before the reading: what is written while this round

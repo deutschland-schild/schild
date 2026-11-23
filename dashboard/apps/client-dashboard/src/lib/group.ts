@@ -27,7 +27,6 @@ const STATE: Record<GroupState, { tone: StatusTone, label: string }> = {
   active: { tone: 'success', label: 'Abgleich aktiv' },
   degraded: { tone: 'warning', label: 'Abgleich eingeschränkt' },
   interrupted: { tone: 'warning', label: 'Abgleich unterbrochen' },
-  paused: { tone: 'warning', label: 'Abgleich pausiert' },
   removed: { tone: 'danger', label: 'Aus dem Cluster entfernt' },
 }
 
@@ -61,7 +60,6 @@ export function stateView(s: GroupStatus): StateView {
     active: all.length > 1 ? `Alle ${formatNumber(all.length)} Server haben denselben Stand.` : 'Dieser Server ist bisher der einzige im Cluster.',
     degraded: `${list(away)} ${away.length === 1 ? 'ist' : 'sind'} gerade nicht erreichbar. Mit den anderen Servern läuft der Abgleich weiter.`,
     interrupted: 'Dieser Server arbeitet mit dem letzten Stand weiter.',
-    paused: 'Dieser Server nimmt nichts aus dem Cluster an und gibt nichts weiter. Er arbeitet mit seinem Stand, bis du auf dem Server „schild cluster resume“ aufrufst.',
     removed: 'Dieser Server wurde aus dem Cluster genommen. Er arbeitet mit seinem letzten Stand weiter und teilt nichts mehr.',
   }
   return { ...base, text: text[key] }

@@ -622,39 +622,33 @@ func TestEdgeReadsTheMemberListAndNothingElse(t *testing.T) {
 	}
 }
 
-// A paused node serves on, takes nothing and hands nothing over; what was
-// written meanwhile on either side arrives after resume.
-func TestPauseAndResume(t *testing.T) {
+// A "paused" key left in cluster.db by an earlier build (schild cluster
+// pause, removed) is ignored: the node takes and hands over as before.
+func TestStalePausedKeyIgnored(t *testing.T) {
 	a, b, c := threeNodes(t)
-	a.publishBlock("203.0.113.1")
-	waitFor(t, "web-2 holds the first block", func() bool { return b.holds("203.0.113.1") == "block" })
-	if err := Pause(b.dir, true, nil); err != nil {
+	s, err := openState(b.dir, false, nil)
+	if err != nil {
 		t.Fatal(err)
 	}
-	waitFor(t, "web-2 noticed that it is paused", func() bool { return b.node.Paused() })
+	tx, err := s.db.Begin()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := setMeta(tx, "paused", []byte("2026-01-01T00:00:00Z")); err != nil {
+		t.Fatal(err)
+	}
+	if err := tx.Commit(); err != nil {
+		t.Fatal(err)
+	}
+	s.close()
 	a.publishBlock("203.0.113.2")
 	b.publishBlock("203.0.113.3")
-	waitFor(t, "web-3 holds the block of web-1", func() bool { return c.holds("203.0.113.2") == "block" })
-	time.Sleep(1500 * time.Millisecond)
-	if b.holds("203.0.113.2") != "" {
-		t.Error("a paused node took a record")
-	}
-	if a.holds("203.0.113.3") != "" || c.holds("203.0.113.3") != "" {
-		t.Error("a paused node handed a record over")
-	}
-	if b.holds("203.0.113.3") != "block" {
-		t.Error("a paused node lost what was written on it")
-	}
-	st, err := ReadStatus(b.dir, nil)
-	if err != nil || st.Paused == "" {
-		t.Errorf("status does not say paused: %+v, %v", st, err)
-	}
-	if err := Pause(b.dir, false, nil); err != nil {
-		t.Fatal(err)
-	}
-	waitFor(t, "after resume every node holds every block", func() bool {
+	waitFor(t, "every node holds every block", func() bool {
 		return b.holds("203.0.113.2") == "block" && a.holds("203.0.113.3") == "block" && c.holds("203.0.113.3") == "block"
 	})
+	if _, err := ReadStatus(b.dir, nil); err != nil {
+		t.Errorf("status with a stale key: %v", err)
+	}
 }
 
 func TestGroupIsFullAtSixteenGateways(t *testing.T) {

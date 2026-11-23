@@ -422,7 +422,7 @@ func (w *stateWatch) compareState(id string, hashes, points map[string]string, n
 // compared at the moment its word describes and not up to 5 s later.
 func (a *App) noteMemberState(ctx context.Context, id string, hashes, points map[string]string) {
 	node := a.Cluster
-	if node == nil || len(hashes) == 0 || len(points) == 0 || node.Removed() || node.Paused() || !node.Synced() {
+	if node == nil || len(hashes) == 0 || len(points) == 0 || node.Removed() || !node.Synced() {
 		return
 	}
 	now := time.Now()
@@ -438,7 +438,7 @@ func (a *App) noteMemberState(ctx context.Context, id string, hashes, points map
 // difference that lasts.
 func (a *App) watchState(ctx context.Context) {
 	node := a.Cluster
-	if node == nil || node.Removed() || node.Paused() || !node.Synced() {
+	if node == nil || node.Removed() || !node.Synced() {
 		return
 	}
 	now := time.Now()

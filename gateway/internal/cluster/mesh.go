@@ -135,10 +135,6 @@ func (n *Node) serveSync(w http.ResponseWriter, r *http.Request) {
 	if !readJSON(w, r, &req) {
 		return
 	}
-	if n.paused.Load() && class == "" {
-		http.Error(w, "paused", http.StatusServiceUnavailable)
-		return
-	}
 	if req.Group != n.group {
 		http.Error(w, "another group", http.StatusForbidden)
 		return
@@ -149,11 +145,6 @@ func (n *Node) serveSync(w http.ResponseWriter, r *http.Request) {
 	defer deadline.Stop()
 	for {
 		news := n.waitNews()
-		if n.paused.Load() && class == "" {
-			// Paused while this call waited.
-			http.Error(w, "paused", http.StatusServiceUnavailable)
-			return
-		}
 		mine, err := n.vectorNow()
 		if err != nil {
 			http.Error(w, "store", http.StatusInternalServerError)
@@ -546,12 +537,6 @@ func (n *Node) runPeer(ctx context.Context, p *peer, key ed25519.PublicKey) {
 		}
 	}
 	for ctx.Err() == nil {
-		if n.paused.Load() {
-			if !pause(time.Second) {
-				return
-			}
-			continue
-		}
 		vec, err := n.vectorNow()
 		if err != nil {
 			if !pause(time.Second) {
@@ -729,7 +714,7 @@ func (n *Node) Tell(ctx context.Context, kind string, body []byte) {
 
 // TellTo is Tell to the gateways named by id only; nil means every one.
 func (n *Node) TellTo(ctx context.Context, ids []string, kind string, body []byte) {
-	if len(body) > maxTell || n.paused.Load() {
+	if len(body) > maxTell {
 		return
 	}
 	n.pmu.Lock()
@@ -818,7 +803,7 @@ func (n *Node) serveTell(w http.ResponseWriter, r *http.Request) {
 	n.hmu.Lock()
 	f := n.tells[req.Kind]
 	n.hmu.Unlock()
-	if f != nil && !n.paused.Load() {
+	if f != nil {
 		f(id, req.Body)
 	}
 	w.Header().Set("Content-Type", "application/json")

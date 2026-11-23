@@ -381,11 +381,6 @@ func (a *App) GroupStatus() dashboard.GroupStatus {
 	switch {
 	case node.Removed():
 		out.State = "removed"
-	case node.Paused():
-		out.State = "paused"
-		if t, err := time.Parse(time.RFC3339, st.Paused); err == nil {
-			out.PausedSince = dashboard.StampPtr(t)
-		}
 	case others > 0 && reached == 0:
 		out.State = "interrupted"
 		if !node.Synced() && now.Sub(a.started) < firstSyncWait() {

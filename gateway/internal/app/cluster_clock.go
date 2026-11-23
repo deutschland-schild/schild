@@ -79,7 +79,7 @@ func (a *App) startClockWatch(ctx context.Context) {
 	var noted time.Time
 	a.goLoop(ctx, "cluster-clock", tick(clockLook, func() {
 		node := a.Cluster
-		if node == nil || node.Removed() || node.Paused() {
+		if node == nil || node.Removed() {
 			a.clockOut.Store(false)
 			return
 		}

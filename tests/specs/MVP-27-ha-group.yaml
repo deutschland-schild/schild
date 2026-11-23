@@ -40,7 +40,7 @@ prior_art:                          # checked 2026-11-21; what each project taug
   - 'HAProxy peers (docs.haproxy.org/3.2/configuration.html section 11.2, doc/peers.txt): every node pushes its changes to every peer over TCP, a restarted process gets the full state before it serves. Pushed counters overwrite the remote value, so a rate counted on two nodes is not their sum (the vendor sells an aggregator for that): hence one slot per node below'
   - 'CrowdSec (docs.crowdsec.net: multi-server setup, bouncers): the decision and its enforcement are two parts; an enforcer keeps every decision locally and polls for changes, so nothing in the traffic path waits. Its Local API is one central service with a database: the part this spec avoids'
   - 'Caddy and certmagic (github.com/caddyserver/certmagic README): instances are a cluster when they share one storage; the storage needs locks. Session ticket keys are shared through the same storage (module distributedstek). No storage module works from node to node; this spec adds one'
-  - 'Fly.io Corrosion (fly.io/blog/corrosion): SQLite on every node, changes merged without consensus, membership by gossip. Its outages: a bad update reached every node as fast as a good one, a schema change caused a backfill storm, a retry loop became a write storm. Hence strict checks on receive, a cap on what one node may send, and `pause`'
+  - 'Fly.io Corrosion (fly.io/blog/corrosion): SQLite on every node, changes merged without consensus, membership by gossip. Its outages: a bad update reached every node as fast as a good one, a schema change caused a backfill storm, a retry loop became a write storm. Hence strict checks on receive and a cap on what one node may send'
   - 'Grafana Loki and Mimir (grafana.com/docs/loki/latest/get-started/hash-rings/), Thanos Querier (thanos.io/tip/components/query.md): data stays where it was written and is copied to a few peers; a query goes to every node and is merged; a node that does not answer makes the result partial and named, not failed'
   - 'NetBird (docs.netbird.io: how it works, high availability): only its data plane is peer to peer. Management and signal are central services, and running them redundantly needs PostgreSQL, Redis and NATS. What carries over is the rule that traffic runs on when the control plane is away, and joining with a setup key'
   - 'BunkerWeb (docs.bunkerweb.io: concepts, features): a scheduler with a database, plus Redis or Valkey for the shared run-time state, named there as needed for high availability. The usual way, and the one D53 took'
@@ -117,7 +117,6 @@ request_path:
   - 'a change goes to SQLite and memory first, then to the peers; a peer that is away gets it when it returns'
   - 'what a node may send is capped (200 blocks per second, 2 000 counts per second, 20 000 running blocks in the group); what is over stays local and is counted. It never queues without bound'
   - 'a record that fails its schema, its signature or its caps is dropped and counted (cluster_rejected), never applied and never passed on'
-  - '`schild cluster pause` on a node: it keeps serving with its state, applies and sends nothing until `resume`. For the day a bad record travels'
 
 node_failure:                       # what "seamless" means here, and what it cannot mean
   unplanned:
@@ -194,7 +193,7 @@ ui:                                 # German, du-form, calm
   - 'every list and chart has the filter "Server" with "Alle" first; rows show their node'
   - 'a block shows where it was decided ("Von web-2 entschieden") and where it holds'
   - 'a setting changed on another node shows "Geändert auf web-2, 14:05" in the change log'
-  - 'CLI: schild cluster init | invite | join | leave | remove | status | drain | pause | resume | seed | healthcheck'
+  - 'CLI: schild cluster init | invite | join | leave | remove | status | drain | seed | healthcheck'
 
 contracts:
   new:                              # proposal; the contracts agent owns schemas, Go types and vectors
@@ -270,7 +269,7 @@ open_questions:                     # for the initiator
 
 state:                              # 2026-11-22, written by the builder; `must`, `measure` and `kill_if` above are unchanged
   built:
-    - 'the mesh (TLS 1.3, keys per node, HTTP/2 pings), setting up by configuration (cluster.secret_file, cluster.peers) and by hand (join codes), names, readiness and drain, pause, removal, a new group secret that moves a node with what it held'
+    - 'the mesh (TLS 1.3, keys per node, HTTP/2 pings), setting up by configuration (cluster.secret_file, cluster.peers) and by hand (join codes), names, readiness and drain, removal, a new group secret that moves a node with what it held'
     - 'classes members, blocks, settings, access, logins, erasure, certificates, jobs; every key of the runtime store travels as class settings unless it is on the per-node list; a fingerprint per class with self-repair'
     - 'counts of limits, scenarios and the distributed detectors once a second; their running state handed to a node that starts'
     - 'events, incidents and single requests of every node on every node (asked for when a member says it has news; requests in a compact form; catch-up from the request stores on disk); metric buckets of every member on every node, queries over all nodes or one (design_metrics_across_nodes below)'
@@ -278,6 +277,7 @@ state:                              # 2026-11-22, written by the builder; `must`
     - 'ui: the mode on every page, the page "Cluster" with the map and the servers, the filter "Zahlen von", the reasons of the overview (member not reached, config drift, clock, state differs, counts not taken, clock out of service), the deciding node of a block, the nodes of an erasure'
   rejected:
     - 'copies on some nodes and queries from node to node (design_data_copies_and_queries below): every node holds everything, always (initiator 2026-11-22). `classes.data` and `queries` above describe the first design and are not what is built'
+    - '`schild cluster pause` and `resume`, built first after Corrosion and removed (initiator 2026-11-23): a change reaches every node in about a second, so a bad record is everywhere before anyone pauses, and a paused node catches up after resume. The remedy is to correct the setting; the correction travels as fast'
   not_built:
     - 'the testlab profiles pair and fleet of `measure` and `done` (keepalived, two balancer VMs); the measurements below ran on other setups'
     - 'where each block holds (edge, node firewall, gate) in the dashboard; closing a blocked client before TLS (open question 3); a block list as plain text (open question 6)'

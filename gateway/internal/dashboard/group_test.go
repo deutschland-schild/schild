@@ -158,16 +158,6 @@ func TestGroupStatusOfAPair(t *testing.T) {
 		t.Errorf("erasure with both nodes up: %+v", res.Nodes)
 	}
 
-	// Paused on the host: the dashboard says so.
-	if err := cluster.Pause(b.clusterDir(), true, nil); err != nil {
-		t.Fatal(err)
-	}
-	b.h.WaitFor("web-2 says it is paused", func() bool { st := b.status(t); return st.State == "paused" && st.PausedSince != nil })
-	if err := cluster.Pause(b.clusterDir(), false, nil); err != nil {
-		t.Fatal(err)
-	}
-	b.h.WaitFor("web-2 takes part again", func() bool { return b.status(t).State == "active" })
-
 	// web-2 away: web-1 says the sync is interrupted, and an erasure stays
 	// open for web-2.
 	if err := b.h.Stop(); err != nil {

@@ -661,16 +661,18 @@ func TestGroupKeepsBothOfTwoChangesToOneList(t *testing.T) {
 
 // A cut, a change on each side, the cut healed: what either side added
 // holds on both, a login of either side holds, and two settings changed on
-// different sides both stand (the kill criterion the measurement hit).
+// different sides both stand (the kill criterion the measurement hit). The
+// cut is a stop: web-1 changes while web-2 is down, then web-2 changes
+// alone while web-1 is down, then both run again.
 func TestGroupMergesBothSidesOfACut(t *testing.T) {
 	a, b := pair(t)
 	ctx := context.Background()
 	a.h.Login()
 	b.h.WaitFor("web-2 knows the user", func() bool { return b.h.App.Store.HasUsers(ctx) })
-	if err := cluster.Pause(b.clusterDir(), true, nil); err != nil {
-		t.Fatal(err)
-	}
-	b.h.WaitFor("web-2 is cut off", func() bool { return b.h.App.Cluster.Paused() })
+	// The sessions as the browsers keep them: a restart makes a new harness.
+	sessions := map[string][]*http.Cookie{}
+	keep := func(g *groupNode) { sessions[g.name] = g.h.Client.Jar.Cookies(mustURL(g.h.Dash.URL)) }
+	keep(a)
 	add := func(g *groupNode, ip string) {
 		if err := g.h.App.Store.AddAllow(ctx, &store.AllowEntry{IP: ip, Label: g.name, Level: "no_block", Expires: "never", CreatedAt: time.Now(), Source: "dashboard"}); err != nil {
 			t.Fatal(err)
@@ -682,16 +684,22 @@ func TestGroupMergesBothSidesOfACut(t *testing.T) {
 		}
 	}
 	n := func(v int) *int { return &v }
+	if err := b.h.Stop(); err != nil {
+		t.Fatal(err)
+	}
 	add(a, "203.0.113.53")
 	days(a, n(11), nil)
 	time.Sleep(1200 * time.Millisecond)
+	if err := a.h.Stop(); err != nil {
+		t.Fatal(err)
+	}
+	b.start(t)
 	add(b, "203.0.113.54")
 	days(b, nil, n(200))
 	// A second login, on the side that is cut off.
 	b.h.Login()
-	if err := cluster.Pause(b.clusterDir(), false, nil); err != nil {
-		t.Fatal(err)
-	}
+	keep(b)
+	a.start(t)
 	for _, g := range []*groupNode{a, b} {
 		g.h.WaitFor(g.name+" allows the addresses of both sides", func() bool { return allowed(g, "203.0.113.53") && allowed(g, "203.0.113.54") })
 		g.h.WaitFor(g.name+" holds the settings of both sides", func() bool {
@@ -704,7 +712,7 @@ func TestGroupMergesBothSidesOfACut(t *testing.T) {
 		for _, on := range []*groupNode{a, b} {
 			on.h.WaitFor("the session of "+who.name+" holds on "+on.name, func() bool {
 				req, _ := http.NewRequest("GET", on.h.Dash.URL+"/api/v0/overview", nil)
-				for _, c := range who.h.Client.Jar.Cookies(mustURL(who.h.Dash.URL)) {
+				for _, c := range sessions[who.name] {
 					req.AddCookie(c)
 				}
 				resp, err := http.DefaultClient.Do(req)

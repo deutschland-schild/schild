@@ -46,9 +46,6 @@ const lastContact = (m: { last_out?: string, last_in?: string }) => [m.last_out,
           </StatusPill>
           <span class="min-w-0 flex-1 basis-56">
             {{ state.text }}
-            <template v-if="s.paused_since">
-              Pausiert <RelativeTime :value="s.paused_since" />.
-            </template>
           </span>
         </p>
         <p v-if="hint && !props.brief" class="rounded-lg border border-status-warning/30 bg-status-warning-subtle px-3 py-2" role="note" data-testid="group-config-hint">

@@ -17,7 +17,6 @@ const MaxGroupMembers = 64
 type GroupStatus struct {
 	Mode        string         `json:"mode"` // single | group
 	State       string         `json:"state,omitempty"`
-	PausedSince *string        `json:"paused_since,omitempty"`
 	GeneratedAt string         `json:"generated_at,omitempty"`
 	Group       string         `json:"group,omitempty"`
 	Node        *GroupNode     `json:"node,omitempty"`

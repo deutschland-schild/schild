@@ -35,7 +35,7 @@ Measured by agents that did not build it: three gateways on one machine ([report
 
 - By configuration: the same `cluster.secret_file` (`schild cluster secret` prints one) and `cluster.peers` on every node; a node lets itself in at its start. By hand: `schild cluster init`, `schild cluster invite`, `schild cluster join`. A gateway that joins adds what it holds; where both hold the same entry the cluster's value stands and the node keeps its own aside.
 - A node is named by `node_name`; with `cluster.name_from_host` by its host name, so one `schild.yaml` can lie on every node; `cluster.name` sets a fixed one.
-- `schild cluster status` shows the members, `schild cluster remove` ends the membership of one, `schild cluster pause` and `resume` stop and restart the exchange of one node without stopping it, for the day a wrong change travels.
+- `schild cluster status` shows the members, `schild cluster remove` ends the membership of one. A wrong setting is fixed by correcting it; the correction reaches every node as fast as the change did.
 - With `cluster.enabled`, a `proxy_protocol` wrapper in the Caddyfile needs an allow list: otherwise anyone who reaches a node could name any address as theirs.
 - Blocks in front of the gateways: a balancer VM joins as an edge (`schild cluster invite -role edge`, then `schild cluster join ADDRESS CODE -edge -name NAME -data DIR` and `schild firewall run -group -data DIR`) and keeps the cluster's blocks in its nftables table. An edge gets the block list and the member list and nothing else.
 - The guide has HAProxy examples and says what a site with TLS on the gateways needs on ports 80 and 443.

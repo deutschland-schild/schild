@@ -1904,7 +1904,7 @@ export interface components {
             nodes?: {
                 /** @description Names of the gateways that hold the erasure, this node first. */
                 reached: string[];
-                /** @description Names of the gateways that have not said yet that they hold it: away, paused or slow. */
+                /** @description Names of the gateways that have not said yet that they hold it: away or slow. */
                 open: string[];
             };
         };
@@ -1913,11 +1913,10 @@ export interface components {
             /** @enum {string} */
             mode: "single" | "group";
             /**
-             * @description Absent without `cluster.enabled`. no_group (mode single): `cluster.enabled` is set, but the node belongs to no group or could not be set up from schild.yaml; it runs alone. syncing: the node has not taken the state of the group since its start. active: it is in step with every gateway. degraded: at least one gateway is not reached, at least one is. interrupted: no other gateway is reached; the node serves with the state it has. paused: `schild cluster pause`; the node takes and hands over nothing. removed: a member said this node was removed; it serves with the state it has and shares nothing.
+             * @description Absent without `cluster.enabled`. no_group (mode single): `cluster.enabled` is set, but the node belongs to no group or could not be set up from schild.yaml; it runs alone. syncing: the node has not taken the state of the group since its start. active: it is in step with every gateway. degraded: at least one gateway is not reached, at least one is. interrupted: no other gateway is reached; the node serves with the state it has. removed: a member said this node was removed; it serves with the state it has and shares nothing.
              * @enum {string}
              */
-            state?: "no_group" | "syncing" | "active" | "degraded" | "interrupted" | "paused" | "removed";
-            paused_since?: components["schemas"]["Timestamp"];
+            state?: "no_group" | "syncing" | "active" | "degraded" | "interrupted" | "removed";
             generated_at?: components["schemas"]["Timestamp"];
             group?: string;
             node?: components["schemas"]["GroupNode"];

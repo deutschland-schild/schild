@@ -257,7 +257,6 @@ Jeder Server meldet diese Zahlen alle fünf Sekunden an die anderen. Die Seite z
 | Abgleich aktiv | Der Server erreicht alle anderen Gateways. |
 | Abgleich eingeschränkt | Mindestens ein Gateway ist nicht erreichbar. Mit den übrigen läuft der Abgleich weiter. |
 | Abgleich unterbrochen | Der Server erreicht kein anderes Gateway und arbeitet mit dem letzten Stand weiter. |
-| Abgleich pausiert | Auf dem Server wurde `schild cluster pause` aufgerufen. |
 | Aus dem Cluster entfernt | Ein Mitglied hat dem Server gemeldet, dass er entfernt wurde. |
 
 ### Hinweise
@@ -346,15 +345,9 @@ Zwei Arten von Mitgliedern wechseln nicht von selbst:
 
 Ein Secret, das fehlt, zu kurz ist oder von anderen lesbar ist, ändert nichts. Der Server bleibt Mitglied seines Clusters, läuft aber allein, bis die Datei stimmt, und schreibt den Grund ins Log.
 
-## Wenn im Cluster etwas Falsches unterwegs ist
+## Eine falsche Einstellung
 
-Eine Änderung erreicht jeden Server in etwa einer Sekunde, eine falsche auch. Für diesen Fall gibt es eine Notbremse:
-
-```bash
-schild cluster pause
-```
-
-Der Server bedient weiter mit dem Stand, den er hat. Er nimmt nichts mehr aus dem Cluster an und gibt nichts weiter. Was du währenddessen auf ihm änderst, wartet. Mit `schild cluster resume` nimmt er wieder teil und holt nach, was er verpasst hat.
+Eine falsche Einstellung aus dem Dashboard korrigierst du dort, und die Korrektur erreicht jeden Server wie die Änderung selbst in etwa einer Sekunde. Steht der Fehler in `schild.yaml`, verteilst du die korrigierte Datei wie bisher auf jeden Server.
 
 ## Aufgaben, die nur einmal laufen dürfen
 
@@ -407,7 +400,6 @@ Jeder Server speichert damit, was der ganze Cluster aufzeichnet. Das lässt sich
 | `schild cluster secret` | Gibt ein neues Cluster-Secret aus. |
 | `schild cluster status` | Zeigt Mitglieder, letzten Kontakt und den geteilten Stand. |
 | `schild cluster drain` | Nimmt diesen Server aus dem Traffic und hält ihn an. |
-| `schild cluster pause` und `resume` | Der Server bedient weiter, nimmt aber nichts aus dem Cluster an und gibt nichts weiter, bis du `resume` aufrufst. |
 | `schild cluster remove NODE` | Beendet die Mitgliedschaft eines Servers, genannt mit Name oder Kennung. |
 | `schild cluster init` | Macht diesen Server zum ersten eines neuen Clusters (von Hand). |
 | `schild cluster invite [-role edge]` | Gibt einen Beitrittscode aus, einmal gültig, eine Stunde lang. |

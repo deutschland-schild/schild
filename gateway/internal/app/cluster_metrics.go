@@ -230,7 +230,7 @@ func (a *App) metricsAnswer(q metricsQuestion) ([]byte, error) {
 // round asks every member this node reaches for its new buckets.
 func (g *groupMetrics) round(ctx context.Context) {
 	node := g.a.Cluster
-	if node.Removed() || node.Paused() {
+	if node.Removed() {
 		return
 	}
 	g.openNodes()

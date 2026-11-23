@@ -70,7 +70,7 @@ func (g groupJobs) Put(id string, at, expires time.Time) error {
 // Leads: the node is in step with the group and keeps its locks.
 func (g groupJobs) Leads() bool {
 	n := g.n
-	return !n.paused.Load() && !n.removed.Load() && n.Synced() && n.keeper() == nil
+	return !n.removed.Load() && n.Synced() && n.keeper() == nil
 }
 
 func (g groupJobs) Lock(ctx context.Context, name string) error { return g.n.Lock(ctx, name) }
