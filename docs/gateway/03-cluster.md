@@ -5,7 +5,7 @@ description: "Mehrere Schild Gateways als Cluster betreiben: was sie teilen, wie
 
 # Mehrere Gateways als Cluster betreiben
 
-**Status:** Alpha, noch in keinem Release enthalten · Stand 23.11.2026 · technische Quelle: [contracts/cluster.md](../../contracts/cluster.md)
+**Status:** Alpha · Stand 23.11.2026 · technische Quelle: [contracts/cluster.md](../../contracts/cluster.md)
 
 **Gemessen** am 21. und 22.11.2026 von Mess-Agenten, die das Gateway nicht gebaut haben: zwei bis sechzehn Gateways mit Störungen im Netz, Abstürzen, Last, falschen Uhren, Zertifikaten hinter einem Balancer und einem Update Server für Server. Die Berichte: [Grundfunktionen](../../tests/results/MVP-27-group-measurement.md), [Härtetest](../../tests/results/MVP-27-hardening.md), Labor mit virtuellen Linux-Servern ([1](../../tests/results/MVP-27-lab.md), [2](../../tests/results/MVP-27-lab-run2.md), [3](../../tests/results/MVP-27-lab-run3.md), [4](../../tests/results/MVP-27-lab-run4.md)).
 

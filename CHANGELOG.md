@@ -10,7 +10,7 @@ The section of a version becomes the text of its GitHub release, so its heading 
 
 - An operator's Caddyfile may no longer use `acme_server`: schild refuses it at start and in `schild ingress validate`, wherever it stands. A gateway obtains certificates and issues none, and Caddy's ACME server is the only path to a library with known flaws and no fixed release (go-jose v3: GHSA-mgcc-cww5-fp2q, GHSA-4w3g-jfj2-cw2q, GHSA-vvm8-gf78-28g4). `tls internal` stays available.
 
-### Cluster of gateways (experimental)
+### Cluster of gateways
 
 Two to sixteen gateways of one operator can form a cluster (in the code and the contract: a group) that shares its state from node to node, with no database, cache or queue beside it (D105, MVP-27). It is off by default and set up from `schild.yaml` alone: `cluster.enabled`, `cluster.listen`, `cluster.secret_file` and `cluster.peers`, the same on every node. How to run it is described in German under [docs/gateway/03-cluster.md](docs/gateway/03-cluster.md), the wire in [contracts/cluster.md](contracts/cluster.md).
 

@@ -354,9 +354,9 @@ Zwei Schritte: auf dem Server ein Token anlegen und den Agenten verbinden. Die B
 
 Die API beschreibt sich selbst: `/agent/v0/openapi.json` reicht deinem Agenten als Anleitung. Für Menschen steht dieselbe Beschreibung in der [API-Referenz](/api).
 
-## Mehrere Gateways als Cluster (experimentell)
+## Mehrere Gateways als Cluster
 
-Zwei bis sechzehn Gateways können als Cluster laufen. Sie teilen Sperren, Einstellungen, Logins, Zertifikate, Zähler, Ereignisse und Anfragen direkt untereinander, ohne Datenbank daneben. Fällt ein Server aus, bedienen die anderen weiter. Der Cluster ist experimentell. Wie du ihn einrichtest und wo seine Grenzen liegen, steht unter [Mehrere Gateways als Cluster betreiben](03-cluster.md).
+Zwei bis sechzehn Gateways können als Cluster laufen. Sie teilen Sperren, Einstellungen, Logins, Zertifikate, Zähler, Ereignisse und Anfragen direkt untereinander, ohne Datenbank daneben. Fällt ein Server aus, bedienen die anderen weiter. Wie du ihn einrichtest und wo seine Grenzen liegen, steht unter [Mehrere Gateways als Cluster betreiben](03-cluster.md).
 
 ## Metriken und Geodaten
 

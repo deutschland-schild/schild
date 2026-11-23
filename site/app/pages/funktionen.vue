@@ -13,8 +13,8 @@ import { SHOTS_DATE } from '~/utils/shots'
 // starts with some of them changed, so site/scripts/shots.mjs puts them back first (factory()). The crawler example
 // shows a website with AI training blocked.
 // The cluster example shows three gateways: the page and a server's details with everything in order (mock scenario
-// `group-ok`), the hints with one gateway not reached (`group`). The cluster is experimental and
-// in no release yet (docs/gateway/03-cluster.md): the section says so, and it claims only what that guide states.
+// `group-ok`), the hints with one gateway not reached (`group`). The section claims only
+// what the guide states (docs/gateway/03-cluster.md).
 
 useHead({ title: 'Funktionen – Deutschland-Schild' })
 useSeoMeta({ description: 'Was das Schild Gateway abwehrt, an Beispielen mit Screenshots: Grundschutz ab Werk, SQL-Injection, Login-Schutz, KI-Crawler, sensible Bereiche und Cluster.' })

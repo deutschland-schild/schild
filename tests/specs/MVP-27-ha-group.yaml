@@ -22,7 +22,7 @@ id: MVP-27
 #   the balancer, so the host firewall of D87 holds nothing there; see `enforcement`.
 # - /healthz and /readyz exist on the dashboard listener only; a balancer needs one on the web ports.
 title: "Group: several gateways share blocks, settings, certificates, logins, events and requests from node to node, as a pair of two or a fleet of ten, with no store beside them"
-ships: false                        # draft, experimental, in no release. What is built, decided and measured as of 2026-11-23: section `state` at the end of the open questions. The technical text is contracts/cluster.md, the operator guide docs/gateway/03-cluster.md.
+ships: false                        # draft, in no release. What is built, decided and measured as of 2026-11-23: section `state` at the end of the open questions. The technical text is contracts/cluster.md, the operator guide docs/gateway/03-cluster.md.
 status: ENTWURF
 image: schild                       # the same binary on every gateway; nothing else to install
 hypotheses: [D3]
