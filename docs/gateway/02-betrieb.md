@@ -84,7 +84,7 @@ Schild aktualisiert sich nie von allein. Was sich geändert hat, steht bei jedem
 
 Hast du mit Docker den [Server-Check eingerichtet](#server-check-einrichten), liegt eine Kopie des Binarys auf dem Server. Hol sie nach dem Update neu: `docker cp schild:/usr/local/bin/schild /tmp/schild && sudo /tmp/schild check install`. Bei Paket und Binary prüft der Check von selbst mit der neuen Version.
 
-Läuft der Server in einem [Cluster](03-cluster.md), aktualisierst du die Server nacheinander. Ein Server nimmt sich mit `schild cluster drain` selbst aus dem Traffic, bevor er stoppt; `systemctl restart schild` tut dasselbe. Die Schritte stehen unter [Einen Server geplant anhalten](03-cluster.md#einen-server-geplant-anhalten). Ein Cluster braucht außerdem gleiche Uhren auf allen Servern, also eine Zeitsynchronisation wie chrony oder systemd-timesyncd.
+Läuft der Server in einem [Cluster](03-cluster.md), aktualisierst du die Server nacheinander. Ein Server nimmt sich mit `schild cluster drain` selbst aus dem Traffic, bevor er stoppt; `systemctl restart schild` und `docker compose up -d` tun dasselbe. Das dauert in der Vorgabe bis zu 45 Sekunden und das Herunterfahren dazu. Die mitgelieferte systemd-Unit wartet deshalb 90 Sekunden, unter Docker Compose setzt du beim Dienst `schild` die Zeile `stop_grace_period: 90s`. Die Schritte stehen unter [Einen Server geplant anhalten](03-cluster.md#einen-server-geplant-anhalten). Ein Cluster braucht außerdem gleiche Uhren auf allen Servern, also eine Zeitsynchronisation wie chrony oder systemd-timesyncd.
 
 Passwort, freigeschaltete Adressen, Ausnahmen und Einstellungen liegen in `schild.db` im Datenverzeichnis und bleiben bei einem Update erhalten. Deine `schild.yaml` fasst Schild nicht an.
 

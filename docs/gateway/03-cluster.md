@@ -59,7 +59,7 @@ Ein paar Dinge beschreiben einen einzelnen Server und werden deshalb nicht getei
 
 Schild verschiebt selbst keine IP-Adresse und ist kein Loadbalancer. Das übernimmt dein Hoster, keepalived oder HAProxy.
 
-Die Server sprechen über einen eigenen Port miteinander (`cluster.listen`), verschlüsselt mit TLS 1.3. Jeder Server hat einen eigenen Schlüssel, der den Server nie verlässt. Lege diesen Port in ein privates Netz. Schild lehnt eine öffentliche Adresse dafür ab, solange du sie nicht ausdrücklich erlaubst (`cluster.allow_public_listen`).
+Die Server sprechen über einen eigenen Port miteinander (`cluster.listen`), verschlüsselt mit TLS 1.3. Jeder Server hat einen eigenen Schlüssel, der den Server nie verlässt. Lege diesen Port in ein privates Netz. Schild lehnt eine öffentliche Adresse dafür ab, solange du sie nicht ausdrücklich erlaubst (`cluster.allow_public_listen`). Adressen aus 100.64.0.0/10, wie sie Tailscale, NetBird und ähnliche Overlay-Netze vergeben, gelten als privat. `cluster.listen` darf auch alle Adressen binden (`0.0.0.0:8790` oder `[::]:8790`), wenn `cluster.advertise` die private Adresse nennt, unter der die anderen Server diesen erreichen.
 
 **Uhren.** Im Cluster gilt bei zwei Änderungen am selben Eintrag die spätere. Dafür brauchen die Server gleiche Uhren. Richte auf jedem Server eine Zeitsynchronisation ein, etwa chrony oder systemd-timesyncd.
 
@@ -73,7 +73,14 @@ Ein Cluster entsteht allein aus der Konfiguration: Dein Deployment schreibt dies
    schild cluster secret
    ```
 
-2. Lege das Secret auf jedem Server in eine Datei, die nur der Dienst lesen darf (Modus 0600).
+2. Lege das Secret auf jedem Server in eine Datei, die der Dienst lesen darf und sonst niemand. Lesen darf er sie als Besitzer oder über seine Gruppe:
+
+   ```bash
+   sudo chown root:schild /etc/schild/cluster.secret
+   sudo chmod 0640 /etc/schild/cluster.secret
+   ```
+
+   Ebenso geht `schild:schild` mit Modus 0600. Im Container läuft Schild als Benutzer 65532. Dort gibst du der Datei auf dem Host die Gruppe 65532 (`chown root:65532`, Modus 0640) und bindest sie schreibgeschützt ein.
 
 3. Ergänze `schild.yaml` auf jedem Server:
 
@@ -86,13 +93,15 @@ Ein Cluster entsteht allein aus der Konfiguration: Dein Deployment schreibt dies
      name_from_host: true                     # jeder Server heißt wie sein Host
    ```
 
-   Nur `listen` unterscheidet sich von Server zu Server. `peers` nennt alle Server und darf die eigene Adresse enthalten.
+   Nur `listen` unterscheidet sich von Server zu Server. Bindet `listen` alle Adressen (`0.0.0.0:8790`), unterscheidet sich stattdessen `advertise`. `peers` nennt alle Server und darf die eigene Adresse enthalten.
 
-   Mit `name_from_host: true` heißt jeder Server im Cluster nach seinem Hostnamen (der Teil vor dem ersten Punkt). So unterscheidest du die Server im Dashboard, auch wenn `node_name` in der Datei überall gleich ist. Ohne diese Zeile heißt ein Server wie sein `node_name`. Dann muss dein Deployment jedem Server einen eigenen geben. Einen festen Namen setzt du mit `cluster.name`. Der Name gilt ab der Aufnahme in den Cluster. Um ihn später zu ändern, nimmst du den Server aus dem Cluster und lässt ihn neu hinein.
+   Mit `name_from_host: true` heißt jeder Server im Cluster nach seinem Hostnamen (der Teil vor dem ersten Punkt). So unterscheidest du die Server im Dashboard, auch wenn `node_name` in der Datei überall gleich ist. Ohne diese Zeile heißt ein Server wie sein `node_name`. Dann muss dein Deployment jedem Server einen eigenen geben. Einen festen Namen setzt du mit `cluster.name`. Änderst du `cluster.name`, `name_from_host` oder `node_name`, gilt der neue Name ab dem nächsten Start des Servers. Aus dem Cluster nehmen musst du ihn dafür nicht.
 
 4. Starte Schild neu. Jeder Server nimmt sich beim Start selbst in den Cluster auf und findet die anderen. Die Reihenfolge ist egal. Beim ersten Aufbau startest du mindestens zwei Server: Ein neuer Server, der den Cluster noch nie erreicht hat, nimmt keine Anfragen an.
 
 Das Secret lässt einen Server in den Cluster und kann sonst nichts. Wer es hat, kann einen Server aufnehmen. Behandle es deshalb wie ein Passwort.
+
+**Kommt der Cluster nicht zustande, startet Schild nicht.** Mit `cluster.enabled: true` startet ein Server nur, wenn er sich in seinen Cluster aufnehmen kann. Fehlt die Datei mit dem Secret, ist das Secret zu kurz, darf die Datei außer dem Dienst noch jemand lesen, ist der Port aus `cluster.listen` belegt, ist der Schlüssel des Servers beschädigt oder scheitert der Wechsel zu einem neuen Secret, bricht der Start ab. Das Log nennt den Grund. `cluster.enabled` ohne `cluster.secret_file` ist ein Fehler in der Konfiguration. So läuft kein Server allein mit eigenem Stand weiter, während du ihn im Cluster vermutest.
 
 ## Server mit unterschiedlichen Einstellungen zusammenführen
 
@@ -150,7 +159,7 @@ Fällt ein Server hart aus, schickt HAProxy ihm noch Verbindungen, bis die Prüf
 
 **Wenn TLS auf den Gateways endet.** Dann verhalten sich die beiden Ports verschieden:
 
-- Port 80 leitet nur auf HTTPS um und beantwortet die Prüfung der Zertifizierungsstelle. Er nimmt kein PROXY-Protokoll an, und `/.schild/readyz` beantwortet er mit einer Umleitung. Schick den Traffic dorthin ohne PROXY-Protokoll und prüfe nur, ob der Port offen ist.
+- Port 80 leitet nur auf HTTPS um und beantwortet die Prüfung der Zertifizierungsstelle. Er nimmt kein PROXY-Protokoll an, und `/.schild/readyz` beantwortet er mit einer Umleitung. Schick den Traffic dorthin ohne PROXY-Protokoll und prüfe nur, ob der Port offen ist. Ein Server, der gerade angehalten wird oder den Stand des Clusters noch nicht hat, bleibt deshalb für Port 80 im Pool. Das betrifft nur Umleitungen und die Prüfung der Zertifizierungsstelle.
 - Port 443 nimmt das PROXY-Protokoll an. Die Bereitschaft gibt es nur hier, über TLS und mit dem Namen der Website. Ein neuer Server besteht diese Prüfung erst, wenn er sein Zertifikat hat. Im Cluster bekommt er es beim ersten Abgleich von den anderen.
 
 ```haproxy
@@ -249,6 +258,8 @@ Gelingt die Übernahme der Zähler nach drei Versuchen nicht, bedient der Server
 
 Ereignisse und Vorfälle der anderen folgen in den Sekunden nach dem Start. Die einzelnen Anfragen, die die anderen inzwischen bedient haben, holt der Server im Hintergrund nach. Das geschieht von selbst, egal wie lange er weg war. Du musst nichts anstoßen.
 
+**Nach mehr als 30 Tagen.** War ein Server länger als 30 Tage ohne Kontakt zum Cluster, übernimmt er beim nächsten Start den Stand des Clusters wie ein neuer Server. Was er vorher allein hielt, gibt er nicht noch einmal weiter. Logins, Sitzungen und Einträge, die der Cluster in dieser Zeit gelöscht hat, bleiben gelöscht.
+
 ## Wenn ein Server ausfällt
 
 - Verbindungen, die auf dem ausgefallenen Server endeten, brechen ab. Anfragen, die dort gerade liefen, schlagen fehl. Kein Loadbalancer und kein Proxy kann eine laufende TLS-Verbindung auf einen anderen Server umziehen.
@@ -269,13 +280,31 @@ Der Server antwortet dem Balancer sofort mit 503 und bedient noch 15 Sekunden la
 
 Beide Zeiten stellst du unter `cluster.drain` ein (`delay_s`, `grace_s`). `delay_s` sollte länger sein als das Prüfintervall deines Balancers mal die Zahl der Fehlversuche, nach denen er einen Server herausnimmt.
 
+**Zeit zum Anhalten.** Ein Stopp dauert `delay_s` plus `grace_s`, in der Vorgabe also 15 plus 30 Sekunden, und dann noch das Herunterfahren. So lange muss systemd oder Docker warten, sonst beenden sie Schild mittendrin:
+
+- Die mitgelieferte systemd-Unit wartet 90 Sekunden (`TimeoutStopSec=90s`).
+- Docker wartet von sich aus nur 10 Sekunden. Setze in `compose.yaml` beim Dienst `schild` die Zeile `stop_grace_period: 90s`. Die Beispiele aus dieser Anleitung haben sie schon. Ohne Compose hältst du den Container mit `docker stop -t 90 schild` an.
+
+Stellst du `delay_s` oder `grace_s` höher, gib systemd und Docker entsprechend mehr Zeit.
+
 ## Einen Server aus dem Cluster nehmen
 
-```bash
-schild cluster remove web-3
-```
+1. Nimm den Server zuerst aus dem Loadbalancer, oder halte ihn mit `schild cluster drain` an.
+2. Nimm ihn auf einem Server, der im Cluster bleibt, heraus:
 
-Danach spricht kein Mitglied mehr mit diesem Server, und keines nimmt an, was er noch schickt. Das gilt auch, wenn der Server das Cluster-Secret hat. Der entfernte Server erfährt es und schreibt es in sein Log. Er bedient mit seinem letzten Stand weiter, bis du bei ihm `cluster.enabled: false` setzt oder ihn abschaltest. Tragen zwei Server denselben Namen, nennst du statt des Namens die Kennung aus `schild cluster status`.
+   ```bash
+   schild cluster remove web-3
+   ```
+
+3. Setze bei ihm `cluster.enabled: false`, oder lass ihn aus.
+
+Danach spricht kein Mitglied mehr mit diesem Server, und keines nimmt an, was er noch schickt. Das gilt auch, wenn der Server das Cluster-Secret hat. Seine Adresse aus `cluster.peers` fragen die anderen nicht mehr jede Sekunde. Streiche sie beim nächsten Deployment trotzdem aus `cluster.peers`. Tragen zwei Server denselben Namen, nennst du statt des Namens die Kennung aus `schild cluster status`.
+
+Läuft der entfernte Server noch, erfährt er es und schreibt es in sein Log. Er bedient mit seinem letzten Stand weiter und antwortet auf `/.schild/readyz` weiter mit 200. Ein Balancer, der ihn noch im Pool hat, schickt ihm also weiter Besucher:innen. Deshalb kommt Schritt 1 zuerst.
+
+**Einen entfernten Server zurückholen.** Mit seinem alten Schlüssel kommt ein entfernter Server nicht wieder hinein. Halte ihn an, lösche sein Cluster-Verzeichnis (`cluster` im Datenverzeichnis, meist `/var/lib/schild/cluster`, im Container im Volume des Datenverzeichnisses) und starte ihn mit `cluster.enabled: true` und dem Secret. Er legt einen neuen Schlüssel an und kommt wie ein neuer Server in den Cluster.
+
+**Eine Maschine unter derselben Adresse neu aufsetzen.** Nimm den alten Server zuerst mit `schild cluster remove` aus dem Cluster, dann starte den neuen.
 
 ## Das Cluster-Secret wechseln
 
@@ -296,9 +325,11 @@ Während des Wechsels gibt es zwei Cluster nebeneinander: Die Server, die schon 
 
 Halte den Wechsel deshalb kurz, am besten wenige Minuten.
 
+**Nach einem Leck.** Mit dem alten Secret konnte jemand einen eigenen Server in den Cluster bringen. Was ein solcher Server als Mitglied geschrieben hat, zieht beim Wechsel mit in den neuen Cluster, etwa ein Login, ein Agent-Token oder eine Freigabe. Prüfe nach dem Wechsel deshalb im Dashboard die Logins, die Agent-Tokens und die Zugriffsregeln: Freigaben, eigene Adressen und die Zugriffssperre. Was du nicht kennst, löschst du.
+
 Wer im alten Cluster entfernt war und das neue Secret bekommt, ist im neuen Cluster wieder Mitglied, bringt aber nichts mit. Gib einem Server, der draußen bleiben soll, das neue Secret nicht.
 
-Ein Secret, das fehlt, zu kurz ist oder von anderen lesbar ist, ändert nichts. Der Server bleibt Mitglied seines Clusters, läuft aber allein, bis die Datei stimmt, und schreibt den Grund ins Log.
+Fehlt die Datei, ist das Secret zu kurz oder darf die Datei außer dem Dienst noch jemand lesen, startet der Server nicht und nennt im Log den Grund. Das gilt auch, wenn der Wechsel in den neuen Cluster scheitert.
 
 ## Eine falsche Einstellung
 
