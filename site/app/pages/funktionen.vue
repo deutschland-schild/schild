@@ -2,8 +2,8 @@
 import type { DashboardShot } from '~/components/DashboardShots.vue'
 import { SHOTS_DATE } from '~/utils/shots'
 
-// Features shown as worked examples: what a visitor sees, what the operator sees, with real screenshots. Two groups:
-// what the gateway does on its own ("Ab Werk") and what the operator switches on ("Nach Bedarf").
+// Features shown as worked examples: what a visitor sees, what the operator sees, with real screenshots, each
+// labelled by its topic.
 // This page shows; how to set things up lives in docs/gateway/01-funktionen.md, and every example links there.
 // Every claim has to hold for the gateway as built, without labs.
 // Screenshots: retaken with `npm run shots` (site/scripts/shots.mjs), dashboard in mock mode at 1440×900; block page and login
@@ -194,12 +194,12 @@ const clusterShots: DashboardShot[] = [
 
 // The link cards at the top, in the order of the sections: what runs from the start first, the cluster last.
 const examples = [
-  { to: '#grundschutz', kicker: 'Ab Werk', title: 'Grundschutz, ohne etwas einzustellen' },
-  { to: '#sql-injection', kicker: 'Ab Werk', title: 'Ein SQL-Injection-Versuch wird gestoppt' },
-  { to: '#login-schutz', kicker: 'Ab Werk', title: 'Login-Schutz mit Szenarien und Limits' },
-  { to: '#ki-crawler', kicker: 'Nach Bedarf', title: 'Bots und KI-Crawler pro Website steuern' },
-  { to: '#sensible-bereiche', kicker: 'Nach Bedarf', title: 'Sensible Bereiche einfach zusätzlich absichern' },
-  { to: '#cluster', kicker: 'Nach Bedarf · experimentell', title: 'Mehrere Gateways als Cluster betreiben' },
+  { to: '#grundschutz', kicker: 'Regeln', title: 'Grundschutz, ohne etwas einzustellen' },
+  { to: '#sql-injection', kicker: 'Angriffe', title: 'Ein SQL-Injection-Versuch wird gestoppt' },
+  { to: '#login-schutz', kicker: 'Logins', title: 'Login-Schutz mit Szenarien und Limits' },
+  { to: '#ki-crawler', kicker: 'Bots', title: 'Bots und KI-Crawler pro Website steuern' },
+  { to: '#sensible-bereiche', kicker: 'Zugriffsschutz', title: 'Sensible Bereiche einfach zusätzlich absichern' },
+  { to: '#cluster', kicker: 'Hochverfügbarkeit', title: 'Mehrere Gateways als Cluster betreiben' },
 ]
 
 // Built features without a worked example yet; each links to its section in the docs.
@@ -237,7 +237,7 @@ const more = [
 
     <section id="grundschutz" class="scroll-mt-16 border-b border-line" aria-labelledby="grundschutz-title">
       <div class="mx-auto max-w-6xl px-5 py-20 sm:px-8 lg:py-24">
-        <p class="kicker">Ab Werk</p>
+        <p class="kicker">Regeln</p>
         <h2 id="grundschutz-title" class="h2 mt-3">Grundschutz, ohne etwas einzustellen.</h2>
         <p class="mt-4 max-w-2xl leading-relaxed text-slate">
           Nach der Installation prüft Schild jede Anfrage mit Regeln aus drei Quellen. Das OWASP Core Rule Set ist eingebaut und sperrt von Anfang an. Dazu kommen rund 200 virtuelle Patches aus dem CrowdSec Hub gegen bekannte Lücken in verbreiteter Software, ab Werk auf „Erkennen“, und deine eigenen Regeln, wenn du welche schreibst. Alles läuft auf deinem Server, und in der Übersicht des Dashboards steht „Grundschutz aktiv“. Stellst du das Core Rule Set auf „Erkennen“ oder „Aus“, ist der Grundschutz eingeschränkt, und das Dashboard sagt es dir.
@@ -256,7 +256,7 @@ const more = [
 
     <section id="sql-injection" class="scroll-mt-16 border-b border-line bg-mist" aria-labelledby="sqli-title">
       <div class="mx-auto max-w-6xl px-5 py-20 sm:px-8 lg:py-24">
-        <p class="kicker">Ab Werk</p>
+        <p class="kicker">Angriffe</p>
         <h2 id="sqli-title" class="h2 mt-3">Ein SQL-Injection-Versuch wird gestoppt.</h2>
         <div class="mt-4 grid gap-6 lg:grid-cols-[1.1fr_0.9fr] lg:gap-10">
           <p class="leading-relaxed text-slate">
@@ -282,7 +282,7 @@ const more = [
 
     <section id="login-schutz" class="scroll-mt-16 border-b border-line" aria-labelledby="login-title">
       <div class="mx-auto max-w-6xl px-5 py-20 sm:px-8 lg:py-24">
-        <p class="kicker">Ab Werk</p>
+        <p class="kicker">Logins</p>
         <h2 id="login-title" class="h2 mt-3">Login-Schutz mit Szenarien und Limits.</h2>
         <p class="mt-4 max-w-2xl leading-relaxed text-slate">
           Wer Passwörter durchprobiert, schickt viele Anfragen, die einzeln harmlos aussehen. Schild beobachtet deshalb, wie sich ein Absender über mehrere Anfragen verhält; Passwörter und Formularinhalte liest es dabei nie. Limits für die üblichen Login-Pfade von WordPress, Joomla, Drupal, Nextcloud, TYPO3 und Laravel gelten ab dem Start. Die Szenarien sperren nach einer Lernzeit von 14 Tagen, bis dahin zeigt das Dashboard, wen sie gesperrt hätten. Adressen aus Mobilfunk, Carrier-NAT und Tor sperrt Schild nie, weil sich dort viele Menschen eine Adresse teilen.
@@ -297,7 +297,7 @@ const more = [
 
     <section id="ki-crawler" class="scroll-mt-16 border-b border-line bg-mist" aria-labelledby="crawler-title">
       <div class="mx-auto max-w-6xl px-5 py-20 sm:px-8 lg:py-24">
-        <p class="kicker">Nach Bedarf</p>
+        <p class="kicker">Bots</p>
         <h2 id="crawler-title" class="h2 mt-3">Bots und KI-Crawler pro Website steuern.</h2>
         <p class="mt-4 max-w-2xl leading-relaxed text-slate">
           Neben Menschen rufen Suchmaschinen, Vorschau-Dienste und die Crawler von KI-Firmen deine Seiten ab. Für jede Website legst du fest, wer davon durchkommt: nach Zweck, etwa KI-Training, KI-Suche oder Suchmaschine, oder für jeden Crawler einzeln. Gibt sich jemand als Googlebot oder GPTBot aus, kommt aber nicht aus den Adressbereichen, die der Betreiber veröffentlicht, kann Schild ihn als Fälschung blocken. Crawler, die sich nicht mit Namen melden, erfasst diese Einstellung nicht. Halten sie sich nicht an deine Vorgaben, schaltest du eine kurze Prüfung im Browser vor.
@@ -314,7 +314,7 @@ const more = [
 
     <section id="sensible-bereiche" class="scroll-mt-16 border-b border-line" aria-labelledby="admin-title">
       <div class="mx-auto max-w-6xl px-5 py-20 sm:px-8 lg:py-24">
-        <p class="kicker">Nach Bedarf</p>
+        <p class="kicker">Zugriffsschutz</p>
         <h2 id="admin-title" class="h2 mt-3">Sensible Bereiche einfach zusätzlich absichern.</h2>
         <p class="mt-4 max-w-2xl leading-relaxed text-slate">
           Die Anmeldung deines CMS, eine Staging-Seite oder eine alte Anwendung, die keine Updates mehr bekommt: Vieles davon ist für alle im Internet erreichbar. Mit dem Zugriffsschutz stellst du eine zweite Tür davor, für einen Pfad, für mehrere oder für die ganze Website. Sie öffnet sich nur mit einem gemeinsamen Passwort, nur von deinen Adressen aus oder nur mit beidem. Im Beispiel sind es <span class="code">/wp-admin/*</span> und <span class="code">/wp-login.php</span>. Schild speichert vom Passwort nur einen Hash.
@@ -329,7 +329,7 @@ const more = [
 
     <section id="cluster" class="scroll-mt-16 border-b border-line bg-mist" aria-labelledby="cluster-title">
       <div class="mx-auto max-w-6xl px-5 py-20 sm:px-8 lg:py-24">
-        <p class="kicker">Nach Bedarf · experimentell</p>
+        <p class="kicker">Hochverfügbarkeit</p>
         <h2 id="cluster-title" class="h2 mt-3">Mehrere Gateways als Cluster betreiben.</h2>
         <p class="mt-4 max-w-2xl leading-relaxed text-slate">
           Läuft ein einzelnes Gateway vor deinen Websites, hängen sie alle an diesem einen Server. Mit einem Cluster stellst du zwei bis sechzehn Gateways nebeneinander, zum Beispiel hinter einen Loadbalancer. Sie teilen Sperren, Einstellungen, Logins, Zertifikate, Zähler, Ereignisse und Anfragen direkt untereinander. Eine Datenbank oder einen Cache daneben betreibst du dafür nicht. Fällt ein Server aus, bedienen die anderen weiter. Eine Sperre, die du auf einem Server setzt, gilt nach etwa einer Sekunde auf jedem.
