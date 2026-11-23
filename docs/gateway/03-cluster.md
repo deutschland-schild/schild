@@ -101,7 +101,7 @@ Ein Cluster entsteht allein aus der Konfiguration. Dein Deployment schreibt dies
 
    Nur `listen` unterscheidet sich von Server zu Server. Bindet `listen` alle Adressen (`0.0.0.0:8790`), unterscheidet sich stattdessen `advertise`. `peers` nennt alle Server und darf die eigene Adresse enthalten.
 
-4. Starte Schild neu. Starte beim ersten Aufbau mindestens zwei Server. Ein neuer Server, der den Cluster noch nie erreicht hat, nimmt keine Anfragen an.
+4. Starte Schild neu. Starte beim ersten Aufbau alle Server aus `cluster.peers`. Ein ganz neuer Cluster wird erst bereit, wenn jeder von ihnen einmal gestartet ist. Ein neuer Server, der den Cluster noch nie erreicht hat, nimmt keine Anfragen an.
 
 Jeder Server nimmt sich beim Start selbst in den Cluster auf und findet die anderen. Die Reihenfolge ist egal.
 
@@ -281,7 +281,7 @@ Bleibt eine Abweichung 30 Sekunden stehen, erscheint ein Hinweis. Der Server gle
 
 **Uhren.** Jedes Gateway nennt den anderen alle fünf Sekunden seine Uhrzeit. Auf der Seite „Cluster“ steht bei jedem Server, wie weit seine Uhr von der Uhr dieses Servers abweicht. Ab fünf Sekunden Abstand nennt `schild cluster status` den Server. Stellt ein Server einen Eintrag wegen der Uhr zurück, schreibt er das in sein Log. Ab zehn Sekunden erscheint ein Hinweis. Einen Eintrag, dessen Uhrzeit mehr als 60 Sekunden voraus liegt, nimmt kein Server an.
 
-**Ein Server mit falscher Uhr nimmt keine Anfragen mehr an.** Erreicht ein Server mindestens zwei andere, die sich über die Uhrzeit einig sind, und weicht seine eigene Uhr um eine Minute oder mehr davon ab, meldet er sich als nicht bereit. In der Messung mit drei Servern dauerte das etwa vier Sekunden. Der Loadbalancer schickt ihm dann nichts mehr. Das steht als Hinweis in seinem Dashboard, in `schild cluster status` und im Log. Sobald die Uhr stimmt, nimmt er von selbst wieder Anfragen an.
+**Ein Server mit falscher Uhr nimmt keine Anfragen mehr an.** Ist sich die Mehrheit der Server über die Uhrzeit einig, mindestens zwei, und weicht die Uhr eines Servers um eine Minute oder mehr davon ab, meldet er sich als nicht bereit. In der Messung mit drei Servern dauerte das etwa vier Sekunden. Der Loadbalancer schickt ihm dann nichts mehr. Das steht als Hinweis in seinem Dashboard, in `schild cluster status` und im Log. Sobald die Uhr stimmt, nimmt er von selbst wieder Anfragen an.
 
 Bei nur zwei Servern kann keiner wissen, wessen Uhr falsch geht. Dann bedienen beide weiter, und das Dashboard nennt den Abstand.
 
@@ -410,7 +410,7 @@ Fehlt die Datei, ist das Secret zu kurz oder darf die Datei außer dem Dienst no
 
 ## Aufgaben, die nur einmal laufen dürfen
 
-Manche Aufgaben sollen im Cluster einmal laufen und nicht einmal pro Server. Beispiele sind das Erneuern der Schlüssel der Browser-Prüfung oder später eine Zusammenfassung per E-Mail. Dafür gibt es keinen Hauptserver. Die Aufgabe übernimmt jeweils der erreichbare Server mit der kleinsten Kennung. Fällt er aus, übernimmt der nächste von selbst.
+Manche Aufgaben sollen im Cluster einmal laufen und nicht einmal pro Server. Ein Beispiel ist das Erneuern der Schlüssel der Browser-Prüfung. Dafür gibt es keinen Hauptserver. Die Aufgabe übernimmt jeweils der erreichbare Server mit der kleinsten Kennung. Fällt er aus, übernimmt der nächste von selbst.
 
 Jeder Server weiß, was eine Aufgabe schon erledigt hat: wann sie zuletzt gestartet ist, für welchen Zeitraum sie läuft, ob sie fertig wurde und welche einzelnen Schritte erledigt sind. Daraus folgt:
 
@@ -441,7 +441,7 @@ Jeder Server speichert damit, was der ganze Cluster aufzeichnet. Das lässt sich
 - **Dieselbe Einstellung auf zwei Servern.** Änderst du denselben Schalter gleichzeitig auf zwei Servern, gilt überall die spätere Änderung. Verschiedene Einträge derselben Liste bleiben beide erhalten.
 - **Limits über alle Server.** Bis die Server voneinander wissen, vergeht bis zu eine Sekunde. Ein Client, der seine Anfragen über alle Server verteilt, kommt in dieser Sekunde etwas über ein Limit hinaus.
 - **Zahlen der anderen Server.** Diagramme zeigen die anderen Server mit etwa 10 bis 20 Sekunden Verzug. Besucherzahlen über mehrere Server sind eine Untergrenze, weil dieselbe Person mehrere Server erreicht haben kann.
-- **Uhren.** Halte die Uhren mit NTP synchron. Geht die Uhr eines Servers mehr als eine Minute falsch, nehmen ihn die anderen aus dem Traffic, sobald es mindestens drei Server sind.
+- **Uhren.** Halte die Uhren mit NTP synchron. Geht die Uhr eines Servers eine Minute oder mehr falsch, nimmt er sich selbst aus dem Traffic, sobald es mindestens drei Server sind und die Mehrheit sich über die Uhrzeit einig ist.
 - **Firewall hinter dem Loadbalancer.** Hinter einem Loadbalancer mit PROXY-Protokoll kommen alle Pakete von ihm. `schild firewall run` auf einem Gateway kann gesperrte Adressen dort nicht verwerfen. Die Gateways weisen gesperrte Adressen selbst ab. Den Aufbau der Verbindung tragen sie dabei noch, bei HTTPS auch den TLS-Handshake.
 - **Höchstens 16 Gateways.** Einen 17. Server lehnt der Cluster ab.
 
