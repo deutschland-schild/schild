@@ -49,6 +49,33 @@ const SHOTS = [
   { name: 'gateway-attacks', route: `/w/${site}/events`, ...DESKTOP },
   { name: 'gateway-server', route: '/server', ...DESKTOP },
 
+  // /funktionen: the basic protection as it comes (rule repositories, OWASP CRS, CrowdSec Hub), see factory()
+  { name: 'funktionen-grundschutz-regeln', route: '/', run: page => factory(page, '/settings/rules'), ...DESKTOP },
+  { name: 'funktionen-grundschutz-crs', route: '/', run: page => factory(page, '/settings/rules/crs'), ...DESKTOP },
+  { name: 'funktionen-grundschutz-crowdsec', route: '/', run: page => factory(page, '/settings/rules/crowdsec'), ...DESKTOP },
+
+  // /funktionen: login protection as it comes (scenarios, limits per path), and an address it blocked
+  { name: 'funktionen-login-szenarien', route: '/', run: page => factory(page, '/settings/rules/behaviour'), ...DESKTOP },
+  // The switch column is too narrow for "Begrenzen (empfohlen)": the selects get the width of their text.
+  { name: 'funktionen-login-limits', route: '/', run: async (page) => {
+    await factory(page, '/settings/rules/behaviour?view=limits')
+    await page.locator('#main select').evaluateAll(selects => selects.forEach((s) => { s.style.width = 'auto' }))
+  }, ...DESKTOP },
+  { name: 'funktionen-login-sperren', route: '/blocks', ...DESKTOP },
+
+  // /funktionen: bots and AI crawlers per website (the preset and the switch for fake crawlers set, as the example
+  // describes), the browser check
+  { name: 'funktionen-crawler-ki', route: `/w/${site}/ai-crawlers`, run: blockAiTraining, ...DESKTOP },
+  { name: 'funktionen-crawler-liste', route: `/w/${site}/ai-crawlers`, run: async (page) => {
+    await blockAiTraining(page)
+    await page.getByTestId('crawlers-open-ai_training').click()
+    await page.waitForTimeout(400)
+    await scrollTo(page.locator('[data-crawler-category="ai_training"]'))
+    await page.evaluate(() => window.scrollBy(0, -160))
+  }, ...DESKTOP },
+  // From the top of the page: with maintenance off, the card of the browser check fits below it in full.
+  { name: 'funktionen-crawler-pruefung', route: `/w/${site}/access`, ...DESKTOP },
+
   // /funktionen: a blocked SQL injection attempt
   { name: 'funktionen-sqli-blockpage', page: 'block.html', ...DESKTOP },
   { name: 'funktionen-sqli-event', route: ctx => `/events?event=${ctx.event.id}`, ...DESKTOP },
@@ -106,6 +133,47 @@ async function fillAccessDialog(page) {
   await page.getByTestId('access-own-networks').click()
   await page.getByTestId('access-password').blur()
   await page.waitForTimeout(300)
+}
+
+// The mock data shows a gateway someone has worked with: an agent put the CrowdSec Hub on "Sperren", two scenarios
+// and two preset limits deviate from the recommendation. The shots of the basic protection and the login protection
+// show the gateway as it comes instead (docs/gateway/01-funktionen.md, "Ab Werk"): the dashboard's own buttons put
+// those switches back, then the page opens within the same session.
+async function factory(page, route) {
+  const go = async (to) => {
+    await page.evaluate(r => { location.hash = `#${r}` }, to)
+    await page.locator('h1').first().waitFor()
+    await page.waitForTimeout(900)
+  }
+  const confirm = async () => {
+    const dialog = page.locator('[role="dialog"], [role="alertdialog"]').last()
+    await dialog.waitFor()
+    const pw = dialog.locator('input[type="password"]')
+    if (await pw.count()) await pw.fill('mock-passwort-123')
+    await dialog.getByRole('button').filter({ hasNotText: /Abbrechen|Schließen|Close/ }).last().click()
+    await dialog.waitFor({ state: 'hidden' })
+  }
+  await go('/settings/rules/crowdsec')
+  await page.getByTestId('repository-restore').click()
+  await page.waitForTimeout(600)
+  if (await page.locator('[role="dialog"], [role="alertdialog"]').count()) await confirm()
+  await go('/settings/rules/behaviour')
+  await page.getByTestId('apply-recommendation').click()
+  await confirm()
+  await go('/settings/rules/behaviour?view=limits')
+  await page.getByTestId('limit-apply-recommendation').click()
+  await confirm()
+  await go(route)
+  // The notes the changes left ("2 Limits umgestellt") belong to the setup, not to the picture.
+  await page.locator('[data-sonner-toast]').evaluateAll(toasts => toasts.forEach(t => t.remove()))
+}
+
+async function blockAiTraining(page) {
+  await page.getByTestId('crawlers-preset').click()
+  await page.waitForTimeout(600)
+  await page.getByTestId('crawlers-impersonators').click()
+  await page.waitForTimeout(600)
+  await page.locator('[data-sonner-toast]').evaluateAll(toasts => toasts.forEach(t => t.remove()))
 }
 
 const scrollTo = locator => locator.evaluate(e => e.scrollIntoView({ block: 'start' }))
