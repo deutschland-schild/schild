@@ -159,3 +159,23 @@ func TestAgentAPIAnyInterfaceNeedsContainer(t *testing.T) {
 		t.Fatalf("with the variable: %d, want 401", code)
 	}
 }
+
+// The switch of the agent API is a setting like every other: set in the
+// dashboard of one node of a group, it holds on the other, and given back
+// there it is given back here.
+func TestAgentAPISwitchHoldsOnEveryNodeOfAGroup(t *testing.T) {
+	a, b := pair(t)
+	a.h.Login()
+	b.h.Login()
+	off := false
+	if st := agentState(t, a.h, "PUT", map[string]any{"enabled": off}, 200); st.Enabled {
+		t.Fatal("web-1 did not switch the agent API off")
+	}
+	b.h.WaitFor("the agent API is off on web-2", func() bool {
+		st := agentState(t, b.h, "GET", nil, 200)
+		return !st.Enabled && st.StateSource == "dashboard"
+	})
+	on := true
+	agentState(t, b.h, "PUT", map[string]any{"enabled": on}, 200)
+	a.h.WaitFor("the agent API is on again on web-1", func() bool { return agentState(t, a.h, "GET", nil, 200).Enabled })
+}

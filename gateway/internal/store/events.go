@@ -85,6 +85,7 @@ func (s *Store) InsertEvents(ctx context.Context, rows []*EventRow) error {
 	}
 	// Bytes handed to SQLite count towards the next size-cap pass (D38).
 	s.written.Add(written)
+	s.noteOwn(ctx)
 	return nil
 }
 

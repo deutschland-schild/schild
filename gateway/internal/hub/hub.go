@@ -222,6 +222,14 @@ type Source struct {
 	cur  *loaded
 	st   persisted
 	seen map[int]bool // base ids loaded in this process
+	// share is the index this node can hand to its group; refusedShared the
+	// digest of one a member handed over and this node refused (share.go).
+	share         *shared
+	refusedShared string
+	// resetAt: the last reset to the image snapshot, here or on a node of
+	// the group; onReset tells the group of a reset made here.
+	resetAt time.Time
+	onReset func(at time.Time)
 }
 
 // New returns a source. Call Prepare before the first WAF build.
@@ -674,7 +682,11 @@ func (s *Source) SetState(ctx context.Context, rebuild bool) error {
 // snapshot nothing changes. The operator's way back when a stored set is the
 // problem, with or without automatic updates. They go on afterwards, so a
 // check is due soon; it passes the same checks as any other.
-func (s *Source) Reset(ctx context.Context) error {
+func (s *Source) Reset(ctx context.Context) error { return s.reset(ctx, true) }
+
+// reset is Reset; tell false: the reset of another node of the group is
+// followed here and not told on.
+func (s *Source) reset(ctx context.Context, tell bool) error {
 	s.opMu.Lock()
 	defer s.opMu.Unlock()
 	l := s.image()
@@ -698,7 +710,17 @@ func (s *Source) Reset(ctx context.Context) error {
 	}
 	s.mu.Lock()
 	s.st.Failing = false
+	// The index of before is neither handed to the group any more nor
+	// taken back from it (share.go).
+	s.share = nil
+	if now.After(s.resetAt) {
+		s.resetAt = now
+	}
+	onReset := s.onReset
 	s.mu.Unlock()
+	if tell && onReset != nil {
+		onReset(now)
+	}
 	s.saveStatus(ctx)
 	s.emit(now, ev, nil, nil, nil)
 	s.o.Log.Info("crowdsec rules reset to the image snapshot", "state", s.cfg().State, "loaded", ev.RulesLoaded)

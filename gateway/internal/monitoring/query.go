@@ -334,7 +334,7 @@ type mergedEntry struct {
 }
 
 // Breakdown answers getTrafficBreakdown.
-func (m *Monitor) Breakdown(by string, from, to time.Time, site string, filters []string, top int, now time.Time) (TrafficBreakdown, error) {
+func (m NodeView) Breakdown(by string, from, to time.Time, site string, filters []string, top int, now time.Time) (TrafficBreakdown, error) {
 	sel, err := m.selectSite(site)
 	if err != nil {
 		return TrafficBreakdown{}, &ErrInvalid{"site", "unknown site"}
@@ -404,7 +404,7 @@ func (m *Monitor) Breakdown(by string, from, to time.Time, site string, filters 
 	cov := coverage{step: ring.Step}
 	read := func(fn func(t time.Time, b *cm.MetricBucket)) error {
 		if ring.Resolution != m.rings[2].Resolution {
-			return m.store.read(ring, start, end, parts, func(t time.Time, b *cm.MetricBucket) {
+			return m.readNodes(ring, start, end, parts, func(t time.Time, b *cm.MetricBucket) {
 				cov.add(t, b.Partial, b.GapKind)
 				fn(t, b)
 			})
@@ -575,6 +575,12 @@ func topList(t *cm.BucketTop, by string) []cm.TopEntry {
 }
 
 // ---------------------------------------------------------------- buckets
+
+// OwnGen is a number that moves whenever this gateway wrote a bucket of its
+// own into its store. While it stands, Buckets answers the same question
+// with the same buckets (a caller may keep the answer; what the retention
+// deletes meanwhile is old and never asked for anew).
+func (m *Monitor) OwnGen() uint64 { return m.store.gen.Load() }
 
 // Buckets answers listMetricBuckets: oldest first by cursor.
 func (m *Monitor) Buckets(res string, from time.Time, cursor string, limit int, now time.Time) (cm.MetricBucketPage, error) {

@@ -1,0 +1,2369 @@
+{
+ "results_version": 0,
+ "spec": "MVP-27",
+ "run_id": "hardening-20261122T164055Z",
+ "started_at": "2026-11-22T16:40:55Z",
+ "finished_at": "2026-11-22T17:36:22Z",
+ "seed": 27,
+ "profile": "unit",
+ "git_rev": "3971e35c760c",
+ "host": {
+  "arch": "arm64",
+  "cpus": 12
+ },
+ "images": [
+  {
+   "name": "schild-dev-build",
+   "digest": "sha256:999ede9ef9832522a40067cec11ae255e177ef1a5cad5e587a9df332989a57bb"
+  }
+ ],
+ "metrics": [
+  {
+   "name": "checks",
+   "value": 75.0,
+   "unit": "count",
+   "labels": {
+    "scenario": "s1_faults",
+    "verdict": "pass"
+   }
+  },
+  {
+   "name": "checks",
+   "value": 3.0,
+   "unit": "count",
+   "labels": {
+    "scenario": "s1_faults",
+    "verdict": "fail"
+   }
+  },
+  {
+   "name": "checks",
+   "value": 5.0,
+   "unit": "count",
+   "labels": {
+    "scenario": "s1_faults",
+    "verdict": "info"
+   }
+  },
+  {
+   "name": "block_propagation_delay_300ms",
+   "value": 0.438,
+   "unit": "s",
+   "labels": {
+    "scenario": "s1_faults",
+    "nodes": "3",
+    "node": "t2"
+   }
+  },
+  {
+   "name": "block_propagation_delay_300ms",
+   "value": 0.438,
+   "unit": "s",
+   "labels": {
+    "scenario": "s1_faults",
+    "nodes": "3",
+    "node": "t3"
+   }
+  },
+  {
+   "name": "hung_peer_noticed",
+   "value": 3.01,
+   "unit": "s",
+   "labels": {
+    "scenario": "s1_faults",
+    "nodes": "3",
+    "observer": "t1"
+   }
+  },
+  {
+   "name": "hung_peer_noticed",
+   "value": 0.0,
+   "unit": "s",
+   "labels": {
+    "scenario": "s1_faults",
+    "nodes": "3",
+    "observer": "t3"
+   }
+  },
+  {
+   "name": "heal_converged",
+   "value": 0.4208587920293212,
+   "unit": "s",
+   "labels": {
+    "scenario": "s1_faults",
+    "nodes": "3"
+   }
+  },
+  {
+   "name": "ready_after_restart_cut_off",
+   "value": 10.12,
+   "unit": "s",
+   "labels": {
+    "scenario": "s1_faults",
+    "nodes": "3"
+   }
+  },
+  {
+   "name": "ready_after_restart_300ms",
+   "value": 3.67,
+   "unit": "s",
+   "labels": {
+    "scenario": "s1_faults",
+    "nodes": "3"
+   }
+  },
+  {
+   "name": "block_propagation_delay_300ms",
+   "value": 0.523,
+   "unit": "s",
+   "labels": {
+    "scenario": "s1_faults",
+    "nodes": "2",
+    "node": "p2"
+   }
+  },
+  {
+   "name": "hung_peer_noticed",
+   "value": 2.4,
+   "unit": "s",
+   "labels": {
+    "scenario": "s1_faults",
+    "nodes": "2",
+    "observer": "p1"
+   }
+  },
+  {
+   "name": "hung_peer_noticed",
+   "value": 0.0,
+   "unit": "s",
+   "labels": {
+    "scenario": "s1_faults",
+    "nodes": "2",
+    "observer": "p2"
+   }
+  },
+  {
+   "name": "heal_converged",
+   "value": 0.3638439578935504,
+   "unit": "s",
+   "labels": {
+    "scenario": "s1_faults",
+    "nodes": "2"
+   }
+  },
+  {
+   "name": "ready_after_restart_cut_off",
+   "value": 10.1,
+   "unit": "s",
+   "labels": {
+    "scenario": "s1_faults",
+    "nodes": "2"
+   }
+  },
+  {
+   "name": "ready_after_restart_300ms",
+   "value": 3.64,
+   "unit": "s",
+   "labels": {
+    "scenario": "s1_faults",
+    "nodes": "2"
+   }
+  },
+  {
+   "name": "checks",
+   "value": 40.0,
+   "unit": "count",
+   "labels": {
+    "scenario": "s2_crashes",
+    "verdict": "pass"
+   }
+  },
+  {
+   "name": "checks",
+   "value": 4.0,
+   "unit": "count",
+   "labels": {
+    "scenario": "s2_crashes",
+    "verdict": "fail"
+   }
+  },
+  {
+   "name": "checks",
+   "value": 4.0,
+   "unit": "count",
+   "labels": {
+    "scenario": "s2_crashes",
+    "verdict": "info"
+   }
+  },
+  {
+   "name": "ready_after_kill9",
+   "value": 5.474624500144273,
+   "unit": "s",
+   "labels": {
+    "scenario": "s2_crashes",
+    "round": "1"
+   }
+  },
+  {
+   "name": "requests_missing_on_killed_node",
+   "value": 289.0,
+   "unit": "count",
+   "labels": {
+    "scenario": "s2_crashes",
+    "round": "1"
+   }
+  },
+  {
+   "name": "ready_after_kill9",
+   "value": 5.540833916049451,
+   "unit": "s",
+   "labels": {
+    "scenario": "s2_crashes",
+    "round": "2"
+   }
+  },
+  {
+   "name": "requests_missing_on_killed_node",
+   "value": 68.0,
+   "unit": "count",
+   "labels": {
+    "scenario": "s2_crashes",
+    "round": "2"
+   }
+  },
+  {
+   "name": "ready_after_kill9",
+   "value": 5.54305904218927,
+   "unit": "s",
+   "labels": {
+    "scenario": "s2_crashes",
+    "round": "3"
+   }
+  },
+  {
+   "name": "requests_missing_on_killed_node",
+   "value": 53.0,
+   "unit": "count",
+   "labels": {
+    "scenario": "s2_crashes",
+    "round": "3"
+   }
+  },
+  {
+   "name": "ready_after_kill9",
+   "value": 5.525814542081207,
+   "unit": "s",
+   "labels": {
+    "scenario": "s2_crashes",
+    "round": "4"
+   }
+  },
+  {
+   "name": "requests_missing_on_killed_node",
+   "value": 0.0,
+   "unit": "count",
+   "labels": {
+    "scenario": "s2_crashes",
+    "round": "4"
+   }
+  },
+  {
+   "name": "rolling_restart_failed_requests",
+   "value": 0.0,
+   "unit": "count",
+   "labels": {
+    "scenario": "s2_crashes",
+    "nodes": "3",
+    "how": "sigterm"
+   },
+   "samples": 11400
+  },
+  {
+   "name": "ready_after_all_killed",
+   "value": 5.566048374865204,
+   "unit": "s",
+   "labels": {
+    "scenario": "s2_crashes",
+    "round": "1"
+   }
+  },
+  {
+   "name": "ready_after_all_killed",
+   "value": 5.563613166566938,
+   "unit": "s",
+   "labels": {
+    "scenario": "s2_crashes",
+    "round": "1"
+   }
+  },
+  {
+   "name": "ready_after_all_killed",
+   "value": 5.562123874668032,
+   "unit": "s",
+   "labels": {
+    "scenario": "s2_crashes",
+    "round": "1"
+   }
+  },
+  {
+   "name": "ready_after_all_killed",
+   "value": 5.53739408403635,
+   "unit": "s",
+   "labels": {
+    "scenario": "s2_crashes",
+    "round": "2"
+   }
+  },
+  {
+   "name": "ready_after_all_killed",
+   "value": 5.533909916877747,
+   "unit": "s",
+   "labels": {
+    "scenario": "s2_crashes",
+    "round": "2"
+   }
+  },
+  {
+   "name": "ready_after_all_killed",
+   "value": 5.532134749926627,
+   "unit": "s",
+   "labels": {
+    "scenario": "s2_crashes",
+    "round": "2"
+   }
+  },
+  {
+   "name": "ready_after_all_killed",
+   "value": 5.585973291192204,
+   "unit": "s",
+   "labels": {
+    "scenario": "s2_crashes",
+    "round": "3"
+   }
+  },
+  {
+   "name": "ready_after_all_killed",
+   "value": 5.5828438750468194,
+   "unit": "s",
+   "labels": {
+    "scenario": "s2_crashes",
+    "round": "3"
+   }
+  },
+  {
+   "name": "ready_after_all_killed",
+   "value": 5.581216167192906,
+   "unit": "s",
+   "labels": {
+    "scenario": "s2_crashes",
+    "round": "3"
+   }
+  },
+  {
+   "name": "checks",
+   "value": 17.0,
+   "unit": "count",
+   "labels": {
+    "scenario": "s3_load",
+    "verdict": "pass"
+   }
+  },
+  {
+   "name": "checks",
+   "value": 1.0,
+   "unit": "count",
+   "labels": {
+    "scenario": "s3_load",
+    "verdict": "fail"
+   }
+  },
+  {
+   "name": "checks",
+   "value": 4.0,
+   "unit": "count",
+   "labels": {
+    "scenario": "s3_load",
+    "verdict": "info"
+   }
+  },
+  {
+   "name": "requests_held_share",
+   "value": 1.0,
+   "unit": "ratio",
+   "labels": {
+    "scenario": "s3_load",
+    "rps": "300",
+    "node": "g1"
+   },
+   "samples": 9000
+  },
+  {
+   "name": "requests_held_share",
+   "value": 1.0,
+   "unit": "ratio",
+   "labels": {
+    "scenario": "s3_load",
+    "rps": "300",
+    "node": "g2"
+   },
+   "samples": 9000
+  },
+  {
+   "name": "requests_held_share",
+   "value": 1.0,
+   "unit": "ratio",
+   "labels": {
+    "scenario": "s3_load",
+    "rps": "300",
+    "node": "g3"
+   },
+   "samples": 9000
+  },
+  {
+   "name": "load_latency_p50",
+   "value": 1.101,
+   "unit": "ms",
+   "labels": {
+    "scenario": "s3_load",
+    "rps": "300",
+    "cluster": "on"
+   },
+   "samples": 9000
+  },
+  {
+   "name": "load_latency_p99",
+   "value": 4.459,
+   "unit": "ms",
+   "labels": {
+    "scenario": "s3_load",
+    "rps": "300",
+    "cluster": "on"
+   },
+   "samples": 9000
+  },
+  {
+   "name": "requests_held_share",
+   "value": 1.0,
+   "unit": "ratio",
+   "labels": {
+    "scenario": "s3_load",
+    "rps": "1000",
+    "node": "g1"
+   },
+   "samples": 30000
+  },
+  {
+   "name": "requests_held_share",
+   "value": 1.0,
+   "unit": "ratio",
+   "labels": {
+    "scenario": "s3_load",
+    "rps": "1000",
+    "node": "g2"
+   },
+   "samples": 30000
+  },
+  {
+   "name": "requests_held_share",
+   "value": 1.0,
+   "unit": "ratio",
+   "labels": {
+    "scenario": "s3_load",
+    "rps": "1000",
+    "node": "g3"
+   },
+   "samples": 30000
+  },
+  {
+   "name": "load_latency_p50",
+   "value": 0.628,
+   "unit": "ms",
+   "labels": {
+    "scenario": "s3_load",
+    "rps": "1000",
+    "cluster": "on"
+   },
+   "samples": 30000
+  },
+  {
+   "name": "load_latency_p99",
+   "value": 2.271,
+   "unit": "ms",
+   "labels": {
+    "scenario": "s3_load",
+    "rps": "1000",
+    "cluster": "on"
+   },
+   "samples": 30000
+  },
+  {
+   "name": "requests_held_share",
+   "value": 1.0,
+   "unit": "ratio",
+   "labels": {
+    "scenario": "s3_load",
+    "rps": "2000",
+    "node": "g1"
+   },
+   "samples": 60000
+  },
+  {
+   "name": "requests_held_share",
+   "value": 1.0,
+   "unit": "ratio",
+   "labels": {
+    "scenario": "s3_load",
+    "rps": "2000",
+    "node": "g2"
+   },
+   "samples": 60000
+  },
+  {
+   "name": "requests_held_share",
+   "value": 1.0,
+   "unit": "ratio",
+   "labels": {
+    "scenario": "s3_load",
+    "rps": "2000",
+    "node": "g3"
+   },
+   "samples": 60000
+  },
+  {
+   "name": "load_latency_p50",
+   "value": 0.61,
+   "unit": "ms",
+   "labels": {
+    "scenario": "s3_load",
+    "rps": "2000",
+    "cluster": "on"
+   },
+   "samples": 60000
+  },
+  {
+   "name": "load_latency_p99",
+   "value": 8.959,
+   "unit": "ms",
+   "labels": {
+    "scenario": "s3_load",
+    "rps": "2000",
+    "cluster": "on"
+   },
+   "samples": 60000
+  },
+  {
+   "name": "requests_held_share",
+   "value": 1.0,
+   "unit": "ratio",
+   "labels": {
+    "scenario": "s3_load",
+    "rps": "3000",
+    "node": "g1"
+   },
+   "samples": 90000
+  },
+  {
+   "name": "requests_held_share",
+   "value": 1.0,
+   "unit": "ratio",
+   "labels": {
+    "scenario": "s3_load",
+    "rps": "3000",
+    "node": "g2"
+   },
+   "samples": 90000
+  },
+  {
+   "name": "requests_held_share",
+   "value": 1.0,
+   "unit": "ratio",
+   "labels": {
+    "scenario": "s3_load",
+    "rps": "3000",
+    "node": "g3"
+   },
+   "samples": 90000
+  },
+  {
+   "name": "load_latency_p50",
+   "value": 0.561,
+   "unit": "ms",
+   "labels": {
+    "scenario": "s3_load",
+    "rps": "3000",
+    "cluster": "on"
+   },
+   "samples": 90000
+  },
+  {
+   "name": "load_latency_p99",
+   "value": 12.092,
+   "unit": "ms",
+   "labels": {
+    "scenario": "s3_load",
+    "rps": "3000",
+    "cluster": "on"
+   },
+   "samples": 90000
+  },
+  {
+   "name": "requests_held_share",
+   "value": 1.0,
+   "unit": "ratio",
+   "labels": {
+    "scenario": "s3_load",
+    "rps": "6000",
+    "node": "g1"
+   },
+   "samples": 180000
+  },
+  {
+   "name": "requests_held_share",
+   "value": 1.0,
+   "unit": "ratio",
+   "labels": {
+    "scenario": "s3_load",
+    "rps": "6000",
+    "node": "g2"
+   },
+   "samples": 180000
+  },
+  {
+   "name": "requests_held_share",
+   "value": 1.0,
+   "unit": "ratio",
+   "labels": {
+    "scenario": "s3_load",
+    "rps": "6000",
+    "node": "g3"
+   },
+   "samples": 180000
+  },
+  {
+   "name": "load_latency_p50",
+   "value": 0.62,
+   "unit": "ms",
+   "labels": {
+    "scenario": "s3_load",
+    "rps": "6000",
+    "cluster": "on"
+   },
+   "samples": 180000
+  },
+  {
+   "name": "load_latency_p99",
+   "value": 36.063,
+   "unit": "ms",
+   "labels": {
+    "scenario": "s3_load",
+    "rps": "6000",
+    "cluster": "on"
+   },
+   "samples": 180000
+  },
+  {
+   "name": "requests_held_share",
+   "value": 1.0,
+   "unit": "ratio",
+   "labels": {
+    "scenario": "s3_load",
+    "rps": "9000",
+    "node": "g1"
+   },
+   "samples": 270000
+  },
+  {
+   "name": "requests_held_share",
+   "value": 0.9899,
+   "unit": "ratio",
+   "labels": {
+    "scenario": "s3_load",
+    "rps": "9000",
+    "node": "g2"
+   },
+   "samples": 270000
+  },
+  {
+   "name": "requests_held_share",
+   "value": 1.0,
+   "unit": "ratio",
+   "labels": {
+    "scenario": "s3_load",
+    "rps": "9000",
+    "node": "g3"
+   },
+   "samples": 270000
+  },
+  {
+   "name": "load_latency_p50",
+   "value": 6.213,
+   "unit": "ms",
+   "labels": {
+    "scenario": "s3_load",
+    "rps": "9000",
+    "cluster": "on"
+   },
+   "samples": 270000
+  },
+  {
+   "name": "load_latency_p99",
+   "value": 151.746,
+   "unit": "ms",
+   "labels": {
+    "scenario": "s3_load",
+    "rps": "9000",
+    "cluster": "on"
+   },
+   "samples": 270000
+  },
+  {
+   "name": "latency_p50",
+   "value": 0.577,
+   "unit": "ms",
+   "labels": {
+    "scenario": "s3_load",
+    "cluster": "off",
+    "rps": "3000",
+    "round": "1"
+   },
+   "samples": 135000
+  },
+  {
+   "name": "latency_p99",
+   "value": 20.444,
+   "unit": "ms",
+   "labels": {
+    "scenario": "s3_load",
+    "cluster": "off",
+    "rps": "3000",
+    "round": "1"
+   },
+   "samples": 135000
+  },
+  {
+   "name": "latency_p50",
+   "value": 0.571,
+   "unit": "ms",
+   "labels": {
+    "scenario": "s3_load",
+    "cluster": "on",
+    "rps": "3000",
+    "round": "1"
+   },
+   "samples": 135000
+  },
+  {
+   "name": "latency_p99",
+   "value": 16.924,
+   "unit": "ms",
+   "labels": {
+    "scenario": "s3_load",
+    "cluster": "on",
+    "rps": "3000",
+    "round": "1"
+   },
+   "samples": 135000
+  },
+  {
+   "name": "latency_p50",
+   "value": 0.582,
+   "unit": "ms",
+   "labels": {
+    "scenario": "s3_load",
+    "cluster": "off",
+    "rps": "3000",
+    "round": "2"
+   },
+   "samples": 135000
+  },
+  {
+   "name": "latency_p99",
+   "value": 19.882,
+   "unit": "ms",
+   "labels": {
+    "scenario": "s3_load",
+    "cluster": "off",
+    "rps": "3000",
+    "round": "2"
+   },
+   "samples": 135000
+  },
+  {
+   "name": "latency_p50",
+   "value": 0.58,
+   "unit": "ms",
+   "labels": {
+    "scenario": "s3_load",
+    "cluster": "on",
+    "rps": "3000",
+    "round": "2"
+   },
+   "samples": 135000
+  },
+  {
+   "name": "latency_p99",
+   "value": 22.973,
+   "unit": "ms",
+   "labels": {
+    "scenario": "s3_load",
+    "cluster": "on",
+    "rps": "3000",
+    "round": "2"
+   },
+   "samples": 135000
+  },
+  {
+   "name": "latency_p50",
+   "value": 0.583,
+   "unit": "ms",
+   "labels": {
+    "scenario": "s3_load",
+    "cluster": "off",
+    "rps": "3000",
+    "round": "3"
+   },
+   "samples": 135000
+  },
+  {
+   "name": "latency_p99",
+   "value": 21.166,
+   "unit": "ms",
+   "labels": {
+    "scenario": "s3_load",
+    "cluster": "off",
+    "rps": "3000",
+    "round": "3"
+   },
+   "samples": 135000
+  },
+  {
+   "name": "latency_p50",
+   "value": 0.576,
+   "unit": "ms",
+   "labels": {
+    "scenario": "s3_load",
+    "cluster": "on",
+    "rps": "3000",
+    "round": "3"
+   },
+   "samples": 135000
+  },
+  {
+   "name": "latency_p99",
+   "value": 19.84,
+   "unit": "ms",
+   "labels": {
+    "scenario": "s3_load",
+    "cluster": "on",
+    "rps": "3000",
+    "round": "3"
+   },
+   "samples": 135000
+  },
+  {
+   "name": "block_propagation_under_load_p95",
+   "value": 0.583,
+   "unit": "s",
+   "labels": {
+    "scenario": "s3_load",
+    "rps": "3000"
+   },
+   "samples": 24
+  },
+  {
+   "name": "rate_limit_passed_under_load",
+   "value": 74.0,
+   "unit": "count",
+   "labels": {
+    "scenario": "s3_load",
+    "nodes": "1"
+   },
+   "samples": 300
+  },
+  {
+   "name": "rate_limit_passed_under_load",
+   "value": 75.0,
+   "unit": "count",
+   "labels": {
+    "scenario": "s3_load",
+    "nodes": "3"
+   },
+   "samples": 300
+  },
+  {
+   "name": "main_latency_p50",
+   "value": 0.573,
+   "unit": "ms",
+   "labels": {
+    "scenario": "s3_load",
+    "rps": "3000"
+   },
+   "samples": 540000
+  },
+  {
+   "name": "main_latency_p99",
+   "value": 19.682,
+   "unit": "ms",
+   "labels": {
+    "scenario": "s3_load",
+    "rps": "3000"
+   },
+   "samples": 540000
+  },
+  {
+   "name": "rss_under_load",
+   "value": 367.0,
+   "unit": "count",
+   "labels": {
+    "scenario": "s3_load",
+    "node": "m1",
+    "rps": "3000",
+    "what": "MiB"
+   }
+  },
+  {
+   "name": "rss_under_load",
+   "value": 365.5,
+   "unit": "count",
+   "labels": {
+    "scenario": "s3_load",
+    "node": "m2",
+    "rps": "3000",
+    "what": "MiB"
+   }
+  },
+  {
+   "name": "rss_under_load",
+   "value": 369.8,
+   "unit": "count",
+   "labels": {
+    "scenario": "s3_load",
+    "node": "m3",
+    "rps": "3000",
+    "what": "MiB"
+   }
+  },
+  {
+   "name": "main_requests_held_spread",
+   "value": 0.0,
+   "unit": "count",
+   "labels": {
+    "scenario": "s3_load",
+    "rps": "3000"
+   },
+   "samples": 540000
+  },
+  {
+   "name": "checks",
+   "value": 44.0,
+   "unit": "count",
+   "labels": {
+    "scenario": "s4_sizes",
+    "verdict": "pass"
+   }
+  },
+  {
+   "name": "checks",
+   "value": 0.0,
+   "unit": "count",
+   "labels": {
+    "scenario": "s4_sizes",
+    "verdict": "fail"
+   }
+  },
+  {
+   "name": "checks",
+   "value": 6.0,
+   "unit": "count",
+   "labels": {
+    "scenario": "s4_sizes",
+    "verdict": "info"
+   }
+  },
+  {
+   "name": "group_converged_after_start",
+   "value": 7.18,
+   "unit": "s",
+   "labels": {
+    "scenario": "s4_sizes",
+    "nodes": "16"
+   }
+  },
+  {
+   "name": "ready_after_first_start",
+   "value": 1.9014913332648575,
+   "unit": "s",
+   "labels": {
+    "scenario": "s4_sizes",
+    "nodes": "16"
+   }
+  },
+  {
+   "name": "ready_after_first_start",
+   "value": 2.0128400828689337,
+   "unit": "s",
+   "labels": {
+    "scenario": "s4_sizes",
+    "nodes": "16"
+   }
+  },
+  {
+   "name": "ready_after_first_start",
+   "value": 2.0095527078956366,
+   "unit": "s",
+   "labels": {
+    "scenario": "s4_sizes",
+    "nodes": "16"
+   }
+  },
+  {
+   "name": "ready_after_first_start",
+   "value": 2.0054601249285042,
+   "unit": "s",
+   "labels": {
+    "scenario": "s4_sizes",
+    "nodes": "16"
+   }
+  },
+  {
+   "name": "ready_after_first_start",
+   "value": 2.002763249911368,
+   "unit": "s",
+   "labels": {
+    "scenario": "s4_sizes",
+    "nodes": "16"
+   }
+  },
+  {
+   "name": "ready_after_first_start",
+   "value": 1.9988447921350598,
+   "unit": "s",
+   "labels": {
+    "scenario": "s4_sizes",
+    "nodes": "16"
+   }
+  },
+  {
+   "name": "ready_after_first_start",
+   "value": 1.9691449999809265,
+   "unit": "s",
+   "labels": {
+    "scenario": "s4_sizes",
+    "nodes": "16"
+   }
+  },
+  {
+   "name": "ready_after_first_start",
+   "value": 2.0015166248194873,
+   "unit": "s",
+   "labels": {
+    "scenario": "s4_sizes",
+    "nodes": "16"
+   }
+  },
+  {
+   "name": "ready_after_first_start",
+   "value": 1.9872449580579996,
+   "unit": "s",
+   "labels": {
+    "scenario": "s4_sizes",
+    "nodes": "16"
+   }
+  },
+  {
+   "name": "ready_after_first_start",
+   "value": 1.9836591249331832,
+   "unit": "s",
+   "labels": {
+    "scenario": "s4_sizes",
+    "nodes": "16"
+   }
+  },
+  {
+   "name": "ready_after_first_start",
+   "value": 1.9738587918691337,
+   "unit": "s",
+   "labels": {
+    "scenario": "s4_sizes",
+    "nodes": "16"
+   }
+  },
+  {
+   "name": "ready_after_first_start",
+   "value": 1.9648880418390036,
+   "unit": "s",
+   "labels": {
+    "scenario": "s4_sizes",
+    "nodes": "16"
+   }
+  },
+  {
+   "name": "ready_after_first_start",
+   "value": 1.9596094167791307,
+   "unit": "s",
+   "labels": {
+    "scenario": "s4_sizes",
+    "nodes": "16"
+   }
+  },
+  {
+   "name": "ready_after_first_start",
+   "value": 1.9544905829243362,
+   "unit": "s",
+   "labels": {
+    "scenario": "s4_sizes",
+    "nodes": "16"
+   }
+  },
+  {
+   "name": "ready_after_first_start",
+   "value": 1.9456512499600649,
+   "unit": "s",
+   "labels": {
+    "scenario": "s4_sizes",
+    "nodes": "16"
+   }
+  },
+  {
+   "name": "ready_after_first_start",
+   "value": 1.9389932500198483,
+   "unit": "s",
+   "labels": {
+    "scenario": "s4_sizes",
+    "nodes": "16"
+   }
+  },
+  {
+   "name": "rss_idle",
+   "value": 194.2,
+   "unit": "count",
+   "labels": {
+    "scenario": "s4_sizes",
+    "nodes": "16",
+    "node": "w01",
+    "what": "MiB"
+   }
+  },
+  {
+   "name": "tcp_established_idle",
+   "value": 90.0,
+   "unit": "count",
+   "labels": {
+    "scenario": "s4_sizes",
+    "nodes": "16",
+    "node": "w01"
+   }
+  },
+  {
+   "name": "rss_idle",
+   "value": 177.2,
+   "unit": "count",
+   "labels": {
+    "scenario": "s4_sizes",
+    "nodes": "16",
+    "node": "w02",
+    "what": "MiB"
+   }
+  },
+  {
+   "name": "tcp_established_idle",
+   "value": 90.0,
+   "unit": "count",
+   "labels": {
+    "scenario": "s4_sizes",
+    "nodes": "16",
+    "node": "w02"
+   }
+  },
+  {
+   "name": "rss_idle",
+   "value": 170.4,
+   "unit": "count",
+   "labels": {
+    "scenario": "s4_sizes",
+    "nodes": "16",
+    "node": "w03",
+    "what": "MiB"
+   }
+  },
+  {
+   "name": "tcp_established_idle",
+   "value": 90.0,
+   "unit": "count",
+   "labels": {
+    "scenario": "s4_sizes",
+    "nodes": "16",
+    "node": "w03"
+   }
+  },
+  {
+   "name": "rss_idle",
+   "value": 186.2,
+   "unit": "count",
+   "labels": {
+    "scenario": "s4_sizes",
+    "nodes": "16",
+    "node": "w04",
+    "what": "MiB"
+   }
+  },
+  {
+   "name": "tcp_established_idle",
+   "value": 90.0,
+   "unit": "count",
+   "labels": {
+    "scenario": "s4_sizes",
+    "nodes": "16",
+    "node": "w04"
+   }
+  },
+  {
+   "name": "rss_idle",
+   "value": 184.6,
+   "unit": "count",
+   "labels": {
+    "scenario": "s4_sizes",
+    "nodes": "16",
+    "node": "w05",
+    "what": "MiB"
+   }
+  },
+  {
+   "name": "tcp_established_idle",
+   "value": 90.0,
+   "unit": "count",
+   "labels": {
+    "scenario": "s4_sizes",
+    "nodes": "16",
+    "node": "w05"
+   }
+  },
+  {
+   "name": "rss_idle",
+   "value": 179.4,
+   "unit": "count",
+   "labels": {
+    "scenario": "s4_sizes",
+    "nodes": "16",
+    "node": "w06",
+    "what": "MiB"
+   }
+  },
+  {
+   "name": "tcp_established_idle",
+   "value": 90.0,
+   "unit": "count",
+   "labels": {
+    "scenario": "s4_sizes",
+    "nodes": "16",
+    "node": "w06"
+   }
+  },
+  {
+   "name": "rss_idle",
+   "value": 180.8,
+   "unit": "count",
+   "labels": {
+    "scenario": "s4_sizes",
+    "nodes": "16",
+    "node": "w07",
+    "what": "MiB"
+   }
+  },
+  {
+   "name": "tcp_established_idle",
+   "value": 90.0,
+   "unit": "count",
+   "labels": {
+    "scenario": "s4_sizes",
+    "nodes": "16",
+    "node": "w07"
+   }
+  },
+  {
+   "name": "rss_idle",
+   "value": 181.9,
+   "unit": "count",
+   "labels": {
+    "scenario": "s4_sizes",
+    "nodes": "16",
+    "node": "w08",
+    "what": "MiB"
+   }
+  },
+  {
+   "name": "tcp_established_idle",
+   "value": 90.0,
+   "unit": "count",
+   "labels": {
+    "scenario": "s4_sizes",
+    "nodes": "16",
+    "node": "w08"
+   }
+  },
+  {
+   "name": "rss_idle",
+   "value": 184.6,
+   "unit": "count",
+   "labels": {
+    "scenario": "s4_sizes",
+    "nodes": "16",
+    "node": "w09",
+    "what": "MiB"
+   }
+  },
+  {
+   "name": "tcp_established_idle",
+   "value": 90.0,
+   "unit": "count",
+   "labels": {
+    "scenario": "s4_sizes",
+    "nodes": "16",
+    "node": "w09"
+   }
+  },
+  {
+   "name": "rss_idle",
+   "value": 175.2,
+   "unit": "count",
+   "labels": {
+    "scenario": "s4_sizes",
+    "nodes": "16",
+    "node": "w10",
+    "what": "MiB"
+   }
+  },
+  {
+   "name": "tcp_established_idle",
+   "value": 90.0,
+   "unit": "count",
+   "labels": {
+    "scenario": "s4_sizes",
+    "nodes": "16",
+    "node": "w10"
+   }
+  },
+  {
+   "name": "rss_idle",
+   "value": 183.0,
+   "unit": "count",
+   "labels": {
+    "scenario": "s4_sizes",
+    "nodes": "16",
+    "node": "w11",
+    "what": "MiB"
+   }
+  },
+  {
+   "name": "tcp_established_idle",
+   "value": 90.0,
+   "unit": "count",
+   "labels": {
+    "scenario": "s4_sizes",
+    "nodes": "16",
+    "node": "w11"
+   }
+  },
+  {
+   "name": "rss_idle",
+   "value": 180.7,
+   "unit": "count",
+   "labels": {
+    "scenario": "s4_sizes",
+    "nodes": "16",
+    "node": "w12",
+    "what": "MiB"
+   }
+  },
+  {
+   "name": "tcp_established_idle",
+   "value": 90.0,
+   "unit": "count",
+   "labels": {
+    "scenario": "s4_sizes",
+    "nodes": "16",
+    "node": "w12"
+   }
+  },
+  {
+   "name": "rss_idle",
+   "value": 173.7,
+   "unit": "count",
+   "labels": {
+    "scenario": "s4_sizes",
+    "nodes": "16",
+    "node": "w13",
+    "what": "MiB"
+   }
+  },
+  {
+   "name": "tcp_established_idle",
+   "value": 90.0,
+   "unit": "count",
+   "labels": {
+    "scenario": "s4_sizes",
+    "nodes": "16",
+    "node": "w13"
+   }
+  },
+  {
+   "name": "rss_idle",
+   "value": 182.3,
+   "unit": "count",
+   "labels": {
+    "scenario": "s4_sizes",
+    "nodes": "16",
+    "node": "w14",
+    "what": "MiB"
+   }
+  },
+  {
+   "name": "tcp_established_idle",
+   "value": 90.0,
+   "unit": "count",
+   "labels": {
+    "scenario": "s4_sizes",
+    "nodes": "16",
+    "node": "w14"
+   }
+  },
+  {
+   "name": "rss_idle",
+   "value": 183.4,
+   "unit": "count",
+   "labels": {
+    "scenario": "s4_sizes",
+    "nodes": "16",
+    "node": "w15",
+    "what": "MiB"
+   }
+  },
+  {
+   "name": "tcp_established_idle",
+   "value": 90.0,
+   "unit": "count",
+   "labels": {
+    "scenario": "s4_sizes",
+    "nodes": "16",
+    "node": "w15"
+   }
+  },
+  {
+   "name": "rss_idle",
+   "value": 177.4,
+   "unit": "count",
+   "labels": {
+    "scenario": "s4_sizes",
+    "nodes": "16",
+    "node": "w16",
+    "what": "MiB"
+   }
+  },
+  {
+   "name": "tcp_established_idle",
+   "value": 90.0,
+   "unit": "count",
+   "labels": {
+    "scenario": "s4_sizes",
+    "nodes": "16",
+    "node": "w16"
+   }
+  },
+  {
+   "name": "block_propagation_p95",
+   "value": 0.826,
+   "unit": "s",
+   "labels": {
+    "scenario": "s4_sizes",
+    "nodes": "16"
+   },
+   "samples": 180
+  },
+  {
+   "name": "block_propagation_max",
+   "value": 0.974,
+   "unit": "s",
+   "labels": {
+    "scenario": "s4_sizes",
+    "nodes": "16"
+   },
+   "samples": 180
+  },
+  {
+   "name": "state_converged",
+   "value": 0.9011695003136992,
+   "unit": "s",
+   "labels": {
+    "scenario": "s4_sizes",
+    "nodes": "16"
+   }
+  },
+  {
+   "name": "rate_limit_passed",
+   "value": 75.0,
+   "unit": "count",
+   "labels": {
+    "scenario": "s4_sizes",
+    "nodes": "16",
+    "spread": "all"
+   },
+   "samples": 300
+  },
+  {
+   "name": "rate_limit_passed",
+   "value": 74.0,
+   "unit": "count",
+   "labels": {
+    "scenario": "s4_sizes",
+    "nodes": "16",
+    "spread": "one"
+   },
+   "samples": 300
+  },
+  {
+   "name": "rss_under_load",
+   "value": 374.4,
+   "unit": "count",
+   "labels": {
+    "scenario": "s4_sizes",
+    "nodes": "16",
+    "node": "w01",
+    "what": "MiB"
+   }
+  },
+  {
+   "name": "cpu_under_load",
+   "value": 21.5,
+   "unit": "percent",
+   "labels": {
+    "scenario": "s4_sizes",
+    "nodes": "16",
+    "node": "w01"
+   }
+  },
+  {
+   "name": "rss_under_load",
+   "value": 368.2,
+   "unit": "count",
+   "labels": {
+    "scenario": "s4_sizes",
+    "nodes": "16",
+    "node": "w02",
+    "what": "MiB"
+   }
+  },
+  {
+   "name": "cpu_under_load",
+   "value": 29.9,
+   "unit": "percent",
+   "labels": {
+    "scenario": "s4_sizes",
+    "nodes": "16",
+    "node": "w02"
+   }
+  },
+  {
+   "name": "rss_under_load",
+   "value": 348.8,
+   "unit": "count",
+   "labels": {
+    "scenario": "s4_sizes",
+    "nodes": "16",
+    "node": "w03",
+    "what": "MiB"
+   }
+  },
+  {
+   "name": "cpu_under_load",
+   "value": 49.6,
+   "unit": "percent",
+   "labels": {
+    "scenario": "s4_sizes",
+    "nodes": "16",
+    "node": "w03"
+   }
+  },
+  {
+   "name": "rss_under_load",
+   "value": 362.5,
+   "unit": "count",
+   "labels": {
+    "scenario": "s4_sizes",
+    "nodes": "16",
+    "node": "w04",
+    "what": "MiB"
+   }
+  },
+  {
+   "name": "cpu_under_load",
+   "value": 19.2,
+   "unit": "percent",
+   "labels": {
+    "scenario": "s4_sizes",
+    "nodes": "16",
+    "node": "w04"
+   }
+  },
+  {
+   "name": "rss_under_load",
+   "value": 376.4,
+   "unit": "count",
+   "labels": {
+    "scenario": "s4_sizes",
+    "nodes": "16",
+    "node": "w05",
+    "what": "MiB"
+   }
+  },
+  {
+   "name": "cpu_under_load",
+   "value": 21.9,
+   "unit": "percent",
+   "labels": {
+    "scenario": "s4_sizes",
+    "nodes": "16",
+    "node": "w05"
+   }
+  },
+  {
+   "name": "rss_under_load",
+   "value": 382.2,
+   "unit": "count",
+   "labels": {
+    "scenario": "s4_sizes",
+    "nodes": "16",
+    "node": "w06",
+    "what": "MiB"
+   }
+  },
+  {
+   "name": "cpu_under_load",
+   "value": 33.2,
+   "unit": "percent",
+   "labels": {
+    "scenario": "s4_sizes",
+    "nodes": "16",
+    "node": "w06"
+   }
+  },
+  {
+   "name": "rss_under_load",
+   "value": 372.6,
+   "unit": "count",
+   "labels": {
+    "scenario": "s4_sizes",
+    "nodes": "16",
+    "node": "w07",
+    "what": "MiB"
+   }
+  },
+  {
+   "name": "cpu_under_load",
+   "value": 19.8,
+   "unit": "percent",
+   "labels": {
+    "scenario": "s4_sizes",
+    "nodes": "16",
+    "node": "w07"
+   }
+  },
+  {
+   "name": "rss_under_load",
+   "value": 376.8,
+   "unit": "count",
+   "labels": {
+    "scenario": "s4_sizes",
+    "nodes": "16",
+    "node": "w08",
+    "what": "MiB"
+   }
+  },
+  {
+   "name": "cpu_under_load",
+   "value": 26.1,
+   "unit": "percent",
+   "labels": {
+    "scenario": "s4_sizes",
+    "nodes": "16",
+    "node": "w08"
+   }
+  },
+  {
+   "name": "rss_under_load",
+   "value": 372.5,
+   "unit": "count",
+   "labels": {
+    "scenario": "s4_sizes",
+    "nodes": "16",
+    "node": "w09",
+    "what": "MiB"
+   }
+  },
+  {
+   "name": "cpu_under_load",
+   "value": 25.6,
+   "unit": "percent",
+   "labels": {
+    "scenario": "s4_sizes",
+    "nodes": "16",
+    "node": "w09"
+   }
+  },
+  {
+   "name": "rss_under_load",
+   "value": 363.2,
+   "unit": "count",
+   "labels": {
+    "scenario": "s4_sizes",
+    "nodes": "16",
+    "node": "w10",
+    "what": "MiB"
+   }
+  },
+  {
+   "name": "cpu_under_load",
+   "value": 21.5,
+   "unit": "percent",
+   "labels": {
+    "scenario": "s4_sizes",
+    "nodes": "16",
+    "node": "w10"
+   }
+  },
+  {
+   "name": "rss_under_load",
+   "value": 362.8,
+   "unit": "count",
+   "labels": {
+    "scenario": "s4_sizes",
+    "nodes": "16",
+    "node": "w11",
+    "what": "MiB"
+   }
+  },
+  {
+   "name": "cpu_under_load",
+   "value": 16.7,
+   "unit": "percent",
+   "labels": {
+    "scenario": "s4_sizes",
+    "nodes": "16",
+    "node": "w11"
+   }
+  },
+  {
+   "name": "rss_under_load",
+   "value": 362.1,
+   "unit": "count",
+   "labels": {
+    "scenario": "s4_sizes",
+    "nodes": "16",
+    "node": "w12",
+    "what": "MiB"
+   }
+  },
+  {
+   "name": "cpu_under_load",
+   "value": 26.6,
+   "unit": "percent",
+   "labels": {
+    "scenario": "s4_sizes",
+    "nodes": "16",
+    "node": "w12"
+   }
+  },
+  {
+   "name": "rss_under_load",
+   "value": 389.6,
+   "unit": "count",
+   "labels": {
+    "scenario": "s4_sizes",
+    "nodes": "16",
+    "node": "w13",
+    "what": "MiB"
+   }
+  },
+  {
+   "name": "cpu_under_load",
+   "value": 27.5,
+   "unit": "percent",
+   "labels": {
+    "scenario": "s4_sizes",
+    "nodes": "16",
+    "node": "w13"
+   }
+  },
+  {
+   "name": "rss_under_load",
+   "value": 356.1,
+   "unit": "count",
+   "labels": {
+    "scenario": "s4_sizes",
+    "nodes": "16",
+    "node": "w14",
+    "what": "MiB"
+   }
+  },
+  {
+   "name": "cpu_under_load",
+   "value": 27.1,
+   "unit": "percent",
+   "labels": {
+    "scenario": "s4_sizes",
+    "nodes": "16",
+    "node": "w14"
+   }
+  },
+  {
+   "name": "rss_under_load",
+   "value": 372.8,
+   "unit": "count",
+   "labels": {
+    "scenario": "s4_sizes",
+    "nodes": "16",
+    "node": "w15",
+    "what": "MiB"
+   }
+  },
+  {
+   "name": "cpu_under_load",
+   "value": 32.5,
+   "unit": "percent",
+   "labels": {
+    "scenario": "s4_sizes",
+    "nodes": "16",
+    "node": "w15"
+   }
+  },
+  {
+   "name": "rss_under_load",
+   "value": 369.4,
+   "unit": "count",
+   "labels": {
+    "scenario": "s4_sizes",
+    "nodes": "16",
+    "node": "w16",
+    "what": "MiB"
+   }
+  },
+  {
+   "name": "cpu_under_load",
+   "value": 30.5,
+   "unit": "percent",
+   "labels": {
+    "scenario": "s4_sizes",
+    "nodes": "16",
+    "node": "w16"
+   }
+  },
+  {
+   "name": "latency_p50",
+   "value": 4.637,
+   "unit": "ms",
+   "labels": {
+    "scenario": "s4_sizes",
+    "nodes": "16",
+    "rps": "1600"
+   },
+   "samples": 64000
+  },
+  {
+   "name": "latency_p99",
+   "value": 243.283,
+   "unit": "ms",
+   "labels": {
+    "scenario": "s4_sizes",
+    "nodes": "16",
+    "rps": "1600"
+   },
+   "samples": 64000
+  },
+  {
+   "name": "ready_after_return",
+   "value": 1.669524332974106,
+   "unit": "s",
+   "labels": {
+    "scenario": "s4_sizes",
+    "nodes": "16"
+   }
+  },
+  {
+   "name": "ready_after_return",
+   "value": 1.6681312089785933,
+   "unit": "s",
+   "labels": {
+    "scenario": "s4_sizes",
+    "nodes": "16"
+   }
+  },
+  {
+   "name": "ready_after_return",
+   "value": 1.666878666728735,
+   "unit": "s",
+   "labels": {
+    "scenario": "s4_sizes",
+    "nodes": "16"
+   }
+  },
+  {
+   "name": "ready_after_return",
+   "value": 1.6656674579717219,
+   "unit": "s",
+   "labels": {
+    "scenario": "s4_sizes",
+    "nodes": "16"
+   }
+  },
+  {
+   "name": "ready_after_return",
+   "value": 1.6643713749945164,
+   "unit": "s",
+   "labels": {
+    "scenario": "s4_sizes",
+    "nodes": "16"
+   }
+  },
+  {
+   "name": "rolling_restart_failed_requests",
+   "value": 0.0,
+   "unit": "count",
+   "labels": {
+    "scenario": "s4_sizes",
+    "nodes": "16"
+   },
+   "samples": 160000
+  },
+  {
+   "name": "rolling_restart_took",
+   "value": 196.33429525000975,
+   "unit": "s",
+   "labels": {
+    "scenario": "s4_sizes",
+    "nodes": "16"
+   }
+  },
+  {
+   "name": "group_converged_after_start",
+   "value": 5.31,
+   "unit": "s",
+   "labels": {
+    "scenario": "s4_sizes",
+    "nodes": "2"
+   }
+  },
+  {
+   "name": "ready_after_first_start",
+   "value": 1.4780345000326633,
+   "unit": "s",
+   "labels": {
+    "scenario": "s4_sizes",
+    "nodes": "2"
+   }
+  },
+  {
+   "name": "ready_after_first_start",
+   "value": 1.475619750097394,
+   "unit": "s",
+   "labels": {
+    "scenario": "s4_sizes",
+    "nodes": "2"
+   }
+  },
+  {
+   "name": "rss_idle",
+   "value": 176.1,
+   "unit": "count",
+   "labels": {
+    "scenario": "s4_sizes",
+    "nodes": "2",
+    "node": "q01",
+    "what": "MiB"
+   }
+  },
+  {
+   "name": "tcp_established_idle",
+   "value": 6.0,
+   "unit": "count",
+   "labels": {
+    "scenario": "s4_sizes",
+    "nodes": "2",
+    "node": "q01"
+   }
+  },
+  {
+   "name": "rss_idle",
+   "value": 155.9,
+   "unit": "count",
+   "labels": {
+    "scenario": "s4_sizes",
+    "nodes": "2",
+    "node": "q02",
+    "what": "MiB"
+   }
+  },
+  {
+   "name": "tcp_established_idle",
+   "value": 6.0,
+   "unit": "count",
+   "labels": {
+    "scenario": "s4_sizes",
+    "nodes": "2",
+    "node": "q02"
+   }
+  },
+  {
+   "name": "block_propagation_p95",
+   "value": 1.0,
+   "unit": "s",
+   "labels": {
+    "scenario": "s4_sizes",
+    "nodes": "2"
+   },
+   "samples": 12
+  },
+  {
+   "name": "block_propagation_max",
+   "value": 1.0,
+   "unit": "s",
+   "labels": {
+    "scenario": "s4_sizes",
+    "nodes": "2"
+   },
+   "samples": 12
+  },
+  {
+   "name": "state_converged",
+   "value": 1.0664239171892405,
+   "unit": "s",
+   "labels": {
+    "scenario": "s4_sizes",
+    "nodes": "2"
+   }
+  },
+  {
+   "name": "rate_limit_passed",
+   "value": 74.0,
+   "unit": "count",
+   "labels": {
+    "scenario": "s4_sizes",
+    "nodes": "2",
+    "spread": "all"
+   },
+   "samples": 300
+  },
+  {
+   "name": "rate_limit_passed",
+   "value": 74.0,
+   "unit": "count",
+   "labels": {
+    "scenario": "s4_sizes",
+    "nodes": "2",
+    "spread": "one"
+   },
+   "samples": 300
+  },
+  {
+   "name": "rss_under_load",
+   "value": 277.1,
+   "unit": "count",
+   "labels": {
+    "scenario": "s4_sizes",
+    "nodes": "2",
+    "node": "q01",
+    "what": "MiB"
+   }
+  },
+  {
+   "name": "cpu_under_load",
+   "value": 14.4,
+   "unit": "percent",
+   "labels": {
+    "scenario": "s4_sizes",
+    "nodes": "2",
+    "node": "q01"
+   }
+  },
+  {
+   "name": "rss_under_load",
+   "value": 274.8,
+   "unit": "count",
+   "labels": {
+    "scenario": "s4_sizes",
+    "nodes": "2",
+    "node": "q02",
+    "what": "MiB"
+   }
+  },
+  {
+   "name": "cpu_under_load",
+   "value": 14.5,
+   "unit": "percent",
+   "labels": {
+    "scenario": "s4_sizes",
+    "nodes": "2",
+    "node": "q02"
+   }
+  },
+  {
+   "name": "latency_p50",
+   "value": 1.338,
+   "unit": "ms",
+   "labels": {
+    "scenario": "s4_sizes",
+    "nodes": "2",
+    "rps": "200"
+   },
+   "samples": 8000
+  },
+  {
+   "name": "latency_p99",
+   "value": 3.476,
+   "unit": "ms",
+   "labels": {
+    "scenario": "s4_sizes",
+    "nodes": "2",
+    "rps": "200"
+   },
+   "samples": 8000
+  },
+  {
+   "name": "ready_after_return",
+   "value": 1.4725487921386957,
+   "unit": "s",
+   "labels": {
+    "scenario": "s4_sizes",
+    "nodes": "2"
+   }
+  },
+  {
+   "name": "rolling_restart_failed_requests",
+   "value": 0.0,
+   "unit": "count",
+   "labels": {
+    "scenario": "s4_sizes",
+    "nodes": "2"
+   },
+   "samples": 3200
+  },
+  {
+   "name": "rolling_restart_took",
+   "value": 18.748757041990757,
+   "unit": "s",
+   "labels": {
+    "scenario": "s4_sizes",
+    "nodes": "2"
+   }
+  },
+  {
+   "name": "checks",
+   "value": 13.0,
+   "unit": "count",
+   "labels": {
+    "scenario": "s5_absence",
+    "verdict": "pass"
+   }
+  },
+  {
+   "name": "checks",
+   "value": 0.0,
+   "unit": "count",
+   "labels": {
+    "scenario": "s5_absence",
+    "verdict": "fail"
+   }
+  },
+  {
+   "name": "checks",
+   "value": 0.0,
+   "unit": "count",
+   "labels": {
+    "scenario": "s5_absence",
+    "verdict": "info"
+   }
+  },
+  {
+   "name": "ready_after_long_absence",
+   "value": 1.476887000259012,
+   "unit": "s",
+   "labels": {
+    "scenario": "s5_absence"
+   }
+  },
+  {
+   "name": "requests_missing_after_absence",
+   "value": 0.0,
+   "unit": "count",
+   "labels": {
+    "scenario": "s5_absence"
+   },
+   "samples": 100000
+  },
+  {
+   "name": "request_catch_up",
+   "value": 9.463943375274539,
+   "unit": "s",
+   "labels": {
+    "scenario": "s5_absence"
+   },
+   "samples": 100000
+  },
+  {
+   "name": "checks",
+   "value": 18.0,
+   "unit": "count",
+   "labels": {
+    "scenario": "s6_clocks",
+    "verdict": "pass"
+   }
+  },
+  {
+   "name": "checks",
+   "value": 3.0,
+   "unit": "count",
+   "labels": {
+    "scenario": "s6_clocks",
+    "verdict": "fail"
+   }
+  },
+  {
+   "name": "checks",
+   "value": 1.0,
+   "unit": "count",
+   "labels": {
+    "scenario": "s6_clocks",
+    "verdict": "info"
+   }
+  },
+  {
+   "name": "block_of_node_120s_ahead_acts_after",
+   "value": 60.3,
+   "unit": "s",
+   "labels": {
+    "scenario": "s6_clocks"
+   }
+  },
+  {
+   "name": "erasure_of_node_120s_ahead_gone_after",
+   "value": 60.3,
+   "unit": "s",
+   "labels": {
+    "scenario": "s6_clocks"
+   }
+  },
+  {
+   "name": "requests_of_node_120s_ahead_missing_on_others",
+   "value": 5029.0,
+   "unit": "count",
+   "labels": {
+    "scenario": "s6_clocks"
+   }
+  },
+  {
+   "name": "block_on_node_120s_behind_acts_after",
+   "value": 61.3,
+   "unit": "s",
+   "labels": {
+    "scenario": "s6_clocks"
+   }
+  },
+  {
+   "name": "checks",
+   "value": 18.0,
+   "unit": "count",
+   "labels": {
+    "scenario": "s7_versions",
+    "verdict": "pass"
+   }
+  },
+  {
+   "name": "checks",
+   "value": 0.0,
+   "unit": "count",
+   "labels": {
+    "scenario": "s7_versions",
+    "verdict": "fail"
+   }
+  },
+  {
+   "name": "checks",
+   "value": 3.0,
+   "unit": "count",
+   "labels": {
+    "scenario": "s7_versions",
+    "verdict": "info"
+   }
+  },
+  {
+   "name": "rolling_upgrade_failed_requests",
+   "value": 0.0,
+   "unit": "count",
+   "labels": {
+    "scenario": "s7_versions"
+   },
+   "samples": 21000
+  },
+  {
+   "name": "requests_spread_after_upgrade",
+   "value": 0.0,
+   "unit": "count",
+   "labels": {
+    "scenario": "s7_versions"
+   }
+  }
+ ],
+ "kill_criteria": [
+  {
+   "expr": "any request waits for a peer or fails because of one (ACME challenge lookups aside)",
+   "hit": false,
+   "observed": "not hit in 31 checks of ['s1_faults', 's2_crashes', 's3_load', 's4_sizes', 's6_clocks', 's7_versions']"
+  },
+  {
+   "expr": "a lost, empty or returning member deletes or weakens access state on another",
+   "hit": false,
+   "observed": "not hit in 47 checks of ['s1_faults', 's2_crashes', 's4_sizes', 's5_absence', 's6_clocks', 's7_versions']"
+  },
+  {
+   "expr": "a record that fails signature, schema or caps is applied",
+   "hit": false,
+   "observed": "NOT MEASURED in this run"
+  },
+  {
+   "expr": "an edge or a removed member reads events, requests, settings, logins or keys",
+   "hit": false,
+   "observed": "NOT MEASURED in this run"
+  },
+  {
+   "expr": "an erased address returns",
+   "hit": false,
+   "observed": "not hit in 11 checks of ['s1_faults', 's4_sizes', 's5_absence']"
+  },
+  {
+   "expr": "an address outside the proxy allow list can get another address blocked",
+   "hit": false,
+   "observed": "NOT MEASURED in this run"
+  },
+  {
+   "expr": "a partial answer is shown as complete",
+   "hit": false,
+   "observed": "NOT MEASURED in this run"
+  },
+  {
+   "expr": "a copy outlives its origin's retention",
+   "hit": false,
+   "observed": "NOT MEASURED in this run"
+  },
+  {
+   "expr": "certificates are lost or issued again by the move into the group",
+   "hit": false,
+   "observed": "NOT MEASURED in this run"
+  }
+ ],
+ "verdict": "fail",
+ "notes": "Hardening measurement of the group of gateways on one machine (127.0.0.1): faults between nodes through a userspace TCP proxy, hard crashes, load, 2 and 16 gateways, long absence, clocks, mixed versions. Scenarios in this file: s1_faults (git 3971e35c760c), s2_crashes (git 3971e35c760c), s3_load (git 3971e35c760c), s4_sizes (git 3971e35c760c), s5_absence (git 3971e35c760c), s6_clocks (git 3971e35c760c), s7_versions (git 3971e35c760c). Never 'pass': one machine, no balancer, no real network; see tests/results/MVP-27-hardening.md. FAIL checks: s1_faults t.all the proxy identified the calling node of every connection; s1_faults p.setup the mesh runs through the fault proxy and it knows every caller; s1_faults p.all the proxy identified the calling node of every connection; s2_crashes c.kill9 round 1: afterwards the three nodes hold the same number of single requests (25 s); s2_crashes c.kill9 round 2: afterwards the three nodes hold the same number of single requests (25 s); s2_crashes c.kill9 round 3: afterwards the three nodes hold the same number of single requests (25 s); s2_crashes c.kill9 round 4: afterwards the three nodes hold the same number of single requests (25 s); s3_load l.ladder 9000 requests a second for 30 s over three nodes: afterwards every node holds every request; s6_clocks k.plus120 an address erased on k3 (120 s ahead) is gone on the two reachable others within 30 s (spec, must); s6_clocks k.plus120 once the clocks of the others have passed the time of those requests (125 s later), they hold what k3 served; s6_clocks k.minus120 k3 restarts 120 s behind: at its first ready answer the block set on k1 while it was down acts",
+ "artifacts": [
+  "tests/results/MVP-27-hardening.md",
+  "tests/results/MVP-27-hardening-checks.json",
+  "tests/testlab/measure/group/hardening/harden.py"
+ ]
+}

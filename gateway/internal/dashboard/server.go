@@ -105,6 +105,24 @@ type Server struct {
 	Crawlers CrawlerFuncs
 	// Behaviour is MVP-17 (v0.4); nil disables the behaviour operations.
 	Behaviour *behaviour.Engine
+	// Erased is told an address this node erased (Art. 17), so a group of
+	// gateways erases it on every node (MVP-27); nil without a group. It
+	// answers with the nodes the erasure reached, within the deadline of ctx
+	// and its own.
+	Erased func(ctx context.Context, ip netip.Addr, keepIncidents bool) *ErasureNodes
+	// Group is the mode this gateway runs in and the state of its group
+	// (getGroupStatus); nil: a single gateway without cluster.enabled.
+	Group func() GroupStatus
+	// MemberName is the name of this node in its group, "" outside one. The
+	// dashboard shows it instead of node_name, which a deployment often
+	// sets the same on every node.
+	MemberName func() string
+	// ClusterReasons are the baseline reasons that come from the group
+	// (cluster_peers_unreachable, cluster_config_drift, cluster_clock_skew).
+	ClusterReasons func() []string
+	// BlockNode names the node of the group that decided a block; nil
+	// without a group.
+	BlockNode func(key behaviour.Key, incident string) (name string, self, ok bool)
 	// AgentAPI and SetAgentAPI are the switch of the agent API (D103). nil:
 	// schild.yaml decides and nothing can be switched (tests, no listeners).
 	AgentAPI    func(ctx context.Context) AgentAPIState
@@ -177,6 +195,7 @@ func (s *Server) Handler() http.Handler {
 	a("POST "+apiPrefix+"/auth/logout", s.logout)
 	a("POST "+apiPrefix+"/auth/password", s.changePassword)
 	a("GET "+apiPrefix+"/overview", s.getOverview)
+	a("GET "+apiPrefix+"/group", s.getGroupStatus)
 	a("GET "+apiPrefix+"/events", s.listEvents)
 	a("GET "+apiPrefix+"/events/stream", s.streamEvents)
 	a("GET "+apiPrefix+"/events/{id}", s.getEvent)

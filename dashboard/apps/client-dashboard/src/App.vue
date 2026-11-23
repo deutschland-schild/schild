@@ -9,7 +9,11 @@ import { computed, defineAsyncComponent, onBeforeUnmount, onMounted, ref, shallo
 import { useRoute, useRouter } from 'vue-router'
 import { api, csrf, errorMessage, session } from './api/client'
 import { deleteAllowlistEntry, keys, useAllowMyIp, useOverview } from './api/queries'
+import ClusterDataBanner from './components/ClusterDataBanner.vue'
+import GroupModePill from './components/GroupModePill.vue'
+import NodeFilter from './components/NodeFilter.vue'
 import TestProfileBanner from './components/TestProfileBanner.vue'
+import { useGroupStatus } from './api/group'
 import { useHosts } from './api/hosts'
 import { useWebsites } from './api/websites'
 import RequestContextSheet from './components/requests/RequestContextSheet.vue'
@@ -43,6 +47,9 @@ const authed = computed(() => !!session.value?.authenticated && !isPublic.value)
 
 const overview = useOverview(authed)
 const ov = computed(() => authed.value ? overview.data.value : undefined)
+// The mode this gateway runs in (alone or a node of a group, MVP-27), in the top bar of every page.
+const groupQ = useGroupStatus(authed)
+const group = computed(() => authed.value ? groupQ.data.value : undefined)
 // The running gateway's version at the foot of the sidebar: "0.1.0", a test build marked short, explained on hover.
 const version = computed(() => {
   const v = ov.value?.version ?? ''
@@ -72,13 +79,13 @@ const nav = computed<NavGroup[]>(() => {
   const d = draft.value
   if (d?.draftNav.value)
     return d.buildDraftNav({ websites: d.withDemoSites(websites.value), servers: servers.value, site: site.value, subpage: subpage.value, serverPage: route.path.startsWith('/server') ? String(route.name) : '', path: route.path })
-  const groups = buildNav({ site: held.value, server: heldServer.value, path: route.path })
+  const groups = buildNav({ site: held.value, server: heldServer.value, path: route.path, group: group.value?.mode === 'group' })
   return d ? [d.draftGroup(), ...groups] : groups
 })
 /** A page of the open (or last) website, else of the top website; without any website the start page. */
 const sitePage = (sub: string) => websitePath(site.value || last.value || websites.value[0]?.id || '', sub)
 
-const SERVER_TABS: Record<string, string> = { 'server-load': 'Auslastung', 'server-check': 'Server-Check' }
+const SERVER_TABS: Record<string, string> = { 'server-load': 'Auslastung', 'server-check': 'Server-Check', 'server-group': 'Cluster' }
 const breadcrumbs = computed<BreadcrumbEntry[] | undefined>(() => {
   // An agent's Server-Check carries its own name; the gateway its node name.
   const agent = heldServer.value && heldServer.value !== 'local' ? servers.value.find(s => s.id === heldServer.value) : undefined
@@ -213,6 +220,10 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKey))
         </template>
         <WebsiteSwitcher v-else :websites="websites" :servers="servers" :site="held" :server="heldServer" :subpage="subpage" />
       </template>
+      <template v-if="group" #status>
+        <NodeFilter :status="group" />
+        <GroupModePill :status="group" />
+      </template>
       <template #sidebar-footer>
         <p v-if="version" class="truncate border-b px-2 pt-1 pb-2 text-xs text-muted-foreground group-data-[collapsible=icon]:hidden" data-testid="sidebar-version" :title="version.full">
           Version {{ version.number }}<template v-if="version.test"> · Testversion</template>
@@ -228,6 +239,7 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKey))
         </div>
       </template>
       <TestProfileBanner v-if="ov?.profile === 'test'" />
+      <ClusterDataBanner v-if="group" :status="group" />
       <RouterView />
     </RouterShell>
     <ShortcutHelp v-model:open="helpOpen" />

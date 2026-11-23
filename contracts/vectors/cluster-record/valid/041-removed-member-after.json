@@ -1,0 +1,78 @@
+{
+  "contract": "cluster-record",
+  "description": "What a removed member signs after its removal.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"group\":\"g-c1e5a133bdfa0a42a97f392f3317882e\",\"members\":[{\"v\":1,\"group\":\"g-c1e5a133bdfa0a42a97f392f3317882e\",\"class\":\"members\",\"id\":\"n-d99f637fa8d3e0ab64da1628a9154b98\",\"origin\":\"n-d99f637fa8d3e0ab64da1628a9154b98\",\"seq\":1,\"hlc\":117506860646400000,\"data\":\"eyJuYW1lIjoid2ViLTEiLCJyb2xlIjoiZ2F0ZXdheSIsInB1YmxpY19rZXkiOiIrK05hYWVtVVN0aTYrL2VrNWVEeWpMaVhqcEpLZUFUeWJ6QmJ3Z0FNVWZnPSIsImFkZHJlc3MiOiIxMC4wLjAuMTo4NzkwIiwiam9pbmVkIjoiMjAyNi0xMC0yNlQxMTowMDowMFoiLCJhZG1pdF9wdWJsaWNfa2V5IjoiMTRkTWRWVDI1czN6T3VkQkI3NHBuS0FoUWZOYkZwc1NoRE1nVDVkbkhTdz0iLCJhZG1pdCI6IkZyVkVhdGpITUZJVWtLZERadnZtbWk3aEZrMEUvbUtHWTVTQ0JtemxvYnNoUlBKWmJ5Qkx5SUlxWUtBQTQ3Q2hGWlhsTmVLbWtNVUI2UVNWbDU2WEJBPT0ifQ==\",\"sig\":\"QTpWUOUZzwX2BOUag5SwHkJwXkOW5O0N7TbOG5pGNKyuQlod6ATICNVnmdlhnc1lGwaHBcCkj5mpznHnayHnBw==\"},{\"v\":1,\"group\":\"g-c1e5a133bdfa0a42a97f392f3317882e\",\"class\":\"members\",\"id\":\"n-21e8d937ff0a91788e6e027b7c9242f8\",\"origin\":\"n-21e8d937ff0a91788e6e027b7c9242f8\",\"seq\":1,\"hlc\":117506860711936000,\"data\":\"eyJuYW1lIjoid2ViLTIiLCJyb2xlIjoiZ2F0ZXdheSIsInB1YmxpY19rZXkiOiJ5Zkk4alkyeDlLdHFab2pqYW9sR0dwNVdtbktRMGhpZ3pvdCtCVlhQMGg0PSIsImFkZHJlc3MiOiIxMC4wLjAuMjo4NzkwIiwiam9pbmVkIjoiMjAyNi0xMC0yNlQxMTowMDowMFoiLCJhZG1pdF9wdWJsaWNfa2V5IjoiMTRkTWRWVDI1czN6T3VkQkI3NHBuS0FoUWZOYkZwc1NoRE1nVDVkbkhTdz0iLCJhZG1pdCI6Ik5WWkd0V04ySDhGb2dWaFYxbHpQNVhzelVOb3FNOHVlVW1VTHQ0YXZnU1N4eEJvVUk5di9iZDcwZ1FKUHBqcWEvM1RyUld3MXF4NXJmVlBDeU5pTkN3PT0ifQ==\",\"sig\":\"NXswn/Bd9qMuKg2zs85eNpnXJHkSwI3BzpQ7mqyAgT6f11wjoor6YlJk7pDAdf31s3O4nw/spuKN/X9zkJM1DA==\"},{\"v\":1,\"group\":\"g-c1e5a133bdfa0a42a97f392f3317882e\",\"class\":\"members\",\"id\":\"n-22bcb27b753a9bc2bdb9c39acac8cd25\",\"origin\":\"n-22bcb27b753a9bc2bdb9c39acac8cd25\",\"seq\":1,\"hlc\":117506860777472000,\"data\":\"eyJuYW1lIjoid2ViLTMiLCJyb2xlIjoiZ2F0ZXdheSIsInB1YmxpY19rZXkiOiJCWnZWc2w2NUlmUCtWWUhScU9DdWliTHRQRENBK3kzakRHSnhTVCtNVytBPSIsImFkZHJlc3MiOiIxMC4wLjAuMzo4NzkwIiwiam9pbmVkIjoiMjAyNi0xMC0yNlQxMTowMDowMFoiLCJhZG1pdF9wdWJsaWNfa2V5IjoiMTRkTWRWVDI1czN6T3VkQkI3NHBuS0FoUWZOYkZwc1NoRE1nVDVkbkhTdz0iLCJhZG1pdCI6IjFWNmoxbStabk5xZjNPN1UwVkFTcXlBTW1oV3NjYWRCeFNrN2JQZEc3NlNWcndmTzhhSDVxSDZldEk5Q2V0Um5OWFcxRWZzbHN4VlBDUlkvV09naURBPT0ifQ==\",\"sig\":\"D6A/XoVh1vYZ47mncVp1lQG3MUyWAqBLXNyLUVqLnX0oVV/lueFMWz/EnbOLwqYyRSELp61RYQCT93tgbIl8Dg==\"},{\"v\":1,\"group\":\"g-c1e5a133bdfa0a42a97f392f3317882e\",\"class\":\"members\",\"id\":\"n-22bcb27b753a9bc2bdb9c39acac8cd25\",\"origin\":\"n-d99f637fa8d3e0ab64da1628a9154b98\",\"seq\":5,\"hlc\":117506978611200000,\"deleted\":true,\"data\":\"eyJuYW1lIjoid2ViLTMiLCJyb2xlIjoiZ2F0ZXdheSIsInB1YmxpY19rZXkiOiJCWnZWc2w2NUlmUCtWWUhScU9DdWliTHRQRENBK3kzakRHSnhTVCtNVytBPSIsImFkZHJlc3MiOiIxMC4wLjAuMzo4NzkwIiwiam9pbmVkIjoiMjAyNi0xMC0yNlQxMTowMDowMFoiLCJhZG1pdF9wdWJsaWNfa2V5IjoiMTRkTWRWVDI1czN6T3VkQkI3NHBuS0FoUWZOYkZwc1NoRE1nVDVkbkhTdz0iLCJhZG1pdCI6IjFWNmoxbStabk5xZjNPN1UwVkFTcXlBTW1oV3NjYWRCeFNrN2JQZEc3NlNWcndmTzhhSDVxSDZldEk5Q2V0Um5OWFcxRWZzbHN4VlBDUlkvV09naURBPT0ifQ==\",\"sig\":\"7CASxlub5LyQwWupOdVTKgkiXUwEdWblHwIG3rviApA6fKf+ci20iBzP/4GYHKwqCG6poJ8IeIJ+hbXxFgrODw==\"}],\"record\":{\"v\":1,\"group\":\"g-c1e5a133bdfa0a42a97f392f3317882e\",\"class\":\"blocks\",\"id\":\"203.0.113.8\",\"origin\":\"n-22bcb27b753a9bc2bdb9c39acac8cd25\",\"seq\":2,\"hlc\":117506998272000000,\"expires\":\"2026-10-26T13:00:00Z\",\"data\":\"eyJjbGllbnQiOiIyMDMuMC4xMTMuOCIsImJpdHMiOjMyLCJzb3VyY2UiOiJiZWhhdmlvdXI6cGF0aF9wcm9iaW5nIiwibGV2ZWwiOjEsInNpbmNlIjoiMjAyNi0xMC0yNlQxMTo1OTowMFoiLCJ1bnRpbCI6IjIwMjYtMTAtMjZUMTM6MDA6MDBaIiwiZHVyYXRpb25fcyI6MzY2MCwiaW5jaWRlbnQiOiJTLTRGN0syIiwibmV0X2NsYXNzIjoiaG9zdGluZyIsIm5vZGUiOiJ3ZWItMiJ9\",\"sig\":\"w45hizS/Q4fF/e2Ds4Y4lakk6L37Vwof3Kca+hmiv3XelNj1PucEQTf/g5+bqRefs09mm18cHMIIX8YLREZmCg==\"}}",
+  "input_decoded": {
+    "group": "g-c1e5a133bdfa0a42a97f392f3317882e",
+    "members": [
+      {
+        "v": 1,
+        "group": "g-c1e5a133bdfa0a42a97f392f3317882e",
+        "class": "members",
+        "id": "n-d99f637fa8d3e0ab64da1628a9154b98",
+        "origin": "n-d99f637fa8d3e0ab64da1628a9154b98",
+        "seq": 1,
+        "hlc": 117506860646400000,
+        "data": "eyJuYW1lIjoid2ViLTEiLCJyb2xlIjoiZ2F0ZXdheSIsInB1YmxpY19rZXkiOiIrK05hYWVtVVN0aTYrL2VrNWVEeWpMaVhqcEpLZUFUeWJ6QmJ3Z0FNVWZnPSIsImFkZHJlc3MiOiIxMC4wLjAuMTo4NzkwIiwiam9pbmVkIjoiMjAyNi0xMC0yNlQxMTowMDowMFoiLCJhZG1pdF9wdWJsaWNfa2V5IjoiMTRkTWRWVDI1czN6T3VkQkI3NHBuS0FoUWZOYkZwc1NoRE1nVDVkbkhTdz0iLCJhZG1pdCI6IkZyVkVhdGpITUZJVWtLZERadnZtbWk3aEZrMEUvbUtHWTVTQ0JtemxvYnNoUlBKWmJ5Qkx5SUlxWUtBQTQ3Q2hGWlhsTmVLbWtNVUI2UVNWbDU2WEJBPT0ifQ==",
+        "sig": "QTpWUOUZzwX2BOUag5SwHkJwXkOW5O0N7TbOG5pGNKyuQlod6ATICNVnmdlhnc1lGwaHBcCkj5mpznHnayHnBw=="
+      },
+      {
+        "v": 1,
+        "group": "g-c1e5a133bdfa0a42a97f392f3317882e",
+        "class": "members",
+        "id": "n-21e8d937ff0a91788e6e027b7c9242f8",
+        "origin": "n-21e8d937ff0a91788e6e027b7c9242f8",
+        "seq": 1,
+        "hlc": 117506860711936000,
+        "data": "eyJuYW1lIjoid2ViLTIiLCJyb2xlIjoiZ2F0ZXdheSIsInB1YmxpY19rZXkiOiJ5Zkk4alkyeDlLdHFab2pqYW9sR0dwNVdtbktRMGhpZ3pvdCtCVlhQMGg0PSIsImFkZHJlc3MiOiIxMC4wLjAuMjo4NzkwIiwiam9pbmVkIjoiMjAyNi0xMC0yNlQxMTowMDowMFoiLCJhZG1pdF9wdWJsaWNfa2V5IjoiMTRkTWRWVDI1czN6T3VkQkI3NHBuS0FoUWZOYkZwc1NoRE1nVDVkbkhTdz0iLCJhZG1pdCI6Ik5WWkd0V04ySDhGb2dWaFYxbHpQNVhzelVOb3FNOHVlVW1VTHQ0YXZnU1N4eEJvVUk5di9iZDcwZ1FKUHBqcWEvM1RyUld3MXF4NXJmVlBDeU5pTkN3PT0ifQ==",
+        "sig": "NXswn/Bd9qMuKg2zs85eNpnXJHkSwI3BzpQ7mqyAgT6f11wjoor6YlJk7pDAdf31s3O4nw/spuKN/X9zkJM1DA=="
+      },
+      {
+        "v": 1,
+        "group": "g-c1e5a133bdfa0a42a97f392f3317882e",
+        "class": "members",
+        "id": "n-22bcb27b753a9bc2bdb9c39acac8cd25",
+        "origin": "n-22bcb27b753a9bc2bdb9c39acac8cd25",
+        "seq": 1,
+        "hlc": 117506860777472000,
+        "data": "eyJuYW1lIjoid2ViLTMiLCJyb2xlIjoiZ2F0ZXdheSIsInB1YmxpY19rZXkiOiJCWnZWc2w2NUlmUCtWWUhScU9DdWliTHRQRENBK3kzakRHSnhTVCtNVytBPSIsImFkZHJlc3MiOiIxMC4wLjAuMzo4NzkwIiwiam9pbmVkIjoiMjAyNi0xMC0yNlQxMTowMDowMFoiLCJhZG1pdF9wdWJsaWNfa2V5IjoiMTRkTWRWVDI1czN6T3VkQkI3NHBuS0FoUWZOYkZwc1NoRE1nVDVkbkhTdz0iLCJhZG1pdCI6IjFWNmoxbStabk5xZjNPN1UwVkFTcXlBTW1oV3NjYWRCeFNrN2JQZEc3NlNWcndmTzhhSDVxSDZldEk5Q2V0Um5OWFcxRWZzbHN4VlBDUlkvV09naURBPT0ifQ==",
+        "sig": "D6A/XoVh1vYZ47mncVp1lQG3MUyWAqBLXNyLUVqLnX0oVV/lueFMWz/EnbOLwqYyRSELp61RYQCT93tgbIl8Dg=="
+      },
+      {
+        "v": 1,
+        "group": "g-c1e5a133bdfa0a42a97f392f3317882e",
+        "class": "members",
+        "id": "n-22bcb27b753a9bc2bdb9c39acac8cd25",
+        "origin": "n-d99f637fa8d3e0ab64da1628a9154b98",
+        "seq": 5,
+        "hlc": 117506978611200000,
+        "deleted": true,
+        "data": "eyJuYW1lIjoid2ViLTMiLCJyb2xlIjoiZ2F0ZXdheSIsInB1YmxpY19rZXkiOiJCWnZWc2w2NUlmUCtWWUhScU9DdWliTHRQRENBK3kzakRHSnhTVCtNVytBPSIsImFkZHJlc3MiOiIxMC4wLjAuMzo4NzkwIiwiam9pbmVkIjoiMjAyNi0xMC0yNlQxMTowMDowMFoiLCJhZG1pdF9wdWJsaWNfa2V5IjoiMTRkTWRWVDI1czN6T3VkQkI3NHBuS0FoUWZOYkZwc1NoRE1nVDVkbkhTdz0iLCJhZG1pdCI6IjFWNmoxbStabk5xZjNPN1UwVkFTcXlBTW1oV3NjYWRCeFNrN2JQZEc3NlNWcndmTzhhSDVxSDZldEk5Q2V0Um5OWFcxRWZzbHN4VlBDUlkvV09naURBPT0ifQ==",
+        "sig": "7CASxlub5LyQwWupOdVTKgkiXUwEdWblHwIG3rviApA6fKf+ci20iBzP/4GYHKwqCG6poJ8IeIJ+hbXxFgrODw=="
+      }
+    ],
+    "record": {
+      "v": 1,
+      "group": "g-c1e5a133bdfa0a42a97f392f3317882e",
+      "class": "blocks",
+      "id": "203.0.113.8",
+      "origin": "n-22bcb27b753a9bc2bdb9c39acac8cd25",
+      "seq": 2,
+      "hlc": 117506998272000000,
+      "expires": "2026-10-26T13:00:00Z",
+      "data": "eyJjbGllbnQiOiIyMDMuMC4xMTMuOCIsImJpdHMiOjMyLCJzb3VyY2UiOiJiZWhhdmlvdXI6cGF0aF9wcm9iaW5nIiwibGV2ZWwiOjEsInNpbmNlIjoiMjAyNi0xMC0yNlQxMTo1OTowMFoiLCJ1bnRpbCI6IjIwMjYtMTAtMjZUMTM6MDA6MDBaIiwiZHVyYXRpb25fcyI6MzY2MCwiaW5jaWRlbnQiOiJTLTRGN0syIiwibmV0X2NsYXNzIjoiaG9zdGluZyIsIm5vZGUiOiJ3ZWItMiJ9",
+      "sig": "w45hizS/Q4fF/e2Ds4Y4lakk6L37Vwof3Kca+hmiv3XelNj1PucEQTf/g5+bqRefs09mm18cHMIIX8YLREZmCg=="
+    }
+  },
+  "expect": {
+    "valid": true,
+    "result": {
+      "taken": false,
+      "reason": "removed",
+      "replaces": null
+    }
+  }
+}

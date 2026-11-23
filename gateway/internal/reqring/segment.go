@@ -48,6 +48,11 @@ type fileInfo struct {
 	open  bool // written by the writer (raw)
 	raw   bool // the file is in raw form (open, or closed and not compressed yet)
 	gone  bool // deleted
+	// seqMin, seqMax: the range of Rec.Seq in the file (0, 0: none of this
+	// node's own requests). seqKnown is false for a file of an earlier run
+	// that the index of ranges does not name; it is read once then.
+	seqMin, seqMax uint64
+	seqKnown       bool
 }
 
 func (f *fileInfo) rate() float64 { return 1 / float64(uint64(1)<<f.level) }
@@ -116,7 +121,7 @@ func createSeg(dir string, kind byte, level uint8, start int64) (*segWriter, err
 	if err != nil {
 		return nil, err
 	}
-	s := &segWriter{info: &fileInfo{path: p, kind: kind, level: level, start: start, min: start, max: start, open: true, raw: true},
+	s := &segWriter{info: &fileInfo{path: p, kind: kind, level: level, start: start, min: start, max: start, open: true, raw: true, seqKnown: true},
 		f: f, w: bufio.NewWriterSize(f, 64<<10)}
 	for i := range s.ids {
 		s.ids[i] = map[string]uint32{}

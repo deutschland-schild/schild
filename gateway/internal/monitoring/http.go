@@ -126,7 +126,12 @@ func (m *Monitor) Routes(handle func(pattern string, h http.HandlerFunc), prefix
 }
 
 func (m *Monitor) serveNow(w http.ResponseWriter, r *http.Request, now time.Time) {
-	out, err := m.Now(r.URL.Query().Get("site"), now)
+	v, err := m.Nodes(r.URL.Query().Get("node"))
+	if err != nil {
+		m.failed(w, err)
+		return
+	}
+	out, err := v.Now(r.URL.Query().Get("site"), now)
 	if err != nil {
 		m.failed(w, err)
 		return
@@ -162,11 +167,17 @@ func (m *Monitor) serveSeries(w http.ResponseWriter, r *http.Request, now time.T
 		invalid(w, "object", "mount, device or interface name")
 		return
 	}
-	out, err := m.Series(SeriesQuery{Metrics: q["metric"], From: from, To: to, Resolution: res, Site: q.Get("site"), Object: obj, Filters: q["filter"]}, now)
+	v, err := m.Nodes(q.Get("node"))
 	if err != nil {
 		m.failed(w, err)
 		return
 	}
+	out, err := v.Series(SeriesQuery{Metrics: q["metric"], From: from, To: to, Resolution: res, Site: q.Get("site"), Object: obj, Filters: q["filter"]}, now)
+	if err != nil {
+		m.failed(w, err)
+		return
+	}
+	out.Cluster = v.Scope(from, to, now)
 	writeJSON(w, out)
 }
 
@@ -189,11 +200,17 @@ func (m *Monitor) serveBreakdown(w http.ResponseWriter, r *http.Request, now tim
 		}
 		top = n
 	}
-	out, err := m.Breakdown(q.Get("by"), from, to, q.Get("site"), q["filter"], top, now)
+	v, err := m.Nodes(q.Get("node"))
 	if err != nil {
 		m.failed(w, err)
 		return
 	}
+	out, err := v.Breakdown(q.Get("by"), from, to, q.Get("site"), q["filter"], top, now)
+	if err != nil {
+		m.failed(w, err)
+		return
+	}
+	out.Cluster = v.Scope(from, to, now)
 	writeJSON(w, out)
 }
 

@@ -71,7 +71,7 @@ export const HUB_SECTIONS: HubSectionDef[] = [
     label: 'Gateway',
     status: 'live',
     intro: 'Das Programm auf deinem Server: prüft jede Anfrage, bevor sie deine Website erreicht, mit Dashboard und Server-Check. Braucht keine Labs und kein Konto.',
-    docs: ['gateway/00-installieren', 'gateway/01-funktionen', 'gateway/02-betrieb', 'concept/25-zugriffsregeln'],
+    docs: ['gateway/00-installieren', 'gateway/01-funktionen', 'gateway/02-betrieb', 'gateway/03-cluster', 'concept/25-zugriffsregeln'],
     links: [
       { to: '/doku/gateway/00-installieren', label: 'Gateway installieren', description: 'Installieren, 14 Tage beobachten, einschalten. Auch auf alten Servern.' },
     ],

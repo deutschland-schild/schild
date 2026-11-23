@@ -354,4 +354,6 @@ type PrivacyDeleteResult struct {
 	DeletedSessions         int    `json:"deleted_sessions"`
 	DeletedAllowlistEntries int    `json:"deleted_allowlist_entries"`
 	ErasedRequests          int    `json:"erased_requests,omitempty"`
+	// Nodes: in a group, how far the erasure got.
+	Nodes *ErasureNodes `json:"nodes,omitempty"`
 }

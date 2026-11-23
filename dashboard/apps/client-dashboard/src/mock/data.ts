@@ -21,11 +21,13 @@ import type {
 } from '@/api/types'
 import type { AccessProtection } from '@/api/access'
 import type { CrawlerPolicyState } from '@/api/crawlers'
+import type { GroupStatus } from '@/api/group'
 import allowlistFixture from '../../../../../contracts/api/fixtures/client/listAllowlist.json'
 import eventDetailFixture from '../../../../../contracts/api/fixtures/client/getEvent.json'
 import eventPageFixture from '../../../../../contracts/api/fixtures/client/listEvents.json'
 import myIpFixture from '../../../../../contracts/api/fixtures/client/getMyIP.json'
 import overviewDegraded from '../../../../../contracts/api/fixtures/client/getOverview.degraded.json'
+import groupFixture from '../../../../../contracts/api/fixtures/client/getGroupStatus.json'
 import overviewNormal from '../../../../../contracts/api/fixtures/client/getOverview.json'
 import overviewStandalone from '../../../../../contracts/api/fixtures/client/getOverview.standalone.json'
 import settingsFixture from '../../../../../contracts/api/fixtures/client/getSettings.json'
@@ -45,8 +47,8 @@ import { createRulesState } from './rules'
  * standalone: a gateway that started a few hours ago and cannot reach the CrowdSec Hub. observe: the test
  * profile, in which nothing is blocked (D89: there is no protection mode).
  */
-export type Scenario = 'default' | 'observe' | 'first-run' | 'login' | 'degraded' | 'empty' | 'error' | 'standalone'
-export const SCENARIOS: Scenario[] = ['default', 'observe', 'first-run', 'login', 'degraded', 'empty', 'error', 'standalone']
+export type Scenario = 'default' | 'observe' | 'first-run' | 'login' | 'degraded' | 'empty' | 'error' | 'standalone' | 'group' | 'group-ok' | 'group-large'
+export const SCENARIOS: Scenario[] = ['default', 'observe', 'first-run', 'login', 'degraded', 'empty', 'error', 'standalone', 'group', 'group-ok', 'group-large']
 
 /** What the gateway does with a decision, as the server derives it (D89): the test profile only observes. */
 export function gatewayMode(s: Pick<Settings, 'profile'>): Mode {
@@ -226,6 +228,8 @@ export interface MockState {
   manualBlocks: RunningBlock[]
   /** v0.4 traffic and server monitoring (mock/monitoring.ts, MVP-21). */
   monitoring: MonitoringMock
+  /** MVP-27: the mode this gateway runs in. A single gateway in every scenario but `group`. */
+  group: GroupStatus
   /** D103: the switch of the agent API and its tokens (mock/agentapi.ts). */
   agentApi: AgentApiMock
 }
@@ -233,6 +237,55 @@ export interface MockState {
 const CSRF = 'mock-csrf-token-7f3a9c22b1e04d55'
 
 /** Deep-shift every RFC 3339 timestamp in a fixture object by `delta` ms. */
+/**
+ * The group fixture of the contract names builds from before the cluster existed; the mock (and the
+ * screenshots of the website taken from it) shows the release the cluster comes with on every member.
+ */
+const MOCK_BUILD = 'schild 0.1.0-alpha.6'
+function currentBuild(base: GroupStatus): GroupStatus {
+  return { ...base, members: base.members?.map(m => m.version ? { ...m, version: MOCK_BUILD } : m) }
+}
+
+/** A cluster of 16 gateways for the map and the table of many servers: one away, one draining, one not ready. */
+function largeGroup(base: GroupStatus): GroupStatus {
+  const [self, peer] = base.members!
+  const members = Array.from({ length: 16 }, (_, i) => {
+    if (i === 0) return self!
+    const k = i + 1
+    const id = `n-${k.toString(16).padStart(2, '0')}${peer!.id.slice(4)}`
+    const m = { ...peer!, id, name: `web-${k}`, address: `192.0.2.${k}:8790`, config: 'same' as const }
+    if (k === 7) return { ...m, state: 'unreachable' as const, vitals: undefined, config: 'unknown' as const, error: `dial tcp 192.0.2.${k}:8790: i/o timeout` }
+    const service = k === 12 ? 'draining' as const : k === 15 ? 'not_ready' as const : 'ready' as const
+    return { ...m, vitals: { ...peer!.vitals!, service, requests_per_s: service === 'ready' ? 30 + ((k * 37) % 23) : 0, cpu_usage: ((k * 17) % 70 + 12) / 100, memory_used_ratio: ((k * 29) % 55 + 30) / 100, disk_used_ratio: ((k * 13) % 40 + 25) / 100 } }
+  })
+  return { ...base, state: 'degraded', members, config: { version: base.config!.version, differing: [] } }
+}
+
+/** The same cluster with nothing to look at: every gateway reached, ready, in step and configured alike. */
+function healthyGroup(base: GroupStatus): GroupStatus {
+  const peer = base.members!.find(m => m.state === 'ok')!
+  const same = { blocks: 'same', settings: 'same', access: 'same', logins: 'same' } as const
+  const load: Record<string, [number, number, number, number]> = { 'web-2': [38.9, 0.34, 0.52, 0.41], 'web-3': [43.2, 0.27, 0.46, 0.39] }
+  const members = base.members!.filter(m => m.state !== 'removed').map((m) => {
+    if (m.state === 'self') return { ...m, config: 'same' as const }
+    const [rps, cpu, memory, disk] = load[m.name] ?? [40, 0.3, 0.5, 0.4]
+    return {
+      ...m,
+      state: 'ok' as const,
+      error: undefined,
+      last_out: peer.last_out,
+      last_in: peer.last_in,
+      behind: 0,
+      version: peer.version,
+      config: 'same' as const,
+      clock_skew_ms: 120,
+      shared_state: same,
+      vitals: { ...peer.vitals!, requests_per_s: rps, cpu_usage: cpu, memory_used_ratio: memory, disk_used_ratio: disk },
+    }
+  })
+  return { ...base, state: 'active', members, config: { version: base.config!.version, differing: [] } }
+}
+
 function shiftTimes<T>(value: T, delta: number): T {
   return JSON.parse(JSON.stringify(value), (_k, v) => {
     if (typeof v === 'string' && /^20\d\d-\d\d-\d\dT\d\d:\d\d:\d\d(\.\d+)?Z$/.test(v)) {
@@ -424,6 +477,13 @@ export function createState(opts: CreateStateOptions = {}): MockState {
   settings.profile = mode === 'observe' ? 'test' : 'production'
   const standalone = scenario === 'standalone'
 
+  const overview = shiftTimes((standalone ? overviewStandalone : scenario === 'degraded' ? overviewDegraded : overviewNormal) as Overview, delta)
+  // MVP-27: the group fixture has one gateway that is not reached and one whose configuration differs; the
+  // overview of that group names both, as the gateway does.
+  if (scenario === 'group') {
+    overview.baseline = { state: 'degraded', reasons: [{ code: 'cluster_peers_unreachable', since: iso(t0 - 7 * 60_000) }, { code: 'cluster_config_drift', since: iso(t0 - 5 * 3600_000) }] }
+  }
+
   const st: MockState = {
     scenario,
     now,
@@ -434,7 +494,7 @@ export function createState(opts: CreateStateOptions = {}): MockState {
         : { authenticated: true, first_run: false, user: 'admin', role: 'admin', csrf_token: CSRF, expires_at: iso(t0 + 12 * 3600_000), via: 'password' },
     password: scenario === 'first-run' ? null : 'mock-passwort-123',
     failedLogins: 0,
-    overview: shiftTimes((standalone ? overviewStandalone : scenario === 'degraded' ? overviewDegraded : overviewNormal) as Overview, delta),
+    overview,
     events: [],
     ruleRepos: createRulesState(scenario, t0),
     access: {},
@@ -451,6 +511,10 @@ export function createState(opts: CreateStateOptions = {}): MockState {
     firewall: { state: 'off', banned: [] },
     manualBlocks: [],
     monitoring: createMonitoringState(scenario, t0, mode === 'observe'),
+    // The fixture is written around 14:05:30 of its day; shifted so its contacts are seconds old.
+    group: scenario === 'group' || scenario === 'group-ok' || scenario === 'group-large'
+      ? shiftTimes(scenario === 'group' ? currentBuild(groupFixture as GroupStatus) : scenario === 'group-ok' ? healthyGroup(currentBuild(groupFixture as GroupStatus)) : largeGroup(currentBuild(groupFixture as GroupStatus)), t0 - Date.parse(groupFixture.generated_at))
+      : { mode: 'single' },
     agentApi: createAgentApiState(scenario, t0),
   }
   // MVP-22 (D35): which geo database is in use. The degraded gateway downloads IPinfo with the operator's

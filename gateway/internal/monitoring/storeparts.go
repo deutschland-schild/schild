@@ -64,7 +64,11 @@ func (s *ringStore) put(r cm.Ring, start time.Time, b *cm.MetricBucket) error {
 	if err := putTx(tx, r, r.Slot(start), start.Unix(), b); err != nil {
 		return err
 	}
-	return tx.Commit()
+	if err := tx.Commit(); err != nil {
+		return err
+	}
+	s.gen.Add(1)
+	return nil
 }
 
 // putTx replaces the row and the parts of a slot.

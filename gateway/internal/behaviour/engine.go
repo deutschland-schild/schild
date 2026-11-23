@@ -317,6 +317,9 @@ type Engine struct {
 	sites    map[string]*siteState
 	stats    *statsRing
 	d        *dist
+	// share notes what the engine counts for the other nodes of a group
+	// (shared.go); nil on a single gateway.
+	share atomic.Pointer[sharer]
 }
 
 // New returns an engine with cfg.
@@ -667,7 +670,7 @@ func (e *Engine) observeLimits(r *Request, key Key, bits int, enforce bool) Verd
 			continue
 		}
 		e.stats.add(l.statMatched, r.Time, 1)
-		var exceeded bool
+		var exceeded, took bool
 		var retry time.Duration
 		var emitCount int
 		e.buckets.with(bucketKey{key, l.idx}, true, func(b *bucket) {
@@ -680,6 +683,7 @@ func (e *Engine) observeLimits(r *Request, key Key, bits int, enforce bool) Verd
 			b.last = now
 			if b.tokens >= 1 {
 				b.tokens--
+				took = true
 				return
 			}
 			exceeded = true
@@ -689,6 +693,13 @@ func (e *Engine) observeLimits(r *Request, key Key, bits int, enforce bool) Verd
 				emitCount, b.over, b.lastEvent = b.over, 0, now
 			}
 		})
+		// The other nodes of a group are told the requests that took a
+		// token, as this node counts them: a refused request takes none.
+		if took {
+			if sh := e.share.Load(); sh != nil {
+				sh.limit(key, l.ID)
+			}
+		}
 		if !exceeded {
 			continue
 		}
@@ -892,6 +903,9 @@ func (e *Engine) Observe(r *Request, o Outcome) {
 	var baseline float64
 	if crawl && site != nil {
 		baseline = site.observeCrawl(now, int64(c.thr[config.ScenarioAggressiveCrawl].WindowS)*int64(time.Second), hashKey(key))
+	}
+	if sh := e.share.Load(); sh != nil {
+		e.noteShared(sh, r, o, key, h, site != nil, loginFailed, probing, crawl, waf)
 	}
 	var trig []trigger
 	e.clients.with(key, true, func(s *clientState) {
@@ -1274,7 +1288,9 @@ func (e *Engine) Sweep() {
 	}
 	e.clients.sweep(func(_ Key, s *clientState) bool { return now-s.seen > idle })
 	e.buckets.sweep(func(_ bucketKey, b *bucket) bool { return now-b.last > int64(24*time.Hour) })
-	e.blocks.sweep(func(_ Key, b *blockState) bool { return now-b.lastUntil > int64(repeatMemory) })
+	// A block that runs is never dropped: one set by hand or by an agent has
+	// no ladder memory (lastUntil 0) and went with the first sweep.
+	e.blocks.sweep(func(_ Key, b *blockState) bool { return b.until <= now && now-b.lastUntil > int64(repeatMemory) })
 	e.sweepLong(now)
 	e.released.sweep(func(_ Key, t *int64) bool { return now-*t > int64(30*24*time.Hour) })
 	e.sweepDistributed(time.Unix(0, now))

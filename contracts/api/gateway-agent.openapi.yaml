@@ -465,6 +465,7 @@ paths:
       summary: "Current load"
       description: "What the server is doing now: requests per second, stopped share, latency, CPU, memory, disk, hints."
       parameters:
+        - { $ref: "client-dashboard.openapi.yaml#/components/parameters/Node" }
         - { $ref: "client-dashboard.openapi.yaml#/components/parameters/Site" }
       responses:
         default: { $ref: "#/components/responses/Problem" }
@@ -499,6 +500,7 @@ paths:
 
         Errors: 400 `too_many_points` (over 1000: choose a coarser resolution or a shorter range), 409 `monitoring_off`, `filter_unavailable` (this filter needs the request ring).
       parameters:
+        - { $ref: "client-dashboard.openapi.yaml#/components/parameters/Node" }
         - name: metric
           in: query
           required: true
@@ -528,6 +530,7 @@ paths:
 
         Errors: 409 `monitoring_off`, `filter_unavailable` (this filter needs the request ring).
       parameters:
+        - { $ref: "client-dashboard.openapi.yaml#/components/parameters/Node" }
         - { name: by, in: query, required: true, schema: { $ref: "client-dashboard.openapi.yaml#/components/schemas/BreakdownDimension" } }
         - { $ref: "#/components/parameters/From" }
         - { $ref: "#/components/parameters/To" }

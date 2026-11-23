@@ -1,6 +1,6 @@
 /**
  * Mock mode bootstrap (pnpm dev:mock / e2e). Loaded only when VITE_MOCK=true, never in production builds.
- * Scenario via URL (before the hash): ?scenario=default|observe|review|first-run|login|degraded|empty|error|standalone
+ * Scenario via URL (before the hash): ?scenario=default|observe|review|first-run|login|degraded|empty|error|standalone|group|group-ok|group-large
  * Without the request ring (MVP-22): ?ring=off.
  * The choice sticks for the browser tab (sessionStorage) so reloads keep it.
  */

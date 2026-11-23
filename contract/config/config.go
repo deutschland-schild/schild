@@ -54,6 +54,7 @@ type Site struct {
 	Bots        Bots        `json:"bots"`                 // v0.5 (MVP-22)
 	WaitingPage WaitingPage `json:"waiting_page"`         // v0.5 (D37, MVP-23 step 1)
 	Rules       Rules       `json:"rules"`                // v0.6 (D73)
+	Cluster     Cluster     `json:"cluster"`              // MVP-27, D105
 }
 
 // Rules are the rule repositories (D73, contract/rules).
@@ -537,6 +538,9 @@ func (s *Site) check() error {
 		return err
 	}
 	if err := s.checkAgentAPI(); err != nil {
+		return err
+	}
+	if err := s.Cluster.check(); err != nil {
 		return err
 	}
 	return s.Behaviour.check()

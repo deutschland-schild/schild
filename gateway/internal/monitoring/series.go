@@ -16,7 +16,7 @@ const maxSeries = 128
 // rate divides by the seconds a point really covers, partial marks
 // incomplete points, site selects one website and one filter is answered
 // from the top lists (the per-website lists of the 10 min ring).
-func (m *Monitor) Series(q SeriesQuery, now time.Time) (cm.SeriesResult, error) {
+func (m NodeView) Series(q SeriesQuery, now time.Time) (cm.SeriesResult, error) {
 	sel, err := m.selectSite(q.Site)
 	if err != nil {
 		return cm.SeriesResult{}, &ErrInvalid{"site", "unknown site"}
@@ -85,7 +85,7 @@ func (m *Monitor) Series(q SeriesQuery, now time.Time) (cm.SeriesResult, error) 
 	starts := m.store.startTimes(first, end)
 	read := func(fn func(t time.Time, b *cm.MetricBucket, span float64)) error {
 		if ring.Resolution != m.rings[2].Resolution {
-			return m.store.read(ring, from, end.Add(-ring.Step), parts, func(t time.Time, b *cm.MetricBucket) {
+			return m.readNodes(ring, from, end.Add(-ring.Step), parts, func(t time.Time, b *cm.MetricBucket) {
 				fn(t, b, bucketSpan(t, ring.Step, b.Partial, starts))
 			})
 		}

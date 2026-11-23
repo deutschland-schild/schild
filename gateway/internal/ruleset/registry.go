@@ -531,6 +531,37 @@ func (r *Registry) SetCRSSettings(ctx context.Context, id string, s CRSSettings)
 	return r.view(x, r.o.Mode(), r.now()), nil
 }
 
+// Reload takes what another node of the group changed (MVP-27): the
+// disabled rules from the store and the states and CRS settings of the
+// configuration, and builds the rules again. A build that fails leaves the
+// running rules.
+func (r *Registry) Reload(ctx context.Context) error {
+	r.opMu.Lock()
+	defer r.opMu.Unlock()
+	ds, err := r.o.Store.RuleDecisions(ctx)
+	if err != nil {
+		return err
+	}
+	r.mu.Lock()
+	r.decisions = map[string]map[string]store.RuleDecision{}
+	for _, d := range ds {
+		if d.Kind == store.DecisionDisabled {
+			r.setDecision(d)
+		}
+	}
+	r.mu.Unlock()
+	var first error
+	for _, id := range []string{rules.RepoCRS, rules.RepoLocal} {
+		if err := r.rebuild(id); err != nil && first == nil {
+			first = err
+		}
+	}
+	if err := r.crowdsec.src.SetState(ctx, true); err != nil && first == nil {
+		first = err
+	}
+	return first
+}
+
 // rebuild builds crs or local again with their state and disabled rules.
 func (r *Registry) rebuild(id string) error {
 	state := r.State(id)

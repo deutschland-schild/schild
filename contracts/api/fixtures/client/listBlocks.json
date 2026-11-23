@@ -12,6 +12,8 @@
       "net_class": "hosting",
       "incident": "P9VZ-3J6K",
       "kept": false,
+      "node": "web-2",
+      "node_self": false,
       "firewall": "banned"
     },
     {

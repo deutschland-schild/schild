@@ -1,7 +1,7 @@
 import type { NavGroup, NavItem, StatusTone } from '@schild/ui'
 import type { HostSummary } from '@/api/hosts'
 import type { ServerHealth } from '@/api/websites'
-import { Activity, Ban, Bot, ChartArea, ClipboardCheck, KeyRound, LayoutDashboard, Lock, Network, ScrollText, Settings, ShieldAlert } from '@lucide/vue'
+import { Activity, Ban, Bot, Boxes, ChartArea, ClipboardCheck, KeyRound, LayoutDashboard, Lock, Network, ScrollText, Settings, ShieldAlert } from '@lucide/vue'
 import { FEATURES, hostStatusText, hostTone } from './hosts'
 import { REPOSITORIES, REPOSITORY_IDS, RULES_PATH, rulesPath } from './rules'
 import { STATUS, WEBSITE_COPY } from './websites'
@@ -30,6 +30,8 @@ export interface NavInput {
   server?: string
   /** Current path: the rule pages are listed below Regeln while one of them is open. */
   path?: string
+  /** This gateway is a node of a group (MVP-27): the server lists the page "Cluster". */
+  group?: boolean
 }
 
 /** Scenarios and limits, below Regeln (2026-11-18): what schild does across requests. */
@@ -106,8 +108,11 @@ export function allWebsitesPages(): NavItem[] {
   return [{ to: '/events', label: WEBSITE_COPY.events, icon: ShieldAlert, keywords: ['alle websites', 'alarme', 'angriffe', 'gesperrt', 'events', 'log'] }]
 }
 
+/** The page of the group (MVP-27): every gateway with its state and load. */
+export const GROUP_PATH = '/server/group'
+
 /** The pages of one server: the gateway has Überblick, Auslastung and Server-Check; an agent only its check. */
-export function serverPages(server: string): NavItem[] {
+export function serverPages(server: string, group = false): NavItem[] {
   if (server && server !== 'local') {
     return [{ to: `/server/check?server=${encodeURIComponent(server)}`, activeOn: ['/server/check'], label: 'Server-Check', icon: ClipboardCheck, keywords: ['updates', 'ports', 'ssh', 'firewall', 'befunde', 'agent'] }]
   }
@@ -115,6 +120,7 @@ export function serverPages(server: string): NavItem[] {
     { to: '/server', label: WEBSITE_COPY.overview, icon: LayoutDashboard, exact: true, keywords: ['server', 'websites', 'zustand'] },
     { to: '/server/load', label: 'Auslastung', icon: Activity, keywords: ['cpu', 'arbeitsspeicher', 'festplatte', 'netzwerk', 'last'] },
     { to: '/server/check', label: 'Server-Check', icon: ClipboardCheck, keywords: ['updates', 'ports', 'ssh', 'firewall', 'befunde', 'agenten'] },
+    ...(group ? [{ to: GROUP_PATH, label: 'Cluster', icon: Boxes, keywords: ['gruppe', 'knoten', 'nodes', 'loadbalancer', 'abgleich', 'hochverfügbar'] }] : []),
   ]
 }
 
@@ -156,7 +162,7 @@ export function buildNav(i: NavInput): NavGroup[] {
     { to: '/privacy', label: 'Datenschutz', icon: Lock, keywords: ['privacy', 'dsgvo', 'löschen', 'export'] },
   ]
   if (i.server)
-    return [{ items: serverPages(i.server) }]
+    return [{ items: serverPages(i.server, i.group) }]
   if (i.site)
     return [{ items: websitePages(i.site) }]
   return [

@@ -143,6 +143,10 @@ Usage:
   schild firewall run | status | off            CAP_NET_ADMIN on the host's network: keep schild's address blocks
                                                  in the nftables table "inet schild" (ports 80 and 443, kernel
                                                  timeouts), from the agent API (schild firewall -h)
+  schild cluster  secret | status | remove NODE | drain
+                                                 a group of gateways that share their address blocks from node to
+                                                 node, no store beside them; set up by cluster.secret_file and
+                                                 cluster.peers in schild.yaml (schild cluster -h)
 
 Changes to schild.yaml take effect after a restart of schild (systemctl restart schild, docker compose
 restart). SIGHUP and "schild rules sync local" only load rules.d again. Settings changed in the dashboard
@@ -208,6 +212,8 @@ func main() {
 		os.Exit(hostcli.Check("schild check", os.Args[2:]))
 	case "firewall":
 		err = cmdFirewall(os.Args[2:])
+	case "cluster":
+		err = cmdCluster(os.Args[2:])
 	case "help", "-h", "--help":
 		usage()
 	default:

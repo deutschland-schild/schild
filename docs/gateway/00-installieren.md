@@ -391,7 +391,7 @@ Apache setzt `X-Forwarded-For` selbst. Danach `sudo nginx -t && sudo systemctl r
 
 Fällt Schild aus, antwortet dein Webserver mit diesen Zeilen mit 502. Soll nginx dann direkt an die Anwendung weiterreichen, nimm die Vorlage [nginx-front.conf](../../gateway/deploy/nginx-front.conf); sie erklärt auch, warum das nur bei einem Absturz geschieht und nie bei einer Zeitüberschreitung.
 
-Läuft Schild in Docker, oder steht ein Load Balancer oder Cloudflare vor deinem Webserver, lies [Echte Adresse der Besucher:innen](02-betrieb.md#echte-adresse-der-besucherinnen). Sonst sieht Schild alle als eine Adresse.
+Läuft Schild in Docker, oder steht ein Load Balancer oder Cloudflare vor deinem Webserver, lies [Echte Adresse der Besucher:innen](02-betrieb.md#echte-adresse-der-besucherinnen). Sonst sieht Schild alle als eine Adresse. Betreibst du mehrere Gateways hinter einem Load Balancer als Cluster, steht unter [Was der Loadbalancer braucht](03-cluster.md#was-der-loadbalancer-braucht), wie du ihn einstellst.
 
 Schild prüft nur, was über Schild kommt. Deine Anwendung darf deshalb von außen nicht direkt erreichbar sein, auch nicht über IPv6: Lass sie auf `127.0.0.1` lauschen, oder sperr ihren Port in der Firewall für IPv4 und IPv6. Das gilt genauso, wenn Schild als dein Caddy läuft. Der [Server-Check](01-funktionen.md#server-check) meldet, wenn die Firewall nur IPv4 filtert.
 

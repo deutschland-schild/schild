@@ -282,6 +282,38 @@ type SeriesResult struct {
 	Partial []bool   `json:"partial,omitempty"`
 	Filters []string `json:"filters,omitempty"`
 	Source  string   `json:"source,omitempty"`
+	// Cluster: in a group of gateways, the nodes the answer adds up.
+	Cluster *ClusterScope `json:"cluster,omitempty"`
+}
+
+// ClusterScope says which nodes of a group of gateways an answer covers
+// (contracts/cluster.md section 9a); absent on a single gateway.
+type ClusterScope struct {
+	// Node is "all" or the id of the one node asked for.
+	Node string `json:"node"`
+	// Nodes are the nodes whose numbers the answer holds.
+	Nodes []ClusterNode `json:"nodes"`
+	// PartialNodes are nodes of Nodes whose history ends before the span
+	// asked for does: the answer lacks their part from Until on.
+	PartialNodes []ClusterPartialNode `json:"partial_nodes"`
+	// ClientsAtLeast: the answer adds up several nodes, and its estimates
+	// of distinct clients are the largest of the nodes, a lower bound.
+	ClientsAtLeast bool `json:"clients_at_least"`
+}
+
+// ClusterNode is one node of a ClusterScope.
+type ClusterNode struct {
+	ID   string `json:"id"`
+	Name string `json:"name"`
+	Self bool   `json:"self,omitempty"`
+}
+
+// ClusterPartialNode is a node whose part of an answer is incomplete.
+// Until is the end of what this gateway holds of it; absent: nothing yet.
+type ClusterPartialNode struct {
+	Node  string  `json:"node"`
+	Name  string  `json:"name"`
+	Until *string `json:"until,omitempty"`
 }
 
 // TrafficNow is the traffic of the last 60 s (MonitoringNow.traffic and,

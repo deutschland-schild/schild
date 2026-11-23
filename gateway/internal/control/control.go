@@ -34,6 +34,11 @@ import (
 // one-time setup code.
 const OpResetDashboard = "dashboard_reset_password"
 
+// OpDrain takes a node of a group out of traffic and stops it (`schild
+// cluster drain`, MVP-27): the readiness answer turns to 503 at once, the
+// gateway stops after cluster.drain.delay_s like on SIGTERM.
+const OpDrain = "cluster_drain"
+
 // OpSetupCode returns the first-run setup code again while no dashboard
 // password is set (`schild dashboard setup-code`). It changes nothing.
 const OpSetupCode = "dashboard_setup_code"

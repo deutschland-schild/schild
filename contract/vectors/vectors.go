@@ -19,6 +19,7 @@ import (
 	"github.com/deutschland-schild/schild/contract/agentapi"
 	"github.com/deutschland-schild/schild/contract/bodylimit"
 	"github.com/deutschland-schild/schild/contract/bots"
+	"github.com/deutschland-schild/schild/contract/cluster"
 	"github.com/deutschland-schild/schild/contract/crawlers"
 	"github.com/deutschland-schild/schild/contract/crowdsec"
 	"github.com/deutschland-schild/schild/contract/geo"
@@ -77,7 +78,7 @@ type State struct {
 // Expect is the expected verdict. v0.5: classifier vectors (bot-match,
 // geo-map, website-derive, website-status, website-exception,
 // website-visitor, waiting-page, storage-bounds, ingress-order,
-// request-recheck, crowdsec-hub, rule-effect, body-limits, agent-block, access-gate, crawler-policy) also expect a result for
+// request-recheck, crowdsec-hub, rule-effect, body-limits, agent-block, access-gate, crawler-policy, cluster-record) also expect a result for
 // valid inputs.
 type Expect struct {
 	Valid  bool            `json:"valid"`
@@ -213,6 +214,8 @@ func (r *Runner) Run(v *Vector) (Verdict, error) {
 		result, verr = bodylimit.RunVector(raw)
 	case "agent-block": // D42
 		result, verr = agentapi.RunBlockVector(raw)
+	case "cluster-record": // D105
+		result, verr = cluster.RunVector(raw, ctx.Now)
 	case "access-gate": // D56
 		result, verr = access.RunVector(raw)
 	case "crawler-policy": // D57

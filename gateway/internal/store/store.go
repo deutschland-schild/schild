@@ -14,6 +14,7 @@ import (
 	"log/slog"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 	"sync/atomic"
 	"time"
@@ -33,6 +34,9 @@ type Store struct {
 	// capDeleted is when a size-cap pass last deleted rows that counters
 	// may cover (unix ns; Overview.counters_24h.partial, D36 open items).
 	capDeleted atomic.Int64
+	// ownGen counts the writes of events and incidents that did not come
+	// from another node of a group (OwnGen).
+	ownGen atomic.Int64
 }
 
 const baseSchema = `
@@ -248,6 +252,53 @@ func (s *Store) Get(ctx context.Context, k string) ([]byte, error) {
 func (s *Store) Put(ctx context.Context, k string, v []byte) error {
 	_, err := s.db.ExecContext(ctx, "INSERT INTO kv(k, v) VALUES(?, ?) ON CONFLICT(k) DO UPDATE SET v = excluded.v", k, v)
 	return err
+}
+
+// Keys returns the keys of the kv values, sorted.
+func (s *Store) Keys(ctx context.Context) ([]string, error) {
+	rows, err := s.db.QueryContext(ctx, "SELECT k FROM kv ORDER BY k")
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var out []string
+	for rows.Next() {
+		var k string
+		if err := rows.Scan(&k); err != nil {
+			return nil, err
+		}
+		out = append(out, k)
+	}
+	return out, rows.Err()
+}
+
+// Tables returns the names of the tables of schild.db, sorted (tests: every
+// table is shared in a group or listed as per node).
+func (s *Store) Tables(ctx context.Context) ([]string, error) {
+	rows, err := s.db.QueryContext(ctx, "SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%' ORDER BY name")
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var out []string
+	for rows.Next() {
+		var n string
+		if err := rows.Scan(&n); err != nil {
+			return nil, err
+		}
+		out = append(out, n)
+	}
+	return out, rows.Err()
+}
+
+// SharedTables returns the tables a group shares row by row (shared.go).
+func SharedTables() []string {
+	out := make([]string, 0, len(sharedTables))
+	for _, t := range sharedTables {
+		out = append(out, t.table)
+	}
+	sort.Strings(out)
+	return out
 }
 
 // Delete removes a kv value; a value that is not there is no error.

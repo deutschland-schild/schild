@@ -56,7 +56,10 @@ jobs:
   go-race:
     name: go-race
     runs-on: ubuntu-24.04
-    timeout-minutes: 45
+    # The tests of the group of gateways start several gateways per test, so this job takes longer than
+    # on main (11 minutes in its last run). One run did not end within 45 minutes and left no log; the
+    # limit is short enough to show that again soon. The limit per package is in gateway/component.mk.
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:

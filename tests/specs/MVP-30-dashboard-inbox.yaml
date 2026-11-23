@@ -94,7 +94,7 @@ kill_if: "proposal for the initiator: an inbox action changes something outside 
 done: "make contracts-test && make test && (cd ui && pnpm check)"
 open:
   - 'unknown_host: assigning a host to a website from the dashboard would take back D32 for websites as D54 did for exceptions (alias stored in schild.db, rendered at start); it also needs a certificate for the new name wherever TLS ends. v1 proposal: dismiss and copy the YAML only'
-  - 'HA group (MVP-27): dismissals and dashboard exceptions need record classes in Valkey, else they hold on one node only (D54 names the same gap for exceptions)'
+  - 'HA group (MVP-27): dismissals and dashboard exceptions need record classes of the group (D105: class settings), else they hold on one node only (D54 names the same gap for exceptions)'
   - 'central dashboard (MVP-20): one inbox over several instances, the same item on several instances grouped, and whether the central dashboard may act on items (today it may only block addresses)'
   # closed by D72: no labs in v1 (code removed), the three modes stay (see no_labs_in_v1)
 out_of_scope:

@@ -1,0 +1,31 @@
+{
+  "contract": "cluster-record",
+  "description": "The admission of one node does not fit another key.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"group\":\"g-c1e5a133bdfa0a42a97f392f3317882e\",\"members\":[],\"record\":{\"v\":1,\"group\":\"g-c1e5a133bdfa0a42a97f392f3317882e\",\"class\":\"members\",\"id\":\"n-a4d65e36c803166245644fec71c8129c\",\"origin\":\"n-a4d65e36c803166245644fec71c8129c\",\"seq\":1,\"hlc\":117506860646400000,\"data\":\"eyJuYW1lIjoiZXZpbCIsInJvbGUiOiJnYXRld2F5IiwicHVibGljX2tleSI6IlBZcG5BcFh4aHdGYjhlbm9oSzRoZG12RGwrNWlTSDhwazFQSVdKVjZqeVU9IiwiYWRkcmVzcyI6IjEwLjAuMC41Ojg3OTAiLCJqb2luZWQiOiIyMDI2LTEwLTI2VDExOjAwOjAwWiIsImFkbWl0X3B1YmxpY19rZXkiOiIxNGRNZFZUMjVzM3pPdWRCQjc0cG5LQWhRZk5iRnBzU2hETWdUNWRuSFN3PSIsImFkbWl0IjoiTlZaR3RXTjJIOEZvZ1ZoVjFselA1WHN6VU5vcU04dWVVbVVMdDRhdmdTU3h4Qm9VSTl2L2JkNzBnUUpQcGpxYS8zVHJSV3cxcXg1cmZWUEN5TmlOQ3c9PSJ9\",\"sig\":\"+2aAS4m7euBPZY805ImAtfrwTiWEBA/dpj0aulkCfL83gerZsMzLYpO7YrylaMCDQauKatxHbWG9yroKkDpqCQ==\"}}",
+  "input_decoded": {
+    "group": "g-c1e5a133bdfa0a42a97f392f3317882e",
+    "members": [],
+    "record": {
+      "v": 1,
+      "group": "g-c1e5a133bdfa0a42a97f392f3317882e",
+      "class": "members",
+      "id": "n-a4d65e36c803166245644fec71c8129c",
+      "origin": "n-a4d65e36c803166245644fec71c8129c",
+      "seq": 1,
+      "hlc": 117506860646400000,
+      "data": "eyJuYW1lIjoiZXZpbCIsInJvbGUiOiJnYXRld2F5IiwicHVibGljX2tleSI6IlBZcG5BcFh4aHdGYjhlbm9oSzRoZG12RGwrNWlTSDhwazFQSVdKVjZqeVU9IiwiYWRkcmVzcyI6IjEwLjAuMC41Ojg3OTAiLCJqb2luZWQiOiIyMDI2LTEwLTI2VDExOjAwOjAwWiIsImFkbWl0X3B1YmxpY19rZXkiOiIxNGRNZFZUMjVzM3pPdWRCQjc0cG5LQWhRZk5iRnBzU2hETWdUNWRuSFN3PSIsImFkbWl0IjoiTlZaR3RXTjJIOEZvZ1ZoVjFselA1WHN6VU5vcU04dWVVbVVMdDRhdmdTU3h4Qm9VSTl2L2JkNzBnUUpQcGpxYS8zVHJSV3cxcXg1cmZWUEN5TmlOQ3c9PSJ9",
+      "sig": "+2aAS4m7euBPZY805ImAtfrwTiWEBA/dpj0aulkCfL83gerZsMzLYpO7YrylaMCDQauKatxHbWG9yroKkDpqCQ=="
+    }
+  },
+  "expect": {
+    "valid": true,
+    "result": {
+      "taken": false,
+      "reason": "origin",
+      "replaces": null
+    }
+  }
+}

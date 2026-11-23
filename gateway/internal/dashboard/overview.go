@@ -40,6 +40,9 @@ func (s *Server) reasons(now time.Time) []string {
 	if s.SettingsDropped != nil && s.SettingsDropped() {
 		out = append(out, "dashboard_settings_dropped")
 	}
+	if s.ClusterReasons != nil {
+		out = append(out, s.ClusterReasons()...)
+	}
 	return out
 }
 

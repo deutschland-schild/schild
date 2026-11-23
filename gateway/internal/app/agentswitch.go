@@ -52,6 +52,39 @@ func (a *App) loadAgentSwitch(ctx context.Context) {
 	a.agent.overlay = &o
 }
 
+// followAgentSwitch brings the switch into force after another node of a
+// group changed it (D105: what is set in a dashboard holds on every node):
+// the value is in the store already, the listener of this node follows. An
+// empty value gives the switch back to schild.yaml. enabled false in this
+// node's schild.yaml stays final, as for its own dashboard.
+func (a *App) followAgentSwitch(_ context.Context, v []byte) {
+	a.agent.mu.Lock()
+	defer a.agent.mu.Unlock()
+	before := a.agentAPIOnLocked()
+	var overlay *agentAPIOverlay
+	if len(v) > 0 {
+		var o agentAPIOverlay
+		if json.Unmarshal(v, &o) != nil {
+			a.log.Warn("agent API: the switch another node set is not readable; this node keeps its own")
+			return
+		}
+		overlay = &o
+	}
+	a.agent.overlay = overlay
+	next := a.agentAPIOnLocked()
+	if next == before {
+		return
+	}
+	if !next {
+		a.closeAgentAPILocked()
+	} else if a.agent.serving {
+		if err := a.openAgentAPILocked(); err != nil {
+			a.log.Error("agent API listener not started after another node switched it on (request handling is not affected)", "addr", a.Config().AgentAPI.Listen, "err", err)
+		}
+	}
+	a.log.Info("agent API switched by another node of the group", "enabled", next)
+}
+
 // agentAPIOnLocked: enabled false in schild.yaml is final, the dashboard
 // cannot switch the agent API on against it. Otherwise the value of the
 // dashboard holds.

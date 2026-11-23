@@ -40,6 +40,7 @@ import (
 	"github.com/deutschland-schild/schild/gateway/internal/buildinfo"
 	"github.com/deutschland-schild/schild/gateway/internal/caddymod"
 	"github.com/deutschland-schild/schild/gateway/internal/clientip"
+	"github.com/deutschland-schild/schild/gateway/internal/cluster"
 	"github.com/deutschland-schild/schild/gateway/internal/connlimit"
 	"github.com/deutschland-schild/schild/gateway/internal/crawlers"
 	"github.com/deutschland-schild/schild/gateway/internal/dashboard"
@@ -170,6 +171,91 @@ type App struct {
 	// Crawlers is crawler control (D57, MVP-29); crawlersMu around changes.
 	Crawlers   *crawlers.Control
 	crawlersMu sync.Mutex
+	// Cluster is this gateway as a node of its group (MVP-27, D105); nil
+	// without cluster.enabled or before the node joined a group.
+	Cluster     *cluster.Node
+	groupBlocks groupBlocks
+	// groupLiftsLate counts lifts told to the group for a block whose record
+	// came after the lift was made here (cluster.go liftForGroup).
+	groupLiftsLate atomic.Uint64
+	// readyNoted is the readiness the log last named (noteReadiness).
+	readyNoted, readyNotedOnce atomic.Bool
+	// groupData shares events, incidents and requests (cluster_data.go);
+	// erased: when each address was erased in the group.
+	groupData *groupData
+	// groupMetrics: the metric buckets of the other gateways (cluster_metrics.go).
+	groupMetrics *groupMetrics
+	erased       erasedSet
+	// groupVersions: the config and build versions the other gateways of
+	// the group told; groupConfig is this node's (cluster_status.go).
+	groupVersions groupVersions
+	// firstKeysSince, firstKeysLead: since when this node keeps back a thing
+	// made once for the group, and since when it keeps the group's tasks
+	// (holdFirstKeys; under sharedMu).
+	firstKeysSince, firstKeysLead time.Time
+	firstKeysDone                 bool
+	// sharedApplied: what the node took of its group was applied once since
+	// it came in step; inStepNoted: the mark for it is written (inService).
+	sharedApplied, inStepNoted atomic.Bool
+	// The loop of the shared things works only when there is something to
+	// do (cluster_state.go syncShared). storeWatch: whether schild.db
+	// changed; sharedDue: a round is asked for; sharedRan, sharedWasSynced:
+	// the last round (under sharedMu); sharedRounds counts the rounds that
+	// worked (tests). stateGen moves with everything that may change the
+	// state this node hashes (cluster_fingerprint.go).
+	storeWatch      *store.Watcher
+	sharedDue       atomic.Bool
+	sharedRan       time.Time
+	sharedWasSynced bool
+	sharedRounds    atomic.Int64
+	stateGen        atomic.Uint64
+	// Keys of the store shared without registration (cluster_generic.go);
+	// guarded by sharedMu, the hooks by their own lock.
+	// sharedRepair: classes whose things are compared with the group's
+	// records in the next round (cluster_fingerprint.go).
+	sharedRepair map[string]bool
+	stateWatch   stateWatch
+	// groupHashKey keys the hashes of the state the nodes compare.
+	groupHashKey               [16]byte
+	sharedNamed, sharedGeneric map[string]bool
+	sharedGenericCaught        bool
+	sharedHooksMu              sync.Mutex
+	sharedHooks                map[string]func(context.Context, []byte)
+	// warmDone: the running counts of the group were taken at the start, or
+	// there was nobody to take them from; warmFailed: a member was in reach
+	// and they were not taken (cluster_warm.go). clockOut: the node left
+	// traffic because its clock is off the group's (cluster_clock.go).
+	warmDone, warmFailed, clockOut atomic.Bool
+	// testClocks stands in for the clocks of the members in reach (tests).
+	testClocks  atomic.Pointer[func() []time.Duration]
+	groupConfig atomic.Pointer[string]
+	// shared are the whole values the group shares (cluster_state.go);
+	// sharedMu around taking and publishing them.
+	shared   []sharedThing
+	sharedMu sync.Mutex
+	// sharedPending: entries other nodes changed, per thing, waiting for
+	// the loop; sharedMarks: what this node last brought in step, per thing
+	// and entry; sharedCaught: things whose group entries were taken once.
+	sharedPending map[string]map[string]pendingEntry
+	sharedMarks   map[string]map[string]string
+	sharedCaught  map[string]bool
+	// hubShare is the hub source as the group shares its index
+	// (cluster_hub.go); tests put another one in.
+	hubShare atomic.Pointer[hubIndex]
+	// clusterNode: the node New opened, which startCluster runs;
+	// groupHash: the engine hashes under the key of the group.
+	clusterNode *cluster.Node
+	groupHash   bool
+	// groupNodeID is the node id of this gateway in its group; "": none.
+	groupNodeID string
+	// draining: the node left traffic (readiness 503) and stops; drainCh
+	// is closed by Drain. started is when Run began to serve.
+	draining  atomic.Bool
+	drainCh   chan struct{}
+	drainOnce sync.Once
+	// GroupFiles shares the certificate storage with the group
+	// (cluster_files.go); nil without a group or without a Caddyfile.
+	GroupFiles *groupFiles
 }
 
 const (
@@ -235,7 +321,7 @@ func New(ctx context.Context, opts Options) (*App, error) {
 	if err := CheckHostAgents(cfg, os.Getenv); err != nil {
 		return nil, err
 	}
-	a := &App{opts: opts, log: log, base: base, overlay: map[string]any{}, summaries: map[store.SummaryKey]int{}, started: time.Now().UTC()}
+	a := &App{opts: opts, log: log, base: base, overlay: map[string]any{}, summaries: map[store.SummaryKey]int{}, started: time.Now().UTC(), drainCh: make(chan struct{})}
 	a.dataDir = DataDir(cfg, opts.DataDir)
 	if opts.BodyTemp {
 		n, err := PrepareBodyTemp(a.dataDir)
@@ -291,7 +377,11 @@ func New(ctx context.Context, opts Options) (*App, error) {
 		log.Warn(w)
 	}
 	a.Metrics = metrics.New()
-	a.Events = eventlog.New(a.Store, cfg.NodeName, a.Metrics, log)
+	// Before the event log and the engine: both take from the group.
+	if err := a.prepareCluster(cfg); err != nil {
+		return nil, err
+	}
+	a.Events = eventlog.New(a.Store, a.eventNode(cfg), a.Metrics, log)
 	a.Sites = sites.NewRegistry(a.websitesView(cfg))
 	a.Events.Sites = a.Sites
 	// Test lab evaluation: mirror local events as an NDJSON file for the
@@ -428,6 +518,18 @@ func New(ctx context.Context, opts Options) (*App, error) {
 		Version: buildinfo.String(), CRSVersion: buildinfo.CRSVersion, Started: a.started, Log: log, UI: webui.Handler(),
 		ScriptHashes: webui.InlineScriptHashes(), ProxiesTooBroad: a.proxiesTooBroad, ProxyMissing: a.Gate.Proxies.Missing,
 		Listen: cfg.Listen.Dashboard, SettingsDropped: a.SettingsDropped}
+	if cfg.Cluster.Enabled {
+		// Without cluster.enabled the dashboard answers "single" by itself.
+		a.Dashboard.Group = a.GroupStatus
+		a.Dashboard.MemberName = func() string {
+			if node := a.Cluster; node != nil {
+				return node.Name()
+			}
+			return ""
+		}
+		a.Dashboard.ClusterReasons = a.clusterReasons
+		a.Dashboard.BlockNode = a.blockNode
+	}
 	if a.resetPending {
 		a.Dashboard.LoadPendingSetup(ctx)
 	}
@@ -478,8 +580,13 @@ func New(ctx context.Context, opts Options) (*App, error) {
 	// D87: what `schild firewall run` said in its last call.
 	a.Dashboard.FirewallState = a.AgentAPI.Firewall.State
 	a.loadAgentSwitch(ctx)
+	a.OnSharedKey(agentAPIStoreKey, a.followAgentSwitch)
 	a.Dashboard.AgentAPI = a.agentAPIState
 	a.Dashboard.SetAgentAPI = a.setAgentAPI
+	// Last: the mesh listener is bound and held from here on.
+	if err := a.openCluster(cfg); err != nil {
+		return nil, err
+	}
 	a.Gate.SetReady(true)
 	return a, nil
 }
@@ -618,6 +725,8 @@ func (a *App) Loops(ctx context.Context) {
 	}))
 	a.goLoop(ctx, "allowlist-dns", tick(5*time.Minute, func() { a.Allow.RefreshDNS(ctx) }))
 	a.goLoop(ctx, "behaviour-sweep", tick(time.Minute, a.Behaviour.Sweep))
+	a.startCluster(ctx)
+	a.startJobs(ctx)
 	a.goLoop(ctx, "summaries", tick(time.Minute, func() {
 		a.flushSummaries(ctx)
 		if xs, err := a.Store.ActiveExceptions(ctx, time.Now()); err == nil {
@@ -722,6 +831,11 @@ func (a *App) Run(ctx context.Context) error {
 		} else {
 			defer release()
 			defer caddymod.BindConns(a.Conns)()
+			if a.GroupFiles != nil {
+				// The storage module of the Caddyfile hands certificates
+				// to the group through it (MVP-27).
+				defer caddymod.BindGroup(a.GroupFiles)()
+			}
 			startErr = a.startCaddy(cfg)
 		}
 	}
@@ -729,7 +843,11 @@ func (a *App) Run(ctx context.Context) error {
 	if startErr == nil {
 		select {
 		case <-ctx.Done():
+		case <-a.drainCh:
 		case runErr = <-errc:
+		}
+		if runErr == nil {
+			a.leaveTraffic()
 		}
 		a.log.Info("schild stopping")
 	}
@@ -750,6 +868,9 @@ func (a *App) Run(ctx context.Context) error {
 	}
 	if a.mirror != nil {
 		a.mirror.Close()
+	}
+	if a.Cluster != nil {
+		a.Cluster.Close()
 	}
 	if a.Monitor != nil {
 		_ = a.Monitor.Close()
@@ -801,8 +922,12 @@ func (a *App) startCaddy(cfg *config.Site) error {
 	if a.proxiesTooBroad {
 		trusted = nil // Caddy believes no forwarding header either (D40)
 	}
+	var grace time.Duration
+	if cfg.Cluster.Enabled {
+		grace = cfg.Cluster.Drain.Grace()
+	}
 	if err := caddymod.Start(caddymod.Options{Listen: cfg.Listen.Proxy, Upstream: cfg.Upstream.URL, UpstreamTimeout: time.Duration(cfg.Upstream.TimeoutMS) * time.Millisecond,
-		TrustedProxies: trusted, DataDir: a.dataDir, LogLevel: os.Getenv("SCHILD_CADDY_LOG_LEVEL")}); err != nil {
+		TrustedProxies: trusted, DataDir: a.dataDir, LogLevel: os.Getenv("SCHILD_CADDY_LOG_LEVEL"), Grace: grace}); err != nil {
 		return fmt.Errorf("start proxy: %w", err)
 	}
 	a.log.Info("schild running", "profile", cfg.Profile, "proxy", cfg.Listen.Proxy, "upstream", cfg.Upstream.URL,
@@ -819,7 +944,8 @@ func (a *App) PrepareIngress() (*caddymod.Ingress, error) {
 // root is <dataDir>/caddy.
 func IngressFor(cfg *config.Site, dataDir string) (*caddymod.Ingress, error) {
 	return caddymod.PrepareIngress(caddymod.IngressOptions{Caddyfile: cfg.Ingress.Caddyfile, Storage: cfg.Ingress.CaddyStorage, ExposeServerHeaders: cfg.Ingress.ExposeServerHeaders,
-		DefaultStorage: caddymod.DefaultStorage(dataDir), Unprotected: cfg.Ingress.UnprotectedSites, TrustedProxies: cfg.Ingress.TrustedProxies})
+		DefaultStorage: caddymod.DefaultStorage(dataDir), Unprotected: cfg.Ingress.UnprotectedSites, TrustedProxies: cfg.Ingress.TrustedProxies,
+		Cluster: cfg.Cluster.Enabled, Grace: cfg.Cluster.Drain.Grace()})
 }
 
 func listen(s *http.Server, name string) error {

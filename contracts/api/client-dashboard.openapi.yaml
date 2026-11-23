@@ -46,6 +46,8 @@ security:
 tags:
   - name: auth
   - name: overview
+  - name: group
+    description: The group of gateways this gateway belongs to (contracts/cluster.md), read only. Membership is changed on the host (`schild cluster`), never here.
   - name: events
   - name: incidents
   - name: rules
@@ -136,6 +138,7 @@ paths:
         of queryMetricSeries (traffic.clients_unique, page_views, requests, stopped, would_block, latency_total:p95,
         status_5xx). Primary key range reads of the rings; with filters see parameter Filter.
       parameters:
+        - { $ref: "#/components/parameters/Node" }
         - { $ref: "#/components/parameters/Website" }
         - { name: from, in: query, required: true, schema: { $ref: "#/components/schemas/Timestamp" } }
         - { name: to, in: query, required: true, schema: { $ref: "#/components/schemas/Timestamp" } }
@@ -160,7 +163,7 @@ paths:
         last 5 minutes from memory, and the last 30 minutes in 30 one-minute points (requests, stopped, would_block,
         visitors) from 30 rows of the 1 min ring plus the current bucket (partial). Cheap enough to poll every 30 s; streamMonitoring with site gives the same
         numbers per second.
-      parameters: [{ $ref: "#/components/parameters/Website" }]
+      parameters: [{ $ref: "#/components/parameters/Website" }, { $ref: "#/components/parameters/Node" }]
       responses:
         default: { $ref: "#/components/responses/Problem" }
         "200":
@@ -517,6 +520,24 @@ paths:
           content:
             application/json:
               schema: { $ref: "#/components/schemas/Overview" }
+        "401": { $ref: "#/components/responses/Problem" }
+
+  /group:
+    get:
+      tags: [group]
+      operationId: getGroupStatus
+      summary: >-
+        Whether this gateway runs alone or as a node of a group (contracts/cluster.md), and the state of the group as
+        this node sees it: the members with their last contact, what is shared, the counters of the sync and
+        the members whose configuration differs. A gateway without `cluster.enabled` answers `mode: single` and nothing
+        else. Read from the running node; nothing is asked of another node for this answer.
+      responses:
+        default: { $ref: "#/components/responses/Problem" }
+        "200":
+          description: Mode and group.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/GroupStatus" }
         "401": { $ref: "#/components/responses/Problem" }
 
   /events:
@@ -1526,6 +1547,7 @@ paths:
       operationId: getMonitoringNow
       summary: "What the server is doing right now - traffic of the last 60 s and 10 s, the latest server sample, health hints. Read from memory only (no database query); cost O(sites + hints)."
       parameters:
+        - { $ref: "#/components/parameters/Node" }
         - { $ref: "#/components/parameters/Site" }
       responses:
         default: { $ref: "#/components/responses/Problem" }
@@ -1563,6 +1585,7 @@ paths:
         explicit resolution with more than 1000 points answers 400 too_many_points. Missing data (before monitoring
         started, a restart, older than the ring) is null, never an error.
       parameters:
+        - { $ref: "#/components/parameters/Node" }
         - name: metric
           in: query
           required: true
@@ -1610,6 +1633,7 @@ paths:
         Items of by=path carry detections next to requests and by=rule items count the detections per rule, so alert
         rates per page and per rule cover the whole ring.
       parameters:
+        - { $ref: "#/components/parameters/Node" }
         - { name: by, in: query, required: true, schema: { $ref: "#/components/schemas/BreakdownDimension" } }
         - { $ref: "#/components/parameters/From" }
         - { $ref: "#/components/parameters/To" }
@@ -1883,6 +1907,16 @@ components:
       in: path
       required: true
       schema: { $ref: "#/components/schemas/AgentId" }
+    Node:
+      name: node
+      in: query
+      schema: { type: string, pattern: "^(all|n-[0-9a-f]{32})$" }
+      description: >-
+        In a group of gateways (contracts/cluster.md section 9a): the node whose numbers the answer shows. Absent or
+        `all`: every node of the group added up, the default. A node id (GroupMember.id of getGroupStatus): that node
+        alone, this gateway or another member, from the history this gateway holds of it. An id that is no gateway of
+        the group, and any id on a single gateway: 400 invalid (pointer #/query/node). The answer says what it covers
+        in `cluster`.
     Site:
       name: site
       in: query
@@ -2033,7 +2067,7 @@ components:
                 additionalProperties: false
                 required: [code, since]
                 properties:
-                  code: { type: string, enum: [waf_down, crs_off, crs_detect, geo_db_old, disk_full, trusted_proxies_too_broad, trusted_proxies_missing, dashboard_settings_dropped], description: "crs_off: the crs repository is off; crs_detect: it only detects, so the CRS blocks nothing. trusted_proxies_too_broad: a range in ingress.trusted_proxies is wider than /8 (IPv4) or /32 (IPv6), so forwarding headers are ignored and every client counts as its TCP peer. trusted_proxies_missing (D91): in the last 10 to 20 minutes at least 20 requests, and at least half of all, came from a private or loopback address that is not in ingress.trusted_proxies and carried a forwarding header: a proxy in front (nginx on the Docker host, a load balancer) is not trusted, so every visitor counts as that proxy and blocks of scenarios never hit (private addresses are never blocked). dashboard_settings_dropped: settings or rate limits saved in the dashboard no longer fit schild.yaml and were not applied at start; schild.yaml counts until they are saved again." }
+                  code: { type: string, enum: [waf_down, crs_off, crs_detect, geo_db_old, disk_full, trusted_proxies_too_broad, trusted_proxies_missing, dashboard_settings_dropped, cluster_peers_unreachable, cluster_config_drift, cluster_clock_skew, cluster_clock_out_of_service, cluster_counts_not_taken, cluster_state_differs], description: "cluster_state_differs: what is in force on this node (blocks, settings, access or logins) has differed from a reachable gateway for 30 s or longer, by the state hashes of contracts/cluster.md section 14; the node asks that gateway again and applies the group's state again, at most once a minute. cluster_clock_out_of_service: this node left traffic (readiness 503) because at least two other gateways it reaches agree on the time and its own clock is 60 s or more off theirs; it returns by itself when its clock is right. cluster_counts_not_taken: at its start this node could not take the running counts of limits and scenarios from a member it reached, and serves with counters that began at zero; it ends when a later pass succeeds or with the next start. cluster_peers_unreachable (a node of a group only, contracts/cluster.md): this node does not reach at least one gateway of its group. cluster_config_drift: the config version of at least one gateway differs from this node's. cluster_clock_skew: the clock of at least one gateway is 10 s or more off this node's; the later change wins in a group, so clocks have to agree. crs_off: the crs repository is off; crs_detect: it only detects, so the CRS blocks nothing. trusted_proxies_too_broad: a range in ingress.trusted_proxies is wider than /8 (IPv4) or /32 (IPv6), so forwarding headers are ignored and every client counts as its TCP peer. trusted_proxies_missing (D91): in the last 10 to 20 minutes at least 20 requests, and at least half of all, came from a private or loopback address that is not in ingress.trusted_proxies and carried a forwarding header: a proxy in front (nginx on the Docker host, a load balancer) is not trusted, so every visitor counts as that proxy and blocks of scenarios never hit (private addresses are never blocked). dashboard_settings_dropped: settings or rate limits saved in the dashboard no longer fit schild.yaml and were not applied at start; schild.yaml counts until they are saved again." }
                   since: { $ref: "#/components/schemas/Timestamp" }
         counters_24h:
           type: object
@@ -2616,6 +2650,152 @@ components:
         deleted_sessions: { type: integer, minimum: 0 }
         deleted_allowlist_entries: { type: integer, minimum: 0 }
         erased_requests: { type: integer, minimum: 0, description: "Records of the ring whose address was overwritten." }
+        nodes:
+          type: object
+          additionalProperties: false
+          required: [reached, open]
+          description: >-
+            In a group (contracts/cluster.md): how far the erasure got when this answer was written, at most 2 s after
+            the erasure on this node. Absent on a single gateway. A node under `open` erases when it reaches the group
+            again; the erasure waits for it for 31 days.
+          properties:
+            reached: { type: array, maxItems: 16, items: { type: string, maxLength: 63 }, description: "Names of the gateways that hold the erasure, this node first." }
+            open: { type: array, maxItems: 16, items: { type: string, maxLength: 63 }, description: "Names of the gateways that have not said yet that they hold it: away or slow." }
+
+    # ---- group of gateways (contracts/cluster.md, D105)
+    GroupStatus:
+      type: object
+      additionalProperties: false
+      required: [mode]
+      description: >-
+        The mode this gateway runs in. `single`: alone; without `state` the gateway has no `cluster.enabled` and no
+        other field is set. `group`: a node of a group, with everything below as this node sees it.
+      properties:
+        mode: { type: string, enum: [single, group] }
+        state:
+          type: string
+          enum: [no_group, syncing, active, degraded, interrupted, removed]
+          description: >-
+            Absent without `cluster.enabled`. no_group (mode single): kept for clients; a gateway of this version does
+            not answer it, since with `cluster.enabled` a node that cannot be set up or cannot run does not start
+            (contracts/cluster.md section 6). syncing: the node has not taken the state
+            of the group since its start. active: it is in step with every gateway. degraded: at least one gateway is
+            not reached, at least one is. interrupted: no other gateway is reached; the node serves with the state it
+            has. removed: a member said this node was removed; it serves with the state it has and shares nothing.
+        generated_at: { $ref: "#/components/schemas/Timestamp" }
+        group: { type: string, pattern: "^g-[0-9a-f]{32}$" }
+        node: { $ref: "#/components/schemas/GroupNode" }
+        members:
+          type: array
+          maxItems: 64
+          description: "Gateways first, then removed members; each by name. This node is one of them."
+          items: { $ref: "#/components/schemas/GroupMember" }
+        shared:
+          type: object
+          additionalProperties: false
+          required: [blocks, settings, access, logins]
+          description: "What this node holds of the group's state."
+          properties:
+            blocks: { type: integer, minimum: 0, description: "Address blocks of the group that run." }
+            settings: { type: integer, minimum: 0, description: "Things of class settings (contracts/cluster.md section 5)." }
+            access: { type: integer, minimum: 0, description: "Lists of who passes: allowlist, released senders, disabled rules." }
+            logins: { type: integer, minimum: 0, description: "Lists of who signs in: users, sessions, agent tokens." }
+        counters:
+          type: object
+          additionalProperties: false
+          required: [taken, refused, deferred, unread]
+          description: "Records of other nodes since the start of this node."
+          properties:
+            taken: { type: integer, minimum: 0 }
+            refused: { type: integer, minimum: 0, description: "Failed signature, schema or membership; never applied." }
+            deferred: { type: integer, minimum: 0, description: "Put off and asked for again: clock ahead, or an origin not known yet." }
+            unread: { type: integer, minimum: 0, description: "Of a newer version; kept and passed on unread." }
+        replaced: { type: integer, minimum: 0, description: "Values this node gave up for the group's at its first sync; kept on the node." }
+        config:
+          type: object
+          additionalProperties: false
+          required: [version, differing]
+          description: >-
+            A hint, nothing is distributed: every gateway tells the others the version of its configuration (SHA-256
+            over schild.yaml without node_name, cluster.listen and cluster.advertise, and over rules.d).
+          properties:
+            version: { type: string, pattern: "^[0-9a-f]{12}$", description: "Start of this node's config version." }
+            differing: { type: array, maxItems: 16, items: { type: string, maxLength: 63 }, description: "Names of the gateways whose config version differs from this node's." }
+    GroupNode:
+      type: object
+      additionalProperties: false
+      required: [id, name, role]
+      properties:
+        id: { type: string, pattern: "^n-[0-9a-f]{32}$" }
+        name: { type: string, maxLength: 63 }
+        role: { type: string, enum: [gateway] }
+    GroupMember:
+      type: object
+      additionalProperties: false
+      required: [id, name, role, state]
+      properties:
+        id: { type: string, pattern: "^n-[0-9a-f]{32}$" }
+        name: { type: string, maxLength: 63 }
+        role: { type: string, enum: [gateway] }
+        address: { type: string, maxLength: 64, description: "Address of the mesh listener." }
+        state:
+          type: string
+          enum: [self, ok, unreachable, no_contact, removed]
+          description: >-
+            self: this node. ok: reached within the last 15 s.
+            unreachable: the last call to it failed. no_contact: no call to it succeeded yet, or none for 15 s.
+            removed: its membership was ended.
+        last_out: { $ref: "#/components/schemas/Timestamp", description: "Last call of this node to the member that succeeded." }
+        last_in: { $ref: "#/components/schemas/Timestamp", description: "Last call of the member to this node." }
+        behind: { type: integer, minimum: 0, description: "Records the member has that this node lacks, at the last call." }
+        version: { type: string, maxLength: 128, description: "The schild version the member told; absent until it did." }
+        config: { type: string, enum: [same, differs, unknown], description: "Its config version against this node's; unknown until it told one, or when the last word is older than a minute." }
+        error: { type: string, maxLength: 300, description: "Why the last call failed, in one line." }
+        vitals: { $ref: "#/components/schemas/GroupVitals" }
+        shared_state:
+          type: object
+          additionalProperties: false
+          required: [blocks, settings, access, logins]
+          description: >-
+            Not for this node: per class whether what is in force on the member is what is in force on
+            this node, by the keyed hashes the gateways tell each other every 5 s, each with the point of the state it
+            was computed at (contracts/cluster.md section 14). Hashes are compared only at the same point, so a change
+            on its way is never a difference. same: equal at the last point both were at, within the last minute.
+            differs: different at the same point (what is in force differs although both hold the same records), or
+            different records at the same vector for 10 s. unknown: the member is not reached, told no hash lately,
+            runs a build that tells no points, or the two were at no common point for a minute (changes without a
+            pause, or a member that is behind).
+          properties:
+            blocks: { $ref: "#/components/schemas/GroupSameState" }
+            settings: { $ref: "#/components/schemas/GroupSameState" }
+            access: { $ref: "#/components/schemas/GroupSameState" }
+            logins: { $ref: "#/components/schemas/GroupSameState" }
+        clock_skew_ms: { type: integer, description: "The member's clock minus this node's in milliseconds, as of its last word within the last minute (the time on the way counts in). Absent when it named no time. From 10 000 on the dashboard names it; a record more than 60 s ahead is refused (contracts/cluster.md section 4)." }
+    GroupSameState: { type: string, enum: [same, differs, unknown] }
+    GroupVitals:
+      type: object
+      additionalProperties: false
+      required: [at, service, requests_per_s, stopped_share, latency_p95_ms, cpu_usage, memory_used_ratio, disk_used_ratio]
+      description: >-
+        How the member said it is doing, as it told this node within the last 20 s (this node: read
+        now). Absent when it said nothing lately or runs a build that tells no vitals. A value outside its range is null.
+        Shown, never decided on.
+      properties:
+        at: { $ref: "#/components/schemas/Timestamp", description: "When this node was told." }
+        service:
+          type: string
+          enum: [ready, draining, not_ready]
+          description: >-
+            What the member answers the balancer on /.schild/readyz. ready: 200. draining: it leaves traffic
+            (`schild cluster drain` or a stop). not_ready: it has not taken the state of the group yet, or its rules
+            are not loaded.
+        started_at: { $ref: "#/components/schemas/Timestamp", description: "Start of the member's schild process." }
+        requests_per_s: { type: number, minimum: 0, description: "Requests per second over its last 60 s." }
+        stopped_share: { $ref: "#/components/schemas/NullableRatio" }
+        latency_p95_ms: { $ref: "#/components/schemas/NullableMs" }
+        cpu_usage: { $ref: "#/components/schemas/NullableRatio" }
+        memory_used_ratio: { $ref: "#/components/schemas/NullableRatio" }
+        disk_used_ratio: { $ref: "#/components/schemas/NullableRatio", description: "The fullest shown mount." }
 
     # ---- server check and agents (contracts/host-check.md)
     HostId:
@@ -2841,6 +3021,8 @@ components:
         net_class: { type: string, maxLength: 32 }
         incident: { type: string, maxLength: 9, description: "Incident number of the block page; ends the block with unblockIncident. Empty when none is known." }
         kept: { type: boolean, description: "Kept in schild.db (blocks over 24 h), survives a restart." }
+        node: { type: string, maxLength: 63, description: "In a group: name of the node that decided the block (contracts/cluster.md, class blocks). Absent on a single gateway and while the group does not know the block yet." }
+        node_self: { type: boolean, description: "With node: true when this node decided the block. Nodes of one deployment may carry the same name." }
         firewall: { type: string, enum: [off, stale, pending, banned], description: "off: no firewall has called; stale: its last call is older than 2 minutes, or it reports an error; pending: it has not applied this block yet; banned: the nftables table inet schild holds the client." }
     BlockRequest:
       type: object
@@ -3411,11 +3593,58 @@ components:
           type: array
           maxItems: 1000
           items: { type: [number, "null"] }
+    ClusterScope:
+      type: object
+      additionalProperties: false
+      required: [node, nodes, partial_nodes, clients_at_least]
+      description: >-
+        In a group of gateways: which nodes the numbers of an answer cover (contracts/cluster.md section 9a). Absent
+        on a single gateway. Every gateway keeps the metric buckets of every other gateway and asks for new ones every
+        10 s, so the numbers of another node end up to that long, plus the step of the ring, before the present.
+      properties:
+        node: { type: string, pattern: "^(all|n-[0-9a-f]{32})$", description: "all, or the id of the one node asked for." }
+        nodes:
+          type: array
+          maxItems: 33
+          description: "The nodes whose numbers the answer holds: this gateway first when it is among them, then the others by id."
+          items: { $ref: "#/components/schemas/ClusterNode" }
+        partial_nodes:
+          type: array
+          maxItems: 32
+          description: >-
+            Nodes of `nodes` whose history on this gateway ends before the span of the answer does: they were not
+            reached, or they were down. From `until` on the answer lacks their part, so its sums are lower bounds.
+          items: { $ref: "#/components/schemas/ClusterPartialNode" }
+        clients_at_least:
+          type: boolean
+          description: >-
+            true when the answer adds up several nodes. Counters, latency histograms and top lists add. Estimates of
+            distinct clients (visitors, unique and new clients) do not, because a visitor may have reached several
+            nodes: the answer carries the largest estimate of the nodes, a lower bound of the group's (UI "mindestens").
+            Gauges and host values (CPU, memory, disk, network) are never added: an answer over several nodes carries
+            those of this gateway, ask for one node to see another's.
+    ClusterNode:
+      type: object
+      additionalProperties: false
+      required: [id, name]
+      properties:
+        id: { type: string, pattern: "^n-[0-9a-f]{32}$" }
+        name: { type: string, maxLength: 63 }
+        self: { type: boolean, description: "This gateway." }
+    ClusterPartialNode:
+      type: object
+      additionalProperties: false
+      required: [node, name]
+      properties:
+        node: { type: string, pattern: "^n-[0-9a-f]{32}$" }
+        name: { type: string, maxLength: 63 }
+        until: { $ref: "#/components/schemas/Timestamp", description: "End of what this gateway holds of the node; absent: nothing yet." }
     SeriesResult:
       type: object
       additionalProperties: false
       required: [from, to, resolution, step_s, points, series, restarts]
       properties:
+        cluster: { $ref: "#/components/schemas/ClusterScope" }
         from: { $ref: "#/components/schemas/Timestamp" }
         to: { $ref: "#/components/schemas/Timestamp" }
         resolution: { $ref: "#/components/schemas/Resolution" }
@@ -3622,6 +3851,7 @@ components:
       additionalProperties: false
       required: [by, from, to, resolution, exact, total, items, other]
       properties:
+        cluster: { $ref: "#/components/schemas/ClusterScope" }
         by: { $ref: "#/components/schemas/BreakdownDimension" }
         from: { $ref: "#/components/schemas/Timestamp" }
         to: { $ref: "#/components/schemas/Timestamp" }
@@ -3740,6 +3970,7 @@ components:
       additionalProperties: false
       required: [generated_at, started_at, traffic, server, hints]
       properties:
+        cluster: { $ref: "#/components/schemas/ClusterScope" }
         generated_at: { $ref: "#/components/schemas/Timestamp" }
         started_at: { $ref: "#/components/schemas/Timestamp", description: "Start of this schild process (counters before it are in the rings, not in TrafficNow)." }
         site: { $ref: "#/components/schemas/WebsiteId" }
@@ -4802,6 +5033,7 @@ components:
       additionalProperties: false
       required: [site, from, to, previous_from, previous_to, source, current, previous]
       properties:
+        cluster: { $ref: "#/components/schemas/ClusterScope" }
         site: { $ref: "#/components/schemas/WebsiteId" }
         from: { $ref: "#/components/schemas/Timestamp" }
         to: { $ref: "#/components/schemas/Timestamp" }
@@ -4827,6 +5059,7 @@ components:
       additionalProperties: false
       required: [site, generated_at, visitors_5m, requests_5m, stopped_5m, would_block_5m, points]
       properties:
+        cluster: { $ref: "#/components/schemas/ClusterScope" }
         site: { $ref: "#/components/schemas/WebsiteId" }
         generated_at: { $ref: "#/components/schemas/Timestamp" }
         visitors_5m: { type: [integer, "null"], minimum: 0, description: "Visitors of the last 5 minutes (estimate, ±3.3 %): distinct clients with a browser request schild forwarded; bots, tools and stopped clients are not counted (UI \"≈ N Besucher · letzte 5 Min.\")." }

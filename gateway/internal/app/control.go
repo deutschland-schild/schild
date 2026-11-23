@@ -47,6 +47,12 @@ func (a *App) Control(ctx context.Context, req control.Request) control.Response
 			resp.SetSource = v.Crowdsec.SetSource
 		}
 		return resp
+	case control.OpDrain:
+		if a.Cluster == nil {
+			return control.Response{Error: "this gateway is no node of a group; stop it with systemctl stop schild"}
+		}
+		a.Drain()
+		return control.Response{OK: true}
 	case control.OpAccessSet, control.OpAccessRemove, control.OpAccessList:
 		return a.accessControl(ctx, req)
 	default:

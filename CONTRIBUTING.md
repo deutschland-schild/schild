@@ -59,6 +59,8 @@ Every commit needs a sign-off under the [Developer Certificate of Origin](https:
 git commit -s -m "Short description"
 ```
 
+With `git config core.hooksPath .githooks` the hook `commit-msg` refuses a commit without it, so a missing sign-off shows before the pull request does.
+
 ## License
 
 Contributions to code and documentation are accepted under the [MIT License](LICENSE).

@@ -242,6 +242,30 @@
         "distributed": { "$ref": "#/$defs/distributed" }
       }
     },
+    "cluster": {
+      "description": "MVP-27, D105, cluster.md: this gateway is one node of a group that shares its state from node to node. Off by default; without it nothing of the group runs, no file is written and no listener opened. The node's key and its copy of the group's records lie in <storage.path>/cluster. A node enters its group by secret_file and peers, the same on every node; enabled needs secret_file (semantic check, code config). With enabled, schild does not start when the node cannot be set up or cannot run (a secret file that is missing, too short or readable by others, a node key that does not load, a mesh port that is taken); the error names the cause and the fix.",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "enabled": { "type": "boolean", "default": false },
+        "name": { "description": "Name of this node in its group, shown in the dashboard, in `schild cluster status` and in the source of its events. Default: node_name. A change takes effect at the next start of schild: the node writes its member record again. Not together with name_from_host (semantic check, code config).", "$ref": "../common.schema.json#/$defs/id" },
+        "name_from_host": { "description": "true: the node is named after its host: the first label of the host name in lower case when it is a valid identifier, otherwise node_name. For a deployment that writes the same schild.yaml to every node, where node_name is the same on all of them.", "type": "boolean", "default": false },
+        "listen": { "description": "IP:port of the mesh listener (TLS 1.3, the node keys). Without allow_public_listen the address has to be private (RFC 1918, IPv6 ULA), shared (100.64.0.0/10, RFC 6598: overlay networks such as Tailscale or NetBird), loopback or link-local; every address (0.0.0.0 or [::]) is allowed when advertise is set, which then has to pass that check (semantic check, code config). Required with enabled.", "type": "string", "pattern": "^([0-9]{1,3}(\\.[0-9]{1,3}){3}|\\[[0-9A-Fa-f:]+\\]):[0-9]{1,5}$" },
+        "advertise": { "description": "IP:port under which the other nodes reach this listener. Default: listen. Required when listen binds every address (0.0.0.0 or [::]). Without allow_public_listen it has to be a private, shared (100.64.0.0/10), loopback or link-local address (semantic check, code config).", "type": "string", "pattern": "^([0-9]{1,3}(\\.[0-9]{1,3}){3}|\\[[0-9A-Fa-f:]+\\]):[0-9]{1,5}$" },
+        "allow_public_listen": { "description": "true: listen and advertise may be public addresses. The mesh speaks to member keys only, but a private network or WireGuard between the nodes is the recommended place for it.", "type": "boolean", "default": false },
+        "drain": {
+          "description": "How a node leaves traffic when it stops (systemctl stop, a restart for an update, `schild cluster drain`): the readiness answer /.schild/readyz turns to 503, the node serves on for delay_s so the balancer sees it and sends new connections elsewhere, then it ends idle connections and lets running requests finish within grace_s.",
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "delay_s": { "description": "Longer than the health check interval of the balancer times the failures it counts.", "type": "integer", "minimum": 0, "maximum": 300, "default": 15 },
+            "grace_s": { "type": "integer", "minimum": 1, "maximum": 600, "default": 30 }
+          }
+        },
+        "secret_file": { "description": "Sets the group up: a file with the group secret (at least 32 bytes, `schild cluster secret` prints one), the same on every node. Its owner and its group may read it (0600, 0640, 0440; e.g. root:schild 0640); a file that others may read or its group write is refused (fix: chown schild:schild and chmod 0640). Required with enabled. A node with it lets itself into the group at its start. The secret admits and nothing else: every node still signs with its own key, and a removed node stays removed. Another secret is another group.", "type": "string", "minLength": 1, "maxLength": 4096 },
+        "peers": { "description": "IP:port of the mesh listeners of the other nodes, where a node that knows no member yet finds the group; read in canonical form (an IPv6 address as Go's netip writes it), so it compares with the addresses of the member list. The node's own address may be in the list, so one list serves every node. Needs secret_file (semantic check, code config).", "type": "array", "maxItems": 32, "uniqueItems": true, "items": { "type": "string", "pattern": "^([0-9]{1,3}(\\.[0-9]{1,3}){3}|\\[[0-9A-Fa-f:]+\\]):[0-9]{1,5}$" } }
+      }
+    },
     "agent_api": {
       "description": "v0.4 (MVP-21, D33): API for agents (e.g. Claude Code), described by the OpenAPI document it serves (D61), on its own loopback listener, read only except the CrowdSec Hub switch for tokens with scope crowdsec:write (D39 amendment) and single blocks for tokens with scope blocks:write (D42), reached through an SSH tunnel; the same read surface the MVP-20 export joins. Bearer tokens are created, listed and revoked only on the host (`schild token add --scope agent:read --expires 90d`), stored hashed, never in this file. On by default (D103): without a token every call answers 401.",
       "type": "object",

@@ -62,6 +62,11 @@ type Entry struct {
 	// Pin asks the writer to keep the visitor's requests from 5 min before
 	// to 5 min after this one unsampled (an incident or an alert).
 	Pin bool
+	// Seq is the number of a request this node served itself as a node of a
+	// group (Ring.Tee): set by Add, kept in the record on disk, so the other
+	// nodes can ask for what came after their cursor also from the segments
+	// (Ring.Served). 0: a single gateway, or a request another node served.
+	Seq uint64
 }
 
 // Methods in the order of the monitoring method breakdown ("OTHER" last).

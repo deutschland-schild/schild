@@ -1009,7 +1009,14 @@ export interface MonitoringHandlerTools {
   problem: (status: number, code: string, title: string, errors?: { pointer: string, detail: string }[]) => Response
   /** Interval of live ticks (ms); 1000 in the browser, shorter in tests. */
   tickMs?: number
+  /**
+   * MVP-27: what an answer covers in a cluster, for the `node` asked for (null: none); undefined on a single
+   * gateway, 'invalid' for a node that is no gateway of the cluster.
+   */
+  cluster?: (node: string | null) => ClusterScope | undefined | 'invalid'
 }
+
+type ClusterScope = import('@/api/generated/schema').components['schemas']['ClusterScope']
 
 /** Rounded counters of a whole bucket from the per-second model. */
 function bucketCounters(m: MonitoringMock, fromSec: number, stepS: number, site?: string): TrafficCounters {
@@ -1066,9 +1073,12 @@ export function monitoringHandlers(t: MonitoringHandlerTools): HttpHandler[] {
     http.get(`${base}/monitoring/now`, guard('read', ({ request }) => {
       const g = gate()
       if (g) return g
-      const { site, err } = siteOf(new URL(request.url))
+      const url = new URL(request.url)
+      const { site, err } = siteOf(url)
       if (err) return err
-      return json(monitoringNow(t.monitoring(), t.now(), site))
+      const cluster = t.cluster?.(url.searchParams.get('node'))
+      if (cluster === 'invalid') return problem(400, 'invalid', 'Unbekannter Server', [{ pointer: '#/query/node', detail: 'no such node of the group' }])
+      return json({ ...monitoringNow(t.monitoring(), t.now(), site), ...(cluster ? { cluster } : {}) })
     })),
     http.get(`${base}/monitoring/stream`, guard('read', ({ request }) => {
       const g = gate()

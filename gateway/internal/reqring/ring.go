@@ -61,6 +61,10 @@ type Config struct {
 
 // Ring is the request ring.
 type Ring struct {
+	// tee: see Tee.
+	tee atomic.Pointer[teeBuf]
+	// served: the state of the served log on disk (served.go).
+	served  servedState
 	cfg     Config
 	dir     string
 	ch      chan Entry
@@ -179,6 +183,7 @@ func New(cfg Config) (*Ring, error) {
 		r.bytes += fi.size
 	}
 	r.sortFiles()
+	r.loadSeqIndex()
 	for _, f := range r.files {
 		if f.kind == kindSeg {
 			r.lastSegStart = max(r.lastSegStart, f.start)
@@ -204,11 +209,147 @@ func (r *Ring) sortFiles() {
 // Add hands one request to the writer; never blocks. A full channel drops
 // the record and counts it (Stats.Dropped).
 func (r *Ring) Add(e *Entry) {
+	t := r.tee.Load()
+	if t == nil {
+		select {
+		case r.ch <- *e:
+		default:
+			r.dropped.Add(1)
+		}
+		return
+	}
+	// A node of a group numbers what it serves: the number goes into the
+	// served log and into the record on disk.
+	x := *e
+	x.Seq = t.add(e)
 	select {
-	case r.ch <- *e:
+	case r.ch <- x:
 	default:
 		r.dropped.Add(1)
 	}
+}
+
+// teeBuf is the served log: the requests this node served itself, each with
+// a sequence number, for the other nodes of a group (MVP-27). They ask for
+// what came after their cursor (Served), so a node that was away catches up
+// from where it stopped, as far back as the log reaches.
+//
+// It is a ring of a fixed number of entries, made once and filled by value:
+// Add hands its entry to nobody and stays free of allocations. The strings
+// of an entry are memory the request owns; the log keeps them alive, so it
+// is bounded by their bytes too.
+type teeBuf struct {
+	mu  sync.Mutex
+	buf []Entry
+	// head is the index of the oldest entry held, n how many are held.
+	head, n int
+	// next is the sequence number the next entry gets; the first is 1.
+	next uint64
+	// bytes of the strings the entries held reference, at most maxBytes.
+	bytes, maxBytes int
+}
+
+// entryBytes is what an entry keeps alive beyond its own size.
+func entryBytes(e *Entry) int {
+	n := len(e.Site) + len(e.Host) + len(e.RawPath) + len(e.Template) + len(e.Referrer) + len(e.UA) + len(e.EventID)
+	for i := range e.Rules {
+		n += len(e.Rules[i])
+	}
+	return n
+}
+
+func (t *teeBuf) add(e *Entry) uint64 {
+	sz := entryBytes(e)
+	t.mu.Lock()
+	for t.n > 0 && (t.n == len(t.buf) || t.bytes+sz > t.maxBytes) {
+		old := &t.buf[t.head]
+		t.bytes -= entryBytes(old)
+		*old = Entry{}
+		t.head = (t.head + 1) % len(t.buf)
+		t.n--
+	}
+	seq := t.next
+	slot := &t.buf[(t.head+t.n)%len(t.buf)]
+	*slot = *e
+	slot.Seq = seq
+	t.n++
+	t.bytes += sz
+	t.next++
+	t.mu.Unlock()
+	return seq
+}
+
+// forgetServed takes the requests of an erased address out of the served
+// log, so no node that asks later gets them.
+func (r *Ring) forgetServed(ip netip.Addr) {
+	t := r.tee.Load()
+	if t == nil {
+		return
+	}
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	for i := 0; i < t.n; i++ {
+		e := &t.buf[(t.head+i)%len(t.buf)]
+		if e.Client.IsValid() && e.Client.Unmap().WithZone("") == ip {
+			t.bytes -= entryBytes(e)
+			*e = Entry{}
+		}
+	}
+}
+
+// Backlog is how many entries wait for the writer, and how many fit.
+func (r *Ring) Backlog() (waiting, room int) { return len(r.ch), cap(r.ch) }
+
+// AddForeign hands over a request another node of the group served: it is
+// written like one of this node, and not told on.
+func (r *Ring) AddForeign(e *Entry) {
+	x := *e
+	x.Seq = 0 // the number counts on the node that served it, not here
+	select {
+	case r.ch <- x:
+	default:
+		r.dropped.Add(1)
+	}
+}
+
+// AddForeignWait is AddForeign for a caller that is not in the request path
+// and may wait: it hands over rows in order while the writer keeps up, and
+// waits for it otherwise, so a burst of another node's requests is not
+// dropped at a full queue. It uses the lower half of the queue only; the
+// upper half stays free for the requests this node serves itself, which are
+// never made to wait. It returns how many rows it handed over; fewer than
+// len(rows) when ctx ended first.
+func (r *Ring) AddForeignWait(ctx context.Context, rows []Entry) int {
+	half := cap(r.ch) / 2
+	for i := range rows {
+		for len(r.ch) >= half {
+			select {
+			case <-ctx.Done():
+				return i
+			case <-time.After(2 * time.Millisecond):
+			}
+		}
+		x := rows[i]
+		x.Seq = 0 // the number counts on the node that served it, not here
+		select {
+		case r.ch <- x:
+		case <-ctx.Done():
+			return i
+		}
+	}
+	return len(rows)
+}
+
+// ServedNext is the number the next request this node serves gets: it
+// moves whenever the served log grows. 0 without a served log.
+func (r *Ring) ServedNext() uint64 {
+	t := r.tee.Load()
+	if t == nil {
+		return 0
+	}
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	return t.next
 }
 
 // Start runs the writer and the closer until ctx ends or Close.
@@ -312,6 +453,7 @@ func (r *Ring) finish() {
 			*s = nil
 		}
 	}
+	r.saveServed()
 }
 
 // ---------------------------------------------------------------- writer
@@ -393,12 +535,18 @@ func (r *Ring) handle(e *Entry) {
 		return
 	}
 	r.written.Add(1)
-	r.noteRec(seg, rec.T)
+	r.noteRec(seg, rec.T, rec.Seq)
 }
 
-func (r *Ring) noteRec(s *segWriter, t int64) {
+func (r *Ring) noteRec(s *segWriter, t int64, seq uint64) {
 	r.mu.Lock()
 	fi := s.info
+	if seq != 0 {
+		if fi.seqMin == 0 || seq < fi.seqMin {
+			fi.seqMin = seq
+		}
+		fi.seqMax = max(fi.seqMax, seq)
+	}
 	if fi.count == 0 || t < fi.min {
 		fi.min = t
 	}
@@ -418,7 +566,7 @@ func (r *Ring) toRec(e *Entry, rec *Rec, now time.Time) {
 	*rec = Rec{T: e.T, Site: e.Site, Host: normHost(e.Host), Ref: e.Referrer, Rules: e.Rules, NRules: min(e.NRules, 3),
 		PageView: e.PageView, Method: e.Method, Status: e.Status, Outcome: e.Outcome, WBReason: e.WBReason, Score: e.Score,
 		Country: e.Country, ASN: e.ASN, NetClass: e.NetClass, UAClass: e.UAClass, Browser: e.Browser, OS: e.OS, Device: e.Device, BotCat: e.BotCat,
-		Bot: e.Bot, Verif: e.Verif, HasBot: e.Bot != 0, Dur: e.Dur, BytesOut: e.BytesOut, Crawler: e.Crawler}
+		Bot: e.Bot, Verif: e.Verif, HasBot: e.Bot != 0, Dur: e.Dur, BytesOut: e.BytesOut, Crawler: e.Crawler, Seq: e.Seq}
 	if rec.Site == "" {
 		rec.Site = "_any"
 	}
@@ -605,6 +753,7 @@ func (r *Ring) closeSeg(s *segWriter) {
 	s.info.size = s.size
 	r.bytes += d
 	r.mu.Unlock()
+	r.served.dirty.Store(true) // its range of numbers goes into the index
 	select {
 	case r.closing <- s.info:
 	default:
@@ -683,6 +832,7 @@ func (r *Ring) housekeep(now time.Time) {
 	}
 	r.mem.expire(nowMs - cr.ContextRingWindow.Milliseconds())
 	r.retain(now)
+	r.saveServed()
 	r.logs.Flush()
 }
 
@@ -730,6 +880,7 @@ func (r *Ring) retain(now time.Time) {
 			del = append(del, f.path)
 			r.bytes -= f.size
 			f.gone = true
+			r.served.left(f)
 			continue
 		}
 		keepF = append(keepF, f)
@@ -747,6 +898,7 @@ func (r *Ring) retain(now time.Time) {
 		del = append(del, f.path)
 		r.bytes -= f.size
 		f.gone = true
+		r.served.left(f)
 		r.files = append(r.files[:i], r.files[i+1:]...)
 	}
 	over := r.bytes > r.cfg.MaxBytes
@@ -849,7 +1001,7 @@ func (r *Ring) pinRec(rec *Rec) {
 	if err := r.pin.write(rec); err != nil {
 		return
 	}
-	r.noteRec(r.pin, rec.T)
+	r.noteRec(r.pin, rec.T, rec.Seq)
 }
 
 // ---------------------------------------------------------------- stats

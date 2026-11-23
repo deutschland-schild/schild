@@ -4,11 +4,88 @@ Notable changes per release. Contract changes are in [contracts/CHANGELOG.md](co
 
 The section of a version becomes the text of its GitHub release, so its heading stays `## <version>`. The date of a release is the one GitHub shows.
 
-## Unreleased
+## 0.1.0-alpha.6
 
 ### Security
 
 - An operator's Caddyfile may no longer use `acme_server`: schild refuses it at start and in `schild ingress validate`, wherever it stands. A gateway obtains certificates and issues none, and Caddy's ACME server is the only path to a library with known flaws and no fixed release (go-jose v3: GHSA-mgcc-cww5-fp2q, GHSA-4w3g-jfj2-cw2q, GHSA-vvm8-gf78-28g4). `tls internal` stays available.
+
+### Cluster of gateways
+
+Two to sixteen gateways of one operator can form a cluster (in the code and the contract: a group) that shares its state from node to node, with no database, cache or queue beside it (D105, MVP-27). It is off by default and set up from `schild.yaml` alone: `cluster.enabled`, `cluster.listen`, `cluster.secret_file` and `cluster.peers`, the same on every node. How to run it is described in German under [docs/gateway/03-cluster.md](docs/gateway/03-cluster.md), the wire in [contracts/cluster.md](contracts/cluster.md).
+
+Measured by agents that did not build it: three gateways on one machine ([report](tests/results/MVP-27-group-measurement.md), last run 92 of 92 judged checks), faults, crashes, load, sixteen gateways, clocks and an upgrade in turn on one machine ([report](tests/results/MVP-27-hardening.md)), and sixteen gateways on Linux VMs behind HAProxy with an ACME test server ([first](tests/results/MVP-27-lab.md), [second](tests/results/MVP-27-lab-run2.md), [third](tests/results/MVP-27-lab-run3.md) and a partial [fourth run](tests/results/MVP-27-lab-run4.md)). A fourth hardening run on the tree of this release measured the changed start, readiness, clock rule, removal, hello and drain: no kill clause hit, every new check passes, the failures left are the known limits below. Not measured: real servers with real visitors.
+
+**What is shared**
+
+- Address blocks: a block set on one node, by a scenario, by hand or by an agent, acts on every node within about a second, and a release ends it on every node, also when it is clicked on a node before the block's record came there. A flood of blocks leaves a node in rounds of 200 a second.
+- Everything set at runtime in the dashboard or by an agent: switches of the sources, thresholds, CRS levels, rate limits, crawler control, access lock, browser check, rule exceptions and disabled rules, the allowlist and released senders. Every key of the gateway's store travels, whatever feature wrote it, so a setting of a future feature holds on every node without knowing the cluster. Lists and settings are shared entry by entry: two nodes that change different entries both keep their change, also across a cut; for the same entry the later change wins.
+- Users, sessions and agent tokens, so one login serves every node, and a visitor who passed the browser check or the access lock on one node passes on the next. A TLS session resumes on every node.
+- Certificates, with a Caddyfile: one certificate per name while the nodes reach each other, and the HTTP challenge works whichever node the balancer picks. A certificate always travels with the key that fits it. Certificates a gateway had before it entered a cluster go with it.
+- Counts: rate limits, scenarios and the detectors of distributed attacks count for the cluster. Every node tells the others once a second what it counted, so a client that spreads its requests over the nodes gets a limit once. A wave is one wave on every node, its response acts on every node, and ending it in one dashboard ends it on all.
+- Events, incidents and single requests: every node keeps those of every node, always. Each dashboard shows the cluster in its lists, searches, request charts and the live view, also what a node recorded that is gone. A node that was away catches up on everything the others still keep, single requests included, also when one of them restarted meanwhile. Each node therefore stores what the whole cluster records.
+- One set of CrowdSec Hub rules: the node that downloaded a new index hands it to the others, which take it through the same checks as a download of their own, so new rules settle to block on every node together. A reset of the hub rules on one node holds for the cluster.
+- An address erased on one node (Art. 17) is erased on every node, also on one that returns later, and is never handed on.
+- The gateways tell each other a keyed hash of what is in force (blocks, settings, access, logins), each with the point of the state it was computed at, and compare hashes only at the same point. So a change on its way is never a difference, also not under a steady stream of changes (many blocks during an attack). The cluster page shows per gateway whether its state is the same, the dashboard names a difference that lasts 30 s, and the node repairs it by itself.
+- Two nodes that change the same entry at the same moment end with the same value, the one of the record that won, at once: a node puts in the record that is the state of an entry, not the one it noted first.
+- The first keys of the browser check of a new cluster are handed over by one node, the one that keeps the cluster's tasks; the others take them.
+- Not shared: `schild.yaml`, `rules.d` and the Caddyfile stay files of the deployment (a hint names nodes whose `schild.yaml` or `rules.d` differ). Per node stay the server check and its accepted findings, the log of agent calls and "last used" of a token, the bound on failed dashboard logins, the values of this moment on the load page, the live view per second and the counters under "Schutzstatus".
+
+**Setting up and names**
+
+- By configuration only: the same `cluster.secret_file` (`schild cluster secret` prints one) and `cluster.peers` on every node; a node lets itself in at its start. A gateway that joins adds what it holds; where both hold the same entry the cluster's value stands and the node keeps its own aside.
+- A node is named by `node_name`; with `cluster.name_from_host` by its host name, so one `schild.yaml` can lie on every node; `cluster.name` sets a fixed one.
+- The secret file may be read by the group of the service (0640 or 0440), never by others. `cluster.listen` takes a private address, also one of 100.64.0.0/10 (Tailscale, NetBird), or every address (`0.0.0.0`, `[::]`) with a private `cluster.advertise`.
+- `schild cluster status` shows the members, `schild cluster remove` ends the membership of one and says so when it did not.
+- With `cluster.enabled`, schild does not start when its cluster cannot be set up (secret file missing, too short or readable by others, mesh port in use, a broken node key); `cluster.enabled` needs `cluster.secret_file`. It never runs alone by mistake behind a balancer.
+- With `cluster.enabled`, a `proxy_protocol` wrapper in the Caddyfile needs an allow list: otherwise anyone who reaches a node could name any address as theirs.
+- In front of the gateways stands a load balancer that passes TCP on: HAProxy in TCP mode or a cloud load balancer without TLS termination. TLS ends on the gateways, and they refuse blocked clients themselves.
+- The guide has HAProxy examples and says what a site with TLS on the gateways needs on ports 80 and 443.
+
+**Readiness, stopping and failures**
+
+- `/.schild/readyz` on the web ports answers 503 until a node took the state of the cluster and applied it, took the running counts of limits, scenarios and detectors from a member, and while it stops. A node counts as in step only by a member that is in step itself, so two fresh nodes do not make each other ready with nothing; a cluster that is new as a whole is ready once every node of `cluster.peers` started. A node that never was in step stays out of traffic; a node that was in step once and reaches nobody serves after ten seconds with what it has. A node away longer than 30 days takes the cluster's state like a new one and hands on nothing it held alone, so nothing deleted comes back. A node that is not ready listens and answers 503, and its log says why.
+- `systemctl stop` and `schild cluster drain` leave traffic first (the systemd unit and the compose files wait 90 s for it) (`cluster.drain.delay_s`, default 15 s) and give running requests `cluster.drain.grace_s` (default 30 s) to finish. During the delay every answer asks the client to close its connection, so a connection kept open through a balancer loses no request at the stop.
+- No request waits for another node. A node that hangs is known as unreachable after about 3 s (HTTP/2 pings), a node that is gone at once.
+
+**Clocks**
+
+- The later change wins in a cluster, so clocks have to agree. The dashboard shows how far the clock of every gateway is off, `schild cluster status` names a member from 5 s on, the dashboard from 10 s on, and a node says in its log when it puts a record off because of a clock.
+- A node whose clock is a minute or more off from a majority of gateways that agree on the time leaves traffic by itself until its clock is right. A pair keeps serving, because nobody can know there whose clock is wrong.
+
+**The cluster page and numbers across servers**
+
+- "Einzelner Server" or "Cluster · 3 Server" stands in the top bar of every page. The page "Cluster" shows the totals, a map with the internet above and every gateway below it, and every gateway with whether it takes requests, its requests per second, share of stopped requests and response time of the last minute, CPU, memory and disk, its start, last contact, version, clock, state and configuration; from seven gateways on as a table. A gateway on the map opens its details. A gateway that is not reached shows no numbers.
+- Counters and charts show all gateways added up; a filter "Zahlen von" shows one alone, also one that is down. A gateway whose numbers are missing is named with the time they end. Visitors over several gateways are a lower bound ("mindestens"). The dashboard and agent API take `node` on the monitoring and website number operations and answer with `cluster`.
+- The dashboard names a gateway that is not reached, a configuration or a state that differs and a clock that is off, with a link to the cluster page. The list of blocked addresses names the node that decided a block, and deleting an address under "Datenschutz" names the servers the deletion reached and the ones still open.
+
+**Tasks that run once per period**
+
+- Tasks such as the rotation of the browser check's keys (and summaries by mail later) follow one set of rules on a single gateway and in a cluster: an interval or a time of day in a named time zone, across the changes of the clock; a run that failed or whose node went away is taken up again and does only the steps not noted as done; a period nobody was up for runs once while it is current. At least once, not exactly once: nodes that cannot reach each other may both run a task.
+
+**Replacing the cluster secret**
+
+- Deploy a new `cluster.secret_file` and restart the nodes one after the other. A node moves to the new cluster by itself and takes along what it held: blocks and lifts, settings, own addresses, logins, erasures, certificates and the state of the tasks. Nothing is deleted by hand. While the change runs there are two clusters side by side that exchange nothing.
+
+**Cost**
+
+- A cluster that has nothing to say asks nothing: the nodes ask each other for events, incidents and requests when one of them said it has some. Requests travel in a compact form, about 60 bytes instead of about 600 each; nodes of the build before and of this one exchange everything in the form the older one speaks. Sixteen idle gateways in one process on one machine: 0.6 CPU seconds per node and minute, 1.67 before these changes.
+
+**Limits** (the guide lists all of them)
+
+- A gateway killed hard lacks the requests of its last second; a gateway so loaded that its writer falls behind drops requests it served itself. The other nodes hold them in both cases.
+- A node whose clock is more than a minute ahead is taken late or not at all by the others; in a pair it stays in traffic.
+- Limits and waves act with up to a second of delay across nodes; numbers of other nodes show 10 to 20 s late.
+- At most 16 gateways.
+
+**Also for a single gateway**
+
+- A single gateway now rotates the keys of the browser check while it runs, not only at its start.
+- The baselines the detectors of distributed attacks and the crawl scenario learn live in memory and do not survive a restart. In a cluster a node that starts takes them from a member; a single gateway learns again.
+
+### Blocks
+
+- A block set by hand in the dashboard or by an agent for less than 7 days ended within a minute, at the engine's next sweep. It now runs until its end.
 
 ## 0.1.0-alpha.5
 

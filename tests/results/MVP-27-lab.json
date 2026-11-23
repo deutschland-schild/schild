@@ -1,0 +1,7821 @@
+{
+ "results_version": 0,
+ "spec": "MVP-27",
+ "run_id": "lab-20261122T111755Z",
+ "started_at": "2026-11-22T11:17:55Z",
+ "finished_at": "2026-11-22T12:55:58Z",
+ "seed": 27,
+ "profile": "unit",
+ "host": {
+  "os": "Linux VMs on one host",
+  "arch": "arm64",
+  "cpus": 10,
+  "mem_mb": 24576
+ },
+ "images": [
+  {
+   "name": "sg27-node:dev",
+   "digest": "sha256:b73f9accc20b37a6e4a6f4ea6d6ee6b803e4da7b89e90743062c5ef644496a69"
+  }
+ ],
+ "metrics": [
+  {
+   "name": "checks",
+   "value": 114.0,
+   "unit": "count",
+   "labels": {
+    "verdict": "pass"
+   }
+  },
+  {
+   "name": "checks",
+   "value": 19.0,
+   "unit": "count",
+   "labels": {
+    "verdict": "fail"
+   }
+  },
+  {
+   "name": "checks",
+   "value": 32.0,
+   "unit": "count",
+   "labels": {
+    "verdict": "info"
+   }
+  },
+  {
+   "name": "checks",
+   "value": 28.0,
+   "unit": "count",
+   "labels": {
+    "scenario": "s1",
+    "verdict": "pass"
+   }
+  },
+  {
+   "name": "checks",
+   "value": 4.0,
+   "unit": "count",
+   "labels": {
+    "scenario": "s1",
+    "verdict": "fail"
+   }
+  },
+  {
+   "name": "checks",
+   "value": 7.0,
+   "unit": "count",
+   "labels": {
+    "scenario": "s1",
+    "verdict": "info"
+   }
+  },
+  {
+   "name": "checks",
+   "value": 28.0,
+   "unit": "count",
+   "labels": {
+    "scenario": "s2",
+    "verdict": "pass"
+   }
+  },
+  {
+   "name": "checks",
+   "value": 0.0,
+   "unit": "count",
+   "labels": {
+    "scenario": "s2",
+    "verdict": "fail"
+   }
+  },
+  {
+   "name": "checks",
+   "value": 13.0,
+   "unit": "count",
+   "labels": {
+    "scenario": "s2",
+    "verdict": "info"
+   }
+  },
+  {
+   "name": "checks",
+   "value": 24.0,
+   "unit": "count",
+   "labels": {
+    "scenario": "s3",
+    "verdict": "pass"
+   }
+  },
+  {
+   "name": "checks",
+   "value": 8.0,
+   "unit": "count",
+   "labels": {
+    "scenario": "s3",
+    "verdict": "fail"
+   }
+  },
+  {
+   "name": "checks",
+   "value": 8.0,
+   "unit": "count",
+   "labels": {
+    "scenario": "s3",
+    "verdict": "info"
+   }
+  },
+  {
+   "name": "checks",
+   "value": 18.0,
+   "unit": "count",
+   "labels": {
+    "scenario": "s4",
+    "verdict": "pass"
+   }
+  },
+  {
+   "name": "checks",
+   "value": 0.0,
+   "unit": "count",
+   "labels": {
+    "scenario": "s4",
+    "verdict": "fail"
+   }
+  },
+  {
+   "name": "checks",
+   "value": 2.0,
+   "unit": "count",
+   "labels": {
+    "scenario": "s4",
+    "verdict": "info"
+   }
+  },
+  {
+   "name": "checks",
+   "value": 12.0,
+   "unit": "count",
+   "labels": {
+    "scenario": "s5",
+    "verdict": "pass"
+   }
+  },
+  {
+   "name": "checks",
+   "value": 1.0,
+   "unit": "count",
+   "labels": {
+    "scenario": "s5",
+    "verdict": "fail"
+   }
+  },
+  {
+   "name": "checks",
+   "value": 2.0,
+   "unit": "count",
+   "labels": {
+    "scenario": "s5",
+    "verdict": "info"
+   }
+  },
+  {
+   "name": "checks",
+   "value": 4.0,
+   "unit": "count",
+   "labels": {
+    "scenario": "s7",
+    "verdict": "pass"
+   }
+  },
+  {
+   "name": "checks",
+   "value": 6.0,
+   "unit": "count",
+   "labels": {
+    "scenario": "s7",
+    "verdict": "fail"
+   }
+  },
+  {
+   "name": "checks",
+   "value": 0.0,
+   "unit": "count",
+   "labels": {
+    "scenario": "s7",
+    "verdict": "info"
+   }
+  },
+  {
+   "name": "check",
+   "value": 1.0,
+   "unit": "bool",
+   "labels": {
+    "id": "1.01b",
+    "scenario": "s1",
+    "title": "the same files with one node_name for both nodes are accepted"
+   }
+  },
+  {
+   "name": "check",
+   "value": 1.0,
+   "unit": "bool",
+   "labels": {
+    "id": "1.02",
+    "scenario": "s1",
+    "title": "the HAProxy configuration of the balancer is valid (TCP mode, httpchk on /.schild/readyz, send-proxy-v2)"
+   }
+  },
+  {
+   "name": "check",
+   "value": 1.0,
+   "unit": "bool",
+   "labels": {
+    "id": "1.03",
+    "scenario": "s1",
+    "title": "both nodes start from the same files, in any order, and answer ready"
+   }
+  },
+  {
+   "name": "check",
+   "value": 1.0,
+   "unit": "bool",
+   "labels": {
+    "id": "1.04",
+    "scenario": "s1",
+    "title": "schild cluster status on n1 lists two gateways"
+   }
+  },
+  {
+   "name": "check",
+   "value": 0.0,
+   "unit": "bool",
+   "labels": {
+    "id": "1.05",
+    "scenario": "s1",
+    "title": "the two members can be told apart by name in schild cluster status (guide: remove NODE by name)"
+   }
+  },
+  {
+   "name": "check",
+   "value": 1.0,
+   "unit": "bool",
+   "labels": {
+    "id": "1.06",
+    "scenario": "s1",
+    "title": "HAProxy marks both gateways UP by /.schild/readyz over the PROXY protocol"
+   }
+  },
+  {
+   "name": "check",
+   "value": 1.0,
+   "unit": "bool",
+   "labels": {
+    "id": "1.07",
+    "scenario": "s1",
+    "title": "through the balancer the application gets the visitor's address (PROXY protocol v2)"
+   }
+  },
+  {
+   "name": "check",
+   "value": 1.0,
+   "unit": "bool",
+   "labels": {
+    "id": "1.08",
+    "scenario": "s1",
+    "title": "the first password set on n1: its session is valid on the dashboard of n2"
+   }
+  },
+  {
+   "name": "check",
+   "value": 1.0,
+   "unit": "bool",
+   "labels": {
+    "id": "1.09",
+    "scenario": "s1",
+    "title": "the password set on n1 signs in on n2"
+   }
+  },
+  {
+   "name": "check",
+   "value": 1.0,
+   "unit": "bool",
+   "labels": {
+    "id": "1.10",
+    "scenario": "s1",
+    "title": "a login on n2 is valid on n1"
+   }
+  },
+  {
+   "name": "check",
+   "value": 1.0,
+   "unit": "bool",
+   "labels": {
+    "id": "1.11",
+    "scenario": "s1",
+    "title": "a block set on one node of the pair refuses the address on the other within 1 s at p95 (n = 30)"
+   }
+  },
+  {
+   "name": "check",
+   "value": 1.0,
+   "unit": "bool",
+   "labels": {
+    "id": "1.12",
+    "scenario": "s1",
+    "title": "a lift on the other node serves the address again on the first (\"etwa eine Sekunde\")"
+   }
+  },
+  {
+   "name": "check",
+   "value": 0.0,
+   "unit": "bool",
+   "labels": {
+    "id": "1.12b",
+    "scenario": "s1",
+    "title": "\"Freigeben\" on the other node at the moment that node lists the block is answered 200 (n = 30)"
+   }
+  },
+  {
+   "name": "check",
+   "value": 1.0,
+   "unit": "bool",
+   "labels": {
+    "id": "1.13",
+    "scenario": "s1",
+    "title": "a blocked address is refused through the balancer whichever node it lands on, others pass"
+   }
+  },
+  {
+   "name": "check",
+   "value": 1.0,
+   "unit": "bool",
+   "labels": {
+    "id": "1.14",
+    "scenario": "s1",
+    "title": "the block list of n2 names the node that decided"
+   }
+  },
+  {
+   "name": "check",
+   "value": 1.0,
+   "unit": "bool",
+   "labels": {
+    "id": "1.15",
+    "scenario": "s1",
+    "title": "a PROXY header from a sender outside the allow list is not believed: the claimed (blocked) address is not the client"
+   }
+  },
+  {
+   "name": "check",
+   "value": 1.0,
+   "unit": "bool",
+   "labels": {
+    "id": "1.16",
+    "scenario": "s1",
+    "title": "an X-Forwarded-For header of a sender that is no trusted proxy is not believed either"
+   }
+  },
+  {
+   "name": "check",
+   "value": 1.0,
+   "unit": "bool",
+   "labels": {
+    "id": "1.17",
+    "scenario": "s1",
+    "title": "a visitor behind the balancer who sends X-Forwarded-For with a blocked address is served as itself"
+   }
+  },
+  {
+   "name": "check",
+   "value": 1.0,
+   "unit": "bool",
+   "labels": {
+    "id": "1.18",
+    "scenario": "s1",
+    "title": "in a cluster schild refuses to start with a proxy_protocol wrapper: no allow list"
+   }
+  },
+  {
+   "name": "check",
+   "value": 1.0,
+   "unit": "bool",
+   "labels": {
+    "id": "1.20",
+    "scenario": "s1",
+    "title": "in a cluster schild refuses to start with a proxy_protocol wrapper: allow list with fallback_policy use"
+   }
+  },
+  {
+   "name": "check",
+   "value": 1.0,
+   "unit": "bool",
+   "labels": {
+    "id": "1.22",
+    "scenario": "s1",
+    "title": "after the balancer marked the node down no request fails any more"
+   }
+  },
+  {
+   "name": "check",
+   "value": 1.0,
+   "unit": "bool",
+   "labels": {
+    "id": "1.24",
+    "scenario": "s1",
+    "title": "with n1 gone, n2 still holds the block and the login"
+   }
+  },
+  {
+   "name": "check",
+   "value": 1.0,
+   "unit": "bool",
+   "labels": {
+    "id": "1.25",
+    "scenario": "s1",
+    "title": "the dashboard of n2 says the sync is interrupted and n1 unreachable"
+   }
+  },
+  {
+   "name": "check",
+   "value": 1.0,
+   "unit": "bool",
+   "labels": {
+    "id": "1.26",
+    "scenario": "s1",
+    "title": "n1 returns: readiness is 503 first and at its first 200 the node holds what it missed (new block refused, lifted block served)"
+   }
+  },
+  {
+   "name": "check",
+   "value": 1.0,
+   "unit": "bool",
+   "labels": {
+    "id": "1.27",
+    "scenario": "s1",
+    "title": "no request through the balancer fails while n1 returns"
+   }
+  },
+  {
+   "name": "check",
+   "value": 1.0,
+   "unit": "bool",
+   "labels": {
+    "id": "1.28",
+    "scenario": "s1",
+    "title": "n1 holds the allowlist entry set while it was away and the session is valid on it again"
+   }
+  },
+  {
+   "name": "check",
+   "value": 1.0,
+   "unit": "bool",
+   "labels": {
+    "id": "1.29",
+    "scenario": "s1",
+    "title": "schild cluster drain under load: no request on a new connection fails"
+   }
+  },
+  {
+   "name": "check",
+   "value": 0.0,
+   "unit": "bool",
+   "labels": {
+    "id": "1.30",
+    "scenario": "s1",
+    "title": "schild cluster drain: kept-alive connections through the balancer lose no request"
+   }
+  },
+  {
+   "name": "check",
+   "value": 1.0,
+   "unit": "bool",
+   "labels": {
+    "id": "1.31",
+    "scenario": "s1",
+    "title": "schild cluster drain: readiness 503 at once, the node serves 15 s more, then stops"
+   }
+  },
+  {
+   "name": "check",
+   "value": 1.0,
+   "unit": "bool",
+   "labels": {
+    "id": "1.32",
+    "scenario": "s1",
+    "title": "SIGTERM (systemctl stop) under load: no request on a new connection fails"
+   }
+  },
+  {
+   "name": "check",
+   "value": 0.0,
+   "unit": "bool",
+   "labels": {
+    "id": "1.33",
+    "scenario": "s1",
+    "title": "SIGTERM (systemctl stop): kept-alive connections through the balancer lose no request"
+   }
+  },
+  {
+   "name": "check",
+   "value": 1.0,
+   "unit": "bool",
+   "labels": {
+    "id": "1.34",
+    "scenario": "s1",
+    "title": "SIGTERM (systemctl stop): readiness 503 at once, the node serves 15 s more, then stops"
+   }
+  },
+  {
+   "name": "check",
+   "value": 1.0,
+   "unit": "bool",
+   "labels": {
+    "id": "2.01",
+    "scenario": "s2",
+    "title": "three nodes on three VMs form a group from the same files"
+   }
+  },
+  {
+   "name": "check",
+   "value": 1.0,
+   "unit": "bool",
+   "labels": {
+    "id": "2.02",
+    "scenario": "s2",
+    "title": "baseline without a fault: 100 requests a second on each node for 15 s"
+   }
+  },
+  {
+   "name": "check",
+   "value": 1.0,
+   "unit": "bool",
+   "labels": {
+    "id": "2.11",
+    "scenario": "s2",
+    "title": "delay 50 ms each way: a block set on n1 refuses the address on n2 and n3 within 1 s at p95"
+   }
+  },
+  {
+   "name": "check",
+   "value": 1.0,
+   "unit": "bool",
+   "labels": {
+    "id": "2.12",
+    "scenario": "s2",
+    "title": "delay 50 ms each way: no request fails or waits (max under 500 ms)"
+   }
+  },
+  {
+   "name": "check",
+   "value": 1.0,
+   "unit": "bool",
+   "labels": {
+    "id": "2.21",
+    "scenario": "s2",
+    "title": "delay 200 ms each way: a block set on n1 refuses the address on n2 and n3 within 1 s at p95"
+   }
+  },
+  {
+   "name": "check",
+   "value": 1.0,
+   "unit": "bool",
+   "labels": {
+    "id": "2.22",
+    "scenario": "s2",
+    "title": "delay 200 ms each way: no request fails or waits (max under 500 ms)"
+   }
+  },
+  {
+   "name": "check",
+   "value": 1.0,
+   "unit": "bool",
+   "labels": {
+    "id": "2.31",
+    "scenario": "s2",
+    "title": "loss 1 % each way: a block set on n1 refuses the address on n2 and n3 within 1 s at p95"
+   }
+  },
+  {
+   "name": "check",
+   "value": 1.0,
+   "unit": "bool",
+   "labels": {
+    "id": "2.32",
+    "scenario": "s2",
+    "title": "loss 1 % each way: no request fails or waits (max under 500 ms)"
+   }
+  },
+  {
+   "name": "check",
+   "value": 1.0,
+   "unit": "bool",
+   "labels": {
+    "id": "2.41",
+    "scenario": "s2",
+    "title": "loss 10 % each way: a block set on n1 refuses the address on n2 and n3 within 1 s at p95"
+   }
+  },
+  {
+   "name": "check",
+   "value": 1.0,
+   "unit": "bool",
+   "labels": {
+    "id": "2.42",
+    "scenario": "s2",
+    "title": "loss 10 % each way: no request fails or waits (max under 500 ms)"
+   }
+  },
+  {
+   "name": "check",
+   "value": 1.0,
+   "unit": "bool",
+   "labels": {
+    "id": "2.50",
+    "scenario": "s2",
+    "title": "full partition (n3 cut from n1 and n2, packets dropped both ways): n1 shows n3 as not reachable (guide: at once for a failure, a"
+   }
+  },
+  {
+   "name": "check",
+   "value": 1.0,
+   "unit": "bool",
+   "labels": {
+    "id": "2.51",
+    "scenario": "s2",
+    "title": "full partition (n3 cut from n1 and n2, packets dropped both ways): the nodes that reach each other keep sharing (block n1 to n2 "
+   }
+  },
+  {
+   "name": "check",
+   "value": 1.0,
+   "unit": "bool",
+   "labels": {
+    "id": "2.52",
+    "scenario": "s2",
+    "title": "full partition (n3 cut from n1 and n2, packets dropped both ways): no request on any serving node fails or waits (max under 500 "
+   }
+  },
+  {
+   "name": "check",
+   "value": 1.0,
+   "unit": "bool",
+   "labels": {
+    "id": "2.53",
+    "scenario": "s2",
+    "title": "full partition (n3 cut from n1 and n2, packets dropped both ways) healed: the three nodes hold the same blocks and allowlist"
+   }
+  },
+  {
+   "name": "check",
+   "value": 1.0,
+   "unit": "bool",
+   "labels": {
+    "id": "2.54",
+    "scenario": "s2",
+    "title": "full partition (n3 cut from n1 and n2, packets dropped both ways) healed: nothing set on either side is lost (blocks, allowlist "
+   }
+  },
+  {
+   "name": "check",
+   "value": 1.0,
+   "unit": "bool",
+   "labels": {
+    "id": "2.60",
+    "scenario": "s2",
+    "title": "one-way cut (n3 hears nothing of n1 and n2, its own packets arrive): n1 shows n3 as not reachable (guide: at once for a failure,"
+   }
+  },
+  {
+   "name": "check",
+   "value": 1.0,
+   "unit": "bool",
+   "labels": {
+    "id": "2.61",
+    "scenario": "s2",
+    "title": "one-way cut (n3 hears nothing of n1 and n2, its own packets arrive): the nodes that reach each other keep sharing (block n1 to n"
+   }
+  },
+  {
+   "name": "check",
+   "value": 1.0,
+   "unit": "bool",
+   "labels": {
+    "id": "2.62",
+    "scenario": "s2",
+    "title": "one-way cut (n3 hears nothing of n1 and n2, its own packets arrive): no request on any serving node fails or waits (max under 50"
+   }
+  },
+  {
+   "name": "check",
+   "value": 1.0,
+   "unit": "bool",
+   "labels": {
+    "id": "2.63",
+    "scenario": "s2",
+    "title": "one-way cut (n3 hears nothing of n1 and n2, its own packets arrive) healed: the three nodes hold the same blocks and allowlist"
+   }
+  },
+  {
+   "name": "check",
+   "value": 1.0,
+   "unit": "bool",
+   "labels": {
+    "id": "2.64",
+    "scenario": "s2",
+    "title": "one-way cut (n3 hears nothing of n1 and n2, its own packets arrive) healed: nothing set on either side is lost (blocks, allowlis"
+   }
+  },
+  {
+   "name": "check",
+   "value": 1.0,
+   "unit": "bool",
+   "labels": {
+    "id": "2.70",
+    "scenario": "s2",
+    "title": "n3 hangs (process stopped with SIGSTOP, the kernel still answers): n1 shows n3 as not reachable (guide: at once for a failure, a"
+   }
+  },
+  {
+   "name": "check",
+   "value": 1.0,
+   "unit": "bool",
+   "labels": {
+    "id": "2.71",
+    "scenario": "s2",
+    "title": "n3 hangs (process stopped with SIGSTOP, the kernel still answers): the nodes that reach each other keep sharing (block n1 to n2 "
+   }
+  },
+  {
+   "name": "check",
+   "value": 1.0,
+   "unit": "bool",
+   "labels": {
+    "id": "2.72",
+    "scenario": "s2",
+    "title": "n3 hangs (process stopped with SIGSTOP, the kernel still answers): no request on any serving node fails or waits (max under 500 "
+   }
+  },
+  {
+   "name": "check",
+   "value": 1.0,
+   "unit": "bool",
+   "labels": {
+    "id": "2.73",
+    "scenario": "s2",
+    "title": "n3 hangs (process stopped with SIGSTOP, the kernel still answers), n3 back: n1 shows the group active again and n3 refuses the a"
+   }
+  },
+  {
+   "name": "check",
+   "value": 1.0,
+   "unit": "bool",
+   "labels": {
+    "id": "2.80",
+    "scenario": "s2",
+    "title": "n3 killed (SIGKILL, connections refused): n1 shows n3 as not reachable (guide: at once for a failure, about three seconds for a "
+   }
+  },
+  {
+   "name": "check",
+   "value": 1.0,
+   "unit": "bool",
+   "labels": {
+    "id": "2.81",
+    "scenario": "s2",
+    "title": "n3 killed (SIGKILL, connections refused): the nodes that reach each other keep sharing (block n1 to n2 within 1 s)"
+   }
+  },
+  {
+   "name": "check",
+   "value": 1.0,
+   "unit": "bool",
+   "labels": {
+    "id": "2.82",
+    "scenario": "s2",
+    "title": "n3 killed (SIGKILL, connections refused): no request on any serving node fails or waits (max under 500 ms), from 2 s before the "
+   }
+  },
+  {
+   "name": "check",
+   "value": 1.0,
+   "unit": "bool",
+   "labels": {
+    "id": "2.83",
+    "scenario": "s2",
+    "title": "n3 killed (SIGKILL, connections refused), n3 back: n1 shows the group active again and n3 refuses the address blocked meanwhile"
+   }
+  },
+  {
+   "name": "check",
+   "value": 1.0,
+   "unit": "bool",
+   "labels": {
+    "id": "3.10",
+    "scenario": "s3",
+    "title": "n3 30 s ahead: the clock of the VM is where the test put it"
+   }
+  },
+  {
+   "name": "check",
+   "value": 1.0,
+   "unit": "bool",
+   "labels": {
+    "id": "3.11",
+    "scenario": "s3",
+    "title": "n3 30 s ahead: blocks set on n3 act on n1 and n2 within 1 s at p95 (5 blocks)"
+   }
+  },
+  {
+   "name": "check",
+   "value": 1.0,
+   "unit": "bool",
+   "labels": {
+    "id": "3.12",
+    "scenario": "s3",
+    "title": "n3 30 s ahead: blocks set on n1 act on n2 and n3 within 1 s at p95 (5 blocks)"
+   }
+  },
+  {
+   "name": "check",
+   "value": 1.0,
+   "unit": "bool",
+   "labels": {
+    "id": "3.13",
+    "scenario": "s3",
+    "title": "n3 30 s ahead: a lift on one side of the clock difference lifts the block on all three nodes"
+   }
+  },
+  {
+   "name": "check",
+   "value": 1.0,
+   "unit": "bool",
+   "labels": {
+    "id": "3.14",
+    "scenario": "s3",
+    "title": "n3 30 s ahead: a login on n3 is valid on n1, and one on n1 valid on n3, within 6 s (a balancer without stickiness sends the next"
+   }
+  },
+  {
+   "name": "check",
+   "value": 1.0,
+   "unit": "bool",
+   "labels": {
+    "id": "3.17",
+    "scenario": "s3",
+    "title": "n3 30 s ahead: the clock stayed there to the end of the step"
+   }
+  },
+  {
+   "name": "check",
+   "value": 0.0,
+   "unit": "bool",
+   "labels": {
+    "id": "3.16",
+    "scenario": "s3",
+    "title": "n3 30 s ahead: schild cluster status names the clock difference (spec, merge: 'schild cluster status reports a skew over 5 s')"
+   }
+  },
+  {
+   "name": "check",
+   "value": 1.0,
+   "unit": "bool",
+   "labels": {
+    "id": "3.20",
+    "scenario": "s3",
+    "title": "n3 90 s ahead: the clock of the VM is where the test put it"
+   }
+  },
+  {
+   "name": "check",
+   "value": 1.0,
+   "unit": "bool",
+   "labels": {
+    "id": "3.21",
+    "scenario": "s3",
+    "title": "n3 90 s ahead: blocks set on n3 are not taken by n1 and n2 while their time is more than 60 s ahead (contract section 4, check 4"
+   }
+  },
+  {
+   "name": "check",
+   "value": 1.0,
+   "unit": "bool",
+   "labels": {
+    "id": "3.21b",
+    "scenario": "s3",
+    "title": "n3 90 s ahead: n1 takes each such block when its time is within 60 s of n1's clock, about 30 s after it was set, not earlier"
+   }
+  },
+  {
+   "name": "check",
+   "value": 1.0,
+   "unit": "bool",
+   "labels": {
+    "id": "3.22",
+    "scenario": "s3",
+    "title": "n3 90 s ahead: blocks set on n1 act on n2 and n3 within 1 s at p95 (5 blocks)"
+   }
+  },
+  {
+   "name": "check",
+   "value": 0.0,
+   "unit": "bool",
+   "labels": {
+    "id": "3.23",
+    "scenario": "s3",
+    "title": "n3 90 s ahead: a lift on one side of the clock difference lifts the block on all three nodes"
+   }
+  },
+  {
+   "name": "check",
+   "value": 1.0,
+   "unit": "bool",
+   "labels": {
+    "id": "3.27",
+    "scenario": "s3",
+    "title": "n3 90 s ahead: the clock stayed there to the end of the step"
+   }
+  },
+  {
+   "name": "check",
+   "value": 0.0,
+   "unit": "bool",
+   "labels": {
+    "id": "3.26",
+    "scenario": "s3",
+    "title": "n3 90 s ahead: schild cluster status names the clock difference (spec, merge: 'schild cluster status reports a skew over 5 s')"
+   }
+  },
+  {
+   "name": "check",
+   "value": 1.0,
+   "unit": "bool",
+   "labels": {
+    "id": "3.61",
+    "scenario": "s3",
+    "title": "n3 was 90 s ahead, was set right and is now 30 s behind (same processes): blocks set on n1 act on n3 within 1 s"
+   }
+  },
+  {
+   "name": "check",
+   "value": 0.0,
+   "unit": "bool",
+   "labels": {
+    "id": "3.62",
+    "scenario": "s3",
+    "title": "n3 was 90 s ahead, was set right and is now 90 s behind (same processes): blocks set on n1 act on n3 within 1 s"
+   }
+  },
+  {
+   "name": "check",
+   "value": 1.0,
+   "unit": "bool",
+   "labels": {
+    "id": "3.30",
+    "scenario": "s3",
+    "title": "n3 30 s behind: the clock of the VM is where the test put it"
+   }
+  },
+  {
+   "name": "check",
+   "value": 1.0,
+   "unit": "bool",
+   "labels": {
+    "id": "3.31",
+    "scenario": "s3",
+    "title": "n3 30 s behind: blocks set on n3 act on n1 and n2 within 1 s at p95 (5 blocks)"
+   }
+  },
+  {
+   "name": "check",
+   "value": 1.0,
+   "unit": "bool",
+   "labels": {
+    "id": "3.32",
+    "scenario": "s3",
+    "title": "n3 30 s behind: blocks set on n1 act on n2 and n3 within 1 s at p95 (5 blocks)"
+   }
+  },
+  {
+   "name": "check",
+   "value": 1.0,
+   "unit": "bool",
+   "labels": {
+    "id": "3.33",
+    "scenario": "s3",
+    "title": "n3 30 s behind: a lift on one side of the clock difference lifts the block on all three nodes"
+   }
+  },
+  {
+   "name": "check",
+   "value": 1.0,
+   "unit": "bool",
+   "labels": {
+    "id": "3.34",
+    "scenario": "s3",
+    "title": "n3 30 s behind: a login on n3 is valid on n1, and one on n1 valid on n3, within 6 s (a balancer without stickiness sends the nex"
+   }
+  },
+  {
+   "name": "check",
+   "value": 1.0,
+   "unit": "bool",
+   "labels": {
+    "id": "3.37",
+    "scenario": "s3",
+    "title": "n3 30 s behind: the clock stayed there to the end of the step"
+   }
+  },
+  {
+   "name": "check",
+   "value": 0.0,
+   "unit": "bool",
+   "labels": {
+    "id": "3.36",
+    "scenario": "s3",
+    "title": "n3 30 s behind: schild cluster status names the clock difference (spec, merge: 'schild cluster status reports a skew over 5 s')"
+   }
+  },
+  {
+   "name": "check",
+   "value": 1.0,
+   "unit": "bool",
+   "labels": {
+    "id": "3.40",
+    "scenario": "s3",
+    "title": "n3 90 s behind: the clock of the VM is where the test put it"
+   }
+  },
+  {
+   "name": "check",
+   "value": 1.0,
+   "unit": "bool",
+   "labels": {
+    "id": "3.41",
+    "scenario": "s3",
+    "title": "n3 90 s behind: blocks set on n3 act on n1 and n2 within 1 s at p95 (5 blocks)"
+   }
+  },
+  {
+   "name": "check",
+   "value": 1.0,
+   "unit": "bool",
+   "labels": {
+    "id": "3.42",
+    "scenario": "s3",
+    "title": "n3 90 s behind: blocks set on n1 are not taken by n3, for which their time lies more than 60 s ahead; n2 takes them"
+   }
+  },
+  {
+   "name": "check",
+   "value": 0.0,
+   "unit": "bool",
+   "labels": {
+    "id": "3.43",
+    "scenario": "s3",
+    "title": "n3 90 s behind: a lift on one side of the clock difference lifts the block on all three nodes"
+   }
+  },
+  {
+   "name": "check",
+   "value": 1.0,
+   "unit": "bool",
+   "labels": {
+    "id": "3.47",
+    "scenario": "s3",
+    "title": "n3 90 s behind: the clock stayed there to the end of the step"
+   }
+  },
+  {
+   "name": "check",
+   "value": 0.0,
+   "unit": "bool",
+   "labels": {
+    "id": "3.46",
+    "scenario": "s3",
+    "title": "n3 90 s behind: schild cluster status names the clock difference (spec, merge: 'schild cluster status reports a skew over 5 s')"
+   }
+  },
+  {
+   "name": "check",
+   "value": 0.0,
+   "unit": "bool",
+   "labels": {
+    "id": "3.50",
+    "scenario": "s3",
+    "title": "n3 restarted while its clock is 90 s behind: at its first ready answer it refuses the address the group blocked while it was dow"
+   }
+  },
+  {
+   "name": "check",
+   "value": 1.0,
+   "unit": "bool",
+   "labels": {
+    "id": "3.51",
+    "scenario": "s3",
+    "title": "clock of n3 corrected: n3 takes what it had put off and holds the same blocks as n1"
+   }
+  },
+  {
+   "name": "check",
+   "value": 1.0,
+   "unit": "bool",
+   "labels": {
+    "id": "3.52",
+    "scenario": "s3",
+    "title": "clocks at the end (seconds against the client VM)"
+   }
+  },
+  {
+   "name": "check",
+   "value": 1.0,
+   "unit": "bool",
+   "labels": {
+    "id": "4.01",
+    "scenario": "s4",
+    "title": "schild cluster invite -role edge on a gateway prints a code"
+   }
+  },
+  {
+   "name": "check",
+   "value": 1.0,
+   "unit": "bool",
+   "labels": {
+    "id": "4.02",
+    "scenario": "s4",
+    "title": "schild cluster join ADDRESS CODE -edge -name lb-1 -data DIR on the balancer VM, as the guide writes it"
+   }
+  },
+  {
+   "name": "check",
+   "value": 1.0,
+   "unit": "bool",
+   "labels": {
+    "id": "4.03",
+    "scenario": "s4",
+    "title": "the same code a second time is refused (one use)"
+   }
+  },
+  {
+   "name": "check",
+   "value": 1.0,
+   "unit": "bool",
+   "labels": {
+    "id": "4.04",
+    "scenario": "s4",
+    "title": "schild firewall run -group -data DIR creates the nftables table inet schild on the balancer VM"
+   }
+  },
+  {
+   "name": "check",
+   "value": 1.0,
+   "unit": "bool",
+   "labels": {
+    "id": "4.05",
+    "scenario": "s4",
+    "title": "the dashboard API of a gateway lists the balancer VM as an edge, apart from the gateways"
+   }
+  },
+  {
+   "name": "check",
+   "value": 1.0,
+   "unit": "bool",
+   "labels": {
+    "id": "4.06",
+    "scenario": "s4",
+    "title": "a block set on any gateway drops the packets of the address on the balancer VM within 2 s at p95 (n = 12)"
+   }
+  },
+  {
+   "name": "check",
+   "value": 1.0,
+   "unit": "bool",
+   "labels": {
+    "id": "4.07",
+    "scenario": "s4",
+    "title": "a lift serves the address through the balancer VM again within 2 s at p95 (n = 12)"
+   }
+  },
+  {
+   "name": "check",
+   "value": 1.0,
+   "unit": "bool",
+   "labels": {
+    "id": "4.08",
+    "scenario": "s4",
+    "title": "the element of a 7 day block carries its end as the kernel timeout"
+   }
+  },
+  {
+   "name": "check",
+   "value": 1.0,
+   "unit": "bool",
+   "labels": {
+    "id": "4.09",
+    "scenario": "s4",
+    "title": "only the ports 80 and 443 are dropped: the blocked address still reaches another port of the VM"
+   }
+  },
+  {
+   "name": "check",
+   "value": 1.0,
+   "unit": "bool",
+   "labels": {
+    "id": "4.10",
+    "scenario": "s4",
+    "title": "schild firewall status on the balancer VM names the table and the blocked address"
+   }
+  },
+  {
+   "name": "check",
+   "value": 1.0,
+   "unit": "bool",
+   "labels": {
+    "id": "4.11",
+    "scenario": "s4",
+    "title": "an address put on the allowlist after its block leaves the firewall of the balancer VM"
+   }
+  },
+  {
+   "name": "check",
+   "value": 1.0,
+   "unit": "bool",
+   "labels": {
+    "id": "4.12",
+    "scenario": "s4",
+    "title": "an erased address (Art. 17) with a running block leaves the firewall of the balancer VM within 30 s"
+   }
+  },
+  {
+   "name": "check",
+   "value": 1.0,
+   "unit": "bool",
+   "labels": {
+    "id": "4.13",
+    "scenario": "s4",
+    "title": "the data directory and the log of the edge hold no login, no setting, no visitor that is not blocked, no secret of the group"
+   }
+  },
+  {
+   "name": "check",
+   "value": 1.0,
+   "unit": "bool",
+   "labels": {
+    "id": "4.14",
+    "scenario": "s4",
+    "title": "with the key of the edge: sync answers member records only, ask answers the firewall list only, every other mesh call 403"
+   }
+  },
+  {
+   "name": "check",
+   "value": 1.0,
+   "unit": "bool",
+   "labels": {
+    "id": "4.16",
+    "scenario": "s4",
+    "title": "the balancer VM reaches no gateway: the blocks it holds stay dropped, a new block is refused by the gateways behind it (block pa"
+   }
+  },
+  {
+   "name": "check",
+   "value": 1.0,
+   "unit": "bool",
+   "labels": {
+    "id": "4.17",
+    "scenario": "s4",
+    "title": "the balancer VM reaches the gateways again: the new block is dropped there"
+   }
+  },
+  {
+   "name": "check",
+   "value": 1.0,
+   "unit": "bool",
+   "labels": {
+    "id": "4.18",
+    "scenario": "s4",
+    "title": "the gateway the edge joined at is killed: a block set on another gateway is dropped on the balancer VM within 2 s"
+   }
+  },
+  {
+   "name": "check",
+   "value": 1.0,
+   "unit": "bool",
+   "labels": {
+    "id": "4.19",
+    "scenario": "s4",
+    "title": "a clean stop (SIGTERM) of schild firewall run removes the table"
+   }
+  },
+  {
+   "name": "check",
+   "value": 1.0,
+   "unit": "bool",
+   "labels": {
+    "id": "5.01",
+    "scenario": "s5",
+    "title": "sixteen gateways started together from the same files: every node answers ready"
+   }
+  },
+  {
+   "name": "check",
+   "value": 1.0,
+   "unit": "bool",
+   "labels": {
+    "id": "5.02",
+    "scenario": "s5",
+    "title": "every one of the sixteen dashboards shows sixteen gateways, all reachable, state active"
+   }
+  },
+  {
+   "name": "check",
+   "value": 1.0,
+   "unit": "bool",
+   "labels": {
+    "id": "5.03",
+    "scenario": "s5",
+    "title": "the login made on n1 is valid on all sixteen"
+   }
+  },
+  {
+   "name": "check",
+   "value": 1.0,
+   "unit": "bool",
+   "labels": {
+    "id": "5.04",
+    "scenario": "s5",
+    "title": "HAProxy has all sixteen UP"
+   }
+  },
+  {
+   "name": "check",
+   "value": 1.0,
+   "unit": "bool",
+   "labels": {
+    "id": "5.06",
+    "scenario": "s5",
+    "title": "a block set on one of sixteen refuses the address on the fifteen others within 1 s at p95 (20 blocks, 300 pairs)"
+   }
+  },
+  {
+   "name": "check",
+   "value": 1.0,
+   "unit": "bool",
+   "labels": {
+    "id": "5.07",
+    "scenario": "s5",
+    "title": "300 requests a second through the balancer over sixteen nodes (about 19 a node): no failure; per node memory and CPU"
+   }
+  },
+  {
+   "name": "check",
+   "value": 1.0,
+   "unit": "bool",
+   "labels": {
+    "id": "5.08",
+    "scenario": "s5",
+    "title": "five of sixteen killed at once under load: failed requests, and none after the balancer marked them down"
+   }
+  },
+  {
+   "name": "check",
+   "value": 1.0,
+   "unit": "bool",
+   "labels": {
+    "id": "5.09",
+    "scenario": "s5",
+    "title": "with five gone, a block set on one of the eleven refuses the address on the ten others within 1 s at p95"
+   }
+  },
+  {
+   "name": "check",
+   "value": 1.0,
+   "unit": "bool",
+   "labels": {
+    "id": "5.10",
+    "scenario": "s5",
+    "title": "the five return together: each refuses the address blocked meanwhile at its first ready answer; all sixteen dashboards active ag"
+   }
+  },
+  {
+   "name": "check",
+   "value": 1.0,
+   "unit": "bool",
+   "labels": {
+    "id": "5.11",
+    "scenario": "s5",
+    "title": "from the moment the balancer had the five down until they were back: no failed request"
+   }
+  },
+  {
+   "name": "check",
+   "value": 1.0,
+   "unit": "bool",
+   "labels": {
+    "id": "5.12",
+    "scenario": "s5",
+    "title": "rolling restart of all sixteen (schild cluster drain, start, wait for ready and the balancer; delay_s 5, check every 1 s, fall 2"
+   }
+  },
+  {
+   "name": "check",
+   "value": 0.0,
+   "unit": "bool",
+   "labels": {
+    "id": "5.13",
+    "scenario": "s5",
+    "title": "rolling restart: kept connections through the balancer lose no request"
+   }
+  },
+  {
+   "name": "check",
+   "value": 1.0,
+   "unit": "bool",
+   "labels": {
+    "id": "5.14",
+    "scenario": "s5",
+    "title": "after the rolling restart: all sixteen active, the same blocks on every node, the login still valid everywhere"
+   }
+  },
+  {
+   "name": "check",
+   "value": 1.0,
+   "unit": "bool",
+   "labels": {
+    "id": "7.01",
+    "scenario": "s7",
+    "title": "the Caddyfile with a TLS site and the ACME test server is accepted in a cluster"
+   }
+  },
+  {
+   "name": "check",
+   "value": 0.0,
+   "unit": "bool",
+   "labels": {
+    "id": "7.02",
+    "scenario": "s7",
+    "title": "a TLS site with the listener_wrappers of the guide: /.schild/readyz on port 80, asked by a balancer that speaks the PROXY protoc"
+   }
+  },
+  {
+   "name": "check",
+   "value": 1.0,
+   "unit": "bool",
+   "labels": {
+    "id": "7.03",
+    "scenario": "s7",
+    "title": "n1 alone obtains the certificate through the balancer and is then ready on port 443 (readiness asked over TLS and PROXY)"
+   }
+  },
+  {
+   "name": "check",
+   "value": 0.0,
+   "unit": "bool",
+   "labels": {
+    "id": "7.04",
+    "scenario": "s7",
+    "title": "n2 starts later with an empty storage while n1 holds the certificate: n2 asks the CA for no order of its own (guide: 'Eine Beste"
+   }
+  },
+  {
+   "name": "check",
+   "value": 0.0,
+   "unit": "bool",
+   "labels": {
+    "id": "7.05",
+    "scenario": "s7",
+    "title": "n2 shows the certificate n1 obtained within 10 s of its start"
+   }
+  },
+  {
+   "name": "check",
+   "value": 1.0,
+   "unit": "bool",
+   "labels": {
+    "id": "7.06",
+    "scenario": "s7",
+    "title": "through the balancer every TLS connection gets one and the same certificate"
+   }
+  },
+  {
+   "name": "check",
+   "value": 1.0,
+   "unit": "bool",
+   "labels": {
+    "id": "7.07",
+    "scenario": "s7",
+    "title": "n2 restarted with n1 down: it serves a certificate from its own copy at once, no new order"
+   }
+  },
+  {
+   "name": "check",
+   "value": 0.0,
+   "unit": "bool",
+   "labels": {
+    "id": "7.08",
+    "scenario": "s7",
+    "title": "one node asks the CA while both are behind the round-robin balancer and in step, 3 runs: its first try with the CA up gets the c"
+   }
+  },
+  {
+   "name": "check",
+   "value": 0.0,
+   "unit": "bool",
+   "labels": {
+    "id": "7.09",
+    "scenario": "s7",
+    "title": "the same 3 runs: one certificate issued per run in the end, and both nodes show it (guide: 'Eine Bestellung pro Zertifikat')"
+   }
+  },
+  {
+   "name": "check",
+   "value": 0.0,
+   "unit": "bool",
+   "labels": {
+    "id": "7.10",
+    "scenario": "s7",
+    "title": "both nodes started fresh at the same moment with the CA reachable: one of them asks the CA, the other waits (first 8 s)"
+   }
+  },
+  {
+   "name": "value",
+   "value": 25.0,
+   "unit": "count",
+   "labels": {
+    "id": "1.12b",
+    "number": "answered_404"
+   }
+  },
+  {
+   "name": "value",
+   "value": 30.0,
+   "unit": "count",
+   "labels": {
+    "id": "1.12b",
+    "number": "of"
+   }
+  },
+  {
+   "name": "value",
+   "value": 1232.0,
+   "unit": "count",
+   "labels": {
+    "id": "1.30",
+    "number": "requests"
+   }
+  },
+  {
+   "name": "value",
+   "value": 1232.0,
+   "unit": "count",
+   "labels": {
+    "id": "1.30",
+    "number": "codes.200"
+   }
+  },
+  {
+   "name": "value",
+   "value": 3.0,
+   "unit": "count",
+   "labels": {
+    "id": "1.30",
+    "number": "cut_without_answer_and_sent_again"
+   }
+  },
+  {
+   "name": "value",
+   "value": 1221.0,
+   "unit": "count",
+   "labels": {
+    "id": "1.33",
+    "number": "requests"
+   }
+  },
+  {
+   "name": "value",
+   "value": 1221.0,
+   "unit": "count",
+   "labels": {
+    "id": "1.33",
+    "number": "codes.200"
+   }
+  },
+  {
+   "name": "value",
+   "value": 3.0,
+   "unit": "count",
+   "labels": {
+    "id": "1.33",
+    "number": "cut_without_answer_and_sent_again"
+   }
+  },
+  {
+   "name": "value",
+   "value": 200.0,
+   "unit": "count",
+   "labels": {
+    "id": "3.23",
+    "number": "set on n3, lifted on n1.unblock_status"
+   }
+  },
+  {
+   "name": "value",
+   "value": 0.13,
+   "unit": "s",
+   "labels": {
+    "id": "3.23",
+    "number": "set on n3, lifted on n1.lifted_everywhere_after_s"
+   }
+  },
+  {
+   "name": "value",
+   "value": 200.0,
+   "unit": "count",
+   "labels": {
+    "id": "3.23",
+    "number": "set on n1, lifted on n3.unblock_status"
+   }
+  },
+  {
+   "name": "value",
+   "value": 200.0,
+   "unit": "count",
+   "labels": {
+    "id": "3.23",
+    "number": "set on n1 before the clock moved, lifted on n3.unblock_status"
+   }
+  },
+  {
+   "name": "value",
+   "value": -90.0,
+   "unit": "s",
+   "labels": {
+    "id": "3.62",
+    "number": "offset_s"
+   }
+  },
+  {
+   "name": "value",
+   "value": 3.0,
+   "unit": "count",
+   "labels": {
+    "id": "3.62",
+    "number": "not_within_6s"
+   }
+  },
+  {
+   "name": "value",
+   "value": 3.0,
+   "unit": "count",
+   "labels": {
+    "id": "3.62",
+    "number": "ms.n"
+   }
+  },
+  {
+   "name": "value",
+   "value": 21.7,
+   "unit": "count",
+   "labels": {
+    "id": "3.62",
+    "number": "ms.min"
+   }
+  },
+  {
+   "name": "value",
+   "value": 98.9,
+   "unit": "count",
+   "labels": {
+    "id": "3.62",
+    "number": "ms.p50"
+   }
+  },
+  {
+   "name": "value",
+   "value": 1016.4,
+   "unit": "count",
+   "labels": {
+    "id": "3.62",
+    "number": "ms.p95"
+   }
+  },
+  {
+   "name": "value",
+   "value": 1016.4,
+   "unit": "count",
+   "labels": {
+    "id": "3.62",
+    "number": "ms.p99"
+   }
+  },
+  {
+   "name": "value",
+   "value": 1016.4,
+   "unit": "count",
+   "labels": {
+    "id": "3.62",
+    "number": "ms.max"
+   }
+  },
+  {
+   "name": "value",
+   "value": 25.0,
+   "unit": "count",
+   "labels": {
+    "id": "3.62",
+    "number": "counters_n3.taken"
+   }
+  },
+  {
+   "name": "value",
+   "value": 0.0,
+   "unit": "count",
+   "labels": {
+    "id": "3.62",
+    "number": "counters_n3.refused"
+   }
+  },
+  {
+   "name": "value",
+   "value": 127.0,
+   "unit": "count",
+   "labels": {
+    "id": "3.62",
+    "number": "counters_n3.deferred"
+   }
+  },
+  {
+   "name": "value",
+   "value": 0.0,
+   "unit": "count",
+   "labels": {
+    "id": "3.62",
+    "number": "counters_n3.unread"
+   }
+  },
+  {
+   "name": "value",
+   "value": 0.0,
+   "unit": "count",
+   "labels": {
+    "id": "3.62",
+    "number": "times_the_holder_put_the_clock_back"
+   }
+  },
+  {
+   "name": "value",
+   "value": 200.0,
+   "unit": "count",
+   "labels": {
+    "id": "3.43",
+    "number": "set on n3, lifted on n1.unblock_status"
+   }
+  },
+  {
+   "name": "value",
+   "value": 200.0,
+   "unit": "count",
+   "labels": {
+    "id": "3.43",
+    "number": "set on n1, lifted on n3.unblock_status"
+   }
+  },
+  {
+   "name": "value",
+   "value": 0.12,
+   "unit": "s",
+   "labels": {
+    "id": "3.43",
+    "number": "set on n1, lifted on n3.lifted_everywhere_after_s"
+   }
+  },
+  {
+   "name": "value",
+   "value": 200.0,
+   "unit": "count",
+   "labels": {
+    "id": "3.43",
+    "number": "set on n1 before the clock moved, lifted on n3.unblock_status"
+   }
+  },
+  {
+   "name": "value",
+   "value": 1.0,
+   "unit": "s",
+   "labels": {
+    "id": "3.43",
+    "number": "set on n1 before the clock moved, lifted on n3.lifted_everywhere_after_s"
+   }
+  },
+  {
+   "name": "value",
+   "value": 1.2,
+   "unit": "s",
+   "labels": {
+    "id": "3.50",
+    "number": "ready_after_s"
+   }
+  },
+  {
+   "name": "value",
+   "value": 200.0,
+   "unit": "count",
+   "labels": {
+    "id": "3.50",
+    "number": "blocked_address_at_ready"
+   }
+  },
+  {
+   "name": "value",
+   "value": 200.0,
+   "unit": "s",
+   "labels": {
+    "id": "3.50",
+    "number": "3_s_later"
+   }
+  },
+  {
+   "name": "value",
+   "value": -90.0,
+   "unit": "s",
+   "labels": {
+    "id": "3.50",
+    "number": "offset_s"
+   }
+  },
+  {
+   "name": "value",
+   "value": 13906.0,
+   "unit": "count",
+   "labels": {
+    "id": "5.13",
+    "number": "requests"
+   }
+  },
+  {
+   "name": "value",
+   "value": 13906.0,
+   "unit": "count",
+   "labels": {
+    "id": "5.13",
+    "number": "codes.200"
+   }
+  },
+  {
+   "name": "value",
+   "value": 17.0,
+   "unit": "count",
+   "labels": {
+    "id": "5.13",
+    "number": "cut_without_answer_and_sent_again"
+   }
+  },
+  {
+   "name": "value",
+   "value": 400.0,
+   "unit": "count",
+   "labels": {
+    "id": "7.02",
+    "number": "port_80_with_proxy_header"
+   }
+  },
+  {
+   "name": "value",
+   "value": 308.0,
+   "unit": "count",
+   "labels": {
+    "id": "7.02",
+    "number": "port_80_without_proxy_header"
+   }
+  },
+  {
+   "name": "value",
+   "value": 2.0,
+   "unit": "count",
+   "labels": {
+    "id": "7.04",
+    "number": "orders_placed_before"
+   }
+  },
+  {
+   "name": "value",
+   "value": 4.0,
+   "unit": "count",
+   "labels": {
+    "id": "7.04",
+    "number": "orders_placed_after"
+   }
+  },
+  {
+   "name": "value",
+   "value": 0.21,
+   "unit": "s",
+   "labels": {
+    "id": "7.04",
+    "number": "first_order_of_n2_s_after_its_start"
+   }
+  },
+  {
+   "name": "value",
+   "value": 1.0,
+   "unit": "count",
+   "labels": {
+    "id": "7.04",
+    "number": "issued_by_the_ca"
+   }
+  },
+  {
+   "name": "value",
+   "value": 61.6,
+   "unit": "s",
+   "labels": {
+    "id": "7.05",
+    "number": "seconds"
+   }
+  },
+  {
+   "name": "value",
+   "value": 1.0,
+   "unit": "count",
+   "labels": {
+    "id": "7.05",
+    "number": "same_certificate"
+   }
+  },
+  {
+   "name": "value",
+   "value": 1.0,
+   "unit": "count",
+   "labels": {
+    "id": "7.05",
+    "number": "issued_by_the_ca"
+   }
+  },
+  {
+   "name": "value",
+   "value": 1.0,
+   "unit": "count",
+   "labels": {
+    "id": "7.05",
+    "number": "certificate_files_on_n2"
+   }
+  },
+  {
+   "name": "value",
+   "value": 4.0,
+   "unit": "s",
+   "labels": {
+    "id": "7.10",
+    "number": "orders_placed_in_8_s"
+   }
+  },
+  {
+   "name": "value",
+   "value": 1.0,
+   "unit": "count",
+   "labels": {
+    "id": "7.10",
+    "number": "n1_started_obtaining"
+   }
+  },
+  {
+   "name": "value",
+   "value": 1.0,
+   "unit": "count",
+   "labels": {
+    "id": "7.10",
+    "number": "n2_started_obtaining"
+   }
+  },
+  {
+   "name": "value",
+   "value": 0.0,
+   "unit": "count",
+   "labels": {
+    "id": "7.10",
+    "number": "issued_by_the_ca"
+   }
+  },
+  {
+   "name": "value",
+   "value": 1.0,
+   "unit": "count",
+   "labels": {
+    "id": "1.01",
+    "number": "exit"
+   }
+  },
+  {
+   "name": "value",
+   "value": 1.21,
+   "unit": "count",
+   "labels": {
+    "id": "1.03",
+    "number": "n1"
+   }
+  },
+  {
+   "name": "value",
+   "value": 1.21,
+   "unit": "count",
+   "labels": {
+    "id": "1.03",
+    "number": "n2"
+   }
+  },
+  {
+   "name": "value",
+   "value": 0.8,
+   "unit": "s",
+   "labels": {
+    "id": "1.06",
+    "number": "seconds"
+   }
+  },
+  {
+   "name": "value",
+   "value": 200.0,
+   "unit": "count",
+   "labels": {
+    "id": "1.08",
+    "number": "setup"
+   }
+  },
+  {
+   "name": "value",
+   "value": 200.0,
+   "unit": "count",
+   "labels": {
+    "id": "1.09",
+    "number": "status"
+   }
+  },
+  {
+   "name": "value",
+   "value": 30.0,
+   "unit": "count",
+   "labels": {
+    "id": "1.11",
+    "number": "n"
+   }
+  },
+  {
+   "name": "value",
+   "value": 116.4,
+   "unit": "count",
+   "labels": {
+    "id": "1.11",
+    "number": "min"
+   }
+  },
+  {
+   "name": "value",
+   "value": 196.5,
+   "unit": "count",
+   "labels": {
+    "id": "1.11",
+    "number": "p50"
+   }
+  },
+  {
+   "name": "value",
+   "value": 213.5,
+   "unit": "count",
+   "labels": {
+    "id": "1.11",
+    "number": "p95"
+   }
+  },
+  {
+   "name": "value",
+   "value": 218.6,
+   "unit": "count",
+   "labels": {
+    "id": "1.11",
+    "number": "p99"
+   }
+  },
+  {
+   "name": "value",
+   "value": 218.6,
+   "unit": "count",
+   "labels": {
+    "id": "1.11",
+    "number": "max"
+   }
+  },
+  {
+   "name": "value",
+   "value": 30.0,
+   "unit": "count",
+   "labels": {
+    "id": "1.12",
+    "number": "n"
+   }
+  },
+  {
+   "name": "value",
+   "value": 25.0,
+   "unit": "count",
+   "labels": {
+    "id": "1.12",
+    "number": "min"
+   }
+  },
+  {
+   "name": "value",
+   "value": 139.0,
+   "unit": "count",
+   "labels": {
+    "id": "1.12",
+    "number": "p50"
+   }
+  },
+  {
+   "name": "value",
+   "value": 257.7,
+   "unit": "count",
+   "labels": {
+    "id": "1.12",
+    "number": "p95"
+   }
+  },
+  {
+   "name": "value",
+   "value": 260.3,
+   "unit": "count",
+   "labels": {
+    "id": "1.12",
+    "number": "p99"
+   }
+  },
+  {
+   "name": "value",
+   "value": 260.3,
+   "unit": "count",
+   "labels": {
+    "id": "1.12",
+    "number": "max"
+   }
+  },
+  {
+   "name": "value",
+   "value": 1.0,
+   "unit": "count",
+   "labels": {
+    "id": "1.18",
+    "number": "refused"
+   }
+  },
+  {
+   "name": "value",
+   "value": 0.0,
+   "unit": "count",
+   "labels": {
+    "id": "1.19",
+    "number": "refused"
+   }
+  },
+  {
+   "name": "value",
+   "value": 1.0,
+   "unit": "count",
+   "labels": {
+    "id": "1.20",
+    "number": "refused"
+   }
+  },
+  {
+   "name": "value",
+   "value": 1899.0,
+   "unit": "count",
+   "labels": {
+    "id": "1.21",
+    "number": "requests"
+   }
+  },
+  {
+   "name": "value",
+   "value": 30.0,
+   "unit": "count",
+   "labels": {
+    "id": "1.21",
+    "number": "failed_or_not_200"
+   }
+  },
+  {
+   "name": "value",
+   "value": 30.0,
+   "unit": "count",
+   "labels": {
+    "id": "1.21",
+    "number": "codes.0"
+   }
+  },
+  {
+   "name": "value",
+   "value": 1869.0,
+   "unit": "count",
+   "labels": {
+    "id": "1.21",
+    "number": "codes.200"
+   }
+  },
+  {
+   "name": "value",
+   "value": 58.0,
+   "unit": "ms",
+   "labels": {
+    "id": "1.21",
+    "number": "latency_ms_of_served_requests_4s_after_kill.n"
+   }
+  },
+  {
+   "name": "value",
+   "value": 2.4,
+   "unit": "ms",
+   "labels": {
+    "id": "1.21",
+    "number": "latency_ms_of_served_requests_4s_after_kill.min"
+   }
+  },
+  {
+   "name": "value",
+   "value": 7.4,
+   "unit": "ms",
+   "labels": {
+    "id": "1.21",
+    "number": "latency_ms_of_served_requests_4s_after_kill.p50"
+   }
+  },
+  {
+   "name": "value",
+   "value": 18.8,
+   "unit": "ms",
+   "labels": {
+    "id": "1.21",
+    "number": "latency_ms_of_served_requests_4s_after_kill.p95"
+   }
+  },
+  {
+   "name": "value",
+   "value": 29.7,
+   "unit": "ms",
+   "labels": {
+    "id": "1.21",
+    "number": "latency_ms_of_served_requests_4s_after_kill.p99"
+   }
+  },
+  {
+   "name": "value",
+   "value": 29.7,
+   "unit": "ms",
+   "labels": {
+    "id": "1.21",
+    "number": "latency_ms_of_served_requests_4s_after_kill.max"
+   }
+  },
+  {
+   "name": "value",
+   "value": 0.01,
+   "unit": "s",
+   "labels": {
+    "id": "1.21",
+    "number": "first_failure_s_after_kill"
+   }
+  },
+  {
+   "name": "value",
+   "value": 3.24,
+   "unit": "s",
+   "labels": {
+    "id": "1.21",
+    "number": "last_failure_s_after_kill"
+   }
+  },
+  {
+   "name": "value",
+   "value": 3.36,
+   "unit": "s",
+   "labels": {
+    "id": "1.21",
+    "number": "haproxy_marks_down_after_s"
+   }
+  },
+  {
+   "name": "value",
+   "value": 0.0,
+   "unit": "count",
+   "labels": {
+    "id": "1.22",
+    "number": "failures_after_down"
+   }
+  },
+  {
+   "name": "value",
+   "value": 60.0,
+   "unit": "count",
+   "labels": {
+    "id": "1.23",
+    "number": "requests"
+   }
+  },
+  {
+   "name": "value",
+   "value": 8.0,
+   "unit": "count",
+   "labels": {
+    "id": "1.23",
+    "number": "failed"
+   }
+  },
+  {
+   "name": "value",
+   "value": 3.0,
+   "unit": "count",
+   "labels": {
+    "id": "1.23",
+    "number": "failed_started_before_kill"
+   }
+  },
+  {
+   "name": "value",
+   "value": 5.0,
+   "unit": "count",
+   "labels": {
+    "id": "1.23",
+    "number": "failed_started_after_kill"
+   }
+  },
+  {
+   "name": "value",
+   "value": 1.17,
+   "unit": "s",
+   "labels": {
+    "id": "1.26",
+    "number": "ready_after_s"
+   }
+  },
+  {
+   "name": "value",
+   "value": 44.0,
+   "unit": "count",
+   "labels": {
+    "id": "1.26",
+    "number": "polls_503"
+   }
+  },
+  {
+   "name": "value",
+   "value": 403.0,
+   "unit": "count",
+   "labels": {
+    "id": "1.26",
+    "number": "new_block_at_ready"
+   }
+  },
+  {
+   "name": "value",
+   "value": 200.0,
+   "unit": "count",
+   "labels": {
+    "id": "1.26",
+    "number": "lifted_block_at_ready"
+   }
+  },
+  {
+   "name": "value",
+   "value": 2020.0,
+   "unit": "count",
+   "labels": {
+    "id": "1.27",
+    "number": "requests"
+   }
+  },
+  {
+   "name": "value",
+   "value": 2020.0,
+   "unit": "count",
+   "labels": {
+    "id": "1.27",
+    "number": "codes.200"
+   }
+  },
+  {
+   "name": "value",
+   "value": 2.8,
+   "unit": "s",
+   "labels": {
+    "id": "1.27",
+    "number": "haproxy_up_after_s"
+   }
+  },
+  {
+   "name": "value",
+   "value": 201.0,
+   "unit": "count",
+   "labels": {
+    "id": "1.28",
+    "number": "status_of_the_add_on_n2"
+   }
+  },
+  {
+   "name": "value",
+   "value": 4887.0,
+   "unit": "count",
+   "labels": {
+    "id": "1.29",
+    "number": "requests"
+   }
+  },
+  {
+   "name": "value",
+   "value": 4887.0,
+   "unit": "count",
+   "labels": {
+    "id": "1.29",
+    "number": "codes.200"
+   }
+  },
+  {
+   "name": "value",
+   "value": 101.0,
+   "unit": "count",
+   "labels": {
+    "id": "1.29",
+    "number": "slow_requests"
+   }
+  },
+  {
+   "name": "value",
+   "value": 101.0,
+   "unit": "count",
+   "labels": {
+    "id": "1.29",
+    "number": "slow_codes.200"
+   }
+  },
+  {
+   "name": "value",
+   "value": 0.09,
+   "unit": "s",
+   "labels": {
+    "id": "1.31",
+    "number": "readyz_503_after_s"
+   }
+  },
+  {
+   "name": "value",
+   "value": 3.9,
+   "unit": "s",
+   "labels": {
+    "id": "1.31",
+    "number": "haproxy_down_after_s"
+   }
+  },
+  {
+   "name": "value",
+   "value": 17.36,
+   "unit": "s",
+   "labels": {
+    "id": "1.31",
+    "number": "process_gone_after_s"
+   }
+  },
+  {
+   "name": "value",
+   "value": 4844.0,
+   "unit": "count",
+   "labels": {
+    "id": "1.32",
+    "number": "requests"
+   }
+  },
+  {
+   "name": "value",
+   "value": 4844.0,
+   "unit": "count",
+   "labels": {
+    "id": "1.32",
+    "number": "codes.200"
+   }
+  },
+  {
+   "name": "value",
+   "value": 100.0,
+   "unit": "count",
+   "labels": {
+    "id": "1.32",
+    "number": "slow_requests"
+   }
+  },
+  {
+   "name": "value",
+   "value": 100.0,
+   "unit": "count",
+   "labels": {
+    "id": "1.32",
+    "number": "slow_codes.200"
+   }
+  },
+  {
+   "name": "value",
+   "value": 0.0,
+   "unit": "s",
+   "labels": {
+    "id": "1.34",
+    "number": "readyz_503_after_s"
+   }
+  },
+  {
+   "name": "value",
+   "value": 2.94,
+   "unit": "s",
+   "labels": {
+    "id": "1.34",
+    "number": "haproxy_down_after_s"
+   }
+  },
+  {
+   "name": "value",
+   "value": 17.15,
+   "unit": "s",
+   "labels": {
+    "id": "1.34",
+    "number": "process_gone_after_s"
+   }
+  },
+  {
+   "name": "value",
+   "value": 1.0,
+   "unit": "count",
+   "labels": {
+    "id": "1.35",
+    "number": "exit"
+   }
+  },
+  {
+   "name": "value",
+   "value": 1.22,
+   "unit": "count",
+   "labels": {
+    "id": "2.01",
+    "number": "ready_s.n1"
+   }
+  },
+  {
+   "name": "value",
+   "value": 1.22,
+   "unit": "count",
+   "labels": {
+    "id": "2.01",
+    "number": "ready_s.n2"
+   }
+  },
+  {
+   "name": "value",
+   "value": 1.22,
+   "unit": "count",
+   "labels": {
+    "id": "2.01",
+    "number": "ready_s.n3"
+   }
+  },
+  {
+   "name": "value",
+   "value": 1504.0,
+   "unit": "count",
+   "labels": {
+    "id": "2.02",
+    "number": "n1.requests"
+   }
+  },
+  {
+   "name": "value",
+   "value": 0.0,
+   "unit": "count",
+   "labels": {
+    "id": "2.02",
+    "number": "n1.not_200"
+   }
+  },
+  {
+   "name": "value",
+   "value": 0.0,
+   "unit": "count",
+   "labels": {
+    "id": "2.02",
+    "number": "n1.retried"
+   }
+  },
+  {
+   "name": "value",
+   "value": 4.31,
+   "unit": "count",
+   "labels": {
+    "id": "2.02",
+    "number": "n1.p50"
+   }
+  },
+  {
+   "name": "value",
+   "value": 9.99,
+   "unit": "count",
+   "labels": {
+    "id": "2.02",
+    "number": "n1.p99"
+   }
+  },
+  {
+   "name": "value",
+   "value": 23.81,
+   "unit": "count",
+   "labels": {
+    "id": "2.02",
+    "number": "n1.max"
+   }
+  },
+  {
+   "name": "value",
+   "value": 1507.0,
+   "unit": "count",
+   "labels": {
+    "id": "2.02",
+    "number": "n2.requests"
+   }
+  },
+  {
+   "name": "value",
+   "value": 0.0,
+   "unit": "count",
+   "labels": {
+    "id": "2.02",
+    "number": "n2.not_200"
+   }
+  },
+  {
+   "name": "value",
+   "value": 0.0,
+   "unit": "count",
+   "labels": {
+    "id": "2.02",
+    "number": "n2.retried"
+   }
+  },
+  {
+   "name": "value",
+   "value": 4.23,
+   "unit": "count",
+   "labels": {
+    "id": "2.02",
+    "number": "n2.p50"
+   }
+  },
+  {
+   "name": "value",
+   "value": 7.5,
+   "unit": "count",
+   "labels": {
+    "id": "2.02",
+    "number": "n2.p99"
+   }
+  },
+  {
+   "name": "value",
+   "value": 14.13,
+   "unit": "count",
+   "labels": {
+    "id": "2.02",
+    "number": "n2.max"
+   }
+  },
+  {
+   "name": "value",
+   "value": 1511.0,
+   "unit": "count",
+   "labels": {
+    "id": "2.02",
+    "number": "n3.requests"
+   }
+  },
+  {
+   "name": "value",
+   "value": 0.0,
+   "unit": "count",
+   "labels": {
+    "id": "2.02",
+    "number": "n3.not_200"
+   }
+  },
+  {
+   "name": "value",
+   "value": 0.0,
+   "unit": "count",
+   "labels": {
+    "id": "2.02",
+    "number": "n3.retried"
+   }
+  },
+  {
+   "name": "value",
+   "value": 4.24,
+   "unit": "count",
+   "labels": {
+    "id": "2.02",
+    "number": "n3.p50"
+   }
+  },
+  {
+   "name": "value",
+   "value": 6.37,
+   "unit": "count",
+   "labels": {
+    "id": "2.02",
+    "number": "n3.p99"
+   }
+  },
+  {
+   "name": "value",
+   "value": 19.32,
+   "unit": "count",
+   "labels": {
+    "id": "2.02",
+    "number": "n3.max"
+   }
+  },
+  {
+   "name": "value",
+   "value": 20.0,
+   "unit": "count",
+   "labels": {
+    "id": "2.11",
+    "number": "n"
+   }
+  },
+  {
+   "name": "value",
+   "value": 136.6,
+   "unit": "count",
+   "labels": {
+    "id": "2.11",
+    "number": "min"
+   }
+  },
+  {
+   "name": "value",
+   "value": 146.3,
+   "unit": "count",
+   "labels": {
+    "id": "2.11",
+    "number": "p50"
+   }
+  },
+  {
+   "name": "value",
+   "value": 160.6,
+   "unit": "count",
+   "labels": {
+    "id": "2.11",
+    "number": "p95"
+   }
+  },
+  {
+   "name": "value",
+   "value": 160.6,
+   "unit": "count",
+   "labels": {
+    "id": "2.11",
+    "number": "p99"
+   }
+  },
+  {
+   "name": "value",
+   "value": 160.6,
+   "unit": "count",
+   "labels": {
+    "id": "2.11",
+    "number": "max"
+   }
+  },
+  {
+   "name": "value",
+   "value": 0.0,
+   "unit": "count",
+   "labels": {
+    "id": "2.11",
+    "number": "not_within_8s"
+   }
+  },
+  {
+   "name": "value",
+   "value": 1533.0,
+   "unit": "count",
+   "labels": {
+    "id": "2.12",
+    "number": "n1.requests"
+   }
+  },
+  {
+   "name": "value",
+   "value": 0.0,
+   "unit": "count",
+   "labels": {
+    "id": "2.12",
+    "number": "n1.not_200"
+   }
+  },
+  {
+   "name": "value",
+   "value": 0.0,
+   "unit": "count",
+   "labels": {
+    "id": "2.12",
+    "number": "n1.retried"
+   }
+  },
+  {
+   "name": "value",
+   "value": 4.38,
+   "unit": "count",
+   "labels": {
+    "id": "2.12",
+    "number": "n1.p50"
+   }
+  },
+  {
+   "name": "value",
+   "value": 7.9,
+   "unit": "count",
+   "labels": {
+    "id": "2.12",
+    "number": "n1.p99"
+   }
+  },
+  {
+   "name": "value",
+   "value": 12.37,
+   "unit": "count",
+   "labels": {
+    "id": "2.12",
+    "number": "n1.max"
+   }
+  },
+  {
+   "name": "value",
+   "value": 1536.0,
+   "unit": "count",
+   "labels": {
+    "id": "2.12",
+    "number": "n2.requests"
+   }
+  },
+  {
+   "name": "value",
+   "value": 0.0,
+   "unit": "count",
+   "labels": {
+    "id": "2.12",
+    "number": "n2.not_200"
+   }
+  },
+  {
+   "name": "value",
+   "value": 0.0,
+   "unit": "count",
+   "labels": {
+    "id": "2.12",
+    "number": "n2.retried"
+   }
+  },
+  {
+   "name": "value",
+   "value": 4.31,
+   "unit": "count",
+   "labels": {
+    "id": "2.12",
+    "number": "n2.p50"
+   }
+  },
+  {
+   "name": "value",
+   "value": 8.28,
+   "unit": "count",
+   "labels": {
+    "id": "2.12",
+    "number": "n2.p99"
+   }
+  },
+  {
+   "name": "value",
+   "value": 9.2,
+   "unit": "count",
+   "labels": {
+    "id": "2.12",
+    "number": "n2.max"
+   }
+  },
+  {
+   "name": "value",
+   "value": 1539.0,
+   "unit": "count",
+   "labels": {
+    "id": "2.12",
+    "number": "n3.requests"
+   }
+  },
+  {
+   "name": "value",
+   "value": 0.0,
+   "unit": "count",
+   "labels": {
+    "id": "2.12",
+    "number": "n3.not_200"
+   }
+  },
+  {
+   "name": "value",
+   "value": 0.0,
+   "unit": "count",
+   "labels": {
+    "id": "2.12",
+    "number": "n3.retried"
+   }
+  },
+  {
+   "name": "value",
+   "value": 4.27,
+   "unit": "count",
+   "labels": {
+    "id": "2.12",
+    "number": "n3.p50"
+   }
+  },
+  {
+   "name": "value",
+   "value": 7.44,
+   "unit": "count",
+   "labels": {
+    "id": "2.12",
+    "number": "n3.p99"
+   }
+  },
+  {
+   "name": "value",
+   "value": 13.08,
+   "unit": "count",
+   "labels": {
+    "id": "2.12",
+    "number": "n3.max"
+   }
+  },
+  {
+   "name": "value",
+   "value": 9.99,
+   "unit": "ms",
+   "labels": {
+    "id": "2.12",
+    "number": "baseline_p99_ms"
+   }
+  },
+  {
+   "name": "value",
+   "value": 20.0,
+   "unit": "count",
+   "labels": {
+    "id": "2.21",
+    "number": "n"
+   }
+  },
+  {
+   "name": "value",
+   "value": 263.2,
+   "unit": "count",
+   "labels": {
+    "id": "2.21",
+    "number": "min"
+   }
+  },
+  {
+   "name": "value",
+   "value": 389.6,
+   "unit": "count",
+   "labels": {
+    "id": "2.21",
+    "number": "p50"
+   }
+  },
+  {
+   "name": "value",
+   "value": 409.0,
+   "unit": "count",
+   "labels": {
+    "id": "2.21",
+    "number": "p95"
+   }
+  },
+  {
+   "name": "value",
+   "value": 409.0,
+   "unit": "count",
+   "labels": {
+    "id": "2.21",
+    "number": "p99"
+   }
+  },
+  {
+   "name": "value",
+   "value": 409.0,
+   "unit": "count",
+   "labels": {
+    "id": "2.21",
+    "number": "max"
+   }
+  },
+  {
+   "name": "value",
+   "value": 0.0,
+   "unit": "count",
+   "labels": {
+    "id": "2.21",
+    "number": "not_within_8s"
+   }
+  },
+  {
+   "name": "value",
+   "value": 1801.0,
+   "unit": "count",
+   "labels": {
+    "id": "2.22",
+    "number": "n1.requests"
+   }
+  },
+  {
+   "name": "value",
+   "value": 0.0,
+   "unit": "count",
+   "labels": {
+    "id": "2.22",
+    "number": "n1.not_200"
+   }
+  },
+  {
+   "name": "value",
+   "value": 0.0,
+   "unit": "count",
+   "labels": {
+    "id": "2.22",
+    "number": "n1.retried"
+   }
+  },
+  {
+   "name": "value",
+   "value": 4.49,
+   "unit": "count",
+   "labels": {
+    "id": "2.22",
+    "number": "n1.p50"
+   }
+  },
+  {
+   "name": "value",
+   "value": 7.2,
+   "unit": "count",
+   "labels": {
+    "id": "2.22",
+    "number": "n1.p99"
+   }
+  },
+  {
+   "name": "value",
+   "value": 18.86,
+   "unit": "count",
+   "labels": {
+    "id": "2.22",
+    "number": "n1.max"
+   }
+  },
+  {
+   "name": "value",
+   "value": 1804.0,
+   "unit": "count",
+   "labels": {
+    "id": "2.22",
+    "number": "n2.requests"
+   }
+  },
+  {
+   "name": "value",
+   "value": 0.0,
+   "unit": "count",
+   "labels": {
+    "id": "2.22",
+    "number": "n2.not_200"
+   }
+  },
+  {
+   "name": "value",
+   "value": 0.0,
+   "unit": "count",
+   "labels": {
+    "id": "2.22",
+    "number": "n2.retried"
+   }
+  },
+  {
+   "name": "value",
+   "value": 4.39,
+   "unit": "count",
+   "labels": {
+    "id": "2.22",
+    "number": "n2.p50"
+   }
+  },
+  {
+   "name": "value",
+   "value": 7.21,
+   "unit": "count",
+   "labels": {
+    "id": "2.22",
+    "number": "n2.p99"
+   }
+  },
+  {
+   "name": "value",
+   "value": 19.96,
+   "unit": "count",
+   "labels": {
+    "id": "2.22",
+    "number": "n2.max"
+   }
+  },
+  {
+   "name": "value",
+   "value": 1807.0,
+   "unit": "count",
+   "labels": {
+    "id": "2.22",
+    "number": "n3.requests"
+   }
+  },
+  {
+   "name": "value",
+   "value": 0.0,
+   "unit": "count",
+   "labels": {
+    "id": "2.22",
+    "number": "n3.not_200"
+   }
+  },
+  {
+   "name": "value",
+   "value": 0.0,
+   "unit": "count",
+   "labels": {
+    "id": "2.22",
+    "number": "n3.retried"
+   }
+  },
+  {
+   "name": "value",
+   "value": 4.33,
+   "unit": "count",
+   "labels": {
+    "id": "2.22",
+    "number": "n3.p50"
+   }
+  },
+  {
+   "name": "value",
+   "value": 6.49,
+   "unit": "count",
+   "labels": {
+    "id": "2.22",
+    "number": "n3.p99"
+   }
+  },
+  {
+   "name": "value",
+   "value": 15.15,
+   "unit": "count",
+   "labels": {
+    "id": "2.22",
+    "number": "n3.max"
+   }
+  },
+  {
+   "name": "value",
+   "value": 9.99,
+   "unit": "ms",
+   "labels": {
+    "id": "2.22",
+    "number": "baseline_p99_ms"
+   }
+  },
+  {
+   "name": "value",
+   "value": 20.0,
+   "unit": "count",
+   "labels": {
+    "id": "2.31",
+    "number": "n"
+   }
+  },
+  {
+   "name": "value",
+   "value": 39.0,
+   "unit": "count",
+   "labels": {
+    "id": "2.31",
+    "number": "min"
+   }
+  },
+  {
+   "name": "value",
+   "value": 143.7,
+   "unit": "count",
+   "labels": {
+    "id": "2.31",
+    "number": "p50"
+   }
+  },
+  {
+   "name": "value",
+   "value": 164.9,
+   "unit": "count",
+   "labels": {
+    "id": "2.31",
+    "number": "p95"
+   }
+  },
+  {
+   "name": "value",
+   "value": 164.9,
+   "unit": "count",
+   "labels": {
+    "id": "2.31",
+    "number": "p99"
+   }
+  },
+  {
+   "name": "value",
+   "value": 164.9,
+   "unit": "count",
+   "labels": {
+    "id": "2.31",
+    "number": "max"
+   }
+  },
+  {
+   "name": "value",
+   "value": 0.0,
+   "unit": "count",
+   "labels": {
+    "id": "2.31",
+    "number": "not_within_8s"
+   }
+  },
+  {
+   "name": "value",
+   "value": 1414.0,
+   "unit": "count",
+   "labels": {
+    "id": "2.32",
+    "number": "n1.requests"
+   }
+  },
+  {
+   "name": "value",
+   "value": 0.0,
+   "unit": "count",
+   "labels": {
+    "id": "2.32",
+    "number": "n1.not_200"
+   }
+  },
+  {
+   "name": "value",
+   "value": 0.0,
+   "unit": "count",
+   "labels": {
+    "id": "2.32",
+    "number": "n1.retried"
+   }
+  },
+  {
+   "name": "value",
+   "value": 4.38,
+   "unit": "count",
+   "labels": {
+    "id": "2.32",
+    "number": "n1.p50"
+   }
+  },
+  {
+   "name": "value",
+   "value": 8.6,
+   "unit": "count",
+   "labels": {
+    "id": "2.32",
+    "number": "n1.p99"
+   }
+  },
+  {
+   "name": "value",
+   "value": 16.96,
+   "unit": "count",
+   "labels": {
+    "id": "2.32",
+    "number": "n1.max"
+   }
+  },
+  {
+   "name": "value",
+   "value": 1417.0,
+   "unit": "count",
+   "labels": {
+    "id": "2.32",
+    "number": "n2.requests"
+   }
+  },
+  {
+   "name": "value",
+   "value": 0.0,
+   "unit": "count",
+   "labels": {
+    "id": "2.32",
+    "number": "n2.not_200"
+   }
+  },
+  {
+   "name": "value",
+   "value": 0.0,
+   "unit": "count",
+   "labels": {
+    "id": "2.32",
+    "number": "n2.retried"
+   }
+  },
+  {
+   "name": "value",
+   "value": 4.36,
+   "unit": "count",
+   "labels": {
+    "id": "2.32",
+    "number": "n2.p50"
+   }
+  },
+  {
+   "name": "value",
+   "value": 7.32,
+   "unit": "count",
+   "labels": {
+    "id": "2.32",
+    "number": "n2.p99"
+   }
+  },
+  {
+   "name": "value",
+   "value": 18.03,
+   "unit": "count",
+   "labels": {
+    "id": "2.32",
+    "number": "n2.max"
+   }
+  },
+  {
+   "name": "value",
+   "value": 1420.0,
+   "unit": "count",
+   "labels": {
+    "id": "2.32",
+    "number": "n3.requests"
+   }
+  },
+  {
+   "name": "value",
+   "value": 0.0,
+   "unit": "count",
+   "labels": {
+    "id": "2.32",
+    "number": "n3.not_200"
+   }
+  },
+  {
+   "name": "value",
+   "value": 0.0,
+   "unit": "count",
+   "labels": {
+    "id": "2.32",
+    "number": "n3.retried"
+   }
+  },
+  {
+   "name": "value",
+   "value": 4.3,
+   "unit": "count",
+   "labels": {
+    "id": "2.32",
+    "number": "n3.p50"
+   }
+  },
+  {
+   "name": "value",
+   "value": 7.61,
+   "unit": "count",
+   "labels": {
+    "id": "2.32",
+    "number": "n3.p99"
+   }
+  },
+  {
+   "name": "value",
+   "value": 15.28,
+   "unit": "count",
+   "labels": {
+    "id": "2.32",
+    "number": "n3.max"
+   }
+  },
+  {
+   "name": "value",
+   "value": 9.99,
+   "unit": "ms",
+   "labels": {
+    "id": "2.32",
+    "number": "baseline_p99_ms"
+   }
+  },
+  {
+   "name": "value",
+   "value": 20.0,
+   "unit": "count",
+   "labels": {
+    "id": "2.41",
+    "number": "n"
+   }
+  },
+  {
+   "name": "value",
+   "value": 96.9,
+   "unit": "count",
+   "labels": {
+    "id": "2.41",
+    "number": "min"
+   }
+  },
+  {
+   "name": "value",
+   "value": 139.6,
+   "unit": "count",
+   "labels": {
+    "id": "2.41",
+    "number": "p50"
+   }
+  },
+  {
+   "name": "value",
+   "value": 418.0,
+   "unit": "count",
+   "labels": {
+    "id": "2.41",
+    "number": "p95"
+   }
+  },
+  {
+   "name": "value",
+   "value": 418.0,
+   "unit": "count",
+   "labels": {
+    "id": "2.41",
+    "number": "p99"
+   }
+  },
+  {
+   "name": "value",
+   "value": 418.0,
+   "unit": "count",
+   "labels": {
+    "id": "2.41",
+    "number": "max"
+   }
+  },
+  {
+   "name": "value",
+   "value": 0.0,
+   "unit": "count",
+   "labels": {
+    "id": "2.41",
+    "number": "not_within_8s"
+   }
+  },
+  {
+   "name": "value",
+   "value": 1469.0,
+   "unit": "count",
+   "labels": {
+    "id": "2.42",
+    "number": "n1.requests"
+   }
+  },
+  {
+   "name": "value",
+   "value": 0.0,
+   "unit": "count",
+   "labels": {
+    "id": "2.42",
+    "number": "n1.not_200"
+   }
+  },
+  {
+   "name": "value",
+   "value": 0.0,
+   "unit": "count",
+   "labels": {
+    "id": "2.42",
+    "number": "n1.retried"
+   }
+  },
+  {
+   "name": "value",
+   "value": 4.37,
+   "unit": "count",
+   "labels": {
+    "id": "2.42",
+    "number": "n1.p50"
+   }
+  },
+  {
+   "name": "value",
+   "value": 6.95,
+   "unit": "count",
+   "labels": {
+    "id": "2.42",
+    "number": "n1.p99"
+   }
+  },
+  {
+   "name": "value",
+   "value": 20.64,
+   "unit": "count",
+   "labels": {
+    "id": "2.42",
+    "number": "n1.max"
+   }
+  },
+  {
+   "name": "value",
+   "value": 1472.0,
+   "unit": "count",
+   "labels": {
+    "id": "2.42",
+    "number": "n2.requests"
+   }
+  },
+  {
+   "name": "value",
+   "value": 0.0,
+   "unit": "count",
+   "labels": {
+    "id": "2.42",
+    "number": "n2.not_200"
+   }
+  },
+  {
+   "name": "value",
+   "value": 0.0,
+   "unit": "count",
+   "labels": {
+    "id": "2.42",
+    "number": "n2.retried"
+   }
+  },
+  {
+   "name": "value",
+   "value": 4.24,
+   "unit": "count",
+   "labels": {
+    "id": "2.42",
+    "number": "n2.p50"
+   }
+  },
+  {
+   "name": "value",
+   "value": 6.92,
+   "unit": "count",
+   "labels": {
+    "id": "2.42",
+    "number": "n2.p99"
+   }
+  },
+  {
+   "name": "value",
+   "value": 13.28,
+   "unit": "count",
+   "labels": {
+    "id": "2.42",
+    "number": "n2.max"
+   }
+  },
+  {
+   "name": "value",
+   "value": 1475.0,
+   "unit": "count",
+   "labels": {
+    "id": "2.42",
+    "number": "n3.requests"
+   }
+  },
+  {
+   "name": "value",
+   "value": 0.0,
+   "unit": "count",
+   "labels": {
+    "id": "2.42",
+    "number": "n3.not_200"
+   }
+  },
+  {
+   "name": "value",
+   "value": 0.0,
+   "unit": "count",
+   "labels": {
+    "id": "2.42",
+    "number": "n3.retried"
+   }
+  },
+  {
+   "name": "value",
+   "value": 4.25,
+   "unit": "count",
+   "labels": {
+    "id": "2.42",
+    "number": "n3.p50"
+   }
+  },
+  {
+   "name": "value",
+   "value": 7.59,
+   "unit": "count",
+   "labels": {
+    "id": "2.42",
+    "number": "n3.p99"
+   }
+  },
+  {
+   "name": "value",
+   "value": 13.94,
+   "unit": "count",
+   "labels": {
+    "id": "2.42",
+    "number": "n3.max"
+   }
+  },
+  {
+   "name": "value",
+   "value": 9.99,
+   "unit": "ms",
+   "labels": {
+    "id": "2.42",
+    "number": "baseline_p99_ms"
+   }
+  },
+  {
+   "name": "value",
+   "value": 2.93,
+   "unit": "s",
+   "labels": {
+    "id": "2.50",
+    "number": "seconds"
+   }
+  },
+  {
+   "name": "value",
+   "value": 163.0,
+   "unit": "ms",
+   "labels": {
+    "id": "2.51",
+    "number": "block_on_n1_reaches_n2_ms"
+   }
+  },
+  {
+   "name": "value",
+   "value": 200.0,
+   "unit": "count",
+   "labels": {
+    "id": "2.51",
+    "number": "status"
+   }
+  },
+  {
+   "name": "value",
+   "value": 200.0,
+   "unit": "count",
+   "labels": {
+    "id": "2.51",
+    "number": "block_on_n3"
+   }
+  },
+  {
+   "name": "value",
+   "value": 201.0,
+   "unit": "count",
+   "labels": {
+    "id": "2.51",
+    "number": "allow_on_n1"
+   }
+  },
+  {
+   "name": "value",
+   "value": 201.0,
+   "unit": "count",
+   "labels": {
+    "id": "2.51",
+    "number": "allow_on_n3"
+   }
+  },
+  {
+   "name": "value",
+   "value": 200.0,
+   "unit": "count",
+   "labels": {
+    "id": "2.51",
+    "number": "lift_on_n3"
+   }
+  },
+  {
+   "name": "value",
+   "value": 200.0,
+   "unit": "count",
+   "labels": {
+    "id": "2.51",
+    "number": "login_on_n3"
+   }
+  },
+  {
+   "name": "value",
+   "value": 200.0,
+   "unit": "count",
+   "labels": {
+    "id": "2.51",
+    "number": "readyz_n3"
+   }
+  },
+  {
+   "name": "value",
+   "value": 200.0,
+   "unit": "count",
+   "labels": {
+    "id": "2.51",
+    "number": "n3_serves"
+   }
+  },
+  {
+   "name": "value",
+   "value": 403.0,
+   "unit": "count",
+   "labels": {
+    "id": "2.51",
+    "number": "n3_refuses_own_block"
+   }
+  },
+  {
+   "name": "value",
+   "value": 1327.0,
+   "unit": "count",
+   "labels": {
+    "id": "2.52",
+    "number": "n1.requests"
+   }
+  },
+  {
+   "name": "value",
+   "value": 0.0,
+   "unit": "count",
+   "labels": {
+    "id": "2.52",
+    "number": "n1.not_200"
+   }
+  },
+  {
+   "name": "value",
+   "value": 0.0,
+   "unit": "count",
+   "labels": {
+    "id": "2.52",
+    "number": "n1.retried"
+   }
+  },
+  {
+   "name": "value",
+   "value": 4.25,
+   "unit": "count",
+   "labels": {
+    "id": "2.52",
+    "number": "n1.p50"
+   }
+  },
+  {
+   "name": "value",
+   "value": 7.39,
+   "unit": "count",
+   "labels": {
+    "id": "2.52",
+    "number": "n1.p99"
+   }
+  },
+  {
+   "name": "value",
+   "value": 10.94,
+   "unit": "count",
+   "labels": {
+    "id": "2.52",
+    "number": "n1.max"
+   }
+  },
+  {
+   "name": "value",
+   "value": 1331.0,
+   "unit": "count",
+   "labels": {
+    "id": "2.52",
+    "number": "n2.requests"
+   }
+  },
+  {
+   "name": "value",
+   "value": 0.0,
+   "unit": "count",
+   "labels": {
+    "id": "2.52",
+    "number": "n2.not_200"
+   }
+  },
+  {
+   "name": "value",
+   "value": 0.0,
+   "unit": "count",
+   "labels": {
+    "id": "2.52",
+    "number": "n2.retried"
+   }
+  },
+  {
+   "name": "value",
+   "value": 4.23,
+   "unit": "count",
+   "labels": {
+    "id": "2.52",
+    "number": "n2.p50"
+   }
+  },
+  {
+   "name": "value",
+   "value": 7.17,
+   "unit": "count",
+   "labels": {
+    "id": "2.52",
+    "number": "n2.p99"
+   }
+  },
+  {
+   "name": "value",
+   "value": 17.82,
+   "unit": "count",
+   "labels": {
+    "id": "2.52",
+    "number": "n2.max"
+   }
+  },
+  {
+   "name": "value",
+   "value": 1335.0,
+   "unit": "count",
+   "labels": {
+    "id": "2.52",
+    "number": "n3.requests"
+   }
+  },
+  {
+   "name": "value",
+   "value": 0.0,
+   "unit": "count",
+   "labels": {
+    "id": "2.52",
+    "number": "n3.not_200"
+   }
+  },
+  {
+   "name": "value",
+   "value": 0.0,
+   "unit": "count",
+   "labels": {
+    "id": "2.52",
+    "number": "n3.retried"
+   }
+  },
+  {
+   "name": "value",
+   "value": 4.21,
+   "unit": "count",
+   "labels": {
+    "id": "2.52",
+    "number": "n3.p50"
+   }
+  },
+  {
+   "name": "value",
+   "value": 6.72,
+   "unit": "count",
+   "labels": {
+    "id": "2.52",
+    "number": "n3.p99"
+   }
+  },
+  {
+   "name": "value",
+   "value": 13.69,
+   "unit": "count",
+   "labels": {
+    "id": "2.52",
+    "number": "n3.max"
+   }
+  },
+  {
+   "name": "value",
+   "value": 9.99,
+   "unit": "ms",
+   "labels": {
+    "id": "2.52",
+    "number": "baseline_p99_ms"
+   }
+  },
+  {
+   "name": "value",
+   "value": 0.62,
+   "unit": "s",
+   "labels": {
+    "id": "2.53",
+    "number": "seconds"
+   }
+  },
+  {
+   "name": "value",
+   "value": 1.0,
+   "unit": "count",
+   "labels": {
+    "id": "2.54",
+    "number": "block_n1_side"
+   }
+  },
+  {
+   "name": "value",
+   "value": 1.0,
+   "unit": "count",
+   "labels": {
+    "id": "2.54",
+    "number": "block_n3_side"
+   }
+  },
+  {
+   "name": "value",
+   "value": 1.0,
+   "unit": "count",
+   "labels": {
+    "id": "2.54",
+    "number": "allow_n1_side_on_n1"
+   }
+  },
+  {
+   "name": "value",
+   "value": 1.0,
+   "unit": "count",
+   "labels": {
+    "id": "2.54",
+    "number": "allow_n3_side_on_n1"
+   }
+  },
+  {
+   "name": "value",
+   "value": 1.0,
+   "unit": "count",
+   "labels": {
+    "id": "2.54",
+    "number": "allow_n1_side_on_n3"
+   }
+  },
+  {
+   "name": "value",
+   "value": 1.0,
+   "unit": "count",
+   "labels": {
+    "id": "2.54",
+    "number": "allow_n3_side_on_n3"
+   }
+  },
+  {
+   "name": "value",
+   "value": 1.0,
+   "unit": "count",
+   "labels": {
+    "id": "2.54",
+    "number": "lifted_block_gone_on_n1"
+   }
+  },
+  {
+   "name": "value",
+   "value": 1.0,
+   "unit": "count",
+   "labels": {
+    "id": "2.54",
+    "number": "lifted_block_gone_on_n3"
+   }
+  },
+  {
+   "name": "value",
+   "value": 1.0,
+   "unit": "count",
+   "labels": {
+    "id": "2.54",
+    "number": "login_of_n3_valid_on_n1"
+   }
+  },
+  {
+   "name": "value",
+   "value": 0.66,
+   "unit": "s",
+   "labels": {
+    "id": "2.55",
+    "number": "seconds"
+   }
+  },
+  {
+   "name": "value",
+   "value": 2.2,
+   "unit": "s",
+   "labels": {
+    "id": "2.60",
+    "number": "seconds"
+   }
+  },
+  {
+   "name": "value",
+   "value": 106.2,
+   "unit": "ms",
+   "labels": {
+    "id": "2.61",
+    "number": "block_on_n1_reaches_n2_ms"
+   }
+  },
+  {
+   "name": "value",
+   "value": 200.0,
+   "unit": "count",
+   "labels": {
+    "id": "2.61",
+    "number": "status"
+   }
+  },
+  {
+   "name": "value",
+   "value": 200.0,
+   "unit": "count",
+   "labels": {
+    "id": "2.61",
+    "number": "block_on_n3"
+   }
+  },
+  {
+   "name": "value",
+   "value": 201.0,
+   "unit": "count",
+   "labels": {
+    "id": "2.61",
+    "number": "allow_on_n1"
+   }
+  },
+  {
+   "name": "value",
+   "value": 201.0,
+   "unit": "count",
+   "labels": {
+    "id": "2.61",
+    "number": "allow_on_n3"
+   }
+  },
+  {
+   "name": "value",
+   "value": 200.0,
+   "unit": "count",
+   "labels": {
+    "id": "2.61",
+    "number": "lift_on_n3"
+   }
+  },
+  {
+   "name": "value",
+   "value": 200.0,
+   "unit": "count",
+   "labels": {
+    "id": "2.61",
+    "number": "login_on_n3"
+   }
+  },
+  {
+   "name": "value",
+   "value": 200.0,
+   "unit": "count",
+   "labels": {
+    "id": "2.61",
+    "number": "readyz_n3"
+   }
+  },
+  {
+   "name": "value",
+   "value": 200.0,
+   "unit": "count",
+   "labels": {
+    "id": "2.61",
+    "number": "n3_serves"
+   }
+  },
+  {
+   "name": "value",
+   "value": 403.0,
+   "unit": "count",
+   "labels": {
+    "id": "2.61",
+    "number": "n3_refuses_own_block"
+   }
+  },
+  {
+   "name": "value",
+   "value": 1249.0,
+   "unit": "count",
+   "labels": {
+    "id": "2.62",
+    "number": "n1.requests"
+   }
+  },
+  {
+   "name": "value",
+   "value": 0.0,
+   "unit": "count",
+   "labels": {
+    "id": "2.62",
+    "number": "n1.not_200"
+   }
+  },
+  {
+   "name": "value",
+   "value": 0.0,
+   "unit": "count",
+   "labels": {
+    "id": "2.62",
+    "number": "n1.retried"
+   }
+  },
+  {
+   "name": "value",
+   "value": 4.43,
+   "unit": "count",
+   "labels": {
+    "id": "2.62",
+    "number": "n1.p50"
+   }
+  },
+  {
+   "name": "value",
+   "value": 7.83,
+   "unit": "count",
+   "labels": {
+    "id": "2.62",
+    "number": "n1.p99"
+   }
+  },
+  {
+   "name": "value",
+   "value": 17.0,
+   "unit": "count",
+   "labels": {
+    "id": "2.62",
+    "number": "n1.max"
+   }
+  },
+  {
+   "name": "value",
+   "value": 1253.0,
+   "unit": "count",
+   "labels": {
+    "id": "2.62",
+    "number": "n2.requests"
+   }
+  },
+  {
+   "name": "value",
+   "value": 0.0,
+   "unit": "count",
+   "labels": {
+    "id": "2.62",
+    "number": "n2.not_200"
+   }
+  },
+  {
+   "name": "value",
+   "value": 0.0,
+   "unit": "count",
+   "labels": {
+    "id": "2.62",
+    "number": "n2.retried"
+   }
+  },
+  {
+   "name": "value",
+   "value": 4.37,
+   "unit": "count",
+   "labels": {
+    "id": "2.62",
+    "number": "n2.p50"
+   }
+  },
+  {
+   "name": "value",
+   "value": 7.77,
+   "unit": "count",
+   "labels": {
+    "id": "2.62",
+    "number": "n2.p99"
+   }
+  },
+  {
+   "name": "value",
+   "value": 10.1,
+   "unit": "count",
+   "labels": {
+    "id": "2.62",
+    "number": "n2.max"
+   }
+  },
+  {
+   "name": "value",
+   "value": 1257.0,
+   "unit": "count",
+   "labels": {
+    "id": "2.62",
+    "number": "n3.requests"
+   }
+  },
+  {
+   "name": "value",
+   "value": 0.0,
+   "unit": "count",
+   "labels": {
+    "id": "2.62",
+    "number": "n3.not_200"
+   }
+  },
+  {
+   "name": "value",
+   "value": 0.0,
+   "unit": "count",
+   "labels": {
+    "id": "2.62",
+    "number": "n3.retried"
+   }
+  },
+  {
+   "name": "value",
+   "value": 4.35,
+   "unit": "count",
+   "labels": {
+    "id": "2.62",
+    "number": "n3.p50"
+   }
+  },
+  {
+   "name": "value",
+   "value": 7.89,
+   "unit": "count",
+   "labels": {
+    "id": "2.62",
+    "number": "n3.p99"
+   }
+  },
+  {
+   "name": "value",
+   "value": 14.52,
+   "unit": "count",
+   "labels": {
+    "id": "2.62",
+    "number": "n3.max"
+   }
+  },
+  {
+   "name": "value",
+   "value": 9.99,
+   "unit": "ms",
+   "labels": {
+    "id": "2.62",
+    "number": "baseline_p99_ms"
+   }
+  },
+  {
+   "name": "value",
+   "value": 0.84,
+   "unit": "s",
+   "labels": {
+    "id": "2.63",
+    "number": "seconds"
+   }
+  },
+  {
+   "name": "value",
+   "value": 1.0,
+   "unit": "count",
+   "labels": {
+    "id": "2.64",
+    "number": "block_n1_side"
+   }
+  },
+  {
+   "name": "value",
+   "value": 1.0,
+   "unit": "count",
+   "labels": {
+    "id": "2.64",
+    "number": "block_n3_side"
+   }
+  },
+  {
+   "name": "value",
+   "value": 1.0,
+   "unit": "count",
+   "labels": {
+    "id": "2.64",
+    "number": "allow_n1_side_on_n1"
+   }
+  },
+  {
+   "name": "value",
+   "value": 1.0,
+   "unit": "count",
+   "labels": {
+    "id": "2.64",
+    "number": "allow_n3_side_on_n1"
+   }
+  },
+  {
+   "name": "value",
+   "value": 1.0,
+   "unit": "count",
+   "labels": {
+    "id": "2.64",
+    "number": "allow_n1_side_on_n3"
+   }
+  },
+  {
+   "name": "value",
+   "value": 1.0,
+   "unit": "count",
+   "labels": {
+    "id": "2.64",
+    "number": "allow_n3_side_on_n3"
+   }
+  },
+  {
+   "name": "value",
+   "value": 1.0,
+   "unit": "count",
+   "labels": {
+    "id": "2.64",
+    "number": "lifted_block_gone_on_n1"
+   }
+  },
+  {
+   "name": "value",
+   "value": 1.0,
+   "unit": "count",
+   "labels": {
+    "id": "2.64",
+    "number": "lifted_block_gone_on_n3"
+   }
+  },
+  {
+   "name": "value",
+   "value": 1.0,
+   "unit": "count",
+   "labels": {
+    "id": "2.64",
+    "number": "login_of_n3_valid_on_n1"
+   }
+  },
+  {
+   "name": "value",
+   "value": 0.88,
+   "unit": "s",
+   "labels": {
+    "id": "2.65",
+    "number": "seconds"
+   }
+  },
+  {
+   "name": "value",
+   "value": 3.0,
+   "unit": "s",
+   "labels": {
+    "id": "2.70",
+    "number": "seconds"
+   }
+  },
+  {
+   "name": "value",
+   "value": 84.2,
+   "unit": "ms",
+   "labels": {
+    "id": "2.71",
+    "number": "block_on_n1_reaches_n2_ms"
+   }
+  },
+  {
+   "name": "value",
+   "value": 200.0,
+   "unit": "count",
+   "labels": {
+    "id": "2.71",
+    "number": "status"
+   }
+  },
+  {
+   "name": "value",
+   "value": 1319.0,
+   "unit": "count",
+   "labels": {
+    "id": "2.72",
+    "number": "n1.requests"
+   }
+  },
+  {
+   "name": "value",
+   "value": 0.0,
+   "unit": "count",
+   "labels": {
+    "id": "2.72",
+    "number": "n1.not_200"
+   }
+  },
+  {
+   "name": "value",
+   "value": 0.0,
+   "unit": "count",
+   "labels": {
+    "id": "2.72",
+    "number": "n1.retried"
+   }
+  },
+  {
+   "name": "value",
+   "value": 3.87,
+   "unit": "count",
+   "labels": {
+    "id": "2.72",
+    "number": "n1.p50"
+   }
+  },
+  {
+   "name": "value",
+   "value": 5.72,
+   "unit": "count",
+   "labels": {
+    "id": "2.72",
+    "number": "n1.p99"
+   }
+  },
+  {
+   "name": "value",
+   "value": 12.02,
+   "unit": "count",
+   "labels": {
+    "id": "2.72",
+    "number": "n1.max"
+   }
+  },
+  {
+   "name": "value",
+   "value": 1322.0,
+   "unit": "count",
+   "labels": {
+    "id": "2.72",
+    "number": "n2.requests"
+   }
+  },
+  {
+   "name": "value",
+   "value": 0.0,
+   "unit": "count",
+   "labels": {
+    "id": "2.72",
+    "number": "n2.not_200"
+   }
+  },
+  {
+   "name": "value",
+   "value": 0.0,
+   "unit": "count",
+   "labels": {
+    "id": "2.72",
+    "number": "n2.retried"
+   }
+  },
+  {
+   "name": "value",
+   "value": 3.84,
+   "unit": "count",
+   "labels": {
+    "id": "2.72",
+    "number": "n2.p50"
+   }
+  },
+  {
+   "name": "value",
+   "value": 5.53,
+   "unit": "count",
+   "labels": {
+    "id": "2.72",
+    "number": "n2.p99"
+   }
+  },
+  {
+   "name": "value",
+   "value": 9.02,
+   "unit": "count",
+   "labels": {
+    "id": "2.72",
+    "number": "n2.max"
+   }
+  },
+  {
+   "name": "value",
+   "value": 9.99,
+   "unit": "ms",
+   "labels": {
+    "id": "2.72",
+    "number": "baseline_p99_ms"
+   }
+  },
+  {
+   "name": "value",
+   "value": 4.12,
+   "unit": "s",
+   "labels": {
+    "id": "2.73",
+    "number": "active_after_s"
+   }
+  },
+  {
+   "name": "value",
+   "value": 0.0,
+   "unit": "s",
+   "labels": {
+    "id": "2.73",
+    "number": "block_on_n3_after_s"
+   }
+  },
+  {
+   "name": "value",
+   "value": 4.13,
+   "unit": "s",
+   "labels": {
+    "id": "2.75",
+    "number": "seconds"
+   }
+  },
+  {
+   "name": "value",
+   "value": 0.07,
+   "unit": "s",
+   "labels": {
+    "id": "2.80",
+    "number": "seconds"
+   }
+  },
+  {
+   "name": "value",
+   "value": 138.5,
+   "unit": "ms",
+   "labels": {
+    "id": "2.81",
+    "number": "block_on_n1_reaches_n2_ms"
+   }
+  },
+  {
+   "name": "value",
+   "value": 200.0,
+   "unit": "count",
+   "labels": {
+    "id": "2.81",
+    "number": "status"
+   }
+  },
+  {
+   "name": "value",
+   "value": 1032.0,
+   "unit": "count",
+   "labels": {
+    "id": "2.82",
+    "number": "n1.requests"
+   }
+  },
+  {
+   "name": "value",
+   "value": 0.0,
+   "unit": "count",
+   "labels": {
+    "id": "2.82",
+    "number": "n1.not_200"
+   }
+  },
+  {
+   "name": "value",
+   "value": 0.0,
+   "unit": "count",
+   "labels": {
+    "id": "2.82",
+    "number": "n1.retried"
+   }
+  },
+  {
+   "name": "value",
+   "value": 3.92,
+   "unit": "count",
+   "labels": {
+    "id": "2.82",
+    "number": "n1.p50"
+   }
+  },
+  {
+   "name": "value",
+   "value": 6.33,
+   "unit": "count",
+   "labels": {
+    "id": "2.82",
+    "number": "n1.p99"
+   }
+  },
+  {
+   "name": "value",
+   "value": 16.42,
+   "unit": "count",
+   "labels": {
+    "id": "2.82",
+    "number": "n1.max"
+   }
+  },
+  {
+   "name": "value",
+   "value": 1035.0,
+   "unit": "count",
+   "labels": {
+    "id": "2.82",
+    "number": "n2.requests"
+   }
+  },
+  {
+   "name": "value",
+   "value": 0.0,
+   "unit": "count",
+   "labels": {
+    "id": "2.82",
+    "number": "n2.not_200"
+   }
+  },
+  {
+   "name": "value",
+   "value": 0.0,
+   "unit": "count",
+   "labels": {
+    "id": "2.82",
+    "number": "n2.retried"
+   }
+  },
+  {
+   "name": "value",
+   "value": 3.86,
+   "unit": "count",
+   "labels": {
+    "id": "2.82",
+    "number": "n2.p50"
+   }
+  },
+  {
+   "name": "value",
+   "value": 6.58,
+   "unit": "count",
+   "labels": {
+    "id": "2.82",
+    "number": "n2.p99"
+   }
+  },
+  {
+   "name": "value",
+   "value": 10.62,
+   "unit": "count",
+   "labels": {
+    "id": "2.82",
+    "number": "n2.max"
+   }
+  },
+  {
+   "name": "value",
+   "value": 9.99,
+   "unit": "ms",
+   "labels": {
+    "id": "2.82",
+    "number": "baseline_p99_ms"
+   }
+  },
+  {
+   "name": "value",
+   "value": 8.45,
+   "unit": "s",
+   "labels": {
+    "id": "2.83",
+    "number": "active_after_s"
+   }
+  },
+  {
+   "name": "value",
+   "value": 0.0,
+   "unit": "s",
+   "labels": {
+    "id": "2.83",
+    "number": "block_on_n3_after_s"
+   }
+  },
+  {
+   "name": "value",
+   "value": 8.46,
+   "unit": "s",
+   "labels": {
+    "id": "2.85",
+    "number": "seconds"
+   }
+  },
+  {
+   "name": "value",
+   "value": -0.0,
+   "unit": "count",
+   "labels": {
+    "id": "3.01",
+    "number": "n1"
+   }
+  },
+  {
+   "name": "value",
+   "value": -0.0,
+   "unit": "count",
+   "labels": {
+    "id": "3.01",
+    "number": "n2"
+   }
+  },
+  {
+   "name": "value",
+   "value": -0.0,
+   "unit": "count",
+   "labels": {
+    "id": "3.01",
+    "number": "n3"
+   }
+  },
+  {
+   "name": "value",
+   "value": 30.0,
+   "unit": "s",
+   "labels": {
+    "id": "3.10",
+    "number": "offset_s"
+   }
+  },
+  {
+   "name": "value",
+   "value": 10.0,
+   "unit": "count",
+   "labels": {
+    "id": "3.11",
+    "number": "n"
+   }
+  },
+  {
+   "name": "value",
+   "value": 22.3,
+   "unit": "count",
+   "labels": {
+    "id": "3.11",
+    "number": "min"
+   }
+  },
+  {
+   "name": "value",
+   "value": 33.5,
+   "unit": "count",
+   "labels": {
+    "id": "3.11",
+    "number": "p50"
+   }
+  },
+  {
+   "name": "value",
+   "value": 250.5,
+   "unit": "count",
+   "labels": {
+    "id": "3.11",
+    "number": "p95"
+   }
+  },
+  {
+   "name": "value",
+   "value": 250.5,
+   "unit": "count",
+   "labels": {
+    "id": "3.11",
+    "number": "p99"
+   }
+  },
+  {
+   "name": "value",
+   "value": 250.5,
+   "unit": "count",
+   "labels": {
+    "id": "3.11",
+    "number": "max"
+   }
+  },
+  {
+   "name": "value",
+   "value": 0.0,
+   "unit": "count",
+   "labels": {
+    "id": "3.11",
+    "number": "not_within_4s"
+   }
+  },
+  {
+   "name": "value",
+   "value": 15.0,
+   "unit": "count",
+   "labels": {
+    "id": "3.11",
+    "number": "counters_n1.taken"
+   }
+  },
+  {
+   "name": "value",
+   "value": 0.0,
+   "unit": "count",
+   "labels": {
+    "id": "3.11",
+    "number": "counters_n1.refused"
+   }
+  },
+  {
+   "name": "value",
+   "value": 0.0,
+   "unit": "count",
+   "labels": {
+    "id": "3.11",
+    "number": "counters_n1.deferred"
+   }
+  },
+  {
+   "name": "value",
+   "value": 0.0,
+   "unit": "count",
+   "labels": {
+    "id": "3.11",
+    "number": "counters_n1.unread"
+   }
+  },
+  {
+   "name": "value",
+   "value": 10.0,
+   "unit": "count",
+   "labels": {
+    "id": "3.12",
+    "number": "n"
+   }
+  },
+  {
+   "name": "value",
+   "value": 23.5,
+   "unit": "count",
+   "labels": {
+    "id": "3.12",
+    "number": "min"
+   }
+  },
+  {
+   "name": "value",
+   "value": 35.3,
+   "unit": "count",
+   "labels": {
+    "id": "3.12",
+    "number": "p50"
+   }
+  },
+  {
+   "name": "value",
+   "value": 44.4,
+   "unit": "count",
+   "labels": {
+    "id": "3.12",
+    "number": "p95"
+   }
+  },
+  {
+   "name": "value",
+   "value": 44.4,
+   "unit": "count",
+   "labels": {
+    "id": "3.12",
+    "number": "p99"
+   }
+  },
+  {
+   "name": "value",
+   "value": 44.4,
+   "unit": "count",
+   "labels": {
+    "id": "3.12",
+    "number": "max"
+   }
+  },
+  {
+   "name": "value",
+   "value": 0.0,
+   "unit": "count",
+   "labels": {
+    "id": "3.12",
+    "number": "not_within_4s"
+   }
+  },
+  {
+   "name": "value",
+   "value": 18.0,
+   "unit": "count",
+   "labels": {
+    "id": "3.12",
+    "number": "counters_n3.taken"
+   }
+  },
+  {
+   "name": "value",
+   "value": 0.0,
+   "unit": "count",
+   "labels": {
+    "id": "3.12",
+    "number": "counters_n3.refused"
+   }
+  },
+  {
+   "name": "value",
+   "value": 0.0,
+   "unit": "count",
+   "labels": {
+    "id": "3.12",
+    "number": "counters_n3.deferred"
+   }
+  },
+  {
+   "name": "value",
+   "value": 0.0,
+   "unit": "count",
+   "labels": {
+    "id": "3.12",
+    "number": "counters_n3.unread"
+   }
+  },
+  {
+   "name": "value",
+   "value": 200.0,
+   "unit": "count",
+   "labels": {
+    "id": "3.13",
+    "number": "set on n3, lifted on n1.unblock_status"
+   }
+  },
+  {
+   "name": "value",
+   "value": 0.13,
+   "unit": "s",
+   "labels": {
+    "id": "3.13",
+    "number": "set on n3, lifted on n1.lifted_everywhere_after_s"
+   }
+  },
+  {
+   "name": "value",
+   "value": 200.0,
+   "unit": "count",
+   "labels": {
+    "id": "3.13",
+    "number": "set on n1, lifted on n3.unblock_status"
+   }
+  },
+  {
+   "name": "value",
+   "value": 0.24,
+   "unit": "s",
+   "labels": {
+    "id": "3.13",
+    "number": "set on n1, lifted on n3.lifted_everywhere_after_s"
+   }
+  },
+  {
+   "name": "value",
+   "value": 200.0,
+   "unit": "count",
+   "labels": {
+    "id": "3.13",
+    "number": "set on n1 before the clock moved, lifted on n3.unblock_status"
+   }
+  },
+  {
+   "name": "value",
+   "value": 0.26,
+   "unit": "s",
+   "labels": {
+    "id": "3.13",
+    "number": "set on n1 before the clock moved, lifted on n3.lifted_everywhere_after_s"
+   }
+  },
+  {
+   "name": "value",
+   "value": 0.32,
+   "unit": "s",
+   "labels": {
+    "id": "3.14",
+    "number": "login_on_n3_valid_on_n1_after_s"
+   }
+  },
+  {
+   "name": "value",
+   "value": 0.44,
+   "unit": "s",
+   "labels": {
+    "id": "3.14",
+    "number": "login_on_n1_valid_on_n3_after_s"
+   }
+  },
+  {
+   "name": "value",
+   "value": 20.0,
+   "unit": "count",
+   "labels": {
+    "id": "3.15",
+    "number": "n1.counters.taken"
+   }
+  },
+  {
+   "name": "value",
+   "value": 0.0,
+   "unit": "count",
+   "labels": {
+    "id": "3.15",
+    "number": "n1.counters.refused"
+   }
+  },
+  {
+   "name": "value",
+   "value": 0.0,
+   "unit": "count",
+   "labels": {
+    "id": "3.15",
+    "number": "n1.counters.deferred"
+   }
+  },
+  {
+   "name": "value",
+   "value": 0.0,
+   "unit": "count",
+   "labels": {
+    "id": "3.15",
+    "number": "n1.counters.unread"
+   }
+  },
+  {
+   "name": "value",
+   "value": 200.0,
+   "unit": "count",
+   "labels": {
+    "id": "3.15",
+    "number": "n1.readyz"
+   }
+  },
+  {
+   "name": "value",
+   "value": 21.0,
+   "unit": "count",
+   "labels": {
+    "id": "3.15",
+    "number": "n3.counters.taken"
+   }
+  },
+  {
+   "name": "value",
+   "value": 0.0,
+   "unit": "count",
+   "labels": {
+    "id": "3.15",
+    "number": "n3.counters.refused"
+   }
+  },
+  {
+   "name": "value",
+   "value": 0.0,
+   "unit": "count",
+   "labels": {
+    "id": "3.15",
+    "number": "n3.counters.deferred"
+   }
+  },
+  {
+   "name": "value",
+   "value": 0.0,
+   "unit": "count",
+   "labels": {
+    "id": "3.15",
+    "number": "n3.counters.unread"
+   }
+  },
+  {
+   "name": "value",
+   "value": 200.0,
+   "unit": "count",
+   "labels": {
+    "id": "3.15",
+    "number": "n3.readyz"
+   }
+  },
+  {
+   "name": "value",
+   "value": 30.0,
+   "unit": "s",
+   "labels": {
+    "id": "3.17",
+    "number": "offset_s_at_the_end"
+   }
+  },
+  {
+   "name": "value",
+   "value": 1.0,
+   "unit": "count",
+   "labels": {
+    "id": "3.17",
+    "number": "times_the_holder_put_the_clock_back"
+   }
+  },
+  {
+   "name": "value",
+   "value": 90.0,
+   "unit": "s",
+   "labels": {
+    "id": "3.20",
+    "number": "offset_s"
+   }
+  },
+  {
+   "name": "value",
+   "value": 0.0,
+   "unit": "count",
+   "labels": {
+    "id": "3.21",
+    "number": "n"
+   }
+  },
+  {
+   "name": "value",
+   "value": 10.0,
+   "unit": "count",
+   "labels": {
+    "id": "3.21",
+    "number": "not_within_4s"
+   }
+  },
+  {
+   "name": "value",
+   "value": 10.0,
+   "unit": "count",
+   "labels": {
+    "id": "3.21",
+    "number": "of"
+   }
+  },
+  {
+   "name": "value",
+   "value": 10.0,
+   "unit": "count",
+   "labels": {
+    "id": "3.21",
+    "number": "counters_n1.taken"
+   }
+  },
+  {
+   "name": "value",
+   "value": 0.0,
+   "unit": "count",
+   "labels": {
+    "id": "3.21",
+    "number": "counters_n1.refused"
+   }
+  },
+  {
+   "name": "value",
+   "value": 69.0,
+   "unit": "count",
+   "labels": {
+    "id": "3.21",
+    "number": "counters_n1.deferred"
+   }
+  },
+  {
+   "name": "value",
+   "value": 0.0,
+   "unit": "count",
+   "labels": {
+    "id": "3.21",
+    "number": "counters_n1.unread"
+   }
+  },
+  {
+   "name": "value",
+   "value": 15.0,
+   "unit": "count",
+   "labels": {
+    "id": "3.21b",
+    "number": "counters_n1.taken"
+   }
+  },
+  {
+   "name": "value",
+   "value": 0.0,
+   "unit": "count",
+   "labels": {
+    "id": "3.21b",
+    "number": "counters_n1.refused"
+   }
+  },
+  {
+   "name": "value",
+   "value": 159.0,
+   "unit": "count",
+   "labels": {
+    "id": "3.21b",
+    "number": "counters_n1.deferred"
+   }
+  },
+  {
+   "name": "value",
+   "value": 0.0,
+   "unit": "count",
+   "labels": {
+    "id": "3.21b",
+    "number": "counters_n1.unread"
+   }
+  },
+  {
+   "name": "value",
+   "value": 10.0,
+   "unit": "count",
+   "labels": {
+    "id": "3.22",
+    "number": "n"
+   }
+  },
+  {
+   "name": "value",
+   "value": 39.5,
+   "unit": "count",
+   "labels": {
+    "id": "3.22",
+    "number": "min"
+   }
+  },
+  {
+   "name": "value",
+   "value": 67.5,
+   "unit": "count",
+   "labels": {
+    "id": "3.22",
+    "number": "p50"
+   }
+  },
+  {
+   "name": "value",
+   "value": 250.6,
+   "unit": "count",
+   "labels": {
+    "id": "3.22",
+    "number": "p95"
+   }
+  },
+  {
+   "name": "value",
+   "value": 250.6,
+   "unit": "count",
+   "labels": {
+    "id": "3.22",
+    "number": "p99"
+   }
+  },
+  {
+   "name": "value",
+   "value": 250.6,
+   "unit": "count",
+   "labels": {
+    "id": "3.22",
+    "number": "max"
+   }
+  },
+  {
+   "name": "value",
+   "value": 0.0,
+   "unit": "count",
+   "labels": {
+    "id": "3.22",
+    "number": "not_within_4s"
+   }
+  },
+  {
+   "name": "value",
+   "value": 17.0,
+   "unit": "count",
+   "labels": {
+    "id": "3.22",
+    "number": "counters_n3.taken"
+   }
+  },
+  {
+   "name": "value",
+   "value": 0.0,
+   "unit": "count",
+   "labels": {
+    "id": "3.22",
+    "number": "counters_n3.refused"
+   }
+  },
+  {
+   "name": "value",
+   "value": 0.0,
+   "unit": "count",
+   "labels": {
+    "id": "3.22",
+    "number": "counters_n3.deferred"
+   }
+  },
+  {
+   "name": "value",
+   "value": 0.0,
+   "unit": "count",
+   "labels": {
+    "id": "3.22",
+    "number": "counters_n3.unread"
+   }
+  },
+  {
+   "name": "value",
+   "value": 0.44,
+   "unit": "s",
+   "labels": {
+    "id": "3.24",
+    "number": "login_on_n1_valid_on_n3_after_s"
+   }
+  },
+  {
+   "name": "value",
+   "value": 15.0,
+   "unit": "count",
+   "labels": {
+    "id": "3.25",
+    "number": "n1.counters.taken"
+   }
+  },
+  {
+   "name": "value",
+   "value": 0.0,
+   "unit": "count",
+   "labels": {
+    "id": "3.25",
+    "number": "n1.counters.refused"
+   }
+  },
+  {
+   "name": "value",
+   "value": 237.0,
+   "unit": "count",
+   "labels": {
+    "id": "3.25",
+    "number": "n1.counters.deferred"
+   }
+  },
+  {
+   "name": "value",
+   "value": 0.0,
+   "unit": "count",
+   "labels": {
+    "id": "3.25",
+    "number": "n1.counters.unread"
+   }
+  },
+  {
+   "name": "value",
+   "value": 200.0,
+   "unit": "count",
+   "labels": {
+    "id": "3.25",
+    "number": "n1.readyz"
+   }
+  },
+  {
+   "name": "value",
+   "value": 20.0,
+   "unit": "count",
+   "labels": {
+    "id": "3.25",
+    "number": "n3.counters.taken"
+   }
+  },
+  {
+   "name": "value",
+   "value": 0.0,
+   "unit": "count",
+   "labels": {
+    "id": "3.25",
+    "number": "n3.counters.refused"
+   }
+  },
+  {
+   "name": "value",
+   "value": 0.0,
+   "unit": "count",
+   "labels": {
+    "id": "3.25",
+    "number": "n3.counters.deferred"
+   }
+  },
+  {
+   "name": "value",
+   "value": 0.0,
+   "unit": "count",
+   "labels": {
+    "id": "3.25",
+    "number": "n3.counters.unread"
+   }
+  },
+  {
+   "name": "value",
+   "value": 200.0,
+   "unit": "count",
+   "labels": {
+    "id": "3.25",
+    "number": "n3.readyz"
+   }
+  },
+  {
+   "name": "value",
+   "value": 90.0,
+   "unit": "s",
+   "labels": {
+    "id": "3.27",
+    "number": "offset_s_at_the_end"
+   }
+  },
+  {
+   "name": "value",
+   "value": 2.0,
+   "unit": "count",
+   "labels": {
+    "id": "3.27",
+    "number": "times_the_holder_put_the_clock_back"
+   }
+  },
+  {
+   "name": "value",
+   "value": 0.3,
+   "unit": "s",
+   "labels": {
+    "id": "3.60",
+    "number": "seconds"
+   }
+  },
+  {
+   "name": "value",
+   "value": 1.0,
+   "unit": "count",
+   "labels": {
+    "id": "3.60",
+    "number": "n2_took_it"
+   }
+  },
+  {
+   "name": "value",
+   "value": 21.0,
+   "unit": "count",
+   "labels": {
+    "id": "3.60",
+    "number": "counters_n3.taken"
+   }
+  },
+  {
+   "name": "value",
+   "value": 0.0,
+   "unit": "count",
+   "labels": {
+    "id": "3.60",
+    "number": "counters_n3.refused"
+   }
+  },
+  {
+   "name": "value",
+   "value": 0.0,
+   "unit": "count",
+   "labels": {
+    "id": "3.60",
+    "number": "counters_n3.deferred"
+   }
+  },
+  {
+   "name": "value",
+   "value": 0.0,
+   "unit": "count",
+   "labels": {
+    "id": "3.60",
+    "number": "counters_n3.unread"
+   }
+  },
+  {
+   "name": "value",
+   "value": -30.0,
+   "unit": "s",
+   "labels": {
+    "id": "3.61",
+    "number": "offset_s"
+   }
+  },
+  {
+   "name": "value",
+   "value": 0.0,
+   "unit": "count",
+   "labels": {
+    "id": "3.61",
+    "number": "not_within_6s"
+   }
+  },
+  {
+   "name": "value",
+   "value": 6.0,
+   "unit": "count",
+   "labels": {
+    "id": "3.61",
+    "number": "ms.n"
+   }
+  },
+  {
+   "name": "value",
+   "value": 21.9,
+   "unit": "count",
+   "labels": {
+    "id": "3.61",
+    "number": "ms.min"
+   }
+  },
+  {
+   "name": "value",
+   "value": 169.8,
+   "unit": "count",
+   "labels": {
+    "id": "3.61",
+    "number": "ms.p50"
+   }
+  },
+  {
+   "name": "value",
+   "value": 272.3,
+   "unit": "count",
+   "labels": {
+    "id": "3.61",
+    "number": "ms.p95"
+   }
+  },
+  {
+   "name": "value",
+   "value": 272.3,
+   "unit": "count",
+   "labels": {
+    "id": "3.61",
+    "number": "ms.p99"
+   }
+  },
+  {
+   "name": "value",
+   "value": 272.3,
+   "unit": "count",
+   "labels": {
+    "id": "3.61",
+    "number": "ms.max"
+   }
+  },
+  {
+   "name": "value",
+   "value": 0.33,
+   "unit": "s",
+   "labels": {
+    "id": "3.61",
+    "number": "login_on_n1_valid_on_n3_after_s"
+   }
+  },
+  {
+   "name": "value",
+   "value": 25.0,
+   "unit": "count",
+   "labels": {
+    "id": "3.61",
+    "number": "counters_n3.taken"
+   }
+  },
+  {
+   "name": "value",
+   "value": 0.0,
+   "unit": "count",
+   "labels": {
+    "id": "3.61",
+    "number": "counters_n3.refused"
+   }
+  },
+  {
+   "name": "value",
+   "value": 0.0,
+   "unit": "count",
+   "labels": {
+    "id": "3.61",
+    "number": "counters_n3.deferred"
+   }
+  },
+  {
+   "name": "value",
+   "value": 0.0,
+   "unit": "count",
+   "labels": {
+    "id": "3.61",
+    "number": "counters_n3.unread"
+   }
+  },
+  {
+   "name": "value",
+   "value": 1.0,
+   "unit": "count",
+   "labels": {
+    "id": "3.61",
+    "number": "times_the_holder_put_the_clock_back"
+   }
+  },
+  {
+   "name": "value",
+   "value": -30.0,
+   "unit": "s",
+   "labels": {
+    "id": "3.30",
+    "number": "offset_s"
+   }
+  },
+  {
+   "name": "value",
+   "value": 10.0,
+   "unit": "count",
+   "labels": {
+    "id": "3.31",
+    "number": "n"
+   }
+  },
+  {
+   "name": "value",
+   "value": 30.6,
+   "unit": "count",
+   "labels": {
+    "id": "3.31",
+    "number": "min"
+   }
+  },
+  {
+   "name": "value",
+   "value": 38.5,
+   "unit": "count",
+   "labels": {
+    "id": "3.31",
+    "number": "p50"
+   }
+  },
+  {
+   "name": "value",
+   "value": 257.9,
+   "unit": "count",
+   "labels": {
+    "id": "3.31",
+    "number": "p95"
+   }
+  },
+  {
+   "name": "value",
+   "value": 257.9,
+   "unit": "count",
+   "labels": {
+    "id": "3.31",
+    "number": "p99"
+   }
+  },
+  {
+   "name": "value",
+   "value": 257.9,
+   "unit": "count",
+   "labels": {
+    "id": "3.31",
+    "number": "max"
+   }
+  },
+  {
+   "name": "value",
+   "value": 0.0,
+   "unit": "count",
+   "labels": {
+    "id": "3.31",
+    "number": "not_within_4s"
+   }
+  },
+  {
+   "name": "value",
+   "value": 15.0,
+   "unit": "count",
+   "labels": {
+    "id": "3.31",
+    "number": "counters_n1.taken"
+   }
+  },
+  {
+   "name": "value",
+   "value": 0.0,
+   "unit": "count",
+   "labels": {
+    "id": "3.31",
+    "number": "counters_n1.refused"
+   }
+  },
+  {
+   "name": "value",
+   "value": 0.0,
+   "unit": "count",
+   "labels": {
+    "id": "3.31",
+    "number": "counters_n1.deferred"
+   }
+  },
+  {
+   "name": "value",
+   "value": 0.0,
+   "unit": "count",
+   "labels": {
+    "id": "3.31",
+    "number": "counters_n1.unread"
+   }
+  },
+  {
+   "name": "value",
+   "value": 10.0,
+   "unit": "count",
+   "labels": {
+    "id": "3.32",
+    "number": "n"
+   }
+  },
+  {
+   "name": "value",
+   "value": 23.0,
+   "unit": "count",
+   "labels": {
+    "id": "3.32",
+    "number": "min"
+   }
+  },
+  {
+   "name": "value",
+   "value": 35.5,
+   "unit": "count",
+   "labels": {
+    "id": "3.32",
+    "number": "p50"
+   }
+  },
+  {
+   "name": "value",
+   "value": 43.9,
+   "unit": "count",
+   "labels": {
+    "id": "3.32",
+    "number": "p95"
+   }
+  },
+  {
+   "name": "value",
+   "value": 43.9,
+   "unit": "count",
+   "labels": {
+    "id": "3.32",
+    "number": "p99"
+   }
+  },
+  {
+   "name": "value",
+   "value": 43.9,
+   "unit": "count",
+   "labels": {
+    "id": "3.32",
+    "number": "max"
+   }
+  },
+  {
+   "name": "value",
+   "value": 0.0,
+   "unit": "count",
+   "labels": {
+    "id": "3.32",
+    "number": "not_within_4s"
+   }
+  },
+  {
+   "name": "value",
+   "value": 10.0,
+   "unit": "count",
+   "labels": {
+    "id": "3.32",
+    "number": "counters_n3.taken"
+   }
+  },
+  {
+   "name": "value",
+   "value": 0.0,
+   "unit": "count",
+   "labels": {
+    "id": "3.32",
+    "number": "counters_n3.refused"
+   }
+  },
+  {
+   "name": "value",
+   "value": 0.0,
+   "unit": "count",
+   "labels": {
+    "id": "3.32",
+    "number": "counters_n3.deferred"
+   }
+  },
+  {
+   "name": "value",
+   "value": 0.0,
+   "unit": "count",
+   "labels": {
+    "id": "3.32",
+    "number": "counters_n3.unread"
+   }
+  },
+  {
+   "name": "value",
+   "value": 200.0,
+   "unit": "count",
+   "labels": {
+    "id": "3.33",
+    "number": "set on n3, lifted on n1.unblock_status"
+   }
+  },
+  {
+   "name": "value",
+   "value": 0.14,
+   "unit": "s",
+   "labels": {
+    "id": "3.33",
+    "number": "set on n3, lifted on n1.lifted_everywhere_after_s"
+   }
+  },
+  {
+   "name": "value",
+   "value": 200.0,
+   "unit": "count",
+   "labels": {
+    "id": "3.33",
+    "number": "set on n1, lifted on n3.unblock_status"
+   }
+  },
+  {
+   "name": "value",
+   "value": 0.24,
+   "unit": "s",
+   "labels": {
+    "id": "3.33",
+    "number": "set on n1, lifted on n3.lifted_everywhere_after_s"
+   }
+  },
+  {
+   "name": "value",
+   "value": 200.0,
+   "unit": "count",
+   "labels": {
+    "id": "3.33",
+    "number": "set on n1 before the clock moved, lifted on n3.unblock_status"
+   }
+  },
+  {
+   "name": "value",
+   "value": 0.26,
+   "unit": "s",
+   "labels": {
+    "id": "3.33",
+    "number": "set on n1 before the clock moved, lifted on n3.lifted_everywhere_after_s"
+   }
+  },
+  {
+   "name": "value",
+   "value": 0.33,
+   "unit": "s",
+   "labels": {
+    "id": "3.34",
+    "number": "login_on_n3_valid_on_n1_after_s"
+   }
+  },
+  {
+   "name": "value",
+   "value": 0.43,
+   "unit": "s",
+   "labels": {
+    "id": "3.34",
+    "number": "login_on_n1_valid_on_n3_after_s"
+   }
+  },
+  {
+   "name": "value",
+   "value": 20.0,
+   "unit": "count",
+   "labels": {
+    "id": "3.35",
+    "number": "n1.counters.taken"
+   }
+  },
+  {
+   "name": "value",
+   "value": 0.0,
+   "unit": "count",
+   "labels": {
+    "id": "3.35",
+    "number": "n1.counters.refused"
+   }
+  },
+  {
+   "name": "value",
+   "value": 0.0,
+   "unit": "count",
+   "labels": {
+    "id": "3.35",
+    "number": "n1.counters.deferred"
+   }
+  },
+  {
+   "name": "value",
+   "value": 0.0,
+   "unit": "count",
+   "labels": {
+    "id": "3.35",
+    "number": "n1.counters.unread"
+   }
+  },
+  {
+   "name": "value",
+   "value": 200.0,
+   "unit": "count",
+   "labels": {
+    "id": "3.35",
+    "number": "n1.readyz"
+   }
+  },
+  {
+   "name": "value",
+   "value": 13.0,
+   "unit": "count",
+   "labels": {
+    "id": "3.35",
+    "number": "n3.counters.taken"
+   }
+  },
+  {
+   "name": "value",
+   "value": 0.0,
+   "unit": "count",
+   "labels": {
+    "id": "3.35",
+    "number": "n3.counters.refused"
+   }
+  },
+  {
+   "name": "value",
+   "value": 0.0,
+   "unit": "count",
+   "labels": {
+    "id": "3.35",
+    "number": "n3.counters.deferred"
+   }
+  },
+  {
+   "name": "value",
+   "value": 0.0,
+   "unit": "count",
+   "labels": {
+    "id": "3.35",
+    "number": "n3.counters.unread"
+   }
+  },
+  {
+   "name": "value",
+   "value": 200.0,
+   "unit": "count",
+   "labels": {
+    "id": "3.35",
+    "number": "n3.readyz"
+   }
+  },
+  {
+   "name": "value",
+   "value": -30.0,
+   "unit": "s",
+   "labels": {
+    "id": "3.37",
+    "number": "offset_s_at_the_end"
+   }
+  },
+  {
+   "name": "value",
+   "value": 0.0,
+   "unit": "count",
+   "labels": {
+    "id": "3.37",
+    "number": "times_the_holder_put_the_clock_back"
+   }
+  },
+  {
+   "name": "value",
+   "value": -90.0,
+   "unit": "s",
+   "labels": {
+    "id": "3.40",
+    "number": "offset_s"
+   }
+  },
+  {
+   "name": "value",
+   "value": 10.0,
+   "unit": "count",
+   "labels": {
+    "id": "3.41",
+    "number": "n"
+   }
+  },
+  {
+   "name": "value",
+   "value": 30.3,
+   "unit": "count",
+   "labels": {
+    "id": "3.41",
+    "number": "min"
+   }
+  },
+  {
+   "name": "value",
+   "value": 37.8,
+   "unit": "count",
+   "labels": {
+    "id": "3.41",
+    "number": "p50"
+   }
+  },
+  {
+   "name": "value",
+   "value": 221.2,
+   "unit": "count",
+   "labels": {
+    "id": "3.41",
+    "number": "p95"
+   }
+  },
+  {
+   "name": "value",
+   "value": 221.2,
+   "unit": "count",
+   "labels": {
+    "id": "3.41",
+    "number": "p99"
+   }
+  },
+  {
+   "name": "value",
+   "value": 221.2,
+   "unit": "count",
+   "labels": {
+    "id": "3.41",
+    "number": "max"
+   }
+  },
+  {
+   "name": "value",
+   "value": 0.0,
+   "unit": "count",
+   "labels": {
+    "id": "3.41",
+    "number": "not_within_4s"
+   }
+  },
+  {
+   "name": "value",
+   "value": 10.0,
+   "unit": "count",
+   "labels": {
+    "id": "3.41",
+    "number": "counters_n1.taken"
+   }
+  },
+  {
+   "name": "value",
+   "value": 0.0,
+   "unit": "count",
+   "labels": {
+    "id": "3.41",
+    "number": "counters_n1.refused"
+   }
+  },
+  {
+   "name": "value",
+   "value": 0.0,
+   "unit": "count",
+   "labels": {
+    "id": "3.41",
+    "number": "counters_n1.deferred"
+   }
+  },
+  {
+   "name": "value",
+   "value": 0.0,
+   "unit": "count",
+   "labels": {
+    "id": "3.41",
+    "number": "counters_n1.unread"
+   }
+  },
+  {
+   "name": "value",
+   "value": 13.0,
+   "unit": "count",
+   "labels": {
+    "id": "3.42",
+    "number": "counters_n3.taken"
+   }
+  },
+  {
+   "name": "value",
+   "value": 0.0,
+   "unit": "count",
+   "labels": {
+    "id": "3.42",
+    "number": "counters_n3.refused"
+   }
+  },
+  {
+   "name": "value",
+   "value": 138.0,
+   "unit": "count",
+   "labels": {
+    "id": "3.42",
+    "number": "counters_n3.deferred"
+   }
+  },
+  {
+   "name": "value",
+   "value": 0.0,
+   "unit": "count",
+   "labels": {
+    "id": "3.42",
+    "number": "counters_n3.unread"
+   }
+  },
+  {
+   "name": "value",
+   "value": 0.43,
+   "unit": "s",
+   "labels": {
+    "id": "3.44",
+    "number": "login_on_n3_valid_on_n1_after_s"
+   }
+  },
+  {
+   "name": "value",
+   "value": 15.0,
+   "unit": "count",
+   "labels": {
+    "id": "3.45",
+    "number": "n1.counters.taken"
+   }
+  },
+  {
+   "name": "value",
+   "value": 0.0,
+   "unit": "count",
+   "labels": {
+    "id": "3.45",
+    "number": "n1.counters.refused"
+   }
+  },
+  {
+   "name": "value",
+   "value": 0.0,
+   "unit": "count",
+   "labels": {
+    "id": "3.45",
+    "number": "n1.counters.deferred"
+   }
+  },
+  {
+   "name": "value",
+   "value": 0.0,
+   "unit": "count",
+   "labels": {
+    "id": "3.45",
+    "number": "n1.counters.unread"
+   }
+  },
+  {
+   "name": "value",
+   "value": 200.0,
+   "unit": "count",
+   "labels": {
+    "id": "3.45",
+    "number": "n1.readyz"
+   }
+  },
+  {
+   "name": "value",
+   "value": 15.0,
+   "unit": "count",
+   "labels": {
+    "id": "3.45",
+    "number": "n3.counters.taken"
+   }
+  },
+  {
+   "name": "value",
+   "value": 0.0,
+   "unit": "count",
+   "labels": {
+    "id": "3.45",
+    "number": "n3.counters.refused"
+   }
+  },
+  {
+   "name": "value",
+   "value": 360.0,
+   "unit": "count",
+   "labels": {
+    "id": "3.45",
+    "number": "n3.counters.deferred"
+   }
+  },
+  {
+   "name": "value",
+   "value": 0.0,
+   "unit": "count",
+   "labels": {
+    "id": "3.45",
+    "number": "n3.counters.unread"
+   }
+  },
+  {
+   "name": "value",
+   "value": 200.0,
+   "unit": "count",
+   "labels": {
+    "id": "3.45",
+    "number": "n3.readyz"
+   }
+  },
+  {
+   "name": "value",
+   "value": -90.0,
+   "unit": "s",
+   "labels": {
+    "id": "3.47",
+    "number": "offset_s_at_the_end"
+   }
+  },
+  {
+   "name": "value",
+   "value": 2.0,
+   "unit": "count",
+   "labels": {
+    "id": "3.47",
+    "number": "times_the_holder_put_the_clock_back"
+   }
+  },
+  {
+   "name": "value",
+   "value": 0.63,
+   "unit": "s",
+   "labels": {
+    "id": "3.51",
+    "number": "seconds"
+   }
+  },
+  {
+   "name": "value",
+   "value": 6.0,
+   "unit": "count",
+   "labels": {
+    "id": "3.51",
+    "number": "counters_n3.taken"
+   }
+  },
+  {
+   "name": "value",
+   "value": 0.0,
+   "unit": "count",
+   "labels": {
+    "id": "3.51",
+    "number": "counters_n3.refused"
+   }
+  },
+  {
+   "name": "value",
+   "value": 49.0,
+   "unit": "count",
+   "labels": {
+    "id": "3.51",
+    "number": "counters_n3.deferred"
+   }
+  },
+  {
+   "name": "value",
+   "value": 0.0,
+   "unit": "count",
+   "labels": {
+    "id": "3.51",
+    "number": "counters_n3.unread"
+   }
+  },
+  {
+   "name": "value",
+   "value": -0.0,
+   "unit": "count",
+   "labels": {
+    "id": "3.52",
+    "number": "n1"
+   }
+  },
+  {
+   "name": "value",
+   "value": -0.0,
+   "unit": "count",
+   "labels": {
+    "id": "3.52",
+    "number": "n2"
+   }
+  },
+  {
+   "name": "value",
+   "value": -0.0,
+   "unit": "count",
+   "labels": {
+    "id": "3.52",
+    "number": "n3"
+   }
+  },
+  {
+   "name": "value",
+   "value": 0.0,
+   "unit": "count",
+   "labels": {
+    "id": "4.01",
+    "number": "exit"
+   }
+  },
+  {
+   "name": "value",
+   "value": 0.0,
+   "unit": "count",
+   "labels": {
+    "id": "4.02",
+    "number": "exit"
+   }
+  },
+  {
+   "name": "value",
+   "value": 1.0,
+   "unit": "count",
+   "labels": {
+    "id": "4.03",
+    "number": "exit"
+   }
+  },
+  {
+   "name": "value",
+   "value": 0.11,
+   "unit": "s",
+   "labels": {
+    "id": "4.04",
+    "number": "seconds"
+   }
+  },
+  {
+   "name": "value",
+   "value": 3.0,
+   "unit": "count",
+   "labels": {
+    "id": "4.05",
+    "number": "gateways"
+   }
+  },
+  {
+   "name": "value",
+   "value": 12.0,
+   "unit": "count",
+   "labels": {
+    "id": "4.06",
+    "number": "n"
+   }
+  },
+  {
+   "name": "value",
+   "value": 91.3,
+   "unit": "count",
+   "labels": {
+    "id": "4.06",
+    "number": "min"
+   }
+  },
+  {
+   "name": "value",
+   "value": 939.2,
+   "unit": "count",
+   "labels": {
+    "id": "4.06",
+    "number": "p50"
+   }
+  },
+  {
+   "name": "value",
+   "value": 974.3,
+   "unit": "count",
+   "labels": {
+    "id": "4.06",
+    "number": "p95"
+   }
+  },
+  {
+   "name": "value",
+   "value": 974.3,
+   "unit": "count",
+   "labels": {
+    "id": "4.06",
+    "number": "p99"
+   }
+  },
+  {
+   "name": "value",
+   "value": 974.3,
+   "unit": "count",
+   "labels": {
+    "id": "4.06",
+    "number": "max"
+   }
+  },
+  {
+   "name": "value",
+   "value": 12.0,
+   "unit": "count",
+   "labels": {
+    "id": "4.07",
+    "number": "n"
+   }
+  },
+  {
+   "name": "value",
+   "value": 282.9,
+   "unit": "count",
+   "labels": {
+    "id": "4.07",
+    "number": "min"
+   }
+  },
+  {
+   "name": "value",
+   "value": 285.5,
+   "unit": "count",
+   "labels": {
+    "id": "4.07",
+    "number": "p50"
+   }
+  },
+  {
+   "name": "value",
+   "value": 295.9,
+   "unit": "count",
+   "labels": {
+    "id": "4.07",
+    "number": "p95"
+   }
+  },
+  {
+   "name": "value",
+   "value": 295.9,
+   "unit": "count",
+   "labels": {
+    "id": "4.07",
+    "number": "p99"
+   }
+  },
+  {
+   "name": "value",
+   "value": 295.9,
+   "unit": "count",
+   "labels": {
+    "id": "4.07",
+    "number": "max"
+   }
+  },
+  {
+   "name": "value",
+   "value": 200.0,
+   "unit": "count",
+   "labels": {
+    "id": "4.09",
+    "number": "status_on_another_port"
+   }
+  },
+  {
+   "name": "value",
+   "value": 0.0,
+   "unit": "count",
+   "labels": {
+    "id": "4.10",
+    "number": "exit"
+   }
+  },
+  {
+   "name": "value",
+   "value": 201.0,
+   "unit": "count",
+   "labels": {
+    "id": "4.11",
+    "number": "allow_status"
+   }
+  },
+  {
+   "name": "value",
+   "value": 0.63,
+   "unit": "s",
+   "labels": {
+    "id": "4.11",
+    "number": "seconds"
+   }
+  },
+  {
+   "name": "value",
+   "value": 200.0,
+   "unit": "count",
+   "labels": {
+    "id": "4.11",
+    "number": "status_through_balancer"
+   }
+  },
+  {
+   "name": "value",
+   "value": 0.0,
+   "unit": "count",
+   "labels": {
+    "id": "4.11",
+    "number": "still_in_set"
+   }
+  },
+  {
+   "name": "value",
+   "value": 200.0,
+   "unit": "count",
+   "labels": {
+    "id": "4.12",
+    "number": "status"
+   }
+  },
+  {
+   "name": "value",
+   "value": 0.01,
+   "unit": "s",
+   "labels": {
+    "id": "4.12",
+    "number": "seconds"
+   }
+  },
+  {
+   "name": "value",
+   "value": 200.0,
+   "unit": "count",
+   "labels": {
+    "id": "4.14",
+    "number": "sync.status"
+   }
+  },
+  {
+   "name": "value",
+   "value": 2951.0,
+   "unit": "count",
+   "labels": {
+    "id": "4.14",
+    "number": "sync.bytes"
+   }
+  },
+  {
+   "name": "value",
+   "value": 0.0,
+   "unit": "count",
+   "labels": {
+    "id": "4.14",
+    "number": "sync.names_a_visitor_not_blocked"
+   }
+  },
+  {
+   "name": "value",
+   "value": 200.0,
+   "unit": "count",
+   "labels": {
+    "id": "4.14",
+    "number": "ask firewall.status"
+   }
+  },
+  {
+   "name": "value",
+   "value": 100.0,
+   "unit": "count",
+   "labels": {
+    "id": "4.14",
+    "number": "ask firewall.bytes"
+   }
+  },
+  {
+   "name": "value",
+   "value": 0.0,
+   "unit": "count",
+   "labels": {
+    "id": "4.14",
+    "number": "ask firewall.names_a_visitor_not_blocked"
+   }
+  },
+  {
+   "name": "value",
+   "value": 403.0,
+   "unit": "count",
+   "labels": {
+    "id": "4.14",
+    "number": "ask events.status"
+   }
+  },
+  {
+   "name": "value",
+   "value": 16.0,
+   "unit": "count",
+   "labels": {
+    "id": "4.14",
+    "number": "ask events.bytes"
+   }
+  },
+  {
+   "name": "value",
+   "value": 0.0,
+   "unit": "count",
+   "labels": {
+    "id": "4.14",
+    "number": "ask events.names_a_visitor_not_blocked"
+   }
+  },
+  {
+   "name": "value",
+   "value": 403.0,
+   "unit": "count",
+   "labels": {
+    "id": "4.14",
+    "number": "ask incidents.status"
+   }
+  },
+  {
+   "name": "value",
+   "value": 16.0,
+   "unit": "count",
+   "labels": {
+    "id": "4.14",
+    "number": "ask incidents.bytes"
+   }
+  },
+  {
+   "name": "value",
+   "value": 0.0,
+   "unit": "count",
+   "labels": {
+    "id": "4.14",
+    "number": "ask incidents.names_a_visitor_not_blocked"
+   }
+  },
+  {
+   "name": "value",
+   "value": 403.0,
+   "unit": "count",
+   "labels": {
+    "id": "4.14",
+    "number": "ask requests.status"
+   }
+  },
+  {
+   "name": "value",
+   "value": 16.0,
+   "unit": "count",
+   "labels": {
+    "id": "4.14",
+    "number": "ask requests.bytes"
+   }
+  },
+  {
+   "name": "value",
+   "value": 0.0,
+   "unit": "count",
+   "labels": {
+    "id": "4.14",
+    "number": "ask requests.names_a_visitor_not_blocked"
+   }
+  },
+  {
+   "name": "value",
+   "value": 403.0,
+   "unit": "count",
+   "labels": {
+    "id": "4.14",
+    "number": "ask hub_index.status"
+   }
+  },
+  {
+   "name": "value",
+   "value": 16.0,
+   "unit": "count",
+   "labels": {
+    "id": "4.14",
+    "number": "ask hub_index.bytes"
+   }
+  },
+  {
+   "name": "value",
+   "value": 0.0,
+   "unit": "count",
+   "labels": {
+    "id": "4.14",
+    "number": "ask hub_index.names_a_visitor_not_blocked"
+   }
+  },
+  {
+   "name": "value",
+   "value": 403.0,
+   "unit": "count",
+   "labels": {
+    "id": "4.14",
+    "number": "tell counts.status"
+   }
+  },
+  {
+   "name": "value",
+   "value": 10.0,
+   "unit": "count",
+   "labels": {
+    "id": "4.14",
+    "number": "tell counts.bytes"
+   }
+  },
+  {
+   "name": "value",
+   "value": 0.0,
+   "unit": "count",
+   "labels": {
+    "id": "4.14",
+    "number": "tell counts.names_a_visitor_not_blocked"
+   }
+  },
+  {
+   "name": "value",
+   "value": 403.0,
+   "unit": "count",
+   "labels": {
+    "id": "4.14",
+    "number": "tell config.status"
+   }
+  },
+  {
+   "name": "value",
+   "value": 10.0,
+   "unit": "count",
+   "labels": {
+    "id": "4.14",
+    "number": "tell config.bytes"
+   }
+  },
+  {
+   "name": "value",
+   "value": 0.0,
+   "unit": "count",
+   "labels": {
+    "id": "4.14",
+    "number": "tell config.names_a_visitor_not_blocked"
+   }
+  },
+  {
+   "name": "value",
+   "value": 403.0,
+   "unit": "count",
+   "labels": {
+    "id": "4.14",
+    "number": "lock.status"
+   }
+  },
+  {
+   "name": "value",
+   "value": 10.0,
+   "unit": "count",
+   "labels": {
+    "id": "4.14",
+    "number": "lock.bytes"
+   }
+  },
+  {
+   "name": "value",
+   "value": 0.0,
+   "unit": "count",
+   "labels": {
+    "id": "4.14",
+    "number": "lock.names_a_visitor_not_blocked"
+   }
+  },
+  {
+   "name": "value",
+   "value": 0.0,
+   "unit": "count",
+   "labels": {
+    "id": "4.16",
+    "number": "held_block"
+   }
+  },
+  {
+   "name": "value",
+   "value": 403.0,
+   "unit": "count",
+   "labels": {
+    "id": "4.16",
+    "number": "new_block"
+   }
+  },
+  {
+   "name": "value",
+   "value": 0.66,
+   "unit": "s",
+   "labels": {
+    "id": "4.17",
+    "number": "seconds"
+   }
+  },
+  {
+   "name": "value",
+   "value": 0.13,
+   "unit": "s",
+   "labels": {
+    "id": "4.18",
+    "number": "seconds"
+   }
+  },
+  {
+   "name": "value",
+   "value": 0.02,
+   "unit": "s",
+   "labels": {
+    "id": "4.19",
+    "number": "seconds"
+   }
+  },
+  {
+   "name": "value",
+   "value": 16.0,
+   "unit": "s",
+   "labels": {
+    "id": "5.01",
+    "number": "seconds_to_ready.n"
+   }
+  },
+  {
+   "name": "value",
+   "value": 1.83,
+   "unit": "s",
+   "labels": {
+    "id": "5.01",
+    "number": "seconds_to_ready.min"
+   }
+  },
+  {
+   "name": "value",
+   "value": 2.14,
+   "unit": "s",
+   "labels": {
+    "id": "5.01",
+    "number": "seconds_to_ready.p50"
+   }
+  },
+  {
+   "name": "value",
+   "value": 2.21,
+   "unit": "s",
+   "labels": {
+    "id": "5.01",
+    "number": "seconds_to_ready.p95"
+   }
+  },
+  {
+   "name": "value",
+   "value": 2.21,
+   "unit": "s",
+   "labels": {
+    "id": "5.01",
+    "number": "seconds_to_ready.p99"
+   }
+  },
+  {
+   "name": "value",
+   "value": 2.21,
+   "unit": "s",
+   "labels": {
+    "id": "5.01",
+    "number": "seconds_to_ready.max"
+   }
+  },
+  {
+   "name": "value",
+   "value": 0.03,
+   "unit": "s",
+   "labels": {
+    "id": "5.01",
+    "number": "start_calls_took_s"
+   }
+  },
+  {
+   "name": "value",
+   "value": 5.8,
+   "unit": "s",
+   "labels": {
+    "id": "5.02",
+    "number": "seconds_since_start"
+   }
+  },
+  {
+   "name": "value",
+   "value": 16.0,
+   "unit": "count",
+   "labels": {
+    "id": "5.03",
+    "number": "valid_on"
+   }
+  },
+  {
+   "name": "value",
+   "value": 16.0,
+   "unit": "count",
+   "labels": {
+    "id": "5.05",
+    "number": "rss_mib.n"
+   }
+  },
+  {
+   "name": "value",
+   "value": 196.0,
+   "unit": "count",
+   "labels": {
+    "id": "5.05",
+    "number": "rss_mib.min"
+   }
+  },
+  {
+   "name": "value",
+   "value": 201.5,
+   "unit": "count",
+   "labels": {
+    "id": "5.05",
+    "number": "rss_mib.p50"
+   }
+  },
+  {
+   "name": "value",
+   "value": 207.9,
+   "unit": "count",
+   "labels": {
+    "id": "5.05",
+    "number": "rss_mib.p95"
+   }
+  },
+  {
+   "name": "value",
+   "value": 207.9,
+   "unit": "count",
+   "labels": {
+    "id": "5.05",
+    "number": "rss_mib.p99"
+   }
+  },
+  {
+   "name": "value",
+   "value": 207.9,
+   "unit": "count",
+   "labels": {
+    "id": "5.05",
+    "number": "rss_mib.max"
+   }
+  },
+  {
+   "name": "value",
+   "value": 16.0,
+   "unit": "percent",
+   "labels": {
+    "id": "5.05",
+    "number": "cpu_percent_of_one_core.n"
+   }
+  },
+  {
+   "name": "value",
+   "value": 11.62,
+   "unit": "percent",
+   "labels": {
+    "id": "5.05",
+    "number": "cpu_percent_of_one_core.min"
+   }
+  },
+  {
+   "name": "value",
+   "value": 12.58,
+   "unit": "percent",
+   "labels": {
+    "id": "5.05",
+    "number": "cpu_percent_of_one_core.p50"
+   }
+  },
+  {
+   "name": "value",
+   "value": 15.32,
+   "unit": "percent",
+   "labels": {
+    "id": "5.05",
+    "number": "cpu_percent_of_one_core.p95"
+   }
+  },
+  {
+   "name": "value",
+   "value": 15.32,
+   "unit": "percent",
+   "labels": {
+    "id": "5.05",
+    "number": "cpu_percent_of_one_core.p99"
+   }
+  },
+  {
+   "name": "value",
+   "value": 15.32,
+   "unit": "percent",
+   "labels": {
+    "id": "5.05",
+    "number": "cpu_percent_of_one_core.max"
+   }
+  },
+  {
+   "name": "value",
+   "value": 300.0,
+   "unit": "count",
+   "labels": {
+    "id": "5.06",
+    "number": "n"
+   }
+  },
+  {
+   "name": "value",
+   "value": 11.0,
+   "unit": "count",
+   "labels": {
+    "id": "5.06",
+    "number": "min"
+   }
+  },
+  {
+   "name": "value",
+   "value": 162.3,
+   "unit": "count",
+   "labels": {
+    "id": "5.06",
+    "number": "p50"
+   }
+  },
+  {
+   "name": "value",
+   "value": 642.1,
+   "unit": "count",
+   "labels": {
+    "id": "5.06",
+    "number": "p95"
+   }
+  },
+  {
+   "name": "value",
+   "value": 657.6,
+   "unit": "count",
+   "labels": {
+    "id": "5.06",
+    "number": "p99"
+   }
+  },
+  {
+   "name": "value",
+   "value": 666.4,
+   "unit": "count",
+   "labels": {
+    "id": "5.06",
+    "number": "max"
+   }
+  },
+  {
+   "name": "value",
+   "value": 0.0,
+   "unit": "count",
+   "labels": {
+    "id": "5.06",
+    "number": "not_within_8s"
+   }
+  },
+  {
+   "name": "value",
+   "value": 12202.0,
+   "unit": "count",
+   "labels": {
+    "id": "5.07",
+    "number": "requests"
+   }
+  },
+  {
+   "name": "value",
+   "value": 12202.0,
+   "unit": "count",
+   "labels": {
+    "id": "5.07",
+    "number": "codes.200"
+   }
+  },
+  {
+   "name": "value",
+   "value": 12202.0,
+   "unit": "ms",
+   "labels": {
+    "id": "5.07",
+    "number": "latency_ms.n"
+   }
+  },
+  {
+   "name": "value",
+   "value": 1.57,
+   "unit": "ms",
+   "labels": {
+    "id": "5.07",
+    "number": "latency_ms.min"
+   }
+  },
+  {
+   "name": "value",
+   "value": 6.79,
+   "unit": "ms",
+   "labels": {
+    "id": "5.07",
+    "number": "latency_ms.p50"
+   }
+  },
+  {
+   "name": "value",
+   "value": 33.8,
+   "unit": "ms",
+   "labels": {
+    "id": "5.07",
+    "number": "latency_ms.p95"
+   }
+  },
+  {
+   "name": "value",
+   "value": 52.94,
+   "unit": "ms",
+   "labels": {
+    "id": "5.07",
+    "number": "latency_ms.p99"
+   }
+  },
+  {
+   "name": "value",
+   "value": 126.86,
+   "unit": "ms",
+   "labels": {
+    "id": "5.07",
+    "number": "latency_ms.max"
+   }
+  },
+  {
+   "name": "value",
+   "value": 16.0,
+   "unit": "count",
+   "labels": {
+    "id": "5.07",
+    "number": "rss_mib.n"
+   }
+  },
+  {
+   "name": "value",
+   "value": 245.5,
+   "unit": "count",
+   "labels": {
+    "id": "5.07",
+    "number": "rss_mib.min"
+   }
+  },
+  {
+   "name": "value",
+   "value": 257.1,
+   "unit": "count",
+   "labels": {
+    "id": "5.07",
+    "number": "rss_mib.p50"
+   }
+  },
+  {
+   "name": "value",
+   "value": 265.7,
+   "unit": "count",
+   "labels": {
+    "id": "5.07",
+    "number": "rss_mib.p95"
+   }
+  },
+  {
+   "name": "value",
+   "value": 265.7,
+   "unit": "count",
+   "labels": {
+    "id": "5.07",
+    "number": "rss_mib.p99"
+   }
+  },
+  {
+   "name": "value",
+   "value": 265.7,
+   "unit": "count",
+   "labels": {
+    "id": "5.07",
+    "number": "rss_mib.max"
+   }
+  },
+  {
+   "name": "value",
+   "value": 16.0,
+   "unit": "percent",
+   "labels": {
+    "id": "5.07",
+    "number": "cpu_percent_of_one_core.n"
+   }
+  },
+  {
+   "name": "value",
+   "value": 31.23,
+   "unit": "percent",
+   "labels": {
+    "id": "5.07",
+    "number": "cpu_percent_of_one_core.min"
+   }
+  },
+  {
+   "name": "value",
+   "value": 33.39,
+   "unit": "percent",
+   "labels": {
+    "id": "5.07",
+    "number": "cpu_percent_of_one_core.p50"
+   }
+  },
+  {
+   "name": "value",
+   "value": 37.77,
+   "unit": "percent",
+   "labels": {
+    "id": "5.07",
+    "number": "cpu_percent_of_one_core.p95"
+   }
+  },
+  {
+   "name": "value",
+   "value": 37.77,
+   "unit": "percent",
+   "labels": {
+    "id": "5.07",
+    "number": "cpu_percent_of_one_core.p99"
+   }
+  },
+  {
+   "name": "value",
+   "value": 37.77,
+   "unit": "percent",
+   "labels": {
+    "id": "5.07",
+    "number": "cpu_percent_of_one_core.max"
+   }
+  },
+  {
+   "name": "value",
+   "value": 25.0,
+   "unit": "count",
+   "labels": {
+    "id": "5.08",
+    "number": "failed"
+   }
+  },
+  {
+   "name": "value",
+   "value": 0.54,
+   "unit": "s",
+   "labels": {
+    "id": "5.08",
+    "number": "last_failure_s_after_kill"
+   }
+  },
+  {
+   "name": "value",
+   "value": 1.36,
+   "unit": "s",
+   "labels": {
+    "id": "5.08",
+    "number": "haproxy_all_down_after_s"
+   }
+  },
+  {
+   "name": "value",
+   "value": 0.0,
+   "unit": "s",
+   "labels": {
+    "id": "5.08",
+    "number": "n1_shows_five_unreachable_after_s"
+   }
+  },
+  {
+   "name": "value",
+   "value": 60.0,
+   "unit": "count",
+   "labels": {
+    "id": "5.09",
+    "number": "n"
+   }
+  },
+  {
+   "name": "value",
+   "value": 134.6,
+   "unit": "count",
+   "labels": {
+    "id": "5.09",
+    "number": "min"
+   }
+  },
+  {
+   "name": "value",
+   "value": 232.4,
+   "unit": "count",
+   "labels": {
+    "id": "5.09",
+    "number": "p50"
+   }
+  },
+  {
+   "name": "value",
+   "value": 952.5,
+   "unit": "count",
+   "labels": {
+    "id": "5.09",
+    "number": "p95"
+   }
+  },
+  {
+   "name": "value",
+   "value": 962.1,
+   "unit": "count",
+   "labels": {
+    "id": "5.09",
+    "number": "p99"
+   }
+  },
+  {
+   "name": "value",
+   "value": 962.1,
+   "unit": "count",
+   "labels": {
+    "id": "5.09",
+    "number": "max"
+   }
+  },
+  {
+   "name": "value",
+   "value": 0.0,
+   "unit": "count",
+   "labels": {
+    "id": "5.09",
+    "number": "not_within_8s"
+   }
+  },
+  {
+   "name": "value",
+   "value": 1.31,
+   "unit": "count",
+   "labels": {
+    "id": "5.10",
+    "number": "ready_s.n12"
+   }
+  },
+  {
+   "name": "value",
+   "value": 1.31,
+   "unit": "count",
+   "labels": {
+    "id": "5.10",
+    "number": "ready_s.n13"
+   }
+  },
+  {
+   "name": "value",
+   "value": 1.29,
+   "unit": "count",
+   "labels": {
+    "id": "5.10",
+    "number": "ready_s.n14"
+   }
+  },
+  {
+   "name": "value",
+   "value": 1.3,
+   "unit": "count",
+   "labels": {
+    "id": "5.10",
+    "number": "ready_s.n15"
+   }
+  },
+  {
+   "name": "value",
+   "value": 1.3,
+   "unit": "count",
+   "labels": {
+    "id": "5.10",
+    "number": "ready_s.n16"
+   }
+  },
+  {
+   "name": "value",
+   "value": 403.0,
+   "unit": "count",
+   "labels": {
+    "id": "5.10",
+    "number": "blocked_at_ready.n12"
+   }
+  },
+  {
+   "name": "value",
+   "value": 403.0,
+   "unit": "count",
+   "labels": {
+    "id": "5.10",
+    "number": "blocked_at_ready.n13"
+   }
+  },
+  {
+   "name": "value",
+   "value": 403.0,
+   "unit": "count",
+   "labels": {
+    "id": "5.10",
+    "number": "blocked_at_ready.n14"
+   }
+  },
+  {
+   "name": "value",
+   "value": 403.0,
+   "unit": "count",
+   "labels": {
+    "id": "5.10",
+    "number": "blocked_at_ready.n15"
+   }
+  },
+  {
+   "name": "value",
+   "value": 403.0,
+   "unit": "count",
+   "labels": {
+    "id": "5.10",
+    "number": "blocked_at_ready.n16"
+   }
+  },
+  {
+   "name": "value",
+   "value": 9.0,
+   "unit": "s",
+   "labels": {
+    "id": "5.10",
+    "number": "all_active_after_s"
+   }
+  },
+  {
+   "name": "value",
+   "value": 6707.0,
+   "unit": "count",
+   "labels": {
+    "id": "5.11",
+    "number": "requests"
+   }
+  },
+  {
+   "name": "value",
+   "value": 6707.0,
+   "unit": "count",
+   "labels": {
+    "id": "5.11",
+    "number": "codes.200"
+   }
+  },
+  {
+   "name": "value",
+   "value": 69470.0,
+   "unit": "count",
+   "labels": {
+    "id": "5.12",
+    "number": "requests"
+   }
+  },
+  {
+   "name": "value",
+   "value": 69470.0,
+   "unit": "count",
+   "labels": {
+    "id": "5.12",
+    "number": "codes.200"
+   }
+  },
+  {
+   "name": "value",
+   "value": 225.5,
+   "unit": "s",
+   "labels": {
+    "id": "5.12",
+    "number": "seconds_for_all"
+   }
+  },
+  {
+   "name": "value",
+   "value": 16.0,
+   "unit": "count",
+   "labels": {
+    "id": "5.12",
+    "number": "ready_after_start_s.n"
+   }
+  },
+  {
+   "name": "value",
+   "value": 5.18,
+   "unit": "count",
+   "labels": {
+    "id": "5.12",
+    "number": "ready_after_start_s.min"
+   }
+  },
+  {
+   "name": "value",
+   "value": 5.22,
+   "unit": "count",
+   "labels": {
+    "id": "5.12",
+    "number": "ready_after_start_s.p50"
+   }
+  },
+  {
+   "name": "value",
+   "value": 5.31,
+   "unit": "count",
+   "labels": {
+    "id": "5.12",
+    "number": "ready_after_start_s.p95"
+   }
+  },
+  {
+   "name": "value",
+   "value": 5.31,
+   "unit": "count",
+   "labels": {
+    "id": "5.12",
+    "number": "ready_after_start_s.p99"
+   }
+  },
+  {
+   "name": "value",
+   "value": 5.31,
+   "unit": "count",
+   "labels": {
+    "id": "5.12",
+    "number": "ready_after_start_s.max"
+   }
+  },
+  {
+   "name": "value",
+   "value": 16.0,
+   "unit": "count",
+   "labels": {
+    "id": "5.14",
+    "number": "login_valid_on"
+   }
+  },
+  {
+   "name": "value",
+   "value": 16.0,
+   "unit": "count",
+   "labels": {
+    "id": "5.15",
+    "number": "rss_mib.n"
+   }
+  },
+  {
+   "name": "value",
+   "value": 238.1,
+   "unit": "count",
+   "labels": {
+    "id": "5.15",
+    "number": "rss_mib.min"
+   }
+  },
+  {
+   "name": "value",
+   "value": 259.3,
+   "unit": "count",
+   "labels": {
+    "id": "5.15",
+    "number": "rss_mib.p50"
+   }
+  },
+  {
+   "name": "value",
+   "value": 268.4,
+   "unit": "count",
+   "labels": {
+    "id": "5.15",
+    "number": "rss_mib.p95"
+   }
+  },
+  {
+   "name": "value",
+   "value": 268.4,
+   "unit": "count",
+   "labels": {
+    "id": "5.15",
+    "number": "rss_mib.p99"
+   }
+  },
+  {
+   "name": "value",
+   "value": 268.4,
+   "unit": "count",
+   "labels": {
+    "id": "5.15",
+    "number": "rss_mib.max"
+   }
+  },
+  {
+   "name": "value",
+   "value": 6.8,
+   "unit": "s",
+   "labels": {
+    "id": "7.03",
+    "number": "seconds_from_start_to_certificate"
+   }
+  },
+  {
+   "name": "value",
+   "value": 2.0,
+   "unit": "count",
+   "labels": {
+    "id": "7.03",
+    "number": "orders_placed"
+   }
+  },
+  {
+   "name": "value",
+   "value": 1.0,
+   "unit": "count",
+   "labels": {
+    "id": "7.03",
+    "number": "issued_by_the_ca"
+   }
+  },
+  {
+   "name": "value",
+   "value": 1.0,
+   "unit": "count",
+   "labels": {
+    "id": "7.06",
+    "number": "issued_by_the_ca"
+   }
+  },
+  {
+   "name": "value",
+   "value": 0.3,
+   "unit": "s",
+   "labels": {
+    "id": "7.07",
+    "number": "seconds"
+   }
+  },
+  {
+   "name": "value",
+   "value": 1.0,
+   "unit": "count",
+   "labels": {
+    "id": "7.07",
+    "number": "issued_by_the_ca_before"
+   }
+  },
+  {
+   "name": "value",
+   "value": 1.0,
+   "unit": "count",
+   "labels": {
+    "id": "7.07",
+    "number": "after"
+   }
+  }
+ ],
+ "kill_criteria": [
+  {
+   "expr": "any request waits for a peer or fails because of one (ACME challenge lookups aside)",
+   "hit": false,
+   "observed": "checks 2.12, 2.22, 2.32, 2.42, 2.52, 2.62, 2.72, 2.82, 5.11 passed; direct load on every node while peers were delayed, lossy, cut off, hanging or killed"
+  },
+  {
+   "expr": "a lost, empty or returning member deletes or weakens access state on another",
+   "hit": false,
+   "observed": "checks 1.24, 1.26, 1.28, 2.54, 2.64, 5.10, 5.14 passed; kill and return, partition and one-way cut with writes on both sides, five of sixteen lost, rolling restart"
+  },
+  {
+   "expr": "a record that fails signature, schema or caps is applied",
+   "hit": false,
+   "observed": "NOT MEASURED here: see the loopback harness (tests/results/MVP-27.json)"
+  },
+  {
+   "expr": "an edge or a removed member reads events, requests, settings, logins or keys",
+   "hit": false,
+   "observed": "checks 4.13, 4.14 passed; edge on the balancer VM: its files and its mesh calls; a removed member was NOT MEASURED here"
+  },
+  {
+   "expr": "an erased address returns",
+   "hit": false,
+   "observed": "checks 4.12 passed; only the firewall of the edge was looked at; returning nodes NOT MEASURED here"
+  },
+  {
+   "expr": "an address outside the proxy allow list can get another address blocked",
+   "hit": false,
+   "observed": "checks 1.15, 1.16, 1.17, 1.18, 1.20 passed; PROXY header and X-Forwarded-For of senders outside the allow list; start without an allow list"
+  },
+  {
+   "expr": "a partial answer is shown as complete",
+   "hit": false,
+   "observed": "NOT MEASURABLE: group queries with partial answers are not built"
+  },
+  {
+   "expr": "a copy outlives its origin's retention",
+   "hit": false,
+   "observed": "NOT MEASURED: needs days of retention"
+  },
+  {
+   "expr": "certificates are lost or issued again by the move into the group",
+   "hit": false,
+   "observed": "checks 7.06, 7.07 passed; ACME test server pebble: no certificate was lost and the CA issued none twice. But a node that enters a group which holds the certificate asks the CA for an order of its own at once (7.04), and two nodes started together both ask (7.10); no second certificate was issued in these runs only because the CA's checks failed (7.08)"
+  }
+ ],
+ "verdict": "fail",
+ "notes": "Black-box measurement of the group of gateways on real Linux VMs of one lab host (one VM per node, HAProxy on a balancer VM, nftables for the edge and for faults, a TUN based delay in place of netem). Development build of schild, never a release. Not the testlab profiles pair and fleet of the spec. Report: tests/results/MVP-27-lab.md. FAIL checks: 1.05, 1.12b, 1.30, 1.33, 3.16, 3.23, 3.26, 3.62, 3.36, 3.43, 3.46, 3.50, 5.13, 7.02, 7.04, 7.05, 7.08, 7.09, 7.10",
+ "artifacts": [
+  "tests/results/MVP-27-lab.md",
+  "tests/testlab/measure/group-lab/run.py"
+ ],
+ "git_rev": "e0349dc21a42b214489030cdd6da18b6cf208188"
+}

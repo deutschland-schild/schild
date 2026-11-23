@@ -1,0 +1,567 @@
+{
+ "started": 1795387457.527052,
+ "saved": 1795388852.2049139,
+ "seed": 27,
+ "rows": [
+  {
+   "scenario": "s27",
+   "id": "27.01",
+   "title": "30 first starts of three wiped nodes together (the same files, the first password set on n1): after each start the three run with the same keys of the browser check (a fingerprint of the stored keys, 45 s after the start), no view of class `settings` reads `differs`, and no node logs a repair (D105: only one node hands its keys over)",
+   "result": "PASS",
+   "numbers": {
+    "starts": 30,
+    "starts_with_the_same_keys_at_the_end": 30,
+    "starts_with_a_settings_view_that_reads_differs": 0,
+    "starts_with_a_repair_logged": 0,
+    "starts_with_unknown_in_settings": 30
+   },
+   "evidence": "[]"
+  },
+  {
+   "scenario": "s27",
+   "id": "27.02",
+   "title": "time to ready of each node from its own start (polled every 50 ms), over all starts",
+   "result": "INFO",
+   "numbers": {
+    "seconds": {
+     "n": 90,
+     "min": 1.42,
+     "p50": 1.47,
+     "p95": 1.49,
+     "p99": 1.49,
+     "max": 1.49
+    },
+    "not_ready_within_60_s": 0,
+    "per_start_max": [
+     1.47,
+     1.47,
+     1.48,
+     1.47,
+     1.48,
+     1.46,
+     1.48,
+     1.48,
+     1.49,
+     1.43,
+     1.49,
+     1.47,
+     1.48,
+     1.46,
+     1.46,
+     1.47,
+     1.48,
+     1.45,
+     1.48,
+     1.48,
+     1.47,
+     1.49,
+     1.49,
+     1.49,
+     1.48,
+     1.48,
+     1.48,
+     1.47,
+     1.45,
+     1.48
+    ]
+   },
+   "evidence": ""
+  },
+  {
+   "scenario": "s27",
+   "id": "27.03",
+   "title": "time from the start until the stored keys of the three nodes agree and stay so (fingerprints every 0.5 s), and until every view of class `settings` reads `same`",
+   "result": "INFO",
+   "numbers": {
+    "keys_agree_from_s": {
+     "n": 30,
+     "min": 4.9,
+     "p50": 5.0,
+     "p95": 5.5,
+     "p99": 6.0,
+     "max": 6.0
+    },
+    "keys_agree_per_start": [
+     4.93,
+     5.46,
+     4.9,
+     4.93,
+     4.93,
+     4.93,
+     4.95,
+     5.47,
+     5.46,
+     4.94,
+     4.94,
+     5.47,
+     5.44,
+     5.46,
+     5.46,
+     4.94,
+     5.47,
+     4.94,
+     5.45,
+     6.04,
+     4.89,
+     4.95,
+     4.94,
+     5.48,
+     4.9,
+     4.94,
+     4.91,
+     5.47,
+     5.47,
+     5.45
+    ],
+    "settings_same_from_s": {
+     "n": 30,
+     "min": 6.1,
+     "p50": 6.1,
+     "p95": 11.2,
+     "p99": 11.2,
+     "max": 11.2
+    },
+    "who_handed_the_keys_over": [
+     [
+      "sg27-n3"
+     ],
+     [
+      "sg27-n2"
+     ],
+     [
+      "sg27-n1"
+     ],
+     [
+      "sg27-n1"
+     ],
+     [
+      "sg27-n3"
+     ],
+     [
+      "sg27-n2"
+     ],
+     [
+      "sg27-n1"
+     ],
+     [
+      "sg27-n3"
+     ],
+     [
+      "sg27-n2"
+     ],
+     [
+      "sg27-n3"
+     ],
+     [
+      "sg27-n1"
+     ],
+     [
+      "sg27-n2"
+     ],
+     [
+      "sg27-n1"
+     ],
+     [
+      "sg27-n1"
+     ],
+     [
+      "sg27-n3"
+     ],
+     [
+      "sg27-n2"
+     ],
+     [
+      "sg27-n3"
+     ],
+     [
+      "sg27-n2"
+     ],
+     [
+      "sg27-n3"
+     ],
+     [
+      "sg27-n1",
+      "sg27-n2"
+     ],
+     [
+      "sg27-n2"
+     ],
+     [
+      "sg27-n3"
+     ],
+     [
+      "sg27-n2"
+     ],
+     [
+      "sg27-n1"
+     ],
+     [
+      "sg27-n1"
+     ],
+     [
+      "sg27-n2"
+     ],
+     [
+      "sg27-n1"
+     ],
+     [
+      "sg27-n3"
+     ],
+     [
+      "sg27-n3"
+     ],
+     [
+      "sg27-n2"
+     ]
+    ],
+    "starts_where_the_node_with_the_lowest_id_handed_them_over": 29,
+    "node_with_the_lowest_id_per_start": [
+     "sg27-n3",
+     "sg27-n2",
+     "sg27-n1",
+     "sg27-n1",
+     "sg27-n3",
+     "sg27-n2",
+     "sg27-n1",
+     "sg27-n3",
+     "sg27-n2",
+     "sg27-n3",
+     "sg27-n1",
+     "sg27-n2",
+     "sg27-n1",
+     "sg27-n1",
+     "sg27-n3",
+     "sg27-n2",
+     "sg27-n3",
+     "sg27-n2",
+     "sg27-n3",
+     "sg27-n1",
+     "sg27-n2",
+     "sg27-n3",
+     "sg27-n2",
+     "sg27-n1",
+     "sg27-n1",
+     "sg27-n2",
+     "sg27-n1",
+     "sg27-n3",
+     "sg27-n3",
+     "sg27-n2"
+    ]
+   },
+   "evidence": ""
+  },
+  {
+   "scenario": "s27",
+   "id": "27.04",
+   "title": "per start: the nodes that took the keys from another (log lines `took a change of another node` for the keys) and the rows of table `replaced` of cluster.db (contract 5: the keys a node replaced)",
+   "result": "INFO",
+   "numbers": {
+    "took_per_start": [
+     {
+      "n1": "1 \"from\":\"sg27-n3\"",
+      "n2": "1 \"from\":\"sg27-n3\"",
+      "n3": ""
+     },
+     {
+      "n1": "1 \"from\":\"sg27-n2\"",
+      "n2": "",
+      "n3": "1 \"from\":\"sg27-n2\""
+     },
+     {
+      "n1": "",
+      "n2": "1 \"from\":\"sg27-n1\"",
+      "n3": "1 \"from\":\"sg27-n1\""
+     },
+     {
+      "n1": "",
+      "n2": "1 \"from\":\"sg27-n1\"",
+      "n3": "1 \"from\":\"sg27-n1\""
+     },
+     {
+      "n1": "1 \"from\":\"sg27-n3\"",
+      "n2": "1 \"from\":\"sg27-n3\"",
+      "n3": ""
+     },
+     {
+      "n1": "1 \"from\":\"sg27-n2\"",
+      "n2": "",
+      "n3": "1 \"from\":\"sg27-n2\""
+     },
+     {
+      "n1": "",
+      "n2": "1 \"from\":\"sg27-n1\"",
+      "n3": "1 \"from\":\"sg27-n1\""
+     },
+     {
+      "n1": "1 \"from\":\"sg27-n3\"",
+      "n2": "1 \"from\":\"sg27-n3\"",
+      "n3": ""
+     },
+     {
+      "n1": "1 \"from\":\"sg27-n2\"",
+      "n2": "",
+      "n3": "1 \"from\":\"sg27-n2\""
+     },
+     {
+      "n1": "1 \"from\":\"sg27-n3\"",
+      "n2": "1 \"from\":\"sg27-n3\"",
+      "n3": ""
+     },
+     {
+      "n1": "",
+      "n2": "1 \"from\":\"sg27-n1\"",
+      "n3": "1 \"from\":\"sg27-n1\""
+     },
+     {
+      "n1": "1 \"from\":\"sg27-n2\"",
+      "n2": "",
+      "n3": "1 \"from\":\"sg27-n2\""
+     },
+     {
+      "n1": "",
+      "n2": "1 \"from\":\"sg27-n1\"",
+      "n3": "1 \"from\":\"sg27-n1\""
+     },
+     {
+      "n1": "",
+      "n2": "1 \"from\":\"sg27-n1\"",
+      "n3": "1 \"from\":\"sg27-n1\""
+     },
+     {
+      "n1": "1 \"from\":\"sg27-n3\"",
+      "n2": "1 \"from\":\"sg27-n3\"",
+      "n3": ""
+     },
+     {
+      "n1": "1 \"from\":\"sg27-n2\"",
+      "n2": "",
+      "n3": "1 \"from\":\"sg27-n2\""
+     },
+     {
+      "n1": "1 \"from\":\"sg27-n3\"",
+      "n2": "1 \"from\":\"sg27-n3\"",
+      "n3": ""
+     },
+     {
+      "n1": "1 \"from\":\"sg27-n2\"",
+      "n2": "",
+      "n3": "1 \"from\":\"sg27-n2\""
+     },
+     {
+      "n1": "1 \"from\":\"sg27-n3\"",
+      "n2": "1 \"from\":\"sg27-n3\"",
+      "n3": ""
+     },
+     {
+      "n1": "1 \"from\":\"sg27-n2\"",
+      "n2": "1 \"from\":\"sg27-n1\"",
+      "n3": "1 \"from\":\"sg27-n1\" 1 \"from\":\"sg27-n2\""
+     },
+     {
+      "n1": "1 \"from\":\"sg27-n2\"",
+      "n2": "",
+      "n3": "1 \"from\":\"sg27-n2\""
+     },
+     {
+      "n1": "1 \"from\":\"sg27-n3\"",
+      "n2": "1 \"from\":\"sg27-n3\"",
+      "n3": ""
+     },
+     {
+      "n1": "1 \"from\":\"sg27-n2\"",
+      "n2": "",
+      "n3": "1 \"from\":\"sg27-n2\""
+     },
+     {
+      "n1": "",
+      "n2": "1 \"from\":\"sg27-n1\"",
+      "n3": "1 \"from\":\"sg27-n1\""
+     },
+     {
+      "n1": "",
+      "n2": "1 \"from\":\"sg27-n1\"",
+      "n3": "1 \"from\":\"sg27-n1\""
+     },
+     {
+      "n1": "1 \"from\":\"sg27-n2\"",
+      "n2": "",
+      "n3": "1 \"from\":\"sg27-n2\""
+     },
+     {
+      "n1": "",
+      "n2": "1 \"from\":\"sg27-n1\"",
+      "n3": "1 \"from\":\"sg27-n1\""
+     },
+     {
+      "n1": "1 \"from\":\"sg27-n3\"",
+      "n2": "1 \"from\":\"sg27-n3\"",
+      "n3": ""
+     },
+     {
+      "n1": "1 \"from\":\"sg27-n3\"",
+      "n2": "1 \"from\":\"sg27-n3\"",
+      "n3": ""
+     },
+     {
+      "n1": "1 \"from\":\"sg27-n2\"",
+      "n2": "",
+      "n3": "1 \"from\":\"sg27-n2\""
+     }
+    ],
+    "replaced_per_start": [
+     {
+      "n1": "[]",
+      "n2": "[]",
+      "n3": "[]"
+     },
+     {
+      "n1": "[]",
+      "n2": "[]",
+      "n3": "[]"
+     },
+     {
+      "n1": "[]",
+      "n2": "[]",
+      "n3": "[]"
+     },
+     {
+      "n1": "[]",
+      "n2": "[]",
+      "n3": "[]"
+     },
+     {
+      "n1": "[]",
+      "n2": "[]",
+      "n3": "[]"
+     },
+     {
+      "n1": "[]",
+      "n2": "[]",
+      "n3": "['settings/agent_pseudonym_key_v1 ']"
+     },
+     {
+      "n1": "[]",
+      "n2": "[]",
+      "n3": "[]"
+     },
+     {
+      "n1": "[]",
+      "n2": "[]",
+      "n3": "[]"
+     },
+     {
+      "n1": "[]",
+      "n2": "[]",
+      "n3": "[]"
+     },
+     {
+      "n1": "[]",
+      "n2": "[]",
+      "n3": "[]"
+     },
+     {
+      "n1": "[]",
+      "n2": "[]",
+      "n3": "[]"
+     },
+     {
+      "n1": "[]",
+      "n2": "[]",
+      "n3": "[]"
+     },
+     {
+      "n1": "[]",
+      "n2": "[]",
+      "n3": "[]"
+     },
+     {
+      "n1": "[]",
+      "n2": "['settings/agent_pseudonym_key_v1 ']",
+      "n3": "[]"
+     },
+     {
+      "n1": "[]",
+      "n2": "[]",
+      "n3": "[]"
+     },
+     {
+      "n1": "[]",
+      "n2": "[]",
+      "n3": "[]"
+     },
+     {
+      "n1": "[]",
+      "n2": "[]",
+      "n3": "[]"
+     },
+     {
+      "n1": "[]",
+      "n2": "[]",
+      "n3": "[]"
+     },
+     {
+      "n1": "[]",
+      "n2": "[]",
+      "n3": "[]"
+     },
+     {
+      "n1": "[]",
+      "n2": "[]",
+      "n3": "[]"
+     },
+     {
+      "n1": "[]",
+      "n2": "[]",
+      "n3": "[]"
+     },
+     {
+      "n1": "[]",
+      "n2": "[]",
+      "n3": "[]"
+     },
+     {
+      "n1": "[]",
+      "n2": "[]",
+      "n3": "[]"
+     },
+     {
+      "n1": "[]",
+      "n2": "[]",
+      "n3": "[]"
+     },
+     {
+      "n1": "[]",
+      "n2": "[]",
+      "n3": "[]"
+     },
+     {
+      "n1": "[]",
+      "n2": "[]",
+      "n3": "[]"
+     },
+     {
+      "n1": "['settings/agent_pseudonym_key_v1 ']",
+      "n2": "['settings/agent_pseudonym_key_v1 ']",
+      "n3": "[]"
+     },
+     {
+      "n1": "[]",
+      "n2": "['settings/agent_pseudonym_key_v1 ']",
+      "n3": "[]"
+     },
+     {
+      "n1": "[]",
+      "n2": "[]",
+      "n3": "[]"
+     },
+     {
+      "n1": "[]",
+      "n2": "[]",
+      "n3": "[]"
+     }
+    ]
+   },
+   "evidence": ""
+  }
+ ]
+}

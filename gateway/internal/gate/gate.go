@@ -105,6 +105,17 @@ type RuleEffects interface {
 
 // Gate is the request handler.
 type Gate struct {
+	// InService, when set, also has to hold for ReadyPath to answer 200:
+	// a node of a group is out of service until its first sync and while
+	// it drains (MVP-27). Set before the gate serves.
+	InService func() bool
+	// Leaving, when set, reports that this node left traffic and stops
+	// soon (the drain delay of a node of a group). Every answer then asks
+	// the client to close the connection, so a client that keeps
+	// connections open through a balancer leaves before the node stops
+	// and none of its requests is cut (finding F3 of the lab measurement).
+	// On HTTP/2 the server turns the header into a GOAWAY.
+	Leaving    func() bool
 	Engine     *waf.Engine
 	Rules      RuleEffects // the rule repositories (D73); nil: every repository blocks, a crowdsec match only logs
 	Allow      *allowlist.List
@@ -196,7 +207,15 @@ func (g *Gate) Settings() Settings { return *g.settings.Load() }
 func (g *Gate) SetReady(v bool) { g.ready.Store(v) }
 
 // Ready reports readiness.
-func (g *Gate) Ready() bool { return g.ready.Load() && g.Engine != nil && g.Engine.Current() != nil }
+func (g *Gate) Ready() bool {
+	if !(g.ready.Load() && g.Engine != nil && g.Engine.Current() != nil) {
+		return false
+	}
+	if f := g.InService; f != nil {
+		return f()
+	}
+	return true
+}
 
 // RunIncidents writes incidents until ctx ends.
 func (g *Gate) RunIncidents(ctx context.Context, st *store.Store) {
@@ -376,6 +395,9 @@ func (g *Gate) Serve(w http.ResponseWriter, r *http.Request, next http.Handler) 
 }
 
 func (g *Gate) serve(w http.ResponseWriter, r *http.Request, next http.Handler, st *Recheck, website string) {
+	if f := g.Leaving; f != nil && f() {
+		w.Header().Set("Connection", "close")
+	}
 	if r.URL.Path == HealthPath || r.URL.Path == ReadyPath {
 		g.health(w, r)
 		return

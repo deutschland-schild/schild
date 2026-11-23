@@ -1,0 +1,5822 @@
+{
+ "spec": "MVP-27",
+ "run_id": "hardening-20261122T164055Z",
+ "seed": 27,
+ "scenarios": [
+  {
+   "scenario": "s1_faults",
+   "started": "2026-11-22T16:40:55Z",
+   "finished": "2026-11-22T16:43:49Z",
+   "git_rev": "3971e35c760c",
+   "checks": [
+    {
+     "id": "t.setup",
+     "name": "3 gateways start as one group",
+     "verdict": "PASS",
+     "detail": "readyz 200 after [1.51, 1.51, 1.51] s; every node lists every other as ok after 5.42 s from the start",
+     "kill": null
+    },
+    {
+     "id": "t.setup",
+     "name": "first-run setup on t1, its session works on every node",
+     "verdict": "PASS",
+     "detail": "setup 200; session valid everywhere after 0.32 s",
+     "kill": null
+    },
+    {
+     "id": "t.setup",
+     "name": "the mesh runs through the fault proxy and it knows every caller",
+     "verdict": "PASS",
+     "detail": "connections opened per pair {'t1>t2': 4, 't1>t3': 4, 't2>t1': 4, 't2>t3': 4, 't3>t1': 4, 't3>t2': 4}, callers not identified 0",
+     "kill": null
+    },
+    {
+     "id": "t.base",
+     "name": "a block set on t1 acts on every node (no fault)",
+     "verdict": "PASS",
+     "detail": "seconds {'t1': 0.001, 't2': 0.2, 't3': 0.2}",
+     "kill": null
+    },
+    {
+     "id": "t.base",
+     "name": "every node holds the 12 events of an address (to be erased during the cut)",
+     "verdict": "PASS",
+     "detail": "events per node [15, 15, 15] after 0.8 s",
+     "kill": null
+    },
+    {
+     "id": "t.delay",
+     "name": "300 ms of delay on every byte between the nodes: no client request waits or fails",
+     "verdict": "PASS",
+     "detail": "790 requests, 0 failed, 0 not 200, p50 1.13 ms, p99 7.25 ms, slowest 9.89 ms (limit 250 ms)",
+     "kill": "waits"
+    },
+    {
+     "id": "t.delay",
+     "name": "a block still reaches the others (300 ms each way)",
+     "verdict": "PASS",
+     "detail": "API call 0.7 ms; acts after {'t2': 0.438, 't3': 0.438} s; members as t1 sees them: {'t1': 'self', 't2': 'ok', 't3': 'ok'}",
+     "kill": null
+    },
+    {
+     "id": "t.delay",
+     "name": "the write itself does not wait for the slow peers",
+     "verdict": "PASS",
+     "detail": "POST /blocks answered after 0.7 ms",
+     "kill": "waits"
+    },
+    {
+     "id": "t.cut",
+     "name": "a peer whose connection stays open and carries no byte is noticed within about 3 s (contract section 7; limit here 5 s)",
+     "verdict": "PASS",
+     "detail": "GET /group no longer lists the other side as ok after {'t1': 3.01, 't3': 0.0} s (t1 sees t3, t3 sees t1); polled every 50 ms",
+     "kill": null
+    },
+    {
+     "id": "t.cut",
+     "name": "readiness stays 200 on both sides of the cut (a running node serves with the state it has)",
+     "verdict": "PASS",
+     "detail": "readyz {'t1': 200, 't2': 200, 't3': 200}; group state {'t1': 'degraded', 't2': 'degraded', 't3': 'interrupted'}",
+     "kill": null
+    },
+    {
+     "id": "t.cut",
+     "name": "GET /group names the state: degraded where one gateway is missing, interrupted where none is reached",
+     "verdict": "PASS",
+     "detail": "state {'t1': 'degraded', 't2': 'degraded', 't3': 'interrupted'}, expected {'t1': 'degraded', 't2': 'degraded', 't3': 'interrupted'}",
+     "kill": null
+    },
+    {
+     "id": "t.cut",
+     "name": "both sides stay writable during the cut",
+     "verdict": "PASS",
+     "detail": "answers {'allow_a': 201, 'allow_b': 201, 'limit_a': 201, 'limit_b': 201, 'setting_a': 200, 'setting_b': 200, 'lift_a': 200, 'login_a': 200, 'login_b': 200, 'erase_b': 200}",
+     "kill": null
+    },
+    {
+     "id": "t.cut",
+     "name": "no write waits for the side that is cut off (the erasure aside: documented to wait up to 2 s)",
+     "verdict": "PASS",
+     "detail": "ms per call {'block_a': 0.6, 'block_b': 0.5, 'allow_a': 0.5, 'allow_b': 0.9, 'limit_a': 0.9, 'limit_b': 0.8, 'setting_a': 0.6, 'setting_b': 0.8, 'lift_a': 1.2, 'erase_b': 34.9}",
+     "kill": "waits"
+    },
+    {
+     "id": "t.cut",
+     "name": "the erasure names the nodes it reached and the ones still open (PrivacyDeleteResult.nodes)",
+     "verdict": "PASS",
+     "detail": "nodes {'reached': ['t3'], 'open': ['t1', 't2']}",
+     "kill": null
+    },
+    {
+     "id": "t.cut",
+     "name": "a block acts on its own side at once and not on the other",
+     "verdict": "PASS",
+     "detail": "{'A1 on A': [403, 403], 'A1 on B': 200, 'B1 on B': 403, 'B1 on A': [200, 200]}",
+     "kill": null
+    },
+    {
+     "id": "t.cut",
+     "name": "during the cut (10 s): no client request waits or fails on either side",
+     "verdict": "PASS",
+     "detail": "1175 requests, 0 failed, 0 not 200, p50 1.13 ms, p99 4.85 ms, slowest 8.15 ms (limit 250 ms)",
+     "kill": "waits"
+    },
+    {
+     "id": "t.heal",
+     "name": "after the cut every node shows the same blocks, allowlist, limits and settings",
+     "verdict": "PASS",
+     "detail": "same after 0.42 s; equal",
+     "kill": null
+    },
+    {
+     "id": "t.heal",
+     "name": "both sides keep their own changes to different entries",
+     "verdict": "PASS",
+     "detail": "{'blocks have A1 and B1': True, 'lifted P1 stays lifted': True, 'allowlist has A2 and B2': True, 'limits of both sides': True, 'events_days 21 (side A)': True, 'summaries_days 111 (side B)': True}; retention {'raw_ip_days': 9, 'events_days': 21, 'max_size_mb': 100, 'summaries_days': 111}",
+     "kill": "weakens"
+    },
+    {
+     "id": "t.heal",
+     "name": "the same entry changed on both sides: the later change stands on every node",
+     "verdict": "PASS",
+     "detail": "raw_ip_days [9, 9, 9] (7 on side A, 1.5 s later 9 on side B)",
+     "kill": null
+    },
+    {
+     "id": "t.heal",
+     "name": "the logins made on either side during the cut are valid on every node",
+     "verdict": "PASS",
+     "detail": "(login of side A, login of side B) valid on {'t1': (True, True), 't2': (True, True), 't3': (True, True)}",
+     "kill": "weakens"
+    },
+    {
+     "id": "t.heal",
+     "name": "the blocks of both sides act on every node",
+     "verdict": "PASS",
+     "detail": "A1 {'t1': 0.0, 't2': 0.001, 't3': 0.001}, B1 {'t1': 0.0, 't2': 0.001, 't3': 0.001}",
+     "kill": "weakens"
+    },
+    {
+     "id": "t.heal",
+     "name": "the address erased on side B is gone on every node within 30 s of the heal",
+     "verdict": "PASS",
+     "detail": "events of the address per node [0, 0, 0], 0 everywhere after 0.4 s",
+     "kill": "erased"
+    },
+    {
+     "id": "t.heal",
+     "name": "and it does not return (6 s later)",
+     "verdict": "PASS",
+     "detail": "events per node [0, 0, 0]",
+     "kill": "erased"
+    },
+    {
+     "id": "t.heal",
+     "name": "GET /group is back to active on every node",
+     "verdict": "PASS",
+     "detail": "{'t1': 'active', 't2': 'active', 't3': 'active'}",
+     "kill": null
+    },
+    {
+     "id": "t.oneway",
+     "name": "one direction cut (t3 to t1): no client request waits or fails",
+     "verdict": "PASS",
+     "detail": "473 requests, 0 failed, 0 not 200, p50 1.09 ms, p99 6.79 ms, slowest 8.87 ms (limit 250 ms)",
+     "kill": "waits"
+    },
+    {
+     "id": "t.oneway",
+     "name": "t1 notices that t3 no longer answers",
+     "verdict": "PASS",
+     "detail": "after {'t1': 2.62} s",
+     "kill": null
+    },
+    {
+     "id": "t.oneway",
+     "name": "a block of t1 still reaches t3 by way of the third node",
+     "verdict": "PASS",
+     "detail": "seconds {'t2': 0.179, 't3': 0.18}",
+     "kill": null
+    },
+    {
+     "id": "t.oneway",
+     "name": "a block of t3 still reaches t1 by way of the third node",
+     "verdict": "PASS",
+     "detail": "seconds {'t1': 0.98, 't2': 0.98}",
+     "kill": null
+    },
+    {
+     "id": "t.oneway",
+     "name": "after it ends every node shows the same state",
+     "verdict": "PASS",
+     "detail": "after 0.01 s; equal",
+     "kill": null
+    },
+    {
+     "id": "t.flap",
+     "name": "the links between the nodes break and return ten times within 10 s: no client request waits or fails",
+     "verdict": "PASS",
+     "detail": "1336 requests, 0 failed, 0 not 200, p50 1.16 ms, p99 5.45 ms, slowest 12.91 ms (limit 250 ms)",
+     "kill": "waits"
+    },
+    {
+     "id": "t.flap",
+     "name": "the ten blocks set meanwhile, on every node in turn, end up on every node",
+     "verdict": "PASS",
+     "detail": "same after 1.06 s; equal",
+     "kill": "weakens"
+    },
+    {
+     "id": "t.ready",
+     "name": "restarted while cut off from every member: 503 for about 10 s, then 200 (contract section 10)",
+     "verdict": "PASS",
+     "detail": "readyz over time (s, status): [(0.0, 0), (0.21, 503), (10.12, 200)]",
+     "kill": null
+    },
+    {
+     "id": "t.ready",
+     "name": "and it serves with the state it had: blocks, allowlist, login",
+     "verdict": "PASS",
+     "detail": "{'A1': 403, 'B1': 403, 'allowlisted B2 listed': True, 'session': True}",
+     "kill": "weakens"
+    },
+    {
+     "id": "t.ready",
+     "name": "the block it missed acts on it once the cut ends",
+     "verdict": "PASS",
+     "detail": "after {'t3': 0.024} s",
+     "kill": null
+    },
+    {
+     "id": "t.ready",
+     "name": "restarted with peers 300 ms away: at its first ready answer the block set while it was down acts",
+     "verdict": "PASS",
+     "detail": "readyz over time [(0.0, 0), (0.19, 503), (3.67, 200)]; request of the blocked address at the first 200: 403",
+     "kill": "weakens"
+    },
+    {
+     "id": "t.fresh",
+     "name": "a fresh node that reached none of its named peers does not answer ready (contract section 10: it is not in step)",
+     "verdict": "PASS",
+     "detail": "readyz over 14 s (s, status): [(0.0, 0), (0.27, 503)]",
+     "kill": null
+    },
+    {
+     "id": "t.fresh",
+     "name": "what that node serves with while it answers ready and never reached a peer",
+     "verdict": "INFO",
+     "detail": "request of an address the group blocks: 200 (the group answers 403); login of the group valid: False",
+     "kill": null
+    },
+    {
+     "id": "t.fresh",
+     "name": "once its peers answer it takes the blocks of the group",
+     "verdict": "PASS",
+     "detail": "after {'t4': 0.222} s",
+     "kill": null
+    },
+    {
+     "id": "t.fresh",
+     "name": "the group of 4 shows one state",
+     "verdict": "PASS",
+     "detail": "after 0.22 s; equal",
+     "kill": null
+    },
+    {
+     "id": "t.fresh",
+     "name": "the first node keeps its login after the fresh node joined",
+     "verdict": "PASS",
+     "detail": "session on t1: True",
+     "kill": "weakens"
+    },
+    {
+     "id": "t.all",
+     "name": "over the whole scenario: requests that failed or took over 250 ms on nodes that were up",
+     "verdict": "INFO",
+     "detail": "8434 requests, 18 failed (the restarts of t3 included), slowest 15.33 ms, p99 5.08 ms",
+     "kill": null
+    },
+    {
+     "id": "t.all",
+     "name": "the proxy identified the calling node of every connection",
+     "verdict": "FAIL",
+     "detail": "not identified: 1 of 182",
+     "kill": null
+    },
+    {
+     "id": "p.setup",
+     "name": "2 gateways start as one group",
+     "verdict": "PASS",
+     "detail": "readyz 200 after [1.45, 1.45] s; every node lists every other as ok after 5.7 s from the start",
+     "kill": null
+    },
+    {
+     "id": "p.setup",
+     "name": "first-run setup on p1, its session works on every node",
+     "verdict": "PASS",
+     "detail": "setup 200; session valid everywhere after 0.52 s",
+     "kill": null
+    },
+    {
+     "id": "p.setup",
+     "name": "the mesh runs through the fault proxy and it knows every caller",
+     "verdict": "FAIL",
+     "detail": "connections opened per pair {'?>t1': 1, 'p1>p2': 4, 'p2>p1': 4, 't1>t2': 14, 't1>t3': 42, 't2>t1': 16, 't2>t3': 28, 't3>t1': 40, 't3>t2': 33, 't3>t4': 1, 't4>t1': 2, 't4>t2': 2, 't4>t3': 3}, callers not identified 1",
+     "kill": null
+    },
+    {
+     "id": "p.base",
+     "name": "a block set on p1 acts on every node (no fault)",
+     "verdict": "PASS",
+     "detail": "seconds {'p1': 0.0, 'p2': 0.176}",
+     "kill": null
+    },
+    {
+     "id": "p.base",
+     "name": "every node holds the 8 events of an address (to be erased during the cut)",
+     "verdict": "PASS",
+     "detail": "events per node [10, 10] after 2.3 s",
+     "kill": null
+    },
+    {
+     "id": "p.delay",
+     "name": "300 ms of delay on every byte between the nodes: no client request waits or fails",
+     "verdict": "PASS",
+     "detail": "525 requests, 0 failed, 0 not 200, p50 1.38 ms, p99 4.74 ms, slowest 6.93 ms (limit 250 ms)",
+     "kill": "waits"
+    },
+    {
+     "id": "p.delay",
+     "name": "a block still reaches the others (300 ms each way)",
+     "verdict": "PASS",
+     "detail": "API call 0.8 ms; acts after {'p2': 0.523} s; members as p1 sees them: {'p1': 'self', 'p2': 'ok'}",
+     "kill": null
+    },
+    {
+     "id": "p.delay",
+     "name": "the write itself does not wait for the slow peers",
+     "verdict": "PASS",
+     "detail": "POST /blocks answered after 0.8 ms",
+     "kill": "waits"
+    },
+    {
+     "id": "p.cut",
+     "name": "a peer whose connection stays open and carries no byte is noticed within about 3 s (contract section 7; limit here 5 s)",
+     "verdict": "PASS",
+     "detail": "GET /group no longer lists the other side as ok after {'p1': 2.4, 'p2': 0.0} s (p1 sees p2, p2 sees p1); polled every 50 ms",
+     "kill": null
+    },
+    {
+     "id": "p.cut",
+     "name": "readiness stays 200 on both sides of the cut (a running node serves with the state it has)",
+     "verdict": "PASS",
+     "detail": "readyz {'p1': 200, 'p2': 200}; group state {'p1': 'interrupted', 'p2': 'interrupted'}",
+     "kill": null
+    },
+    {
+     "id": "p.cut",
+     "name": "GET /group names the state: degraded where one gateway is missing, interrupted where none is reached",
+     "verdict": "PASS",
+     "detail": "state {'p1': 'interrupted', 'p2': 'interrupted'}, expected {'p1': 'interrupted', 'p2': 'interrupted'}",
+     "kill": null
+    },
+    {
+     "id": "p.cut",
+     "name": "both sides stay writable during the cut",
+     "verdict": "PASS",
+     "detail": "answers {'allow_a': 201, 'allow_b': 201, 'limit_a': 201, 'limit_b': 201, 'setting_a': 200, 'setting_b': 200, 'lift_a': 200, 'login_a': 200, 'login_b': 200, 'erase_b': 200}",
+     "kill": null
+    },
+    {
+     "id": "p.cut",
+     "name": "no write waits for the side that is cut off (the erasure aside: documented to wait up to 2 s)",
+     "verdict": "PASS",
+     "detail": "ms per call {'block_a': 0.8, 'block_b': 0.6, 'allow_a': 0.6, 'allow_b': 2.3, 'limit_a': 3.0, 'limit_b': 2.5, 'setting_a': 3.7, 'setting_b': 3.8, 'lift_a': 0.8, 'erase_b': 63.5}",
+     "kill": "waits"
+    },
+    {
+     "id": "p.cut",
+     "name": "the erasure names the nodes it reached and the ones still open (PrivacyDeleteResult.nodes)",
+     "verdict": "PASS",
+     "detail": "nodes {'reached': ['p2'], 'open': ['p1']}",
+     "kill": null
+    },
+    {
+     "id": "p.cut",
+     "name": "a block acts on its own side at once and not on the other",
+     "verdict": "PASS",
+     "detail": "{'A1 on A': [403], 'A1 on B': 200, 'B1 on B': 403, 'B1 on A': [200]}",
+     "kill": null
+    },
+    {
+     "id": "p.cut",
+     "name": "during the cut (10 s): no client request waits or fails on either side",
+     "verdict": "PASS",
+     "detail": "779 requests, 0 failed, 0 not 200, p50 1.09 ms, p99 9.05 ms, slowest 20.22 ms (limit 250 ms)",
+     "kill": "waits"
+    },
+    {
+     "id": "p.heal",
+     "name": "after the cut every node shows the same blocks, allowlist, limits and settings",
+     "verdict": "PASS",
+     "detail": "same after 0.36 s; equal",
+     "kill": null
+    },
+    {
+     "id": "p.heal",
+     "name": "both sides keep their own changes to different entries",
+     "verdict": "PASS",
+     "detail": "{'blocks have A1 and B1': True, 'lifted P1 stays lifted': True, 'allowlist has A2 and B2': True, 'limits of both sides': True, 'events_days 21 (side A)': True, 'summaries_days 111 (side B)': True}; retention {'raw_ip_days': 9, 'events_days': 21, 'max_size_mb': 100, 'summaries_days': 111}",
+     "kill": "weakens"
+    },
+    {
+     "id": "p.heal",
+     "name": "the same entry changed on both sides: the later change stands on every node",
+     "verdict": "PASS",
+     "detail": "raw_ip_days [9, 9] (7 on side A, 1.5 s later 9 on side B)",
+     "kill": null
+    },
+    {
+     "id": "p.heal",
+     "name": "the logins made on either side during the cut are valid on every node",
+     "verdict": "PASS",
+     "detail": "(login of side A, login of side B) valid on {'p1': (True, True), 'p2': (True, True)}",
+     "kill": "weakens"
+    },
+    {
+     "id": "p.heal",
+     "name": "the blocks of both sides act on every node",
+     "verdict": "PASS",
+     "detail": "A1 {'p1': 0.001, 'p2': 0.002}, B1 {'p1': 0.001, 'p2': 0.002}",
+     "kill": "weakens"
+    },
+    {
+     "id": "p.heal",
+     "name": "the address erased on side B is gone on every node within 30 s of the heal",
+     "verdict": "PASS",
+     "detail": "events of the address per node [0, 0], 0 everywhere after 0.4 s",
+     "kill": "erased"
+    },
+    {
+     "id": "p.heal",
+     "name": "and it does not return (6 s later)",
+     "verdict": "PASS",
+     "detail": "events per node [0, 0]",
+     "kill": "erased"
+    },
+    {
+     "id": "p.heal",
+     "name": "GET /group is back to active on every node",
+     "verdict": "PASS",
+     "detail": "{'p1': 'active', 'p2': 'active'}",
+     "kill": null
+    },
+    {
+     "id": "p.oneway",
+     "name": "one direction cut (p2 to p1): no client request waits or fails",
+     "verdict": "PASS",
+     "detail": "1325 requests, 0 failed, 0 not 200, p50 2.19 ms, p99 29.67 ms, slowest 88.09 ms (limit 250 ms)",
+     "kill": "waits"
+    },
+    {
+     "id": "p.oneway",
+     "name": "p1 notices that p2 no longer answers",
+     "verdict": "PASS",
+     "detail": "after {'p1': 2.74} s",
+     "kill": null
+    },
+    {
+     "id": "p.oneway",
+     "name": "pair, one direction cut: what crosses meanwhile",
+     "verdict": "INFO",
+     "detail": "block of p1 on p2: {'p2': None}; block of p2 on p1: {'p1': None}",
+     "kill": null
+    },
+    {
+     "id": "p.oneway",
+     "name": "after it ends every node shows the same state",
+     "verdict": "PASS",
+     "detail": "after 0.21 s; equal",
+     "kill": null
+    },
+    {
+     "id": "p.flap",
+     "name": "the links between the nodes break and return ten times within 10 s: no client request waits or fails",
+     "verdict": "PASS",
+     "detail": "948 requests, 0 failed, 0 not 200, p50 1.60 ms, p99 14.02 ms, slowest 197.82 ms (limit 250 ms)",
+     "kill": "waits"
+    },
+    {
+     "id": "p.flap",
+     "name": "the ten blocks set meanwhile, on every node in turn, end up on every node",
+     "verdict": "PASS",
+     "detail": "same after 2.1 s; equal",
+     "kill": "weakens"
+    },
+    {
+     "id": "p.ready",
+     "name": "restarted while cut off from every member: 503 for about 10 s, then 200 (contract section 10)",
+     "verdict": "PASS",
+     "detail": "readyz over time (s, status): [(0.0, 0), (0.27, 503), (10.1, 200)]",
+     "kill": null
+    },
+    {
+     "id": "p.ready",
+     "name": "and it serves with the state it had: blocks, allowlist, login",
+     "verdict": "PASS",
+     "detail": "{'A1': 403, 'B1': 403, 'allowlisted B2 listed': True, 'session': True}",
+     "kill": "weakens"
+    },
+    {
+     "id": "p.ready",
+     "name": "the block it missed acts on it once the cut ends",
+     "verdict": "PASS",
+     "detail": "after {'p2': 0.024} s",
+     "kill": null
+    },
+    {
+     "id": "p.ready",
+     "name": "restarted with peers 300 ms away: at its first ready answer the block set while it was down acts",
+     "verdict": "PASS",
+     "detail": "readyz over time [(0.0, 0), (0.21, 503), (3.64, 200)]; request of the blocked address at the first 200: 403",
+     "kill": "weakens"
+    },
+    {
+     "id": "p.fresh",
+     "name": "a fresh node that reached none of its named peers does not answer ready (contract section 10: it is not in step)",
+     "verdict": "PASS",
+     "detail": "readyz over 14 s (s, status): [(0.0, 0), (0.4, 503)]",
+     "kill": null
+    },
+    {
+     "id": "p.fresh",
+     "name": "what that node serves with while it answers ready and never reached a peer",
+     "verdict": "INFO",
+     "detail": "request of an address the group blocks: 200 (the group answers 403); login of the group valid: False",
+     "kill": null
+    },
+    {
+     "id": "p.fresh",
+     "name": "once its peers answer it takes the blocks of the group",
+     "verdict": "PASS",
+     "detail": "after {'p3': 0.378} s",
+     "kill": null
+    },
+    {
+     "id": "p.fresh",
+     "name": "the group of 3 shows one state",
+     "verdict": "PASS",
+     "detail": "after 0.21 s; equal",
+     "kill": null
+    },
+    {
+     "id": "p.fresh",
+     "name": "the first node keeps its login after the fresh node joined",
+     "verdict": "PASS",
+     "detail": "session on p1: True",
+     "kill": "weakens"
+    },
+    {
+     "id": "p.all",
+     "name": "over the whole scenario: requests that failed or took over 250 ms on nodes that were up",
+     "verdict": "INFO",
+     "detail": "6771 requests, 19 failed (the restarts of p2 included), slowest 197.82 ms, p99 19.07 ms",
+     "kill": null
+    },
+    {
+     "id": "p.all",
+     "name": "the proxy identified the calling node of every connection",
+     "verdict": "FAIL",
+     "detail": "not identified: 1 of 252",
+     "kill": null
+    }
+   ],
+   "numbers": {
+    "t": {
+     "base_block_s": {
+      "t1": 0.001,
+      "t2": 0.2,
+      "t3": 0.2
+     },
+     "events_before_erasure": [
+      15,
+      15,
+      15
+     ],
+     "delay": {
+      "probe": {
+       "n": 790,
+       "failed": 0,
+       "not_200": 0,
+       "p50_ms": 1.13,
+       "p99_ms": 7.25,
+       "max_ms": 9.89
+      },
+      "block_s": {
+       "t2": 0.438,
+       "t3": 0.438
+      },
+      "api_ms": 0.7,
+      "states": {
+       "t1": "self",
+       "t2": "ok",
+       "t3": "ok"
+      }
+     },
+     "cut_detect_s": {
+      "t1": 3.01,
+      "t3": 0.0
+     },
+     "cut_writes_ms": {
+      "block_a": 0.6,
+      "block_b": 0.5,
+      "allow_a": 0.5,
+      "allow_b": 0.9,
+      "limit_a": 0.9,
+      "limit_b": 0.8,
+      "setting_a": 0.6,
+      "setting_b": 0.8,
+      "lift_a": 1.2,
+      "erase_b": 34.9
+     },
+     "erase_answer": {
+      "ip": "198.51.100.201",
+      "deleted_events": 15,
+      "deleted_sessions": 3,
+      "deleted_allowlist_entries": 0,
+      "erased_requests": 12,
+      "nodes": {
+       "reached": [
+        "t3"
+       ],
+       "open": [
+        "t1",
+        "t2"
+       ]
+      }
+     },
+     "cut_probe": {
+      "n": 1175,
+      "failed": 0,
+      "not_200": 0,
+      "p50_ms": 1.13,
+      "p99_ms": 4.85,
+      "max_ms": 8.15
+     },
+     "heal_same_after_s": 0.42,
+     "heal_snapshots": [
+      {
+       "blocks": [
+        "203.0.113.21",
+        "203.0.113.31",
+        "203.0.113.41"
+       ],
+       "allowlist": [
+        "192.0.2.31",
+        "192.0.2.41"
+       ],
+       "limits": [
+        "t-side-a",
+        "t-side-b"
+       ],
+       "retention": {
+        "raw_ip_days": 9,
+        "events_days": 21,
+        "max_size_mb": 100,
+        "summaries_days": 111
+       }
+      },
+      {
+       "blocks": [
+        "203.0.113.21",
+        "203.0.113.31",
+        "203.0.113.41"
+       ],
+       "allowlist": [
+        "192.0.2.31",
+        "192.0.2.41"
+       ],
+       "limits": [
+        "t-side-a",
+        "t-side-b"
+       ],
+       "retention": {
+        "raw_ip_days": 9,
+        "events_days": 21,
+        "max_size_mb": 100,
+        "summaries_days": 111
+       }
+      },
+      {
+       "blocks": [
+        "203.0.113.21",
+        "203.0.113.31",
+        "203.0.113.41"
+       ],
+       "allowlist": [
+        "192.0.2.31",
+        "192.0.2.41"
+       ],
+       "limits": [
+        "t-side-a",
+        "t-side-b"
+       ],
+       "retention": {
+        "raw_ip_days": 9,
+        "events_days": 21,
+        "max_size_mb": 100,
+        "summaries_days": 111
+       }
+      }
+     ],
+     "oneway": {
+      "probe": {
+       "n": 473,
+       "failed": 0,
+       "not_200": 0,
+       "p50_ms": 1.09,
+       "p99_ms": 6.79,
+       "max_ms": 8.87
+      },
+      "detect": {
+       "t1": 2.62
+      },
+      "forward": {
+       "t2": 0.179,
+       "t3": 0.18
+      },
+      "back": {
+       "t1": 0.98,
+       "t2": 0.98
+      }
+     },
+     "flap": {
+      "probe": {
+       "n": 1336,
+       "failed": 0,
+       "not_200": 0,
+       "p50_ms": 1.16,
+       "p99_ms": 5.45,
+       "max_ms": 12.91
+      },
+      "same_after_s": 1.0612567909993231
+     },
+     "ready_cut_off": {
+      "trace": [
+       [
+        0.0,
+        0
+       ],
+       [
+        0.21,
+        503
+       ],
+       [
+        10.12,
+        200
+       ]
+      ],
+      "kept": {
+       "A1": 403,
+       "B1": 403,
+       "allowlisted B2 listed": true,
+       "session": true
+      }
+     },
+     "ready_delay": {
+      "trace": [
+       [
+        0.0,
+        0
+       ],
+       [
+        0.19,
+        503
+       ],
+       [
+        3.67,
+        200
+       ]
+      ],
+      "blocked_at_ready": 403
+     },
+     "fresh_cut_off": [
+      [
+       0.0,
+       0
+      ],
+      [
+       0.27,
+       503
+      ]
+     ],
+     "fresh_served_without_state": {
+      "A1": 200,
+      "session": false
+     },
+     "probe_all": {
+      "n": 8434,
+      "failed": 18,
+      "not_200": 0,
+      "p50_ms": 1.14,
+      "p99_ms": 5.08,
+      "max_ms": 15.33
+     },
+     "proxy": {
+      "opened": {
+       "?>t1": 1,
+       "t1>t2": 14,
+       "t1>t3": 42,
+       "t2>t1": 16,
+       "t2>t3": 28,
+       "t3>t1": 40,
+       "t3>t2": 33,
+       "t3>t4": 1,
+       "t4>t1": 2,
+       "t4>t2": 2,
+       "t4>t3": 3
+      },
+      "unknown_callers": 1
+     }
+    },
+    "p": {
+     "base_block_s": {
+      "p1": 0.0,
+      "p2": 0.176
+     },
+     "events_before_erasure": [
+      10,
+      10
+     ],
+     "delay": {
+      "probe": {
+       "n": 525,
+       "failed": 0,
+       "not_200": 0,
+       "p50_ms": 1.38,
+       "p99_ms": 4.74,
+       "max_ms": 6.93
+      },
+      "block_s": {
+       "p2": 0.523
+      },
+      "api_ms": 0.8,
+      "states": {
+       "p1": "self",
+       "p2": "ok"
+      }
+     },
+     "cut_detect_s": {
+      "p1": 2.4,
+      "p2": 0.0
+     },
+     "cut_writes_ms": {
+      "block_a": 0.8,
+      "block_b": 0.6,
+      "allow_a": 0.6,
+      "allow_b": 2.3,
+      "limit_a": 3.0,
+      "limit_b": 2.5,
+      "setting_a": 3.7,
+      "setting_b": 3.8,
+      "lift_a": 0.8,
+      "erase_b": 63.5
+     },
+     "erase_answer": {
+      "ip": "198.51.100.206",
+      "deleted_events": 10,
+      "deleted_sessions": 2,
+      "deleted_allowlist_entries": 0,
+      "erased_requests": 8,
+      "nodes": {
+       "reached": [
+        "p2"
+       ],
+       "open": [
+        "p1"
+       ]
+      }
+     },
+     "cut_probe": {
+      "n": 779,
+      "failed": 0,
+      "not_200": 0,
+      "p50_ms": 1.09,
+      "p99_ms": 9.05,
+      "max_ms": 20.22
+     },
+     "heal_same_after_s": 0.36,
+     "heal_snapshots": [
+      {
+       "blocks": [
+        "203.0.113.26",
+        "203.0.113.36",
+        "203.0.113.46"
+       ],
+       "allowlist": [
+        "192.0.2.36",
+        "192.0.2.46"
+       ],
+       "limits": [
+        "p-side-a",
+        "p-side-b"
+       ],
+       "retention": {
+        "raw_ip_days": 9,
+        "events_days": 21,
+        "max_size_mb": 100,
+        "summaries_days": 111
+       }
+      },
+      {
+       "blocks": [
+        "203.0.113.26",
+        "203.0.113.36",
+        "203.0.113.46"
+       ],
+       "allowlist": [
+        "192.0.2.36",
+        "192.0.2.46"
+       ],
+       "limits": [
+        "p-side-a",
+        "p-side-b"
+       ],
+       "retention": {
+        "raw_ip_days": 9,
+        "events_days": 21,
+        "max_size_mb": 100,
+        "summaries_days": 111
+       }
+      }
+     ],
+     "oneway": {
+      "probe": {
+       "n": 1325,
+       "failed": 0,
+       "not_200": 0,
+       "p50_ms": 2.19,
+       "p99_ms": 29.67,
+       "max_ms": 88.09
+      },
+      "detect": {
+       "p1": 2.74
+      },
+      "forward": {
+       "p2": null
+      },
+      "back": {
+       "p1": null
+      }
+     },
+     "flap": {
+      "probe": {
+       "n": 948,
+       "failed": 0,
+       "not_200": 0,
+       "p50_ms": 1.6,
+       "p99_ms": 14.02,
+       "max_ms": 197.82
+      },
+      "same_after_s": 2.099757249932736
+     },
+     "ready_cut_off": {
+      "trace": [
+       [
+        0.0,
+        0
+       ],
+       [
+        0.27,
+        503
+       ],
+       [
+        10.1,
+        200
+       ]
+      ],
+      "kept": {
+       "A1": 403,
+       "B1": 403,
+       "allowlisted B2 listed": true,
+       "session": true
+      }
+     },
+     "ready_delay": {
+      "trace": [
+       [
+        0.0,
+        0
+       ],
+       [
+        0.21,
+        503
+       ],
+       [
+        3.64,
+        200
+       ]
+      ],
+      "blocked_at_ready": 403
+     },
+     "fresh_cut_off": [
+      [
+       0.0,
+       0
+      ],
+      [
+       0.4,
+       503
+      ]
+     ],
+     "fresh_served_without_state": {
+      "A1": 200,
+      "session": false
+     },
+     "probe_all": {
+      "n": 6771,
+      "failed": 19,
+      "not_200": 0,
+      "p50_ms": 1.28,
+      "p99_ms": 19.07,
+      "max_ms": 197.82
+     },
+     "proxy": {
+      "opened": {
+       "?>t1": 1,
+       "p1>p2": 35,
+       "p2>p1": 27,
+       "p2>p3": 1,
+       "p3>p1": 3,
+       "p3>p2": 4,
+       "t1>t2": 14,
+       "t1>t3": 42,
+       "t2>t1": 16,
+       "t2>t3": 28,
+       "t3>t1": 40,
+       "t3>t2": 33,
+       "t3>t4": 1,
+       "t4>t1": 2,
+       "t4>t2": 2,
+       "t4>t3": 3
+      },
+      "unknown_callers": 1
+     }
+    },
+    "took_s": 174.0
+   }
+  },
+  {
+   "scenario": "s2_crashes",
+   "started": "2026-11-22T16:43:49Z",
+   "finished": "2026-11-22T16:50:24Z",
+   "git_rev": "3971e35c760c",
+   "checks": [
+    {
+     "id": "c.setup",
+     "name": "3 gateways start as one group",
+     "verdict": "PASS",
+     "detail": "readyz 200 after [1.5, 1.49, 1.49] s; every node lists every other as ok after 5.8 s from the start",
+     "kill": null
+    },
+    {
+     "id": "c.setup",
+     "name": "first-run setup on c1, its session works on every node",
+     "verdict": "PASS",
+     "detail": "setup 200; session valid everywhere after 0.21 s",
+     "kill": null
+    },
+    {
+     "id": "c.kill9",
+     "name": "round 1: kill -9 of c3 while it takes writes: every write it answered with 2xx is on every node afterwards",
+     "verdict": "PASS",
+     "detail": "1600 writes answered (1588 allowlist entries, 12 blocks), the last 0.9 ms before the kill; missing afterwards per node {'c1': 0, 'c2': 0, 'c3': 0}",
+     "kill": "weakens"
+    },
+    {
+     "id": "c.kill9",
+     "name": "round 1: c3 starts again and is ready, nothing in its log about a damaged store",
+     "verdict": "PASS",
+     "detail": "ready after 5.47 s; log lines matching /panic:|fatal error|database disk image is malformed|corrupt/: []",
+     "kill": null
+    },
+    {
+     "id": "c.kill9",
+     "name": "round 1: the two other nodes serve on without a failed or slow request",
+     "verdict": "PASS",
+     "detail": "646 requests, 0 failed, 0 not 200, p50 0.87 ms, p99 3.43 ms, slowest 10.28 ms (limit 250 ms)",
+     "kill": "waits"
+    },
+    {
+     "id": "c.kill9",
+     "name": "round 1: afterwards the three nodes hold the same number of single requests (25 s)",
+     "verdict": "FAIL",
+     "detail": "requests held by c1, c2, c3: [3070, 3071, 2782]; c3 lacks 289 more than before this round; c3 was killed 2.8 s into the load and had answered per second until then: [100, 100, 79] (in all 279); log of c3 about its request store: nothing",
+     "kill": null
+    },
+    {
+     "id": "c.kill9",
+     "name": "round 2: kill -9 of c3 while it takes writes: every write it answered with 2xx is on every node afterwards",
+     "verdict": "PASS",
+     "detail": "772 writes answered (760 allowlist entries, 12 blocks), the last 0.3 ms before the kill; missing afterwards per node {'c1': 0, 'c2': 0, 'c3': 0}",
+     "kill": "weakens"
+    },
+    {
+     "id": "c.kill9",
+     "name": "round 2: c3 starts again and is ready, nothing in its log about a damaged store",
+     "verdict": "PASS",
+     "detail": "ready after 5.54 s; log lines matching /panic:|fatal error|database disk image is malformed|corrupt/: []",
+     "kill": null
+    },
+    {
+     "id": "c.kill9",
+     "name": "round 2: the two other nodes serve on without a failed or slow request",
+     "verdict": "PASS",
+     "detail": "583 requests, 0 failed, 0 not 200, p50 0.96 ms, p99 6.30 ms, slowest 11.5 ms (limit 250 ms)",
+     "kill": "waits"
+    },
+    {
+     "id": "c.kill9",
+     "name": "round 2: afterwards the three nodes hold the same number of single requests (25 s)",
+     "verdict": "FAIL",
+     "detail": "requests held by c1, c2, c3: [6058, 6061, 5704]; c3 lacks 68 more than before this round; c3 was killed 2.9 s into the load and had answered per second until then: [100, 100, 90] (in all 290); log of c3 about its request store: nothing",
+     "kill": null
+    },
+    {
+     "id": "c.kill9",
+     "name": "round 3: kill -9 of c3 while it takes writes: every write it answered with 2xx is on every node afterwards",
+     "verdict": "PASS",
+     "detail": "657 writes answered (645 allowlist entries, 12 blocks), the last 5.7 ms before the kill; missing afterwards per node {'c1': 0, 'c2': 0, 'c3': 0}",
+     "kill": "weakens"
+    },
+    {
+     "id": "c.kill9",
+     "name": "round 3: c3 starts again and is ready, nothing in its log about a damaged store",
+     "verdict": "PASS",
+     "detail": "ready after 5.54 s; log lines matching /panic:|fatal error|database disk image is malformed|corrupt/: []",
+     "kill": null
+    },
+    {
+     "id": "c.kill9",
+     "name": "round 3: the two other nodes serve on without a failed or slow request",
+     "verdict": "PASS",
+     "detail": "578 requests, 0 failed, 0 not 200, p50 0.95 ms, p99 4.54 ms, slowest 8.95 ms (limit 250 ms)",
+     "kill": "waits"
+    },
+    {
+     "id": "c.kill9",
+     "name": "round 3: afterwards the three nodes hold the same number of single requests (25 s)",
+     "verdict": "FAIL",
+     "detail": "requests held by c1, c2, c3: [9096, 9101, 8691]; c3 lacks 53 more than before this round; c3 was killed 3.4 s into the load and had answered per second until then: [100, 100, 100, 41] (in all 341); log of c3 about its request store: nothing",
+     "kill": null
+    },
+    {
+     "id": "c.kill9",
+     "name": "round 4: kill -9 of c3 while it takes writes: every write it answered with 2xx is on every node afterwards",
+     "verdict": "PASS",
+     "detail": "301 writes answered (289 allowlist entries, 12 blocks), the last 7.6 ms before the kill; missing afterwards per node {'c1': 0, 'c2': 0, 'c3': 0}",
+     "kill": "weakens"
+    },
+    {
+     "id": "c.kill9",
+     "name": "round 4: c3 starts again and is ready, nothing in its log about a damaged store",
+     "verdict": "PASS",
+     "detail": "ready after 5.53 s; log lines matching /panic:|fatal error|database disk image is malformed|corrupt/: []",
+     "kill": null
+    },
+    {
+     "id": "c.kill9",
+     "name": "round 4: the two other nodes serve on without a failed or slow request",
+     "verdict": "PASS",
+     "detail": "579 requests, 0 failed, 0 not 200, p50 0.97 ms, p99 3.46 ms, slowest 16.19 ms (limit 250 ms)",
+     "kill": "waits"
+    },
+    {
+     "id": "c.kill9",
+     "name": "round 4: afterwards the three nodes hold the same number of single requests (25 s)",
+     "verdict": "FAIL",
+     "detail": "requests held by c1, c2, c3: [11991, 11996, 11586]; c3 lacks 0 more than before this round; c3 was killed 1.9 s into the load and had answered per second until then: [100, 89] (in all 189); log of c3 about its request store: nothing",
+     "kill": null
+    },
+    {
+     "id": "c.kill9",
+     "name": "after the rounds every node shows the same state",
+     "verdict": "PASS",
+     "detail": "equal",
+     "kill": null
+    },
+    {
+     "id": "c.rolling",
+     "name": "every node stopped (SIGTERM, drain) and started in turn under 300 requests a second that follow readyz: no request fails",
+     "verdict": "PASS",
+     "detail": "requests 11400, failed 0, statuses {'200': 11400}; steps [{'node': 'c1', 'stopped': True, 'down_s': 9.54, 'ready_s': 5.501654583960772}, {'node': 'c2', 'stopped': True, 'down_s': 9.62, 'ready_s': 5.54800312500447}, {'node': 'c3', 'stopped': True, 'down_s': 9.56, 'ready_s': 5.5399470827542245}]",
+     "kill": "waits"
+    },
+    {
+     "id": "c.rolling",
+     "name": "the state is the same on every node and as before",
+     "verdict": "PASS",
+     "detail": "equal to before: True",
+     "kill": "weakens"
+    },
+    {
+     "id": "c.rolling",
+     "name": "every node killed (kill -9) and started in turn: all return ready with the same state as before",
+     "verdict": "PASS",
+     "detail": "steps [{'node': 'c1', 'ready_s': 5.601699041668326}, {'node': 'c2', 'ready_s': 5.5568442908115685}, {'node': 'c3', 'ready_s': 5.52348858397454}]; equal",
+     "kill": "weakens"
+    },
+    {
+     "id": "c.all",
+     "name": "round 1: all three killed at the same moment (kill -9) and started together: ready, same state as before, login valid",
+     "verdict": "PASS",
+     "detail": "ready after [5.57, 5.56, 5.56] s; equal; equal to before: True; sessions [True, True, True]; a block of before acts {'c1': 0.001, 'c2': 0.001, 'c3': 0.002}",
+     "kill": "weakens"
+    },
+    {
+     "id": "c.all",
+     "name": "round 1: no stored single request is lost by the kill (nothing was in flight for 3 s)",
+     "verdict": "PASS",
+     "detail": "requests held by c1, c2, c3 before [23971, 23985, 23581], after the restart [23974, 23988, 23584], lost [-3, -3, -3]; log about a damaged store: nothing",
+     "kill": null
+    },
+    {
+     "id": "c.all",
+     "name": "round 2: all three killed at the same moment (kill -9) and started together: ready, same state as before, login valid",
+     "verdict": "PASS",
+     "detail": "ready after [5.54, 5.53, 5.53] s; equal; equal to before: True; sessions [True, True, True]; a block of before acts {'c1': 0.001, 'c2': 0.001, 'c3': 0.001}",
+     "kill": "weakens"
+    },
+    {
+     "id": "c.all",
+     "name": "round 2: no stored single request is lost by the kill (nothing was in flight for 3 s)",
+     "verdict": "PASS",
+     "detail": "requests held by c1, c2, c3 before [24574, 24588, 24184], after the restart [24577, 24591, 24187], lost [-3, -3, -3]; log about a damaged store: nothing",
+     "kill": null
+    },
+    {
+     "id": "c.all",
+     "name": "round 3: all three killed at the same moment (kill -9) and started together: ready, same state as before, login valid",
+     "verdict": "PASS",
+     "detail": "ready after [5.59, 5.58, 5.58] s; equal; equal to before: True; sessions [True, True, True]; a block of before acts {'c1': 0.001, 'c2': 0.001, 'c3': 0.002}",
+     "kill": "weakens"
+    },
+    {
+     "id": "c.all",
+     "name": "round 3: no stored single request is lost by the kill (nothing was in flight for 3 s)",
+     "verdict": "PASS",
+     "detail": "requests held by c1, c2, c3 before [25177, 25191, 24787], after the restart [25180, 25194, 24790], lost [-3, -3, -3]; log about a damaged store: nothing",
+     "kill": null
+    },
+    {
+     "id": "c.empty",
+     "name": "c3 returns with an empty cluster directory (new key): ready, and the block set meanwhile acts at its first ready answer",
+     "verdict": "PASS",
+     "detail": "ready after 2.33 s, request of the blocked address at ready 403",
+     "kill": null
+    },
+    {
+     "id": "c.empty",
+     "name": "the state of the two others is unchanged and c3 holds it too; the login stays",
+     "verdict": "PASS",
+     "detail": "equal; c1 equal to before plus the new block: True; sessions [True, True, True]",
+     "kill": "weakens"
+    },
+    {
+     "id": "c.empty",
+     "name": "12 s later: the state of the group on c1 and what became of the former identity of c3",
+     "verdict": "INFO",
+     "detail": "state degraded; members (name, id, state) [('c1', 'n-48a748ea', 'self'), ('c2', 'n-1338e11a', 'ok'), ('c3', 'n-8bd301aa', 'unreachable'), ('c3', 'n-ac3c7300', 'ok')]; the former identity of c3 is still listed as unreachable",
+     "kill": null
+    },
+    {
+     "id": "c.empty",
+     "name": "`schild cluster remove <former id>` clears it and the group is active with the new c3",
+     "verdict": "PASS",
+     "detail": "remove rc 0 (c3 (n-8bd301aa7e7abca85030d4f89afe3597) is no member any more. On that node: cluster.enabled false, and delete its clust); state active; members [('c1', 'n-48a748ea', 'self'), ('c2', 'n-1338e11a', 'ok'), ('c3', 'n-ac3c7300', 'ok'), ('c3', 'n-8bd301aa', 'removed')]",
+     "kill": null
+    },
+    {
+     "id": "c.empty",
+     "name": "after that a block of c1 still reaches the new c3",
+     "verdict": "PASS",
+     "detail": "seconds {'c1': 0.002, 'c2': 0.077, 'c3': 0.078}",
+     "kill": "weakens"
+    },
+    {
+     "id": "c.readonly",
+     "name": "data directory of c2 made read-only while it runs: the other two serve without a failed or slow request",
+     "verdict": "PASS",
+     "detail": "359 requests, 0 failed, 0 not 200, p50 3.86 ms, p99 28.62 ms, slowest 33.06 ms (limit 250 ms)",
+     "kill": "waits"
+    },
+    {
+     "id": "c.readonly",
+     "name": "c2 itself goes on serving requests",
+     "verdict": "PASS",
+     "detail": "180 requests, 0 failed, 0 not 200, p50 3.72 ms, p99 23.32 ms, slowest 26.48 ms (limit 250 ms)",
+     "kill": null
+    },
+    {
+     "id": "c.readonly",
+     "name": "a block set on c1 still acts on c2 (it cannot store it)",
+     "verdict": "PASS",
+     "detail": "seconds {'c1': 0.004, 'c2': 0.201, 'c3': 0.21}",
+     "kill": null
+    },
+    {
+     "id": "c.readonly",
+     "name": "what c2 answers to a change made on it, its readiness and its log",
+     "verdict": "INFO",
+     "detail": "POST /allowlist 201 None; POST /blocks 200; readyz 200; 2 WARN or ERROR lines, e.g. ['\"request ring: cannot write the number of the served log\",\"component\":\"schild\",\"err\":\"open /tmp/sg27h-vpl8pljk/c2/data/requests/served.seq.tmp: permission denie', '\"kept behaviour block not written\",\"component\":\"schild\",\"err\":\"attempt to write a readonly database (8)\"}']",
+     "kill": null
+    },
+    {
+     "id": "c.readonly",
+     "name": "c2 does not report success for a change it could not store",
+     "verdict": "PASS",
+     "detail": "POST /allowlist on c2 answered 201; the entry is on c1: True",
+     "kill": null
+    },
+    {
+     "id": "c.readonly",
+     "name": "writable again: every node shows the same state within 25 s",
+     "verdict": "PASS",
+     "detail": "after 0.04 s; equal",
+     "kill": null
+    },
+    {
+     "id": "c.readonly",
+     "name": "c2 restarted afterwards: ready, same state",
+     "verdict": "PASS",
+     "detail": "ready 5.59 s; equal",
+     "kill": null
+    },
+    {
+     "id": "c.readonly",
+     "name": "a start on a read-only data directory",
+     "verdict": "INFO",
+     "detail": "process exited with 1; readyz None; last log: schild\",\"from\":\"c1\"} {\"time\":\"2026-11-22T17:49:52.25592+01:00\",\"level\":\"INFO\",\"msg\":\"preflight passed: no test keys, no test key ids, no test lab CA\",\"component\":\"schild\"} schild: gateway lock /tmp/sg27h-vpl8pljk/c2/data/gateway.lock: open /tmp/sg27h-vpl8pljk/c2/data/gateway.lock: permission denied ",
+     "kill": null
+    },
+    {
+     "id": "c.full",
+     "name": "the volume of c4 is full (34312192 bytes free): the other three serve without a failed or slow request",
+     "verdict": "PASS",
+     "detail": "1415 requests, 0 failed, 0 not 200, p50 0.90 ms, p99 4.21 ms, slowest 16.04 ms (limit 250 ms)",
+     "kill": "waits"
+    },
+    {
+     "id": "c.full",
+     "name": "c4 itself goes on serving requests",
+     "verdict": "PASS",
+     "detail": "471 requests, 0 failed, 0 not 200, p50 0.90 ms, p99 3.89 ms, slowest 12.36 ms (limit 250 ms)",
+     "kill": null
+    },
+    {
+     "id": "c.full",
+     "name": "a block set on c1 still acts on c4",
+     "verdict": "PASS",
+     "detail": "seconds {'c1': 0.0, 'c2': 0.138, 'c3': 0.114, 'c4': 0.118}",
+     "kill": null
+    },
+    {
+     "id": "c.full",
+     "name": "what c4 answers to changes made on it, its readiness and its log",
+     "verdict": "INFO",
+     "detail": "POST /allowlist 201, POST /blocks 200, both then on c1: {'allow 10.99.0.4 on c1': True, 'block .221 on c1': 403}; readyz 200; load over the four nodes: 0 failed of 4000, statuses on c4 {'200': 1000}; 3 WARN or ERROR lines, e.g. ['\"monitoring: the history of another node cannot be opened\",\"component\":\"schild\",\"node\":\"n-ac3c7300e9b4b5d3eaab7c22fc596f11\",\"err\":\"metrics.db: disk I/O error (4', '\"cluster: the metric buckets of another node could not be stored\",\"component\":\"schild\",\"from\":\"c2\",\"err\":\"metrics.db: disk I/O error (4874)\"}']",
+     "kill": null
+    },
+    {
+     "id": "c.full",
+     "name": "c4 does not report success for a change that is lost",
+     "verdict": "PASS",
+     "detail": "allowlist 201 reached c1: True; block 200 acts on c1: 403",
+     "kill": null
+    },
+    {
+     "id": "c.full",
+     "name": "space again: every node shows the same state within 30 s",
+     "verdict": "PASS",
+     "detail": "after 0.03 s; equal",
+     "kill": null
+    },
+    {
+     "id": "c.full",
+     "name": "c4 restarted afterwards: ready, same state, no damaged store in its log",
+     "verdict": "PASS",
+     "detail": "ready 5.65 s; equal; bad lines []",
+     "kill": null
+    }
+   ],
+   "numbers": {
+    "kill9_rounds": [
+     {
+      "acked": 1600,
+      "last_ack_before_kill_ms": 0.9,
+      "ready_s": 5.474624500144273,
+      "missing": {
+       "c1": [],
+       "c2": [],
+       "c3": []
+      },
+      "missing_n": {
+       "c1": 0,
+       "c2": 0,
+       "c3": 0
+      },
+      "bad_log": [],
+      "others": {
+       "n": 646,
+       "failed": 0,
+       "not_200": 0,
+       "p50_ms": 0.87,
+       "p99_ms": 3.43,
+       "max_ms": 10.28
+      },
+      "load": {
+       "rps_asked": 300,
+       "rps_achieved": 300.1,
+       "sent": 2400,
+       "status": {
+        "0": 121,
+        "200": 2279
+       },
+       "failed": 121,
+       "skipped": 0,
+       "max_queue_lag_ms": 7,
+       "latency_ms": {
+        "max": 18.931,
+        "min": 0.572,
+        "n": 2279,
+        "p50": 0.794,
+        "p90": 1.222,
+        "p99": 3.079,
+        "p999": 11.4
+       },
+       "per_target": [
+        {
+         "status": {
+          "200": 800
+         },
+         "p50": 0.78,
+         "p99": 3.526,
+         "max": 10.953
+        },
+        {
+         "status": {
+          "200": 800
+         },
+         "p50": 0.785,
+         "p99": 2.97,
+         "max": 11.6
+        },
+        {
+         "status": {
+          "0": 121,
+          "200": 679
+         },
+         "p50": 0.821,
+         "p99": 2.826,
+         "max": 18.931
+        }
+       ]
+      },
+      "requests_held": [
+       3070,
+       3071,
+       2782
+      ],
+      "killed_s_into_load": 2.8,
+      "c3_answered_per_second": [
+       100,
+       100,
+       79,
+       0,
+       100,
+       100,
+       100,
+       100,
+       0
+      ],
+      "c3_lacks": 289
+     },
+     {
+      "acked": 772,
+      "last_ack_before_kill_ms": 0.3,
+      "ready_s": 5.540833916049451,
+      "missing": {
+       "c1": [],
+       "c2": [],
+       "c3": []
+      },
+      "missing_n": {
+       "c1": 0,
+       "c2": 0,
+       "c3": 0
+      },
+      "bad_log": [],
+      "others": {
+       "n": 583,
+       "failed": 0,
+       "not_200": 0,
+       "p50_ms": 0.96,
+       "p99_ms": 6.3,
+       "max_ms": 11.5
+      },
+      "load": {
+       "rps_asked": 300,
+       "rps_achieved": 300.1,
+       "sent": 2400,
+       "status": {
+        "0": 125,
+        "200": 2275
+       },
+       "failed": 125,
+       "skipped": 0,
+       "max_queue_lag_ms": 7,
+       "latency_ms": {
+        "max": 15.671,
+        "min": 0.554,
+        "n": 2275,
+        "p50": 0.814,
+        "p90": 1.709,
+        "p99": 4.811,
+        "p999": 10.114
+       },
+       "per_target": [
+        {
+         "status": {
+          "200": 800
+         },
+         "p50": 0.804,
+         "p99": 3.771,
+         "max": 10.114
+        },
+        {
+         "status": {
+          "200": 800
+         },
+         "p50": 0.804,
+         "p99": 4.179,
+         "max": 15.671
+        },
+        {
+         "status": {
+          "0": 125,
+          "200": 675
+         },
+         "p50": 0.841,
+         "p99": 4.811,
+         "max": 10.957
+        }
+       ]
+      },
+      "requests_held": [
+       6058,
+       6061,
+       5704
+      ],
+      "killed_s_into_load": 2.92,
+      "c3_answered_per_second": [
+       100,
+       100,
+       90,
+       0,
+       85,
+       100,
+       100,
+       100,
+       0
+      ],
+      "c3_lacks": 68
+     },
+     {
+      "acked": 657,
+      "last_ack_before_kill_ms": 5.7,
+      "ready_s": 5.54305904218927,
+      "missing": {
+       "c1": [],
+       "c2": [],
+       "c3": []
+      },
+      "missing_n": {
+       "c1": 0,
+       "c2": 0,
+       "c3": 0
+      },
+      "bad_log": [],
+      "others": {
+       "n": 578,
+       "failed": 0,
+       "not_200": 0,
+       "p50_ms": 0.95,
+       "p99_ms": 4.54,
+       "max_ms": 8.95
+      },
+      "load": {
+       "rps_asked": 300,
+       "rps_achieved": 300.1,
+       "sent": 2400,
+       "status": {
+        "0": 122,
+        "200": 2278
+       },
+       "failed": 122,
+       "skipped": 0,
+       "max_queue_lag_ms": 6,
+       "latency_ms": {
+        "max": 9.839,
+        "min": 0.591,
+        "n": 2278,
+        "p50": 0.806,
+        "p90": 1.282,
+        "p99": 2.946,
+        "p999": 7.773
+       },
+       "per_target": [
+        {
+         "status": {
+          "200": 800
+         },
+         "p50": 0.8,
+         "p99": 2.639,
+         "max": 7.773
+        },
+        {
+         "status": {
+          "200": 800
+         },
+         "p50": 0.793,
+         "p99": 2.833,
+         "max": 6.103
+        },
+        {
+         "status": {
+          "0": 122,
+          "200": 678
+         },
+         "p50": 0.831,
+         "p99": 3.543,
+         "max": 9.839
+        }
+       ]
+      },
+      "requests_held": [
+       9096,
+       9101,
+       8691
+      ],
+      "killed_s_into_load": 3.42,
+      "c3_answered_per_second": [
+       100,
+       100,
+       100,
+       41,
+       37,
+       100,
+       100,
+       100,
+       0
+      ],
+      "c3_lacks": 53
+     },
+     {
+      "acked": 301,
+      "last_ack_before_kill_ms": 7.6,
+      "ready_s": 5.525814542081207,
+      "missing": {
+       "c1": [],
+       "c2": [],
+       "c3": []
+      },
+      "missing_n": {
+       "c1": 0,
+       "c2": 0,
+       "c3": 0
+      },
+      "bad_log": [],
+      "others": {
+       "n": 579,
+       "failed": 0,
+       "not_200": 0,
+       "p50_ms": 0.97,
+       "p99_ms": 3.46,
+       "max_ms": 16.19
+      },
+      "load": {
+       "rps_asked": 300,
+       "rps_achieved": 300.1,
+       "sent": 2400,
+       "status": {
+        "0": 121,
+        "200": 2279
+       },
+       "failed": 121,
+       "skipped": 0,
+       "max_queue_lag_ms": 7,
+       "latency_ms": {
+        "max": 12.858,
+        "min": 0.568,
+        "n": 2279,
+        "p50": 0.859,
+        "p90": 1.378,
+        "p99": 3.57,
+        "p999": 11.475
+       },
+       "per_target": [
+        {
+         "status": {
+          "200": 800
+         },
+         "p50": 0.845,
+         "p99": 3.304,
+         "max": 10.366
+        },
+        {
+         "status": {
+          "200": 800
+         },
+         "p50": 0.845,
+         "p99": 3.336,
+         "max": 11.475
+        },
+        {
+         "status": {
+          "0": 121,
+          "200": 679
+         },
+         "p50": 0.899,
+         "p99": 3.829,
+         "max": 12.858
+        }
+       ]
+      },
+      "requests_held": [
+       11991,
+       11996,
+       11586
+      ],
+      "killed_s_into_load": 1.9,
+      "c3_answered_per_second": [
+       100,
+       89,
+       0,
+       90,
+       100,
+       100,
+       100,
+       100,
+       0
+      ],
+      "c3_lacks": 0
+     }
+    ],
+    "rolling_term": {
+     "steps": [
+      {
+       "node": "c1",
+       "stopped": true,
+       "down_s": 9.54,
+       "ready_s": 5.501654583960772
+      },
+      {
+       "node": "c2",
+       "stopped": true,
+       "down_s": 9.62,
+       "ready_s": 5.54800312500447
+      },
+      {
+       "node": "c3",
+       "stopped": true,
+       "down_s": 9.56,
+       "ready_s": 5.5399470827542245
+      }
+     ],
+     "load": {
+      "rps_asked": 300,
+      "rps_achieved": 300.0,
+      "sent": 11400,
+      "status": {
+       "200": 11400
+      },
+      "failed": 0,
+      "skipped": 0,
+      "max_queue_lag_ms": 15,
+      "latency_ms": {
+       "max": 22.104,
+       "min": 0.507,
+       "n": 11400,
+       "p50": 0.796,
+       "p90": 1.639,
+       "p99": 3.182,
+       "p999": 11.396
+      },
+      "per_target": [
+       {
+        "status": {
+         "200": 3780
+        },
+        "p50": 0.804,
+        "p99": 3.559,
+        "max": 19.107
+       },
+       {
+        "status": {
+         "200": 3801
+        },
+        "p50": 0.805,
+        "p99": 3.134,
+        "max": 22.104
+       },
+       {
+        "status": {
+         "200": 3819
+        },
+        "p50": 0.78,
+        "p99": 3.047,
+        "max": 20.091
+       }
+      ]
+     },
+     "first_failures": []
+    },
+    "rolling_kill": [
+     {
+      "node": "c1",
+      "ready_s": 5.601699041668326
+     },
+     {
+      "node": "c2",
+      "ready_s": 5.5568442908115685
+     },
+     {
+      "node": "c3",
+      "ready_s": 5.52348858397454
+     }
+    ],
+    "all_at_once_requests": [
+     {
+      "before": [
+       23971,
+       23985,
+       23581
+      ],
+      "after": [
+       23974,
+       23988,
+       23584
+      ],
+      "lost": [
+       -3,
+       -3,
+       -3
+      ],
+      "log": []
+     },
+     {
+      "before": [
+       24574,
+       24588,
+       24184
+      ],
+      "after": [
+       24577,
+       24591,
+       24187
+      ],
+      "lost": [
+       -3,
+       -3,
+       -3
+      ],
+      "log": []
+     },
+     {
+      "before": [
+       25177,
+       25191,
+       24787
+      ],
+      "after": [
+       25180,
+       25194,
+       24790
+      ],
+      "lost": [
+       -3,
+       -3,
+       -3
+      ],
+      "log": []
+     }
+    ],
+    "all_at_once": [
+     {
+      "ready_s": [
+       5.566048374865204,
+       5.563613166566938,
+       5.562123874668032
+      ],
+      "same": true,
+      "equal_before": true
+     },
+     {
+      "ready_s": [
+       5.53739408403635,
+       5.533909916877747,
+       5.532134749926627
+      ],
+      "same": true,
+      "equal_before": true
+     },
+     {
+      "ready_s": [
+       5.585973291192204,
+       5.5828438750468194,
+       5.581216167192906
+      ],
+      "same": true,
+      "equal_before": true
+     }
+    ],
+    "empty_cluster_dir": {
+     "members_on_c1": [
+      [
+       "c1",
+       "n-48a748ea",
+       "self"
+      ],
+      [
+       "c2",
+       "n-1338e11a",
+       "ok"
+      ],
+      [
+       "c3",
+       "n-8bd301aa",
+       "unreachable"
+      ],
+      [
+       "c3",
+       "n-ac3c7300",
+       "ok"
+      ]
+     ],
+     "state_on_c1": "degraded",
+     "old_id": "n-8bd301aa7e7abca85030d4f89afe3597",
+     "after_remove": {
+      "members": [
+       [
+        "c1",
+        "n-48a748ea",
+        "self"
+       ],
+       [
+        "c2",
+        "n-1338e11a",
+        "ok"
+       ],
+       [
+        "c3",
+        "n-ac3c7300",
+        "ok"
+       ],
+       [
+        "c3",
+        "n-8bd301aa",
+        "removed"
+       ]
+      ],
+      "state": "active"
+     }
+    },
+    "read_only": {
+     "probe_all": {
+      "n": 538,
+      "failed": 0,
+      "not_200": 0,
+      "p50_ms": 3.87,
+      "p99_ms": 26.48,
+      "max_ms": 33.06
+     },
+     "probe_others": {
+      "n": 359,
+      "failed": 0,
+      "not_200": 0,
+      "p50_ms": 3.86,
+      "p99_ms": 28.62,
+      "max_ms": 33.06
+     },
+     "block_of_c1_acts_s": {
+      "c1": 0.004,
+      "c2": 0.201,
+      "c3": 0.21
+     },
+     "allowlist_on_ro_node": [
+      201,
+      {
+       "id": "al_4aeebdbac37c",
+       "ip": "10.99.0.1",
+       "label": "read-only",
+       "level": "no_block",
+       "expires": "never",
+       "expired": false,
+       "created_at": "2026-11-22T16:49:41Z",
+       "source": "dashboard"
+      }
+     ],
+     "block_on_ro_node": [
+      200,
+      "ok"
+     ],
+     "readyz": 200,
+     "log_warn_error_lines": 2,
+     "log_examples": [
+      "{\"time\":\"2026-11-22T17:49:40.557535+01:00\",\"level\":\"WARN\",\"msg\":\"request ring: cannot write the number of the served log\",\"component\":\"schild\",\"err\":\"open /tmp/sg27h-vpl8pljk/c2/data/requests/served.seq.tmp: permission denied\"}",
+      "{\"time\":\"2026-11-22T17:49:41.551299+01:00\",\"level\":\"ERROR\",\"msg\":\"kept behaviour block not written\",\"component\":\"schild\",\"err\":\"attempt to write a readonly database (8)\"}"
+     ],
+     "start": {
+      "exited": true,
+      "rc": 1,
+      "readyz": null
+     }
+    },
+    "full_disk": {
+     "free_bytes": 34312192,
+     "others": {
+      "n": 1415,
+      "failed": 0,
+      "not_200": 0,
+      "p50_ms": 0.9,
+      "p99_ms": 4.21,
+      "max_ms": 16.04
+     },
+     "c4": {
+      "n": 471,
+      "failed": 0,
+      "not_200": 0,
+      "p50_ms": 0.9,
+      "p99_ms": 3.89,
+      "max_ms": 12.36
+     },
+     "block_of_c1_acts_s": {
+      "c1": 0.0,
+      "c2": 0.138,
+      "c3": 0.114,
+      "c4": 0.118
+     },
+     "allowlist_on_full": [
+      201,
+      "ok"
+     ],
+     "block_on_full": [
+      200,
+      "ok"
+     ],
+     "readyz": 200,
+     "load": {
+      "rps_asked": 400,
+      "rps_achieved": 400.1,
+      "sent": 4000,
+      "status": {
+       "200": 4000
+      },
+      "failed": 0,
+      "skipped": 0,
+      "max_queue_lag_ms": 12,
+      "latency_ms": {
+       "max": 19.418,
+       "min": 0.584,
+       "n": 4000,
+       "p50": 0.788,
+       "p90": 0.99,
+       "p99": 4.53,
+       "p999": 15.42
+      },
+      "per_target": [
+       {
+        "status": {
+         "200": 1000
+        },
+        "p50": 0.79,
+        "p99": 4.203,
+        "max": 16.253
+       },
+       {
+        "status": {
+         "200": 1000
+        },
+        "p50": 0.784,
+        "p99": 3.589,
+        "max": 14.298
+       },
+       {
+        "status": {
+         "200": 1000
+        },
+        "p50": 0.788,
+        "p99": 5.693,
+        "max": 19.418
+       },
+       {
+        "status": {
+         "200": 1000
+        },
+        "p50": 0.786,
+        "p99": 3.61,
+        "max": 17.633
+       }
+      ]
+     },
+     "log_lines": 3,
+     "log_examples": [
+      "{\"time\":\"2026-11-22T17:50:09.360101+01:00\",\"level\":\"WARN\",\"msg\":\"monitoring: the history of another node cannot be opened\",\"component\":\"schild\",\"node\":\"n-ac3c7300e9b4b5d3eaab7c22fc596f11\",\"err\":\"metrics.db: disk I/O error (4874)\"}",
+      "{\"time\":\"2026-11-22T17:50:09.36665+01:00\",\"level\":\"WARN\",\"msg\":\"cluster: the metric buckets of another node could not be stored\",\"component\":\"schild\",\"from\":\"c2\",\"err\":\"metrics.db: disk I/O error (4874)\"}",
+      "{\"time\":\"2026-11-22T17:50:14.401652+01:00\",\"level\":\"WARN\",\"msg\":\"request ring: cannot write the number of the served log\",\"component\":\"schild\",\"err\":\"rename /tmp/sg27h-vpl8pljk/c4/data/requests/served.seq.tmp /tmp/sg27h-vpl8pljk/c4/data/requests/served.seq: no space left on device\"}"
+     ],
+     "reach": {
+      "allow 10.99.0.4 on c1": true,
+      "block .221 on c1": 403
+     }
+    },
+    "took_s": 393.6
+   }
+  },
+  {
+   "scenario": "s3_load",
+   "started": "2026-11-22T17:23:01Z",
+   "finished": "2026-11-22T17:36:22Z",
+   "git_rev": "3971e35c760c",
+   "checks": [
+    {
+     "id": "l.setup",
+     "name": "3 gateways start as one group",
+     "verdict": "PASS",
+     "detail": "readyz 200 after [1.54, 1.54, 1.53] s; every node lists every other as ok after 5.5 s from the start",
+     "kill": null
+    },
+    {
+     "id": "l.setup",
+     "name": "first-run setup on g1, its session works on every node",
+     "verdict": "PASS",
+     "detail": "setup 200; session valid everywhere after 0.54 s",
+     "kill": null
+    },
+    {
+     "id": "l.ladder",
+     "name": "300 requests a second for 30 s over three nodes: afterwards every node holds every request",
+     "verdict": "PASS",
+     "detail": "achieved 300 a second; answered 9000 (failed 0, statuses {'200': 9000}); held by g1, g2, g3: [9000, 9000, 9000], lacking [0, 0, 0]; lowest sample rate the store reports [1.0, 1.0, 1.0]; client p50 1.101 ms, p99 4.459 ms; request store grew by [733184, 724992, 733184] bytes",
+     "kill": null
+    },
+    {
+     "id": "l.ladder",
+     "name": "1000 requests a second for 30 s over three nodes: afterwards every node holds every request",
+     "verdict": "PASS",
+     "detail": "achieved 1000 a second; answered 30000 (failed 0, statuses {'200': 30000}); held by g1, g2, g3: [30000, 30000, 30000], lacking [0, 0, 0]; lowest sample rate the store reports [1.0, 1.0, 1.0]; client p50 0.628 ms, p99 2.271 ms; request store grew by [2424832, 2424832, 2424832] bytes",
+     "kill": null
+    },
+    {
+     "id": "l.ladder",
+     "name": "2000 requests a second for 30 s over three nodes: afterwards every node holds every request",
+     "verdict": "PASS",
+     "detail": "achieved 2000 a second; answered 60000 (failed 0, statuses {'200': 60000}); held by g1, g2, g3: [60000, 60000, 60000], lacking [0, 0, 0]; lowest sample rate the store reports [1.0, 1.0, 1.0]; client p50 0.61 ms, p99 8.959 ms; request store grew by [4194304, 4194304, 4194304] bytes",
+     "kill": null
+    },
+    {
+     "id": "l.ladder",
+     "name": "3000 requests a second for 30 s over three nodes: afterwards every node holds every request",
+     "verdict": "PASS",
+     "detail": "achieved 3000 a second; answered 90000 (failed 0, statuses {'200': 90000}); held by g1, g2, g3: [90000, 90000, 90000], lacking [0, 0, 0]; lowest sample rate the store reports [1.0, 1.0, 1.0]; client p50 0.561 ms, p99 12.092 ms; request store grew by [7340032, 7340032, 7340032] bytes",
+     "kill": null
+    },
+    {
+     "id": "l.ladder",
+     "name": "6000 requests a second for 30 s over three nodes: afterwards every node holds every request",
+     "verdict": "PASS",
+     "detail": "achieved 5998 a second; answered 180000 (failed 0, statuses {'200': 180000}); held by g1, g2, g3: [180000, 180000, 180000], lacking [0, 0, 0]; lowest sample rate the store reports [1.0, 1.0, 1.0]; client p50 0.62 ms, p99 36.063 ms; request store grew by [12582912, 12582912, 12582912] bytes",
+     "kill": null
+    },
+    {
+     "id": "l.ladder",
+     "name": "9000 requests a second for 30 s over three nodes: afterwards every node holds every request",
+     "verdict": "FAIL",
+     "detail": "achieved 8553 a second; answered 270000 (failed 0, statuses {'200': 269899, '503': 101}); held by g1, g2, g3: [270000, 267273, 270000], lacking [0, 2727, 0]; lowest sample rate the store reports [1.0, 1.0, 1.0]; client p50 6.213 ms, p99 151.746 ms; request store grew by [20267008, 20254720, 20262912] bytes",
+     "kill": null
+    },
+    {
+     "id": "l.ladder",
+     "name": "the lowest rate at which the nodes did not all hold every request",
+     "verdict": "INFO",
+     "detail": "9000 requests a second",
+     "kill": null
+    },
+    {
+     "id": "l.ladder",
+     "name": "size of one stored request and what it means for the default request store",
+     "verdict": "INFO",
+     "detail": "about 81 bytes per request on disk. Inferred from the config text, not observed here (the store reported sample rate 1 throughout): a 10 min segment may use max_size_mb / 288, 1.78 MiB by default and 14.2 MiB at the maximum of 4096 used here; that would be 38 and 306 requests a second for the whole cluster before the next segment keeps a sample only, since every node stores the requests of all",
+     "kill": null
+    },
+    {
+     "id": "l.latency",
+     "name": "3000 requests a second over three gateways, 45 s a round, cluster off and on in turn: no request fails",
+     "verdict": "PASS",
+     "detail": "failed {'off': 0, 'on': 0}; achieved a second off [3000.0, 2999.8, 3000.0], on [3000.0, 3000.0, 3000.0]",
+     "kill": "waits"
+    },
+    {
+     "id": "l.latency",
+     "name": "client latency (p50, p99, max in ms) per round",
+     "verdict": "INFO",
+     "detail": "cluster off [(0.577, 20.444, 118.938), (0.582, 19.882, 93.581), (0.583, 21.166, 103.562)]; cluster on [(0.571, 16.924, 142.254), (0.58, 22.973, 151.1), (0.576, 19.84, 93.705)]",
+     "kill": null
+    },
+    {
+     "id": "l.main",
+     "name": "3 gateways start as one group",
+     "verdict": "PASS",
+     "detail": "readyz 200 after [1.47, 1.47, 1.46] s; every node lists every other as ok after 5.77 s from the start",
+     "kill": null
+    },
+    {
+     "id": "l.main",
+     "name": "first-run setup on m1, its session works on every node",
+     "verdict": "PASS",
+     "detail": "setup 200; session valid everywhere after 0.43 s",
+     "kill": null
+    },
+    {
+     "id": "l.main",
+     "name": "under 3000 requests a second: a block set on one node acts on the others within 1 s at p95",
+     "verdict": "PASS",
+     "detail": "24 samples, 0 never seen in 8 s; p50 0.236 s, p95 0.583 s, max 0.583 s",
+     "kill": null
+    },
+    {
+     "id": "l.main",
+     "name": "under load: a limit of 60 a minute holds for a client that spreads 20 requests a second over three nodes (at most what one node lets pass plus one second of requests)",
+     "verdict": "PASS",
+     "detail": "one node: 74 of 300 passed ({'200': 74, '429': 226}); three nodes: 75 of 300 passed ({'200': 75, '429': 225}); bound 74 + 20",
+     "kill": null
+    },
+    {
+     "id": "l.main",
+     "name": "3000 requests a second for 180 s over three nodes of a group: no request fails",
+     "verdict": "PASS",
+     "detail": "achieved 3000 a second, 540000 sent, 0 failed, 0 not sent (client queue full), statuses {'200': 537300, '403': 2700}; p50 0.573 ms, p99 19.682 ms, p99.9 62.093 ms, max 191.331 ms",
+     "kill": "waits"
+    },
+    {
+     "id": "l.main",
+     "name": "memory, CPU and connections per node, idle and under this load",
+     "verdict": "INFO",
+     "detail": "idle {'m1': (177.6, 0.0, 12), 'm2': (148.0, 0.0, 12), 'm3': (155.4, 0.0, 12)}; under load {'m1': (367.0, 79.1, 164), 'm2': (365.5, 79.7, 144), 'm3': (369.8, 80.8, 164)}",
+     "kill": null
+    },
+    {
+     "id": "l.main",
+     "name": "afterwards every node holds the same number of single requests",
+     "verdict": "PASS",
+     "detail": "held by m1, m2, m3: [541031, 541031, 541031] (the load answered 540000, the limit and block checks add some thousand); largest difference between two nodes 0; lowest sample rate the store reports [1.0, 1.0, 1.0]",
+     "kill": null
+    },
+    {
+     "id": "l.main",
+     "name": "and no node lacks requests the load was answered",
+     "verdict": "PASS",
+     "detail": "the load alone was answered 540000; lacking per node [0, 0, 0]",
+     "kill": null
+    },
+    {
+     "id": "l.main",
+     "name": "a sample of 45 client addresses: every node holds exactly the requests the client was answered with 200",
+     "verdict": "PASS",
+     "detail": "0 addresses differ; (address, answered, held by m1, m2, m3): []",
+     "kill": null
+    },
+    {
+     "id": "l.main",
+     "name": "events: every node lists the same number of events of the load, and as many as attacks were refused",
+     "verdict": "PASS",
+     "detail": "the load sent an XSS probe with every 200th request, 2700 were answered 403; blocked events with that path prefix on m1, m2, m3: [2700, 2700, 2700]",
+     "kill": null
+    }
+   ],
+   "numbers": {
+    "ladder": [
+     {
+      "rps_asked": 300,
+      "rps_achieved": 300.0,
+      "answered": 9000,
+      "failed": 0,
+      "status": {
+       "200": 9000
+      },
+      "held": [
+       9000,
+       9000,
+       9000
+      ],
+      "sample_rate": [
+       1.0,
+       1.0,
+       1.0
+      ],
+      "latency_ms": {
+       "max": 34.156,
+       "min": 0.571,
+       "n": 9000,
+       "p50": 1.101,
+       "p90": 1.967,
+       "p99": 4.459,
+       "p999": 24.086
+      },
+      "skipped": 0,
+      "store_bytes_added": [
+       733184,
+       724992,
+       733184
+      ],
+      "lacking": [
+       0,
+       0,
+       0
+      ]
+     },
+     {
+      "rps_asked": 1000,
+      "rps_achieved": 1000.0,
+      "answered": 30000,
+      "failed": 0,
+      "status": {
+       "200": 30000
+      },
+      "held": [
+       30000,
+       30000,
+       30000
+      ],
+      "sample_rate": [
+       1.0,
+       1.0,
+       1.0
+      ],
+      "latency_ms": {
+       "max": 16.383,
+       "min": 0.473,
+       "n": 30000,
+       "p50": 0.628,
+       "p90": 0.754,
+       "p99": 2.271,
+       "p999": 7.771
+      },
+      "skipped": 0,
+      "store_bytes_added": [
+       2424832,
+       2424832,
+       2424832
+      ],
+      "lacking": [
+       0,
+       0,
+       0
+      ]
+     },
+     {
+      "rps_asked": 2000,
+      "rps_achieved": 2000.0,
+      "answered": 60000,
+      "failed": 0,
+      "status": {
+       "200": 60000
+      },
+      "held": [
+       60000,
+       60000,
+       60000
+      ],
+      "sample_rate": [
+       1.0,
+       1.0,
+       1.0
+      ],
+      "latency_ms": {
+       "max": 50.985,
+       "min": 0.442,
+       "n": 60000,
+       "p50": 0.61,
+       "p90": 0.75,
+       "p99": 8.959,
+       "p999": 24.177
+      },
+      "skipped": 0,
+      "store_bytes_added": [
+       4194304,
+       4194304,
+       4194304
+      ],
+      "lacking": [
+       0,
+       0,
+       0
+      ]
+     },
+     {
+      "rps_asked": 3000,
+      "rps_achieved": 3000.0,
+      "answered": 90000,
+      "failed": 0,
+      "status": {
+       "200": 90000
+      },
+      "held": [
+       90000,
+       90000,
+       90000
+      ],
+      "sample_rate": [
+       1.0,
+       1.0,
+       1.0
+      ],
+      "latency_ms": {
+       "max": 84.657,
+       "min": 0.446,
+       "n": 90000,
+       "p50": 0.561,
+       "p90": 0.817,
+       "p99": 12.092,
+       "p999": 44.014
+      },
+      "skipped": 0,
+      "store_bytes_added": [
+       7340032,
+       7340032,
+       7340032
+      ],
+      "lacking": [
+       0,
+       0,
+       0
+      ]
+     },
+     {
+      "rps_asked": 6000,
+      "rps_achieved": 5998.0,
+      "answered": 180000,
+      "failed": 0,
+      "status": {
+       "200": 180000
+      },
+      "held": [
+       180000,
+       180000,
+       180000
+      ],
+      "sample_rate": [
+       1.0,
+       1.0,
+       1.0
+      ],
+      "latency_ms": {
+       "max": 209.68,
+       "min": 0.456,
+       "n": 180000,
+       "p50": 0.62,
+       "p90": 4.756,
+       "p99": 36.063,
+       "p999": 84.644
+      },
+      "skipped": 0,
+      "store_bytes_added": [
+       12582912,
+       12582912,
+       12582912
+      ],
+      "lacking": [
+       0,
+       0,
+       0
+      ]
+     },
+     {
+      "rps_asked": 9000,
+      "rps_achieved": 8552.8,
+      "answered": 270000,
+      "failed": 0,
+      "status": {
+       "200": 269899,
+       "503": 101
+      },
+      "held": [
+       270000,
+       267273,
+       270000
+      ],
+      "sample_rate": [
+       1.0,
+       1.0,
+       1.0
+      ],
+      "latency_ms": {
+       "max": 436.227,
+       "min": 0.428,
+       "n": 270000,
+       "p50": 6.213,
+       "p90": 35.915,
+       "p99": 151.746,
+       "p999": 245.381
+      },
+      "skipped": 0,
+      "store_bytes_added": [
+       20267008,
+       20254720,
+       20262912
+      ],
+      "lacking": [
+       0,
+       2727,
+       0
+      ]
+     }
+    ],
+    "bytes_per_stored_request": 81.14631111111112,
+    "latency": {
+     "off": [
+      {
+       "rps_asked": 3000,
+       "rps_achieved": 3000.0,
+       "sent": 135000,
+       "status": {
+        "200": 135000
+       },
+       "failed": 0,
+       "skipped": 0,
+       "max_queue_lag_ms": 68,
+       "latency_ms": {
+        "max": 118.938,
+        "min": 0.438,
+        "n": 135000,
+        "p50": 0.577,
+        "p90": 1.526,
+        "p99": 20.444,
+        "p999": 69.658
+       },
+       "per_target": [
+        {
+         "status": {
+          "200": 45000
+         },
+         "p50": 0.577,
+         "p99": 19.313,
+         "max": 104.365
+        },
+        {
+         "status": {
+          "200": 45000
+         },
+         "p50": 0.578,
+         "p99": 21.415,
+         "max": 118.938
+        },
+        {
+         "status": {
+          "200": 45000
+         },
+         "p50": 0.576,
+         "p99": 20.444,
+         "max": 110.584
+        }
+       ]
+      },
+      {
+       "rps_asked": 3000,
+       "rps_achieved": 2999.8,
+       "sent": 135000,
+       "status": {
+        "200": 135000
+       },
+       "failed": 0,
+       "skipped": 0,
+       "max_queue_lag_ms": 28,
+       "latency_ms": {
+        "max": 93.581,
+        "min": 0.433,
+        "n": 135000,
+        "p50": 0.582,
+        "p90": 1.84,
+        "p99": 19.882,
+        "p999": 47.798
+       },
+       "per_target": [
+        {
+         "status": {
+          "200": 45000
+         },
+         "p50": 0.581,
+         "p99": 19.906,
+         "max": 93.581
+        },
+        {
+         "status": {
+          "200": 45000
+         },
+         "p50": 0.584,
+         "p99": 20.189,
+         "max": 69.544
+        },
+        {
+         "status": {
+          "200": 45000
+         },
+         "p50": 0.58,
+         "p99": 19.483,
+         "max": 88.935
+        }
+       ]
+      },
+      {
+       "rps_asked": 3000,
+       "rps_achieved": 3000.0,
+       "sent": 135000,
+       "status": {
+        "200": 135000
+       },
+       "failed": 0,
+       "skipped": 0,
+       "max_queue_lag_ms": 37,
+       "latency_ms": {
+        "max": 103.562,
+        "min": 0.448,
+        "n": 135000,
+        "p50": 0.583,
+        "p90": 1.291,
+        "p99": 21.166,
+        "p999": 58.138
+       },
+       "per_target": [
+        {
+         "status": {
+          "200": 45000
+         },
+         "p50": 0.583,
+         "p99": 20.31,
+         "max": 87.721
+        },
+        {
+         "status": {
+          "200": 45000
+         },
+         "p50": 0.585,
+         "p99": 23.474,
+         "max": 97.175
+        },
+        {
+         "status": {
+          "200": 45000
+         },
+         "p50": 0.582,
+         "p99": 20.538,
+         "max": 103.562
+        }
+       ]
+      }
+     ],
+     "on": [
+      {
+       "rps_asked": 3000,
+       "rps_achieved": 3000.0,
+       "sent": 135000,
+       "status": {
+        "200": 135000
+       },
+       "failed": 0,
+       "skipped": 0,
+       "max_queue_lag_ms": 79,
+       "latency_ms": {
+        "max": 142.254,
+        "min": 0.439,
+        "n": 135000,
+        "p50": 0.571,
+        "p90": 1.213,
+        "p99": 16.924,
+        "p999": 62.263
+       },
+       "per_target": [
+        {
+         "status": {
+          "200": 45000
+         },
+         "p50": 0.575,
+         "p99": 20.345,
+         "max": 135.318
+        },
+        {
+         "status": {
+          "200": 45000
+         },
+         "p50": 0.572,
+         "p99": 16.455,
+         "max": 142.254
+        },
+        {
+         "status": {
+          "200": 45000
+         },
+         "p50": 0.567,
+         "p99": 15.536,
+         "max": 109.654
+        }
+       ]
+      },
+      {
+       "rps_asked": 3000,
+       "rps_achieved": 3000.0,
+       "sent": 135000,
+       "status": {
+        "200": 135000
+       },
+       "failed": 0,
+       "skipped": 0,
+       "max_queue_lag_ms": 91,
+       "latency_ms": {
+        "max": 151.1,
+        "min": 0.444,
+        "n": 135000,
+        "p50": 0.58,
+        "p90": 1.546,
+        "p99": 22.973,
+        "p999": 76.071
+       },
+       "per_target": [
+        {
+         "status": {
+          "200": 45000
+         },
+         "p50": 0.581,
+         "p99": 26.579,
+         "max": 151.1
+        },
+        {
+         "status": {
+          "200": 45000
+         },
+         "p50": 0.579,
+         "p99": 20.009,
+         "max": 149.01
+        },
+        {
+         "status": {
+          "200": 45000
+         },
+         "p50": 0.579,
+         "p99": 20.587,
+         "max": 135.849
+        }
+       ]
+      },
+      {
+       "rps_asked": 3000,
+       "rps_achieved": 3000.0,
+       "sent": 135000,
+       "status": {
+        "200": 135000
+       },
+       "failed": 0,
+       "skipped": 0,
+       "max_queue_lag_ms": 42,
+       "latency_ms": {
+        "max": 93.705,
+        "min": 0.437,
+        "n": 135000,
+        "p50": 0.576,
+        "p90": 1.309,
+        "p99": 19.84,
+        "p999": 41.899
+       },
+       "per_target": [
+        {
+         "status": {
+          "200": 45000
+         },
+         "p50": 0.577,
+         "p99": 23.383,
+         "max": 87.843
+        },
+        {
+         "status": {
+          "200": 45000
+         },
+         "p50": 0.574,
+         "p99": 17.707,
+         "max": 93.705
+        },
+        {
+         "status": {
+          "200": 45000
+         },
+         "p50": 0.576,
+         "p99": 18.762,
+         "max": 72.272
+        }
+       ]
+      }
+     ]
+    },
+    "blocks_under_load_s": [
+     0.119,
+     0.12,
+     0.36,
+     0.361,
+     0.093,
+     0.093,
+     0.236,
+     0.236,
+     0.583,
+     0.583,
+     0.137,
+     0.139,
+     0.012,
+     0.277,
+     0.255,
+     0.256,
+     0.259,
+     0.259,
+     0.025,
+     0.015,
+     0.093,
+     0.093,
+     0.239,
+     0.239
+    ],
+    "limit_under_load": {
+     "one": {
+      "rps_asked": 20,
+      "rps_achieved": 20.1,
+      "sent": 300,
+      "status": {
+       "200": 74,
+       "429": 226
+      },
+      "failed": 0,
+      "skipped": 0,
+      "max_queue_lag_ms": 16,
+      "latency_ms": {
+       "max": 8.718,
+       "min": 0.167,
+       "n": 300,
+       "p50": 0.228,
+       "p90": 0.669,
+       "p99": 4.306,
+       "p999": 8.718
+      },
+      "per_target": [
+       {
+        "status": {
+         "200": 74,
+         "429": 226
+        },
+        "p50": 0.228,
+        "p99": 4.306,
+        "max": 8.718
+       }
+      ]
+     },
+     "three": {
+      "rps_asked": 20,
+      "rps_achieved": 20.1,
+      "sent": 300,
+      "status": {
+       "200": 75,
+       "429": 225
+      },
+      "failed": 0,
+      "skipped": 0,
+      "max_queue_lag_ms": 17,
+      "latency_ms": {
+       "max": 14.185,
+       "min": 0.159,
+       "n": 300,
+       "p50": 0.233,
+       "p90": 0.715,
+       "p99": 6.247,
+       "p999": 14.185
+      },
+      "per_target": [
+       {
+        "status": {
+         "200": 25,
+         "429": 75
+        },
+        "p50": 0.231,
+        "p99": 1.758,
+        "max": 6.247
+       },
+       {
+        "status": {
+         "200": 25,
+         "429": 75
+        },
+        "p50": 0.232,
+        "p99": 10.545,
+        "max": 13.423
+       },
+       {
+        "status": {
+         "200": 25,
+         "429": 75
+        },
+        "p50": 0.238,
+        "p99": 3.612,
+        "max": 14.185
+       }
+      ]
+     }
+    },
+    "main_load": {
+     "rps_asked": 3000,
+     "rps_achieved": 2999.8,
+     "sent": 540000,
+     "status": {
+      "200": 537300,
+      "403": 2700
+     },
+     "failed": 0,
+     "skipped": 0,
+     "max_queue_lag_ms": 123,
+     "latency_ms": {
+      "max": 191.331,
+      "min": 0.438,
+      "n": 540000,
+      "p50": 0.573,
+      "p90": 1.397,
+      "p99": 19.682,
+      "p999": 62.093
+     },
+     "per_target": [
+      {
+       "status": {
+        "200": 179100,
+        "403": 900
+       },
+       "p50": 0.572,
+       "p99": 19.488,
+       "max": 191.331
+      },
+      {
+       "status": {
+        "200": 179100,
+        "403": 900
+       },
+       "p50": 0.573,
+       "p99": 19.819,
+       "max": 169.039
+      },
+      {
+       "status": {
+        "200": 179100,
+        "403": 900
+       },
+       "p50": 0.573,
+       "p99": 19.874,
+       "max": 179.318
+      }
+     ]
+    },
+    "resources": {
+     "idle": {
+      "m1": {
+       "rss_mb": 177.6,
+       "cpu_percent": 0.0,
+       "tcp_established": 12,
+       "tcp_listen": 5
+      },
+      "m2": {
+       "rss_mb": 148.0,
+       "cpu_percent": 0.0,
+       "tcp_established": 12,
+       "tcp_listen": 5
+      },
+      "m3": {
+       "rss_mb": 155.4,
+       "cpu_percent": 0.0,
+       "tcp_established": 12,
+       "tcp_listen": 5
+      }
+     },
+     "under_load": {
+      "m1": {
+       "rss_mb": 367.0,
+       "cpu_percent_avg": 79.1,
+       "tcp_established_max": 164
+      },
+      "m2": {
+       "rss_mb": 365.5,
+       "cpu_percent_avg": 79.7,
+       "tcp_established_max": 144
+      },
+      "m3": {
+       "rss_mb": 369.8,
+       "cpu_percent_avg": 80.8,
+       "tcp_established_max": 164
+      }
+     }
+    },
+    "main_held": {
+     "answered_by_main_load": 540000,
+     "held": [
+      541031,
+      541031,
+      541031
+     ],
+     "sample_rate": [
+      1.0,
+      1.0,
+      1.0
+     ]
+    },
+    "per_ip_sample": [
+     [
+      "10.60.12.250",
+      61,
+      [
+       61,
+       61,
+       61
+      ]
+     ],
+     [
+      "10.60.13.134",
+      52,
+      [
+       52,
+       52,
+       52
+      ]
+     ],
+     [
+      "10.60.33.69",
+      47,
+      [
+       47,
+       47,
+       47
+      ]
+     ],
+     [
+      "10.60.33.186",
+      57,
+      [
+       57,
+       57,
+       57
+      ]
+     ],
+     [
+      "10.60.11.200",
+      65,
+      [
+       65,
+       65,
+       65
+      ]
+     ],
+     [
+      "10.60.34.54",
+      77,
+      [
+       77,
+       77,
+       77
+      ]
+     ],
+     [
+      "10.60.29.80",
+      70,
+      [
+       70,
+       70,
+       70
+      ]
+     ],
+     [
+      "10.60.0.52",
+      61,
+      [
+       61,
+       61,
+       61
+      ]
+     ],
+     [
+      "10.60.5.18",
+      51,
+      [
+       51,
+       51,
+       51
+      ]
+     ],
+     [
+      "10.60.23.229",
+      50,
+      [
+       50,
+       50,
+       50
+      ]
+     ],
+     [
+      "10.60.17.101",
+      54,
+      [
+       54,
+       54,
+       54
+      ]
+     ],
+     [
+      "10.60.29.130",
+      53,
+      [
+       53,
+       53,
+       53
+      ]
+     ],
+     [
+      "10.60.21.78",
+      52,
+      [
+       52,
+       52,
+       52
+      ]
+     ],
+     [
+      "10.60.8.18",
+      69,
+      [
+       69,
+       69,
+       69
+      ]
+     ],
+     [
+      "10.60.17.152",
+      51,
+      [
+       51,
+       51,
+       51
+      ]
+     ],
+     [
+      "10.60.14.204",
+      53,
+      [
+       53,
+       53,
+       53
+      ]
+     ],
+     [
+      "10.60.31.28",
+      47,
+      [
+       47,
+       47,
+       47
+      ]
+     ],
+     [
+      "10.60.26.52",
+      59,
+      [
+       59,
+       59,
+       59
+      ]
+     ],
+     [
+      "10.60.10.202",
+      62,
+      [
+       62,
+       62,
+       62
+      ]
+     ],
+     [
+      "10.60.8.46",
+      71,
+      [
+       71,
+       71,
+       71
+      ]
+     ],
+     [
+      "10.60.13.226",
+      57,
+      [
+       57,
+       57,
+       57
+      ]
+     ],
+     [
+      "10.60.19.133",
+      44,
+      [
+       44,
+       44,
+       44
+      ]
+     ],
+     [
+      "10.60.4.125",
+      58,
+      [
+       58,
+       58,
+       58
+      ]
+     ],
+     [
+      "10.60.17.85",
+      52,
+      [
+       52,
+       52,
+       52
+      ]
+     ],
+     [
+      "10.60.24.182",
+      70,
+      [
+       70,
+       70,
+       70
+      ]
+     ],
+     [
+      "10.60.9.191",
+      48,
+      [
+       48,
+       48,
+       48
+      ]
+     ],
+     [
+      "10.60.11.175",
+      60,
+      [
+       60,
+       60,
+       60
+      ]
+     ],
+     [
+      "10.60.19.173",
+      68,
+      [
+       68,
+       68,
+       68
+      ]
+     ],
+     [
+      "10.60.0.96",
+      69,
+      [
+       69,
+       69,
+       69
+      ]
+     ],
+     [
+      "10.60.35.24",
+      76,
+      [
+       76,
+       76,
+       76
+      ]
+     ],
+     [
+      "10.60.17.79",
+      55,
+      [
+       55,
+       55,
+       55
+      ]
+     ],
+     [
+      "10.60.29.30",
+      58,
+      [
+       58,
+       58,
+       58
+      ]
+     ],
+     [
+      "10.60.33.155",
+      62,
+      [
+       62,
+       62,
+       62
+      ]
+     ],
+     [
+      "10.60.12.157",
+      58,
+      [
+       58,
+       58,
+       58
+      ]
+     ],
+     [
+      "10.60.27.139",
+      64,
+      [
+       64,
+       64,
+       64
+      ]
+     ],
+     [
+      "10.60.34.28",
+      53,
+      [
+       53,
+       53,
+       53
+      ]
+     ],
+     [
+      "10.60.4.244",
+      70,
+      [
+       70,
+       70,
+       70
+      ]
+     ],
+     [
+      "10.60.3.124",
+      56,
+      [
+       56,
+       56,
+       56
+      ]
+     ],
+     [
+      "10.60.0.60",
+      56,
+      [
+       56,
+       56,
+       56
+      ]
+     ],
+     [
+      "10.60.3.246",
+      53,
+      [
+       53,
+       53,
+       53
+      ]
+     ],
+     [
+      "10.60.18.163",
+      65,
+      [
+       65,
+       65,
+       65
+      ]
+     ],
+     [
+      "10.60.24.188",
+      64,
+      [
+       64,
+       64,
+       64
+      ]
+     ],
+     [
+      "10.60.19.244",
+      60,
+      [
+       60,
+       60,
+       60
+      ]
+     ],
+     [
+      "10.60.5.246",
+      67,
+      [
+       67,
+       67,
+       67
+      ]
+     ],
+     [
+      "10.60.3.194",
+      61,
+      [
+       61,
+       61,
+       61
+      ]
+     ]
+    ],
+    "main_events": {
+     "attacks_answered_403": 2700,
+     "held": [
+      2700,
+      2700,
+      2700
+     ]
+    },
+    "took_s": 800.8
+   }
+  },
+  {
+   "scenario": "s4_sizes",
+   "started": "2026-11-22T17:03:43Z",
+   "finished": "2026-11-22T17:12:44Z",
+   "git_rev": "3971e35c760c",
+   "checks": [
+    {
+     "id": "w.start",
+     "name": "16 gateways start as one group",
+     "verdict": "PASS",
+     "detail": "readyz 200 after [1.9, 2.01, 2.01, 2.01, 2.0, 2.0, 1.97, 2.0, 1.99, 1.98, 1.97, 1.96, 1.96, 1.95, 1.95, 1.94] s; every node lists every other as ok after 7.18 s from the start",
+     "kill": null
+    },
+    {
+     "id": "w.start",
+     "name": "first-run setup on w01, its session works on every node",
+     "verdict": "PASS",
+     "detail": "setup 200; session valid everywhere after 0.44 s",
+     "kill": null
+    },
+    {
+     "id": "w.start",
+     "name": "GET /group says active on each of the 16 nodes",
+     "verdict": "PASS",
+     "detail": "after 0.0 s; states ['active']",
+     "kill": null
+    },
+    {
+     "id": "w.res",
+     "name": "16 nodes idle: memory, CPU and connections per node",
+     "verdict": "INFO",
+     "detail": "RSS MiB min 170, median 182, max 194; CPU % min 1.4, median 1.8, max 2.6; established TCP connections min 90, median 90, max 90",
+     "kill": null
+    },
+    {
+     "id": "w.block",
+     "name": "a block set on one of 16 nodes acts on every other within 1 s at p95; a lift on another node too",
+     "verdict": "PASS",
+     "detail": "180 samples of a block: p50 0.237 s, p95 0.826 s, max 0.974 s; 90 samples of a lift: p50 0.262 s, max 1.014 s; never seen within 10 s: 0 (each node is asked in turn, so a sample carries up to 16 polls of delay)",
+     "kill": null
+    },
+    {
+     "id": "w.state",
+     "name": "a setting, an allowlist entry and a rate limit made on three different nodes are on all 16",
+     "verdict": "PASS",
+     "detail": "same after 0.9 s; equal",
+     "kill": null
+    },
+    {
+     "id": "w.limit",
+     "name": "a limit of 60 a minute, one client at 20 requests a second spread over 16 nodes: at most what one node lets pass plus one second of requests",
+     "verdict": "PASS",
+     "detail": "one node: 74 of 300 passed; 16 nodes: 75 of 300 passed; bound 74 + 20",
+     "kill": null
+    },
+    {
+     "id": "w.load",
+     "name": "1600 requests a second over 16 nodes for 40 s: no request fails",
+     "verdict": "PASS",
+     "detail": "achieved 1580 a second, 64000 sent, 0 failed, statuses {'200': 63360, '403': 640}; p50 4.637 ms, p99 243.283 ms, max 764.425 ms",
+     "kill": "waits"
+    },
+    {
+     "id": "w.res",
+     "name": "16 nodes under 1600 requests a second: memory, CPU and connections per node",
+     "verdict": "INFO",
+     "detail": "RSS MiB min 349, median 372, max 390; CPU % min 16.7, median 26.6, max 49.6; established TCP connections min 106, median 107, max 107",
+     "kill": null
+    },
+    {
+     "id": "w.load",
+     "name": "afterwards each of the 16 nodes holds every request of that load",
+     "verdict": "PASS",
+     "detail": "answered 64000; held per node (min 64000, max 64000); all equal after 3.8 s",
+     "kill": null
+    },
+    {
+     "id": "w.load",
+     "name": "and lists every blocked event of it",
+     "verdict": "PASS",
+     "detail": "attacks answered 403: 640; blocked events per node min 640, max 640",
+     "kill": null
+    },
+    {
+     "id": "w.lose",
+     "name": "5 of 16 nodes killed at once (kill -9) under 800 requests a second: no request to a surviving node fails",
+     "verdict": "PASS",
+     "detail": "failed on survivors 0, on the killed nodes 41 (in flight or sent before the client's health check saw it), of 16000; p99 134.454 ms, max 342.445 ms",
+     "kill": "waits"
+    },
+    {
+     "id": "w.lose",
+     "name": "every survivor notices that the nodes are gone (a stopped node: at once)",
+     "verdict": "PASS",
+     "detail": "seconds until GET /group lists none of them as ok: min 0.7, max 0.85; group state on the survivors ['degraded']",
+     "kill": null
+    },
+    {
+     "id": "w.lose",
+     "name": "the survivors say 'degraded' and keep their state",
+     "verdict": "PASS",
+     "detail": "states ['degraded']; allowlist, limits and settings unchanged: True",
+     "kill": "weakens"
+    },
+    {
+     "id": "w.lose",
+     "name": "a block set on a survivor acts on every survivor",
+     "verdict": "PASS",
+     "detail": "seconds max 0.18",
+     "kill": null
+    },
+    {
+     "id": "w.lose",
+     "name": "an erasure made meanwhile names every lost node as open",
+     "verdict": "PASS",
+     "detail": "status 200, reached 5, open ['w02', 'w03', 'w04', 'w05', 'w08', 'w09', 'w10', 'w11', 'w13', 'w14', 'w16']; of these running and reachable: ['w05', 'w09', 'w10', 'w11', 'w13', 'w16'] (documented: open also means slow; the answer waits at most 2 s)",
+     "kill": null
+    },
+    {
+     "id": "w.lose",
+     "name": "the erased address is gone on every survivor within 30 s",
+     "verdict": "PASS",
+     "detail": "events before [16, 16, 16, 16]; gone after 0.0 s",
+     "kill": "erased"
+    },
+    {
+     "id": "w.return",
+     "name": "the 5 nodes return: ready, and at that moment the block set meanwhile acts on each",
+     "verdict": "PASS",
+     "detail": "ready after [1.67, 1.67, 1.67, 1.67, 1.66] s; request of the blocked address at ready {'w02': 403, 'w03': 403, 'w04': 403, 'w08': 403, 'w14': 403}",
+     "kill": "weakens"
+    },
+    {
+     "id": "w.return",
+     "name": "the address erased while they were away is not on them when they are ready",
+     "verdict": "PASS",
+     "detail": "events of the address at ready {'w02': 0, 'w03': 0, 'w04': 0, 'w08': 0, 'w14': 0}",
+     "kill": "erased"
+    },
+    {
+     "id": "w.return",
+     "name": "all 16 nodes show one state and say active again",
+     "verdict": "PASS",
+     "detail": "same after 0.0 s, active after 7.0 s since the restart; equal",
+     "kill": null
+    },
+    {
+     "id": "w.return",
+     "name": "the erased address does not return on any node (6 s later)",
+     "verdict": "PASS",
+     "detail": "events per node [0]",
+     "kill": "erased"
+    },
+    {
+     "id": "w.rolling",
+     "name": "all 16 nodes stopped (SIGTERM, drain 2 s) and started in turn under 800 requests a second that follow readyz: no request fails",
+     "verdict": "PASS",
+     "detail": "took 196 s; 160000 sent, 0 failed, statuses {'200': 160000}; per node (name, stopped, seconds down and up, ready after): [('w01', True, 12.0, 7.8), ('w02', True, 11.8, 7.2), ('w03', True, 11.3, 7.45), ('w04', True, 12.1, 7.66)]; first failures []",
+     "kill": "waits"
+    },
+    {
+     "id": "w.rolling",
+     "name": "afterwards the state is the same on every node and as before, the login valid",
+     "verdict": "PASS",
+     "detail": "equal; equal to before True; sessions valid True",
+     "kill": "weakens"
+    },
+    {
+     "id": "w.bound",
+     "name": "a 17th gateway is not taken into the group (contract section 13)",
+     "verdict": "PASS",
+     "detail": "gateways in the member list of w01: 16; the 17th: process runs, readyz 503, a request of an address the group blocks is answered 200; its log: ['{\"time\":\"2026-11-22T18:09:33.0206+01:00\",\"level\":\"INFO\",\"msg\":\"request body limits\",\"component\":\"schild\",\"per_client\":8,\"per_network\":32,\"in_flight\":1024,\"large_in_flight\":256,\"in_flight_mib\":4096,\"waiting_mib\":256,\"raw_kib\":128}', '{\"time\":\"2026-11-22T18:09:33.020642+01:00\",\"level\":\"INFO\",\"msg\":\"waiting request limits\",\"component\":\"schild\",\"per_client\":1024,\"per_network\":4096,\"gateway\":4096}']",
+     "kill": null
+    },
+    {
+     "id": "w.bound",
+     "name": "the refused 17th gateway does not answer ready (it holds none of the group's blocks)",
+     "verdict": "PASS",
+     "detail": "readyz 503 after 14 s, request of a blocked address 200",
+     "kill": null
+    },
+    {
+     "id": "w.res",
+     "name": "16 nodes at the end of the scenario",
+     "verdict": "INFO",
+     "detail": "RSS MiB min 341, median 445, max 489; CPU % min 0.4, median 0.9, max 1.3; established TCP connections min 111, median 163, max 165",
+     "kill": null
+    },
+    {
+     "id": "q.start",
+     "name": "2 gateways start as one group",
+     "verdict": "PASS",
+     "detail": "readyz 200 after [1.48, 1.48] s; every node lists every other as ok after 5.31 s from the start",
+     "kill": null
+    },
+    {
+     "id": "q.start",
+     "name": "first-run setup on q01, its session works on every node",
+     "verdict": "PASS",
+     "detail": "setup 200; session valid everywhere after 0.43 s",
+     "kill": null
+    },
+    {
+     "id": "q.start",
+     "name": "GET /group says active on each of the 2 nodes",
+     "verdict": "PASS",
+     "detail": "after 0.0 s; states ['active']",
+     "kill": null
+    },
+    {
+     "id": "q.res",
+     "name": "2 nodes idle: memory, CPU and connections per node",
+     "verdict": "INFO",
+     "detail": "RSS MiB min 156, median 176, max 176; CPU % min 0.2, median 0.2, max 0.2; established TCP connections min 6, median 6, max 6",
+     "kill": null
+    },
+    {
+     "id": "q.block",
+     "name": "a block set on one of 2 nodes acts on every other within 1 s at p95; a lift on another node too",
+     "verdict": "PASS",
+     "detail": "12 samples of a block: p50 0.235 s, p95 1.0 s, max 1.0 s; 6 samples of a lift: p50 0.981 s, max 0.989 s; never seen within 10 s: 0 (each node is asked in turn, so a sample carries up to 2 polls of delay)",
+     "kill": null
+    },
+    {
+     "id": "q.state",
+     "name": "a setting, an allowlist entry and a rate limit made on three different nodes are on all 2",
+     "verdict": "PASS",
+     "detail": "same after 1.07 s; equal",
+     "kill": null
+    },
+    {
+     "id": "q.limit",
+     "name": "a limit of 60 a minute, one client at 20 requests a second spread over 2 nodes: at most what one node lets pass plus one second of requests",
+     "verdict": "PASS",
+     "detail": "one node: 74 of 300 passed; 2 nodes: 74 of 300 passed; bound 74 + 20",
+     "kill": null
+    },
+    {
+     "id": "q.load",
+     "name": "200 requests a second over 2 nodes for 40 s: no request fails",
+     "verdict": "PASS",
+     "detail": "achieved 200 a second, 8000 sent, 0 failed, statuses {'200': 7920, '403': 80}; p50 1.338 ms, p99 3.476 ms, max 14.021 ms",
+     "kill": "waits"
+    },
+    {
+     "id": "q.res",
+     "name": "2 nodes under 200 requests a second: memory, CPU and connections per node",
+     "verdict": "INFO",
+     "detail": "RSS MiB min 275, median 277, max 277; CPU % min 14.4, median 14.5, max 14.5; established TCP connections min 10, median 12, max 12",
+     "kill": null
+    },
+    {
+     "id": "q.load",
+     "name": "afterwards each of the 2 nodes holds every request of that load",
+     "verdict": "PASS",
+     "detail": "answered 8000; held per node (min 8000, max 8000); all equal after 2.0 s",
+     "kill": null
+    },
+    {
+     "id": "q.load",
+     "name": "and lists every blocked event of it",
+     "verdict": "PASS",
+     "detail": "attacks answered 403: 80; blocked events per node min 80, max 80",
+     "kill": null
+    },
+    {
+     "id": "q.lose",
+     "name": "1 of 2 nodes killed at once (kill -9) under 100 requests a second: no request to a surviving node fails",
+     "verdict": "PASS",
+     "detail": "failed on survivors 0, on the killed nodes 2 (in flight or sent before the client's health check saw it), of 2000; p99 3.311 ms, max 9.983 ms",
+     "kill": "waits"
+    },
+    {
+     "id": "q.lose",
+     "name": "every survivor notices that the nodes are gone (a stopped node: at once)",
+     "verdict": "PASS",
+     "detail": "seconds until GET /group lists none of them as ok: min 0.01, max 0.01; group state on the survivors ['interrupted']",
+     "kill": null
+    },
+    {
+     "id": "q.lose",
+     "name": "the survivors say 'interrupted' and keep their state",
+     "verdict": "PASS",
+     "detail": "states ['interrupted']; allowlist, limits and settings unchanged: True",
+     "kill": "weakens"
+    },
+    {
+     "id": "q.lose",
+     "name": "a block set on a survivor acts on every survivor",
+     "verdict": "PASS",
+     "detail": "seconds max 0.0",
+     "kill": null
+    },
+    {
+     "id": "q.lose",
+     "name": "an erasure made meanwhile names every lost node as open",
+     "verdict": "PASS",
+     "detail": "status 200, reached 1, open ['q02']; of these running and reachable: none (documented: open also means slow; the answer waits at most 2 s)",
+     "kill": null
+    },
+    {
+     "id": "q.lose",
+     "name": "the erased address is gone on every survivor within 30 s",
+     "verdict": "PASS",
+     "detail": "events before [2, 2]; gone after 0.0 s",
+     "kill": "erased"
+    },
+    {
+     "id": "q.return",
+     "name": "the 1 nodes return: ready, and at that moment the block set meanwhile acts on each",
+     "verdict": "PASS",
+     "detail": "ready after [1.47] s; request of the blocked address at ready {'q02': 403}",
+     "kill": "weakens"
+    },
+    {
+     "id": "q.return",
+     "name": "the address erased while they were away is not on them when they are ready",
+     "verdict": "PASS",
+     "detail": "events of the address at ready {'q02': 0}",
+     "kill": "erased"
+    },
+    {
+     "id": "q.return",
+     "name": "all 2 nodes show one state and say active again",
+     "verdict": "PASS",
+     "detail": "same after 0.0 s, active after 6.4 s since the restart; equal",
+     "kill": null
+    },
+    {
+     "id": "q.return",
+     "name": "the erased address does not return on any node (6 s later)",
+     "verdict": "PASS",
+     "detail": "events per node [0]",
+     "kill": "erased"
+    },
+    {
+     "id": "q.rolling",
+     "name": "all 2 nodes stopped (SIGTERM, drain 2 s) and started in turn under 100 requests a second that follow readyz: no request fails",
+     "verdict": "PASS",
+     "detail": "took 19 s; 3200 sent, 0 failed, statuses {'200': 3200}; per node (name, stopped, seconds down and up, ready after): [('q01', True, 8.6, 5.49), ('q02', True, 9.1, 5.44)]; first failures []",
+     "kill": "waits"
+    },
+    {
+     "id": "q.rolling",
+     "name": "afterwards the state is the same on every node and as before, the login valid",
+     "verdict": "PASS",
+     "detail": "equal; equal to before True; sessions valid True",
+     "kill": "weakens"
+    },
+    {
+     "id": "q.res",
+     "name": "2 nodes at the end of the scenario",
+     "verdict": "INFO",
+     "detail": "RSS MiB min 242, median 248, max 248; CPU % min 10.1, median 10.2, max 10.2; established TCP connections min 93, median 142, max 142",
+     "kill": null
+    }
+   ],
+   "numbers": {
+    "w": {
+     "ready_s": [
+      1.9014913332648575,
+      2.0128400828689337,
+      2.0095527078956366,
+      2.0054601249285042,
+      2.002763249911368,
+      1.9988447921350598,
+      1.9691449999809265,
+      2.0015166248194873,
+      1.9872449580579996,
+      1.9836591249331832,
+      1.9738587918691337,
+      1.9648880418390036,
+      1.9596094167791307,
+      1.9544905829243362,
+      1.9456512499600649,
+      1.9389932500198483
+     ],
+     "all_in_contact_s": 7.18,
+     "resources_idle": {
+      "w01": {
+       "rss_mb": 194.2,
+       "cpu_percent": 2.6,
+       "tcp_established": 90,
+       "tcp_listen": 5
+      },
+      "w02": {
+       "rss_mb": 177.2,
+       "cpu_percent": 1.5,
+       "tcp_established": 90,
+       "tcp_listen": 5
+      },
+      "w03": {
+       "rss_mb": 170.4,
+       "cpu_percent": 1.4,
+       "tcp_established": 90,
+       "tcp_listen": 5
+      },
+      "w04": {
+       "rss_mb": 186.2,
+       "cpu_percent": 1.7,
+       "tcp_established": 90,
+       "tcp_listen": 5
+      },
+      "w05": {
+       "rss_mb": 184.6,
+       "cpu_percent": 1.5,
+       "tcp_established": 90,
+       "tcp_listen": 5
+      },
+      "w06": {
+       "rss_mb": 179.4,
+       "cpu_percent": 1.8,
+       "tcp_established": 90,
+       "tcp_listen": 5
+      },
+      "w07": {
+       "rss_mb": 180.8,
+       "cpu_percent": 1.5,
+       "tcp_established": 90,
+       "tcp_listen": 5
+      },
+      "w08": {
+       "rss_mb": 181.9,
+       "cpu_percent": 1.5,
+       "tcp_established": 90,
+       "tcp_listen": 5
+      },
+      "w09": {
+       "rss_mb": 184.6,
+       "cpu_percent": 2.4,
+       "tcp_established": 90,
+       "tcp_listen": 5
+      },
+      "w10": {
+       "rss_mb": 175.2,
+       "cpu_percent": 1.9,
+       "tcp_established": 90,
+       "tcp_listen": 5
+      },
+      "w11": {
+       "rss_mb": 183.0,
+       "cpu_percent": 1.8,
+       "tcp_established": 90,
+       "tcp_listen": 5
+      },
+      "w12": {
+       "rss_mb": 180.7,
+       "cpu_percent": 1.9,
+       "tcp_established": 90,
+       "tcp_listen": 5
+      },
+      "w13": {
+       "rss_mb": 173.7,
+       "cpu_percent": 1.5,
+       "tcp_established": 90,
+       "tcp_listen": 5
+      },
+      "w14": {
+       "rss_mb": 182.3,
+       "cpu_percent": 2.4,
+       "tcp_established": 90,
+       "tcp_listen": 5
+      },
+      "w15": {
+       "rss_mb": 183.4,
+       "cpu_percent": 2.2,
+       "tcp_established": 90,
+       "tcp_listen": 5
+      },
+      "w16": {
+       "rss_mb": 177.4,
+       "cpu_percent": 1.5,
+       "tcp_established": 90,
+       "tcp_listen": 5
+      }
+     },
+     "block_s": {
+      "p50": 0.237,
+      "p95": 0.826,
+      "max": 0.974,
+      "missed": 0
+     },
+     "limit": {
+      "one_node": {
+       "200": 74,
+       "429": 226
+      },
+      "all_nodes": {
+       "200": 75,
+       "429": 225
+      }
+     },
+     "moderate_load": {
+      "rps_asked": 1600,
+      "rps_achieved": 1580.4,
+      "sent": 64000,
+      "status": {
+       "200": 63360,
+       "403": 640
+      },
+      "failed": 0,
+      "skipped": 0,
+      "max_queue_lag_ms": 694,
+      "latency_ms": {
+       "max": 764.425,
+       "min": 0.484,
+       "n": 64000,
+       "p50": 4.637,
+       "p90": 66.914,
+       "p99": 243.283,
+       "p999": 435.585
+      },
+      "per_target": [
+       {
+        "status": {
+         "200": 3840,
+         "403": 160
+        },
+        "p50": 4.269,
+        "p99": 225.03,
+        "max": 697.957
+       },
+       {
+        "status": {
+         "200": 4000
+        },
+        "p50": 4.869,
+        "p99": 204.761,
+        "max": 447.062
+       },
+       {
+        "status": {
+         "200": 4000
+        },
+        "p50": 3.988,
+        "p99": 273.814,
+        "max": 608.539
+       },
+       {
+        "status": {
+         "200": 4000
+        },
+        "p50": 4.513,
+        "p99": 239.755,
+        "max": 551.088
+       },
+       {
+        "status": {
+         "200": 3840,
+         "403": 160
+        },
+        "p50": 4.168,
+        "p99": 214.531,
+        "max": 465.436
+       },
+       {
+        "status": {
+         "200": 4000
+        },
+        "p50": 5.451,
+        "p99": 238.041,
+        "max": 671.657
+       },
+       {
+        "status": {
+         "200": 4000
+        },
+        "p50": 4.382,
+        "p99": 248.369,
+        "max": 610.941
+       },
+       {
+        "status": {
+         "200": 4000
+        },
+        "p50": 5.498,
+        "p99": 250.694,
+        "max": 557.701
+       },
+       {
+        "status": {
+         "200": 3840,
+         "403": 160
+        },
+        "p50": 4.436,
+        "p99": 205.045,
+        "max": 417.118
+       },
+       {
+        "status": {
+         "200": 4000
+        },
+        "p50": 5.107,
+        "p99": 268.535,
+        "max": 475.548
+       },
+       {
+        "status": {
+         "200": 4000
+        },
+        "p50": 4.314,
+        "p99": 266.655,
+        "max": 568.382
+       },
+       {
+        "status": {
+         "200": 4000
+        },
+        "p50": 4.506,
+        "p99": 227.261,
+        "max": 482.831
+       },
+       {
+        "status": {
+         "200": 3840,
+         "403": 160
+        },
+        "p50": 5.679,
+        "p99": 245.658,
+        "max": 413.203
+       },
+       {
+        "status": {
+         "200": 4000
+        },
+        "p50": 4.063,
+        "p99": 178.664,
+        "max": 457.949
+       },
+       {
+        "status": {
+         "200": 4000
+        },
+        "p50": 4.964,
+        "p99": 252.831,
+        "max": 529.245
+       },
+       {
+        "status": {
+         "200": 4000
+        },
+        "p50": 4.423,
+        "p99": 272.173,
+        "max": 764.425
+       }
+      ]
+     },
+     "resources_load": {
+      "w01": {
+       "rss_mb": 374.4,
+       "cpu_percent": 21.5,
+       "tcp_established": 107,
+       "tcp_listen": 5
+      },
+      "w02": {
+       "rss_mb": 368.2,
+       "cpu_percent": 29.9,
+       "tcp_established": 107,
+       "tcp_listen": 5
+      },
+      "w03": {
+       "rss_mb": 348.8,
+       "cpu_percent": 49.6,
+       "tcp_established": 107,
+       "tcp_listen": 5
+      },
+      "w04": {
+       "rss_mb": 362.5,
+       "cpu_percent": 19.2,
+       "tcp_established": 107,
+       "tcp_listen": 5
+      },
+      "w05": {
+       "rss_mb": 376.4,
+       "cpu_percent": 21.9,
+       "tcp_established": 107,
+       "tcp_listen": 5
+      },
+      "w06": {
+       "rss_mb": 382.2,
+       "cpu_percent": 33.2,
+       "tcp_established": 107,
+       "tcp_listen": 5
+      },
+      "w07": {
+       "rss_mb": 372.6,
+       "cpu_percent": 19.8,
+       "tcp_established": 107,
+       "tcp_listen": 5
+      },
+      "w08": {
+       "rss_mb": 376.8,
+       "cpu_percent": 26.1,
+       "tcp_established": 107,
+       "tcp_listen": 5
+      },
+      "w09": {
+       "rss_mb": 372.5,
+       "cpu_percent": 25.6,
+       "tcp_established": 107,
+       "tcp_listen": 5
+      },
+      "w10": {
+       "rss_mb": 363.2,
+       "cpu_percent": 21.5,
+       "tcp_established": 106,
+       "tcp_listen": 5
+      },
+      "w11": {
+       "rss_mb": 362.8,
+       "cpu_percent": 16.7,
+       "tcp_established": 107,
+       "tcp_listen": 5
+      },
+      "w12": {
+       "rss_mb": 362.1,
+       "cpu_percent": 26.6,
+       "tcp_established": 107,
+       "tcp_listen": 5
+      },
+      "w13": {
+       "rss_mb": 389.6,
+       "cpu_percent": 27.5,
+       "tcp_established": 107,
+       "tcp_listen": 5
+      },
+      "w14": {
+       "rss_mb": 356.1,
+       "cpu_percent": 27.1,
+       "tcp_established": 107,
+       "tcp_listen": 5
+      },
+      "w15": {
+       "rss_mb": 372.8,
+       "cpu_percent": 32.5,
+       "tcp_established": 107,
+       "tcp_listen": 5
+      },
+      "w16": {
+       "rss_mb": 369.4,
+       "cpu_percent": 30.5,
+       "tcp_established": 107,
+       "tcp_listen": 5
+      }
+     },
+     "held_after_load": {
+      "answered": 64000,
+      "held": [
+       64000,
+       64000,
+       64000,
+       64000,
+       64000,
+       64000,
+       64000,
+       64000,
+       64000,
+       64000,
+       64000,
+       64000,
+       64000,
+       64000,
+       64000,
+       64000
+      ]
+     },
+     "lost": {
+      "nodes": [
+       "w02",
+       "w03",
+       "w04",
+       "w08",
+       "w14"
+      ],
+      "noticed_s": {
+       "w01": 0.7,
+       "w05": 0.72,
+       "w06": 0.72,
+       "w07": 0.74,
+       "w09": 0.76,
+       "w10": 0.77,
+       "w11": 0.78,
+       "w12": 0.81,
+       "w13": 0.84,
+       "w15": 0.85,
+       "w16": 0.85
+      },
+      "load": {
+       "rps_asked": 800,
+       "rps_achieved": 800.0,
+       "sent": 16000,
+       "status": {
+        "0": 41,
+        "200": 15959
+       },
+       "failed": 41,
+       "skipped": 0,
+       "max_queue_lag_ms": 224,
+       "latency_ms": {
+        "max": 342.445,
+        "min": 0.486,
+        "n": 15959,
+        "p50": 2.26,
+        "p90": 33.791,
+        "p99": 134.454,
+        "p999": 227.907
+       },
+       "per_target": [
+        {
+         "status": {
+          "200": 1000
+         },
+         "p50": 2.17,
+         "p99": 134.454,
+         "max": 205.895
+        },
+        {
+         "status": {
+          "0": 2,
+          "200": 229
+         },
+         "p50": 3.319,
+         "p99": 127.951,
+         "max": 267.263
+        },
+        {
+         "status": {
+          "0": 14,
+          "200": 227
+         },
+         "p50": 2.154,
+         "p99": 59.374,
+         "max": 78.841
+        },
+        {
+         "status": {
+          "0": 9,
+          "200": 227
+         },
+         "p50": 2.403,
+         "p99": 140.334,
+         "max": 184.248
+        },
+        {
+         "status": {
+          "200": 3292
+         },
+         "p50": 1.919,
+         "p99": 100.271,
+         "max": 313.999
+        },
+        {
+         "status": {
+          "200": 1000
+         },
+         "p50": 2.235,
+         "p99": 123.846,
+         "max": 342.445
+        },
+        {
+         "status": {
+          "200": 1000
+         },
+         "p50": 2.292,
+         "p99": 156.54,
+         "max": 264.066
+        },
+        {
+         "status": {
+          "0": 8,
+          "200": 227
+         },
+         "p50": 2.823,
+         "p99": 176.245,
+         "max": 223.698
+        },
+        {
+         "status": {
+          "200": 1765
+         },
+         "p50": 2.113,
+         "p99": 122.569,
+         "max": 205.256
+        },
+        {
+         "status": {
+          "200": 1000
+         },
+         "p50": 2.48,
+         "p99": 177.772,
+         "max": 296.261
+        },
+        {
+         "status": {
+          "200": 1000
+         },
+         "p50": 2.528,
+         "p99": 132.542,
+         "max": 195.674
+        },
+        {
+         "status": {
+          "200": 1000
+         },
+         "p50": 2.259,
+         "p99": 142.654,
+         "max": 282.348
+        },
+        {
+         "status": {
+          "200": 1000
+         },
+         "p50": 2.207,
+         "p99": 104.768,
+         "max": 181.695
+        },
+        {
+         "status": {
+          "0": 8,
+          "200": 222
+         },
+         "p50": 2.439,
+         "p99": 137.686,
+         "max": 236.905
+        },
+        {
+         "status": {
+          "200": 1770
+         },
+         "p50": 2.465,
+         "p99": 142.521,
+         "max": 225.651
+        },
+        {
+         "status": {
+          "200": 1000
+         },
+         "p50": 2.521,
+         "p99": 124.591,
+         "max": 211.896
+        }
+       ]
+      },
+      "failed_on_survivors": 0,
+      "failed_on_lost": 41,
+      "block_s": {
+       "w01": 0.179,
+       "w05": 0.179,
+       "w06": 0.115,
+       "w07": 0.117,
+       "w09": 0.118,
+       "w10": 0.119,
+       "w11": 0.135,
+       "w12": 0.18,
+       "w13": 0.151,
+       "w15": 0.165,
+       "w16": 0.167
+      },
+      "erase": {
+       "ip": "198.51.100.116",
+       "deleted_events": 16,
+       "deleted_sessions": 16,
+       "deleted_allowlist_entries": 0,
+       "erased_requests": 16,
+       "nodes": {
+        "reached": [
+         "w01",
+         "w06",
+         "w07",
+         "w12",
+         "w15"
+        ],
+        "open": [
+         "w02",
+         "w03",
+         "w04",
+         "w05",
+         "w08",
+         "w09",
+         "w10",
+         "w11",
+         "w13",
+         "w14",
+         "w16"
+        ]
+       }
+      },
+      "states": [
+       "degraded"
+      ]
+     },
+     "erase_open_but_alive": [
+      "w05",
+      "w09",
+      "w10",
+      "w11",
+      "w13",
+      "w16"
+     ],
+     "rolling": {
+      "steps": [
+       [
+        "w01",
+        true,
+        12.0,
+        7.8
+       ],
+       [
+        "w02",
+        true,
+        11.8,
+        7.2
+       ],
+       [
+        "w03",
+        true,
+        11.3,
+        7.45
+       ],
+       [
+        "w04",
+        true,
+        12.1,
+        7.66
+       ],
+       [
+        "w05",
+        true,
+        11.3,
+        7.17
+       ],
+       [
+        "w06",
+        true,
+        11.1,
+        6.88
+       ],
+       [
+        "w07",
+        true,
+        11.7,
+        7.53
+       ],
+       [
+        "w08",
+        true,
+        12.0,
+        7.46
+       ],
+       [
+        "w09",
+        true,
+        12.4,
+        7.99
+       ],
+       [
+        "w10",
+        true,
+        11.5,
+        7.38
+       ],
+       [
+        "w11",
+        true,
+        12.0,
+        7.58
+       ],
+       [
+        "w12",
+        true,
+        12.1,
+        7.22
+       ],
+       [
+        "w13",
+        true,
+        11.3,
+        6.98
+       ],
+       [
+        "w14",
+        true,
+        11.2,
+        7.05
+       ],
+       [
+        "w15",
+        true,
+        12.1,
+        7.97
+       ],
+       [
+        "w16",
+        true,
+        12.2,
+        7.57
+       ]
+      ],
+      "took_s": 196.3,
+      "load": {
+       "rps_asked": 800,
+       "rps_achieved": 799.4,
+       "sent": 160000,
+       "status": {
+        "200": 160000
+       },
+       "failed": 0,
+       "skipped": 0,
+       "max_queue_lag_ms": 513,
+       "latency_ms": {
+        "max": 735.759,
+        "min": 0.51,
+        "n": 160000,
+        "p50": 6.9,
+        "p90": 90.859,
+        "p99": 232.921,
+        "p999": 371.008
+       },
+       "per_target": [
+        {
+         "status": {
+          "200": 10008
+         },
+         "p50": 7.272,
+         "p99": 242.23,
+         "max": 521.259
+        },
+        {
+         "status": {
+          "200": 10012
+         },
+         "p50": 6.658,
+         "p99": 243.378,
+         "max": 465.864
+        },
+        {
+         "status": {
+          "200": 10019
+         },
+         "p50": 7.654,
+         "p99": 242.195,
+         "max": 601.899
+        },
+        {
+         "status": {
+          "200": 9956
+         },
+         "p50": 7.243,
+         "p99": 237.794,
+         "max": 735.759
+        },
+        {
+         "status": {
+          "200": 10043
+         },
+         "p50": 7.043,
+         "p99": 243.01,
+         "max": 598.746
+        },
+        {
+         "status": {
+          "200": 10024
+         },
+         "p50": 7.082,
+         "p99": 228.263,
+         "max": 628.195
+        },
+        {
+         "status": {
+          "200": 9966
+         },
+         "p50": 7.191,
+         "p99": 237.513,
+         "max": 662.25
+        },
+        {
+         "status": {
+          "200": 9976
+         },
+         "p50": 7.77,
+         "p99": 239.409,
+         "max": 715.103
+        },
+        {
+         "status": {
+          "200": 9986
+         },
+         "p50": 7.512,
+         "p99": 227.63,
+         "max": 400.357
+        },
+        {
+         "status": {
+          "200": 10042
+         },
+         "p50": 6.356,
+         "p99": 232.506,
+         "max": 598.576
+        },
+        {
+         "status": {
+          "200": 9970
+         },
+         "p50": 6.907,
+         "p99": 229.089,
+         "max": 614.582
+        },
+        {
+         "status": {
+          "200": 9993
+         },
+         "p50": 4.886,
+         "p99": 199.849,
+         "max": 476.157
+        },
+        {
+         "status": {
+          "200": 10050
+         },
+         "p50": 5.858,
+         "p99": 221.527,
+         "max": 491.91
+        },
+        {
+         "status": {
+          "200": 10010
+         },
+         "p50": 7.449,
+         "p99": 230.648,
+         "max": 578.302
+        },
+        {
+         "status": {
+          "200": 9938
+         },
+         "p50": 7.656,
+         "p99": 235.708,
+         "max": 617.564
+        },
+        {
+         "status": {
+          "200": 10007
+         },
+         "p50": 6.85,
+         "p99": 226.786,
+         "max": 452.579
+        }
+       ]
+      },
+      "first_failures": []
+     },
+     "seventeenth": {
+      "gateways": 16,
+      "readyz": 503,
+      "blocked_address": 200,
+      "log": [
+       "{\"time\":\"2026-11-22T18:09:33.0206+01:00\",\"level\":\"INFO\",\"msg\":\"request body limits\",\"component\":\"schild\",\"per_client\":8,\"per_network\":32,\"in_flight\":1024,\"large_in_flight\":256,\"in_flight_mib\":4096,\"waiting_mib\":256,\"raw_kib\":128}",
+       "{\"time\":\"2026-11-22T18:09:33.020642+01:00\",\"level\":\"INFO\",\"msg\":\"waiting request limits\",\"component\":\"schild\",\"per_client\":1024,\"per_network\":4096,\"gateway\":4096}"
+      ]
+     },
+     "resources_end": {
+      "w01": {
+       "rss_mb": 488.8,
+       "cpu_percent": 0.6,
+       "tcp_established": 164,
+       "tcp_listen": 5
+      },
+      "w02": {
+       "rss_mb": 455.4,
+       "cpu_percent": 0.6,
+       "tcp_established": 165,
+       "tcp_listen": 5
+      },
+      "w03": {
+       "rss_mb": 473.9,
+       "cpu_percent": 0.7,
+       "tcp_established": 163,
+       "tcp_listen": 5
+      },
+      "w04": {
+       "rss_mb": 462.5,
+       "cpu_percent": 0.9,
+       "tcp_established": 162,
+       "tcp_listen": 5
+      },
+      "w05": {
+       "rss_mb": 445.4,
+       "cpu_percent": 1.2,
+       "tcp_established": 164,
+       "tcp_listen": 5
+      },
+      "w06": {
+       "rss_mb": 455.5,
+       "cpu_percent": 0.8,
+       "tcp_established": 163,
+       "tcp_listen": 5
+      },
+      "w07": {
+       "rss_mb": 442.8,
+       "cpu_percent": 0.8,
+       "tcp_established": 162,
+       "tcp_listen": 5
+      },
+      "w08": {
+       "rss_mb": 474.7,
+       "cpu_percent": 1.2,
+       "tcp_established": 162,
+       "tcp_listen": 5
+      },
+      "w09": {
+       "rss_mb": 456.9,
+       "cpu_percent": 1.2,
+       "tcp_established": 160,
+       "tcp_listen": 5
+      },
+      "w10": {
+       "rss_mb": 414.2,
+       "cpu_percent": 0.8,
+       "tcp_established": 165,
+       "tcp_listen": 5
+      },
+      "w11": {
+       "rss_mb": 416.1,
+       "cpu_percent": 0.9,
+       "tcp_established": 161,
+       "tcp_listen": 5
+      },
+      "w12": {
+       "rss_mb": 418.8,
+       "cpu_percent": 0.9,
+       "tcp_established": 163,
+       "tcp_listen": 5
+      },
+      "w13": {
+       "rss_mb": 412.5,
+       "cpu_percent": 1.0,
+       "tcp_established": 161,
+       "tcp_listen": 5
+      },
+      "w14": {
+       "rss_mb": 372.3,
+       "cpu_percent": 1.0,
+       "tcp_established": 162,
+       "tcp_listen": 5
+      },
+      "w15": {
+       "rss_mb": 364.8,
+       "cpu_percent": 0.4,
+       "tcp_established": 163,
+       "tcp_listen": 5
+      },
+      "w16": {
+       "rss_mb": 341.2,
+       "cpu_percent": 1.3,
+       "tcp_established": 111,
+       "tcp_listen": 5
+      }
+     }
+    },
+    "q": {
+     "ready_s": [
+      1.4780345000326633,
+      1.475619750097394
+     ],
+     "all_in_contact_s": 5.31,
+     "resources_idle": {
+      "q01": {
+       "rss_mb": 176.1,
+       "cpu_percent": 0.2,
+       "tcp_established": 6,
+       "tcp_listen": 5
+      },
+      "q02": {
+       "rss_mb": 155.9,
+       "cpu_percent": 0.2,
+       "tcp_established": 6,
+       "tcp_listen": 5
+      }
+     },
+     "block_s": {
+      "p50": 0.235,
+      "p95": 1.0,
+      "max": 1.0,
+      "missed": 0
+     },
+     "limit": {
+      "one_node": {
+       "200": 74,
+       "429": 226
+      },
+      "all_nodes": {
+       "200": 74,
+       "429": 226
+      }
+     },
+     "moderate_load": {
+      "rps_asked": 200,
+      "rps_achieved": 200.0,
+      "sent": 8000,
+      "status": {
+       "200": 7920,
+       "403": 80
+      },
+      "failed": 0,
+      "skipped": 0,
+      "max_queue_lag_ms": 9,
+      "latency_ms": {
+       "max": 14.021,
+       "min": 0.552,
+       "n": 8000,
+       "p50": 1.338,
+       "p90": 1.972,
+       "p99": 3.476,
+       "p999": 7.246
+      },
+      "per_target": [
+       {
+        "status": {
+         "200": 3920,
+         "403": 80
+        },
+        "p50": 1.334,
+        "p99": 3.34,
+        "max": 14.021
+       },
+       {
+        "status": {
+         "200": 4000
+        },
+        "p50": 1.343,
+        "p99": 3.613,
+        "max": 10.664
+       }
+      ]
+     },
+     "resources_load": {
+      "q01": {
+       "rss_mb": 277.1,
+       "cpu_percent": 14.4,
+       "tcp_established": 12,
+       "tcp_listen": 5
+      },
+      "q02": {
+       "rss_mb": 274.8,
+       "cpu_percent": 14.5,
+       "tcp_established": 10,
+       "tcp_listen": 5
+      }
+     },
+     "held_after_load": {
+      "answered": 8000,
+      "held": [
+       8000,
+       8000
+      ]
+     },
+     "lost": {
+      "nodes": [
+       "q02"
+      ],
+      "noticed_s": {
+       "q01": 0.01
+      },
+      "load": {
+       "rps_asked": 100,
+       "rps_achieved": 100.0,
+       "sent": 2000,
+       "status": {
+        "0": 2,
+        "200": 1998
+       },
+       "failed": 2,
+       "skipped": 0,
+       "max_queue_lag_ms": 5,
+       "latency_ms": {
+        "max": 9.983,
+        "min": 0.583,
+        "n": 1998,
+        "p50": 1.49,
+        "p90": 2.115,
+        "p99": 3.311,
+        "p999": 5.329
+       },
+       "per_target": [
+        {
+         "status": {
+          "200": 1771
+         },
+         "p50": 1.477,
+         "p99": 3.255,
+         "max": 9.983
+        },
+        {
+         "status": {
+          "0": 2,
+          "200": 227
+         },
+         "p50": 1.601,
+         "p99": 4.605,
+         "max": 4.987
+        }
+       ]
+      },
+      "failed_on_survivors": 0,
+      "failed_on_lost": 2,
+      "block_s": {
+       "q01": 0.0
+      },
+      "erase": {
+       "ip": "198.51.100.102",
+       "deleted_events": 2,
+       "deleted_sessions": 2,
+       "deleted_allowlist_entries": 0,
+       "erased_requests": 2,
+       "nodes": {
+        "reached": [
+         "q01"
+        ],
+        "open": [
+         "q02"
+        ]
+       }
+      },
+      "states": [
+       "interrupted"
+      ]
+     },
+     "erase_open_but_alive": [],
+     "rolling": {
+      "steps": [
+       [
+        "q01",
+        true,
+        8.6,
+        5.49
+       ],
+       [
+        "q02",
+        true,
+        9.1,
+        5.44
+       ]
+      ],
+      "took_s": 18.7,
+      "load": {
+       "rps_asked": 100,
+       "rps_achieved": 100.0,
+       "sent": 3200,
+       "status": {
+        "200": 3200
+       },
+       "failed": 0,
+       "skipped": 0,
+       "max_queue_lag_ms": 60,
+       "latency_ms": {
+        "max": 70.108,
+        "min": 0.592,
+        "n": 3200,
+        "p50": 1.519,
+        "p90": 2.181,
+        "p99": 3.888,
+        "p999": 12.174
+       },
+       "per_target": [
+        {
+         "status": {
+          "200": 1620
+         },
+         "p50": 1.527,
+         "p99": 3.632,
+         "max": 9.078
+        },
+        {
+         "status": {
+          "200": 1580
+         },
+         "p50": 1.506,
+         "p99": 4.056,
+         "max": 70.108
+        }
+       ]
+      },
+      "first_failures": []
+     },
+     "resources_end": {
+      "q01": {
+       "rss_mb": 248.4,
+       "cpu_percent": 10.1,
+       "tcp_established": 142,
+       "tcp_listen": 5
+      },
+      "q02": {
+       "rss_mb": 242.4,
+       "cpu_percent": 10.2,
+       "tcp_established": 93,
+       "tcp_listen": 5
+      }
+     }
+    },
+    "took_s": 540.0
+   }
+  },
+  {
+   "scenario": "s5_absence",
+   "started": "2026-11-22T17:12:44Z",
+   "finished": "2026-11-22T17:14:27Z",
+   "git_rev": "3971e35c760c",
+   "checks": [
+    {
+     "id": "a.setup",
+     "name": "3 gateways start as one group",
+     "verdict": "PASS",
+     "detail": "readyz 200 after [1.61, 1.61, 1.61] s; every node lists every other as ok after 5.57 s from the start",
+     "kill": null
+    },
+    {
+     "id": "a.setup",
+     "name": "first-run setup on a1, its session works on every node",
+     "verdict": "PASS",
+     "detail": "setup 200; session valid everywhere after 0.43 s",
+     "kill": null
+    },
+    {
+     "id": "a.before",
+     "name": "before the absence every node holds the events (12 refused attacks and more) and the 30 requests of the address that will be erased",
+     "verdict": "PASS",
+     "detail": "events [33, 33, 33], requests by address [30, 30, 30]",
+     "kill": null
+    },
+    {
+     "id": "a.away",
+     "name": "a block set on a2 and lifted on a1 a moment later, and a lift of an older block: both addresses pass on a1 and a2",
+     "verdict": "PASS",
+     "detail": "unblock of the older block 200; incident of a2's block known on a1 after 0.18 s; unblock on a1 answered 200; requests of the addresses on a1, a2: {'B0': [200, 200], 'B2': [200, 403], 'B2 after 1.5 s': [200, 200]}",
+     "kill": null
+    },
+    {
+     "id": "a.away",
+     "name": "the changes made while a3 is away are answered",
+     "verdict": "PASS",
+     "detail": "allowlist removal 204, logout 204, erasure 200 with nodes {'reached': ['a1', 'a2'], 'open': ['a3']}",
+     "kill": null
+    },
+    {
+     "id": "a.away",
+     "name": "a1 and a2 each served more than 32 768 requests while a3 was away and hold all of them",
+     "verdict": "PASS",
+     "detail": "served by the two: 100000 (50000 each, failed 0); held more than before by a1, a2: [100006, 100006]; away for 70 s; a1 was stopped and started in between (ready after 5.5 s)",
+     "kill": null
+    },
+    {
+     "id": "a.return",
+     "name": "a3 returns: at its first ready answer it holds the blocks, the lifts, the new and the ended login, and nothing of the erased address",
+     "verdict": "PASS",
+     "detail": "ready after 1.48 s; at ready all as expected",
+     "kill": null
+    },
+    {
+     "id": "a.return",
+     "name": "the logins on a3: the one ended while it was away is refused and the new one accepted",
+     "verdict": "PASS",
+     "detail": "right 0.00 s after its first ready answer; on the two others: {'ended login valid on a1, a2': [False, False], 'new login valid on a1, a2': [True, True]}",
+     "kill": "weakens"
+    },
+    {
+     "id": "a.return",
+     "name": "the three nodes end with the same state, the one the two had",
+     "verdict": "PASS",
+     "detail": "same after 0.0 s; equal; every change of the absence holds",
+     "kill": "weakens"
+    },
+    {
+     "id": "a.return",
+     "name": "a3 catches up on every single request the two served while it was away (100000, more than the log in memory holds)",
+     "verdict": "PASS",
+     "detail": "held by a1, a2, a3: [100041, 100041, 100041]; a3 lacks 0 of 100000; equal after 9 s; log of a3 about requests: nothing",
+     "kill": null
+    },
+    {
+     "id": "a.return",
+     "name": "a sample of 40 client addresses of that load: a3 holds exactly the requests the client was answered, as a1 and a2 do",
+     "verdict": "PASS",
+     "detail": "0 addresses differ; (address, answered 200, held by a1, a2, a3): []",
+     "kill": null
+    },
+    {
+     "id": "a.return",
+     "name": "the blocked events of the absence are on all three",
+     "verdict": "PASS",
+     "detail": "attacks answered 403: 900; blocked events on a1, a2, a3: [900, 900, 900]",
+     "kill": null
+    },
+    {
+     "id": "a.return",
+     "name": "the erased address does not return on any node: no event, no request by that address (8 s after the catch-up)",
+     "verdict": "PASS",
+     "detail": "before {'events': [33, 33, 33], 'requests': [30, 30, 30]}; after: privacy search events [0, 0, 0], requests by address [0, 0, 0], event list by address [0, 0, 0]",
+     "kill": "erased"
+    }
+   ],
+   "numbers": {
+    "lifts": {
+     "unblock_B0": 200,
+     "incident_of_a2_known_on_a1_s": 0.18245979072526097,
+     "unblock_B2_on_a1": [
+      200,
+      "ok"
+     ],
+     "requests": {
+      "B0": [
+       200,
+       200
+      ],
+      "B2": [
+       200,
+       403
+      ],
+      "B2 after 1.5 s": [
+       200,
+       200
+      ]
+     }
+    },
+    "away": {
+     "seconds": 69.7,
+     "load1": {
+      "rps_asked": 2000,
+      "rps_achieved": 1999.9,
+      "sent": 90000,
+      "status": {
+       "200": 89100,
+       "403": 900
+      },
+      "failed": 0,
+      "skipped": 0,
+      "max_queue_lag_ms": 13,
+      "latency_ms": {
+       "max": 51.382,
+       "min": 0.427,
+       "n": 90000,
+       "p50": 0.58,
+       "p90": 0.734,
+       "p99": 9.344,
+       "p999": 25.564
+      },
+      "per_target": [
+       {
+        "status": {
+         "200": 44100,
+         "403": 900
+        },
+        "p50": 0.582,
+        "p99": 9.38,
+        "max": 51.382
+       },
+       {
+        "status": {
+         "200": 45000
+        },
+        "p50": 0.579,
+        "p99": 9.265,
+        "max": 51.217
+       }
+      ]
+     },
+     "load2": {
+      "rps_asked": 1000,
+      "rps_achieved": 999.9,
+      "sent": 10000,
+      "status": {
+       "200": 10000
+      },
+      "failed": 0,
+      "skipped": 0,
+      "max_queue_lag_ms": 11,
+      "latency_ms": {
+       "max": 16.111,
+       "min": 0.456,
+       "n": 10000,
+       "p50": 0.592,
+       "p90": 0.724,
+       "p99": 4.56,
+       "p999": 11.565
+      },
+      "per_target": [
+       {
+        "status": {
+         "200": 5000
+        },
+        "p50": 0.593,
+        "p99": 4.656,
+        "max": 16.111
+       },
+       {
+        "status": {
+         "200": 5000
+        },
+        "p50": 0.59,
+        "p99": 4.212,
+        "max": 14.646
+       }
+      ]
+     },
+     "a1_restart_ready_s": 5.512475916650146,
+     "held_a1_a2": [
+      100036,
+      100036
+     ],
+     "base": [
+      30,
+      30,
+      30
+     ]
+    },
+    "logins_after_ready": {
+     "right_after_s": 0.0006431248039007187,
+     "others": {
+      "ended login valid on a1, a2": [
+       false,
+       false
+      ],
+      "new login valid on a1, a2": [
+       true,
+       true
+      ]
+     }
+    },
+    "catch_up": {
+     "held": [
+      100041,
+      100041,
+      100041
+     ],
+     "lacks": [
+      0,
+      0,
+      0
+     ],
+     "seconds": 9.5,
+     "served_while_away": 100000
+    },
+    "per_ip_bad": [],
+    "erased": {
+     "before": {
+      "events": [
+       33,
+       33,
+       33
+      ],
+      "requests": [
+       30,
+       30,
+       30
+      ]
+     },
+     "after": {
+      "events": [
+       0,
+       0,
+       0
+      ],
+      "requests": [
+       0,
+       0,
+       0
+      ],
+      "event_list": [
+       0,
+       0,
+       0
+      ]
+     }
+    },
+    "took_s": 103.7
+   }
+  },
+  {
+   "scenario": "s6_clocks",
+   "started": "2026-11-22T17:14:27Z",
+   "finished": "2026-11-22T17:20:33Z",
+   "git_rev": "3971e35c760c",
+   "checks": [
+    {
+     "id": "k.setup",
+     "name": "3 gateways start as one group",
+     "verdict": "PASS",
+     "detail": "readyz 200 after [1.5, 1.5, 1.5] s; every node lists every other as ok after 5.43 s from the start",
+     "kill": null
+    },
+    {
+     "id": "k.setup",
+     "name": "first-run setup on k1, its session works on every node",
+     "verdict": "PASS",
+     "detail": "setup 200; session valid everywhere after 0.54 s",
+     "kill": null
+    },
+    {
+     "id": "k.plus30",
+     "name": "k3 runs with its clock +30 s (its GET /group names the time it believes)",
+     "verdict": "PASS",
+     "detail": "ready after 5.97 s; generated_at 2026-11-22T17:15:11Z is 29 s from this machine's clock",
+     "kill": null
+    },
+    {
+     "id": "k.plus30",
+     "name": "clock of k3 30 s ahead: a block of k3 acts on the others and a block of k1 acts on k3",
+     "verdict": "PASS",
+     "detail": "block of k3 on k1, k2 after {'k1': 0.207, 'k2': 0.207} s; block of k1 on k3 after {'k3': 0.989} s",
+     "kill": null
+    },
+    {
+     "id": "k.plus30",
+     "name": "a block set on k3 (clock ahead) and lifted on k1 two seconds later stays lifted everywhere",
+     "verdict": "PASS",
+     "detail": "unblock 200; passes after {'k1': 0.001, 'k2': 0.975, 'k3': 0.976} s; 3 s later {'k1': 200, 'k2': 200, 'k3': 200}",
+     "kill": null
+    },
+    {
+     "id": "k.plus30",
+     "name": "the same setting changed on k3 (clock 30 s ahead) and 2 s later on k1: the later change in real time stands",
+     "verdict": "PASS",
+     "detail": "PATCH on k1 answered 200; raw_ip_days on k1, k2, k3 three seconds later: [6, 6, 6] (5 was set on k3 first, 6 on k1 after it)",
+     "kill": null
+    },
+    {
+     "id": "k.plus30",
+     "name": "`schild cluster status` reports a skew over 5 s (spec, merge)",
+     "verdict": "PASS",
+     "detail": "status of k1 names no clock difference; its lines: ['Clock: k3 is 30s ahead of this node. The later change wins in a group and a record more than 60 s ahead is put off: set the clocks right (NTP).', 'Since the start: 17 records taken, 0 refused, 0 put off (clock or unknown origin), 0 of a newer version unread']",
+     "kill": null
+    },
+    {
+     "id": "k.plus30",
+     "name": "the three nodes show the same state",
+     "verdict": "PASS",
+     "detail": "equal",
+     "kill": null
+    },
+    {
+     "id": "k.plus30",
+     "name": "no client request waits or fails on the two nodes with the right clock",
+     "verdict": "PASS",
+     "detail": "1232 requests, 0 failed, 0 not 200, p50 1.74 ms, p99 4.84 ms, slowest 8.95 ms (limit 250 ms)",
+     "kill": "waits"
+    },
+    {
+     "id": "k.plus120",
+     "name": "k3 runs with its clock +120 s (its GET /group names the time it believes)",
+     "verdict": "PASS",
+     "detail": "ready after 5.48 s; generated_at 2026-11-22T17:16:58Z is 120 s from this machine's clock",
+     "kill": null
+    },
+    {
+     "id": "k.plus120",
+     "name": "clock of k3 120 s ahead: a block of k1 acts on k3",
+     "verdict": "PASS",
+     "detail": "after {'k3': 0.082} s",
+     "kill": null
+    },
+    {
+     "id": "k.plus120",
+     "name": "a block set on k3 (120 s ahead) on the two others: put off while its clock is more than 60 s ahead, never lost",
+     "verdict": "PASS",
+     "detail": "within 6 s: {'k1': None, 'k2': None}; then acts after about 60.3 s; counters of k1 before {'taken': 17, 'refused': 0, 'deferred': 0, 'unread': 0}, after {'taken': 18, 'refused': 0, 'deferred': 115, 'unread': 0}",
+     "kill": "weakens"
+    },
+    {
+     "id": "k.plus120",
+     "name": "an address erased on k3 (120 s ahead) is gone on the two reachable others within 30 s (spec, must)",
+     "verdict": "FAIL",
+     "detail": "events before [12, 12, 12]; erasure answered 200 with nodes {'reached': ['k3'], 'open': ['k1', 'k2']}; gone on k1 and k2 after 60.3 s",
+     "kill": null
+    },
+    {
+     "id": "k.plus120",
+     "name": "requests served by k3 while its clock is 120 s ahead (300 and the probe's), 8 s later",
+     "verdict": "INFO",
+     "detail": "held more than before by k1, k2, k3: [567, 568, 1216]; the two others lack [649, 648] of what k3 holds (contract section 9: a node stores a request of another only when its time is not more than a minute ahead)",
+     "kill": null
+    },
+    {
+     "id": "k.plus120",
+     "name": "once the clocks of the others have passed the time of those requests (125 s later), they hold what k3 served",
+     "verdict": "FAIL",
+     "detail": "held more than before by k1, k2, k3: [9326, 9328, 14355]; k1 and k2 lack [5029, 5027] of the requests k3 holds (every node sent the probe's requests at the same rate, so equal numbers are expected)",
+     "kill": null
+    },
+    {
+     "id": "k.plus120",
+     "name": "no client request waits or fails on the two nodes with the right clock",
+     "verdict": "PASS",
+     "detail": "14677 requests, 0 failed, 0 not 200, p50 1.90 ms, p99 5.71 ms, slowest 34.16 ms (limit 250 ms)",
+     "kill": "waits"
+    },
+    {
+     "id": "k.minus120",
+     "name": "k3 runs with its clock -120 s (its GET /group names the time it believes)",
+     "verdict": "PASS",
+     "detail": "ready after 5.5 s; generated_at 2026-11-22T17:16:26Z is -121 s from this machine's clock",
+     "kill": null
+    },
+    {
+     "id": "k.minus120",
+     "name": "clock of k3 120 s behind: a block of k3 acts on the others",
+     "verdict": "PASS",
+     "detail": "after {'k1': 0.204, 'k2': 0.189} s",
+     "kill": null
+    },
+    {
+     "id": "k.minus120",
+     "name": "a block set on k1 on k3 (120 s behind): put off while k1's clock is more than 60 s ahead of k3's, never lost",
+     "verdict": "PASS",
+     "detail": "within 6 s: {'k3': None}; then acts after about 61.3 s; counters of k3 before {'taken': 0, 'refused': 0, 'deferred': 0, 'unread': 0}, after {'taken': 1, 'refused': 0, 'deferred': 122, 'unread': 0}",
+     "kill": "weakens"
+    },
+    {
+     "id": "k.minus120",
+     "name": "k3 restarts 120 s behind: at its first ready answer the block set on k1 while it was down acts",
+     "verdict": "FAIL",
+     "detail": "ready after None s; request of the blocked address at ready 200; acts 20.25 s after ready",
+     "kill": null
+    },
+    {
+     "id": "k.minus120",
+     "name": "no client request waits or fails on the two nodes with the right clock",
+     "verdict": "PASS",
+     "detail": "8944 requests, 0 failed, 0 not 200, p50 1.93 ms, p99 6.20 ms, slowest 20.66 ms (limit 250 ms)",
+     "kill": "waits"
+    },
+    {
+     "id": "k.end",
+     "name": "k3 back on the right clock: the three nodes show the same state",
+     "verdict": "PASS",
+     "detail": "after 0.0 s; equal",
+     "kill": null
+    }
+   ],
+   "numbers": {
+    "plus30_setting": [
+     6,
+     6,
+     6
+    ],
+    "plus120": {
+     "block_within_6s": {
+      "k1": null,
+      "k2": null
+     },
+     "block_after_s": 60.3,
+     "erasure_gone_s": 60.3,
+     "requests_delta": [
+      567,
+      568,
+      1216
+     ],
+     "counters": [
+      {
+       "taken": 17,
+       "refused": 0,
+       "deferred": 0,
+       "unread": 0
+      },
+      {
+       "taken": 18,
+       "refused": 0,
+       "deferred": 115,
+       "unread": 0
+      }
+     ],
+     "requests_delta_later": [
+      9326,
+      9328,
+      14355
+     ]
+    },
+    "minus120": {
+     "block_within_6s": {
+      "k3": null
+     },
+     "block_after_s": 61.3,
+     "ready_s": null,
+     "blocked_at_ready": 200,
+     "acts_after_ready_s": 20.25
+    },
+    "took_s": 365.8
+   }
+  },
+  {
+   "scenario": "s7_versions",
+   "started": "2026-11-22T17:20:33Z",
+   "finished": "2026-11-22T17:22:16Z",
+   "git_rev": "3971e35c760c",
+   "checks": [
+    {
+     "id": "v.old",
+     "name": "3 gateways start as one group",
+     "verdict": "PASS",
+     "detail": "readyz 200 after [3.5, 3.5, 3.5] s; every node lists every other as ok after 4.61 s from the start",
+     "kill": null
+    },
+    {
+     "id": "v.old",
+     "name": "first-run setup on v1, its session works on every node",
+     "verdict": "PASS",
+     "detail": "setup 200; session valid everywhere after 0.34 s",
+     "kill": null
+    },
+    {
+     "id": "v.old",
+     "name": "three gateways of the older commit e54c040100bb: one state, every node holds every request",
+     "verdict": "PASS",
+     "detail": "equal; requests held [1500, 1500, 1500]",
+     "kill": null
+    },
+    {
+     "id": "v.roll",
+     "name": "step 1 (1 new, 2 old): v1 upgraded in place is ready and the state is the same on all three and as before",
+     "verdict": "PASS",
+     "detail": "stopped True, ready after 5.48 s; equal",
+     "kill": "weakens"
+    },
+    {
+     "id": "v.roll",
+     "name": "1 new, 2 old: a block set on each node acts on the two others",
+     "verdict": "PASS",
+     "detail": "seconds {'v1': {'v2': 0.214, 'v3': 0.214}, 'v2': {'v1': 0.987, 'v3': 0.987}, 'v3': {'v1': 0.157, 'v2': 0.157}}",
+     "kill": "weakens"
+    },
+    {
+     "id": "v.roll",
+     "name": "1 new, 2 old: a login made on one node is valid on all",
+     "verdict": "PASS",
+     "detail": "after 0.96 s",
+     "kill": "weakens"
+    },
+    {
+     "id": "v.roll",
+     "name": "step 1 (1 new, 2 old): requests held per node, group state and what the logs say",
+     "verdict": "INFO",
+     "detail": "requests held by v1, v2, v3: [6502, 6588, 6590]; GET /group state ['active', 'active', 'active']; WARN or ERROR lines since the step {'v1': 0, 'v2': 0, 'v3': 0}, e.g. {}",
+     "kill": null
+    },
+    {
+     "id": "v.roll",
+     "name": "step 2 (2 new, 1 old): v2 upgraded in place is ready and the state is the same on all three and as before",
+     "verdict": "PASS",
+     "detail": "stopped True, ready after 5.44 s; equal",
+     "kill": "weakens"
+    },
+    {
+     "id": "v.roll",
+     "name": "2 new, 1 old: a block set on each node acts on the two others",
+     "verdict": "PASS",
+     "detail": "seconds {'v1': {'v2': 0.054, 'v3': 0.041}, 'v2': {'v1': 0.972, 'v3': 0.973}, 'v3': {'v1': 0.161, 'v2': 0.162}}",
+     "kill": "weakens"
+    },
+    {
+     "id": "v.roll",
+     "name": "2 new, 1 old: a login made on one node is valid on all",
+     "verdict": "PASS",
+     "detail": "after 0.96 s",
+     "kill": "weakens"
+    },
+    {
+     "id": "v.roll",
+     "name": "step 2 (2 new, 1 old): requests held per node, group state and what the logs say",
+     "verdict": "INFO",
+     "detail": "requests held by v1, v2, v3: [11147, 11134, 11234]; GET /group state ['active', 'active', 'active']; WARN or ERROR lines since the step {'v1': 0, 'v2': 0, 'v3': 0}, e.g. {}",
+     "kill": null
+    },
+    {
+     "id": "v.roll",
+     "name": "step 3 (3 new, 0 old): v3 upgraded in place is ready and the state is the same on all three and as before",
+     "verdict": "PASS",
+     "detail": "stopped True, ready after 5.48 s; equal",
+     "kill": "weakens"
+    },
+    {
+     "id": "v.roll",
+     "name": "3 new, 0 old: a block set on each node acts on the two others",
+     "verdict": "PASS",
+     "detail": "seconds {'v1': {'v2': 0.028, 'v3': 0.028}, 'v2': {'v1': 0.996, 'v3': 0.996}, 'v3': {'v1': 0.169, 'v2': 0.157}}",
+     "kill": "weakens"
+    },
+    {
+     "id": "v.roll",
+     "name": "3 new, 0 old: a login made on one node is valid on all",
+     "verdict": "PASS",
+     "detail": "after 0.97 s",
+     "kill": "weakens"
+    },
+    {
+     "id": "v.roll",
+     "name": "step 3 (3 new, 0 old): requests held per node, group state and what the logs say",
+     "verdict": "INFO",
+     "detail": "requests held by v1, v2, v3: [15794, 15782, 15732]; GET /group state ['active', 'active', 'active']; WARN or ERROR lines since the step {'v1': 0, 'v2': 0, 'v3': 0}, e.g. {}",
+     "kill": null
+    },
+    {
+     "id": "v.roll",
+     "name": "the upgrade of all three in turn under 300 requests a second that follow readyz: no request fails",
+     "verdict": "PASS",
+     "detail": "21000 sent, 0 failed, statuses {'200': 21000}; p99 3.595 ms; first failures []",
+     "kill": "waits"
+    },
+    {
+     "id": "v.roll",
+     "name": "after the upgrade every node holds the same number of single requests (those served while versions were mixed included)",
+     "verdict": "PASS",
+     "detail": "held by v1, v2, v3: [23038, 23038, 23038]; largest difference 0",
+     "kill": null
+    },
+    {
+     "id": "v.back",
+     "name": "v3 goes back to the older build on the data the newer one wrote: it starts and is ready",
+     "verdict": "PASS",
+     "detail": "ready after 5.45 s",
+     "kill": null
+    },
+    {
+     "id": "v.back",
+     "name": "and shows the same state as the two newer ones",
+     "verdict": "PASS",
+     "detail": "equal",
+     "kill": "weakens"
+    },
+    {
+     "id": "v.back",
+     "name": "2 new, 1 old again: a block set on each node acts on the two others",
+     "verdict": "PASS",
+     "detail": "seconds {'v1': {'v2': 0.17, 'v3': 0.171}, 'v2': {'v1': 0.987, 'v3': 0.988}, 'v3': {'v1': 0.976, 'v2': 0.976}}",
+     "kill": "weakens"
+    },
+    {
+     "id": "v.back",
+     "name": "2 new, 1 old again: a login made on one node is valid on all",
+     "verdict": "PASS",
+     "detail": "after 1.29 s",
+     "kill": "weakens"
+    }
+   ],
+   "numbers": {
+    "old_rev": "e54c040100bb",
+    "rolling": {
+     "steps": [
+      {
+       "node": "v1",
+       "ready_s": 5.484521499834955,
+       "log_warn_error": {
+        "v1": 0,
+        "v2": 0,
+        "v3": 0
+       },
+       "log_examples": {},
+       "requests_held": [
+        6502,
+        6588,
+        6590
+       ],
+       "group_state": [
+        "active",
+        "active",
+        "active"
+       ]
+      },
+      {
+       "node": "v2",
+       "ready_s": 5.439656707923859,
+       "log_warn_error": {
+        "v1": 0,
+        "v2": 0,
+        "v3": 0
+       },
+       "log_examples": {},
+       "requests_held": [
+        11147,
+        11134,
+        11234
+       ],
+       "group_state": [
+        "active",
+        "active",
+        "active"
+       ]
+      },
+      {
+       "node": "v3",
+       "ready_s": 5.4780273754149675,
+       "log_warn_error": {
+        "v1": 0,
+        "v2": 0,
+        "v3": 0
+       },
+       "log_examples": {},
+       "requests_held": [
+        15794,
+        15782,
+        15732
+       ],
+       "group_state": [
+        "active",
+        "active",
+        "active"
+       ]
+      }
+     ],
+     "load": {
+      "rps_asked": 300,
+      "rps_achieved": 300.0,
+      "sent": 21000,
+      "status": {
+       "200": 21000
+      },
+      "failed": 0,
+      "skipped": 0,
+      "max_queue_lag_ms": 14,
+      "latency_ms": {
+       "max": 38.407,
+       "min": 0.48,
+       "n": 21000,
+       "p50": 0.98,
+       "p90": 1.87,
+       "p99": 3.595,
+       "p999": 11.624
+      },
+      "per_target": [
+       {
+        "status": {
+         "200": 7001
+        },
+        "p50": 1.002,
+        "p99": 3.681,
+        "max": 24.325
+       },
+       {
+        "status": {
+         "200": 7019
+        },
+        "p50": 0.971,
+        "p99": 3.665,
+        "max": 26.289
+       },
+       {
+        "status": {
+         "200": 6980
+        },
+        "p50": 0.971,
+        "p99": 3.359,
+        "max": 38.407
+       }
+      ]
+     },
+     "first_failures": []
+    },
+    "after_upgrade_requests": [
+     23038,
+     23038,
+     23038
+    ],
+    "rollback_ready_s": 5.453202999662608,
+    "took_s": 102.2
+   }
+  }
+ ]
+}

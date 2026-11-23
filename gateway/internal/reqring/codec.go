@@ -44,7 +44,10 @@ type Rec struct {
 	Visitor    [8]byte
 	IP         netip.Addr // invalid: erased
 	UA         string     // "": none sent, or erased
-	tail       int        // offset of the trailer in the payload
+	// Seq: the number of a request this node served itself in a group
+	// (Entry.Seq); 0 none, a request of another node, or erased.
+	Seq  uint64
+	tail int // offset of the trailer in the payload
 }
 
 // Frame types of a segment.
@@ -157,6 +160,12 @@ func appendRec(b []byte, r *Rec, base int64, ids *recIDs) []byte {
 		b = append(b, 0)
 	}
 	b = appendStr(b, r.UA)
+	// Optional, after the trailer: a record without it is one of a single
+	// gateway, of another node, or of a version before this field. An
+	// erasure zeroes everything from the trailer on, this number too.
+	if r.Seq != 0 {
+		b = binary.AppendUvarint(b, r.Seq)
+	}
 	return b
 }
 
@@ -318,6 +327,12 @@ func decodeRec(p []byte, base int64, d *dict, r *Rec) error {
 	r.UA = rd.str()
 	if rd.err {
 		return errCorrupt
+	}
+	if len(rd.b) > 0 {
+		r.Seq = rd.uvarint()
+		if rd.err {
+			return errCorrupt
+		}
 	}
 	return nil
 }

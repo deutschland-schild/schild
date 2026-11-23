@@ -6,7 +6,9 @@ import { Info } from '@lucide/vue'
 import { computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { errorMessage } from '@/api/client'
+import { useGroupStatus } from '@/api/group'
 import { isMonitoringOff, monitoringOff, rangeOf, useMetricSeries, useServerSnapshot, valuesOf } from '@/api/monitoring'
+import { ALL_NODES, selectedNode } from '@/lib/node-filter'
 import ChartCard from '@/components/monitoring/ChartCard.vue'
 import RangeSiteBar from '@/components/monitoring/RangeSiteBar.vue'
 import ServerHeader from '@/components/ServerHeader.vue'
@@ -29,7 +31,12 @@ const range = computed({
   },
 })
 
+const groupQ = useGroupStatus()
 const snapQ = useServerSnapshot()
+// In a cluster the charts follow the filter "Server"; the values of this moment are always this server's.
+const otherNode = computed(() => selectedNode.value !== ALL_NODES && groupQ.data.value?.node?.id !== selectedNode.value
+  ? groupQ.data.value?.members?.find(m => m.id === selectedNode.value)?.name
+  : undefined)
 const s = computed<ServerSnapshot | undefined>(() => snapQ.data.value)
 const off = computed(() => monitoringOff.value || isMonitoringOff(snapQ.error.value))
 const series = useMetricSeries(() => ({
@@ -121,6 +128,10 @@ const fileRatio = (a?: number, b?: number) => a !== undefined && b ? a / b : nul
         <RangeSiteBar v-model:range="range" no-sites />
       </template>
     </ServerHeader>
+
+    <p v-if="otherNode" class="mb-4 rounded-xl border bg-card px-4 py-2.5 text-sm text-muted-foreground" role="note" data-testid="load-other-node">
+      Die Diagramme zeigen {{ otherNode }}. Die Werte von diesem Moment (Prozesse, Festplatten, Verbindungen) kennt nur der Server selbst: Sie stammen von dem Server, dessen Dashboard du gerade geöffnet hast.
+    </p>
 
     <p v-if="off" class="rounded-xl border bg-card p-4 text-sm text-muted-foreground" data-testid="monitoring-off">
       {{ COPY.monitoringOff }}

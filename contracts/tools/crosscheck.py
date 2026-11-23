@@ -87,7 +87,8 @@ RESULT_LIMITS = {"bot-match": 4 << 20, "geo-map": 64 << 10,
                  "rule-effect": 4 << 10,  # D73
                  "access-gate": 64 << 10,  # D56 (MVP-14 step 1)
                  "crawler-policy": 4 << 20,  # D57 (MVP-29)
-                 "human-check": 64 << 10}  # MVP-12 v1_cut
+                 "human-check": 64 << 10,  # MVP-12 v1_cut
+                 "cluster-record": 4 << 20}  # D105 (MVP-27)
 FORBIDDEN_FIELDS = [
     "ip", "ips", "ip_address", "ip_prefix", "ip_hash", "ip_pseudonym", "oprf", "client_ip", "remote_addr", "remote_ip",
     "remote_host", "src_ip", "source_ip", "client_address", "address", "addr", "ipv4", "ipv6", "peer", "peer_ip",
@@ -4040,6 +4041,361 @@ def crowdsec_hub(d):
     return hub_set_cost(d)
 
 
+
+# ---------------------------------------------------------------- group records (D105, cluster.md)
+#
+# Whether a node of a group of gateways takes a record, and whether it
+# replaces the record held (cluster.md sections 3 to 5). Written from the
+# contract text, independent of the Go package contract/cluster.
+
+CL_VERSION = 1
+CL_MAX_DATA = 256 << 10
+CL_MAX_ID = 512
+CL_THINGS = {
+    "settings": {"settings_overlay_v1", "behaviour_rate_limits_v1", "rules_state_by_v1", "crawler_policies_v1",
+                 "access_protections_v1", "human_check_v1", "rule_exceptions_v2", "agent_pseudonym_key_v1"},
+    "access": {"allowlist", "ip_exceptions", "rule_decisions"},
+    "logins": {"users", "sessions", "agent_tokens"},
+}
+# Keys of the gateway's store that describe one node and never travel.
+CL_PER_NODE_SETTINGS = {"installed_at_v1", "dashboard_setup_code_v1", "crowdsec_hub_status_v1", "crowdsec_hub_set_v1", "allow_version", "jobs_local_v1"}
+CL_SETTING_KEY = re.compile(r"^[a-z][a-z0-9_]{0,63}\Z")
+CL_TIME_PLAIN = re.compile(r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}([.,]\d+)?Z$")
+CL_TIME = re.compile(r"^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})([.,]\d+)?Z$")
+
+
+class ClRefuse(Exception):
+    def __init__(self, reason):
+        Exception.__init__(self, reason)
+        self.reason = reason
+
+
+def cl_hash_id(prefix, context, pub):
+    return prefix + hashlib.sha256(context.encode("ascii") + pub).hexdigest()[:32]
+
+
+def cl_node_id(pub):
+    return cl_hash_id("n-", "schild-node:", pub)
+
+
+def cl_group_id(pub):
+    return cl_hash_id("g-", "schild-group:", pub)
+
+
+def cl_b64(s):
+    """Standard base64, padded, canonical; None when it is none."""
+    t = s.replace("\r", "").replace("\n", "")
+    try:
+        b = base64.b64decode(t, validate=True)
+    except Exception:
+        return None
+    if base64.b64encode(b).decode("ascii") != t:
+        return None
+    return b
+
+
+def cl_time(s):
+    """Seconds since the epoch of a time as records carry it; None: no time."""
+    m = CL_TIME.match(s) if isinstance(s, str) else None
+    if not m:
+        return None
+    y, mo, d, h, mi, sec = (int(x) for x in m.groups()[:6])
+    if not (1 <= mo <= 12 and h < 24 and mi < 60 and sec < 60):
+        return None
+    if d < 1 or d > calendar.monthrange(y, mo)[1] if y > 0 else True:
+        return None
+    frac = float("0" + m.group(7).replace(",", ".")) if m.group(7) else 0.0
+    return calendar.timegm((y, mo, d, h, mi, sec)) + frac
+
+
+def cl_addr(s):
+    """(canonical text, is IPv4) of an IP address; None: no address."""
+    try:
+        a = ipaddress.ip_address(s)
+    except ValueError:
+        return None
+    if a.version == 4:
+        return str(a), True
+    if a.ipv4_mapped is not None and "%" not in s:
+        return "::ffff:" + str(a.ipv4_mapped), False
+    return str(a), False
+
+
+def cl_addr_port(s):
+    i = s.rfind(":")
+    if i < 0:
+        return False
+    host, port = s[:i], s[i + 1:]
+    if not re.fullmatch(r"[0-9]+", port) or int(port) > 65535:
+        return False
+    if host.startswith("["):
+        if not host.endswith("]"):
+            return False
+        a = cl_addr(host[1:-1])
+        return a is not None and not a[1]
+    a = cl_addr(host)
+    return a is not None and a[1]
+
+
+def cl_blen(s):
+    return len(s.encode("utf-8", "surrogatepass"))
+
+
+def cl_payload(rec):
+    """The decoded data; b"" when there is none. Raises schema."""
+    if rec["data"] == "":
+        return b""
+    p = cl_b64(rec["data"])
+    if p is None or len(p) > CL_MAX_DATA:
+        raise ClRefuse("schema")
+    return p
+
+
+def cl_signing_bytes(rec, data):
+    out = b""
+    for part in (b"schild-cluster-record-v1", str(rec["v"]).encode(), rec["group"].encode(), rec["class"].encode(), rec["id"].encode(),
+                 rec["origin"].encode(), str(rec["seq"]).encode(), str(rec["hlc"]).encode(), b"1" if rec.get("deleted") else b"0",
+                 rec.get("expires", "").encode(), data):
+        out += str(len(part)).encode() + b" " + part + b" "
+    return out
+
+
+def cl_decode(rec, fields):
+    """The data of a record as the fields of its class. A field is a string,
+    an integer, a boolean or a map of strings; one that is missing or null is
+    empty. An unknown field refuses the record, and so does data that is no
+    JSON object (null counts as an empty one)."""
+    p = cl_payload(rec)
+    if len(p) == 0:
+        raise ClRefuse("schema")
+    try:
+        doc = json.loads(p.decode("utf-8", "replace"), object_pairs_hook=lambda pairs: ("obj", pairs))
+    except ValueError:
+        raise ClRefuse("schema")
+    out = {name: {"str": "", "int": 0, "bool": False, "map": {}}[kind] for name, kind in fields.items()}
+    if doc is None:
+        return out
+    if not (isinstance(doc, tuple) and len(doc) == 2 and doc[0] == "obj"):
+        raise ClRefuse("schema")
+    fold = {name.casefold(): name for name in fields}
+    for key, val in doc[1]:
+        name = key if key in fields else fold.get(key.casefold())
+        if name is None:
+            raise ClRefuse("schema")
+        kind = fields[name]
+        if val is None:
+            continue
+        if kind == "str" and isinstance(val, str):
+            out[name] = val
+        elif kind == "int" and isinstance(val, int) and not isinstance(val, bool) and -(1 << 63) <= val < (1 << 63):
+            out[name] = val
+        elif kind == "bool" and isinstance(val, bool):
+            out[name] = val
+        elif kind == "map" and isinstance(val, tuple) and len(val) == 2 and val[0] == "obj":
+            mp = {}
+            for k, v in val[1]:
+                if v is None:
+                    v = ""
+                if not isinstance(v, str):
+                    raise ClRefuse("schema")
+                mp[k] = v
+            out[name] = mp
+        else:
+            raise ClRefuse("schema")
+    return out
+
+
+CL_MEMBER = {"name": "str", "role": "str", "public_key": "str", "address": "str", "joined": "str", "version": "str", "admit_public_key": "str", "admit": "str"}
+CL_BLOCK = {"client": "str", "bits": "int", "source": "str", "level": "int", "since": "str", "until": "str", "duration_s": "int",
+            "incident": "str", "event_id": "str", "net_class": "str", "node": "str"}
+
+
+def cl_key(m):
+    k = cl_b64(m["public_key"])
+    return k if k is not None and len(k) == 32 else None
+
+
+def cl_member(rec):
+    """The member of a record of class members: (fields, key). Raises schema."""
+    m = cl_decode(rec, CL_MEMBER)
+    key = cl_key(m)
+    ok = (key is not None and m["role"] == "gateway"
+          and m["name"] != "" and cl_blen(m["name"]) <= 63 and not any(ch in m["name"] for ch in " \t\r\n/")
+          and cl_addr_port(m["address"])
+          and (m["admit_public_key"] == "") == (m["admit"] == "") and cl_blen(m["admit_public_key"]) <= 64 and cl_blen(m["admit"]) <= 128
+          and cl_time(m["joined"]) is not None)
+    if not ok or cl_node_id(key) != rec["id"]:
+        raise ClRefuse("schema")
+    return m, key
+
+
+def cl_admitted(m, key, group):
+    pub, sig = cl_b64(m["admit_public_key"]), cl_b64(m["admit"])
+    if pub is None or sig is None or len(pub) != 32 or len(sig) != 64:
+        return False
+    return cl_group_id(pub) == group and ed25519_verify(pub, b"schild-admit:" + group.encode() + b":" + key, sig)
+
+
+def cl_clean_path(p):
+    if p == "" or cl_blen(p) > CL_MAX_ID:
+        return False
+    return not any(el in ("", ".", "..") or "\\" in el or "\x00" in el for el in p.split("/"))
+
+
+def cl_thing_of(cls, rid):
+    """The thing a record id of settings, access or logins names, or None."""
+    i = rid.rfind("/")
+    if i < 0 or len(rid) - i - 1 != 32:
+        return None
+    thing = rid[:i]
+    if thing in CL_THINGS[cls]:
+        return thing
+    # Class settings takes every key of the store that is not per node.
+    if cls == "settings" and CL_SETTING_KEY.match(thing) and thing not in CL_PER_NODE_SETTINGS:
+        return thing
+    return None
+
+
+def cl_class_rules(rec):
+    cls, deleted, expires = rec["class"], bool(rec.get("deleted")), rec.get("expires", "")
+    if cls == "members":
+        cl_member(rec)
+    elif cls == "blocks" and deleted:
+        l = cl_decode(rec, {"incident": "str", "node": "str"})
+        if cl_blen(l["incident"]) > 64 or cl_blen(l["node"]) > 63 or cl_addr(rec["id"]) is None or expires == "":
+            raise ClRefuse("schema")
+    elif cls == "blocks":
+        b = cl_decode(rec, CL_BLOCK)
+        a = cl_addr(b["client"])
+        since, until = cl_time(b["since"]), cl_time(b["until"])
+        ok = (a is not None and b["client"] == rec["id"] and a[0] == b["client"] and b["bits"] == (32 if a[1] else 64)
+              and since is not None and until is not None and until > since and until - since <= 7 * 86400 + 60
+              and b["source"] != "" and cl_blen(b["source"]) <= 96 and 1 <= b["level"] <= 16 and 1 <= b["duration_s"] <= 7 * 86400
+              and cl_blen(b["incident"]) <= 64 and cl_blen(b["event_id"]) <= 64 and cl_blen(b["net_class"]) <= 32 and cl_blen(b["node"]) <= 63)
+        if not ok or expires != b["until"]:
+            raise ClRefuse("schema")
+    elif cls in CL_THINGS:
+        # One entry of a thing: the id is the thing and the hash of the key.
+        v = cl_decode(rec, {"key": "str", "value": "str", "node": "str"})
+        thing = cl_thing_of(cls, rec["id"])
+        if cl_blen(v["node"]) > 63 or cl_blen(v["key"]) > 1024 or thing is None:
+            raise ClRefuse("schema")
+        if thing + "/" + hashlib.sha256(v["key"].encode("utf-8", "surrogatepass")).hexdigest()[:32] != rec["id"]:
+            raise ClRefuse("schema")
+        if deleted:
+            if v["value"] != "" or expires == "":
+                raise ClRefuse("schema")
+        elif cl_b64(v["value"]) is None:
+            raise ClRefuse("schema")
+    elif cls == "erasure":
+        e = cl_decode(rec, {"ip": "str", "keep_incidents": "bool", "node": "str"})
+        a = cl_addr(e["ip"])
+        if cl_blen(e["node"]) > 63 or a is None or a[0] != e["ip"] or e["ip"] != rec["id"] or deleted or expires == "":
+            raise ClRefuse("schema")
+    elif cls == "jobs":
+        j = cl_decode(rec, {"at": "str", "node": "str"})
+        if cl_blen(j["node"]) > 63 or not re.fullmatch(r"[a-z0-9_.-]{1,64}", rec["id"]) or deleted or not CL_TIME_PLAIN.match(j["at"]) or cl_time(j["at"]) is None:
+            raise ClRefuse("schema")
+    elif cls == "certificates":
+        f = cl_decode(rec, {"files": "map", "node": "str"})
+        files = f["files"]
+        if cl_blen(f["node"]) > 63 or not cl_clean_path(rec["id"]):
+            raise ClRefuse("schema")
+        if deleted:
+            if files:
+                raise ClRefuse("schema")
+            return
+        if not 1 <= len(files) <= 16:
+            raise ClRefuse("schema")
+        for name, content in files.items():
+            if name != "" and ("/" in name or not cl_clean_path(name)):
+                raise ClRefuse("schema")
+            if name == "" and len(files) != 1:
+                raise ClRefuse("schema")
+            if cl_b64(content) is None:
+                raise ClRefuse("schema")
+
+
+def cl_check(roster, group, rec, now):
+    """Raises ClRefuse with the first failing check of cluster.md section 4."""
+    cls, deleted = rec["class"], bool(rec.get("deleted"))
+    if rec["v"] != CL_VERSION:
+        raise ClRefuse("version")
+    if rec["group"] != group:
+        raise ClRefuse("group")
+    if rec["group"] == "" or rec["origin"] == "" or rec["id"] == "" or cl_blen(rec["id"]) > CL_MAX_ID or rec["seq"] == 0 or rec["hlc"] == 0:
+        raise ClRefuse("schema")
+    if cls in CL_THINGS:
+        if cl_thing_of(cls, rec["id"]) is None:
+            raise ClRefuse("schema")
+    elif cls not in ("members", "blocks", "erasure", "certificates", "jobs"):
+        raise ClRefuse("schema")
+    if rec.get("expires", "") != "" and cl_time(rec["expires"]) is None:
+        raise ClRefuse("schema")
+    if (rec["hlc"] >> 16) > (now + 60) * 1000:
+        raise ClRefuse("clock")
+    e = roster.get(rec["origin"])
+    if e is not None and e["removed_at"] != 0 and rec["hlc"] >= e["removed_at"]:
+        raise ClRefuse("removed")
+    if e is not None:
+        key = e["key"]
+        # A member cannot let in a key the secret did not admit; a member
+        # record that does not decode is refused by the rules of its class.
+        if cls == "members" and not deleted:
+            try:
+                m, mkey = cl_member(rec)
+            except ClRefuse:
+                m = None
+            if m is not None and not cl_admitted(m, mkey, group):
+                raise ClRefuse("origin")
+    else:
+        # A node's record of itself, admitted by the group secret.
+        try:
+            m, key = cl_member(rec)
+        except ClRefuse:
+            raise ClRefuse("origin")
+        if cls != "members" or rec["id"] != rec["origin"] or deleted:
+            raise ClRefuse("origin")
+        if not cl_admitted(m, key, group):
+            raise ClRefuse("origin")
+    data = cl_payload(rec)
+    sig = cl_b64(rec["sig"])
+    if sig is None or len(sig) != 64 or not ed25519_verify(key, cl_signing_bytes(rec, data), sig):
+        raise ClRefuse("signature")
+    cl_class_rules(rec)
+
+
+def cl_wins(a, b):
+    if a["hlc"] != b["hlc"]:
+        return a["hlc"] > b["hlc"]
+    da, db = bool(a.get("deleted")), bool(b.get("deleted"))
+    if da != db:
+        return da
+    if a["origin"] != b["origin"]:
+        return a["origin"] > b["origin"]
+    return a["seq"] > b["seq"]
+
+
+def cluster_record(v, now):
+    group, roster = v["group"], {}
+    for m in v["members"]:
+        if m["class"] != "members":
+            continue
+        try:
+            cl_check(roster, group, m, now)
+            _, key = cl_member(m)
+        except ClRefuse:
+            continue
+        roster[m["id"]] = {"key": key, "removed_at": m["hlc"] if m.get("deleted") else 0}
+    rec = v["record"]
+    try:
+        cl_check(roster, group, rec, now)
+    except ClRefuse as r:
+        return {"taken": False, "reason": r.reason, "replaces": None}
+    held = v.get("held")
+    return {"taken": True, "reason": "", "replaces": cl_wins(rec, held) if held is not None else None}
+
+
 def run_vector(checker, keys, v):
     ctx = Ctx(v.get("context", {}), keys)
     raw = v["input_raw"].encode("utf-8")
@@ -4077,6 +4433,8 @@ def run_vector(checker, keys, v):
                 result = body_limits(doc)
             elif c == "agent-block":
                 result = agent_block(doc)
+            elif c == "cluster-record":
+                result = cluster_record(doc, ctx.now)
             elif c == "storage-bounds":
                 result = storage_bounds(doc)
             elif c == "ingress-order":

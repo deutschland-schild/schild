@@ -32,9 +32,9 @@ Blocks end in the kernel by themselves, also when this process stops; a clean
 stop (SIGTERM) removes the table.
 
 Like a CrowdSec firewall bouncer: the same image or binary as the gateway, as
-its own container (network_mode host, cap_add NET_ADMIN) or systemd service.
-It needs the agent API (on by default; agent_api.enabled or the switch in the
-dashboard) and a token of its own:
+its own container (network_mode host, cap_add NET_ADMIN) or systemd service on
+the gateway's own host. It needs the agent API (on by default; agent_api.enabled
+or the switch in the dashboard) and a token of its own:
   schild token add --scope firewall:sync --expires 365d --label firewall
 given as $SCHILD_FIREWALL_TOKEN or in -token-file.
 

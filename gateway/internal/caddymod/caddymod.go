@@ -296,6 +296,9 @@ type Options struct {
 	LogLevel        string // DEBUG INFO WARN ERROR
 	// WithoutGate leaves the schild handler out (baseline benchmarks only).
 	WithoutGate bool
+	// Grace bounds how long a stop waits for running requests (a node of a
+	// group, MVP-27); 0: as Caddy does by default.
+	Grace time.Duration
 }
 
 // BuildConfig renders the Caddy JSON config.
@@ -358,7 +361,7 @@ func BuildConfig(o Options) ([]byte, error) {
 		"logging": map[string]any{"logs": map[string]any{"default": map[string]any{"level": level, "encoder": map[string]any{"format": "json"}}}},
 		"storage": map[string]any{"module": "file_system", "root": filepath.Join(o.DataDir, "caddy")},
 		"apps": map[string]any{
-			"http": map[string]any{"servers": map[string]any{"schild": server}},
+			"http": httpApp(server, o.Grace),
 			// TLS terminates in front of schild: no certificate storage work.
 			"tls": map[string]any{"disable_storage_check": true, "disable_storage_clean": true, "disable_ocsp_stapling": true},
 		},
@@ -382,3 +385,11 @@ func Load(cfg []byte) error { return caddy.Load(cfg, true) }
 
 // Stop stops the embedded Caddy gracefully.
 func Stop() error { return caddy.Stop() }
+
+func httpApp(server map[string]any, grace time.Duration) map[string]any {
+	h := map[string]any{"servers": map[string]any{"schild": server}}
+	if grace > 0 {
+		h["grace_period"] = grace.String()
+	}
+	return h
+}

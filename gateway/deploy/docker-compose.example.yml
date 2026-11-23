@@ -40,6 +40,9 @@ services:
   schild:
     image: schild:dev
     <<: *hardening
+    # Time for a stop: in a cluster it waits cluster.drain.delay_s plus
+    # grace_s (15 + 30 s) before it ends; Docker's default is 10 s.
+    stop_grace_period: 90s
     volumes:
       - ./schild.yaml:/etc/schild/schild.yaml:ro
       - schild-data:/var/lib/schild
