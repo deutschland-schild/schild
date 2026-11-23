@@ -387,12 +387,18 @@ func TestNodeAwayLongerThanATombstoneTakesTheGroupAnew(t *testing.T) {
 	if err := setMark(b.dir, "entries:settings/thing_v1", `{"x":"y"}`); err != nil {
 		t.Fatal(err)
 	}
+	if err := setMark(b.dir, "in_step", "1"); err != nil {
+		t.Fatal(err)
+	}
 	bn := runNode(t, b, nil, nil)
 	if !bn.Stale() {
 		t.Fatal("web-2 does not know it was away too long")
 	}
 	if bn.Mark("entries:settings/thing_v1") != "" {
 		t.Error("web-2 kept the marks of its entries")
+	}
+	if bn.Mark("in_step") != "" {
+		t.Error("web-2 kept the note that it was in step once, so it would serve alone with its old state")
 	}
 	waitFor(t, "web-2 is in step and takes the group's state", func() bool { return bn.Synced() && bn.TakesGroupState() })
 	recs, err := bn.State(contract.ClassSettings)

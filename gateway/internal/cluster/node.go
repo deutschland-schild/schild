@@ -188,9 +188,10 @@ const inStepNoteEvery = 10 * time.Minute
 var sharedClasses = []string{contract.ClassSettings, contract.ClassAccess, contract.ClassLogins}
 
 // forgetShared drops what a node that was away too long holds of the
-// shared classes, and what it noted of having brought its values in step
-// (the marks "entries:" of the gateway): the records come again from a
-// member, from the first on (runPeer), and are the group's state.
+// shared classes, what it noted of having brought its values in step (the
+// marks "entries:" of the gateway) and the gateway's mark "in_step": the
+// records come again from a member, from the first on (runPeer), and are
+// the group's state.
 func (s *state) forgetShared() error {
 	s.wmu.Lock()
 	defer s.wmu.Unlock()
@@ -205,6 +206,12 @@ func (s *state) forgetShared() error {
 		}
 	}
 	if _, err := tx.Exec(`DELETE FROM meta WHERE k LIKE 'mark:entries:%'`); err != nil {
+		return err
+	}
+	// The gateway's note that the node was in step once goes too: until a
+	// member that is in step brings it in step again, it is a fresh node
+	// and does not serve alone with what it held (the gateway's inService).
+	if _, err := tx.Exec(`DELETE FROM meta WHERE k = 'mark:in_step'`); err != nil {
 		return err
 	}
 	return tx.Commit()
