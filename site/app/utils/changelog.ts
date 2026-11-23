@@ -16,6 +16,7 @@ export const CHANGELOG: ChangelogEntry[] = [
       '0.1.0-alpha.3 bringt Pakete für Debian und Ubuntu: Jedes Release enthält jetzt eine .deb-Datei für amd64 und arm64.',
       '0.1.0-alpha.4 folgt am 21. November: Die Prüfsummen eines Release sind mit cosign signiert, und die Anleitung beschreibt die Installation als Paket über apt.',
       '0.1.0-alpha.5 folgt am selben Tag: Der Server-Check richtet sich mit einem Befehl ein, seine Befunde stehen in einer durchsuchbaren Liste und lassen sich als akzeptiert markieren. Die Agent-API ist ab Werk an und hat einen Schalter im Dashboard.',
+      '0.1.0-alpha.6 folgt am 23. November: Zwei bis sechzehn Gateways laufen als Cluster und teilen Sperren, Einstellungen, Logins, Zertifikate und Zähler direkt untereinander. Ein einzelnes Gateway läuft wie bisher.',
     ],
     link: { href: RELEASE_URL, label: 'Alle Änderungen auf GitHub' },
   },
