@@ -154,7 +154,7 @@ func (g *groupFiles) read(id string, dir bool) (map[string][]byte, error) {
 		return nil, err
 	}
 	for _, e := range entries {
-		if !e.Type().IsRegular() || strings.HasSuffix(e.Name(), ".tmp") {
+		if !storageFile(e) {
 			continue
 		}
 		b, err := os.ReadFile(filepath.Join(p, e.Name()))
@@ -164,6 +164,18 @@ func (g *groupFiles) read(id string, dir bool) (map[string][]byte, error) {
 		out[e.Name()] = b
 	}
 	return out, nil
+}
+
+// storageFile reports whether a file of a directory unit is one the
+// storage keeps (a certificate, a key, their metadata), as opposed to one
+// that is being written: certmagic writes a file under a random name
+// without an extension (os.CreateTemp) and moves it into place, and this
+// node writes `<name>.tmp`. Only a kept file is shared, and only a kept
+// file is removed when the group's record of the directory does not name
+// it.
+func storageFile(e fs.DirEntry) bool {
+	n := e.Name()
+	return e.Type().IsRegular() && strings.Contains(n, ".") && !strings.HasPrefix(n, ".") && !strings.HasSuffix(n, ".tmp")
 }
 
 // whole reports whether the files of a unit belong together: a certificate
@@ -290,11 +302,11 @@ func (g *groupFiles) take(rec *contract.Record) {
 		if dir {
 			if entries, err := os.ReadDir(p); err == nil {
 				for _, e := range entries {
-					if e.Type().IsRegular() {
+					if storageFile(e) {
 						_ = os.Remove(filepath.Join(p, e.Name()))
 					}
 				}
-				_ = os.Remove(p)
+				_ = os.Remove(p) // only when nothing else lies there
 			}
 		} else {
 			_ = os.Remove(p)
@@ -352,7 +364,7 @@ func (g *groupFiles) take(rec *contract.Record) {
 	}
 	if entries, err := os.ReadDir(p); err == nil {
 		for _, e := range entries {
-			if _, ok := files[e.Name()]; !ok && e.Type().IsRegular() {
+			if _, ok := files[e.Name()]; !ok && storageFile(e) {
 				_ = os.Remove(filepath.Join(p, e.Name()))
 			}
 		}
@@ -383,6 +395,9 @@ func (g *groupFiles) seed() {
 			return nil
 		}
 		id, dir := unitOf(key)
+		if dir && !storageFile(d) {
+			return nil // a file being written, not a unit of its own
+		}
 		units[id] = dir
 		return nil
 	})
