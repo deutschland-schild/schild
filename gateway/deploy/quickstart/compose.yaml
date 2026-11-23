@@ -21,6 +21,10 @@ services:
     # A fixed version, never "latest": you decide when to update.
     image: ${SCHILD_IMAGE:-ghcr.io/deutschland-schild/schild:0.1.0-alpha.5}
     restart: unless-stopped
+    # Time for a stop: in a cluster schild leaves traffic for
+    # cluster.drain.delay_s and gives running requests grace_s (15 + 30 s)
+    # before it ends. Docker's default of 10 s would cut that short.
+    stop_grace_period: 90s
     # Locked down: read-only root file system, no capabilities, no new
     # privileges. schild runs as an unprivileged user (65532) and writes only
     # to the volume below.

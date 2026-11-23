@@ -48,8 +48,11 @@ Group=schild
 ExecStart=/usr/local/bin/schild run -config /etc/schild/schild.yaml
 Restart=on-failure
 RestartSec=5s
-# Open connections get time to finish.
-TimeoutStopSec=45s
+# A stop has to wait for the drain: in a cluster schild first leaves traffic
+# for cluster.drain.delay_s (15 s), then running requests get
+# cluster.drain.grace_s (30 s), then it shuts down. 90 s leaves room for that;
+# raise it with those two values (in a drop-in). A single gateway stops sooner.
+TimeoutStopSec=90s
 LimitNOFILE=65536
 UMask=0027
 
