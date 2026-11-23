@@ -3,7 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, ErrorState, 
 import { computed } from 'vue'
 import { errorMessage } from '@/api/client'
 import { useGroupStatus } from '@/api/group'
-import { CONFIG_STATE, configHint, countersText, gateways, MEMBER_STATE, removedMembers, sharedText, shortVersion, stateView } from '@/lib/group'
+import { CONFIG_SELF, CONFIG_STATE, configHint, configTitle, countersText, gateways, MEMBER_STATE, removedMembers, sharedText, shortVersion, stateView } from '@/lib/group'
 
 /**
  * Card "Cluster" of the server page (MVP-27, D105): whether this gateway runs alone or as a node of a group,
@@ -113,8 +113,8 @@ const lastContact = (m: { last_out?: string, last_in?: string }) => [m.last_out,
                   <td class="py-2.5 pr-4 align-top">
                     {{ shortVersion(m.version) || 'unbekannt' }}
                   </td>
-                  <td class="py-2.5 align-top" :data-config="m.config ?? ''">
-                    {{ m.state === 'self' ? (s.config?.version ?? '–') : CONFIG_STATE[m.config ?? 'unknown'] }}
+                  <td class="py-2.5 align-top" :data-config="m.config ?? ''" :title="m.state === 'self' ? configTitle(s.config?.version) : undefined">
+                    {{ m.state === 'self' ? CONFIG_SELF : CONFIG_STATE[m.config ?? 'unknown'] }}
                   </td>
                 </tr>
               </tbody>
@@ -130,7 +130,7 @@ const lastContact = (m: { last_out?: string, last_in?: string }) => [m.last_out,
           <p v-if="s.counters" class="text-xs text-muted-foreground" data-testid="group-counters">
             {{ countersText(s) }}
             <template v-if="s.replaced">
-              Beim ersten Abgleich hat dieser Server {{ formatNumber(s.replaced) }} eigene {{ s.replaced === 1 ? 'Wert' : 'Werte' }} durch die des Clusters ersetzt. Die eigenen sind auf dem Server aufbewahrt.
+              Beim ersten Abgleich hat dieser Server {{ s.replaced === 1 ? '1 eigenen Wert durch den des Clusters ersetzt. Der eigene ist' : `${formatNumber(s.replaced)} eigene Werte durch die des Clusters ersetzt. Die eigenen sind` }} auf dem Server aufbewahrt.
             </template>
           </p>
         </template>

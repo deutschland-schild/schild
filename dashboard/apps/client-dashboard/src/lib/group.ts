@@ -56,8 +56,13 @@ export function stateView(s: GroupStatus): StateView {
   const text: Record<GroupState, string> = {
     no_group: 'In schild.yaml ist cluster.enabled gesetzt, aber dieser Server gehört zu keinem Cluster. Er läuft allein. Den Grund nennt das Server-Log.',
     syncing: 'Dieser Server holt gerade den Stand des Clusters.',
-    active: all.length > 1 ? `Alle ${formatNumber(all.length)} Server haben denselben Stand.` : 'Dieser Server ist bisher der einzige im Cluster.',
-    degraded: `${list(away)} ${away.length === 1 ? 'ist' : 'sind'} gerade nicht erreichbar. Mit den anderen Servern läuft der Abgleich weiter.`,
+    // Active says only that every other gateway is reached; whether they hold the same state is the column "Stand".
+    active: all.length > 2
+      ? `Dieser Server erreicht alle ${formatNumber(all.length - 1)} anderen Gateways.`
+      : all.length === 2 ? 'Dieser Server erreicht das andere Gateway.' : 'Dieser Server ist bisher der einzige im Cluster.',
+    degraded: away.length
+      ? `${list(away)} ${away.length === 1 ? 'ist' : 'sind'} gerade nicht erreichbar. Mit den anderen Servern läuft der Abgleich weiter.`
+      : 'Mindestens ein Gateway ist gerade nicht erreichbar. Mit den übrigen läuft der Abgleich weiter.',
     interrupted: 'Dieser Server arbeitet mit dem letzten Stand weiter.',
     removed: 'Dieser Server wurde aus dem Cluster genommen. Er arbeitet mit seinem letzten Stand weiter und teilt nichts mehr.',
   }
@@ -167,6 +172,12 @@ export function configHint(s: GroupStatus): string | null {
   if (!names.length) return null
   return `Die Konfiguration von ${list(names)} weicht von diesem Server ab. Verteile schild.yaml und rules.d auf alle Server gleich.`
 }
+
+/** What the column "Konfiguration" says for this server itself: the others are compared with it. */
+export const CONFIG_SELF = 'Referenz'
+
+/** The tooltip of that word, with the hash of the configuration, which means nothing to read on its own. */
+export const configTitle = (version: string | undefined) => `Die anderen Server vergleichen ihre Konfiguration mit der dieses Servers.${version ? ` Prüfsumme: ${version}` : ''}`
 
 /** The short version of a build: "schild 0.1.0-alpha.4 (…)" becomes "0.1.0-alpha.4". */
 export const shortVersion = (v: string | undefined) => (v ?? '').replace(/^schild\s+/, '').replace(/\s*\(.*\)$/, '')

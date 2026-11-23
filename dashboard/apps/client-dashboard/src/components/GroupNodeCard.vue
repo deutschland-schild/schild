@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import type { GroupMember } from '@/api/group'
 import { Card, CardContent, cn, formatDecimal, formatMs, formatNumber, formatPercent, RelativeTime, StatusDot, StatusPill, Tag } from '@schild/ui'
-import { computed } from 'vue'
-import { CLOCK_SKEW_HINT_MS, clockText, CONFIG_STATE, loadTone, nodeView, shortVersion, stateText } from '@/lib/group'
+import { computed, useId } from 'vue'
+import { CLOCK_SKEW_HINT_MS, clockText, CONFIG_SELF, CONFIG_STATE, configTitle, loadTone, nodeView, shortVersion, stateText } from '@/lib/group'
 
 /**
  * One gateway of the group (MVP-27) on the page "Cluster": whether it takes traffic, what it serves and how
@@ -19,6 +19,8 @@ const meters = computed(() => [
   { key: 'memory', label: 'Arbeitsspeicher', ratio: v.value?.memory_used_ratio },
   { key: 'disk', label: 'Festplatte', ratio: v.value?.disk_used_ratio },
 ])
+/** Unique per instance: the same member may be shown twice, in its card and in the sheet. */
+const uid = useId()
 const barClass = { success: 'bg-status-success', warning: 'bg-status-warning', danger: 'bg-status-danger' } as Record<string, string>
 </script>
 
@@ -67,9 +69,9 @@ const barClass = { success: 'bg-status-success', warning: 'bg-status-warning', d
 
         <ul class="space-y-2">
           <li v-for="b in meters" :key="b.key" class="grid grid-cols-[7.5rem_1fr_3rem] items-center gap-x-3" :data-testid="`group-node-${b.key}`">
-            <span :id="`${m.id}-${b.key}`" class="text-xs text-muted-foreground">{{ b.label }}</span>
+            <span :id="`${uid}-${b.key}`" class="text-xs text-muted-foreground">{{ b.label }}</span>
             <span
-              class="h-1.5 overflow-hidden rounded-full bg-muted" role="meter" :aria-labelledby="`${m.id}-${b.key}`"
+              class="h-1.5 overflow-hidden rounded-full bg-muted" role="meter" :aria-labelledby="`${uid}-${b.key}`"
               aria-valuemin="0" aria-valuemax="100" :aria-valuenow="b.ratio == null ? undefined : Math.round(b.ratio * 100)"
               :aria-valuetext="b.ratio == null ? 'nicht sichtbar' : formatPercent(b.ratio)"
             >
@@ -134,12 +136,12 @@ const barClass = { success: 'bg-status-success', warning: 'bg-status-warning', d
             {{ stateText(m.shared_state).text }}
           </dd>
         </div>
-        <div :data-config="m.config ?? ''">
+        <div :data-config="m.config ?? ''" data-testid="group-node-config">
           <dt class="text-muted-foreground">
             Konfiguration
           </dt>
-          <dd :class="m.config === 'differs' ? 'font-medium' : ''">
-            {{ self ? (configVersion ?? 'gleich') : CONFIG_STATE[m.config ?? 'unknown'] }}
+          <dd :class="m.config === 'differs' ? 'font-medium' : ''" :title="self ? configTitle(configVersion) : undefined">
+            {{ self ? CONFIG_SELF : CONFIG_STATE[m.config ?? 'unknown'] }}
           </dd>
         </div>
       </dl>

@@ -67,6 +67,14 @@ describe('words for the mode and the group (MVP-27)', () => {
     expect(stateView(withState('active'))).toMatchObject({ label: 'Abgleich aktiv', tone: 'success' })
     expect(stateView(group)).toMatchObject({ label: 'Abgleich eingeschränkt' })
     expect(stateView(group).text).toContain('web-3 ist gerade nicht erreichbar')
+    // Active means every other gateway is reached, not that all hold the same state.
+    expect(stateView(withState('active')).text).toBe('Dieser Server erreicht alle 2 anderen Gateways.')
+    expect(stateView(withState('active')).text).not.toContain('Stand')
+    const two = { ...group, state: 'active' as const, members: group.members!.filter(m => m.name !== 'web-3') }
+    expect(stateView(two).text).toBe('Dieser Server erreicht das andere Gateway.')
+    // Degraded while the list names nobody away (a member not yet listed): a whole sentence all the same.
+    const noneAway = { ...group, members: group.members!.filter(m => m.name !== 'web-3') }
+    expect(stateView(noneAway).text).toBe('Mindestens ein Gateway ist gerade nicht erreichbar. Mit den übrigen läuft der Abgleich weiter.')
     const cut = stateView(withState('interrupted'))
     expect(`${cut.label}. ${cut.text}`).toBe('Abgleich unterbrochen. Dieser Server arbeitet mit dem letzten Stand weiter.')
     expect(stateView(withState('removed')).label).toBe('Aus dem Cluster entfernt')
@@ -137,8 +145,12 @@ describe('a node of a group', () => {
     expect(rows.map(r => [r.dataset.name, r.dataset.state])).toEqual([['web-1', 'self'], ['web-2', 'ok'], ['web-3', 'unreachable']])
     expect(rows[0]!.querySelector('[data-testid="group-self"]')!.textContent).toContain('dieser Server')
     expect(rows[1]!.textContent).toContain('Erreichbar')
-    expect(rows[1]!.textContent).toContain('0.1.0-alpha.4')
+    expect(rows[1]!.textContent).toContain('0.1.0-alpha.6')
     expect(rows[1]!.textContent).toContain('weicht ab')
+    // This server is what the others are compared with; its hash stands in the tooltip, not as a value.
+    const selfConfig = rows[0]!.querySelector('[data-config]')!
+    expect(selfConfig.textContent!.trim()).toBe('Referenz')
+    expect(selfConfig.getAttribute('title')).toContain('5d41402abc4b')
     expect(rows[2]!.textContent).toContain('Nicht erreichbar')
     expect(rows[2]!.textContent).toContain('connection refused')
     expect(byTestId('group-config-hint')!.textContent).toContain('web-2')
@@ -160,7 +172,12 @@ describe('a node of a group', () => {
     await mountApp('/server')
     await waitFor(() => !!byTestId('group-state'))
     expect(byTestId('group-state')!.textContent).toContain('Aus dem Cluster entfernt')
-    expect(byTestId('group-counters')!.textContent).toContain('2 eigene Werte')
+    expect(byTestId('group-counters')!.textContent).toContain('2 eigene Werte durch die des Clusters ersetzt. Die eigenen sind')
+    cleanup()
+    mock.state.group = { ...mock.state.group, replaced: 1 }
+    await mountApp('/server')
+    await waitFor(() => !!byTestId('group-counters'))
+    expect(byTestId('group-counters')!.textContent).toContain('1 eigenen Wert durch den des Clusters ersetzt. Der eigene ist auf dem Server aufbewahrt.')
   })
 
   it('shows on the list of blocks which node decided', async () => {

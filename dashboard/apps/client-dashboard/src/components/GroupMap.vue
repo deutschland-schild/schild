@@ -28,7 +28,7 @@ const rowY = computed(() => BUS_Y + 37 + boxH.value / 2)
 const H = computed(() => rowY.value + boxH.value / 2 + 22)
 const away = (m: GroupMember) => m.state === 'unreachable' || m.state === 'no_contact'
 
-interface Placed { m: GroupMember, x: number, y: number, w: number, kind: 'ready' | 'not' | 'unknown', tone: string, name: string, line: string }
+interface Placed { m: GroupMember, x: number, y: number, w: number, kind: 'ready' | 'not' | 'unknown', tone: string, name: string, line: string, aria: string }
 const fit = (s: string, n: number) => s.length > n ? `${s.slice(0, Math.max(1, n - 1))}…` : s
 
 /** One row, this server first, all the same size. */
@@ -55,6 +55,9 @@ const placed = computed<Placed[]>(() => {
       tone: view.tone,
       name: fit(m.name, Math.floor((room - (upright.value ? 0 : 34)) / 7.6)),
       line: fit(line, Math.floor((room - (upright.value ? 0 : 20)) / (upright.value ? 5.4 : 6.2))),
+      // The words in the box may be cut short. The title of the node names the server and its state in full: it is
+      // the name screen readers read for the button (SVG-AAM) and the tooltip on hover.
+      aria: `${m.name}${m.state === 'self' ? ', dieser Server' : ''}: ${view.label}${kind === 'ready' && v ? `, ${formatDecimal(v.requests_per_s)} Anfragen pro Sekunde${v.cpu_usage == null ? '' : `, CPU ${formatPercent(v.cpu_usage)}`}` : ''}`,
     }
   })
 })
@@ -93,6 +96,7 @@ const label = computed(() => `Karte des Clusters: ${nodes.value.length} Gateways
         data-testid="group-map-node" :data-name="p.m.name" :data-state="p.m.state"
         @click="emit('select', p.m.id)" @keydown.enter.prevent="emit('select', p.m.id)" @keydown.space.prevent="emit('select', p.m.id)"
       >
+        <title>{{ p.aria }}</title>
         <rect
           :x="p.x - p.w / 2" :y="p.y - boxH / 2" :width="p.w" :height="boxH" rx="12"
           :class="['fill-card', p.m.state === 'self' ? 'stroke-foreground' : 'stroke-border']" :stroke-width="p.m.state === 'self' ? 2 : 1.25"

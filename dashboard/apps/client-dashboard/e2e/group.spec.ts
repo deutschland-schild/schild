@@ -94,11 +94,18 @@ test('a single gateway lists no page of the group', async ({ page }) => {
 test('a node of the map opens its details in a sheet', async ({ page, isMobile }) => {
   test.skip(isMobile, 'the map is hidden on narrow screens')
   await page.goto('./?scenario=group#/server/group')
+  // The words in a box may be cut short; the button names the server and its state in full.
+  await expect(page.locator('[data-testid="group-map-node"][data-name="web-1"]')).toHaveAccessibleName(/^web-1, dieser Server: Nimmt Anfragen an, 41,6 Anfragen pro Sekunde/)
+  await expect(page.locator('[data-testid="group-map-node"][data-name="web-3"]')).toHaveAccessibleName('web-3: Nicht erreichbar')
   await page.locator('[data-testid="group-map-node"][data-name="web-2"]').click()
   const sheet = page.getByTestId('group-node-sheet')
   await expect(sheet).toContainText('web-2')
   await expect(sheet.getByTestId('group-node-service')).toContainText('Nimmt Anfragen an')
   await expect(sheet.getByTestId('group-node-rps')).toHaveText('38,9')
+  // The card of web-2 and its sheet are on the page at once: the labels of their meters keep distinct ids.
+  const ids = await page.locator('[role="meter"]').evaluateAll(els => els.map(e => e.getAttribute('aria-labelledby')))
+  expect(ids.length).toBeGreaterThan(3)
+  expect(new Set(ids).size).toBe(ids.length)
   expect(await axe(page)).toEqual([])
   await page.keyboard.press('Escape')
   await expect(sheet).toHaveCount(0)

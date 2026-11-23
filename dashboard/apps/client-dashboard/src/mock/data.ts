@@ -237,6 +237,15 @@ export interface MockState {
 const CSRF = 'mock-csrf-token-7f3a9c22b1e04d55'
 
 /** Deep-shift every RFC 3339 timestamp in a fixture object by `delta` ms. */
+/**
+ * The group fixture of the contract names builds from before the cluster existed; the mock (and the
+ * screenshots of the website taken from it) shows the release the cluster comes with on every member.
+ */
+const MOCK_BUILD = 'schild 0.1.0-alpha.6'
+function currentBuild(base: GroupStatus): GroupStatus {
+  return { ...base, members: base.members?.map(m => m.version ? { ...m, version: MOCK_BUILD } : m) }
+}
+
 /** A cluster of 16 gateways for the map and the table of many servers: one away, one draining, one not ready. */
 function largeGroup(base: GroupStatus): GroupStatus {
   const [self, peer] = base.members!
@@ -504,7 +513,7 @@ export function createState(opts: CreateStateOptions = {}): MockState {
     monitoring: createMonitoringState(scenario, t0, mode === 'observe'),
     // The fixture is written around 14:05:30 of its day; shifted so its contacts are seconds old.
     group: scenario === 'group' || scenario === 'group-ok' || scenario === 'group-large'
-      ? shiftTimes(scenario === 'group' ? groupFixture as GroupStatus : scenario === 'group-ok' ? healthyGroup(groupFixture as GroupStatus) : largeGroup(groupFixture as GroupStatus), t0 - Date.parse(groupFixture.generated_at))
+      ? shiftTimes(scenario === 'group' ? currentBuild(groupFixture as GroupStatus) : scenario === 'group-ok' ? healthyGroup(currentBuild(groupFixture as GroupStatus)) : largeGroup(currentBuild(groupFixture as GroupStatus)), t0 - Date.parse(groupFixture.generated_at))
       : { mode: 'single' },
     agentApi: createAgentApiState(scenario, t0),
   }
