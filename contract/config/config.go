@@ -54,7 +54,7 @@ type Site struct {
 	Bots        Bots        `json:"bots"`                 // v0.5 (MVP-22)
 	WaitingPage WaitingPage `json:"waiting_page"`         // v0.5 (D37, MVP-23 step 1)
 	Rules       Rules       `json:"rules"`                // v0.6 (D73)
-	Cluster     Cluster     `json:"cluster"`              // unreleased (MVP-27, D105)
+	Cluster     Cluster     `json:"cluster"`              // MVP-27, D105
 }
 
 // Rules are the rule repositories (D73, contract/rules).

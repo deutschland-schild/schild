@@ -492,7 +492,10 @@ func TestReadSecret(t *testing.T) {
 	dir := t.TempDir()
 	write := func(name, text string, mode os.FileMode) string {
 		p := filepath.Join(dir, name)
-		if err := os.WriteFile(p, []byte(text), mode); err != nil {
+		if err := os.WriteFile(p, []byte(text), 0o600); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.Chmod(p, mode); err != nil { // past the umask
 			t.Fatal(err)
 		}
 		return p
@@ -501,8 +504,18 @@ func TestReadSecret(t *testing.T) {
 	if got, err := ReadSecret(write("ok", s+"\n", 0o600)); err != nil || string(got) != s {
 		t.Errorf("a good secret: %q, %v", got, err)
 	}
-	if _, err := ReadSecret(write("open", s, 0o644)); err == nil || !strings.Contains(err.Error(), "readable by others") {
-		t.Errorf("a secret others read: %v", err)
+	// Owner and group may read it (root:schild 0640 or 0440); nobody else
+	// reads it, and the group does not write it.
+	for _, mode := range []os.FileMode{0o640, 0o440, 0o400} {
+		if got, err := ReadSecret(write(fmt.Sprintf("group-%o", mode), s, mode)); err != nil || string(got) != s {
+			t.Errorf("a secret of mode %04o: %q, %v", mode, got, err)
+		}
+	}
+	for _, mode := range []os.FileMode{0o644, 0o604, 0o660, 0o620, 0o601} {
+		_, err := ReadSecret(write(fmt.Sprintf("open-%o", mode), s, mode))
+		if err == nil || !strings.Contains(err.Error(), "chown schild:schild") || !strings.Contains(err.Error(), "chmod 0640") {
+			t.Errorf("a secret of mode %04o: %v", mode, err)
+		}
 	}
 	if _, err := ReadSecret(write("short", "abc", 0o600)); !errors.Is(err, contract.ErrSecret) {
 		t.Errorf("a short secret: %v", err)

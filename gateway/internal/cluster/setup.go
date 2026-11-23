@@ -288,15 +288,17 @@ func NewSecret() (string, error) {
 	return hex.EncodeToString(b), nil
 }
 
-// ReadSecret reads the group secret of cluster.secret_file. Like the node
-// key, the file is for its owner only.
+// ReadSecret reads the group secret of cluster.secret_file. Its owner and
+// its group may read it (0600, 0640, 0440: a deployment may keep it as
+// root:schild); nobody else may read it, and nobody but the owner write it.
+// The node key stays for its owner alone (loadKey).
 func ReadSecret(path string) ([]byte, error) {
 	fi, err := os.Stat(path)
 	if err != nil {
 		return nil, fmt.Errorf("cluster.secret_file: %w", err)
 	}
-	if fi.Mode().Perm()&0o077 != 0 {
-		return nil, fmt.Errorf("cluster.secret_file %s is readable by others (mode %04o): chmod 600", path, fi.Mode().Perm())
+	if perm := fi.Mode().Perm(); perm&0o027 != 0 {
+		return nil, fmt.Errorf("cluster.secret_file %s has mode %04o: others may read it or its group may write it; make it the service user's: chown schild:schild %s && chmod 0640 %s", path, perm, path, path)
 	}
 	raw, err := os.ReadFile(path)
 	if err != nil {
