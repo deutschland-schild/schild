@@ -4,7 +4,7 @@ Notable changes per release. Contract changes are in [contracts/CHANGELOG.md](co
 
 The section of a version becomes the text of its GitHub release, so its heading stays `## <version>`. The date of a release is the one GitHub shows.
 
-## Unreleased
+## 0.1.0-alpha.6
 
 ### Security
 
@@ -14,7 +14,7 @@ The section of a version becomes the text of its GitHub release, so its heading 
 
 Two to sixteen gateways of one operator can form a cluster (in the code and the contract: a group) that shares its state from node to node, with no database, cache or queue beside it (D105, MVP-27). It is off by default and set up from `schild.yaml` alone: `cluster.enabled`, `cluster.listen`, `cluster.secret_file` and `cluster.peers`, the same on every node. How to run it is described in German under [docs/gateway/03-cluster.md](docs/gateway/03-cluster.md), the wire in [contracts/cluster.md](contracts/cluster.md).
 
-Measured by agents that did not build it: three gateways on one machine ([report](tests/results/MVP-27-group-measurement.md), last run 92 of 92 judged checks), faults, crashes, load, sixteen gateways, clocks and an upgrade in turn on one machine ([report](tests/results/MVP-27-hardening.md)), and sixteen gateways on Linux VMs behind HAProxy with an ACME test server ([first](tests/results/MVP-27-lab.md), [second](tests/results/MVP-27-lab-run2.md) and [third run](tests/results/MVP-27-lab-run3.md); the third: 294 of 361 checks pass, 11 fail, two of them new and fixed since without an independent look yet). What the runs found is fixed below; what was built after the second lab run is not measured independently yet. Not measured: real servers with real visitors.
+Measured by agents that did not build it: three gateways on one machine ([report](tests/results/MVP-27-group-measurement.md), last run 92 of 92 judged checks), faults, crashes, load, sixteen gateways, clocks and an upgrade in turn on one machine ([report](tests/results/MVP-27-hardening.md)), and sixteen gateways on Linux VMs behind HAProxy with an ACME test server ([first](tests/results/MVP-27-lab.md), [second](tests/results/MVP-27-lab-run2.md), [third](tests/results/MVP-27-lab-run3.md) and a partial [fourth run](tests/results/MVP-27-lab-run4.md)). A fourth hardening run on the tree of this release measured the changed start, readiness, clock rule, removal, hello and drain: no kill clause hit, every new check passes, the failures left are the known limits below. Not measured: real servers with real visitors.
 
 **What is shared**
 
@@ -35,21 +35,23 @@ Measured by agents that did not build it: three gateways on one machine ([report
 
 - By configuration only: the same `cluster.secret_file` (`schild cluster secret` prints one) and `cluster.peers` on every node; a node lets itself in at its start. A gateway that joins adds what it holds; where both hold the same entry the cluster's value stands and the node keeps its own aside.
 - A node is named by `node_name`; with `cluster.name_from_host` by its host name, so one `schild.yaml` can lie on every node; `cluster.name` sets a fixed one.
-- `schild cluster status` shows the members, `schild cluster remove` ends the membership of one. A wrong setting is fixed by correcting it; the correction reaches every node as fast as the change did.
+- The secret file may be read by the group of the service (0640 or 0440), never by others. `cluster.listen` takes a private address, also one of 100.64.0.0/10 (Tailscale, NetBird), or every address (`0.0.0.0`, `[::]`) with a private `cluster.advertise`.
+- `schild cluster status` shows the members, `schild cluster remove` ends the membership of one and says so when it did not.
+- With `cluster.enabled`, schild does not start when its cluster cannot be set up (secret file missing, too short or readable by others, mesh port in use, a broken node key); `cluster.enabled` needs `cluster.secret_file`. It never runs alone by mistake behind a balancer.
 - With `cluster.enabled`, a `proxy_protocol` wrapper in the Caddyfile needs an allow list: otherwise anyone who reaches a node could name any address as theirs.
 - In front of the gateways stands a load balancer that passes TCP on: HAProxy in TCP mode or a cloud load balancer without TLS termination. TLS ends on the gateways, and they refuse blocked clients themselves.
 - The guide has HAProxy examples and says what a site with TLS on the gateways needs on ports 80 and 443.
 
 **Readiness, stopping and failures**
 
-- `/.schild/readyz` on the web ports answers 503 until a node took the state of the cluster and applied it, took the running counts of limits, scenarios and detectors from a member, and while it stops. A node that never was in step (a fresh one that reaches nobody, one the cluster refused) stays out of traffic; a node that was in step once and reaches nobody serves after ten seconds with what it has. A node that is not ready listens and answers 503, and its log says why.
-- `systemctl stop` and `schild cluster drain` leave traffic first (`cluster.drain.delay_s`, default 15 s) and give running requests `cluster.drain.grace_s` (default 30 s) to finish. During the delay every answer asks the client to close its connection, so a connection kept open through a balancer loses no request at the stop.
+- `/.schild/readyz` on the web ports answers 503 until a node took the state of the cluster and applied it, took the running counts of limits, scenarios and detectors from a member, and while it stops. A node counts as in step only by a member that is in step itself, so two fresh nodes do not make each other ready with nothing; a cluster that is new as a whole is ready once every node of `cluster.peers` started. A node that never was in step stays out of traffic; a node that was in step once and reaches nobody serves after ten seconds with what it has. A node away longer than 30 days takes the cluster's state like a new one and hands on nothing it held alone, so nothing deleted comes back. A node that is not ready listens and answers 503, and its log says why.
+- `systemctl stop` and `schild cluster drain` leave traffic first (the systemd unit and the compose files wait 90 s for it) (`cluster.drain.delay_s`, default 15 s) and give running requests `cluster.drain.grace_s` (default 30 s) to finish. During the delay every answer asks the client to close its connection, so a connection kept open through a balancer loses no request at the stop.
 - No request waits for another node. A node that hangs is known as unreachable after about 3 s (HTTP/2 pings), a node that is gone at once.
 
 **Clocks**
 
 - The later change wins in a cluster, so clocks have to agree. The dashboard shows how far the clock of every gateway is off, `schild cluster status` names a member from 5 s on, the dashboard from 10 s on, and a node says in its log when it puts a record off because of a clock.
-- A node that sees at least two other gateways agree on the time and its own clock a minute or more off leaves traffic by itself until its clock is right. A pair keeps serving, because nobody can know there whose clock is wrong.
+- A node whose clock is a minute or more off from a majority of gateways that agree on the time leaves traffic by itself until its clock is right. A pair keeps serving, because nobody can know there whose clock is wrong.
 
 **The cluster page and numbers across servers**
 
