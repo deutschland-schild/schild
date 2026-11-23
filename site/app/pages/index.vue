@@ -273,7 +273,7 @@ const faqMore = [
           </div>
           <div class="space-y-3 leading-relaxed text-slate">
             <p>Über die interne Agent-API prüft dein Coding-Agent Beispielanfragen gegen alle Regeln und legt bei Bedarf eng begrenzte Ausnahmen für einzelne Felder an.</p>
-            <p>Die API ist ab Werk aus, hört nur lokal auf dem Server und protokolliert jede Änderung nachvollziehbar.</p>
+            <p>Die API ist ab Werk an, hört nur lokal auf dem Server, antwortet nur mit Token und protokolliert jede Änderung nachvollziehbar.</p>
           </div>
         </div>
         <ul class="mt-10 grid gap-x-10 gap-y-6 md:grid-cols-2 lg:grid-cols-3">
