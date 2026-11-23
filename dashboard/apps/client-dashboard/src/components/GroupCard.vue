@@ -3,14 +3,14 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, ErrorState, 
 import { computed } from 'vue'
 import { errorMessage } from '@/api/client'
 import { useGroupStatus } from '@/api/group'
-import { CONFIG_STATE, configHint, countersText, edges, gateways, MEMBER_STATE, removedMembers, sharedText, shortVersion, stateView } from '@/lib/group'
+import { CONFIG_STATE, configHint, countersText, gateways, MEMBER_STATE, removedMembers, sharedText, shortVersion, stateView } from '@/lib/group'
 
 /**
  * Card "Cluster" of the server page (MVP-27, D105): whether this gateway runs alone or as a node of a group,
- * the state of the sync in words, the gateways with their last contact, version and configuration, the
- * balancer VMs (edges) apart. Read only: membership is changed on the host with `schild cluster`.
+ * the state of the sync in words, the gateways with their last contact, version and configuration. Read
+ * only: membership is changed on the host with `schild cluster`.
  */
-/** `brief`: on the page of the group, which shows the state and the gateways itself: only the edges and the sync. */
+/** `brief`: on the page of the group, which shows the state and the gateways itself: only the sync. */
 const props = withDefaults(defineProps<{ heading?: string, brief?: boolean }>(), { heading: 'Cluster', brief: false })
 const q = useGroupStatus()
 const s = computed(() => q.data.value)
@@ -18,7 +18,6 @@ const single = computed(() => s.value?.mode === 'single')
 const state = computed(() => s.value && s.value.state ? stateView(s.value) : null)
 const hint = computed(() => s.value ? configHint(s.value) : null)
 const nodes = computed(() => s.value ? gateways(s.value) : [])
-const edgeRows = computed(() => s.value ? edges(s.value) : [])
 const gone = computed(() => s.value ? removedMembers(s.value) : [])
 /** The later of the two contacts: when this server last heard of the member in either direction. */
 const lastContact = (m: { last_out?: string, last_in?: string }) => [m.last_out, m.last_in].filter(Boolean).sort().at(-1)
@@ -121,29 +120,6 @@ const lastContact = (m: { last_out?: string, last_in?: string }) => [m.last_out,
               </tbody>
             </table>
           </div>
-
-          <section v-if="edgeRows.length" aria-labelledby="group-edges-title" data-testid="group-edges">
-            <h3 id="group-edges-title" class="mb-1 font-medium">
-              Balancer-VMs
-            </h3>
-            <p class="mb-2 text-xs text-muted-foreground">
-              Sie halten die Sperren des Clusters in ihrer Firewall und lesen sonst nichts.
-            </p>
-            <ul class="divide-y rounded-lg border">
-              <li v-for="m in edgeRows" :key="m.id" class="flex flex-wrap items-center gap-x-3 gap-y-1 px-3 py-2" data-testid="group-edge" :data-state="m.state">
-                <span class="font-medium">{{ m.name }}</span>
-                <StatusPill :tone="MEMBER_STATE[m.state].tone" size="sm" :title="MEMBER_STATE[m.state].title">
-                  {{ MEMBER_STATE[m.state].label }}
-                </StatusPill>
-                <span v-if="m.last_in" class="text-xs text-muted-foreground">
-                  zuletzt gefragt <RelativeTime :value="m.last_in" /><template v-if="m.blocks_held !== undefined">
-                    · {{ formatNumber(m.blocks_held) }} {{ m.blocks_held === 1 ? 'Adresse' : 'Adressen' }} in der Firewall
-                  </template>
-                </span>
-                <span v-if="m.error" class="basis-full text-xs break-words text-muted-foreground">{{ m.error }}</span>
-              </li>
-            </ul>
-          </section>
 
           <p v-if="gone.length" class="text-xs text-muted-foreground" data-testid="group-removed">
             Aus dem Cluster genommen: {{ gone.map(m => m.name).join(', ') }}

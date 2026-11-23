@@ -4219,7 +4219,7 @@ def cl_member(rec):
     """The member of a record of class members: (fields, key). Raises schema."""
     m = cl_decode(rec, CL_MEMBER)
     key = cl_key(m)
-    ok = (key is not None and m["role"] in ("gateway", "edge")
+    ok = (key is not None and m["role"] == "gateway"
           and m["name"] != "" and cl_blen(m["name"]) <= 63 and not any(ch in m["name"] for ch in " \t\r\n/")
           and cl_addr_port(m["address"])
           and (m["admit_public_key"] == "") == (m["admit"] == "") and cl_blen(m["admit_public_key"]) <= 64 and cl_blen(m["admit"]) <= 128
@@ -4335,22 +4335,28 @@ def cl_check(roster, group, rec, now):
     if (rec["hlc"] >> 16) > (now + 60) * 1000:
         raise ClRefuse("clock")
     e = roster.get(rec["origin"])
-    if e is not None and e["role"] != "gateway":
-        raise ClRefuse("origin")
     if e is not None and e["removed_at"] != 0 and rec["hlc"] >= e["removed_at"]:
         raise ClRefuse("removed")
     if e is not None:
         key = e["key"]
+        # A member cannot let in a key the secret did not admit; a member
+        # record that does not decode is refused by the rules of its class.
+        if cls == "members" and not deleted:
+            try:
+                m, mkey = cl_member(rec)
+            except ClRefuse:
+                m = None
+            if m is not None and not cl_admitted(m, mkey, group):
+                raise ClRefuse("origin")
     else:
-        # A node's record of itself that proves its place: the founder's, or
-        # one with the admission of the group secret.
+        # A node's record of itself, admitted by the group secret.
         try:
             m, key = cl_member(rec)
         except ClRefuse:
             raise ClRefuse("origin")
         if cls != "members" or rec["id"] != rec["origin"] or deleted:
             raise ClRefuse("origin")
-        if m["role"] != "gateway" or (cl_group_id(key) != group and not cl_admitted(m, key, group)):
+        if not cl_admitted(m, key, group):
             raise ClRefuse("origin")
     data = cl_payload(rec)
     sig = cl_b64(rec["sig"])
@@ -4377,10 +4383,10 @@ def cluster_record(v, now):
             continue
         try:
             cl_check(roster, group, m, now)
-            fields, key = cl_member(m)
+            _, key = cl_member(m)
         except ClRefuse:
             continue
-        roster[m["id"]] = {"role": fields["role"], "key": key, "removed_at": m["hlc"] if m.get("deleted") else 0}
+        roster[m["id"]] = {"key": key, "removed_at": m["hlc"] if m.get("deleted") else 0}
     rec = v["record"]
     try:
         cl_check(roster, group, rec, now)

@@ -62,7 +62,6 @@ type Node struct {
 	handlers map[string][]func(*contract.Record)
 	tells    map[string]func(from string, body []byte)
 	asks     map[string]func(from string, body []byte) ([]byte, error)
-	edgeAsks map[string]func(from string, body []byte) ([]byte, error)
 
 	// news wakes the sync calls that wait.
 	nmu  sync.Mutex
@@ -70,8 +69,6 @@ type Node struct {
 
 	pmu   sync.Mutex
 	peers map[string]*peer
-	// edgeSeen: when each edge asked this node last.
-	edgeSeen map[string]time.Time
 	// statusMu: one writer of statusFile at a time.
 	statusMu sync.Mutex
 	// clocks: what the app noted of the members' clocks (NoteClock), under pmu.
@@ -624,7 +621,7 @@ const watchEvery = 500 * time.Millisecond
 
 // watchStore wakes the sync calls that wait for news when something wrote
 // into the store that did not wake them itself: a command on the host
-// (schild cluster remove, invite) writes into the same file. One look for
+// (schild cluster remove) writes into the same file. One look for
 // the whole node, where every waiting call used to look for itself: with
 // fifteen members waiting that was thirty queries a second on an idle node.
 //

@@ -3,9 +3,9 @@
 package dashboard_test
 
 import (
-	"context"
 	"fmt"
 	"net/netip"
+	"os"
 	"path/filepath"
 	"slices"
 	"strings"
@@ -58,13 +58,17 @@ func TestGroupStatusWithoutAGroup(t *testing.T) {
 type member struct {
 	dir, addr, name string
 	h               *apptest.Harness
+	// secretFile and peers: cluster.secret_file and cluster.peers.
+	secretFile string
+	peers      [2]string
 }
 
 func (m *member) clusterDir() string { return app.ClusterDir(filepath.Join(m.dir, "data")) }
 
 func (m *member) start(t *testing.T) {
 	t.Helper()
-	m.h = apptest.New(t, apptest.Options{Dir: m.dir, Extra: fmt.Sprintf("cluster: {enabled: true, listen: %q}\n", m.addr)})
+	m.h = apptest.New(t, apptest.Options{Dir: m.dir, Extra: fmt.Sprintf("cluster: {enabled: true, name: %q, listen: %q, secret_file: %q, peers: [%q, %q]}\n",
+		m.name, m.addr, m.secretFile, m.peers[0], m.peers[1])})
 	if m.h.App.Cluster == nil {
 		t.Fatalf("%s: no cluster node", m.name)
 	}
@@ -92,21 +96,22 @@ func of(st dashboard.GroupStatus, name string) dashboard.GroupMember {
 
 func groupPair(t *testing.T) (a, b *member) {
 	t.Helper()
-	a = &member{dir: t.TempDir(), addr: apptest.FreeAddr(t), name: "web-1"}
-	b = &member{dir: t.TempDir(), addr: apptest.FreeAddr(t), name: "web-2"}
-	if _, err := cluster.Init(a.clusterDir(), a.name, a.addr, nil); err != nil {
-		t.Fatal(err)
-	}
-	a.start(t)
-	a.h.Login()
-	a.h.WaitFor("the mesh of web-1 listens", func() bool { return a.h.App.Cluster.Addr() != "" })
-	code, _, err := cluster.Invite(a.clusterDir(), nil)
+	// Set up as a deployment does: the same secret file on both, both
+	// addresses in cluster.peers.
+	secretFile := filepath.Join(t.TempDir(), "cluster.secret")
+	secret, err := cluster.NewSecret()
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, _, err := cluster.Join(context.Background(), b.clusterDir(), b.name, b.addr, a.addr, code, nil); err != nil {
+	if err := os.WriteFile(secretFile, []byte(secret), 0o600); err != nil {
 		t.Fatal(err)
 	}
+	a = &member{dir: t.TempDir(), addr: apptest.FreeAddr(t), name: "web-1", secretFile: secretFile}
+	b = &member{dir: t.TempDir(), addr: apptest.FreeAddr(t), name: "web-2", secretFile: secretFile}
+	a.peers, b.peers = [2]string{a.addr, b.addr}, [2]string{a.addr, b.addr}
+	a.start(t)
+	a.h.Login()
+	a.h.WaitFor("the mesh of web-1 listens", func() bool { return a.h.App.Cluster.Addr() != "" })
 	b.start(t)
 	return a, b
 }

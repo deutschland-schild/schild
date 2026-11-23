@@ -528,7 +528,7 @@ paths:
       operationId: getGroupStatus
       summary: >-
         Whether this gateway runs alone or as a node of a group (contracts/cluster.md), and the state of the group as
-        this node sees it: the members with their last contact, what is shared, the edges, the counters of the sync and
+        this node sees it: the members with their last contact, what is shared, the counters of the sync and
         the members whose configuration differs. A gateway without `cluster.enabled` answers `mode: single` and nothing
         else. Read from the running node; nothing is asked of another node for this answer.
       responses:
@@ -2687,7 +2687,7 @@ components:
         members:
           type: array
           maxItems: 64
-          description: "Gateways first, then edges, then removed members; each by name. This node is one of them."
+          description: "Gateways first, then removed members; each by name. This node is one of them."
           items: { $ref: "#/components/schemas/GroupMember" }
         shared:
           type: object
@@ -2727,7 +2727,7 @@ components:
       properties:
         id: { type: string, pattern: "^n-[0-9a-f]{32}$" }
         name: { type: string, maxLength: 63 }
-        role: { type: string, enum: [gateway, edge] }
+        role: { type: string, enum: [gateway] }
     GroupMember:
       type: object
       additionalProperties: false
@@ -2735,15 +2735,14 @@ components:
       properties:
         id: { type: string, pattern: "^n-[0-9a-f]{32}$" }
         name: { type: string, maxLength: 63 }
-        role: { type: string, enum: [gateway, edge], description: "edge: a balancer VM that holds the block list in its firewall and reads nothing else." }
-        address: { type: string, maxLength: 64, description: "Address of the mesh listener; absent for an edge, which calls and is never called." }
+        role: { type: string, enum: [gateway] }
+        address: { type: string, maxLength: 64, description: "Address of the mesh listener." }
         state:
           type: string
-          enum: [self, ok, unreachable, no_contact, asks_elsewhere, removed]
+          enum: [self, ok, unreachable, no_contact, removed]
           description: >-
-            self: this node. ok: reached within the last 15 s (an edge: it asked this node within the last minute).
+            self: this node. ok: reached within the last 15 s.
             unreachable: the last call to it failed. no_contact: no call to it succeeded yet, or none for 15 s.
-            asks_elsewhere (edges only): it did not ask this node lately; an edge asks one gateway at a time.
             removed: its membership was ended.
         last_out: { $ref: "#/components/schemas/Timestamp", description: "Last call of this node to the member that succeeded." }
         last_in: { $ref: "#/components/schemas/Timestamp", description: "Last call of the member to this node." }
@@ -2751,7 +2750,6 @@ components:
         version: { type: string, maxLength: 128, description: "The schild version the member told; absent until it did." }
         config: { type: string, enum: [same, differs, unknown], description: "Gateways only: its config version against this node's; unknown until it told one, or when the last word is older than a minute." }
         error: { type: string, maxLength: 300, description: "Why the last call failed, in one line." }
-        blocks_held: { type: integer, minimum: 0, description: "Edges only: clients its firewall held at its last call to this node." }
         vitals: { $ref: "#/components/schemas/GroupVitals" }
         shared_state:
           type: object

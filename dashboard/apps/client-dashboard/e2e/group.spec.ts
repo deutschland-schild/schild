@@ -42,7 +42,6 @@ test('a node of a group shows the group, its members and the hint on differing c
   await expect(card.getByTestId('group-self')).toHaveCount(1)
   await expect(card.locator('[data-testid="group-member"][data-name="web-3"]')).toContainText('Nicht erreichbar')
   await expect(card.getByTestId('group-config-hint')).toContainText('web-2')
-  await expect(card.getByTestId('group-edge')).toHaveCount(2)
   await expect(card.getByTestId('group-removed')).toContainText('web-0')
   expect(await axe(page)).toEqual([])
   await noOverflow(page)
@@ -167,14 +166,10 @@ test('the filter "Server" picks whose numbers the counters and charts show', asy
   await expect(page.getByTestId('cluster-node-note')).toHaveCount(0)
 })
 
-test('a cluster without balancer VMs shows no tile for them', async ({ page }) => {
+test('a cluster in step shows every gateway ready', async ({ page }) => {
   await page.goto('./?scenario=group-ok#/server/group')
   await expect(page.getByTestId('group-page-state')).toContainText('Abgleich aktiv')
   await expect(page.getByTestId('group-total-ready')).toContainText('3 von 3')
-  await expect(page.getByTestId('group-total-edges')).toHaveCount(0)
-  await expect(page.getByTestId('group-edges')).toHaveCount(0)
   expect(await axe(page)).toEqual([])
   await noOverflow(page)
-  await page.goto('./?scenario=group#/server/group')
-  await expect(page.getByTestId('group-total-edges')).toContainText('2')
 })

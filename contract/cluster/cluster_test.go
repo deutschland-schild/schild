@@ -19,10 +19,25 @@ func key(seed byte) (ed25519.PublicKey, ed25519.PrivateKey) {
 	return k.Public().(ed25519.PublicKey), k
 }
 
+// testGroupKey is the group key of the test group, from its secret.
+var testGroupKey, _ = GroupKey([]byte("0123456789abcdef0123456789abcdef"))
+
+func testGroup() string { return GroupID(testGroupKey.Public().(ed25519.PublicKey)) }
+
+// memberRecord is the member record of pub, admitted by the secret of the
+// test group.
 func memberRecord(t *testing.T, group string, signer ed25519.PrivateKey, seq uint64, hlc uint64, pub ed25519.PublicKey, name string, deleted bool) *Record {
+	t.Helper()
+	return memberRecordOf(t, group, signer, seq, hlc, pub, name, deleted, true)
+}
+
+func memberRecordOf(t *testing.T, group string, signer ed25519.PrivateKey, seq uint64, hlc uint64, pub ed25519.PublicKey, name string, deleted, admitted bool) *Record {
 	t.Helper()
 	r := &Record{V: Version, Group: group, Class: ClassMembers, ID: NodeID(pub), Origin: NodeID(signer.Public().(ed25519.PublicKey)), Seq: seq, HLC: hlc, Deleted: deleted}
 	m := Member{Name: name, Role: RoleGateway, PublicKey: base64.StdEncoding.EncodeToString(pub), Address: "10.0.0.1:8790", Joined: TimeText(t0)}
+	if admitted {
+		m.AdmitWith(testGroupKey, pub)
+	}
 	if err := r.Sign(signer, m); err != nil {
 		t.Fatal(err)
 	}
@@ -44,13 +59,13 @@ func group(t *testing.T) (*Roster, ed25519.PrivateKey, ed25519.PrivateKey) {
 	t.Helper()
 	pa, ka := key(1)
 	pb, kb := key(2)
-	ro := NewRoster(GroupID(pa))
-	founder := memberRecord(t, ro.Group, ka, 1, HLCOf(t0), pa, "web-1", false)
-	if err := ro.Check(founder, t0); err != nil {
-		t.Fatalf("founder: %v", err)
+	ro := NewRoster(testGroup())
+	first := memberRecord(t, ro.Group, ka, 1, HLCOf(t0), pa, "web-1", false)
+	if err := ro.Check(first, t0); err != nil {
+		t.Fatalf("first member: %v", err)
 	}
-	ro.Set(founder)
-	second := memberRecord(t, ro.Group, ka, 2, HLCOf(t0)+1, pb, "web-2", false)
+	ro.Set(first)
+	second := memberRecord(t, ro.Group, kb, 1, HLCOf(t0)+1, pb, "web-2", false)
 	if err := ro.Check(second, t0); err != nil {
 		t.Fatalf("second member: %v", err)
 	}
@@ -67,7 +82,7 @@ func TestRosterTakesWhatMembersSign(t *testing.T) {
 
 func TestRosterRefuses(t *testing.T) {
 	ro, ka, kb := group(t)
-	_, kc := key(3) // never joined
+	_, kc := key(3) // never admitted
 	pc := kc.Public().(ed25519.PublicKey)
 	good := func() *Record { return blockRecord(t, ro.Group, kb, 1, HLCOf(t0), "203.0.113.7") }
 	cases := []struct {
@@ -78,7 +93,10 @@ func TestRosterRefuses(t *testing.T) {
 		{"unknown version", func() *Record { r := good(); r.V = 2; return r }, ErrVersion},
 		{"another group", func() *Record { return blockRecord(t, "g-other", kb, 1, HLCOf(t0), "203.0.113.7") }, ErrGroup},
 		{"stranger signs a block", func() *Record { return blockRecord(t, ro.Group, kc, 1, HLCOf(t0), "203.0.113.7") }, ErrOrigin},
-		{"stranger admits itself", func() *Record { return memberRecord(t, ro.Group, kc, 1, HLCOf(t0), pc, "evil", false) }, ErrOrigin},
+		{"stranger admits itself", func() *Record { return memberRecordOf(t, ro.Group, kc, 1, HLCOf(t0), pc, "evil", false, false) }, ErrOrigin},
+		{"member lets in a key without the secret", func() *Record {
+			return memberRecordOf(t, ro.Group, ka, 3, HLCOf(t0)+2, pc, "web-3", false, false)
+		}, ErrOrigin},
 		{"data changed after signing", func() *Record {
 			r := good()
 			other := blockRecord(t, ro.Group, kb, 1, HLCOf(t0), "203.0.113.8")
@@ -185,33 +203,6 @@ func TestClock(t *testing.T) {
 	}
 }
 
-func TestJoinCode(t *testing.T) {
-	pa, _ := key(1)
-	code, hash, err := NewJoinCode(pa)
-	if err != nil {
-		t.Fatal(err)
-	}
-	secret, fp, err := ParseJoinCode(" " + code + "\n")
-	if err != nil {
-		t.Fatal(err)
-	}
-	if !SameFingerprint(fp, Fingerprint(pa)) {
-		t.Error("the code does not name the inviting key")
-	}
-	if string(JoinHash(secret)) != string(hash) {
-		t.Error("the stored hash does not fit the secret")
-	}
-	pb, _ := key(2)
-	if SameFingerprint(fp, Fingerprint(pb)) {
-		t.Error("another key fits the code")
-	}
-	for _, bad := range []string{"", "abc", code[:len(code)-2], code + "aa"} {
-		if _, _, err := ParseJoinCode(bad); err == nil {
-			t.Errorf("code %q parsed", bad)
-		}
-	}
-}
-
 func TestAdmissionByTheGroupSecret(t *testing.T) {
 	secret := []byte("0123456789abcdef0123456789abcdef")
 	gk, err := GroupKey(secret)
@@ -238,7 +229,7 @@ func TestAdmissionByTheGroupSecret(t *testing.T) {
 	_, kb := key(2)
 	group := GroupID(gk.Public().(ed25519.PublicKey))
 	ro := NewRoster(group)
-	// Two nodes let themselves in, each with its own key, neither is a founder.
+	// Two nodes let themselves in, each with its own key.
 	for _, k := range []ed25519.PrivateKey{ka, kb} {
 		r := self(k, gk, "", HLCOf(t0))
 		if err := ro.Check(r, t0); err != nil {

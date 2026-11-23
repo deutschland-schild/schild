@@ -18,14 +18,14 @@ import (
 	"github.com/deutschland-schild/schild/gateway/internal/testport"
 )
 
-func clusterConfig(t *testing.T, name, listen string) (cfgPath, dataDir string) {
+func clusterConfig(t *testing.T, name, listen, secretFile string) (cfgPath, dataDir string) {
 	t.Helper()
 	dir := t.TempDir()
 	dataDir = filepath.Join(dir, "data")
 	cfgPath = filepath.Join(dir, "schild.yaml")
 	yaml := fmt.Sprintf("config_version: 0\nnode_name: %s\nupstream: {url: \"http://127.0.0.1:8081\"}\nstorage: {path: %q}\n", name, dataDir)
 	if listen != "" {
-		yaml += fmt.Sprintf("cluster: {enabled: true, listen: %q}\n", listen)
+		yaml += fmt.Sprintf("cluster: {enabled: true, listen: %q, secret_file: %q}\n", listen, secretFile)
 	}
 	if err := os.WriteFile(cfgPath, []byte(yaml), 0o600); err != nil {
 		t.Fatal(err)
@@ -40,28 +40,15 @@ func clusterCmd(t *testing.T, cfg string, args ...string) (string, error) {
 	return out.String(), err
 }
 
-func TestClusterCommands(t *testing.T) {
-	addr1, addr2 := testport.Free(t), testport.Free(t)
-	cfg1, data1 := clusterConfig(t, "web-1", addr1)
-	cfg2, _ := clusterConfig(t, "web-2", addr2)
-
-	if _, err := clusterCmd(t, cfg1, "status"); err == nil || !strings.Contains(err.Error(), "no group") {
-		t.Fatalf("status before init: %v", err)
+// runNode sets a node up from its secret, as schild does at its start, and
+// runs it.
+func runNode(t *testing.T, dataDir, name, listen string, secret []byte, peers []string) *cluster.Node {
+	t.Helper()
+	dir := app.ClusterDir(dataDir)
+	if _, _, err := cluster.Configure(dir, name, listen, secret, nil); err != nil {
+		t.Fatal(err)
 	}
-	out, err := clusterCmd(t, cfg1, "init")
-	if err != nil || !strings.Contains(out, "web-1 is its first node") {
-		t.Fatalf("init: %q, %v", out, err)
-	}
-	if _, err := clusterCmd(t, cfg1, "init"); err == nil {
-		t.Error("a second init was accepted")
-	}
-	// The node key is readable by its owner only.
-	if fi, err := os.Stat(filepath.Join(app.ClusterDir(data1), "node.key")); err != nil || fi.Mode().Perm() != 0o600 {
-		t.Errorf("node key: %v, mode %v", err, fi.Mode().Perm())
-	}
-
-	// web-1 runs, as schild would after the restart.
-	node, err := cluster.Open(cluster.Options{Dir: app.ClusterDir(data1), Listen: addr1, Hold: 200 * time.Millisecond})
+	node, err := cluster.Open(cluster.Options{Dir: dir, Listen: listen, Hold: 200 * time.Millisecond, Peers: peers})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -72,24 +59,48 @@ func TestClusterCommands(t *testing.T) {
 	for node.Addr() == "" {
 		time.Sleep(5 * time.Millisecond)
 	}
+	return node
+}
 
-	out, err = clusterCmd(t, cfg1, "invite")
-	if err != nil {
+func TestClusterCommands(t *testing.T) {
+	var sec bytes.Buffer
+	if err := runCluster([]string{"secret"}, &sec, time.Now); err != nil {
 		t.Fatal(err)
 	}
-	m := regexp.MustCompile(`schild cluster join (\S+) (\S+)`).FindStringSubmatch(out)
-	if m == nil || m[1] != addr1 {
-		t.Fatalf("invite does not print the join command: %q", out)
+	secret := bytes.TrimSpace(sec.Bytes())
+	secretFile := filepath.Join(t.TempDir(), "cluster.secret")
+	if err := os.WriteFile(secretFile, secret, 0o600); err != nil {
+		t.Fatal(err)
 	}
-	if _, err := clusterCmd(t, cfg2, "join", addr1, "aaaaaaaaaaaaa-aaaaaaaaaaaaa-aaaaaaaaaaaaa-aaaaaaaaaaaaa"); err == nil {
-		t.Error("a made-up code joined")
+	addr1, addr2 := testport.Free(t), testport.Free(t)
+	cfg1, data1 := clusterConfig(t, "web-1", addr1, secretFile)
+	cfg2, data2 := clusterConfig(t, "web-2", addr2, secretFile)
+
+	if _, err := clusterCmd(t, cfg1, "status"); err == nil || !strings.Contains(err.Error(), "no group") {
+		t.Fatalf("status before the first start: %v", err)
 	}
-	out, err = clusterCmd(t, cfg2, "join", m[1], m[2])
-	if err != nil || !strings.Contains(out, "(2 nodes)") {
-		t.Fatalf("join: %q, %v", out, err)
+	// Joining by code is gone: a group is set up by its secret file.
+	for _, sub := range []string{"init", "invite", "join"} {
+		if _, err := clusterCmd(t, cfg1, sub); err == nil || !strings.Contains(err.Error(), "unknown command") {
+			t.Errorf("cluster %s: %v", sub, err)
+		}
 	}
 
-	out, err = clusterCmd(t, cfg2, "status")
+	runNode(t, data1, "web-1", addr1, secret, nil)
+	// The node key is readable by its owner only.
+	if fi, err := os.Stat(filepath.Join(app.ClusterDir(data1), "node.key")); err != nil || fi.Mode().Perm() != 0o600 {
+		t.Errorf("node key: %v, mode %v", err, fi.Mode().Perm())
+	}
+	two := runNode(t, data2, "web-2", addr2, secret, []string{addr1})
+	deadline := time.Now().Add(10 * time.Second)
+	for len(two.Reachable()) != 1 {
+		if time.Now().After(deadline) {
+			t.Fatal("web-2 did not find web-1")
+		}
+		time.Sleep(20 * time.Millisecond)
+	}
+
+	out, err := clusterCmd(t, cfg2, "status")
 	if err != nil || !strings.Contains(out, "web-1") || !strings.Contains(out, "web-2") || !strings.Contains(out, "this node") {
 		t.Fatalf("status on web-2: %q, %v", out, err)
 	}
@@ -106,14 +117,7 @@ func TestClusterCommands(t *testing.T) {
 	}
 }
 
-func TestClusterCommandsNeedTheSection(t *testing.T) {
-	cfg, _ := clusterConfig(t, "web-1", "")
-	if _, err := clusterCmd(t, cfg, "init"); err == nil || !strings.Contains(err.Error(), "cluster.listen") {
-		t.Errorf("init without the cluster section: %v", err)
-	}
-}
-
-func TestClusterSecretAndConfiguredNode(t *testing.T) {
+func TestClusterSecret(t *testing.T) {
 	var out bytes.Buffer
 	if err := runCluster([]string{"secret"}, &out, time.Now); err != nil || !regexp.MustCompile(`^[0-9a-f]{64}\n$`).MatchString(out.String()) {
 		t.Fatalf("secret: %q, %v", out.String(), err)
@@ -122,14 +126,5 @@ func TestClusterSecretAndConfiguredNode(t *testing.T) {
 	_ = runCluster([]string{"secret"}, &again, time.Now)
 	if again.String() == out.String() {
 		t.Error("two secrets are the same")
-	}
-	// A node set up by the file needs no init and takes none.
-	cfg, _ := clusterConfig(t, "web-1", testport.Free(t))
-	raw, _ := os.ReadFile(cfg)
-	if err := os.WriteFile(cfg, []byte(strings.Replace(string(raw), "cluster: {enabled: true,", "cluster: {secret_file: /etc/schild/cluster.secret, enabled: true,", 1)), 0o600); err != nil {
-		t.Fatal(err)
-	}
-	if _, err := clusterCmd(t, cfg, "init"); err == nil || !strings.Contains(err.Error(), "cluster.secret_file") {
-		t.Errorf("init on a node set up by configuration: %v", err)
 	}
 }

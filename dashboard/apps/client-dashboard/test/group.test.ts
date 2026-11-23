@@ -31,7 +31,7 @@ describe('the servers of a group on the page Cluster (MVP-27)', () => {
     // A server of an older build tells no vitals: reachable, nothing more is claimed.
     expect(nodeView({ ...byName('web-2'), vitals: undefined })).toMatchObject({ tone: 'neutral', label: 'Erreichbar' })
   })
-  it('adds up what the reached servers told and never counts edges or removed members', () => {
+  it('adds up what the reached servers told and never counts removed members', () => {
     const t = groupTotals(group)
     expect(t).toMatchObject({ gateways: 3, ready: 2, away: 1, reporting: 2 })
     expect(t.requestsPerS).toBeCloseTo(80.5)
@@ -56,7 +56,7 @@ describe('the servers of a group on the page Cluster (MVP-27)', () => {
 describe('words for the mode and the group (MVP-27)', () => {
   it('names the mode: alone, or a group with its number of gateways', () => {
     expect(modeView({ mode: 'single' })).toMatchObject({ label: 'Einzelner Server', short: 'Einzeln', tone: 'neutral' })
-    // Edges and removed members are no servers of the group.
+    // Removed members are no servers of the group.
     expect(modeView(group)).toMatchObject({ label: 'Cluster · 3 Server', short: 'Cluster · 3', tone: 'warning' })
     expect(modeView(withState('active'))).toMatchObject({ label: 'Cluster · 3 Server', tone: 'success' })
     // cluster.enabled without a group: it runs alone, and the indicator says that something is off.
@@ -126,7 +126,7 @@ describe('a single gateway', () => {
 })
 
 describe('a node of a group', () => {
-  it('shows the group in the top bar and the members on the server page, this server marked, edges apart', async () => {
+  it('shows the group in the top bar and the members on the server page, this server marked', async () => {
     mock.reset({ scenario: 'group' })
     await mountApp('/server')
     await waitFor(() => all('[data-testid="group-member"]').length === 3)
@@ -142,8 +142,6 @@ describe('a node of a group', () => {
     expect(rows[2]!.textContent).toContain('Nicht erreichbar')
     expect(rows[2]!.textContent).toContain('connection refused')
     expect(byTestId('group-config-hint')!.textContent).toContain('web-2')
-    expect(all('[data-testid="group-edge"]').map(e => e.dataset.state)).toEqual(['ok', 'asks_elsewhere'])
-    expect(byTestId('group-edges')!.textContent).toContain('2 Adressen in der Firewall')
     expect(byTestId('group-removed')!.textContent).toContain('web-0')
     expect(byTestId('group-shared')!.textContent).toContain('2 laufende Sperren')
     expect(byTestId('group-counters')!.textContent).toContain('1.284 Änderungen übernommen')

@@ -85,7 +85,7 @@ func (c *Cluster) check() error {
 		}
 	}
 	if len(c.Peers) > 0 && c.SecretFile == "" {
-		return contract.Errf(contract.CodeConfig, "cluster.peers needs cluster.secret_file: without the group secret a node joins with schild cluster join")
+		return contract.Errf(contract.CodeConfig, "cluster.peers needs cluster.secret_file: the group secret lets a node into its group")
 	}
 	adv, err := netip.ParseAddrPort(c.Address())
 	if err != nil || adv.Port() == 0 || adv.Addr().IsUnspecified() {

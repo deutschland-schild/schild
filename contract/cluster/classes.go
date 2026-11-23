@@ -9,12 +9,8 @@ import (
 	"time"
 )
 
-// Roles of a member. An edge only enforces (a balancer VM with the block
-// list); this version admits gateways only.
-const (
-	RoleGateway = "gateway"
-	RoleEdge    = "edge"
-)
+// RoleGateway is the role of a member; this version has no other.
+const RoleGateway = "gateway"
 
 // Member is the data of a record of class members; its id is the node id.
 // A tombstone keeps the data, so that records the node signed before it was
@@ -27,9 +23,10 @@ type Member struct {
 	Address string `json:"address"`
 	Joined  string `json:"joined"`
 	Version string `json:"version,omitempty"`
-	// AdmitKey and Admit let a node into a group that is set up by
-	// configuration (admit.go): the public key the group id is the hash
-	// of, and its signature over this node's key. Both or none.
+	// AdmitKey and Admit let a node into its group (admit.go): the public
+	// key the group id is the hash of, and its signature over this node's
+	// key. Both or none in the data; a member record that is no tombstone
+	// carries them (Roster.Check).
 	AdmitKey string `json:"admit_public_key,omitempty"`
 	Admit    string `json:"admit,omitempty"`
 }
@@ -44,7 +41,7 @@ func (m *Member) valid() bool {
 	if _, ok := m.Key(); !ok {
 		return false
 	}
-	if m.Role != RoleGateway && m.Role != RoleEdge {
+	if m.Role != RoleGateway {
 		return false
 	}
 	if m.Name == "" || len(m.Name) > 63 || strings.ContainsAny(m.Name, " \t\r\n/") {

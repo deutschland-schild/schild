@@ -29,16 +29,61 @@ import (
 type groupNode struct {
 	dir, addr, name string
 	h               *apptest.Harness
+	// secretFile and peers: cluster.secret_file and cluster.peers.
+	secretFile string
+	peers      []string
 }
 
 func (g *groupNode) clusterDir() string { return app.ClusterDir(filepath.Join(g.dir, "data")) }
 
+// clusterYAML is the cluster section of the node's schild.yaml; the node
+// takes its test name as its name in the group.
+func (g *groupNode) clusterYAML() string {
+	peers := make([]string, len(g.peers))
+	for i, p := range g.peers {
+		peers[i] = fmt.Sprintf("%q", p)
+	}
+	return fmt.Sprintf("cluster: {enabled: true, name: %q, listen: %q, secret_file: %q, peers: [%s]}\n", g.name, g.addr, g.secretFile, strings.Join(peers, ", "))
+}
+
 func (g *groupNode) start(t *testing.T) {
 	t.Helper()
-	g.h = apptest.New(t, apptest.Options{Dir: g.dir, Extra: fmt.Sprintf("cluster: {enabled: true, listen: %q}\n", g.addr)})
+	g.h = apptest.New(t, apptest.Options{Dir: g.dir, Extra: g.clusterYAML()})
 	if g.h.App.Cluster == nil {
 		t.Fatalf("%s: no cluster node", g.name)
 	}
+}
+
+// writeSecret writes a new group secret into a file of its own.
+func writeSecret(t *testing.T) string {
+	t.Helper()
+	path := filepath.Join(t.TempDir(), "cluster.secret")
+	secret, err := cluster.NewSecret()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(path, []byte(secret+"\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	return path
+}
+
+// newGroup makes gateways as a deployment sets them up: the same secret
+// file on every one and every address in cluster.peers. None runs yet.
+func newGroup(t *testing.T, names ...string) []*groupNode {
+	t.Helper()
+	secretFile := writeSecret(t)
+	var nodes []*groupNode
+	var addrs []string
+	for _, name := range names {
+		g := &groupNode{dir: t.TempDir(), addr: apptest.FreeAddr(t), name: name, secretFile: secretFile}
+		nodes = append(nodes, g)
+		addrs = append(addrs, g.addr)
+	}
+	for _, g := range nodes {
+		g.peers = addrs
+	}
+	return nodes
 }
 
 func (g *groupNode) block(ip, incident string, d time.Duration) {
@@ -54,23 +99,13 @@ func (g *groupNode) blocked(ip string) string {
 	return bi.Incident
 }
 
-// pair: two gateways in one group, web-2 joined through web-1.
+// pair: two gateways in one group, set up by their configuration.
 func pair(t *testing.T) (a, b *groupNode) {
 	t.Helper()
-	a = &groupNode{dir: t.TempDir(), addr: apptest.FreeAddr(t), name: "web-1"}
-	b = &groupNode{dir: t.TempDir(), addr: apptest.FreeAddr(t), name: "web-2"}
-	if _, err := cluster.Init(a.clusterDir(), a.name, a.addr, nil); err != nil {
-		t.Fatal(err)
-	}
+	nodes := newGroup(t, "web-1", "web-2")
+	a, b = nodes[0], nodes[1]
 	a.start(t)
 	a.h.WaitFor("the mesh of web-1 listens", func() bool { return a.h.App.Cluster.Addr() != "" })
-	code, _, err := cluster.Invite(a.clusterDir(), nil)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if _, _, err := cluster.Join(context.Background(), b.clusterDir(), b.name, b.addr, a.addr, code, nil); err != nil {
-		t.Fatal(err)
-	}
 	b.start(t)
 	return a, b
 }
@@ -294,12 +329,9 @@ func TestGroupErasesAnAddressOnEveryNode(t *testing.T) {
 // A gateway that ran alone brings what it holds into the group it joins:
 // its entries are added, the group's stay, nothing is lost on either side.
 func TestJoiningNodeAddsWhatItHoldsToTheGroup(t *testing.T) {
-	a := &groupNode{dir: t.TempDir(), addr: apptest.FreeAddr(t), name: "web-1"}
-	b := &groupNode{dir: t.TempDir(), addr: apptest.FreeAddr(t), name: "web-2"}
+	nodes := newGroup(t, "web-1", "web-2")
+	a, b := nodes[0], nodes[1]
 	ctx := context.Background()
-	if _, err := cluster.Init(a.clusterDir(), a.name, a.addr, nil); err != nil {
-		t.Fatal(err)
-	}
 	a.start(t)
 	if err := a.h.App.Store.AddAllow(ctx, &store.AllowEntry{IP: "198.51.100.1", Label: "of the group", Level: "no_block", Expires: "never", CreatedAt: time.Now(), Source: "dashboard"}); err != nil {
 		t.Fatal(err)
@@ -313,13 +345,6 @@ func TestJoiningNodeAddsWhatItHoldsToTheGroup(t *testing.T) {
 		t.Fatal(err)
 	}
 	a.h.WaitFor("the mesh of web-1 listens", func() bool { return a.h.App.Cluster.Addr() != "" })
-	code, _, err := cluster.Invite(a.clusterDir(), nil)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if _, _, err := cluster.Join(ctx, b.clusterDir(), b.name, b.addr, a.addr, code, nil); err != nil {
-		t.Fatal(err)
-	}
 	b.start(t)
 	for _, g := range []*groupNode{a, b} {
 		g.h.WaitFor(g.name+" allows the address of the group and the one web-2 brought", func() bool {
@@ -349,11 +374,7 @@ func eventsOf(t *testing.T, g *groupNode, ip string) int {
 // drains, and still serves the requests that reach it; then it stops.
 func TestGroupNodeDrains(t *testing.T) {
 	addr := apptest.FreeAddr(t)
-	dir := t.TempDir()
-	if _, err := cluster.Init(app.ClusterDir(filepath.Join(dir, "data")), "web-1", addr, nil); err != nil {
-		t.Fatal(err)
-	}
-	h := apptest.New(t, apptest.Options{Dir: dir, Listeners: true, Extra: fmt.Sprintf("cluster: {enabled: true, listen: %q, drain: {delay_s: 2, grace_s: 5}}\n", addr)})
+	h := apptest.New(t, apptest.Options{Listeners: true, Extra: fmt.Sprintf("cluster: {enabled: true, listen: %q, secret_file: %q, drain: {delay_s: 2, grace_s: 5}}\n", addr, writeSecret(t))})
 	ready := func() int {
 		resp, err := http.Get("http://" + h.ProxyAddr + "/.schild/readyz")
 		if err != nil {
@@ -482,23 +503,13 @@ func TestSingleGatewayStopsWithoutDrainDelay(t *testing.T) {
 // nodes gets the limit once, not once per node.
 func TestGroupLimitCountsAcrossNodes(t *testing.T) {
 	limit := "behaviour:\n  rate_limits:\n    - {id: api, route: \"/api/**\", limit: 20, per: 1m, burst: 20, mode: block}\n"
-	a := &groupNode{dir: t.TempDir(), addr: apptest.FreeAddr(t), name: "web-1"}
-	b := &groupNode{dir: t.TempDir(), addr: apptest.FreeAddr(t), name: "web-2"}
-	if _, err := cluster.Init(a.clusterDir(), a.name, a.addr, nil); err != nil {
-		t.Fatal(err)
-	}
+	nodes := newGroup(t, "web-1", "web-2")
+	a, b := nodes[0], nodes[1]
 	start := func(g *groupNode) {
-		g.h = apptest.New(t, apptest.Options{Dir: g.dir, Extra: limit + fmt.Sprintf("cluster: {enabled: true, listen: %q}\n", g.addr)})
+		g.h = apptest.New(t, apptest.Options{Dir: g.dir, Extra: limit + g.clusterYAML()})
 	}
 	start(a)
 	a.h.WaitFor("the mesh of web-1 listens", func() bool { return a.h.App.Cluster.Addr() != "" })
-	code, _, err := cluster.Invite(a.clusterDir(), nil)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if _, _, err := cluster.Join(context.Background(), b.clusterDir(), b.name, b.addr, a.addr, code, nil); err != nil {
-		t.Fatal(err)
-	}
 	start(b)
 	a.h.WaitFor("the nodes reach each other", func() bool { return a.h.App.Cluster.Synced() && b.h.App.Cluster.Synced() })
 	time.Sleep(1500 * time.Millisecond)
@@ -764,22 +775,12 @@ func TestFreshGroupKeepsAWriteMadeRightAfterStart(t *testing.T) {
 // yet (it does so once a second), and would take the empty ones as the
 // later change.
 func TestJoiningNodeWithNothingDoesNotEmptyTheGroup(t *testing.T) {
-	a := &groupNode{dir: t.TempDir(), addr: apptest.FreeAddr(t), name: "web-1"}
-	b := &groupNode{dir: t.TempDir(), addr: apptest.FreeAddr(t), name: "web-2"}
-	if _, err := cluster.Init(a.clusterDir(), a.name, a.addr, nil); err != nil {
-		t.Fatal(err)
-	}
+	nodes := newGroup(t, "web-1", "web-2")
+	a, b := nodes[0], nodes[1]
 	a.start(t)
 	a.h.WaitFor("the mesh of web-1 listens", func() bool { return a.h.App.Cluster.Addr() != "" })
-	code, _, err := cluster.Invite(a.clusterDir(), nil)
-	if err != nil {
-		t.Fatal(err)
-	}
-	// The login and the join fall into the same second.
+	// The login and the start of web-2 fall into the same second.
 	a.h.Login()
-	if _, _, err := cluster.Join(context.Background(), b.clusterDir(), b.name, b.addr, a.addr, code, nil); err != nil {
-		t.Fatal(err)
-	}
 	b.start(t)
 	ctx := context.Background()
 	b.h.WaitFor("web-2 took the users of the group", func() bool { return b.h.App.Store.HasUsers(ctx) })

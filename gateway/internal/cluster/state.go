@@ -34,12 +34,8 @@ import (
 	contract "github.com/deutschland-schild/schild/contract/cluster"
 )
 
-// ErrNoGroup: the node was neither set up with `schild cluster init` nor
-// joined a group.
-var ErrNoGroup = errors.New("cluster: this node belongs to no group (schild cluster init, or schild cluster join)")
-
-// ErrHasGroup: init or join on a node that is in a group already.
-var ErrHasGroup = errors.New("cluster: this node belongs to a group already")
+// ErrNoGroup: the node was not set up with a group secret yet.
+var ErrNoGroup = errors.New("cluster: this node belongs to no group (set cluster.secret_file and cluster.peers, then start schild)")
 
 const (
 	keyFile = "node.key"
@@ -65,7 +61,6 @@ CREATE TABLE IF NOT EXISTS records (
 CREATE INDEX IF NOT EXISTS records_key ON records(class, id, state);
 -- The highest sequence number seen per origin.
 CREATE TABLE IF NOT EXISTS vector (origin TEXT PRIMARY KEY, seq INTEGER NOT NULL);
-CREATE TABLE IF NOT EXISTS invites (hash BLOB PRIMARY KEY, role TEXT NOT NULL, expires_ms INTEGER NOT NULL, used_ms INTEGER NOT NULL DEFAULT 0);
 -- What the running node last saw of each peer, for schild cluster status.
 CREATE TABLE IF NOT EXISTS peers (node TEXT PRIMARY KEY, out_ok_ms INTEGER NOT NULL, in_ok_ms INTEGER NOT NULL, error TEXT NOT NULL, behind INTEGER NOT NULL);
 CREATE TABLE IF NOT EXISTS counters (k TEXT PRIMARY KEY, n INTEGER NOT NULL);
@@ -329,22 +324,11 @@ func (s *state) roster() (*contract.Roster, error) {
 	return ro, nil
 }
 
-// after returns the records a peer with this vector lacks, at most limit,
+// afterOf returns the records a peer with this vector lacks, at most limit,
 // and how far the answer covers each origin: the peer may set its vector
-// there once it applied them.
-// class "" means every class; else only records of that class are returned,
-// and the answer still covers every sequence number it passed.
-func (s *state) after(ctx context.Context, peer map[string]uint64, limit int, class string) (recs []json.RawMessage, covered map[string]uint64, more bool, err error) {
-	mine, err := s.vector()
-	if err != nil {
-		return nil, nil, false, err
-	}
-	return s.afterOf(ctx, mine, peer, limit, class)
-}
-
-// afterOf is after with the vector of this node handed in (a running node
-// keeps it while its store stands, Node.vectorNow).
-func (s *state) afterOf(ctx context.Context, mine, peer map[string]uint64, limit int, class string) (recs []json.RawMessage, covered map[string]uint64, more bool, err error) {
+// there once it applied them. mine is the vector of this node (a running
+// node keeps it while its store stands, Node.vectorNow).
+func (s *state) afterOf(ctx context.Context, mine, peer map[string]uint64, limit int) (recs []json.RawMessage, covered map[string]uint64, more bool, err error) {
 	covered = map[string]uint64{}
 	size := 0
 	for origin, seq := range mine {
@@ -355,8 +339,8 @@ func (s *state) afterOf(ctx context.Context, mine, peer map[string]uint64, limit
 			more = true
 			continue
 		}
-		rows, err := s.db.QueryContext(ctx, `SELECT seq, raw FROM records WHERE origin = ? AND seq > ? AND (? = '' OR class = ?) ORDER BY seq LIMIT ?`,
-			origin, int64(peer[origin]), class, class, limit-len(recs)+1)
+		rows, err := s.db.QueryContext(ctx, `SELECT seq, raw FROM records WHERE origin = ? AND seq > ? ORDER BY seq LIMIT ?`,
+			origin, int64(peer[origin]), limit-len(recs)+1)
 		if err != nil {
 			return nil, nil, false, err
 		}
@@ -397,6 +381,5 @@ func (s *state) expire(now time.Time) (int64, error) {
 		return 0, err
 	}
 	n, _ := res.RowsAffected()
-	_, _ = s.db.Exec(`DELETE FROM invites WHERE expires_ms < ?`, now.Add(-24*time.Hour).UnixMilli())
 	return n, nil
 }

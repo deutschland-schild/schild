@@ -98,10 +98,12 @@ func (ro *Roster) Members() []Entry {
 // shape, clock, origin, signature, the rules of its class. now is the
 // receiver's wall clock.
 //
-// Who may sign: an active gateway. A removed member's records stand when
+// Who may sign: an active member. A removed member's records stand when
 // their clock is before its removal, so that what it decided while it was a
 // member reads the same on a node that joins later. The one record without
-// a member behind it is the founder's own: its key hashes to the group id.
+// a member behind it is a node's record of itself that carries the
+// admission of the group secret; and a member record that is no tombstone
+// carries it whoever signed it: only the secret lets a node in.
 func (ro *Roster) Check(r *Record, now time.Time) error {
 	if r.V != Version {
 		return ErrVersion
@@ -118,21 +120,25 @@ func (ro *Roster) Check(r *Record, now time.Time) error {
 	var key ed25519.PublicKey
 	e, ok := ro.members[r.Origin]
 	switch {
-	case ok && e.member.Role != RoleGateway:
-		return ErrOrigin
 	case ok && e.removedAt != 0 && r.HLC >= e.removedAt:
 		return ErrRemoved
 	case ok:
 		key = e.key
+		// A member cannot let in a key the secret did not admit. A member
+		// record that does not decode is refused by the rules of its class.
+		if r.Class == ClassMembers && !r.Deleted {
+			if m, err := DecodeMember(r); err == nil && !m.admitted(ro.Group) {
+				return ErrOrigin
+			}
+		}
 	default:
-		// A node's record of itself: the founder's, or one admitted by the
-		// group secret.
+		// A node's record of itself, admitted by the group secret.
 		m, err := DecodeMember(r)
 		if err != nil || r.Class != ClassMembers || r.ID != r.Origin || r.Deleted {
 			return ErrOrigin
 		}
 		k, _ := m.Key()
-		if m.Role != RoleGateway || (GroupID(k) != ro.Group && !m.admitted(ro.Group)) {
+		if !m.admitted(ro.Group) {
 			return ErrOrigin
 		}
 		key = k

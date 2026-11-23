@@ -7,8 +7,7 @@ import { plural } from './summary'
 const list = (names: string[]) => names.length <= 1 ? names.join('') : `${names.slice(0, -1).join(', ')} und ${names.at(-1)}`
 
 /** Gateways that are members, this node included. */
-export const gateways = (s: GroupStatus): GroupMember[] => (s.members ?? []).filter(m => m.role === 'gateway' && m.state !== 'removed')
-export const edges = (s: GroupStatus): GroupMember[] => (s.members ?? []).filter(m => m.role === 'edge' && m.state !== 'removed')
+export const gateways = (s: GroupStatus): GroupMember[] => (s.members ?? []).filter(m => m.state !== 'removed')
 export const removedMembers = (s: GroupStatus): GroupMember[] => (s.members ?? []).filter(m => m.state === 'removed')
 
 export interface ModeView {
@@ -70,7 +69,6 @@ export const MEMBER_STATE: Record<GroupMember['state'], { tone: StatusTone, labe
   ok: { tone: 'success', label: 'Erreichbar' },
   unreachable: { tone: 'warning', label: 'Nicht erreichbar' },
   no_contact: { tone: 'warning', label: 'Kein Kontakt' },
-  asks_elsewhere: { tone: 'neutral', label: 'Fragt einen anderen Server', title: 'Eine Balancer-VM fragt immer nur ein Gateway. Dieses hat sie zuletzt nicht gefragt.' },
   removed: { tone: 'neutral', label: 'Entfernt' },
 }
 
@@ -149,7 +147,7 @@ const STATE_CLASS: Record<string, string> = { blocks: 'Sperren', settings: 'Eins
 
 /**
  * Whether what is in force on a member is what is in force on this server (GroupMember.shared_state): the servers
- * compare a hash per area every five seconds. '' when the API names nothing (this server itself, an edge).
+ * compare a hash per area every five seconds. '' when the API names nothing (this server itself).
  */
 export function stateText(st: GroupMember['shared_state']): { text: string, differs: boolean } {
   if (!st) return { text: '', differs: false }

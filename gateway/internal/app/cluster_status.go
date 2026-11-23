@@ -309,16 +309,13 @@ func (a *App) GroupStatus() dashboard.GroupStatus {
 		told[id] = v
 	}
 	a.groupVersions.mu.Unlock()
-	edges := a.EdgeReports()
 
-	var gateways, edgeRows, removed []dashboard.GroupMember
+	var gateways, removed []dashboard.GroupMember
 	others, reached := 0, 0
 	differing := []string{}
 	for _, m := range st.Members {
-		row := dashboard.GroupMember{ID: m.ID, Name: m.Member.Name, Role: m.Member.Role, LastOut: dashboard.StampPtr(m.OutOK), LastIn: dashboard.StampPtr(m.InOK)}
-		if m.Member.Role != contract.RoleEdge {
-			row.Address = m.Member.Address
-		}
+		row := dashboard.GroupMember{ID: m.ID, Name: m.Member.Name, Role: m.Member.Role, Address: m.Member.Address,
+			LastOut: dashboard.StampPtr(m.OutOK), LastIn: dashboard.StampPtr(m.InOK)}
 		switch {
 		case m.Removed:
 			row.State, row.LastOut, row.LastIn = "removed", nil, nil
@@ -327,18 +324,6 @@ func (a *App) GroupStatus() dashboard.GroupStatus {
 		case m.Self:
 			row.State, row.Version, row.Config, row.Vitals = "self", own.Version, "same", own.Vitals
 			gateways = append(gateways, row)
-			continue
-		case m.Member.Role == contract.RoleEdge:
-			// An edge asks one gateway at a time: here only when it asked this one.
-			row.State = "asks_elsewhere"
-			if !m.InOK.IsZero() && now.Sub(m.InOK) < time.Minute {
-				row.State = "ok"
-				if r, ok := edges[m.ID]; ok {
-					held := r.Held
-					row.BlocksHeld, row.Error = &held, firewall.OneLine(r.Error, 300)
-				}
-			}
-			edgeRows = append(edgeRows, row)
 			continue
 		}
 		others++
@@ -374,7 +359,7 @@ func (a *App) GroupStatus() dashboard.GroupStatus {
 		}
 		gateways = append(gateways, row)
 	}
-	out.Members = append(append(gateways, edgeRows...), removed...)
+	out.Members = append(gateways, removed...)
 	if len(out.Members) > dashboard.MaxGroupMembers {
 		out.Members = out.Members[:dashboard.MaxGroupMembers]
 	}

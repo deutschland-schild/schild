@@ -36,18 +36,17 @@ type GroupNode struct {
 
 // GroupMember is one member as this node sees it.
 type GroupMember struct {
-	ID         string  `json:"id"`
-	Name       string  `json:"name"`
-	Role       string  `json:"role"`
-	Address    string  `json:"address,omitempty"`
-	State      string  `json:"state"` // self | ok | unreachable | no_contact | asks_elsewhere | removed
-	LastOut    *string `json:"last_out,omitempty"`
-	LastIn     *string `json:"last_in,omitempty"`
-	Behind     *int    `json:"behind,omitempty"`
-	Version    string  `json:"version,omitempty"`
-	Config     string  `json:"config,omitempty"` // same | differs | unknown
-	Error      string  `json:"error,omitempty"`
-	BlocksHeld *int    `json:"blocks_held,omitempty"`
+	ID      string  `json:"id"`
+	Name    string  `json:"name"`
+	Role    string  `json:"role"`
+	Address string  `json:"address,omitempty"`
+	State   string  `json:"state"` // self | ok | unreachable | no_contact | removed
+	LastOut *string `json:"last_out,omitempty"`
+	LastIn  *string `json:"last_in,omitempty"`
+	Behind  *int    `json:"behind,omitempty"`
+	Version string  `json:"version,omitempty"`
+	Config  string  `json:"config,omitempty"` // same | differs | unknown
+	Error   string  `json:"error,omitempty"`
 	// Vitals: gateways only, absent when the member said nothing lately.
 	Vitals *GroupVitals `json:"vitals,omitempty"`
 	// ClockSkewMS: gateways only: the member's clock minus this node's, as

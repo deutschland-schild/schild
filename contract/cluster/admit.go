@@ -7,10 +7,10 @@ import (
 	"errors"
 )
 
-// A group can be set up by configuration alone: every node gets the same
+// A group is set up by configuration alone: every node gets the same
 // secret file and the addresses of the others, as a deployment writes them
-// (Ansible, for example), and lets itself in at its start. No command and
-// no code go from node to node by hand.
+// (Ansible, for example), and lets itself in at its start. Nothing goes
+// from node to node by hand.
 //
 // The secret admits and does nothing else. From it comes one key pair, the
 // group key; the group id is the hash of its public half. A node proves its

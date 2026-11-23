@@ -14,7 +14,6 @@ import (
 
 	contract "github.com/deutschland-schild/schild/contract/cluster"
 	"github.com/deutschland-schild/schild/contract/config"
-	"github.com/deutschland-schild/schild/contract/firewall"
 	"github.com/deutschland-schild/schild/gateway/internal/behaviour"
 	"github.com/deutschland-schild/schild/gateway/internal/cluster"
 	"github.com/deutschland-schild/schild/gateway/internal/ratelog"
@@ -57,7 +56,7 @@ type groupBlock struct {
 }
 
 // startCluster opens the node and starts its loops. A gateway with
-// cluster.enabled that joined no group runs alone and says so.
+// cluster.enabled that belongs to no group runs alone and says so.
 func (a *App) startCluster(ctx context.Context) {
 	cfg := a.Config()
 	if !cfg.Cluster.Enabled {
@@ -72,7 +71,7 @@ func (a *App) startCluster(ctx context.Context) {
 	}
 	node, err := cluster.Open(cluster.Options{Dir: dir, Listen: cfg.Cluster.Listen, Log: a.log, Peers: cfg.Cluster.Peers})
 	if errors.Is(err, cluster.ErrNoGroup) {
-		a.log.Warn("cluster.enabled, but this node belongs to no group: it runs alone. Set cluster.secret_file and cluster.peers on every node, or by hand: schild cluster init on the first node, schild cluster join ADDRESS CODE on every other, then restart schild")
+		a.log.Warn("cluster.enabled, but this node belongs to no group: it runs alone. Set cluster.secret_file and cluster.peers on every node (schild cluster secret makes the secret), then restart schild")
 		return
 	}
 	if err != nil {
@@ -96,7 +95,6 @@ func (a *App) startCluster(ctx context.Context) {
 	a.startGroupData(ctx)
 	a.startGroupMetrics(ctx)
 	a.startGroupHub(ctx)
-	a.startEdges()
 	a.startGroupVersions(ctx)
 	a.startClockWatch(ctx)
 	if cfg.CaddyIngress() {
@@ -520,7 +518,7 @@ const tellCounts = "counts"
 // compare hashes that mean nothing to each other, so it stays off.
 func (a *App) startCounts(ctx context.Context) {
 	if !a.groupHash {
-		a.log.Warn("cluster: this node holds no hash key of its group (it joined with an older schild): limits and scenarios count per node. Let it join again")
+		a.log.Warn("cluster: this node holds no hash key of its group: limits and scenarios count per node. Stop schild, delete its cluster directory and start it again: it sets itself up from cluster.secret_file")
 		a.warmDone.Store(true) // nothing is counted for the group, nothing to take
 		return
 	}
@@ -548,71 +546,4 @@ func (a *App) eventNode(cfg *config.Site) string {
 		name = name[:48]
 	}
 	return name + "." + strings.TrimPrefix(a.groupNodeID, "n-")[:12]
-}
-
-// askFirewall is what an edge asks: the block list.
-const askFirewall = "firewall"
-
-// edgeReport is what an edge said in its last call.
-type edgeReport struct {
-	at      time.Time
-	applied string
-	held    int
-	err     string
-}
-
-// startEdges answers the edges of the group, the balancer VMs that run
-// `schild firewall run -group`: the blocks that run, as the firewall of
-// this host gets them (D87): the client key and its end, own and
-// allowlisted addresses left out. An edge learns nothing else, not even
-// the incident of a block. The call waits for a change, so a block reaches
-// an edge at once.
-func (a *App) startEdges() {
-	a.Cluster.OnEdgeAsk(askFirewall, func(from string, body []byte) ([]byte, error) {
-		var req firewall.SyncRequest
-		if err := json.Unmarshal(body, &req); err != nil {
-			return nil, err
-		}
-		a.edgeMu.Lock()
-		if a.edges == nil {
-			a.edges = map[string]edgeReport{}
-		}
-		a.edges[from] = edgeReport{at: time.Now(), applied: req.Applied, held: req.Held, err: firewall.OneLine(req.Error, 300)}
-		a.edgeMu.Unlock()
-		deadline := time.Now().Add(20 * time.Second)
-		for {
-			blocks := a.firewallBlocks()
-			for i := range blocks {
-				blocks[i].Incident = ""
-			}
-			if blocks == nil {
-				blocks = []firewall.Block{}
-			}
-			rev := firewall.Revision(blocks)
-			if rev != req.Applied || !time.Now().Before(deadline) || a.Draining() {
-				return json.Marshal(firewall.SyncResponse{Revision: rev, Blocks: blocks})
-			}
-			time.Sleep(250 * time.Millisecond)
-		}
-	})
-}
-
-// EdgeReports is what the edges said in their last calls to this node, by
-// node id: when, the revision applied, the clients held, an error.
-func (a *App) EdgeReports() map[string]EdgeReport {
-	a.edgeMu.Lock()
-	defer a.edgeMu.Unlock()
-	out := make(map[string]EdgeReport, len(a.edges))
-	for id, r := range a.edges {
-		out[id] = EdgeReport{At: r.at, Applied: r.applied, Held: r.held, Error: r.err}
-	}
-	return out
-}
-
-// EdgeReport is one row of EdgeReports.
-type EdgeReport struct {
-	At      time.Time
-	Applied string
-	Held    int
-	Error   string
 }

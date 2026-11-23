@@ -30,11 +30,16 @@ func clusterID(k ed25519.PrivateKey) string             { return cluster.NodeID(
 func genClusterRecord(g *gen) {
 	const c = "cluster-record"
 	ctx := vectors.Context{}
-	// The clock of the checking node is Now; the group was founded an hour before.
+	// The clock of the checking node is Now; the group was set up an hour before.
 	t0 := Now.Add(-time.Hour)
 	h := func(d time.Duration) uint64 { return cluster.HLCOf(t0.Add(d)) }
-	a, b, cc, e, x := clusterKey("web-1"), clusterKey("web-2"), clusterKey("web-3"), clusterKey("lb-1"), clusterKey("stranger")
-	group := cluster.GroupID(clusterPub(a))
+	a, b, cc, x := clusterKey("web-1"), clusterKey("web-2"), clusterKey("web-3"), clusterKey("stranger")
+	// The group of the secret every node of the vectors holds (admit.go).
+	gk, err := cluster.GroupKey([]byte("0123456789abcdef0123456789abcdef"))
+	if err != nil {
+		panic(err)
+	}
+	group := cluster.GroupID(clusterPub(gk))
 	b64 := func(s string) string { return base64.StdEncoding.EncodeToString([]byte(s)) }
 
 	rec := func(signer ed25519.PrivateKey, class, id string, seq, hlc uint64, deleted bool, expires string, data any) *cluster.Record {
@@ -47,15 +52,20 @@ func genClusterRecord(g *gen) {
 	member := func(k ed25519.PrivateKey, name, role, address string) cluster.Member {
 		return cluster.Member{Name: name, Role: role, PublicKey: base64.StdEncoding.EncodeToString(clusterPub(k)), Address: address, Joined: cluster.TimeText(t0)}
 	}
+	// admitted is the member with the admission of the group secret.
+	admitted := func(k ed25519.PrivateKey, name, address string) cluster.Member {
+		mm := member(k, name, cluster.RoleGateway, address)
+		mm.AdmitWith(gk, clusterPub(k))
+		return mm
+	}
 	mrec := func(signer, of ed25519.PrivateKey, seq, hlc uint64, deleted bool, m cluster.Member) *cluster.Record {
 		return rec(signer, cluster.ClassMembers, clusterID(of), seq, hlc, deleted, "", m)
 	}
-	founder := mrec(a, a, 1, h(0), false, member(a, "web-1", cluster.RoleGateway, "10.0.0.1:8790"))
-	second := mrec(a, b, 2, h(time.Second), false, member(b, "web-2", cluster.RoleGateway, "10.0.0.2:8790"))
-	third := mrec(a, cc, 3, h(2*time.Second), false, member(cc, "web-3", cluster.RoleGateway, "10.0.0.3:8790"))
-	edge := mrec(a, e, 4, h(3*time.Second), false, member(e, "lb-1", cluster.RoleEdge, "0.0.0.0:0"))
-	thirdGone := mrec(a, cc, 5, h(30*time.Minute), true, member(cc, "web-3", cluster.RoleGateway, "10.0.0.3:8790"))
-	roster := []*cluster.Record{founder, second, third, edge, thirdGone}
+	first := mrec(a, a, 1, h(0), false, admitted(a, "web-1", "10.0.0.1:8790"))
+	second := mrec(b, b, 1, h(time.Second), false, admitted(b, "web-2", "10.0.0.2:8790"))
+	third := mrec(cc, cc, 1, h(2*time.Second), false, admitted(cc, "web-3", "10.0.0.3:8790"))
+	thirdGone := mrec(a, cc, 5, h(30*time.Minute), true, admitted(cc, "web-3", "10.0.0.3:8790"))
+	roster := []*cluster.Record{first, second, third, thirdGone}
 
 	until := cluster.TimeText(Now.Add(time.Hour))
 	blockData := func(client string, bits int) cluster.Block {
@@ -90,17 +100,17 @@ func genClusterRecord(g *gen) {
 	}
 
 	// ---- taken
-	taken("founder", "The founder's record of itself needs no member: its key hashes to the group id.", in(nil, founder, nil), nil)
-	taken("member-admitted", "A member record another gateway signed.", in([]*cluster.Record{founder}, second, nil), nil)
+	taken("admitted-by-secret", "A node's record of itself needs no member: it carries the admission of the group secret.", in(nil, first, nil), nil)
+	taken("member-admitted", "The next node lets itself in the same way.", in([]*cluster.Record{first}, second, nil), nil)
 	taken("block", "A block a member signed.", in(roster, block(b, 1, h(40*time.Minute), "203.0.113.7"), nil), nil)
-	taken("block-of-founder", "A block the founder signed.", in(roster, block(a, 9, h(40*time.Minute), "203.0.113.7"), nil), nil)
+	taken("block-of-another-member", "A block another member signed.", in(roster, block(a, 9, h(40*time.Minute), "203.0.113.7"), nil), nil)
 	taken("block-ipv6", "The client key of IPv6 is the first address of the /64, with 64 bits.",
 		in(roster, rec(b, cluster.ClassBlocks, "2001:db8:1:2::", 1, h(40*time.Minute), false, until, blockData("2001:db8:1:2::", 64)), nil), nil)
 	taken("lift", "A lift is a tombstone that names the incident it ends.", in(roster, lift(b, 2, h(41*time.Minute), "203.0.113.7"), nil), nil)
 	taken("clock-59s-ahead", "A clock up to 60 s ahead of the receiver passes.", in(roster, block(b, 1, cluster.HLCOf(Now.Add(59*time.Second)), "203.0.113.7"), nil), nil)
 	taken("removed-member-before", "What a member signed before its removal stands: a node that joins later reads it the same.",
 		in(roster, block(cc, 1, h(20*time.Minute), "203.0.113.8"), nil), nil)
-	taken("member-removed", "The tombstone of a member keeps its data, with the key.", in([]*cluster.Record{founder, second, third}, thirdGone, nil), nil)
+	taken("member-removed", "The tombstone of a member keeps its data, with the key.", in([]*cluster.Record{first, second, third}, thirdGone, nil), nil)
 	entry := func(class, thing, key string, seq uint64, deleted bool, expires string, data any) *cluster.Record {
 		return rec(b, class, cluster.EntryID(thing, key), seq, h(42*time.Minute), deleted, expires, data)
 	}
@@ -133,42 +143,16 @@ func genClusterRecord(g *gen) {
 	refused("schema", "job-deleted", "A job is never removed, only run again.", in(roster, job("human_check_keys", true, cluster.Job{At: cluster.TimeText(Now), Node: "web-2"}), nil))
 
 	// Admission by the group secret.
-	gk, err := cluster.GroupKey([]byte("0123456789abcdef0123456789abcdef"))
-	if err != nil {
-		panic(err)
-	}
-	sgroup := cluster.GroupID(clusterPub(gk))
 	self := func(k ed25519.PrivateKey, admitWith ed25519.PrivateKey, admitFor ed25519.PublicKey, name string, hlc uint64) *cluster.Record {
 		mm := member(k, name, cluster.RoleGateway, "10.0.0.5:8790")
 		mm.AdmitWith(admitWith, admitFor)
-		r := &cluster.Record{V: cluster.Version, Group: sgroup, Class: cluster.ClassMembers, ID: clusterID(k), Origin: clusterID(k), Seq: 1, HLC: hlc}
-		if err := r.Sign(k, mm); err != nil {
-			panic(err)
-		}
-		return r
+		return mrec(k, k, 1, hlc, false, mm)
 	}
-	sin := func(members []*cluster.Record, r *cluster.Record) m {
-		if members == nil {
-			members = []*cluster.Record{}
-		}
-		return m{"group": sgroup, "members": members, "record": r}
-	}
-	admitted := self(b, gk, clusterPub(b), "web-2", h(0))
-	taken("admitted-by-secret", "A node's record of itself that carries the admission of the group secret.", sin(nil, admitted), nil)
 	other, _ := cluster.GroupKey([]byte("another-secret-another-secret-00"))
-	refused("origin", "admitted-by-another-secret", "The admission of another secret is of another group.", sin(nil, self(x, other, clusterPub(x), "evil", h(0))))
-	refused("origin", "admission-copied", "The admission of one node does not fit another key.", sin(nil, self(x, gk, clusterPub(b), "evil", h(0))))
-	sgone := self(b, gk, clusterPub(b), "web-2", h(10*time.Minute))
-	sgone.Origin, sgone.Seq, sgone.Deleted = clusterID(a), 2, true
-	{
-		mm, _ := cluster.DecodeMember(admitted)
-		if err := sgone.Sign(a, mm); err != nil {
-			panic(err)
-		}
-	}
-	sa := self(a, gk, clusterPub(a), "web-1", h(0))
-	refused("removed", "removed-with-the-secret", "A removed node stays removed although it holds the secret.",
-		sin([]*cluster.Record{sa, admitted, sgone}, self(b, gk, clusterPub(b), "web-2", h(20*time.Minute))))
+	refused("origin", "admitted-by-another-secret", "The admission of another secret is of another group.", in(nil, self(x, other, clusterPub(x), "evil", h(0)), nil))
+	refused("origin", "admission-copied", "The admission of one node does not fit another key.", in(nil, self(x, gk, clusterPub(b), "evil", h(0)), nil))
+	refused("origin", "member-admits-a-stranger", "A member cannot let in a key the secret did not admit.",
+		in(roster, mrec(a, x, 6, h(40*time.Minute), false, member(x, "web-4", cluster.RoleGateway, "10.0.0.4:8790")), nil))
 
 	// ---- which record is the state
 	older, newer := block(b, 1, h(40*time.Minute), "203.0.113.7"), block(a, 9, h(41*time.Minute), "203.0.113.7")
@@ -198,13 +182,12 @@ func genClusterRecord(g *gen) {
 	refused("schema", "expires-with-offset", "No offsets: UTC, written with Z.", in(roster, rec(b, cluster.ClassErasure, "203.0.113.7", 6, h(43*time.Minute), false, "2026-11-26T13:00:00+01:00", cluster.Erasure{IP: "203.0.113.7"}), nil))
 	refused("clock", "clock-61s-ahead", "A clock more than 60 s ahead of the receiver is not taken yet.", in(roster, block(b, 1, cluster.HLCOf(Now.Add(61*time.Second)), "203.0.113.7"), nil))
 	refused("origin", "stranger", "A key that is no member.", in(roster, block(x, 1, h(40*time.Minute), "203.0.113.7"), nil))
-	refused("origin", "stranger-admits-itself", "A stranger's record of itself: its key does not hash to the group id.",
+	refused("origin", "stranger-admits-itself", "A stranger's record of itself without the admission of the group secret.",
 		in(roster, mrec(x, x, 1, h(40*time.Minute), false, member(x, "evil", cluster.RoleGateway, "10.0.0.9:8790")), nil))
-	refused("origin", "edge-signs", "No gateway takes a record an edge signed.", in(roster, block(e, 1, h(40*time.Minute), "203.0.113.7"), nil))
-	refused("origin", "member-not-yet-known", "The member record of the origin has not arrived: asked for again.", in([]*cluster.Record{founder}, block(b, 1, h(40*time.Minute), "203.0.113.7"), nil))
+	refused("origin", "member-not-yet-known", "The member record of the origin has not arrived: asked for again.", in([]*cluster.Record{first}, block(b, 1, h(40*time.Minute), "203.0.113.7"), nil))
 	refused("removed", "removed-member-after", "What a removed member signs after its removal.", in(roster, block(cc, 2, h(35*time.Minute), "203.0.113.8"), nil))
-	refused("removed", "removed-member-lets-itself-in", "A removed member cannot admit itself again.",
-		in(roster, mrec(cc, cc, 3, h(36*time.Minute), false, member(cc, "web-3", cluster.RoleGateway, "10.0.0.3:8790")), nil))
+	refused("removed", "removed-member-lets-itself-in", "A removed member cannot let itself in again, although it holds the secret.",
+		in(roster, mrec(cc, cc, 3, h(36*time.Minute), false, admitted(cc, "web-3", "10.0.0.3:8790")), nil))
 	bent := block(b, 1, h(40*time.Minute), "203.0.113.7")
 	bent.Data = block(b, 1, h(40*time.Minute), "203.0.113.8").Data
 	refused("signature", "data-changed", "Other data under the signature.", in(roster, bent, nil))
@@ -307,7 +290,7 @@ func genClusterRecord(g *gen) {
 	bad("no-members", "The member list is missing.", m{"group": group, "record": good})
 	bad("no-group", "The group is missing.", m{"members": []any{}, "record": good})
 	bad("group-no-id", "A group id is g- and 32 hex digits.", m{"group": "my-group", "members": []any{}, "record": good})
-	bad("members-no-list", "The member list is a list.", m{"group": group, "members": founder, "record": good})
+	bad("members-no-list", "The member list is a list.", m{"group": group, "members": first, "record": good})
 	bad("unknown-field", "A field the input does not have.", m{"group": group, "members": []any{}, "record": good, "now": "2026-10-26T12:00:00Z"})
 	bad("record-without-signature", "A record has a signature field.", m{"group": group, "members": []any{}, "record": asMap(good, func(x m) { delete(x, "sig") })})
 	bad("record-seq-negative", "Sequence numbers are not negative.", m{"group": group, "members": []any{}, "record": asMap(good, func(x m) { x["seq"] = -1 })})
@@ -317,7 +300,7 @@ func genClusterRecord(g *gen) {
 	bad("record-null", "The record is an object.", m{"group": group, "members": []any{}, "record": nil})
 	many := make([]*cluster.Record, 17)
 	for i := range many {
-		many[i] = founder
+		many[i] = first
 	}
 	bad("too-many-members", "At most 16 member records in a vector.", m{"group": group, "members": many, "record": good})
 }

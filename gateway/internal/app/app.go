@@ -242,9 +242,6 @@ type App struct {
 	// hubShare is the hub source as the group shares its index
 	// (cluster_hub.go); tests put another one in.
 	hubShare atomic.Pointer[hubIndex]
-	// edges: what the edges of the group said in their last calls.
-	edgeMu sync.Mutex
-	edges  map[string]edgeReport
 	// clusterSetupErr: cluster.secret_file did not set the node up;
 	// groupHash: the engine hashes under the key of the group.
 	clusterSetupErr error

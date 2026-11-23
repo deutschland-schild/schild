@@ -249,16 +249,15 @@ function largeGroup(base: GroupStatus): GroupStatus {
     const service = k === 12 ? 'draining' as const : k === 15 ? 'not_ready' as const : 'ready' as const
     return { ...m, vitals: { ...peer!.vitals!, service, requests_per_s: service === 'ready' ? 30 + ((k * 37) % 23) : 0, cpu_usage: ((k * 17) % 70 + 12) / 100, memory_used_ratio: ((k * 29) % 55 + 30) / 100, disk_used_ratio: ((k * 13) % 40 + 25) / 100 } }
   })
-  return { ...base, state: 'degraded', members: [...members, ...base.members!.filter(m => m.role === 'edge')], config: { version: base.config!.version, differing: [] } }
+  return { ...base, state: 'degraded', members, config: { version: base.config!.version, differing: [] } }
 }
 
 /** The same cluster with nothing to look at: every gateway reached, ready, in step and configured alike. */
 function healthyGroup(base: GroupStatus): GroupStatus {
-  const peer = base.members!.find(m => m.role === 'gateway' && m.state === 'ok')!
+  const peer = base.members!.find(m => m.state === 'ok')!
   const same = { blocks: 'same', settings: 'same', access: 'same', logins: 'same' } as const
   const load: Record<string, [number, number, number, number]> = { 'web-2': [38.9, 0.34, 0.52, 0.41], 'web-3': [43.2, 0.27, 0.46, 0.39] }
-  // No balancer VMs: most clusters stand behind a balancer nothing of schild runs on.
-  const members = base.members!.filter(m => m.state !== 'removed' && m.role === 'gateway').map((m) => {
+  const members = base.members!.filter(m => m.state !== 'removed').map((m) => {
     if (m.state === 'self') return { ...m, config: 'same' as const }
     const [rps, cpu, memory, disk] = load[m.name] ?? [40, 0.3, 0.5, 0.4]
     return {

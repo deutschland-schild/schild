@@ -6,7 +6,6 @@ import (
 	"context"
 	"crypto/ed25519"
 	"crypto/tls"
-	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -33,7 +32,6 @@ import (
 
 const (
 	pathSync   = "/mesh/v0/sync"
-	pathJoin   = "/mesh/v0/join"
 	pathHello  = "/mesh/v0/hello"
 	pathLock   = "/mesh/v0/lock"
 	pathUnlock = "/mesh/v0/unlock"
@@ -59,24 +57,16 @@ type syncResponse struct {
 	More    bool              `json:"more"`
 }
 
-type joinRequest struct {
-	Secret  string `json:"secret"`
-	Name    string `json:"name"`
-	Address string `json:"address"`
-}
-
 // helloRequest is how a node set up by configuration makes itself known:
 // its own member record, which carries the admission of the group secret.
 type helloRequest struct {
 	Record json.RawMessage `json:"record"`
 }
 
-type joinResponse struct {
+// helloResponse is the group and its member list.
+type helloResponse struct {
 	Group   string            `json:"group"`
 	Records []json.RawMessage `json:"records"`
-	// HashKey is the group's hash key (setup.go), in the answer to a join
-	// only: a node set up by configuration derives it itself.
-	HashKey string `json:"hash_key,omitempty"`
 }
 
 func (n *Node) listen() (*http.Server, net.Listener, error) {
@@ -89,7 +79,6 @@ func (n *Node) listen() (*http.Server, net.Listener, error) {
 	}
 	mux := http.NewServeMux()
 	mux.HandleFunc("POST "+pathSync, n.serveSync)
-	mux.HandleFunc("POST "+pathJoin, n.serveJoin)
 	mux.HandleFunc("POST "+pathHello, n.serveHello)
 	mux.HandleFunc("POST "+pathLock, n.serveLock)
 	mux.HandleFunc("POST "+pathUnlock, n.serveUnlock)
@@ -98,7 +87,8 @@ func (n *Node) listen() (*http.Server, net.Listener, error) {
 	srv := &http.Server{Handler: mux, ReadHeaderTimeout: 5 * time.Second, IdleTimeout: 2 * time.Minute, MaxHeaderBytes: 16 << 10, HTTP2: meshPings(),
 		TLSConfig: &tls.Config{MinVersion: tls.VersionTLS13, Certificates: []tls.Certificate{n.cert},
 			// Any certificate may connect; the handlers decide by its key
-			// (a member for sync, a join code for join).
+			// (a member for sync, a member record with the admission of the
+			// group secret for hello).
 			ClientAuth: tls.RequireAnyClientCert},
 		// Handshakes of strangers are no news for the operator's log.
 		ErrorLog: slog.NewLogLogger(n.log.Handler(), slog.LevelDebug)}
@@ -120,16 +110,10 @@ func (n *Node) serveSync(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "no key", http.StatusForbidden)
 		return
 	}
-	// A gateway gets every class, an edge the member list only: it has to
-	// know whom to ask, and that is all it may read here.
-	class := ""
 	id, ok := n.activeKey(key, contract.RoleGateway)
 	if !ok {
-		if id, ok = n.activeKey(key, contract.RoleEdge); !ok {
-			n.refuse(w, key)
-			return
-		}
-		class = contract.ClassMembers
+		n.refuse(w, key)
+		return
 	}
 	var req syncRequest
 	if !readJSON(w, r, &req) {
@@ -150,7 +134,7 @@ func (n *Node) serveSync(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "store", http.StatusInternalServerError)
 			return
 		}
-		recs, covered, more, err := n.afterOf(r.Context(), mine, req.Vector, maxBatch, class)
+		recs, covered, more, err := n.afterOf(r.Context(), mine, req.Vector, maxBatch)
 		if err != nil {
 			http.Error(w, "store", http.StatusInternalServerError)
 			return
@@ -185,56 +169,6 @@ func (n *Node) serveSync(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// serveJoin admits the key of the caller's certificate for a join code of
-// this node: one use, one hour. The answer is the member list.
-func (n *Node) serveJoin(w http.ResponseWriter, r *http.Request) {
-	key, ok := peerKey(r.TLS)
-	if !ok {
-		http.Error(w, "no key", http.StatusForbidden)
-		return
-	}
-	var req joinRequest
-	if !readJSON(w, r, &req) {
-		return
-	}
-	secret, err := base64.StdEncoding.DecodeString(req.Secret)
-	if err != nil || len(secret) != 16 {
-		http.Error(w, "bad request", http.StatusBadRequest)
-		return
-	}
-	raws, err := n.admit(key, secret, req.Name, req.Address)
-	switch {
-	case errors.Is(err, errFull):
-		http.Error(w, "the group is full", http.StatusConflict)
-		return
-	case errors.Is(err, errInvite):
-		time.Sleep(500 * time.Millisecond) // a guess costs time
-		http.Error(w, "join code not valid", http.StatusForbidden)
-		return
-	case errors.Is(err, contract.ErrSchema):
-		http.Error(w, "name or address not valid", http.StatusBadRequest)
-		return
-	case err != nil:
-		http.Error(w, "store", http.StatusInternalServerError)
-		return
-	}
-	_ = n.reload()
-	n.wake()
-	n.log.Info("cluster: member joined", "name", req.Name, "node", contract.NodeID(key), "address", req.Address)
-	out := joinResponse{Group: n.group}
-	// An edge gets the member list and nothing else.
-	if _, gw := n.activeKey(key, contract.RoleGateway); gw {
-		if hk, err := n.meta(metaHashKey); err == nil {
-			out.HashKey = base64.StdEncoding.EncodeToString(hk)
-		}
-	}
-	for _, raw := range raws {
-		out.Records = append(out.Records, raw)
-	}
-	w.Header().Set("Content-Type", "application/json")
-	_ = json.NewEncoder(w).Encode(out)
-}
-
 // serveHello takes the member record of a node that lets itself in with the
 // group secret (cluster.secret_file), and answers with the member list. The
 // caller needs no place in the group yet: its record proves it, and the
@@ -255,7 +189,7 @@ func (n *Node) serveHello(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "bad request", http.StatusBadRequest)
 		return
 	}
-	if !n.IsMember(id) && n.full(contract.RoleGateway) {
+	if !n.IsMember(id) && n.full() {
 		http.Error(w, "the group is full", http.StatusConflict)
 		return
 	}
@@ -272,7 +206,7 @@ func (n *Node) serveHello(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "store", http.StatusInternalServerError)
 		return
 	}
-	out := joinResponse{Group: n.group}
+	out := helloResponse{Group: n.group}
 	for _, raw := range raws {
 		out.Records = append(out.Records, raw)
 	}
@@ -324,7 +258,7 @@ func (n *Node) seek(ctx context.Context) {
 		c := meshClient(n.cert, func(ed25519.PublicKey) bool { return true }, 5*time.Second)
 		defer c.CloseIdleConnections()
 		for _, addr := range todo {
-			var resp joinResponse
+			var resp helloResponse
 			if err := postJSON(ctx, c, "https://"+addr+pathHello, helloRequest{Record: own}, &resp); err != nil {
 				if n.removedHere(err) {
 					n.noteRemoved()
@@ -409,7 +343,7 @@ func (n *Node) noteRemoved() {
 		n.wmu.Lock()
 		_, _ = n.db.Exec(`INSERT INTO meta(k, v) VALUES('removed', '1') ON CONFLICT(k) DO UPDATE SET v = excluded.v`)
 		n.wmu.Unlock()
-		n.log.Warn("cluster: this node was removed from its group. It serves with the state it has and shares nothing. To take it out for good: cluster.enabled false; to bring it back: delete its cluster directory and let it join again")
+		n.log.Warn("cluster: this node was removed from its group. It serves with the state it has and shares nothing. To take it out for good: cluster.enabled false; to bring it back: delete its cluster directory and start schild again")
 	}
 }
 
@@ -638,10 +572,6 @@ func (n *Node) saveStatus() {
 	ps := make([]*peer, 0, len(n.peers))
 	for _, p := range n.peers {
 		ps = append(ps, p)
-	}
-	// An edge calls and is never called: only when it asked last is known.
-	for id, at := range n.edgeSeen {
-		v.Peers[id] = statusPeer{InOK: ms(at)}
 	}
 	for id, c := range n.clocks {
 		v.Clocks[id] = c
@@ -907,20 +837,10 @@ func (n *Node) serveAsk(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "no key", http.StatusForbidden)
 		return
 	}
-	edge := false
 	id, ok := n.activeKey(key, contract.RoleGateway)
 	if !ok {
-		if id, ok = n.activeKey(key, contract.RoleEdge); !ok {
-			n.refuse(w, key)
-			return
-		}
-		edge = true
-		n.pmu.Lock()
-		if n.edgeSeen == nil {
-			n.edgeSeen = map[string]time.Time{}
-		}
-		n.edgeSeen[id] = n.now()
-		n.pmu.Unlock()
+		n.refuse(w, key)
+		return
 	}
 	var req tellRequest
 	d := json.NewDecoder(http.MaxBytesReader(w, r.Body, maxTell+4096))
@@ -930,16 +850,8 @@ func (n *Node) serveAsk(w http.ResponseWriter, r *http.Request) {
 	}
 	n.hmu.Lock()
 	f := n.asks[req.Kind]
-	if edge {
-		// An edge may ask what was registered for edges, and nothing else.
-		f = n.edgeAsks[req.Kind]
-	}
 	n.hmu.Unlock()
 	if f == nil {
-		if edge {
-			http.Error(w, "not for an edge", http.StatusForbidden)
-			return
-		}
 		http.Error(w, "unknown kind", http.StatusNotFound)
 		return
 	}
@@ -978,15 +890,4 @@ var gzipPool = sync.Pool{New: func() any {
 // saves.
 func isBlock(out []byte) bool {
 	return len(out) > 0 && out[0] != '{' && out[0] != '['
-}
-
-// OnEdgeAsk registers f for questions of a kind that an edge asks. A
-// gateway cannot ask them, and an edge can ask nothing else.
-func (n *Node) OnEdgeAsk(kind string, f func(from string, body []byte) ([]byte, error)) {
-	n.hmu.Lock()
-	if n.edgeAsks == nil {
-		n.edgeAsks = map[string]func(string, []byte) ([]byte, error){}
-	}
-	n.edgeAsks[kind] = f
-	n.hmu.Unlock()
 }

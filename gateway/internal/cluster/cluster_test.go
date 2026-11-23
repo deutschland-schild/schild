@@ -77,14 +77,36 @@ func (tn *testNode) stop() {
 	tn.node = nil
 }
 
-func (tn *testNode) join(via *testNode) {
-	tn.t.Helper()
-	code, _, err := Invite(via.dir, nil)
-	if err != nil {
-		tn.t.Fatal(err)
+// testSecret is the group secret of the test groups.
+var testSecret = []byte("the-same-file-on-every-node-0123456789")
+
+// inGroup sets the nodes up as a deployment does: the same secret on every
+// node, and every node's address in cluster.peers.
+func inGroup(t *testing.T, secret []byte, nodes ...*testNode) string {
+	t.Helper()
+	var all []string
+	for _, n := range nodes {
+		all = append(all, n.addr)
 	}
-	if _, _, err := Join(context.Background(), tn.dir, tn.name, tn.addr, via.addr, code, nil); err != nil {
-		tn.t.Fatalf("%s joins: %v", tn.name, err)
+	group := ""
+	for _, n := range nodes {
+		g, _, err := Configure(n.dir, n.name, n.addr, secret, nil)
+		if err != nil {
+			t.Fatalf("%s: %v", n.name, err)
+		}
+		group = g
+		n.peers = all
+	}
+	return group
+}
+
+// knowEachOther waits until every node holds every other as a member.
+func knowEachOther(t *testing.T, nodes ...*testNode) {
+	t.Helper()
+	for _, n := range nodes {
+		for _, m := range nodes {
+			waitFor(t, n.name+" knows "+m.name, func() bool { return n.node.IsMember(m.node.ID()) })
+		}
 	}
 }
 
@@ -99,18 +121,16 @@ func waitFor(t *testing.T, what string, f func() bool) {
 	}
 }
 
-// threeNodes: a founds the group, b and c join through a, all run.
+// threeNodes: three nodes set up with the same secret, all run and know
+// each other.
 func threeNodes(t *testing.T) (a, b, c *testNode) {
 	t.Helper()
 	a, b, c = newTestNode(t, "web-1"), newTestNode(t, "web-2"), newTestNode(t, "web-3")
-	if _, err := Init(a.dir, a.name, a.addr, nil); err != nil {
-		t.Fatal(err)
-	}
+	inGroup(t, testSecret, a, b, c)
 	a.start()
-	b.join(a)
-	c.join(a)
 	b.start()
 	c.start()
+	knowEachOther(t, a, b, c)
 	return a, b, c
 }
 
@@ -232,15 +252,11 @@ func TestRemovedMemberIsCutOff(t *testing.T) {
 
 func TestTamperedAndForeignRecordsAreRefused(t *testing.T) {
 	a := newTestNode(t, "web-1")
-	if _, err := Init(a.dir, a.name, a.addr, nil); err != nil {
-		t.Fatal(err)
-	}
+	inGroup(t, testSecret, a)
 	a.start()
 	// A stranger with its own group signs a block for the same client.
 	x := newTestNode(t, "evil")
-	if _, err := Init(x.dir, x.name, x.addr, nil); err != nil {
-		t.Fatal(err)
-	}
+	inGroup(t, []byte("another-file-another-file-another-file"), x)
 	x.start()
 	x.publishBlock("203.0.113.7")
 	recs, raws, _ := x.node.winners(contract.ClassBlocks)
@@ -268,52 +284,6 @@ func TestTamperedAndForeignRecordsAreRefused(t *testing.T) {
 	}
 	if a.holds("203.0.113.7") != "" {
 		t.Error("a block of a stranger is held")
-	}
-}
-
-func TestJoinCodes(t *testing.T) {
-	a := newTestNode(t, "web-1")
-	clock := time.Now()
-	now := func() time.Time { return clock }
-	if _, err := Init(a.dir, a.name, a.addr, now); err != nil {
-		t.Fatal(err)
-	}
-	a.start()
-	code, _, err := Invite(a.dir, now)
-	if err != nil {
-		t.Fatal(err)
-	}
-	b := newTestNode(t, "web-2")
-	if _, n, err := Join(context.Background(), b.dir, b.name, b.addr, a.addr, code, nil); err != nil || n != 2 {
-		t.Fatalf("join: %d members, %v", n, err)
-	}
-	// The same code a second time.
-	c := newTestNode(t, "web-3")
-	if _, _, err := Join(context.Background(), c.dir, c.name, c.addr, a.addr, code, nil); err == nil || !strings.Contains(err.Error(), "join code not valid") {
-		t.Errorf("a used code: %v", err)
-	}
-	// A code of another node: its key does not fit the node asked.
-	x := newTestNode(t, "other")
-	if _, err := Init(x.dir, x.name, x.addr, nil); err != nil {
-		t.Fatal(err)
-	}
-	other, _, _ := Invite(x.dir, nil)
-	d := newTestNode(t, "web-4")
-	if _, _, err := Join(context.Background(), d.dir, d.name, d.addr, a.addr, other, nil); err == nil || !strings.Contains(err.Error(), "another key") {
-		t.Errorf("a code of another node: %v", err)
-	}
-	// A node that is in a group does not join another.
-	fresh, _, _ := Invite(a.dir, nil)
-	if _, _, err := Join(context.Background(), b.dir, b.name, b.addr, a.addr, fresh, nil); !errors.Is(err, ErrHasGroup) {
-		t.Errorf("join twice: %v", err)
-	}
-	// An expired code. The running node reads the wall clock, so the invite
-	// is written an hour and a second in the past.
-	clock = time.Now().Add(-contract.JoinCodeTTL - time.Second)
-	old, _, _ := Invite(a.dir, now)
-	e := newTestNode(t, "web-5")
-	if _, _, err := Join(context.Background(), e.dir, e.name, e.addr, a.addr, old, nil); err == nil || !strings.Contains(err.Error(), "join code not valid") {
-		t.Errorf("an expired code: %v", err)
 	}
 }
 
@@ -542,86 +512,6 @@ func TestReadSecret(t *testing.T) {
 	}
 }
 
-// An edge has a place in the member list and may read two things: the
-// member list, and what was registered for edges.
-func TestEdgeReadsTheMemberListAndNothingElse(t *testing.T) {
-	a, b, _ := threeNodes(t)
-	a.node.OnEdgeAsk("firewall", func(from string, body []byte) ([]byte, error) {
-		return []byte(`{"blocks":` + string(body) + `}`), nil
-	})
-	a.node.OnAsk("events", func(string, []byte) ([]byte, error) { return []byte(`{"rows":"secret"}`), nil })
-	a.publishBlock("203.0.113.7")
-	code, _, err := InviteRole(a.dir, contract.RoleEdge, nil)
-	if err != nil {
-		t.Fatal(err)
-	}
-	dir := filepath.Join(t.TempDir(), "cluster")
-	if _, _, err := Join(context.Background(), dir, "lb-1", "", a.addr, code, nil); err != nil {
-		t.Fatalf("edge joins: %v", err)
-	}
-	// A code made for an edge admits no gateway.
-	code2, _, _ := InviteRole(a.dir, contract.RoleEdge, nil)
-	g := newTestNode(t, "web-9")
-	if _, _, err := Join(context.Background(), g.dir, g.name, g.addr, a.addr, code2, nil); err == nil || !strings.Contains(err.Error(), "does not admit this node as gateway") {
-		t.Errorf("a gateway with an edge's code: %v", err)
-	}
-	e, err := OpenEdge(dir, quiet())
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer e.Close()
-	ctx := context.Background()
-	out, err := e.Ask(ctx, "firewall", []byte(`"lb-1"`), 5*time.Second)
-	if err != nil || string(out) != `{"blocks":"lb-1"}` {
-		t.Fatalf("the edge asks for the blocks: %q, %v", out, err)
-	}
-	// What gateways ask each other is not for an edge.
-	if _, err := e.Ask(ctx, "events", nil, 5*time.Second); err == nil || !strings.Contains(err.Error(), "403") {
-		t.Errorf("an edge asked for events: %v", err)
-	}
-	// The sync gives it member records only: the block of web-1 stays out.
-	waitFor(t, "the edge knows every gateway", func() bool {
-		e.seen = time.Time{}
-		_, _ = e.Ask(ctx, "firewall", nil, 5*time.Second)
-		return len(e.gateways()) == 3
-	})
-	recs, _ := e.n.State(contract.ClassBlocks)
-	if len(recs) != 0 {
-		t.Errorf("an edge holds %d block records", len(recs))
-	}
-	// It cannot write: a record it signs is refused by every gateway.
-	until := time.Now().Add(time.Hour).UTC().Truncate(time.Second)
-	rec, err := e.n.publish(contract.ClassBlocks, "203.0.113.99", block("203.0.113.99", until), false, until)
-	if err != nil {
-		t.Fatal(err)
-	}
-	raw, _ := json.Marshal(rec)
-	before := b.node.Rejected.Load() + b.node.Deferred.Load()
-	if n, _ := b.node.take([]json.RawMessage{raw}, nil); n != 0 || b.node.Rejected.Load()+b.node.Deferred.Load() != before+1 {
-		t.Errorf("a gateway took a record an edge signed (%d)", n)
-	}
-	// It may not tell, lock or hello either.
-	c := meshClient(e.n.cert, func(ed25519.PublicKey) bool { return true }, 3*time.Second)
-	for _, path := range []string{pathTell, pathLock, pathUnlock} {
-		var x map[string]any
-		if err := postJSON(ctx, c, "https://"+a.addr+path, map[string]string{"kind": "counts", "name": "x"}, &x); err == nil || !strings.Contains(err.Error(), "403") {
-			t.Errorf("an edge called %s: %v", path, err)
-		}
-	}
-	// A removed edge is told so and gets nothing more.
-	if _, err := Remove(a.dir, "lb-1", nil); err != nil {
-		t.Fatal(err)
-	}
-	waitFor(t, "the removed edge is refused", func() bool {
-		_, err := e.Ask(ctx, "firewall", nil, 5*time.Second)
-		return errors.Is(err, ErrRemovedSelf)
-	})
-	// A gateway's directory is no edge.
-	if _, err := OpenEdge(a.dir, quiet()); !errors.Is(err, ErrNoEdge) {
-		t.Errorf("a gateway opened as an edge: %v", err)
-	}
-}
-
 // A "paused" key left in cluster.db by an earlier build (schild cluster
 // pause, removed) is ignored: the node takes and hands over as before.
 func TestStalePausedKeyIgnored(t *testing.T) {
@@ -651,25 +541,51 @@ func TestStalePausedKeyIgnored(t *testing.T) {
 	}
 }
 
-func TestGroupIsFullAtSixteenGateways(t *testing.T) {
-	a := newTestNode(t, "web-1")
-	if _, err := Init(a.dir, a.name, a.addr, nil); err != nil {
+// sayHello makes the node of a directory known at addr, as seek does at
+// its start, without running it.
+func sayHello(t *testing.T, dir, addr string) error {
+	t.Helper()
+	n, err := Open(Options{Dir: dir, Log: quiet()})
+	if err != nil {
 		t.Fatal(err)
 	}
-	a.start()
-	for i := 2; i <= MaxGateways; i++ {
-		n := newTestNode(t, fmt.Sprintf("web-%d", i))
-		n.join(a)
+	defer n.Close()
+	recs, raws, err := n.winners(contract.ClassMembers)
+	if err != nil {
+		t.Fatal(err)
 	}
-	code, _, _ := Invite(a.dir, nil)
-	extra := newTestNode(t, "web-17")
-	if _, _, err := Join(context.Background(), extra.dir, extra.name, extra.addr, a.addr, code, nil); err == nil || !strings.Contains(err.Error(), "the group is full") {
+	var own json.RawMessage
+	for i, r := range recs {
+		if r.ID == n.id {
+			own = raws[i]
+		}
+	}
+	c := meshClient(n.cert, func(ed25519.PublicKey) bool { return true }, 5*time.Second)
+	defer c.CloseIdleConnections()
+	var resp helloResponse
+	return postJSON(context.Background(), c, "https://"+addr+pathHello, helloRequest{Record: own}, &resp)
+}
+
+func TestGroupIsFullAtSixteenGateways(t *testing.T) {
+	nodes := []*testNode{newTestNode(t, "web-1")}
+	for i := 2; i <= MaxGateways+1; i++ {
+		nodes = append(nodes, newTestNode(t, fmt.Sprintf("web-%d", i)))
+	}
+	inGroup(t, testSecret, nodes...)
+	a := nodes[0]
+	a.peers = nil
+	a.start()
+	for _, n := range nodes[1:MaxGateways] {
+		if err := sayHello(t, n.dir, a.addr); err != nil {
+			t.Fatalf("%s: %v", n.name, err)
+		}
+	}
+	if err := sayHello(t, nodes[MaxGateways].dir, a.addr); err == nil || !strings.Contains(err.Error(), "the group is full") {
 		t.Fatalf("the seventeenth gateway: %v", err)
 	}
-	// An edge is another count.
-	ecode, _, _ := InviteRole(a.dir, contract.RoleEdge, nil)
-	if _, _, err := Join(context.Background(), filepath.Join(t.TempDir(), "cluster"), "lb-1", "", a.addr, ecode, nil); err != nil {
-		t.Errorf("an edge next to sixteen gateways: %v", err)
+	// A member already in the group is let in again (a restart).
+	if err := sayHello(t, nodes[1].dir, a.addr); err != nil {
+		t.Errorf("a member of the full group again: %v", err)
 	}
 }
 
@@ -814,13 +730,9 @@ func (c *frozenConn) Write(b []byte) (int, error) { c.hold(); return c.Conn.Writ
 // connection is watched with HTTP/2 pings, not only when a call times out.
 func TestHangingPeerIsNoticedByPings(t *testing.T) {
 	a, b := newTestNode(t, "web-1"), newTestNode(t, "web-2")
-	if _, err := Init(a.dir, a.name, a.addr, nil); err != nil {
-		t.Fatal(err)
-	}
-	a.start()
-	b.join(a)
+	inGroup(t, testSecret, a, b)
 	// web-2 with a long hold, so a call alone would wait long for it.
-	n, err := Open(Options{Dir: b.dir, Listen: b.addr, Log: quiet(), Hold: 4 * time.Second})
+	n, err := Open(Options{Dir: b.dir, Listen: b.addr, Log: quiet(), Hold: 4 * time.Second, Peers: b.peers})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -831,8 +743,7 @@ func TestHangingPeerIsNoticedByPings(t *testing.T) {
 	go func() { defer close(done); _ = n.Run(ctx) }()
 	defer func() { fz.stop.Store(false); cancel(); <-done; n.Close() }()
 	// web-1 asks with the same long hold.
-	a.stop()
-	an, err := Open(Options{Dir: a.dir, Listen: a.addr, Log: quiet(), Hold: 4 * time.Second})
+	an, err := Open(Options{Dir: a.dir, Listen: a.addr, Log: quiet(), Hold: 4 * time.Second, Peers: a.peers})
 	if err != nil {
 		t.Fatal(err)
 	}

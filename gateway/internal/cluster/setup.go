@@ -1,13 +1,11 @@
 package cluster
 
 import (
-	"context"
 	"crypto/ed25519"
 	"crypto/rand"
 	"database/sql"
 	"encoding/base64"
 	"encoding/hex"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"net/netip"
@@ -19,84 +17,31 @@ import (
 	contract "github.com/deutschland-schild/schild/contract/cluster"
 )
 
-// What `schild cluster` does on the host. Every command works on the files
-// of the data directory, also while the gateway runs: the node reads the
-// member list and the invites from the same database.
-
-var errInvite = errors.New("cluster: join code not valid")
-
-// noAddress is the address of an edge: nobody calls it, it calls.
-const noAddress = "0.0.0.0:0"
+// What `schild cluster` does on the host, and how a node sets itself up from
+// the configuration. Every command works on the files of the data
+// directory, also while the gateway runs: the node reads the member list
+// from the same database.
 
 func memberOf(name, address string, pub ed25519.PublicKey, now time.Time) (*contract.Member, error) {
-	return memberWith(name, address, contract.RoleGateway, pub, now)
-}
-
-func memberWith(name, address, role string, pub ed25519.PublicKey, now time.Time) (*contract.Member, error) {
 	name = strings.TrimSpace(name)
-	if role == contract.RoleEdge {
-		address = noAddress
-	}
 	ap, err := netip.ParseAddrPort(address)
-	if err != nil || (ap.Addr().IsUnspecified() && role != contract.RoleEdge) {
+	if err != nil || ap.Addr().IsUnspecified() {
 		return nil, fmt.Errorf("%w: address %q is no host:port the other nodes reach", contract.ErrSchema, address)
 	}
 	if name == "" || len(name) > 63 || strings.ContainsAny(name, " \t\r\n/") {
 		return nil, fmt.Errorf("%w: node name %q", contract.ErrSchema, name)
 	}
-	return &contract.Member{Name: name, Role: role, PublicKey: base64.StdEncoding.EncodeToString(pub), Address: ap.String(), Joined: contract.TimeText(now)}, nil
-}
-
-// Init makes this node the first of a new group and returns the group id.
-func Init(dir, name, address string, now func() time.Time) (group string, err error) {
-	s, err := openState(dir, true, now)
-	if err != nil {
-		return "", err
-	}
-	defer s.close()
-	if s.group != "" {
-		return "", ErrHasGroup
-	}
-	m, err := memberOf(name, address, s.pub, s.now())
-	if err != nil {
-		return "", err
-	}
-	s.group = contract.GroupID(s.pub)
-	tx, err := s.db.Begin()
-	if err != nil {
-		return "", err
-	}
-	if err := setMeta(tx, "group", []byte(s.group)); err != nil {
-		tx.Rollback()
-		return "", err
-	}
-	hk := make([]byte, 16)
-	if _, err := rand.Read(hk); err != nil {
-		tx.Rollback()
-		return "", err
-	}
-	if err := setMeta(tx, metaHashKey, hk); err != nil {
-		tx.Rollback()
-		return "", err
-	}
-	if err := tx.Commit(); err != nil {
-		return "", err
-	}
-	if _, err := s.publish(contract.ClassMembers, s.id, m, false, time.Time{}); err != nil {
-		return "", err
-	}
-	return s.group, nil
+	return &contract.Member{Name: name, Role: contract.RoleGateway, PublicKey: base64.StdEncoding.EncodeToString(pub), Address: ap.String(), Joined: contract.TimeText(now)}, nil
 }
 
 // metaHashKey is where a node keeps the key of the keyed hashes of its
 // group (16 bytes): the nodes compare hashes of user names and merge
-// sketches, so they hash under one key. The founder makes it, a node that
-// joins gets it with the member list, and a group set up by configuration
-// derives it from the group secret.
+// sketches, so they hash under one key. Every node derives it from the
+// group secret (state.enter).
 const metaHashKey = "hash_key"
 
 // HashKey returns the group's hash key of a data directory; ok false: the
-// node belongs to no group, or to one from before the key existed.
+// node belongs to no group.
 func HashKey(dir string) (key [16]byte, ok bool) {
 	s, err := openState(dir, false, nil)
 	if err != nil {
@@ -109,174 +54,6 @@ func HashKey(dir string) (key [16]byte, ok bool) {
 	}
 	copy(key[:], v)
 	return key, true
-}
-
-// Invite makes a join code of this node: one use, valid for an hour.
-func Invite(dir string, now func() time.Time) (code string, expires time.Time, err error) {
-	return InviteRole(dir, contract.RoleGateway, now)
-}
-
-// InviteRole is Invite for a role: gateway, or edge for a balancer VM that
-// only enforces the block list (`schild firewall run -group`).
-func InviteRole(dir, role string, now func() time.Time) (code string, expires time.Time, err error) {
-	if role != contract.RoleGateway && role != contract.RoleEdge {
-		return "", time.Time{}, fmt.Errorf("cluster: unknown role %q (gateway or edge)", role)
-	}
-	s, err := openState(dir, false, now)
-	if err != nil {
-		return "", time.Time{}, err
-	}
-	defer s.close()
-	if s.group == "" {
-		return "", time.Time{}, ErrNoGroup
-	}
-	code, hash, err := contract.NewJoinCode(s.pub)
-	if err != nil {
-		return "", time.Time{}, err
-	}
-	expires = s.now().Add(contract.JoinCodeTTL)
-	_, err = s.db.Exec(`INSERT INTO invites(hash, role, expires_ms) VALUES(?, ?, ?)`, hash, role, expires.UnixMilli())
-	return code, expires, err
-}
-
-// admit takes a join code and writes the member record of the new key.
-func (n *Node) admit(key ed25519.PublicKey, secret []byte, name, address string) ([][]byte, error) {
-	now := n.now().UnixMilli()
-	hash := contract.JoinHash(secret)
-	var role string
-	if err := n.db.QueryRow(`SELECT role FROM invites WHERE hash = ? AND used_ms = 0 AND expires_ms > ?`, hash, now).Scan(&role); err != nil {
-		return nil, errInvite
-	}
-	if n.full(role) {
-		return nil, errFull
-	}
-	// The code says what it admits: a gateway, or an edge.
-	m, err := memberWith(name, address, role, key, n.now())
-	if err != nil {
-		return nil, err
-	}
-	res, err := n.db.Exec(`UPDATE invites SET used_ms = ? WHERE hash = ? AND used_ms = 0 AND expires_ms > ?`, now, hash, now)
-	if err != nil {
-		return nil, err
-	}
-	if c, _ := res.RowsAffected(); c != 1 {
-		return nil, errInvite
-	}
-	if _, err := n.publish(contract.ClassMembers, contract.NodeID(key), m, false, time.Time{}); err != nil {
-		return nil, err
-	}
-	_, raws, err := n.winners(contract.ClassMembers)
-	return raws, err
-}
-
-// Join brings this node into the group of the node at address, with a join
-// code that node gave out. It talks to that node only when its key fits the
-// code, and takes the member list it answers with only when every record
-// leads back to the group id.
-func Join(ctx context.Context, dir, name, advertise, address, code string, now func() time.Time) (group string, members int, err error) {
-	secret, fp, err := contract.ParseJoinCode(code)
-	if err != nil {
-		return "", 0, err
-	}
-	s, err := openState(dir, true, now)
-	if err != nil {
-		return "", 0, err
-	}
-	defer s.close()
-	if s.group != "" {
-		return "", 0, ErrHasGroup
-	}
-	// Without an address of its own the node joins as an edge.
-	role := contract.RoleGateway
-	if advertise == "" {
-		role, advertise = contract.RoleEdge, noAddress
-	}
-	if _, err := memberWith(name, advertise, role, s.pub, s.now()); err != nil {
-		return "", 0, err
-	}
-	cert, err := selfCert(s.key)
-	if err != nil {
-		return "", 0, err
-	}
-	var inviter ed25519.PublicKey
-	c := meshClient(cert, func(k ed25519.PublicKey) bool {
-		inviter = k
-		return contract.SameFingerprint(contract.Fingerprint(k), fp)
-	}, 20*time.Second)
-	defer c.CloseIdleConnections()
-	var resp joinResponse
-	if err := postJSON(ctx, c, "https://"+address+pathJoin, joinRequest{Secret: base64.StdEncoding.EncodeToString(secret), Name: name, Address: advertise}, &resp); err != nil {
-		return "", 0, fmt.Errorf("cluster: join %s: %w", address, err)
-	}
-	// Check the member list: the founder's record first (it needs nobody),
-	// then whatever a known member signed, until nothing more fits.
-	ro := contract.NewRoster(resp.Group)
-	type item struct {
-		rec contract.Record
-		raw []byte
-	}
-	var todo, taken []item
-	for _, raw := range resp.Records {
-		var it item
-		if len(raw) <= contract.MaxRecord && json.Unmarshal(raw, &it.rec) == nil && it.rec.Class == contract.ClassMembers {
-			it.raw = raw
-			todo = append(todo, it)
-		}
-	}
-	sort.SliceStable(todo, func(i, j int) bool { return todo[i].rec.HLC < todo[j].rec.HLC })
-	for progress := true; progress; {
-		progress = false
-		rest := todo[:0]
-		for _, it := range todo {
-			if ro.Check(&it.rec, s.now()) == nil {
-				ro.Set(&it.rec)
-				taken = append(taken, it)
-				progress = true
-			} else {
-				rest = append(rest, it)
-			}
-		}
-		todo = rest
-	}
-	if _, ok := ro.ActiveKey(inviter, contract.RoleGateway); !ok {
-		return "", 0, errors.New("cluster: the answering node is no member of the group it names")
-	}
-	if _, ok := ro.ActiveKey(s.pub, role); !ok {
-		return "", 0, fmt.Errorf("cluster: the answer does not admit this node as %s (was the join code made for another role?)", role)
-	}
-	tx, err := s.db.Begin()
-	if err != nil {
-		return "", 0, err
-	}
-	defer tx.Rollback()
-	if err := setMeta(tx, "group", []byte(resp.Group)); err != nil {
-		return "", 0, err
-	}
-	if err := setMeta(tx, "role", []byte(role)); err != nil {
-		return "", 0, err
-	}
-	if hk, err := base64.StdEncoding.DecodeString(resp.HashKey); err == nil && len(hk) == 16 && role == contract.RoleGateway {
-		if err := setMeta(tx, metaHashKey, hk); err != nil {
-			return "", 0, err
-		}
-	}
-	// The vector stays where it is: these are the member records only, the
-	// first sync brings everything, these again.
-	for _, it := range taken {
-		if _, err := put(tx, &it.rec, it.raw); err != nil {
-			return "", 0, err
-		}
-	}
-	if err := tx.Commit(); err != nil {
-		return "", 0, err
-	}
-	active := 0
-	for _, e := range ro.Members() {
-		if !e.Removed {
-			active++
-		}
-	}
-	return resp.Group, active, nil
 }
 
 // Remove ends the membership of a node, named by its name or id: from then
@@ -356,7 +133,7 @@ func (n *Node) NoteClock(member string, skew time.Duration) error {
 	if n.clocks == nil {
 		n.clocks = map[string]statusClock{}
 	}
-	if _, known := n.clocks[member]; !known && len(n.clocks) >= 4*(MaxGateways+MaxEdges) {
+	if _, known := n.clocks[member]; !known && len(n.clocks) >= 4*MaxGateways {
 		n.pmu.Unlock()
 		return errors.New("cluster: too many clock notes")
 	}
@@ -605,28 +382,23 @@ func Identity(dir string) (id string, ok bool) {
 	return s.id, s.group != ""
 }
 
-// Sizes a group of this version takes: a full mesh between the gateways,
-// tested with three. More are refused rather than tried.
-const (
-	MaxGateways = 16
-	MaxEdges    = 8
-)
+// MaxGateways is the size a group of this version takes: a full mesh
+// between the gateways, tested with three. More are refused rather than
+// tried.
+const MaxGateways = 16
 
 var errFull = errors.New("cluster: the group is full")
 
-// full reports whether the group holds as many members of a role as this
-// version takes.
-func (n *Node) full(role string) bool {
+// full reports whether the group holds as many gateways as this version
+// takes.
+func (n *Node) full() bool {
 	n.rmu.RLock()
 	defer n.rmu.RUnlock()
 	count := 0
 	for _, e := range n.roster.Members() {
-		if !e.Removed && e.Member.Role == role {
+		if !e.Removed {
 			count++
 		}
-	}
-	if role == contract.RoleEdge {
-		return count >= MaxEdges
 	}
 	return count >= MaxGateways
 }
@@ -651,10 +423,6 @@ func (n *Node) Live() (*Status, error) {
 		p.mu.Lock()
 		seen[id] = contact{out: p.outOK, in: p.inOK, err: p.err, behind: p.behind}
 		p.mu.Unlock()
-	}
-	// An edge calls and is never called: only when it asked last is known.
-	for id, at := range n.edgeSeen {
-		seen[id] = contact{in: at}
 	}
 	n.pmu.Unlock()
 	for _, e := range members {

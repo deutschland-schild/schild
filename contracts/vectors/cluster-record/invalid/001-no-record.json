@@ -4,9 +4,9 @@
   "context": {
     "now": "2026-10-26T12:00:00Z"
   },
-  "input_raw": "{\"group\":\"g-bc3ac1de9bf1bcd004b70280521fda31\",\"members\":[]}",
+  "input_raw": "{\"group\":\"g-c1e5a133bdfa0a42a97f392f3317882e\",\"members\":[]}",
   "input_decoded": {
-    "group": "g-bc3ac1de9bf1bcd004b70280521fda31",
+    "group": "g-c1e5a133bdfa0a42a97f392f3317882e",
     "members": []
   },
   "expect": {

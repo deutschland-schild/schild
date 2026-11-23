@@ -316,7 +316,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Whether this gateway runs alone or as a node of a group (contracts/cluster.md), and the state of the group as this node sees it: the members with their last contact, what is shared, the edges, the counters of the sync and the members whose configuration differs. A gateway without `cluster.enabled` answers `mode: single` and nothing else. Read from the running node; nothing is asked of another node for this answer. */
+        /** Whether this gateway runs alone or as a node of a group (contracts/cluster.md), and the state of the group as this node sees it: the members with their last contact, what is shared, the counters of the sync and the members whose configuration differs. A gateway without `cluster.enabled` answers `mode: single` and nothing else. Read from the running node; nothing is asked of another node for this answer. */
         get: operations["getGroupStatus"];
         put?: never;
         post?: never;
@@ -1920,7 +1920,7 @@ export interface components {
             generated_at?: components["schemas"]["Timestamp"];
             group?: string;
             node?: components["schemas"]["GroupNode"];
-            /** @description Gateways first, then edges, then removed members; each by name. This node is one of them. */
+            /** @description Gateways first, then removed members; each by name. This node is one of them. */
             members?: components["schemas"]["GroupMember"][];
             /** @description What this node holds of the group's state. */
             shared?: {
@@ -1957,23 +1957,20 @@ export interface components {
             id: string;
             name: string;
             /** @enum {string} */
-            role: "gateway" | "edge";
+            role: "gateway";
         };
         GroupMember: {
             id: string;
             name: string;
-            /**
-             * @description edge: a balancer VM that holds the block list in its firewall and reads nothing else.
-             * @enum {string}
-             */
-            role: "gateway" | "edge";
-            /** @description Address of the mesh listener; absent for an edge, which calls and is never called. */
+            /** @enum {string} */
+            role: "gateway";
+            /** @description Address of the mesh listener. */
             address?: string;
             /**
-             * @description self: this node. ok: reached within the last 15 s (an edge: it asked this node within the last minute). unreachable: the last call to it failed. no_contact: no call to it succeeded yet, or none for 15 s. asks_elsewhere (edges only): it did not ask this node lately; an edge asks one gateway at a time. removed: its membership was ended.
+             * @description self: this node. ok: reached within the last 15 s. unreachable: the last call to it failed. no_contact: no call to it succeeded yet, or none for 15 s. removed: its membership was ended.
              * @enum {string}
              */
-            state: "self" | "ok" | "unreachable" | "no_contact" | "asks_elsewhere" | "removed";
+            state: "self" | "ok" | "unreachable" | "no_contact" | "removed";
             /** @description Last call of this node to the member that succeeded. */
             last_out?: components["schemas"]["Timestamp"];
             /** @description Last call of the member to this node. */
@@ -1989,8 +1986,6 @@ export interface components {
             config?: "same" | "differs" | "unknown";
             /** @description Why the last call failed, in one line. */
             error?: string;
-            /** @description Edges only: clients its firewall held at its last call to this node. */
-            blocks_held?: number;
             vitals?: components["schemas"]["GroupVitals"];
             /** @description Gateways only, not for this node: per class whether what is in force on the member is what is in force on this node, by the keyed hashes the gateways tell each other every 5 s, each with the point of the state it was computed at (contracts/cluster.md section 14). Hashes are compared only at the same point, so a change on its way is never a difference. same: equal at the last point both were at, within the last minute. differs: different at the same point (what is in force differs although both hold the same records), or different records at the same vector for 10 s. unknown: the member is not reached, told no hash lately, runs a build that tells no points, or the two were at no common point for a minute (changes without a pause, or a member that is behind). */
             shared_state?: {

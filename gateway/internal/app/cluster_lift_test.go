@@ -12,29 +12,20 @@ import (
 	"time"
 
 	contract "github.com/deutschland-schild/schild/contract/cluster"
-	"github.com/deutschland-schild/schild/gateway/internal/apptest"
-	"github.com/deutschland-schild/schild/gateway/internal/cluster"
 )
 
-// trio: three gateways in one group, web-2 and web-3 joined through web-1.
+// trio: three gateways in one group, set up by their configuration.
 func trio(t *testing.T) []*groupNode {
 	t.Helper()
-	a, b := pair(t)
-	c := &groupNode{dir: t.TempDir(), addr: apptest.FreeAddr(t), name: "web-3"}
-	code, _, err := cluster.Invite(a.clusterDir(), nil)
-	if err != nil {
-		t.Fatal(err)
+	nodes := newGroup(t, "web-1", "web-2", "web-3")
+	for _, g := range nodes {
+		g.start(t)
 	}
-	if _, _, err := cluster.Join(context.Background(), c.clusterDir(), c.name, c.addr, a.addr, code, nil); err != nil {
-		t.Fatal(err)
-	}
-	c.start(t)
-	return []*groupNode{a, b, c}
+	return nodes
 }
 
 // liveBlocks are the block records of the group a node holds that are not
-// lifted: what a node applies at its start and what an edge puts into its
-// firewall.
+// lifted: what a node applies at its start.
 func liveBlocks(t *testing.T, g *groupNode) []string {
 	t.Helper()
 	recs, err := g.h.App.Cluster.State(contract.ClassBlocks)
@@ -51,10 +42,9 @@ func liveBlocks(t *testing.T, g *groupNode) []string {
 }
 
 // A block set on one node and lifted on another a moment later ends for the
-// cluster: no node lists it, no node holds a live record of it, and so no
-// edge that joins later drops the address (finding N1 of the second lab
-// measurement: 116 of 1 600 such blocks stayed listed on every node, could
-// not be lifted again and were dropped by an edge for their seven days).
+// cluster: no node lists it and no node holds a live record of it (finding
+// N1 of the second lab measurement: 116 of 1 600 such blocks stayed listed
+// on every node and could not be lifted again).
 func TestBlockLiftedOnAnotherNodeAMomentLaterEndsForTheCluster(t *testing.T) {
 	nodes := trio(t)
 	for _, g := range nodes {

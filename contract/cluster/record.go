@@ -1,7 +1,8 @@
 // Package cluster is the contract of a group of gateways that share their
 // state from node to node (MVP-27, DECISIONS D105, contracts/cluster.md):
 // the signed record every change travels in, the clock that orders two
-// writes of the same thing, who may sign, and the join code.
+// writes of the same thing, who may sign, and how the group secret admits
+// a node.
 //
 // There is no store beside the gateways and no majority: every class merges
 // without a leader, so two nodes are a group.
@@ -315,7 +316,7 @@ func idOf(prefix, context string, pub ed25519.PublicKey) string {
 // NodeID is the id of the node with this public key.
 func NodeID(pub ed25519.PublicKey) string { return idOf("n-", "schild-node:", pub) }
 
-// GroupID is the id of the group this key founded. The founder's own member
-// record is the one record that needs no member to sign it: its key hashes
-// to the group id, so every trust in a group starts at its id.
-func GroupID(founder ed25519.PublicKey) string { return idOf("g-", "schild-group:", founder) }
+// GroupID is the id of the group of this group key (admit.go): every trust
+// in a group starts at its id, which only the holders of the group secret
+// can sign for.
+func GroupID(groupKey ed25519.PublicKey) string { return idOf("g-", "schild-group:", groupKey) }

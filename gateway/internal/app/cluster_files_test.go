@@ -11,7 +11,6 @@ import (
 	"crypto/x509"
 	"crypto/x509/pkix"
 	"encoding/pem"
-	"fmt"
 	"math/big"
 	"os"
 	"path/filepath"
@@ -19,14 +18,13 @@ import (
 	"time"
 
 	"github.com/deutschland-schild/schild/gateway/internal/apptest"
-	"github.com/deutschland-schild/schild/gateway/internal/cluster"
 )
 
 const groupCaddyfile = "{\n\tauto_https off\n\thttp_port {port}\n}\n\nhttp://shop.example:{port} {\n\tschild\n\treverse_proxy {backend}\n}\n"
 
 func (g *groupNode) startIngress(t *testing.T) {
 	t.Helper()
-	g.h = apptest.New(t, apptest.Options{Dir: g.dir, Caddyfile: groupCaddyfile, Extra: fmt.Sprintf("cluster: {enabled: true, listen: %q}\n", g.addr)})
+	g.h = apptest.New(t, apptest.Options{Dir: g.dir, Caddyfile: groupCaddyfile, Extra: g.clusterYAML()})
 	if g.h.App.Cluster == nil || g.h.App.GroupFiles == nil {
 		t.Fatalf("%s: no group for the certificate storage", g.name)
 	}
@@ -76,20 +74,10 @@ func certPair(t *testing.T, name string) (crt, key []byte) {
 
 func ingressPair(t *testing.T) (a, b *groupNode) {
 	t.Helper()
-	a = &groupNode{dir: t.TempDir(), addr: apptest.FreeAddr(t), name: "web-1"}
-	b = &groupNode{dir: t.TempDir(), addr: apptest.FreeAddr(t), name: "web-2"}
-	if _, err := cluster.Init(a.clusterDir(), a.name, a.addr, nil); err != nil {
-		t.Fatal(err)
-	}
+	nodes := newGroup(t, "web-1", "web-2")
+	a, b = nodes[0], nodes[1]
 	a.startIngress(t)
 	a.h.WaitFor("the mesh of web-1 listens", func() bool { return a.h.App.Cluster.Addr() != "" })
-	code, _, err := cluster.Invite(a.clusterDir(), nil)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if _, _, err := cluster.Join(context.Background(), b.clusterDir(), b.name, b.addr, a.addr, code, nil); err != nil {
-		t.Fatal(err)
-	}
 	return a, b
 }
 

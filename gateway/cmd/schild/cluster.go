@@ -17,12 +17,6 @@ import (
 )
 
 const clusterUsage = `schild cluster secret                  print a new group secret for cluster.secret_file
-schild cluster init                    make this gateway the first node of a new group
-schild cluster invite [-role edge]     print a join code of this node (one use, valid one hour); -role edge
-                                       admits a balancer VM that only enforces the block list
-schild cluster join ADDRESS CODE -edge -name NAME -data DIR
-                                       on a balancer VM: join as an edge, then schild firewall run -group -data DIR
-schild cluster join ADDRESS CODE       join the group of the node at ADDRESS (its cluster.listen) with its code
 schild cluster status                  members, last contact, records held
 schild cluster remove NODE             end the membership of a node (name or id); no member talks to it afterwards
 schild cluster drain                   take this node out of traffic and stop it: the readiness answer turns to
@@ -34,11 +28,9 @@ certificates, counts, events and requests between its gateways (MVP-27). The
 node's name is cluster.name, with cluster.name_from_host its host name, else
 node_name; its address is cluster.advertise or cluster.listen of schild.yaml.
 
-Two ways into a group:
-  by configuration  the same cluster.secret_file and cluster.peers on every node, deployed like the
-                    rest of schild.yaml (Ansible, for example). A node lets itself in at its start;
-                    init, invite and join are not needed.
-  by hand           init on the first node, invite there, join on every other, then restart schild.`
+A group is set up by configuration: the same cluster.secret_file and cluster.peers on every
+node, deployed like the rest of schild.yaml (Ansible, for example). A node lets itself into
+the group when schild starts.`
 
 // cmdCluster sets up and shows the group of this gateway on the host
 // (MVP-27, D105). Like tokens, membership is never changed through the
@@ -65,77 +57,13 @@ func runCluster(args []string, out io.Writer, now func() time.Time) error {
 	fs.SetOutput(io.Discard)
 	cfgPath := fs.String("config", "", "schild.yaml")
 	data := fs.String("data", "", "data directory")
-	role := fs.String("role", "gateway", "invite: gateway, or edge for a balancer VM that only enforces the block list")
-	edge := fs.Bool("edge", false, "join: as an edge (a balancer VM; needs -name and -data, no schild.yaml)")
-	name := fs.String("name", "", "join -edge: name of the edge")
 	pos := parseInterleaved(fs, args[1:])
-	if sub == "join" && *edge {
-		// A balancer VM has no schild.yaml: name and directory come as flags.
-		if len(pos) != 2 || *name == "" || *data == "" {
-			return errors.New("cluster join -edge: ADDRESS, CODE, -name NAME and -data DIR\n" + clusterUsage)
-		}
-		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-		defer cancel()
-		group, _, err := cluster.Join(ctx, app.ClusterDir(*data), *name, "", pos[0], pos[1], now)
-		if err != nil {
-			return err
-		}
-		fmt.Fprintf(out, "%s joined group %s as an edge. Start the firewall:\n  schild firewall run -group -data %s\n", *name, group, *data)
-		return nil
-	}
 	cfg, _, err := app.LoadConfig(*cfgPath)
 	if err != nil {
 		return err
 	}
 	dir := app.ClusterDir(app.DataDir(cfg, *data))
-	needAddress := func() error {
-		if cfg.Cluster.SecretFile != "" {
-			return errors.New("cluster " + sub + ": this node is set up by cluster.secret_file; it lets itself into the group when schild starts")
-		}
-		if !cfg.Cluster.Enabled {
-			return errors.New("cluster " + sub + ": set cluster.enabled and cluster.listen in schild.yaml first (the other nodes reach this node there)")
-		}
-		return nil
-	}
-	// The name of this node in its group (config.Site.MemberName).
-	host, _ := os.Hostname()
-	member := cfg.MemberName(host)
 	switch sub {
-	case "init":
-		if err := needAddress(); err != nil {
-			return err
-		}
-		group, err := cluster.Init(dir, member, cfg.Cluster.Address(), now)
-		if err != nil {
-			return err
-		}
-		fmt.Fprintf(out, "Group %s created, %s is its first node (%s).\nRestart schild, then let the next node in:\n  schild cluster invite\n", group, member, cfg.Cluster.Address())
-	case "invite":
-		code, expires, err := cluster.InviteRole(dir, *role, now)
-		if err != nil {
-			return err
-		}
-		if *role == "edge" {
-			fmt.Fprintf(out, "Join code for one edge (a balancer VM), shown once, valid until %s:\n\n  %s\n\nOn the VM (schild has to run here while it joins):\n  schild cluster join %s %s -edge -name NAME -data /var/lib/schild-edge\n  schild firewall run -group -data /var/lib/schild-edge\n",
-				expires.Local().Format("15:04"), code, cfg.Cluster.Address(), code)
-			return nil
-		}
-		fmt.Fprintf(out, "Join code, shown once, valid until %s for one node:\n\n  %s\n\nOn the new node (schild has to run here while it joins):\n  schild cluster join %s %s\n",
-			expires.Local().Format("15:04"), code, cfg.Cluster.Address(), code)
-	case "join":
-		if len(pos) != 2 {
-			return errors.New("cluster join: ADDRESS and CODE\n" + clusterUsage)
-		}
-		if err := needAddress(); err != nil {
-			return err
-		}
-		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-		defer cancel()
-		group, members, err := cluster.Join(ctx, dir, member, cfg.Cluster.Address(), pos[0], pos[1], now)
-		if err != nil {
-			return err
-		}
-		fmt.Fprintf(out, "%s joined group %s (%d nodes). Restart schild: it then takes the state of the group.\n", member, group, members)
 	case "remove":
 		if len(pos) != 1 {
 			return errors.New("cluster remove: NODE (name or id)\n" + clusterUsage)
@@ -144,7 +72,7 @@ func runCluster(args []string, out io.Writer, now func() time.Time) error {
 		if err != nil {
 			return err
 		}
-		fmt.Fprintf(out, "%s (%s) is no member any more. On that node: cluster.enabled false, and delete its cluster directory before it joins a group again.\n", e.Member.Name, e.ID)
+		fmt.Fprintf(out, "%s (%s) is no member any more. On that node: cluster.enabled false, and delete its cluster directory before it is set up in a group again.\n", e.Member.Name, e.ID)
 	case "drain":
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		defer cancel()
@@ -192,12 +120,6 @@ func printClusterStatus(out io.Writer, st *cluster.Status, cfg *config.Site, now
 			state = "removed"
 		case m.Self:
 			state = "this node"
-		case m.Member.Role == "edge":
-			// An edge asks one gateway at a time: here only when it asked this one.
-			state = "asked elsewhere"
-			if !m.InOK.IsZero() && now.Sub(m.InOK) < time.Minute {
-				state = "ok"
-			}
 		case m.Error != "":
 			state = "unreachable"
 		case m.OutOK.IsZero() || now.Sub(m.OutOK) > 15*time.Second:
@@ -206,8 +128,6 @@ func printClusterStatus(out io.Writer, st *cluster.Status, cfg *config.Site, now
 		asked, was, behind := ago(m.OutOK), ago(m.InOK), fmt.Sprint(m.Behind)
 		if m.Self || m.Removed {
 			asked, was, behind = "-", "-", "-"
-		} else if m.Member.Role == "edge" {
-			asked, behind = "-", "-"
 		}
 		fmt.Fprintf(tw, "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n", m.Member.Name, m.Member.Role, m.Member.Address, state, asked, was, behind, m.ID)
 	}
