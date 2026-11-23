@@ -59,7 +59,7 @@ Ein paar Dinge beschreiben einen einzelnen Server und werden deshalb nicht getei
 
 Schild verschiebt selbst keine IP-Adresse und ist kein Loadbalancer. Das übernimmt dein Hoster, keepalived oder HAProxy.
 
-Die Server sprechen über einen eigenen Port miteinander (`cluster.listen`), verschlüsselt mit TLS 1.3. Jeder Server hat einen eigenen Schlüssel, der den Server nie verlässt. Lege diesen Port in ein privates Netz. Schild lehnt eine öffentliche Adresse dafür ab, solange du sie nicht ausdrücklich erlaubst (`cluster.allow_public_listen`). Adressen aus 100.64.0.0/10, wie sie Tailscale, NetBird und ähnliche Overlay-Netze vergeben, gelten als privat. `cluster.listen` darf auch alle Adressen binden (`0.0.0.0:8790` oder `[::]:8790`), wenn `cluster.advertise` die private Adresse nennt, unter der die anderen Server diesen erreichen.
+Die Server sprechen über einen eigenen Port miteinander (`cluster.listen`), verschlüsselt mit TLS 1.3. Jeder Server hat einen eigenen Schlüssel, der den Server nie verlässt. Lege diesen Port in ein privates Netz. Schild lehnt eine öffentliche Adresse dafür ab, solange du sie nicht ausdrücklich erlaubst (`cluster.allow_public_listen`). Adressen aus 100.64.0.0/10, wie sie Tailscale, NetBird und ähnliche Overlay-Netze vergeben, gelten als privat. `cluster.listen` darf auch alle Adressen binden (`0.0.0.0:8790` oder `[::]:8790`), wenn `cluster.advertise` die private Adresse nennt, unter der die anderen Server diesen erreichen. Für `cluster.advertise` gilt dieselbe Regel wie für `cluster.listen`: eine öffentliche Adresse nur mit `cluster.allow_public_listen`.
 
 **Uhren.** Im Cluster gilt bei zwei Änderungen am selben Eintrag die spätere. Dafür brauchen die Server gleiche Uhren. Richte auf jedem Server eine Zeitsynchronisation ein, etwa chrony oder systemd-timesyncd.
 
@@ -111,7 +111,7 @@ Nur wenn beide Seiten denselben Eintrag haben, etwa denselben Schalter mit versc
 
 ## Was der Loadbalancer braucht
 
-**Prüfung, ob ein Server bereit ist.** Lass den Balancer `/.schild/readyz` auf den Web-Ports abfragen. Ein Server antwortet mit 503, solange er den Stand des Clusters noch nicht übernommen hat und während er anhält. Erreicht er zehn Sekunden lang keinen anderen Server, bedient er mit dem Stand, den er hat. Das gilt nur für einen Server, der schon einmal im Cluster abgeglichen war. Ein neuer Server, der den Cluster noch nie erreicht hat, bleibt auf 503, bis er einen anderen Server erreicht.
+**Prüfung, ob ein Server bereit ist.** Lass den Balancer `/.schild/readyz` auf den Web-Ports abfragen. Ein Server antwortet mit 503, solange er den Stand des Clusters noch nicht übernommen hat und während er anhält. Erreicht er zehn Sekunden lang keinen anderen Server, bedient er mit dem Stand, den er hat. Das gilt nur für einen Server, der schon einmal im Cluster abgeglichen war. Ein neuer Server, der den Cluster noch nie erreicht hat, bleibt auf 503, bis er einen Server erreicht, der den Stand des Clusters hat. Ein ganz neuer Cluster wird erst bereit, wenn jeder Server aus `cluster.peers` einmal gestartet ist. Starte beim ersten Mal also alle Server.
 
 **Echte Adresse der Besucher:innen.** Hinter einem Balancer im TCP-Modus kommt die Adresse über das PROXY-Protokoll. In einem Cluster verlangt Schild dafür eine Liste erlaubter Absender im Caddyfile:
 
@@ -295,6 +295,8 @@ Stellst du `delay_s` oder `grace_s` höher, gib systemd und Docker entsprechend 
    ```bash
    schild cluster remove web-3
    ```
+
+   Meldet der Befehl einen Fehler, ist der Server noch Mitglied. Das passiert, wenn der Server gerade selbst etwas geschrieben hat und seine Uhr vorgeht. Prüf die Uhren und ruf den Befehl noch einmal auf.
 
 3. Setze bei ihm `cluster.enabled: false`, oder lass ihn aus.
 
