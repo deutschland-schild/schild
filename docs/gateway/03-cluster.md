@@ -73,13 +73,13 @@ Die Server sprechen über einen eigenen Port miteinander (`cluster.listen`), ver
 
 Das ist der Weg für ein Deployment, das dieselben Dateien auf jeden Server schreibt. Du rufst auf keinem Server einen Befehl auf.
 
-1. Erzeuge einmal ein Cluster-Geheimnis und lege es dort ab, wo dein Deployment Geheimnisse hält:
+1. Erzeuge einmal ein Cluster-Secret und lege es dort ab, wo dein Deployment Secrets hält:
 
    ```bash
    schild cluster secret
    ```
 
-2. Lege das Geheimnis auf jedem Server in eine Datei, die nur der Dienst lesen darf (Modus 0600).
+2. Lege das Secret auf jedem Server in eine Datei, die nur der Dienst lesen darf (Modus 0600).
 
 3. Ergänze `schild.yaml` auf jedem Server:
 
@@ -98,11 +98,11 @@ Das ist der Weg für ein Deployment, das dieselben Dateien auf jeden Server schr
 
 4. Starte Schild neu. Jeder Server nimmt sich beim Start selbst in den Cluster auf und findet die anderen. Die Reihenfolge ist egal. Beim ersten Aufbau startest du mindestens zwei Server: Ein neuer Server, der den Cluster noch nie erreicht hat, nimmt keine Anfragen an.
 
-Das Geheimnis lässt einen Server in den Cluster und kann sonst nichts. Wer es hat, kann einen Server aufnehmen. Behandle es deshalb wie ein Passwort.
+Das Secret lässt einen Server in den Cluster und kann sonst nichts. Wer es hat, kann einen Server aufnehmen. Behandle es deshalb wie ein Passwort.
 
 ## Einrichten von Hand
 
-Ohne Geheimnis-Datei läuft der Beitritt über Codes, die einmal gelten und nach einer Stunde verfallen.
+Ohne Secret-Datei läuft der Beitritt über Codes, die einmal gelten und nach einer Stunde verfallen.
 
 ```bash
 # auf dem ersten Server
@@ -223,7 +223,7 @@ schild firewall run -group -data /var/lib/schild-edge
 
 Jede Sperre endet in der Firewall von selbst, auch wenn die VM kein Gateway mehr erreicht. Wie bei der Firewall auf einem Gateway betrifft sie nur die Ports 80 und 443.
 
-Eine Edge lässt sich nur mit einem Code aufnehmen, nie mit dem Cluster-Geheimnis. Das Geheimnis gehört nicht auf eine Balancer-VM.
+Eine Edge lässt sich nur mit einem Code aufnehmen, nie mit dem Cluster-Secret. Das Secret gehört nicht auf eine Balancer-VM.
 
 ## Den Stand prüfen
 
@@ -318,17 +318,17 @@ Beide Zeiten stellst du unter `cluster.drain` ein (`delay_s`, `grace_s`). `delay
 schild cluster remove web-3
 ```
 
-Danach spricht kein Mitglied mehr mit diesem Server, und keines nimmt an, was er noch schickt. Das gilt auch, wenn der Server das Cluster-Geheimnis hat. Der entfernte Server erfährt es und schreibt es in sein Log. Er bedient mit seinem letzten Stand weiter, bis du bei ihm `cluster.enabled: false` setzt oder ihn abschaltest. Tragen zwei Server denselben Namen, nennst du statt des Namens die Kennung aus `schild cluster status`.
+Danach spricht kein Mitglied mehr mit diesem Server, und keines nimmt an, was er noch schickt. Das gilt auch, wenn der Server das Cluster-Secret hat. Der entfernte Server erfährt es und schreibt es in sein Log. Er bedient mit seinem letzten Stand weiter, bis du bei ihm `cluster.enabled: false` setzt oder ihn abschaltest. Tragen zwei Server denselben Namen, nennst du statt des Namens die Kennung aus `schild cluster status`.
 
-## Das Cluster-Geheimnis wechseln
+## Das Cluster-Secret wechseln
 
-Ist das Cluster-Geheimnis bekannt geworden, ersetzt du es. Wer das alte Geheimnis hat, kommt danach nicht mehr in den Cluster.
+Ist das Cluster-Secret bekannt geworden, ersetzt du es. Wer das alte Secret hat, kommt danach nicht mehr in den Cluster.
 
-1. Erzeuge ein neues Geheimnis mit `schild cluster secret`.
+1. Erzeuge ein neues Secret mit `schild cluster secret`.
 2. Schreibe es auf jedem Server in die Datei aus `cluster.secret_file`.
 3. Starte die Server nacheinander neu.
 
-Mehr ist nicht zu tun, du löschst kein Verzeichnis. Ein Server, der mit dem neuen Geheimnis startet, wechselt von selbst in den neuen Cluster. Er behält seinen Schlüssel und nimmt mit, was er im alten Cluster hielt: laufende Sperren und Freigaben, Einstellungen, eigene Adressen, Logins, Löschungen nach Art. 17, Zertifikate und den Stand der Aufgaben. Das alte Verzeichnis legt er daneben ab (`cluster.replaced-<Zeit>`). Die zwei neuesten bleiben liegen, ältere räumt er weg.
+Mehr ist nicht zu tun, du löschst kein Verzeichnis. Ein Server, der mit dem neuen Secret startet, wechselt von selbst in den neuen Cluster. Er behält seinen Schlüssel und nimmt mit, was er im alten Cluster hielt: laufende Sperren und Freigaben, Einstellungen, eigene Adressen, Logins, Löschungen nach Art. 17, Zertifikate und den Stand der Aufgaben. Das alte Verzeichnis legt er daneben ab (`cluster.replaced-<Zeit>`). Die zwei neuesten bleiben liegen, ältere räumt er weg.
 
 Während des Wechsels gibt es zwei Cluster nebeneinander: Die Server, die schon neu gestartet sind, bilden den neuen, die übrigen den alten. Die beiden tauschen nichts aus. Das hat vier Folgen:
 
@@ -341,10 +341,10 @@ Halte den Wechsel deshalb kurz, am besten wenige Minuten.
 
 Zwei Arten von Mitgliedern wechseln nicht von selbst:
 
-- Balancer-VMs und von Hand aufgenommene Server haben kein Geheimnis. Nimm sie mit einem neuen Code in den neuen Cluster auf (`schild cluster invite`). Eine Balancer-VM hält ihre alte Mitgliedschaft in ihrem Datenverzeichnis und lehnt den Beitritt sonst ab („this node belongs to a group already“). Halte dort zuerst `schild firewall run` an, leere das Datenverzeichnis, tritt mit dem neuen Code bei und starte die Firewall wieder.
-- Wer im alten Cluster entfernt war und das neue Geheimnis bekommt, ist im neuen Cluster wieder Mitglied, bringt aber nichts mit. Gib einem Server, der draußen bleiben soll, das neue Geheimnis nicht.
+- Balancer-VMs und von Hand aufgenommene Server haben kein Secret. Nimm sie mit einem neuen Code in den neuen Cluster auf (`schild cluster invite`). Eine Balancer-VM hält ihre alte Mitgliedschaft in ihrem Datenverzeichnis und lehnt den Beitritt sonst ab („this node belongs to a group already“). Halte dort zuerst `schild firewall run` an, leere das Datenverzeichnis, tritt mit dem neuen Code bei und starte die Firewall wieder.
+- Wer im alten Cluster entfernt war und das neue Secret bekommt, ist im neuen Cluster wieder Mitglied, bringt aber nichts mit. Gib einem Server, der draußen bleiben soll, das neue Secret nicht.
 
-Ein Geheimnis, das fehlt, zu kurz ist oder von anderen lesbar ist, ändert nichts. Der Server bleibt Mitglied seines Clusters, läuft aber allein, bis die Datei stimmt, und schreibt den Grund ins Log.
+Ein Secret, das fehlt, zu kurz ist oder von anderen lesbar ist, ändert nichts. Der Server bleibt Mitglied seines Clusters, läuft aber allein, bis die Datei stimmt, und schreibt den Grund ins Log.
 
 ## Wenn im Cluster etwas Falsches unterwegs ist
 
@@ -397,14 +397,14 @@ Jeder Server speichert damit, was der ganze Cluster aufzeichnet. Das lässt sich
 - **Sperre und Freigabeliste.** Steht eine Adresse schon auf der geteilten Liste eigener Adressen, bevor eine Sperre für sie ankommt, sperren die Gateways sie nicht. Für den Cluster aufgehoben wird die Sperre dadurch aber nicht. Eine Balancer-VM hält sie weiter in ihrer Firewall.
 - **Zertifikate bei Netztrennung.** Erreichen sich die Server nicht, kann jede Seite dasselbe Zertifikat bestellen. Das ist eine Bestellung zu viel, beide Zertifikate sind gültig.
 - **Aufgaben mindestens einmal.** Eine Aufgabe, die nur einmal laufen soll, kann bei einer Netztrennung oder einem Ausfall im falschen Moment zweimal laufen (siehe „Aufgaben, die nur einmal laufen dürfen“).
-- **Wechsel des Geheimnisses.** Solange nicht alle Server mit dem neuen Geheimnis neu gestartet sind, laufen zwei Cluster nebeneinander (siehe „Das Cluster-Geheimnis wechseln“). Balancer-VMs und von Hand aufgenommene Server nimmst du danach neu auf.
+- **Wechsel des Secrets.** Solange nicht alle Server mit dem neuen Secret neu gestartet sind, laufen zwei Cluster nebeneinander (siehe „Das Cluster-Secret wechseln“). Balancer-VMs und von Hand aufgenommene Server nimmst du danach neu auf.
 - **Höchstens 16 Gateways und 8 Balancer-VMs.** Mehr lehnt der Cluster ab. Ein abgelehnter Server nimmt keine Anfragen an.
 
 ## Befehle
 
 | Befehl | Was er tut |
 | --- | --- |
-| `schild cluster secret` | Gibt ein neues Cluster-Geheimnis aus. |
+| `schild cluster secret` | Gibt ein neues Cluster-Secret aus. |
 | `schild cluster status` | Zeigt Mitglieder, letzten Kontakt und den geteilten Stand. |
 | `schild cluster drain` | Nimmt diesen Server aus dem Traffic und hält ihn an. |
 | `schild cluster pause` und `resume` | Der Server bedient weiter, nimmt aber nichts aus dem Cluster an und gibt nichts weiter, bis du `resume` aufrufst. |

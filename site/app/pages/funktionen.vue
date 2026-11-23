@@ -14,7 +14,7 @@ import { SHOTS_DATE } from '~/utils/shots'
 // in no release yet (docs/gateway/03-cluster.md): the section says so, and it claims only what that guide states.
 
 useHead({ title: 'Funktionen – Deutschland-Schild' })
-useSeoMeta({ description: 'Was das Schild Gateway abwehrt und was du selbst einstellst, an Beispielen mit Screenshots: ein gestoppter SQL-Injection-Versuch, sensible Bereiche hinter Passwort und eigenen IPs und mehrere Gateways als Cluster.' })
+useSeoMeta({ description: 'Was das Schild Gateway abwehrt und wie du es einstellen kannst, an Beispielen mit Screenshots: ein gestoppter SQL-Injection-Versuch, sensible Bereiche hinter Passwort und eigenen IPs und mehrere Gateways als Cluster.' })
 
 const DOCS = '/doku/gateway/01-funktionen'
 const CLUSTER_DOCS = '/doku/gateway/03-cluster'
@@ -122,7 +122,7 @@ const more = [
       <div class="mx-auto max-w-6xl px-5 py-14 sm:px-8 md:py-20">
         <p class="kicker">Funktionen</p>
         <h1 id="funktionen-title" class="mt-3 max-w-3xl text-4xl leading-[1.05] font-bold tracking-tight text-balance sm:text-5xl">
-          Was Schild abwehrt und was du selbst einstellst.
+          Was Schild abwehrt und wie du es einstellen kannst
         </h1>
         <p class="mt-5 max-w-2xl text-lg leading-relaxed text-pretty text-slate">
           Drei Beispiele, Schritt für Schritt: was ein Angreifer zu sehen bekommt, was du im Dashboard siehst und was du mit ein paar Klicks einstellst.
