@@ -131,7 +131,10 @@ func TestTwoNodesWritingOneEntryAtOnceEndWithTheWinner(t *testing.T) {
 // others take them and publish none. (Third lab measurement, S2: two nodes
 // wrote them in the first second.)
 func TestFirstKeysOfTheBrowserCheckAreWrittenByOneNode(t *testing.T) {
-	defer app.SetFirstKeysTimes(1500*time.Millisecond, 8*time.Second)()
+	// The wait is long here: under the race detector in CI a whole package
+	// runs for minutes, and a keeper that comes in step after another node's
+	// wait ended makes that node hand its own keys on as well (two writers).
+	defer app.SetFirstKeysTimes(1500*time.Millisecond, 20*time.Second)()
 	secretFile := filepath.Join(t.TempDir(), "cluster.secret")
 	secret, err := cluster.NewSecret()
 	if err != nil {
