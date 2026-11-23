@@ -1,6 +1,7 @@
 """Scenario 4: the two ends of the supported size, sixteen gateways and a pair. Start and time to converge, a
 block set on one acts on all, several nodes lost at once, a rolling restart, a 17th gateway, and memory, CPU and
 connections per node idle and under moderate load."""
+import os
 import random
 import time
 
@@ -244,5 +245,10 @@ def size(lab, n, idx0, tag, lose):
 
 
 def run(lab):
-    size(lab, 16, 1, "w", 5)
+    # SG27H_MAX_NODES=6 on a laptop: five gateways (two lost at once) instead of sixteen
+    if int(os.environ.get("SG27H_MAX_NODES", "16")) >= 16:
+        size(lab, 16, 1, "w", 5)
+    else:
+        lab.check("w", "sixteen gateways", None, "NOT RUN: SG27H_MAX_NODES=%s; five gateways instead" % os.environ.get("SG27H_MAX_NODES"))
+        size(lab, 5, 1, "f", 2)
     size(lab, 2, 20, "q", 1)

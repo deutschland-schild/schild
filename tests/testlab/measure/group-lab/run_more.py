@@ -159,11 +159,7 @@ def s9(lab):
     ids0 = {m.get("address"): m.get("id") for m in g0.get("members", []) if m.get("role") == "gateway"}
 
     # an edge on the balancer VM, as in scenario 4
-    rc, out = n1.cli("cluster invite -role edge")
-    code = re.search(r"\b([a-z2-7]{4,}(?:-[a-z2-7]{4,}){3,})\b", out)
-    rc_join, out_join = lb.run("schild cluster join %s:%d %s -edge -name lb-1 -data %s" % (n1.ip, MESH_PORT, code.group(1) if code else "", EDGE), 30)
-    lb.spawn("exec schild firewall run -group -data %s >>/var/log/schild/edge.log 2>&1" % EDGE)
-    wait_until(lambda: lb.run("nft list table inet schild >/dev/null 2>&1")[0] == 0, 15, 0.1)
+    rc_join, out_join = -1, "edges and join codes were removed in 5b12c2c: not run"
 
     load = TlsLoad(lb.ip, CERT_SITE, rate=5, workers=2, bind=CLIENT_NET + "35").start()
 
@@ -302,21 +298,8 @@ def s9(lab):
     R.check(S, "9.12", "the edge after the change, untouched: what it still drops and whether a block set in the new group reaches it (guide: it does not move by itself)",
             None, {"block_status": st_after, "a_block_from_before_is_still_dropped": held, "a_block_set_after_the_change_is_dropped_within_8_s": late is not None,
                    "edges_in_the_new_group_as_n1_lists_them": edges}, (lb.run("tail -4 /var/log/schild/edge.log")[1] + "\n" + out_fs)[:900])
-    rc, out = n1.cli("cluster invite -role edge")
-    code = re.search(r"\b([a-z2-7]{4,}(?:-[a-z2-7]{4,}){3,})\b", out)
-    code = code.group(1) if code else ""
-    lb.run("pkill -TERM -x schild; sleep 1; true")
-    steps = []
-    rc_j, out_j = lb.run("schild cluster join %s:%d %s -edge -name lb-1 -data %s" % (n1.ip, MESH_PORT, code, EDGE), 30)
-    steps.append({"join_into_the_data_directory_of_before": rc_j, "says": out_j[:300]})
-    if rc_j != 0:
-        # the code may be used up by the failed try: a new one, and an empty data directory
-        rc, out = n1.cli("cluster invite -role edge")
-        code = re.search(r"\b([a-z2-7]{4,}(?:-[a-z2-7]{4,}){3,})\b", out)
-        lb.run("rm -rf %s" % EDGE)
-        rc_j, out_j = lb.run("schild cluster join %s:%d %s -edge -name lb-1 -data %s" % (n1.ip, MESH_PORT, code.group(1) if code else "", EDGE), 30)
-        steps.append({"join_with_a_new_code_into_an_empty_data_directory": rc_j, "says": out_j[:300]})
-    lb.spawn("exec schild firewall run -group -data %s >>/var/log/schild/edge.log 2>&1" % EDGE)
+    steps = [{"edge": "edges and join codes were removed in 5b12c2c: not run"}]
+    rc_j = -1
     again = wait_until(lambda: not tcp_open(lb.ip, 443, bind=b_after), 15, 0.1)
     R.check(S, "9.13", "the edge let in again with a new code (schild cluster invite -role edge, join, firewall run -group) drops the blocks of the new group",
             rc_j == 0 and again is not None, {"steps": steps, "dropped_after_s": rounded(again), "block_from_before_dropped": not tcp_open(lb.ip, 443, bind=b1)})
@@ -685,11 +668,7 @@ def s11(lab):
         for vm in [lb] + nodes:
             vm.run("ip route replace %s/32 via %s" % (probe, lab.client.ip))
     through_before = get(lb.ip, "/x", bind=probe, timeout=2) if probe else None
-    rc, out = nodes[0].cli("cluster invite -role edge")
-    code = re.search(r"\b([a-z2-7]{4,}(?:-[a-z2-7]{4,}){3,})\b", out)
-    rc_join, _ = lb.run("schild cluster join %s:%d %s -edge -name lb-1 -data %s" % (nodes[0].ip, MESH_PORT, code.group(1) if code else "", EDGE), 30)
-    lb.spawn("exec schild firewall run -group -data %s >>/var/log/schild/edge.log 2>&1" % EDGE)
-    wait_until(lambda: lb.run("nft list table inet schild >/dev/null 2>&1")[0] == 0, 15, 0.1)
+    rc_join = -1  # edges and join codes were removed in 5b12c2c: not run
     real = CLIENT_NET + "240"
     d[0].block(real)
     held = wait_until(lambda: not tcp_open(lb.ip, 80, bind=real), 8, 0.1)

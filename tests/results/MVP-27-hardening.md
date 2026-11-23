@@ -241,3 +241,95 @@ Not by the measuring agent: the builder ran the unchanged harness (`run.sh`, eve
 - **Still failing, 7 checks, named as limits in the guide:** the requests of the last second of a gateway killed with `kill -9` (4), a node 120 s ahead (2), a node that restarts 120 s behind and therefore never answers ready (1, see the second run).
 - **New, 3 checks, about the harness's fault proxy:** it could not name the calling node of 1 of 182 and 1 of 252 connections. Not looked into; for the measuring agent.
 - **Load ladder, 1 check, not judged as a failure of schild:** in the continuous run the rung of 6 000 requests a second lost 1 355 and 924 of 180 000 on two nodes while 47 requests were answered 503 and the client's p99 was 159 ms; the rung of 9 000 held everything. In the repetition 6 000 held everything and 9 000 (8 553 achieved, 101 answers of 503) lost 2 727 of 270 000 on one node. Each loss came with 503 answers on a saturated machine, on one node only, while the others held every request: a node whose own writer cannot keep up drops requests it served itself, and they are not brought back to it (the same gap as after `kill -9`).
+
+## Fourth run, 2026-11-23, tree 6bda873
+
+By the measuring agent, not by the builder. Black box as above. The one exception is check i (below): it sets back a mark in `cluster.db` by hand. No source of the gateway was read. The run looks at the tree before the release. Since the third run, pause and resume, edges and join codes were removed, and the start, the readiness, the hello, the 410, the writes, `schild cluster remove`, the clock rule and the drain stop time changed (`git log e9f4bac..6bda873`).
+
+**Setup.** One machine with 12 cores and 64 GiB of memory, 127.0.0.1 only. The machine was shared with other work. A development build of `6bda873` was used (gateway tree clean, a test build, no release), with `11eced1`, the tree of the lab runs, as the older build of scenario 7. Seed 27. To keep the load on the machine moderate, at most six gateways ran at once. Scenario 4 ran five gateways and the pair instead of sixteen (`SG27H_MAX_NODES=6`), and the load ladder of scenario 3 stopped at 3 000 requests a second (`SG27H_MAX_RPS=3000`). The first measurement (`../testlab/measure/group/run.py`) was run again as well. Raw results, with every check and its evidence: [MVP-27-hardening-run4.json](MVP-27-hardening-run4.json). `MVP-27-hardening.json` and `MVP-27-hardening-checks.json` still hold the third run.
+
+**Harness changes** (committed with this section):
+
+- `cluster.enabled` needs `cluster.secret_file`. `hard.py`, `group/lib.py` and `group-lab/lab.py` now always write a secret file. Before, they wrote one only when `peers` were given.
+- `group/run.py`:
+  - group B is set up by a secret file of its own, not by join codes;
+  - item 10 stops and starts a node instead of `cluster pause`/`resume`;
+  - items 09b (edges) and 11 (a cut made with `pause`) are recorded as not run. The cut with both sides writable stays in s1 (fault proxy).
+  - item 09c takes the group id from `cluster status`. Before, it came from 09b.
+- `group-lab` (VMs, not run here):
+  - `s4` records "not run";
+  - the edge joins in `s9`, `s11` and `s19` call nothing and answer -1;
+  - `s15` stops and starts the node instead of pausing it.
+- `hostile`: a mode `gone` that answers every mesh call with 410 and a group id in `X-Schild-Group`.
+- New scenario `s8_changes.py` for the changed behaviour. The node and rate caps above are environment variables of s4 and s3, with the old values as defaults.
+
+**Counts.**
+
+| Part | PASS | FAIL | INFO |
+| --- | --- | --- | --- |
+| s1 to s7 | 224 | 8 | 24 |
+| s8, first pass | 54 | 4 (all four are errors of the new harness, see below) | 0 |
+| s8 parts f, g, h, i again after the harness fix | 27 | 0 | 0 |
+| s5 again | 13 | 0 | 0 |
+| First measurement again | 70 | 2 (one expectation that the contract no longer holds, one harness error; 09c alone again: 4 of 4) | 6 |
+
+### The changed behaviour (s8), each judged against the text named
+
+| | Judged against | Measured | Verdict |
+| --- | --- | --- | --- |
+| a | guide "Kommt der Cluster nicht zustande, startet Schild nicht … Das Log nennt den Grund"; contract 6 "0600, 0640, 0440 … a file that others may read, or its group write, is refused" | The secret file was missing, 0644, 0660 or shorter than 32 bytes, the mesh port was taken, or `enabled` had no `secret_file`. Each time the process ended with exit 1 within 0.13 to 0.23 s, and the last line names the cause and the fix (for example "has mode 0644 … chmod 0640", "bind: address already in use … free the port or change cluster.listen", "cluster.enabled needs cluster.secret_file"). 0640 and 0440: ready after 0.44 and 0.49 s | 8 PASS |
+| b | guide "Ein ganz neuer Cluster wird erst bereit, wenn jeder Server aus cluster.peers einmal gestartet ist" | b1 and b2 were 503 for the whole 25 s while b3 never started. After b3 started, all three were ready within 1.42 to 1.53 s. A new pair started together was ready after 1.5 s | 3 PASS |
+| c | contract 10 "Two nodes neither of which was ever in step do not make each other in step with nothing" | c1 ran alone with two blocks, an allowlist entry and a setting, then stopped. Two fresh nodes then answered 503 for the whole 25 s. 0.48 s after c1 started again, both were ready, and at that first 200 both blocked addresses got 403. Afterwards they held the same state and login as c1 | 4 PASS (with setup) |
+| d | contract 8a, the clock rule by majority; guide "Ein Server mit falscher Uhr nimmt keine Anfragen mehr an" | **5 gateways**, d5 120 s ahead: d5 left traffic 4.31 s after its restart and stayed at 503 with `cluster_clock_out_of_service` (12 of 12 polls). The four others stayed at 200. **d4 also 6 s ahead**: d5 stayed out (15 of 15 polls), d4 and the others stayed in. **2 against 2** (d3 and d4 120 s ahead, d5 stopped): nobody had the reason and all four answered 200 for 25 s. **2 in view**, d2 120 s ahead: both 200, no reason. **3 in view**, d2 120 s ahead: d2 left 4.61 s after the third came up, and the two others stayed in. After a restart with the right clock, d5 was ready after 1.52 s | 11 PASS (with setup) |
+| e | guide "Meldet der Befehl einen Fehler, ist der Server noch Mitglied"; contract 3 "later than every record the store holds" | e3's clock was 30 s ahead and it had just written a block. `schild cluster remove e3` on e1: exit 0, e1 and e2 list e3 as `removed`, a block e3 sets 5 s later reaches neither, and e3's log says it was removed. Then e3 came back as a new member (empty cluster directory), ready after 1.46 s. It was removed by its id while it wrote a block every 150 ms. The result was the same: exit 0 and removed. A "success" while e3 stayed a member was not seen | 5 PASS (with setup) |
+| f | contract 7 "a record that fails is answered 403 … and leaves nothing behind", "A node believes a 410 … only from a member" | **A stranger:** a hello with its own signed member record got 403, sync got 403, a hello with no certificate failed in TLS. A hello with f2's real member record, shown under another key, got **400**, not the 403 that the contract names. The member list and the shared counts were the same before and after. **A fake 410** with the group's id came from a random key at an extra address of `cluster.peers`. Within 20 s it was asked 60 times: no node was removed, all stayed at 200, nothing about it in the log, and a block reached all three after 0.19 s. **An impostor** with another key at the address of the stopped member f3: no request reached it over HTTP, because the nodes ended the connection in TLS, so its 410 was never read. f1 and f2 stayed in, and f3 came back after 1.47 s | 5 PASS (with setup; first pass: 1 harness error) |
+| g | contract 10 and guide "Zeit zum Anhalten": 503 at once, `Connection: close` during `delay_s`, a stop within delay + grace (15 + 30 s), checked here against 60 s | 3 gateways, 300 requests a second through the load tool acting as a balancer that follows readyz. **SIGTERM:** 503 after 0.001 s, 272 of 272 answers in the delay carried `Connection: close`, 0 of 13 500 requests failed, and the process ended after 16.1 s with exit 0. **`schild cluster drain`:** 503 after 0.119 s, 268 of 268, 0 of 13 500 failed, ended after 17.2 s | 7 PASS (with setup; first pass: 1 harness error) |
+| h | spec `must` (1 s at p95); guide "Gleicher Stand", "gilt deshalb nie als Abweichung" | Blocks reached all three nodes at p95 0.76 s (max 0.98), lifts made on another node at p95 0.98 s (max 0.99). A setting reached every node after 1.27 s, a login after 0.44 s. h3 was away for 13 s and, at its first ready answer (1.47 s), held the block set meanwhile, then the same state. The state hashes read `same` for every class 9.1 s after a quiet spell. During 60 s of changes (575 writes) there were 1 439 `same`, 1 `unknown` and **0 `differs`**. After that the hashes read `same` again within 5 s | 11 PASS (with setup) |
+| i | contract 5 "A node away longer than 30 days" | **The 30 days cannot pass in real time.** Grey box: h3 was stopped, and its mark `in_step_at` in `cluster.db` was set to 31 days back. Everything else was black box. Control without the mark: an allowlist entry that h3 made while alone reached h1 and h2 after 0.32 s. With the mark: the entry made while alone reached no node, the entry the group removed meanwhile was gone on h3, and h3 was ready after 1.52 s. The log says "away 744h0m0s … takes the state of its group anew … hands over none of the settings, access and login entries it held" and "what it held is kept in cluster.db (table replaced)" | 4 PASS (first pass: 2 harness errors) |
+
+**The four harness errors of the first pass.** All four were fixed, the parts were run again, and all four checks then passed. The raw file marks them `harness_error`.
+- f: the "before" snapshot was taken while the nodes were still reconnecting after a restart.
+- g: the delay window began when `cluster drain` was started, not when the node turned to 503 (0.136 s later). The two answers without `close` came in between.
+- i: twice the check wanted 200, but the API answers 201 to a new allowlist entry.
+
+### s1 to s7 again
+
+- **s1 faults, 78 of 78.** A fresh node that never reached a peer stays at 503 (14 s). A node restarted while cut off is ready after 10.1 s and holds its state.
+- **s2 crashes, 40 of 44.** H2 is still there. After the kill -9 rounds, c3 lacked 282, 0, 12 and 0 more of its own requests than before each round (it had answered 280, 289, 341 and 189). The check compares totals, so the loss of round 1 fails all four rounds. The other nodes held everything.
+- **s3 load, 16 of 16.** The ladder ran to 3 000 a second: every node held every request at 300, 1 000, 2 000 and 3 000. The run of 3 000 a second for 180 s had 0 failed of 540 000, client p99 16.6 ms, and the same number of requests on every node.
+- **s4 sizes, 42 of 42 (five gateways and the pair).**
+  - five gateways: blocks at p95 0.745 s; 2 of 5 killed under load: 0 failed on the survivors; the rolling restart: 0 of 17 000 failed;
+  - the pair: one killed, 0 failed on the survivor; the rolling restart: 0 of 3 200 failed.
+- **s5 absence, 12 of 13, then 13 of 13.** The failing check reads B0 on a2 about 0.3 s after the lift on a1 and got 403. B2, read 1.5 s later, passed. The check is stricter than "about one second". It did not come back in the repetition.
+- **s6 clocks, 18 of 21.** The same three failures as in the second and third runs. With k3 120 s ahead, its erasure reached the others after 61.1 s, and they lack 5 596 of the requests k3 served. Restarted 120 s behind, k3 never answers ready, which is what contract 10 intends now. New to see: restarted 120 s ahead in a group of three, k3 answered ready after 1.47 s. s8 d shows that it leaves after about 4.5 s, so it serves for about 3 s with the wrong clock. The guide says "etwa vier Sekunden".
+- **s7 versions, 18 of 18.** Three nodes of `11eced1` were upgraded in turn to `6bda873` under 300 requests a second: 0 of 21 000 failed, the same requests on every node, and one went back to `11eced1` with no problem. No release contains the cluster, so this path is not an upgrade that users take.
+- **The first measurement again.** 70 PASS. 03r failed because it still expects "ready after 10 s" for a node that never synced, but contract 10 now keeps such a node at 503, and 503 was seen. Item 09 (hostile records: tampered, signed by a non-member, a clock a day ahead, another group, version 2, over the caps, a replay, a removed member's block) passed 12 of 12. 09c (a removed member while it runs: what it writes is not taken, its mesh calls get 410) passed 4 of 4 when run alone after the fix.
+
+### Kill criteria (not decided here; humans decide)
+
+| Clause | State | Looked at |
+| --- | --- | --- |
+| any request waits for a peer or fails because of one | not hit | 35 checks: s1 to s4, s6 to s8, including drain under load (0 of 27 000) and 2 of 5 killed |
+| a lost, empty or returning member deletes or weakens access state on another | not hit | 57 checks, among them the fresh nodes of s8 c, the fake 410 of s8 f and the short outage of s8 h |
+| a record that fails signature, schema or caps is applied | not hit | first measurement item 09 (12 checks), s8 f (3) |
+| an edge or a removed member reads events, requests, settings, logins or keys | not hit (no edges exist any more) | first measurement 09 and 09c; s8 e: what a removed member writes reaches no member |
+| an erased address returns | not hit | 15 checks of s1, s4, s5, s8; the 30-day rule in s8 i (grey box) |
+| an address outside the proxy allow list can get another address blocked | not measured | no PROXY protocol listener here |
+| a partial answer is shown as complete | not measured | |
+| a copy outlives its origin's retention | not measured | needs days |
+| certificates are lost or issued again by the move into the group | not measured | no ACME server here |
+
+### Findings without a failing check
+
+- The contract says 403 for a hello whose record fails. The node answers **400** when the record is a real member's record but the certificate key is another one. Nothing was stored.
+- A node with its clock 120 s off answers ready for about 3 s after a restart before the clock rule takes it out (s6, s8 d).
+- The fake 410 from a member's address was not read: the nodes end the TLS connection to a key that is not the member's. So only the case of an extra `peers` address exercised the rule "believed only from a member".
+- The INFO text of s1 `t.fresh`/`p.fresh` still says "while it answers ready". The node did not answer ready. The text is from the first run.
+
+### Not measured in this run
+
+- Sixteen gateways. The load ladder above 3 000 a second.
+- The VM lab scripts after their change.
+- A real balancer, the PROXY protocol, ACME, nftables.
+- The 30 days themselves (only the mark).
+- A clock that changes while a node runs (the shim fixes it at the start, so each "the clock is right again" is a restart).

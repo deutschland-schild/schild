@@ -36,6 +36,8 @@ The client VM is in the PROXY allow list of the gateways next to the balancer VM
 
 ## Scenarios
 
+Edges, joining by code and `schild cluster pause`/`resume` were removed on 2026-11-23 (5b12c2c, c27a180). Since then `s4` records "not run", the edge parts of `s9`, `s11` and `s19` join no edge (their checks of an edge fail or say so), `s15` stops the node instead of pausing it, and every node gets the secret file (`cluster.enabled` needs `cluster.secret_file`). These scripts were not run again after that change.
+
 | | What | VMs |
 | --- | --- | --- |
 | `s1` | a pair behind HAProxy, set up as the guide says (one `schild.yaml` with `name_from_host`, the guide's HAProxy example): names, failover, planned stop with clients that honour and that ignore `Connection: close`, blocks and logins across nodes, spoofed addresses | n1, n2 |

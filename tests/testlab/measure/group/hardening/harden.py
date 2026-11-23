@@ -17,7 +17,7 @@ import subprocess
 import hard
 
 SCENARIOS = [("s1", "s1_faults"), ("s2", "s2_crashes"), ("s3", "s3_load"), ("s4", "s4_sizes"), ("s5", "s5_absence"),
-             ("s6", "s6_clocks"), ("s7", "s7_versions")]
+             ("s6", "s6_clocks"), ("s7", "s7_versions"), ("s8", "s8_changes")]
 
 
 def results_json(out_dir, path, repo):
@@ -96,7 +96,8 @@ def main():
     ap.add_argument("--keep", action="store_true", help="keep the data directories")
     ap.add_argument("--old-bin", default="", help="s7: schild built from the older commit")
     ap.add_argument("--old-rev", default="", help="s7: that commit")
-    ap.add_argument("--clock-shim", default="", help="s6: built clockshim dylib")
+    ap.add_argument("--clock-shim", default="", help="s6, s8: built clockshim dylib")
+    ap.add_argument("--hostile", default="", help="s8: built adversary of the first measurement (../hostile)")
     ap.add_argument("--quick", action="store_true", help="shorter load and fewer rounds, for work on the harness")
     a = ap.parse_args()
     repo = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "..", "..", ".."))
@@ -113,7 +114,7 @@ def main():
         print("=== %s" % mod, flush=True)
         started = datetime.datetime.now(datetime.timezone.utc)
         lab = hard.Lab(mod, os.path.abspath(a.bin), os.path.abspath(a.tool), a.port0, keep=a.keep,
-                       extra_bins={"old": a.old_bin, "old_rev": a.old_rev, "clock_shim": a.clock_shim})
+                       extra_bins={"old": a.old_bin, "old_rev": a.old_rev, "clock_shim": a.clock_shim, "hostile": a.hostile})
         lab.quick, lab.repo = a.quick, repo
         try:
             hard.scenario(lab, importlib.import_module(mod).run)

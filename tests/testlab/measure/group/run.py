@@ -124,29 +124,25 @@ def group_by_config(lab):
 
 
 def group_by_code(lab):
-    print("== group B by join codes", flush=True)
-    B = [Node(lab, "m%d" % i, 5 + i, {}) for i in (1, 2, 3)]
-    steps = []
-    rc, out = B[0].cli("cluster", "init")
-    steps.append(("init", rc, out))
-    B[0].start()
-    r0 = B[0].wait_ready()
-    for n in B[1:]:
-        rc, out = B[0].cli("cluster", "invite")
-        steps.append(("invite", rc, re.sub(r"[a-z2-7]{4,}(-[a-z2-7]{4,}){2,}", "<code>", out)))
-        m = re.search(r"cluster join (\S+) (\S+)", out)
-        code = m.group(2) if m else (re.findall(r"\b[a-z2-7]+(?:-[a-z2-7]+){3,}\b", out) or [""])[0]
-        rc, out = n.cli("cluster", "join", "127.0.0.1:%d" % B[0].mesh, code)
-        steps.append(("join", rc, out))
+    # Joining by code (cluster init, invite, join) was removed in 5b12c2c; group B is now set up like group A, by a
+    # secret file of its own and cluster.peers, so the items that use it (02c, 09c, 10, 12) still run.
+    print("== group B by its own secret file (join codes removed)", flush=True)
+    sec = os.path.join(lab.root, "cluster-b.secret")
+    with open(sec, "w") as f:
+        f.write(subprocess.run([lab.bin, "cluster", "secret"], capture_output=True, text=True).stdout)
+    os.chmod(sec, 0o600)
+    peers = ["127.0.0.1:%d" % (lab.port0 + (5 + i) * 10 + 4) for i in (1, 2, 3)]
+    B = [Node(lab, "m%d" % i, 5 + i, {"secret_file": sec, "peers": peers}) for i in (1, 2, 3)]
+    for n in B:
         n.start()
-    ready = [r0] + all_ready(B[1:])
+    ready = all_ready(B)
     wait_for(lambda: all(status_of(n)[0].count(" ok ") == 2 for n in B), 20, 0.3)
     time.sleep(2.0)
     d1 = Dash(B[0])
     st, _ = d1.setup()
     out, _ = status_of(B[0])
-    R["items"]["00_setup_code"] = {"steps": steps, "ready_s": ready, "setup_status": st, "status": out}
-    check("00_setup", "group by join codes starts", all(ready) and st == 200 and out.count(" ok ") == 2,
+    R["items"]["00_setup_code"] = {"steps": "secret file (join codes removed)", "ready_s": ready, "setup_status": st, "status": out}
+    check("00_setup", "group B (own secret file) starts", all(ready) and st == 200 and out.count(" ok ") == 2,
           "ready after %s s, setup %s, status lists %d peers ok" % (ready, st, out.count(" ok ")))
     return B, d1
 
@@ -1060,6 +1056,8 @@ def edge(lab, B, d1):
 def removed_running(lab, B, d1):
     out = {}
     m1, m2, m3 = B
+    if not getattr(lab, "groupB", None):  # set by item 09b, which no longer runs (edges removed)
+        lab.groupB = re.search(r"(g-[0-9a-f]{32})", status_of(m1)[0]).group(1)
     d3 = Dash(m3, d1)
     ok_before = d3.session()[1].get("authenticated")
     rc, txt = m1.cli("cluster", "remove", "m3")
@@ -1099,29 +1097,21 @@ def removed_running(lab, B, d1):
 # ---------------------------------------------------------------------------------------------------- item 10
 @item("10_pause_resume")
 def pause_resume(lab, B, d1):
+    # `schild cluster pause` and `resume` were removed in c27a180; the node is stopped (kill -9) and started instead
     out = {}
     m1, m2, m3 = B
-    d2 = Dash(m2, d1)
-    wait_for(lambda: d2.session()[1].get("authenticated"), 10)
-    rc, txt = m2.cli("cluster", "pause")
-    out["pause"] = [rc, txt]
+    m2.kill9()
     time.sleep(1.0)
     st, js = d1.block("203.0.113.240")
-    st2, js2 = d2.block("203.0.113.241")
     time.sleep(4.0)
-    during = {"m1_block": [get(n.proxy, "/", "203.0.113.240") for n in B], "m2_block": [get(n.proxy, "/", "203.0.113.241") for n in B]}
+    during = {"m1_block": [get(n.proxy, "/", "203.0.113.240") for n in (m1, m3)]}
     out["during"] = during
-    out["status_m2_paused"] = status_of(m2)[0]
-    out["status_m1"] = status_of(m1)[0]
-    check("10", "paused m2 takes nothing: a block of m1 acts on m1 and m3 only", rc == 0 and during["m1_block"] == [403, 200, 403], during["m1_block"])
-    check("10", "paused m2 hands nothing over: its own block acts on m2 only", during["m2_block"] == [200, 403, 200], during["m2_block"])
-    check("10", "paused m2 serves on", get(m2.proxy, "/") == 200, "")
+    check("10", "with m2 stopped a block of m1 acts on m1 and m3", during["m1_block"] == [403, 403], during["m1_block"])
     t0 = now()
-    rc, txt = m2.cli("cluster", "resume")
-    out["resume"] = [rc, txt]
-    t = wait_for(lambda: [get(n.proxy, "/", "203.0.113.240") for n in B] == [403] * 3 and [get(n.proxy, "/", "203.0.113.241") for n in B] == [403] * 3, 15, 0.02)
+    m2.start()
+    t = wait_for(lambda: [get(n.proxy, "/", "203.0.113.240") for n in B] == [403] * 3, 40, 0.02)
     out["caught_up_s"] = (now() - t0) if t is not None else None
-    check("10", "after resume both blocks act on every node", rc == 0 and t is not None, "after %s s from the resume command" % (t is not None and round(out["caught_up_s"], 2)))
+    check("10", "m2 started again takes the block", t is not None, "after %s s from its start" % (t is not None and round(out["caught_up_s"], 2)))
     return out
 
 
@@ -1447,8 +1437,11 @@ def main():
                     return out
                 item("02c_block_propagation_join_code")(p2)()
             if want("10"): pause_resume(lab, B, dB)
-            if want("11"): split(lab, B, dB)
-            if want("09b"): edge(lab, B, dB)
+            # item 11 made its cut with `schild cluster pause` (removed in c27a180): the cut with both sides
+            # writable is measured by the fault proxy of the hardening measurement (hardening/s1_faults.py)
+            if want("11"): check("11", "split by pause", None, "NOT RUN: cluster pause removed; see hardening s1 t.cut, t.heal")
+            # item 09b: edges were removed in 5b12c2c
+            if want("09b"): check("09b", "edge", None, "NOT RUN: edges removed")
             if want("09c"): removed_running(lab, B, dB)
             if want("12"): alone_restart(lab, B, dB)
     finally:

@@ -206,9 +206,10 @@ class Node:
         ]
         if self.cluster is not None:
             y += ["cluster:", "  enabled: true", '  listen: "127.0.0.1:%d"' % self.mesh]
-            if self.cluster.get("secret_file"):
-                y += ["  secret_file: %s" % self.cluster["secret_file"],
-                      "  peers: [%s]" % ", ".join('"%s"' % p for p in self.cluster["peers"])]
+            # cluster.enabled needs cluster.secret_file (ecd319e): every node of the harness gets one
+            y += ["  secret_file: %s" % (self.cluster.get("secret_file") or self.lab.secret)]
+            if self.cluster.get("peers"):
+                y += ["  peers: [%s]" % ", ".join('"%s"' % p for p in self.cluster["peers"])]
             y += ["  drain:", "    delay_s: %d" % self.cluster.get("delay_s", 4), "    grace_s: %d" % self.cluster.get("grace_s", 5)]
         if self.extra:
             y.append(self.extra)

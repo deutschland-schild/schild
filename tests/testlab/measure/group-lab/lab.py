@@ -607,9 +607,10 @@ class Node(VM):
         ]
         if cluster:
             y += ["cluster:", "  enabled: true", '  listen: "%s:%d"' % (self.ip, MESH_PORT)]
+            # cluster.enabled needs cluster.secret_file (ecd319e): written always, peers when given
+            y += ["  secret_file: /etc/schild/cluster.secret"]
             if peers is not None:
-                y += ["  secret_file: /etc/schild/cluster.secret",
-                      "  peers: [%s]" % ", ".join('"%s:%d"' % (p, MESH_PORT) for p in peers)]
+                y += ["  peers: [%s]" % ", ".join('"%s:%d"' % (p, MESH_PORT) for p in peers)]
                 if name_from_host:
                     y += ["  name_from_host: true"]
             if drain:
@@ -644,7 +645,7 @@ class Node(VM):
             "}",
         ]
         self.put("/etc/schild/Caddyfile", "\n".join(l for l in caddy if l != "") + "\n")
-        if cluster and peers is not None:
+        if cluster:
             self.put("/etc/schild/cluster.secret", self.lab["secret"] + "\n", "600")
 
     def wipe(self):

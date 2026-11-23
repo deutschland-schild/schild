@@ -991,6 +991,9 @@ def reach(lab, address, port=80, timeout=0.7):
 
 def s4(lab):
     S = "s4"
+    # edges (role edge, schild cluster invite/join, firewall run -group) were removed in 5b12c2c
+    R.check(S, "4.00", "blocks on the balancer VM (role edge)", None, {}, "edges and join codes were removed in 5b12c2c: not run")
+    return
     nodes = lab.nodes[:3]
     n1, n2, n3 = nodes
     lb = lab.lb

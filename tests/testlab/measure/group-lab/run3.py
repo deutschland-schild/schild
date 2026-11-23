@@ -915,7 +915,9 @@ def s15(lab):
     # a real difference: n3 paused (the documented brake), then changes on n1
     n1, n2, n3 = N
     marks = {n.name: n.count("differ|repair|again for every record") for n in N}
-    rc, out = n3.cli("cluster pause")
+    # `schild cluster pause` was removed in c27a180: n3 is stopped instead (its members read it unknown, not differs)
+    n3.kill9()
+    rc, out = 0, "stopped (pause removed)"
     time.sleep(1)
     t0 = now()
     bst = D[0].block(CLIENT_NET + "230", 3600)[0]
@@ -942,7 +944,8 @@ def s15(lab):
              "state_of_n3_as_n1_shows_it": g3.get("state"), "shared_state_of_n3_as_n1_shows_it": g3.get("shared_state"),
              "state_of_n1_as_n3_shows_it": D[2].member(n1.ip).get("state"), "shared_state_of_n1_as_n3_shows_it": D[2].member(n1.ip).get("shared_state"),
              "log_lines_about_it_since": more}, json.dumps(lines)[:1500])
-    rc, out = n3.cli("cluster resume")
+    n3.start()
+    rc, out = 0, "started (resume removed)"
     t0 = now()
     same = wait_until(lambda: states(D[0]).get(n3.hostname()) == SAME and states(D[2]).get(n1.hostname()) == SAME, 60, 0.5)
     gone = wait_until(lambda: "cluster_state_differs" not in (D[0].reasons() or []), 60, 0.5)
@@ -1509,7 +1512,9 @@ def s18(lab):
 
 
 def edge_join(lab, vm, gateway, name, data="/var/lib/schild-edge"):
-    """A VM joins as an edge as the guide says and starts the firewall; answers the exit code of the join."""
+    """A VM joins as an edge as the guide says and starts the firewall; answers the exit code of the join.
+    Edges and join codes were removed in 5b12c2c: answers -1 and runs nothing."""
+    return -1
     vm.run("pkill -x schild; nft delete table inet schild 2>/dev/null; rm -rf %s; mkdir -p /var/log/schild; true" % data)
     rc, out = gateway.cli("cluster invite -role edge")
     code = re.search(r"\b([a-z2-7]{4,}(?:-[a-z2-7]{4,}){3,})\b", out)

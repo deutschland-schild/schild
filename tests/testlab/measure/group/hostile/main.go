@@ -7,6 +7,8 @@
 //	hostile call  -addr A -path P [-key FILE | -random | -nocert] [-body JSON] [-timeout S]
 //	hostile sign  -key FILE                       record JSON on stdin, signed record on stdout
 //	hostile serve -key FILE -listen A -records FILE   answer /mesh/v0/sync with the records of FILE
+//	hostile gone  [-key FILE | -random] -listen A -group G   answer every mesh call 410 with X-Schild-Group G
+//	                                                         (a "you were removed" from a key that is no member)
 package main
 
 import (
@@ -119,6 +121,7 @@ func main() {
 	timeout := fs.Float64("timeout", 8, "seconds")
 	listen := fs.String("listen", "", "listen address")
 	records := fs.String("records", "", "file with a JSON array of records to serve")
+	group := fs.String("group", "", "gone: the group id named in X-Schild-Group")
 	die(fs.Parse(os.Args[2:]))
 
 	switch os.Args[1] {
@@ -208,6 +211,30 @@ func main() {
 			_ = json.NewEncoder(w).Encode(map[string]any{"records": send, "covered": covered, "vector": covered, "more": false})
 		})
 		srv := &http.Server{Addr: *listen, Handler: mux, TLSConfig: &tls.Config{
+			Certificates: []tls.Certificate{cert(k)}, MinVersion: tls.VersionTLS13, ClientAuth: tls.RequireAnyClientCert,
+		}}
+		fmt.Printf("{\"serving\":%q,\"as\":%q}\n", *listen, me)
+		die(srv.ListenAndServeTLS("", ""))
+	case "gone":
+		k := loadKey(*keyFile, *random)
+		me := nodeID(k.Public().(ed25519.PublicKey))
+		h := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			_, _ = io.Copy(io.Discard, io.LimitReader(r.Body, 4<<20))
+			peer := ""
+			if r.TLS != nil && len(r.TLS.PeerCertificates) > 0 {
+				if pub, ok := r.TLS.PeerCertificates[0].PublicKey.(ed25519.PublicKey); ok {
+					peer = nodeID(pub)
+				}
+			}
+			fmt.Printf("{\"path\":%q,\"caller\":%q,\"answer\":410}\n", r.URL.Path, peer)
+			if *group != "" {
+				w.Header().Set("X-Schild-Group", *group)
+			}
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusGone)
+			_, _ = w.Write([]byte(`{"code":"removed"}`))
+		})
+		srv := &http.Server{Addr: *listen, Handler: h, TLSConfig: &tls.Config{
 			Certificates: []tls.Certificate{cert(k)}, MinVersion: tls.VersionTLS13, ClientAuth: tls.RequireAnyClientCert,
 		}}
 		fmt.Printf("{\"serving\":%q,\"as\":%q}\n", *listen, me)

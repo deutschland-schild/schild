@@ -130,9 +130,10 @@ class HNode(Node):
             y += ["cluster:", "  enabled: true", '  listen: "127.0.0.1:%d"' % self.mesh]
             if c.get("advertise"):
                 y += ['  advertise: "%s"' % c["advertise"]]
-            if c.get("secret_file"):
-                y += ["  secret_file: %s" % c["secret_file"],
-                      "  peers: [%s]" % ", ".join('"%s"' % p for p in c["peers"])]
+            # cluster.enabled needs cluster.secret_file (ecd319e): every node of the harness gets one
+            y += ["  secret_file: %s" % (c.get("secret_file") or self.lab.secret())]
+            if c.get("peers"):
+                y += ["  peers: [%s]" % ", ".join('"%s"' % p for p in c["peers"])]
             y += ["  drain:", "    delay_s: %d" % c.get("delay_s", 2), "    grace_s: %d" % c.get("grace_s", 3)]
             y += c.get("lines", [])
         if self.extra:

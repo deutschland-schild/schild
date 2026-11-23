@@ -52,7 +52,9 @@ def run(lab):
     # ---- by rate: what every node holds of what the three served (an address stays on one node)
     ladder = []
     first_div = None
-    for k, rps in enumerate([300, 1000] if quick else [300, 1000, 2000, 3000, 6000, 9000]):
+    # SG27H_MAX_RPS caps the ladder (a laptop shared with other work)
+    cap = int(os.environ.get("SG27H_MAX_RPS", "9000"))
+    for k, rps in enumerate([x for x in ([300, 1000] if quick else [300, 1000, 2000, 3000, 6000, 9000]) if x <= cap]):
         dur = 10 if quick else 30
         size0 = [du(os.path.join(nd.data, "requests")) for nd in nodes]
         base, _ = settle(lab, ds, 30)

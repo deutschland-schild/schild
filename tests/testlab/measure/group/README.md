@@ -19,13 +19,13 @@ No call leaves the machine: the CrowdSec Hub and the crawler ranges are switched
 | `run.py` | the items, one function each, and the results file |
 | `lib.py` | gateway processes, HTTP, the dashboard API, the load client |
 | `backend.py` | the application behind the gateways: 200 to everything |
-| `hostile/main.go` | the adversary at the mesh: TLS 1.3 and HTTP/2 with a node key, signs records, serves them as a member would. Written from the text of the contract, imports nothing of schild, standard library only |
+| `hostile/main.go` | the adversary at the mesh: TLS 1.3 and HTTP/2 with a node key, signs records, serves them as a member would, or answers every call 410 with a group id (`gone`). Written from the text of the contract, imports nothing of schild, standard library only |
 
 ## Setup
 
 - A single gateway without `cluster` (s0), the baseline.
 - Group A by configuration: n1 to n3 with `cluster.secret_file` and `cluster.peers`.
-- Group B by join codes: m1 to m3 with `schild cluster init`, `invite`, `join`.
+- Group B: m1 to m3 with a secret file of their own (joining by code was removed in 5b12c2c; item 10 stops and starts a node instead of `cluster pause`, items 09b (edges) and 11 (a cut by `cluster pause`) are not run; the cut is measured by the fault proxy of [hardening](hardening/README.md) s1).
 - The load client spreads requests round robin; there is no balancer. Client addresses come from `X-Forwarded-For` (loopback is a trusted proxy by default), from the documentation ranges of the TEST ONLY geo fixture.
 - Random choices use seed 27.
 

@@ -24,6 +24,9 @@ No call leaves the machine: the CrowdSec Hub and the crawler ranges are off in e
 | s5 | `s5_absence.py` | one node away while the others change everything, erase an address and serve more than 32 768 requests each |
 | s6 | `s6_clocks.py` | one node with its clock 30 s ahead, 120 s ahead, 120 s behind |
 | s7 | `s7_versions.py` | three nodes of the commit before HEAD upgraded in turn under load, then one back |
+| s8 | `s8_changes.py` | what changed before the release (fourth run): a start refused for a bad secret file or a taken port, a brand-new group that waits for every named peer, fresh nodes while the only member is down, the clock rule by majority (5, 4, 2 gateways), `cluster remove` of a member whose clock is ahead, a stranger and a fake 410 at the mesh (needs `--hostile`, the adversary of the first measurement), drain under load, a short regression, and a node away longer than 30 days by its `in_step_at` mark set back by hand (grey box) |
+
+On a laptop: `SG27H_MAX_NODES=6` runs five gateways in s4 instead of sixteen, `SG27H_MAX_RPS=3000` caps the load ladder of s3, `SG27H_S8=abc` runs single parts of s8. `run.sh` does not build the adversary; for s8 build `../hostile` and pass `--hostile` to `harden.py`.
 
 ## Tools
 
