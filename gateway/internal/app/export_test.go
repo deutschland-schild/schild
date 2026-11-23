@@ -171,3 +171,11 @@ func (a *App) SharedThingIDs() map[string][]string {
 // OrderLock reports whether a lock of the certificate storage waits for the
 // node to be in step (cluster_files.go).
 var OrderLock = orderLock
+
+// SetBeforeMesh runs f right before the mesh of a node starts (startCluster),
+// and returns how to undo it. Not safe while a node starts.
+func SetBeforeMesh(f func(*App)) (undo func()) {
+	old := testBeforeMesh
+	testBeforeMesh = f
+	return func() { testBeforeMesh = old }
+}

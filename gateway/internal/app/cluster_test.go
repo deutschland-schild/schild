@@ -6,6 +6,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
 	"net/http/httptrace"
 	"net/netip"
@@ -181,13 +182,12 @@ func TestSingleGatewayHasNoCluster(t *testing.T) {
 	}
 }
 
-func TestClusterEnabledWithoutGroupRunsAlone(t *testing.T) {
-	h := apptest.New(t, apptest.Options{Extra: fmt.Sprintf("cluster: {enabled: true, listen: %q}\n", apptest.FreeAddr(t))})
-	if h.App.Cluster != nil {
-		t.Error("a node without a group started the mesh")
-	}
-	if resp := h.Visit("GET", "/", "203.0.113.80", "", ""); resp.StatusCode != 200 {
-		t.Errorf("a gateway without a group does not serve: %d", resp.StatusCode)
+// cluster.enabled without cluster.secret_file is no group: the
+// configuration is refused, the gateway does not run alone.
+func TestClusterEnabledWithoutSecretFileIsRefused(t *testing.T) {
+	h := apptest.New(t, apptest.Options{NewFails: true, Extra: fmt.Sprintf("cluster: {enabled: true, listen: %q}\n", apptest.FreeAddr(t))})
+	if !strings.Contains(h.NewErr.Error(), "cluster.secret_file") {
+		t.Errorf("the error does not name the cause: %v", h.NewErr)
 	}
 }
 
@@ -218,14 +218,63 @@ func TestGroupFromConfigurationOnly(t *testing.T) {
 	a.h.WaitFor("web-1 blocks the address web-2 blocked", func() bool { return a.blocked("203.0.113.91") == "S-BACK" })
 }
 
-func TestClusterWithUnreadableSecretRunsAlone(t *testing.T) {
-	h := apptest.New(t, apptest.Options{Extra: fmt.Sprintf("cluster: {enabled: true, listen: %q, secret_file: %q}\n", apptest.FreeAddr(t), filepath.Join(t.TempDir(), "missing"))})
-	if h.App.Cluster != nil {
-		t.Error("a node without its secret started the mesh")
+// A node of a group that cannot be set up or cannot run does not start:
+// it never serves alone while its readiness answer says 200. The error
+// names the cause and the fix.
+func TestClusterThatCannotRunDoesNotStart(t *testing.T) {
+	refused := func(t *testing.T, extra string, want ...string) {
+		t.Helper()
+		h := apptest.New(t, apptest.Options{NewFails: true, Extra: extra})
+		for _, w := range want {
+			if !strings.Contains(h.NewErr.Error(), w) {
+				t.Errorf("the error does not say %q: %v", w, h.NewErr)
+			}
+		}
 	}
-	if resp := h.Visit("GET", "/", "203.0.113.80", "", ""); resp.StatusCode != 200 {
-		t.Errorf("a gateway without its secret does not serve: %d", resp.StatusCode)
+	yaml := func(listen, secretFile string) string {
+		return fmt.Sprintf("cluster: {enabled: true, listen: %q, secret_file: %q}\n", listen, secretFile)
 	}
+	t.Run("missing secret file", func(t *testing.T) {
+		refused(t, yaml(apptest.FreeAddr(t), filepath.Join(t.TempDir(), "missing")), "cluster.secret_file", "cluster.enabled false")
+	})
+	t.Run("short secret", func(t *testing.T) {
+		p := filepath.Join(t.TempDir(), "cluster.secret")
+		if err := os.WriteFile(p, []byte("short\n"), 0o600); err != nil {
+			t.Fatal(err)
+		}
+		refused(t, yaml(apptest.FreeAddr(t), p), "shorter than 32 bytes", "schild cluster secret")
+	})
+	t.Run("secret others read", func(t *testing.T) {
+		p := writeSecret(t)
+		if err := os.Chmod(p, 0o644); err != nil {
+			t.Fatal(err)
+		}
+		refused(t, yaml(apptest.FreeAddr(t), p), "chmod 0640")
+	})
+	t.Run("mesh port taken", func(t *testing.T) {
+		ln, err := net.Listen("tcp", "127.0.0.1:0")
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer ln.Close()
+		refused(t, yaml(ln.Addr().String(), writeSecret(t)), "cluster.listen", "free the port")
+	})
+	t.Run("node key others read", func(t *testing.T) {
+		dir := t.TempDir()
+		secret := writeSecret(t)
+		g := &groupNode{dir: dir, addr: apptest.FreeAddr(t), name: "web-1", secretFile: secret}
+		g.start(t)
+		if err := g.h.Stop(); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.Chmod(filepath.Join(g.clusterDir(), "node.key"), 0o644); err != nil {
+			t.Fatal(err)
+		}
+		h := apptest.New(t, apptest.Options{NewFails: true, Dir: dir, Extra: g.clusterYAML()})
+		if !strings.Contains(h.NewErr.Error(), "node.key") || !strings.Contains(h.NewErr.Error(), "cluster.enabled false") {
+			t.Errorf("the error does not name the key and the fix: %v", h.NewErr)
+		}
+	})
 }
 
 func allowed(g *groupNode, ip string) bool {

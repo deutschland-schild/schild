@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"slices"
 	"testing"
 	"time"
 
@@ -121,7 +122,7 @@ func TestNodeThatRestartsAloneListensDuringTheWait(t *testing.T) {
 		t.Fatal(err)
 	}
 	start := time.Now()
-	h := apptest.New(t, apptest.Options{Dir: b.dir, Listeners: true, Caddyfile: groupCaddyfile, Extra: fmt.Sprintf("cluster: {enabled: true, listen: %q}\n", b.addr)})
+	h := apptest.New(t, apptest.Options{Dir: b.dir, Listeners: true, Caddyfile: groupCaddyfile, Extra: b.clusterYAML()})
 	listening := time.Since(start)
 	ready := func() int {
 		req, _ := http.NewRequest("GET", "http://"+h.IngressAddr+"/.schild/readyz", nil)
@@ -186,5 +187,32 @@ func TestNodeThatWasInStepServesAloneAfterTheWait(t *testing.T) {
 	b.h.WaitFor("web-2 serves alone after the wait", func() bool { return b.h.App.InService() })
 	if since := time.Since(begun); since < wait {
 		t.Fatalf("web-2 serves alone after %s, before the wait of %s", since, wait)
+	}
+}
+
+// Every handler of the node is registered before its mesh runs: a record,
+// a message or a question that arrives in the first moment finds its
+// handler, and no handler is added once the mesh runs.
+func TestEveryClusterHandlerIsRegisteredBeforeTheMeshRuns(t *testing.T) {
+	var before []string
+	undo := app.SetBeforeMesh(func(a *app.App) {
+		if a.Cluster.Addr() != "" {
+			t.Error("the mesh runs before the handlers are registered")
+		}
+		before = a.Cluster.Registered()
+	})
+	nodes := newGroup(t, "web-1")
+	nodes[0].start(t)
+	undo()
+	for _, want := range []string{"on:blocks", "on:settings", "on:access", "on:logins", "on:erasure", "tell:counts", "tell:config", "tell:heads", "ask:events", "ask:requests", "ask:metrics"} {
+		if !slices.Contains(before, want) {
+			t.Errorf("%s is registered only after the mesh started (registered before: %v)", want, before)
+		}
+	}
+	g := nodes[0]
+	g.h.WaitFor("the mesh listens", func() bool { return g.h.App.Cluster.Addr() != "" })
+	time.Sleep(300 * time.Millisecond)
+	if after := g.h.App.Cluster.Registered(); !slices.Equal(after, before) {
+		t.Errorf("handlers registered after the mesh started:\nbefore %v\nafter  %v", before, after)
 	}
 }

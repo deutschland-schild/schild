@@ -85,10 +85,59 @@ func TestClockOddRule(t *testing.T) {
 		{"others agree, 30 s off: within what the group takes", []time.Duration{30 * s, 31 * s}, false},
 		{"others agree, exactly a minute off", []time.Duration{60 * s, 62 * s}, true},
 		{"fifteen others agree, this node far behind", slices.Repeat([]time.Duration{600 * s}, 15), true},
-		{"three agree, a fourth does not: no clear picture", []time.Duration{90 * s, 90 * s, 91 * s, 0}, false},
+		{"three of four agree, the fourth with this node: a majority", []time.Duration{90 * s, 90 * s, 91 * s, 0}, true},
+		{"three of four agree, the fourth a little off: a majority", []time.Duration{90 * s, 92 * s, 93 * s, 99 * s}, true},
+		{"two of three agree, the third far off: two of four in view, no majority", []time.Duration{90 * s, 91 * s, 400 * s}, false},
+		{"two against two: no majority", []time.Duration{90 * s, 91 * s, 0}, false},
+		{"the majority straddles this node's clock", []time.Duration{58 * s, 62 * s, 61 * s}, false},
+		{"unsorted, a majority 70 s ahead", []time.Duration{71 * s, 0, 70 * s, 73 * s, 70 * s}, true},
 	} {
 		if got := app.ClockOdd(c.skews); got != c.want {
 			t.Errorf("%s: clockOdd(%v) = %v, want %v", c.name, c.skews, got, c.want)
+		}
+	}
+}
+
+// The rule across a whole group: every node judges by the clocks of all the
+// others, and never every node leaves.
+func TestClockOddRuleAcrossTheGroup(t *testing.T) {
+	s := time.Second
+	nodes := func(n int, clock time.Duration) []time.Duration { return slices.Repeat([]time.Duration{clock}, n) }
+	for _, c := range []struct {
+		name   string
+		clocks []time.Duration
+		out    []int // the nodes that leave, by index
+	}{
+		{"2 nodes, 90 s apart", []time.Duration{0, 90 * s}, nil},
+		{"3 nodes, one 90 s ahead", []time.Duration{0, 1 * s, 90 * s}, []int{2}},
+		{"3 nodes, all apart", []time.Duration{0, 70 * s, 140 * s}, nil},
+		{"4 nodes, one off", []time.Duration{0, 1 * s, 4 * s, -120 * s}, []int{3}},
+		{"4 nodes, one off, one 8 s off the others: no three agree", []time.Duration{0, 1 * s, 8 * s, -120 * s}, nil},
+		{"5 nodes, one off, one 8 s off the others", []time.Duration{0, 1 * s, 2 * s, 8 * s, -120 * s}, []int{4}},
+		{"4 nodes, two against two", []time.Duration{0, 1 * s, 90 * s, 91 * s}, nil},
+		{"5 nodes, two off together", []time.Duration{0, 2 * s, 3 * s, 300 * s, 301 * s}, []int{3, 4}},
+		{"5 nodes, two off apart", []time.Duration{0, 2 * s, 4 * s, 300 * s, -300 * s}, []int{3, 4}},
+		{"16 nodes, one far behind", append(nodes(15, 0), -10*time.Minute), []int{15}},
+		{"16 nodes, eight against eight", append(nodes(8, 0), nodes(8, 90*s)...), nil},
+		{"16 nodes, nine against seven", append(nodes(9, 0), nodes(7, 90*s)...), []int{9, 10, 11, 12, 13, 14, 15}},
+	} {
+		var out []int
+		for i, mine := range c.clocks {
+			var skews []time.Duration
+			for j, theirs := range c.clocks {
+				if j != i {
+					skews = append(skews, theirs-mine)
+				}
+			}
+			if app.ClockOdd(skews) {
+				out = append(out, i)
+			}
+		}
+		if !slices.Equal(out, c.out) {
+			t.Errorf("%s: nodes %v leave, want %v", c.name, out, c.out)
+		}
+		if len(out) == len(c.clocks) {
+			t.Errorf("%s: every node leaves", c.name)
 		}
 	}
 }

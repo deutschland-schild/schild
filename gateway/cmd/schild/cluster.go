@@ -83,7 +83,8 @@ func runCluster(args []string, out io.Writer, now func() time.Time) error {
 		if !resp.OK {
 			return errors.New("cluster drain: " + resp.Error)
 		}
-		fmt.Fprintf(out, "%s left traffic: /.schild/readyz answers 503. It stops in %s, running requests get %s to finish.\n", cfg.NodeName, cfg.Cluster.Drain.Delay(), cfg.Cluster.Drain.Grace())
+		host, _ := os.Hostname()
+		fmt.Fprintln(out, drainMessage(cfg, host))
 	case "status":
 		st, err := cluster.ReadStatus(dir, now)
 		if err != nil {
@@ -94,6 +95,12 @@ func runCluster(args []string, out io.Writer, now func() time.Time) error {
 		return fmt.Errorf("cluster: unknown command %q\n%s", sub, clusterUsage)
 	}
 	return nil
+}
+
+// drainMessage is what `schild cluster drain` prints: the node by its name
+// in the group, as the dashboard and `schild cluster status` name it.
+func drainMessage(cfg *config.Site, hostname string) string {
+	return fmt.Sprintf("%s left traffic: /.schild/readyz answers 503. It stops in %s, running requests get %s to finish.", cfg.MemberName(hostname), cfg.Cluster.Drain.Delay(), cfg.Cluster.Drain.Grace())
 }
 
 func printClusterStatus(out io.Writer, st *cluster.Status, cfg *config.Site, now time.Time) {

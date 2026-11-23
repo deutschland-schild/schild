@@ -59,6 +59,8 @@ CREATE TABLE IF NOT EXISTS records (
   PRIMARY KEY (origin, seq)
 );
 CREATE INDEX IF NOT EXISTS records_key ON records(class, id, state);
+-- The latest clock value held, read with every write (publish).
+CREATE INDEX IF NOT EXISTS records_hlc ON records(hlc);
 -- The highest sequence number seen per origin.
 CREATE TABLE IF NOT EXISTS vector (origin TEXT PRIMARY KEY, seq INTEGER NOT NULL);
 -- What the running node last saw of each peer, for schild cluster status.
@@ -241,8 +243,14 @@ func (s *state) vector() (map[string]uint64, error) {
 	return out, rows.Err()
 }
 
+// errLost: a record this node wrote did not win against the record held.
+var errLost = errors.New("cluster: the write lost against a later record of the same thing")
+
 // publish writes a record of this node: the next sequence number, a clock
-// value later than everything seen, signed, and applied here first.
+// value later than everything held, signed, and applied here first. It
+// fails when the record does not become the state of its (class, id),
+// which the clock rules out unless the store holds a record from a clock
+// far ahead.
 func (s *state) publish(class, id string, data any, deleted bool, expires time.Time) (*contract.Record, error) {
 	if s.group == "" {
 		return nil, ErrNoGroup
@@ -258,12 +266,17 @@ func (s *state) publish(class, id string, data any, deleted bool, expires time.T
 	if err := tx.QueryRow(`SELECT seq FROM vector WHERE origin = ?`, s.id).Scan(&seq); err != nil && !errors.Is(err, sql.ErrNoRows) {
 		return nil, err
 	}
-	// A command on the host and the node share the clock through the file.
-	var last int64
-	if err := tx.QueryRow(`SELECT CAST(v AS INTEGER) FROM meta WHERE k = 'hlc'`).Scan(&last); err != nil && !errors.Is(err, sql.ErrNoRows) {
+	// The clock moves past every record held and every value this node
+	// gave out: a command on the host (schild cluster remove) runs in a
+	// process of its own, and a node that restarted forgot what it saw. A
+	// write must be later than every record either of them holds, or a
+	// record of a clock a little ahead beats it.
+	var last, held int64
+	if err := tx.QueryRow(`SELECT coalesce((SELECT CAST(v AS INTEGER) FROM meta WHERE k = 'hlc'), 0), coalesce((SELECT max(hlc) FROM records), 0)`).Scan(&last, &held); err != nil {
 		return nil, err
 	}
 	s.clock.Observe(uint64(last))
+	s.clock.Observe(uint64(held))
 	rec := &contract.Record{V: contract.Version, Group: s.group, Class: class, ID: id, Origin: s.id, Seq: uint64(seq) + 1, HLC: s.clock.Next(s.now()), Deleted: deleted}
 	if !expires.IsZero() {
 		rec.Expires = contract.TimeText(expires)
@@ -275,8 +288,12 @@ func (s *state) publish(class, id string, data any, deleted bool, expires time.T
 	if err != nil {
 		return nil, err
 	}
-	if _, err := put(tx, rec, raw); err != nil {
+	won, err := put(tx, rec, raw)
+	if err != nil {
 		return nil, err
+	}
+	if !won {
+		return nil, fmt.Errorf("%w (%s %s)", errLost, class, id)
 	}
 	if err := raiseVector(tx, s.id, rec.Seq); err != nil {
 		return nil, err

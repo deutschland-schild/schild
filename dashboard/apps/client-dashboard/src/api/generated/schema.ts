@@ -1913,7 +1913,7 @@ export interface components {
             /** @enum {string} */
             mode: "single" | "group";
             /**
-             * @description Absent without `cluster.enabled`. no_group (mode single): `cluster.enabled` is set, but the node belongs to no group or could not be set up from schild.yaml; it runs alone. syncing: the node has not taken the state of the group since its start. active: it is in step with every gateway. degraded: at least one gateway is not reached, at least one is. interrupted: no other gateway is reached; the node serves with the state it has. removed: a member said this node was removed; it serves with the state it has and shares nothing.
+             * @description Absent without `cluster.enabled`. no_group (mode single): kept for clients; a gateway of this version does not answer it, since with `cluster.enabled` a node that cannot be set up or cannot run does not start (contracts/cluster.md section 6). syncing: the node has not taken the state of the group since its start. active: it is in step with every gateway. degraded: at least one gateway is not reached, at least one is. interrupted: no other gateway is reached; the node serves with the state it has. removed: a member said this node was removed; it serves with the state it has and shares nothing.
              * @enum {string}
              */
             state?: "no_group" | "syncing" | "active" | "degraded" | "interrupted" | "removed";
@@ -1980,26 +1980,26 @@ export interface components {
             /** @description The schild version the member told; absent until it did. */
             version?: string;
             /**
-             * @description Gateways only: its config version against this node's; unknown until it told one, or when the last word is older than a minute.
+             * @description Its config version against this node's; unknown until it told one, or when the last word is older than a minute.
              * @enum {string}
              */
             config?: "same" | "differs" | "unknown";
             /** @description Why the last call failed, in one line. */
             error?: string;
             vitals?: components["schemas"]["GroupVitals"];
-            /** @description Gateways only, not for this node: per class whether what is in force on the member is what is in force on this node, by the keyed hashes the gateways tell each other every 5 s, each with the point of the state it was computed at (contracts/cluster.md section 14). Hashes are compared only at the same point, so a change on its way is never a difference. same: equal at the last point both were at, within the last minute. differs: different at the same point (what is in force differs although both hold the same records), or different records at the same vector for 10 s. unknown: the member is not reached, told no hash lately, runs a build that tells no points, or the two were at no common point for a minute (changes without a pause, or a member that is behind). */
+            /** @description Not for this node: per class whether what is in force on the member is what is in force on this node, by the keyed hashes the gateways tell each other every 5 s, each with the point of the state it was computed at (contracts/cluster.md section 14). Hashes are compared only at the same point, so a change on its way is never a difference. same: equal at the last point both were at, within the last minute. differs: different at the same point (what is in force differs although both hold the same records), or different records at the same vector for 10 s. unknown: the member is not reached, told no hash lately, runs a build that tells no points, or the two were at no common point for a minute (changes without a pause, or a member that is behind). */
             shared_state?: {
                 blocks: components["schemas"]["GroupSameState"];
                 settings: components["schemas"]["GroupSameState"];
                 access: components["schemas"]["GroupSameState"];
                 logins: components["schemas"]["GroupSameState"];
             };
-            /** @description Gateways only: the member's clock minus this node's in milliseconds, as of its last word within the last minute (the time on the way counts in). Absent when it named no time. From 10 000 on the dashboard names it; a record more than 60 s ahead is refused (contracts/cluster.md section 4). */
+            /** @description The member's clock minus this node's in milliseconds, as of its last word within the last minute (the time on the way counts in). Absent when it named no time. From 10 000 on the dashboard names it; a record more than 60 s ahead is refused (contracts/cluster.md section 4). */
             clock_skew_ms?: number;
         };
         /** @enum {string} */
         GroupSameState: "same" | "differs" | "unknown";
-        /** @description Gateways only: how the member said it is doing, as it told this node within the last 20 s (this node: read now). Absent when it said nothing lately or runs a build that tells no vitals. A value outside its range is null. Shown, never decided on. */
+        /** @description How the member said it is doing, as it told this node within the last 20 s (this node: read now). Absent when it said nothing lately or runs a build that tells no vitals. A value outside its range is null. Shown, never decided on. */
         GroupVitals: {
             /** @description When this node was told. */
             at: components["schemas"]["Timestamp"];

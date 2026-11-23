@@ -15,6 +15,7 @@ import (
 	contract "github.com/deutschland-schild/schild/contract/cluster"
 	"github.com/deutschland-schild/schild/gateway/internal/accesslock"
 	"github.com/deutschland-schild/schild/gateway/internal/behaviour"
+	"github.com/deutschland-schild/schild/gateway/internal/cluster"
 	"github.com/deutschland-schild/schild/gateway/internal/crawlers"
 	"github.com/deutschland-schild/schild/gateway/internal/dashboard"
 	"github.com/deutschland-schild/schild/gateway/internal/humancheck"
@@ -366,8 +367,9 @@ type pendingEntry struct {
 }
 
 // entryTombstoneKeep is how long the record of a removed entry stays. A
-// node away for longer has to enter the group anew.
-const entryTombstoneKeep = 30 * 24 * time.Hour
+// node that was not in step for longer takes the group's state anew
+// (cluster.Node.TakesGroupState, takeGroupThing).
+const entryTombstoneKeep = cluster.EntryTombstoneKeep
 
 // maxEntryPublishes bounds the entries of one thing a node hands over per
 // round; the rest follows with the next.
@@ -500,6 +502,10 @@ func (a *App) syncThing(ctx context.Context, t sharedThing, synced bool) {
 			a.sharedCaught = map[string]bool{}
 		}
 		a.sharedCaught[t.key()] = true
+		if node.TakesGroupState() {
+			a.takeGroupThing(ctx, t, blob, local)
+			return
+		}
 		if recs, err := node.State(t.class); err == nil {
 			for _, rec := range recs {
 				if thing, ok := contract.ThingOf(rec.Class, rec.ID); !ok || thing != t.id || rec.Deleted {
@@ -706,6 +712,79 @@ func (a *App) syncThing(ctx context.Context, t sharedThing, synced bool) {
 		a.sharedDue.Store(true)
 		a.stateGen.Add(1)
 	}
+}
+
+// takeGroupThing makes a thing the group's state on a node that was not in
+// step with its group for longer than a removed entry is remembered
+// (entryTombstoneKeep): the entries the group holds are taken, the entries
+// it does not hold are removed here, and nothing this node held goes to the
+// group. Its own record of an entry the group removed may have outlived the
+// removal's tombstone, and handed over again it would bring the entry back
+// on every node. What it gives up is kept in cluster.db (table replaced).
+// Called with sharedMu held, once per thing, at the first round in step.
+func (a *App) takeGroupThing(ctx context.Context, t sharedThing, blob []byte, local map[string][]byte) {
+	node := a.Cluster
+	recs, err := node.State(t.class)
+	if err != nil {
+		a.sharedCaught[t.key()] = false
+		a.sharedDue.Store(true)
+		return
+	}
+	group := map[string][]byte{}
+	for _, rec := range recs {
+		if thing, ok := contract.ThingOf(rec.Class, rec.ID); !ok || thing != t.id || rec.Deleted {
+			continue
+		}
+		v, err := contract.DecodeValue(rec)
+		if err != nil {
+			continue
+		}
+		val, _ := v.Bytes()
+		if val == nil {
+			val = []byte{}
+		}
+		group[v.K] = val
+	}
+	set, del := map[string][]byte{}, []string{}
+	for k, v := range group {
+		if cur, here := local[k]; !here || sum(cur) != sum(v) {
+			set[k] = v
+			if here {
+				_ = node.Keep(t.key()+" "+k, cur)
+			}
+		}
+	}
+	for k, cur := range local {
+		if _, ok := group[k]; !ok {
+			del = append(del, k)
+			_ = node.Keep(t.key()+" "+k, cur)
+		}
+	}
+	delete(a.sharedPending, t.key())
+	if len(set)+len(del) > 0 {
+		next, err := t.codec.join(blob, set, del)
+		if err == nil {
+			err = t.write(ctx, next)
+		}
+		if err != nil {
+			ratelog.Error(a.log, "cluster: this node was away too long and the group's value was not applied; it keeps its own and hands none of it over", "thing", t.key(), "err", err)
+		} else {
+			a.log.Warn("cluster: this node was away too long and took the group's value; what it held is kept in cluster.db (table replaced)", "thing", t.key(), "taken", len(set), "dropped", len(del))
+		}
+		if blob, err = t.read(ctx); err == nil {
+			if l, err := t.codec.split(blob); err == nil {
+				local = l
+			}
+		}
+	}
+	marks := make(map[string]string, len(local))
+	for k, v := range local {
+		marks[k] = sum(v)
+	}
+	a.sharedMarks[t.key()] = marks
+	a.saveMarks(t)
+	a.sharedDue.Store(true)
+	a.stateGen.Add(1)
 }
 
 // publishErasure tells the group that an address was erased here (Art. 17

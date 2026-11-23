@@ -44,17 +44,6 @@ func TestGroupStatusOfASingleGateway(t *testing.T) {
 	}
 }
 
-// cluster.enabled without a group: the gateway runs alone and says why it
-// is no group.
-func TestGroupStatusWithoutAGroup(t *testing.T) {
-	h := apptest.New(t, apptest.Options{Extra: fmt.Sprintf("cluster: {enabled: true, listen: %q}\n", apptest.FreeAddr(t))})
-	h.Login()
-	st := decode[dashboard.GroupStatus](t, expect(t, h, "GET", "/group", nil, 200, "GroupStatus"))
-	if st.Mode != "single" || st.State != "no_group" || st.Node != nil || len(st.Members) != 0 {
-		t.Errorf("%+v", st)
-	}
-}
-
 type member struct {
 	dir, addr, name string
 	h               *apptest.Harness

@@ -242,10 +242,10 @@ type App struct {
 	// hubShare is the hub source as the group shares its index
 	// (cluster_hub.go); tests put another one in.
 	hubShare atomic.Pointer[hubIndex]
-	// clusterSetupErr: cluster.secret_file did not set the node up;
+	// clusterNode: the node New opened, which startCluster runs;
 	// groupHash: the engine hashes under the key of the group.
-	clusterSetupErr error
-	groupHash       bool
+	clusterNode *cluster.Node
+	groupHash   bool
 	// groupNodeID is the node id of this gateway in its group; "": none.
 	groupNodeID string
 	// draining: the node left traffic (readiness 503) and stops; drainCh
@@ -377,7 +377,10 @@ func New(ctx context.Context, opts Options) (*App, error) {
 		log.Warn(w)
 	}
 	a.Metrics = metrics.New()
-	a.prepareCluster(cfg) // before the event log and the engine: both take from the group
+	// Before the event log and the engine: both take from the group.
+	if err := a.prepareCluster(cfg); err != nil {
+		return nil, err
+	}
 	a.Events = eventlog.New(a.Store, a.eventNode(cfg), a.Metrics, log)
 	a.Sites = sites.NewRegistry(a.websitesView(cfg))
 	a.Events.Sites = a.Sites
@@ -580,6 +583,10 @@ func New(ctx context.Context, opts Options) (*App, error) {
 	a.OnSharedKey(agentAPIStoreKey, a.followAgentSwitch)
 	a.Dashboard.AgentAPI = a.agentAPIState
 	a.Dashboard.SetAgentAPI = a.setAgentAPI
+	// Last: the mesh listener is bound and held from here on.
+	if err := a.openCluster(cfg); err != nil {
+		return nil, err
+	}
 	a.Gate.SetReady(true)
 	return a, nil
 }

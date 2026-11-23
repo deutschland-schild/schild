@@ -4,8 +4,10 @@ package app_test
 
 import (
 	"context"
+	"database/sql"
 	"encoding/json"
 	"fmt"
+	"path/filepath"
 	"slices"
 	"strings"
 	"sync"
@@ -13,6 +15,7 @@ import (
 	"time"
 
 	"github.com/deutschland-schild/schild/gateway/internal/app"
+	"github.com/deutschland-schild/schild/gateway/internal/store"
 )
 
 func sharedStateOf(g *groupNode, member string) map[string]string {
@@ -220,4 +223,78 @@ func TestSteadyStreamOfChangesIsNoDifference(t *testing.T) {
 			}
 		}
 	}
+}
+
+// A node that was not in step with its group for longer than a removed
+// entry is remembered (30 days) takes the group's state as it is: an entry
+// removed meanwhile, whose tombstone the group has dropped, does not come
+// back through the copy the returning node held, neither on that node nor,
+// by the repair of a difference, on the others.
+func TestNodeAwayLongerThanATombstoneDoesNotBringARemovedEntryBack(t *testing.T) {
+	defer app.SetStateDiffTimes(time.Second, 2*time.Second, 2*time.Second)()
+	a, b := pair(t)
+	ctx := context.Background()
+	const gone, kept = "198.51.100.41", "198.51.100.42"
+	e := &store.AllowEntry{IP: gone, Label: "removed while web-2 is away", Level: "no_block", Expires: "never", CreatedAt: time.Now(), Source: "dashboard"}
+	if err := b.h.App.Store.AddAllow(ctx, e); err != nil {
+		t.Fatal(err)
+	}
+	if err := a.h.App.Store.AddAllow(ctx, &store.AllowEntry{IP: kept, Label: "stays", Level: "no_block", Expires: "never", CreatedAt: time.Now(), Source: "dashboard"}); err != nil {
+		t.Fatal(err)
+	}
+	for _, g := range []*groupNode{a, b} {
+		g.h.WaitFor(g.name+" allows both", func() bool { return allowed(g, gone) && allowed(g, kept) })
+	}
+	if err := b.h.Stop(); err != nil {
+		t.Fatal(err)
+	}
+	if err := a.h.App.Store.DeleteAllow(ctx, e.ID); err != nil {
+		t.Fatal(err)
+	}
+	a.h.WaitFor("web-1 published the removal", func() bool { return tombstones(t, a.clusterDir(), "access") > 0 })
+	// Thirty days later: the tombstone is gone on web-1 ...
+	execCluster(t, a.clusterDir(), `DELETE FROM records WHERE class = 'access' AND deleted = 1`)
+	// ... and web-2 was last in step before that.
+	execCluster(t, b.clusterDir(), `UPDATE meta SET v = ? WHERE k = 'mark:in_step_at'`, fmt.Sprint(time.Now().Add(-31*24*time.Hour).UnixMilli()))
+	b.start(t)
+	b.h.WaitFor("web-2 is in service", func() bool { return b.h.App.InService() })
+	b.h.WaitFor("web-2 dropped the entry the group removed", func() bool { return !allowed(b, gone) && allowed(b, kept) })
+	// Long enough for a difference to be repaired twice.
+	time.Sleep(8 * time.Second)
+	if allowed(a, gone) || allowed(b, gone) {
+		t.Fatalf("the removed entry came back: web-1 %v, web-2 %v", allowed(a, gone), allowed(b, gone))
+	}
+	if !allowed(a, kept) || !allowed(b, kept) {
+		t.Error("the entry the group holds was lost")
+	}
+}
+
+func execCluster(t *testing.T, dir, query string, args ...any) {
+	t.Helper()
+	db, err := sql.Open("sqlite", "file:"+filepath.Join(dir, "cluster.db")+"?_pragma=busy_timeout(10000)")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer db.Close()
+	res, err := db.Exec(query, args...)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if n, _ := res.RowsAffected(); n == 0 {
+		t.Fatalf("%s changed nothing", query)
+	}
+}
+
+func tombstones(t *testing.T, dir, class string) int {
+	t.Helper()
+	db, err := sql.Open("sqlite", "file:"+filepath.Join(dir, "cluster.db")+"?_pragma=busy_timeout(10000)")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer db.Close()
+	var n int
+	if err := db.QueryRow(`SELECT count(*) FROM records WHERE class = ? AND deleted = 1`, class).Scan(&n); err != nil {
+		t.Fatal(err)
+	}
+	return n
 }

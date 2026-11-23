@@ -4,10 +4,11 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"strings"
+	"net/http"
 	"time"
 
 	"github.com/deutschland-schild/schild/gateway/internal/behaviour"
+	"github.com/deutschland-schild/schild/gateway/internal/cluster"
 )
 
 // A node that starts takes the running counts of its group before it serves
@@ -169,7 +170,7 @@ func (a *App) takeWarm(ctx context.Context, peer string, raise bool) error {
 		q, _ := json.Marshal(warmQuestion{Cursor: cursor})
 		raw, err := a.Cluster.Ask(ctx, peer, askWarm, q)
 		if err != nil {
-			if strings.Contains(err.Error(), "404") {
+			if se := (*cluster.StatusError)(nil); errors.As(err, &se) && se.Code == http.StatusNotFound {
 				return errWarmUnknown
 			}
 			return err

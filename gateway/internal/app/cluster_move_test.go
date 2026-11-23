@@ -202,8 +202,9 @@ func TestNewGroupSecretKeepsCertificates(t *testing.T) {
 	a.h.WaitFor("web-1 holds the renewed certificate", func() bool { return a.has(dir+"shop.example.crt", crt2) && a.has(dir+"shop.example.key", key2) })
 }
 
-// A new secret file that cannot be used moves nothing: the directory of the
-// old group stays as it is, and with the old file the node is back in it.
+// A new secret file that cannot be used moves nothing and stops the start:
+// the directory of the old group stays as it is, and with the old file the
+// node is back in it.
 func TestUnusableNewSecretLeavesTheOldGroup(t *testing.T) {
 	sg := newSecretGroup(t, "")
 	a, b := sg.a, sg.b
@@ -224,12 +225,11 @@ func TestUnusableNewSecretLeavesTheOldGroup(t *testing.T) {
 		t.Fatal(err)
 	}
 	for _, file := range []string{short, open, filepath.Join(t.TempDir(), "missing")} {
-		sg.start(t, b, file)
-		if b.h.App.Cluster != nil {
-			t.Fatalf("%s: a secret that cannot be used started a cluster node", filepath.Base(file))
-		}
-		if err := b.h.Stop(); err != nil {
-			t.Fatal(err)
+		// schild does not start, and says why.
+		h := apptest.New(t, apptest.Options{Dir: b.dir, Caddyfile: sg.caddyfile, NewFails: true,
+			Extra: fmt.Sprintf("cluster: {enabled: true, listen: %q, secret_file: %q, peers: [%q, %q]}\n", b.addr, file, a.addr, b.addr)})
+		if !strings.Contains(h.NewErr.Error(), "cluster.secret_file") {
+			t.Errorf("%s: the error does not name the secret file: %v", filepath.Base(file), h.NewErr)
 		}
 		st, err := cluster.ReadStatus(dir, nil)
 		if err != nil || st.Group != group {

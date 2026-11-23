@@ -55,6 +55,11 @@ type syncResponse struct {
 	Covered map[string]uint64 `json:"covered"`
 	Records []json.RawMessage `json:"records"`
 	More    bool              `json:"more"`
+	// InStep: the answering node is in step with its group, or was within
+	// EntryTombstoneKeep. Only such an answer makes the caller in step
+	// (runPeer), so two fresh nodes do not call each other in step with
+	// nothing.
+	InStep bool `json:"in_step"`
 }
 
 // helloRequest is how a node set up by configuration makes itself known:
@@ -70,10 +75,10 @@ type helloResponse struct {
 }
 
 func (n *Node) listen() (*http.Server, net.Listener, error) {
-	ln, err := net.Listen("tcp", n.opts.Listen)
-	if err != nil {
-		return nil, nil, fmt.Errorf("cluster: listen %s: %w", n.opts.Listen, err)
+	if err := n.Bind(); err != nil {
+		return nil, nil, err
 	}
+	ln := n.takeListener()
 	if n.wrapListener != nil {
 		ln = n.wrapListener(ln)
 	}
@@ -164,7 +169,7 @@ func (n *Node) serveSync(w http.ResponseWriter, r *http.Request) {
 			recs = []json.RawMessage{}
 		}
 		w.Header().Set("Content-Type", "application/json")
-		_ = json.NewEncoder(w).Encode(syncResponse{Vector: vec, Covered: covered, Records: recs, More: more})
+		_ = json.NewEncoder(w).Encode(syncResponse{Vector: vec, Covered: covered, Records: recs, More: more, InStep: n.inStepAnswer()})
 		return
 	}
 }
@@ -172,7 +177,9 @@ func (n *Node) serveSync(w http.ResponseWriter, r *http.Request) {
 // serveHello takes the member record of a node that lets itself in with the
 // group secret (cluster.secret_file), and answers with the member list. The
 // caller needs no place in the group yet: its record proves it, and the
-// answer holds only what every record of it proves by itself.
+// answer holds only what every record of it proves by itself. The record is
+// checked before anything is stored, and the call touches neither the
+// readiness of this node nor what its syncs held back.
 func (n *Node) serveHello(w http.ResponseWriter, r *http.Request) {
 	key, ok := peerKey(r.TLS)
 	if !ok {
@@ -189,11 +196,24 @@ func (n *Node) serveHello(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "bad request", http.StatusBadRequest)
 		return
 	}
+	if err := n.reload(); err != nil {
+		http.Error(w, "store", http.StatusInternalServerError)
+		return
+	}
+	// The admission of the group secret, the signature and the clock first:
+	// a caller that fails them stores nothing here.
+	n.rmu.RLock()
+	cerr := n.roster.Check(&rec, n.now())
+	n.rmu.RUnlock()
+	if cerr != nil {
+		n.refuse(w, key)
+		return
+	}
 	if !n.IsMember(id) && n.full() {
 		http.Error(w, "the group is full", http.StatusConflict)
 		return
 	}
-	if _, err := n.take([]json.RawMessage{req.Record}, nil); err != nil {
+	if _, _, err := n.takeRecords([]json.RawMessage{req.Record}, nil, false); err != nil {
 		http.Error(w, "store", http.StatusInternalServerError)
 		return
 	}
@@ -222,18 +242,30 @@ func (n *Node) seek(ctx context.Context) {
 		return
 	}
 	n.rmu.RLock()
-	known := map[string]bool{}
+	known, gone := map[string]bool{}, map[string]bool{}
 	for _, e := range n.roster.Members() {
-		if !e.Removed {
+		if e.Removed {
+			gone[e.Member.Address] = true
+		} else {
 			known[e.Member.Address] = true
 		}
 	}
 	n.rmu.RUnlock()
+	now := n.now()
 	var todo []string
 	for _, p := range n.opts.Peers {
-		if !known[p] {
-			todo = append(todo, p)
+		if known[p] {
+			continue
 		}
+		// The address of a removed member is asked once a minute, not every
+		// second: a new node may come up under it.
+		if gone[p] {
+			if next, ok := n.seekNext[p]; ok && now.Before(next) {
+				continue
+			}
+			n.seekNext[p] = now.Add(seekRemovedEvery)
+		}
+		todo = append(todo, p)
 	}
 	if len(todo) == 0 {
 		n.seeking.Store(false)
@@ -254,13 +286,25 @@ func (n *Node) seek(ctx context.Context) {
 		if own == nil {
 			return
 		}
-		// Any key may answer: what it answers is checked record by record.
-		c := meshClient(n.cert, func(ed25519.PublicKey) bool { return true }, 5*time.Second)
-		defer c.CloseIdleConnections()
 		for _, addr := range todo {
+			// Any key may answer: what it answers is checked record by
+			// record. The key is kept to weigh a 410.
+			var mu sync.Mutex
+			var answered ed25519.PublicKey
+			c := meshClient(n.cert, func(k ed25519.PublicKey) bool {
+				mu.Lock()
+				answered = k
+				mu.Unlock()
+				return true
+			}, 5*time.Second)
 			var resp helloResponse
-			if err := postJSON(ctx, c, "https://"+addr+pathHello, helloRequest{Record: own}, &resp); err != nil {
-				if n.removedHere(err) {
+			err := postJSON(ctx, c, "https://"+addr+pathHello, helloRequest{Record: own}, &resp)
+			c.CloseIdleConnections()
+			if err != nil {
+				mu.Lock()
+				k := answered
+				mu.Unlock()
+				if n.removedBy(err, k) {
 					n.noteRemoved()
 				}
 				n.log.Debug("cluster: configured peer not reached", "peer", addr, "err", err)
@@ -274,7 +318,7 @@ func (n *Node) seek(ctx context.Context) {
 			for _, raw := range resp.Records {
 				rs = append(rs, raw)
 			}
-			if _, err := n.take(rs, nil); err != nil {
+			if _, _, err := n.takeRecords(rs, nil, false); err != nil {
 				n.log.Warn("cluster: member list of a configured peer not taken", "peer", addr, "err", err)
 			}
 		}
@@ -326,15 +370,29 @@ type removedError struct{ group string }
 func (e *removedError) Error() string        { return errRemoved.Error() }
 func (e *removedError) Is(target error) bool { return target == errRemoved }
 
-// removedHere reports whether err says that this node was removed from the
-// group it is in now.
+// removedHere reports whether err, the answer of a member this node called
+// by its key, says that this node was removed from the group it is in now.
+// An answer that names no group, or another one, says nothing about it.
 func (n *Node) removedHere(err error) bool {
 	var re *removedError
-	if errors.As(err, &re) {
-		return re.group == "" || re.group == n.group
-	}
-	return errors.Is(err, errRemoved)
+	return errors.As(err, &re) && re.group != "" && re.group == n.group
 }
+
+// removedBy is removedHere for an answer of a key this node did not choose
+// (seek asks an address): it counts only when that key is an active member
+// as this node sees it.
+func (n *Node) removedBy(err error, key ed25519.PublicKey) bool {
+	if len(key) == 0 || !n.removedHere(err) {
+		return false
+	}
+	n.rmu.RLock()
+	defer n.rmu.RUnlock()
+	_, ok := n.roster.ActiveKey(key)
+	return ok
+}
+
+// seekRemovedEvery is how often seek asks the address of a removed member.
+const seekRemovedEvery = time.Minute
 
 func (n *Node) noteRemoved() {
 	if n.removed.CompareAndSwap(false, true) {
@@ -388,6 +446,9 @@ type peer struct {
 	// inSeq is how far this peer said it is with the records of this node,
 	// in its last call.
 	inSeq uint64
+	// held: its last answer put records off. fresh: it answered in full as
+	// a node that is not in step (newGroup).
+	held, fresh bool
 	// telling: the kinds of Tell to this peer that are in flight;
 	// tellClient keeps its connection.
 	telling    map[string]bool
@@ -470,6 +531,10 @@ func (n *Node) runPeer(ctx context.Context, p *peer, key ed25519.PublicKey) {
 			return true
 		}
 	}
+	// all: what a node that was away too long (Stale) asks this member
+	// for until it is in step: everything from the first record on, since
+	// it dropped what it held of the shared classes.
+	all := map[string]uint64{}
 	for ctx.Err() == nil {
 		vec, err := n.vectorNow()
 		if err != nil {
@@ -482,14 +547,23 @@ func (n *Node) runPeer(ctx context.Context, p *peer, key ed25519.PublicKey) {
 		// answers at once, also when it has nothing new, and the node knows
 		// what the group holds. Held, its readiness depended on whether the
 		// member happened to write something within the hold. A node whose
-		// records were put off (a clock far behind) waits as usual, so it
-		// does not ask in a tight loop.
+		// records this member put off (a clock far behind) waits as usual,
+		// so it does not ask in a tight loop.
+		synced := n.synced.Load()
+		p.mu.Lock()
+		wasHeld := p.held
+		p.mu.Unlock()
 		hold := n.opts.Hold
-		if !n.synced.Load() && !n.heldBack.Load() {
+		if !synced && !wasHeld {
 			hold = 0
 		}
+		ask := vec
+		full := !synced && n.stale.Load()
+		if full {
+			ask = all
+		}
 		var resp syncResponse
-		err = postJSON(ctx, c, "https://"+p.address+pathSync, syncRequest{Group: n.group, Vector: vec, WaitMS: int(hold / time.Millisecond)}, &resp)
+		err = postJSON(ctx, c, "https://"+p.address+pathSync, syncRequest{Group: n.group, Vector: ask, WaitMS: int(hold / time.Millisecond)}, &resp)
 		if ctx.Err() != nil {
 			return
 		}
@@ -507,12 +581,41 @@ func (n *Node) runPeer(ctx context.Context, p *peer, key ed25519.PublicKey) {
 			continue
 		}
 		backoff = 250 * time.Millisecond
-		applied, err := n.take(resp.Records, resp.Covered)
-		// In step only when nothing was put off: a node whose clock is far
-		// behind takes the records of the others a minute late, and must not
-		// call itself in step before it holds them.
-		if err == nil && !resp.More && !n.heldBack.Load() {
-			n.synced.Store(true)
+		if full {
+			n.retake.Add(1)
+		}
+		applied, held, err := n.takeRecords(resp.Records, resp.Covered, true)
+		if full {
+			n.retake.Add(-1)
+			for o, seq := range resp.Covered {
+				all[o] = max(all[o], seq)
+			}
+		}
+		if err == nil {
+			p.mu.Lock()
+			p.held = held
+			p.mu.Unlock()
+		}
+		// In step only when nothing was put off, by this member or another:
+		// a node whose clock is far behind takes the records of the others a
+		// minute late, and must not call itself in step before it holds
+		// them. And only by the answer of a member that is in step, or as a
+		// node that was in step itself: two fresh nodes do not make each
+		// other in step with nothing, unless the whole group is new.
+		if err == nil && !resp.More && !held && !n.heldAnywhere() {
+			switch {
+			case resp.InStep:
+				n.markSynced(true)
+			case n.inStepAnswer():
+				n.markSynced(false)
+			default:
+				p.mu.Lock()
+				p.fresh = true
+				p.mu.Unlock()
+				if n.newGroup() {
+					n.markSynced(false)
+				}
+			}
 		}
 		var behind uint64
 		for o, seq := range resp.Vector {
@@ -527,8 +630,11 @@ func (n *Node) runPeer(ctx context.Context, p *peer, key ed25519.PublicKey) {
 		}
 		p.mu.Unlock()
 		// Records that were sent and not applied come again with the next
-		// call at once; do not spin on them.
-		if (err != nil || (applied == 0 && len(resp.Records) > 0)) && !pause(time.Second) {
+		// call at once; do not spin on them. Nor on a member whose complete
+		// answer did not make this node in step (neither is in step yet):
+		// it is asked again a second later.
+		waiting := err == nil && !resp.More && !n.synced.Load()
+		if (err != nil || (applied == 0 && len(resp.Records) > 0) || waiting) && !pause(time.Second) {
 			return
 		}
 	}
@@ -809,7 +915,7 @@ func (n *Node) Ask(ctx context.Context, peerID, kind string, body []byte) ([]byt
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("cluster: ask %s: %s", kind, resp.Status)
+		return nil, &StatusError{Kind: kind, Code: resp.StatusCode}
 	}
 	out, err := io.ReadAll(io.LimitReader(resp.Body, maxAnswerBody+1))
 	if err != nil {
@@ -819,6 +925,17 @@ func (n *Node) Ask(ctx context.Context, peerID, kind string, body []byte) ([]byt
 		return nil, errors.New("cluster: answer too large")
 	}
 	return out, nil
+}
+
+// StatusError is the answer of a member to an Ask that was not 200.
+// http.StatusNotFound: the member does not know the kind (an earlier build).
+type StatusError struct {
+	Kind string
+	Code int
+}
+
+func (e *StatusError) Error() string {
+	return fmt.Sprintf("cluster: ask %s: %d %s", e.Kind, e.Code, http.StatusText(e.Code))
 }
 
 func (p *peer) asker(cert tls.Certificate) *http.Client {

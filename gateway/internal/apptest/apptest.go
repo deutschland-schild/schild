@@ -52,6 +52,8 @@ type Harness struct {
 	closed      bool
 	cancel      context.CancelFunc
 	Password    string
+	// NewErr is the error of app.New with Options.NewFails.
+	NewErr error
 }
 
 // Options tune the harness.
@@ -83,6 +85,9 @@ type Options struct {
 	// StartFails: the test expects Run to refuse the start (Stop returns
 	// its error), so New does not wait for the listeners.
 	StartFails bool
+	// NewFails: the test expects app.New to refuse the start; the harness
+	// then holds its error (NewErr) and nothing runs.
+	NewFails bool
 }
 
 // FreeAddr returns a 127.0.0.1 address for a listener of the app, which
@@ -144,6 +149,15 @@ func New(t testing.TB, o Options) *Harness {
 	}
 	a, err := app.New(ctx, app.Options{ConfigPath: cfgPath, Log: log, NoListeners: !o.Listeners,
 		BotsNow: botsNow(o)})
+	if o.NewFails {
+		cancel()
+		h.Backend.Close()
+		if err == nil {
+			t.Fatal("app.New started, the test expects it to refuse")
+		}
+		h.NewErr = err
+		return h
+	}
 	if err != nil {
 		t.Fatal(err)
 	}

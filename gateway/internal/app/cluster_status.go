@@ -5,8 +5,11 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
+	"fmt"
 	"net/netip"
+	"slices"
 	"sort"
+	"strings"
 	"sync"
 	"time"
 
@@ -91,18 +94,29 @@ type groupVersions struct {
 
 // groupConfigVersion is the config version a node tells its group: SHA-256
 // over schild.yaml as loaded, without the keys that differ from node to
-// node by design (node_name, cluster.name, cluster.listen,
-// cluster.advertise), and over
-// rules.d. A file that does not parse hashes as its bytes.
+// node by design (node_name, listen.dashboard, listen.metrics,
+// cluster.name, cluster.listen, cluster.advertise) and with cluster.peers
+// in order, and over rules.d. A file that does not parse hashes as its
+// bytes.
 func groupConfigVersion(raw []byte, localRules string) string {
 	h := sha256.New()
 	var doc map[string]any
 	if j, err := config.YAMLToJSON(raw); err == nil && json.Unmarshal(j, &doc) == nil {
 		delete(doc, "node_name")
+		if l, ok := doc["listen"].(map[string]any); ok {
+			delete(l, "dashboard")
+			delete(l, "metrics")
+			if len(l) == 0 {
+				delete(doc, "listen")
+			}
+		}
 		if c, ok := doc["cluster"].(map[string]any); ok {
 			delete(c, "name")
 			delete(c, "listen")
 			delete(c, "advertise")
+			if ps, ok := c["peers"].([]any); ok {
+				slices.SortFunc(ps, func(x, y any) int { return strings.Compare(fmt.Sprint(x), fmt.Sprint(y)) })
+			}
 		}
 		// encoding/json writes the keys of a map in order.
 		j, _ = json.Marshal(doc)
@@ -288,7 +302,8 @@ func (a *App) GroupStatus() dashboard.GroupStatus {
 	now := time.Now()
 	node := a.Cluster
 	if node == nil {
-		// cluster.enabled, but no group: it runs alone (startCluster says why).
+		// cluster.enabled and no node: only before the loops start. A
+		// gateway whose node cannot run does not start (openCluster).
 		return dashboard.GroupStatus{Mode: "single", State: "no_group", GeneratedAt: dashboard.Stamp(now)}
 	}
 	st, err := node.Live()

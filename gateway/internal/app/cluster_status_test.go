@@ -17,17 +17,18 @@ import (
 // node to node by design, and nothing else.
 func TestGroupConfigVersionLeavesOutWhatDiffersByDesign(t *testing.T) {
 	one := "node_name: web-1\nmode: autoblock\ncluster:\n  enabled: true\n  listen: \"10.0.0.1:8790\"\n  peers: [\"10.0.0.1:8790\", \"10.0.0.2:8790\"]\n"
-	two := "cluster:\n  peers: [\"10.0.0.1:8790\", \"10.0.0.2:8790\"]\n  advertise: \"10.0.0.2:8790\"\n  enabled: true\n  listen: \"0.0.0.0:8790\"\nmode: autoblock\nnode_name: web-2\n"
+	two := "cluster:\n  peers: [\"10.0.0.2:8790\", \"10.0.0.1:8790\"]\n  advertise: \"10.0.0.2:8790\"\n  enabled: true\n  listen: \"0.0.0.0:8790\"\nmode: autoblock\nnode_name: web-2\nlisten: {dashboard: \"10.0.0.2:8443\", metrics: \"10.0.0.2:9090\"}\n"
 	v := app.GroupConfigVersion([]byte(one), "rules")
 	if len(v) != 64 {
 		t.Fatalf("version %q", v)
 	}
 	if got := app.GroupConfigVersion([]byte(two), "rules"); got != v {
-		t.Error("two nodes of one deployment (other name, listen, advertise, order of keys) have different config versions")
+		t.Error("two nodes of one deployment (other name, listen, advertise, dashboard and metrics listeners, order of keys and peers) have different config versions")
 	}
 	for name, other := range map[string]string{
-		"another mode":  "node_name: web-1\nmode: observe\ncluster:\n  enabled: true\n  listen: \"10.0.0.1:8790\"\n  peers: [\"10.0.0.1:8790\", \"10.0.0.2:8790\"]\n",
-		"another peers": "node_name: web-1\nmode: autoblock\ncluster:\n  enabled: true\n  listen: \"10.0.0.1:8790\"\n  peers: [\"10.0.0.1:8790\"]\n",
+		"another mode":           "node_name: web-1\nmode: observe\ncluster:\n  enabled: true\n  listen: \"10.0.0.1:8790\"\n  peers: [\"10.0.0.1:8790\", \"10.0.0.2:8790\"]\n",
+		"another peers":          "node_name: web-1\nmode: autoblock\ncluster:\n  enabled: true\n  listen: \"10.0.0.1:8790\"\n  peers: [\"10.0.0.1:8790\"]\n",
+		"another proxy listener": "node_name: web-1\nmode: autoblock\nlisten: {proxy: \":8081\"}\ncluster:\n  enabled: true\n  listen: \"10.0.0.1:8790\"\n  peers: [\"10.0.0.1:8790\", \"10.0.0.2:8790\"]\n",
 	} {
 		if app.GroupConfigVersion([]byte(other), "rules") == v {
 			t.Errorf("%s: same config version", name)

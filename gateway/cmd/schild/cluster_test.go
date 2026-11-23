@@ -13,6 +13,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/deutschland-schild/schild/contract/config"
 	"github.com/deutschland-schild/schild/gateway/internal/app"
 	"github.com/deutschland-schild/schild/gateway/internal/cluster"
 	"github.com/deutschland-schild/schild/gateway/internal/testport"
@@ -126,5 +127,19 @@ func TestClusterSecret(t *testing.T) {
 	_ = runCluster([]string{"secret"}, &again, time.Now)
 	if again.String() == out.String() {
 		t.Error("two secrets are the same")
+	}
+}
+
+// drain names the node as the group does: cluster.name, or with
+// cluster.name_from_host its host, before node_name.
+func TestDrainNamesTheMember(t *testing.T) {
+	cfg := &config.Site{NodeName: "schild"}
+	cfg.Cluster.Name = "web-3"
+	if got := drainMessage(cfg, "ignored"); !strings.HasPrefix(got, "web-3 left traffic") {
+		t.Errorf("with cluster.name: %q", got)
+	}
+	cfg.Cluster.Name, cfg.Cluster.NameFromHost = "", true
+	if got := drainMessage(cfg, "web-4.example.net"); !strings.HasPrefix(got, "web-4 left traffic") {
+		t.Errorf("with cluster.name_from_host: %q", got)
 	}
 }

@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/netip"
 	"os"
 	"path/filepath"
@@ -55,8 +56,32 @@ type groupBlock struct {
 	self bool
 }
 
-// startCluster opens the node and starts its loops. A gateway with
-// cluster.enabled that belongs to no group runs alone and says so.
+// openCluster opens the node of a gateway with cluster.enabled and binds
+// its mesh listener, at the end of New: a node that cannot run (its port is
+// taken, its key does not load, it belongs to no group) stops the start, so
+// no gateway of a group runs alone while its readiness answer says 200.
+func (a *App) openCluster(cfg *config.Site) error {
+	if !cfg.Cluster.Enabled {
+		return nil
+	}
+	node, err := cluster.Open(cluster.Options{Dir: ClusterDir(a.dataDir), Listen: cfg.Cluster.Listen, Log: a.log, Peers: cfg.Cluster.Peers})
+	if errors.Is(err, cluster.ErrNoGroup) {
+		return fmt.Errorf("cluster.enabled, but this node belongs to no group: set cluster.secret_file (the same file on every node, schild cluster secret makes one) and cluster.peers, or set cluster.enabled false: %w", err)
+	}
+	if err != nil {
+		return fmt.Errorf("cluster: the node does not open (%w): a node key that does not load belongs to its owner alone (chmod 0600 node.key) or, when it is broken, goes with its cluster directory (%s), which the next start makes anew from cluster.secret_file; or set cluster.enabled false", err, ClusterDir(a.dataDir))
+	}
+	if err := node.Bind(); err != nil {
+		node.Close()
+		return fmt.Errorf("cluster: the mesh does not listen (%w): free the port or change cluster.listen, or set cluster.enabled false", err)
+	}
+	a.clusterNode = node
+	return nil
+}
+
+// startCluster starts the node New opened and its loops. Every handler of
+// the node is registered before the mesh runs, so no record or message that
+// arrives at once misses its handler.
 func (a *App) startCluster(ctx context.Context) {
 	cfg := a.Config()
 	if !cfg.Cluster.Enabled {
@@ -64,30 +89,17 @@ func (a *App) startCluster(ctx context.Context) {
 	}
 	a.Gate.InService = a.inService
 	a.Gate.Leaving = a.Draining
-	dir := ClusterDir(a.dataDir)
-	if a.clusterSetupErr != nil {
-		a.log.Error("cluster: the node is not set up from schild.yaml, this gateway runs alone", "err", a.clusterSetupErr)
-		return
-	}
-	node, err := cluster.Open(cluster.Options{Dir: dir, Listen: cfg.Cluster.Listen, Log: a.log, Peers: cfg.Cluster.Peers})
-	if errors.Is(err, cluster.ErrNoGroup) {
-		a.log.Warn("cluster.enabled, but this node belongs to no group: it runs alone. Set cluster.secret_file and cluster.peers on every node (schild cluster secret makes the secret), then restart schild")
-		return
-	}
-	if err != nil {
-		a.log.Error("cluster: the node does not start, this gateway runs alone", "err", err)
-		return
+	node := a.clusterNode
+	if node == nil {
+		return // New refused a start without it; tests that build the app by hand
 	}
 	a.Cluster = node
+	if node.Removed() {
+		a.log.Warn("cluster: this node was removed from its group. It serves with the state it has and shares nothing. To take it out for good: cluster.enabled false; to bring it back: delete its cluster directory and start schild again")
+	}
 	a.groupBlocks.known = map[behaviour.Key]groupBlock{}
 	node.On(contract.ClassBlocks, a.applyGroupRecord)
 	a.seedGroupBlocks()
-	a.goLoop(ctx, "cluster", func(ctx context.Context) {
-		if err := node.Run(ctx); err != nil {
-			a.log.Error("cluster: the mesh stopped, this gateway runs with its last state", "err", err)
-			<-ctx.Done()
-		}
-	})
 	a.goLoop(ctx, "cluster-blocks", tick(250*time.Millisecond, a.publishGroupBlocks))
 	a.goLoop(ctx, "cluster-ready", tick(time.Second, a.noteReadiness))
 	a.startSharedState(ctx)
@@ -100,7 +112,19 @@ func (a *App) startCluster(ctx context.Context) {
 	if cfg.CaddyIngress() {
 		a.startGroupFiles(ctx, a.storageRoot())
 	}
+	if f := testBeforeMesh; f != nil {
+		f(a)
+	}
+	a.goLoop(ctx, "cluster", func(ctx context.Context) {
+		if err := node.Run(ctx); err != nil {
+			a.log.Error("cluster: the mesh stopped, this gateway runs with its last state", "err", err)
+			<-ctx.Done()
+		}
+	})
 }
+
+// testBeforeMesh, in tests, runs right before the mesh starts.
+var testBeforeMesh func(*App)
 
 // seedGroupBlocks applies the blocks of the group this node holds at its
 // start: what ran when it stopped runs again, also blocks under 24 h, which
@@ -462,27 +486,31 @@ var testGroupHashKey *[16]byte
 // prepareCluster runs before the behaviour engine is made: a node set up by
 // configuration lets itself into its group (cluster.secret_file), and the
 // keyed hashes of the engine take the key of the group, so the nodes can
-// merge what they count (behaviour.SetHashKey).
-func (a *App) prepareCluster(cfg *config.Site) {
+// merge what they count (behaviour.SetHashKey). A node that cannot be set
+// up stops the start: with cluster.enabled a gateway never runs alone.
+func (a *App) prepareCluster(cfg *config.Site) error {
 	if !cfg.Cluster.Enabled {
-		return
+		return nil
 	}
 	dir := ClusterDir(a.dataDir)
 	if cfg.Cluster.SecretFile != "" {
 		// The same files were deployed to every node.
 		secret, err := cluster.ReadSecret(cfg.Cluster.SecretFile)
-		if err == nil {
-			host, _ := os.Hostname()
-			var moved *cluster.Moved
-			_, moved, err = cluster.Configure(dir, cfg.MemberName(host), cfg.Cluster.Address(), secret, nil)
-			if moved != nil {
-				a.log.Warn("cluster: cluster.secret_file names another group than this node was in: it moved there and took along what it held. The other nodes follow when they start with the same file",
-					"from", moved.From, "to", moved.To, "records", moved.Carried, "left", moved.Skipped, "old_directory", moved.Aside)
-			}
-		}
 		if err != nil {
-			a.clusterSetupErr = err
-			return
+			return fmt.Errorf("cluster: the node is not set up (%w); deploy the group secret to cluster.secret_file (schild cluster secret makes one), or set cluster.enabled false", err)
+		}
+		host, _ := os.Hostname()
+		_, moved, err := cluster.Configure(dir, cfg.MemberName(host), cfg.Cluster.Address(), secret, nil)
+		if moved != nil {
+			a.log.Warn("cluster: cluster.secret_file names another group than this node was in: it moved there and took along what it held. The other nodes follow when they start with the same file",
+				"from", moved.From, "to", moved.To, "records", moved.Carried, "left", moved.Skipped, "old_directory", moved.Aside)
+		}
+		switch {
+		case errors.Is(err, cluster.ErrRemovedSelf):
+			// A removed node serves with the state it has and shares
+			// nothing, as it did before its stop (startCluster).
+		case err != nil:
+			return fmt.Errorf("cluster: the node is not set up from cluster.secret_file (%w); the cluster directory %s stays as it was. Fix the cause, or set cluster.enabled false", err, dir)
 		}
 	}
 	if id, ok := cluster.Identity(dir); ok {
@@ -496,6 +524,7 @@ func (a *App) prepareCluster(cfg *config.Site) {
 		a.groupHash = true
 		a.groupHashKey = key
 	}
+	return nil
 }
 
 // tellCounts tells the other nodes what this one counted in the last second.
@@ -534,14 +563,16 @@ func (a *App) startCounts(ctx context.Context) {
 }
 
 // eventNode is the name the events of this gateway carry as their source.
-// In a group it ends with the start of the node id: the nodes tell their
-// own events from the others' by it, and a deployment often gives every
-// node the same node_name.
+// In a group it is the node's name in the group (cluster.name, with
+// cluster.name_from_host its host, else node_name) and ends with the start
+// of the node id: the nodes tell their own events from the others' by it,
+// and a deployment often gives every node the same node_name.
 func (a *App) eventNode(cfg *config.Site) string {
 	if a.groupNodeID == "" {
 		return cfg.NodeName
 	}
-	name := cfg.NodeName
+	host, _ := os.Hostname()
+	name := cfg.MemberName(host)
 	if len(name) > 48 {
 		name = name[:48]
 	}

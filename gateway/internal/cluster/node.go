@@ -10,11 +10,14 @@ import (
 	"database/sql"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"log/slog"
 	"math/big"
 	"net"
 	"net/http"
+	"net/netip"
 	"sort"
+	"strconv"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -81,6 +84,9 @@ type Node struct {
 	takeMu sync.Mutex
 	// wrapListener, in tests, stands between the mesh and its listener.
 	wrapListener func(net.Listener) net.Listener
+	// ln is the mesh listener Bind opened; Run serves it.
+	lnMu sync.Mutex
+	ln   net.Listener
 
 	// Counters of schild cluster status.
 	Applied, Rejected, Deferred, Unread atomic.Uint64
@@ -89,11 +95,21 @@ type Node struct {
 
 	addr    atomic.Pointer[string]
 	seeking atomic.Bool
+	// seekNext: when seek asks the address of a removed member again;
+	// read and written by the one seek under way.
+	seekNext map[string]time.Time
 	// removed: a member answered that this node was removed.
 	removed atomic.Bool
 	synced  atomic.Bool
-	// heldBack: the last take put records off (see take).
-	heldBack atomic.Bool
+	// syncedByMember: the answer that made this node in step came from a
+	// member that is in step itself (not from the start of a new group).
+	syncedByMember atomic.Bool
+	// lastInStep: when this node was last noted in step with its group,
+	// unix ms (markInStepAt); 0: never.
+	lastInStep atomic.Int64
+	// stale: at its start the node had not been in step for longer than a
+	// tombstone lives (EntryTombstoneKeep), see Open.
+	stale atomic.Bool
 	// storeGen moves when the store of the node changed (watchStore).
 	storeGen atomic.Uint64
 	// taking counts the takes under way (Taking).
@@ -118,7 +134,8 @@ func Open(o Options) (*Node, error) {
 		st.close()
 		return nil, ErrNoGroup
 	}
-	n := &Node{state: st, opts: o, log: o.Log, handlers: map[string][]func(*contract.Record){}, news: make(chan struct{}), peers: map[string]*peer{}}
+	n := &Node{state: st, opts: o, log: o.Log, handlers: map[string][]func(*contract.Record){}, news: make(chan struct{}), peers: map[string]*peer{},
+		seekNext: map[string]time.Time{}}
 	if n.cert, err = selfCert(st.key); err != nil {
 		st.close()
 		return nil, err
@@ -127,11 +144,248 @@ func Open(o Options) (*Node, error) {
 		st.close()
 		return nil, err
 	}
+	n.opts.Peers = canonicalPeers(o.Peers)
+	// A node removed before its stop stays removed: it serves with the
+	// state it has and shares nothing, from its start on.
+	if v, err := st.meta("removed"); err == nil && len(v) > 0 {
+		n.removed.Store(true)
+	}
+	n.rmu.RLock()
+	if n.roster.Removed(n.id) {
+		n.removed.Store(true)
+	}
+	n.rmu.RUnlock()
+	if at, err := strconv.ParseInt(n.Mark(markInStepAt), 10, 64); err == nil && at > 0 {
+		n.lastInStep.Store(at)
+		if away := st.now().Sub(time.UnixMilli(at)); away > EntryTombstoneKeep {
+			if err := st.forgetShared(); err != nil {
+				st.close()
+				return nil, err
+			}
+			n.stale.Store(true)
+			n.log.Warn("cluster: this node was not in step with its group for longer than a removed entry is remembered; it takes the state of its group anew from a member that is in step and hands over none of the settings, access and login entries it held",
+				"away", away.Round(time.Hour).String(), "keep", EntryTombstoneKeep.String())
+		}
+	}
 	return n, nil
 }
 
-// Close ends the node's database. Run has to have returned.
-func (n *Node) Close() { n.state.close() }
+// EntryTombstoneKeep is how long the record of a removed entry of the
+// classes settings, access and logins stays (its expires). A node that was
+// not in step with its group for longer may hold an entry whose removal the
+// group has forgotten; it takes the group's state anew (Open, Stale).
+const EntryTombstoneKeep = 30 * 24 * time.Hour
+
+// markInStepAt is the note of when the node was last in step with its group
+// (unix ms). A mark, so a move to a new group carries it.
+const markInStepAt = "in_step_at"
+
+// inStepNoteEvery is how often a node that is in step notes it again.
+const inStepNoteEvery = 10 * time.Minute
+
+// sharedClasses are the classes whose removed entries end with their
+// tombstone (EntryTombstoneKeep).
+var sharedClasses = []string{contract.ClassSettings, contract.ClassAccess, contract.ClassLogins}
+
+// forgetShared drops what a node that was away too long holds of the
+// shared classes, and what it noted of having brought its values in step
+// (the marks "entries:" of the gateway): the records come again from a
+// member, from the first on (runPeer), and are the group's state.
+func (s *state) forgetShared() error {
+	s.wmu.Lock()
+	defer s.wmu.Unlock()
+	tx, err := s.db.Begin()
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+	for _, c := range sharedClasses {
+		if _, err := tx.Exec(`DELETE FROM records WHERE class = ?`, c); err != nil {
+			return err
+		}
+	}
+	if _, err := tx.Exec(`DELETE FROM meta WHERE k LIKE 'mark:entries:%'`); err != nil {
+		return err
+	}
+	return tx.Commit()
+}
+
+// Stale reports whether this node had not been in step with its group for
+// longer than EntryTombstoneKeep when it started.
+func (n *Node) Stale() bool { return n.stale.Load() }
+
+// TakesGroupState reports whether this node has to take the state of its
+// group as it is and hand over nothing it held from before: it was away
+// too long (Stale), and it came in step from a member that is in step. A
+// node that came in step with the start of a new group (every member as
+// fresh or away as itself) has nobody to take from and hands over what it
+// holds.
+func (n *Node) TakesGroupState() bool {
+	return n.stale.Load() && n.synced.Load() && n.syncedByMember.Load()
+}
+
+// canonicalPeers writes every address of cluster.peers the way a member
+// record carries it (netip.AddrPort.String), so the two compare.
+func canonicalPeers(peers []string) []string {
+	out := make([]string, 0, len(peers))
+	for _, p := range peers {
+		if ap, err := netip.ParseAddrPort(p); err == nil {
+			p = ap.String()
+		}
+		out = append(out, p)
+	}
+	return out
+}
+
+// Bind opens the mesh listener, so a port that is taken stops the start of
+// the gateway instead of the mesh later. Run binds it itself when Bind was
+// not called.
+func (n *Node) Bind() error {
+	n.lnMu.Lock()
+	defer n.lnMu.Unlock()
+	if n.ln != nil {
+		return nil
+	}
+	ln, err := net.Listen("tcp", n.opts.Listen)
+	if err != nil {
+		return fmt.Errorf("cluster.listen %s: %w", n.opts.Listen, err)
+	}
+	n.ln = ln
+	return nil
+}
+
+// takeListener hands the listener Bind opened to Run, once.
+func (n *Node) takeListener() net.Listener {
+	n.lnMu.Lock()
+	defer n.lnMu.Unlock()
+	ln := n.ln
+	n.ln = nil
+	return ln
+}
+
+// Registered lists the handlers registered (On, OnTell, OnAsk) as
+// "on:<class>", "tell:<kind>" and "ask:<kind>", sorted.
+func (n *Node) Registered() []string {
+	n.hmu.Lock()
+	defer n.hmu.Unlock()
+	var out []string
+	for c := range n.handlers {
+		out = append(out, "on:"+c)
+	}
+	for k := range n.tells {
+		out = append(out, "tell:"+k)
+	}
+	for k := range n.asks {
+		out = append(out, "ask:"+k)
+	}
+	sort.Strings(out)
+	return out
+}
+
+// inStepAnswer is what this node answers a sync call with as in_step: it
+// is in step now, or was within EntryTombstoneKeep (a node of a group that
+// restarts as a whole holds the group's state before any of them synced).
+func (n *Node) inStepAnswer() bool {
+	if n.Synced() {
+		return true
+	}
+	at := n.lastInStep.Load()
+	return !n.stale.Load() && at > 0 && n.now().Sub(time.UnixMilli(at)) < EntryTombstoneKeep
+}
+
+// markSynced makes the node in step; byMember: the answer came from a
+// member that is in step itself.
+func (n *Node) markSynced(byMember bool) {
+	if n.synced.Load() {
+		return
+	}
+	if byMember {
+		n.syncedByMember.Store(true)
+	}
+	if n.synced.CompareAndSwap(false, true) {
+		n.noteInStep()
+	}
+}
+
+// noteInStep keeps in the store when the node was in step (markInStepAt).
+func (n *Node) noteInStep() {
+	now := n.now().UnixMilli()
+	if err := n.SetMark(markInStepAt, strconv.FormatInt(now, 10)); err != nil {
+		n.log.Warn("cluster: the time this node was in step is not noted", "err", err)
+		return
+	}
+	n.lastInStep.Store(now)
+}
+
+// newGroup reports whether every member this node knows has answered it in
+// this run as a node that is not in step (and was not within
+// EntryTombstoneKeep), and every address of cluster.peers is a member it
+// knows: the group is new as a whole, nobody holds anything of it to wait
+// for, and the nodes count each other's answers.
+func (n *Node) newGroup() bool {
+	n.rmu.RLock()
+	members := n.roster.Members()
+	n.rmu.RUnlock()
+	addrs := map[string]bool{}
+	var others []string
+	for _, e := range members {
+		if e.Removed || e.Member.Role != contract.RoleGateway {
+			continue
+		}
+		addrs[e.Member.Address] = true
+		if e.ID != n.id {
+			others = append(others, e.ID)
+		}
+	}
+	for _, p := range n.opts.Peers {
+		if !addrs[p] {
+			return false
+		}
+	}
+	if len(others) == 0 {
+		return false
+	}
+	n.pmu.Lock()
+	defer n.pmu.Unlock()
+	for _, id := range others {
+		p := n.peers[id]
+		if p == nil {
+			return false
+		}
+		p.mu.Lock()
+		fresh := p.fresh
+		p.mu.Unlock()
+		if !fresh {
+			return false
+		}
+	}
+	return true
+}
+
+// heldAnywhere reports whether the last answer of any member put records
+// off (a clock ahead, an origin not known yet).
+func (n *Node) heldAnywhere() bool {
+	n.pmu.Lock()
+	defer n.pmu.Unlock()
+	for _, p := range n.peers {
+		p.mu.Lock()
+		held := p.held
+		p.mu.Unlock()
+		if held {
+			return true
+		}
+	}
+	return false
+}
+
+// Close ends the node's database, and the listener of a node that Bind
+// opened and that never ran. Run has to have returned.
+func (n *Node) Close() {
+	if ln := n.takeListener(); ln != nil {
+		_ = ln.Close()
+	}
+	n.state.close()
+}
 
 // ID, Group and Name of this node.
 func (n *Node) ID() string    { return n.id }
@@ -425,11 +679,21 @@ func (n *Node) refuse(w http.ResponseWriter, pub ed25519.PublicKey) {
 	http.Error(w, "no member", http.StatusForbidden)
 }
 
-// take checks and applies records a peer sent, and then moves the vector to
-// what the answer covered. A record that may pass later (the clock, an
-// origin not known yet) holds the vector of its origin back, so it is asked
-// for again; a record that can never pass is counted and skipped.
+// take is takeRecords for the answer of a member.
 func (n *Node) take(raws []json.RawMessage, covered map[string]uint64) (applied int, err error) {
+	applied, _, err = n.takeRecords(raws, covered, true)
+	return applied, err
+}
+
+// takeRecords checks and applies records a peer sent, and then moves the
+// vector to what the answer covered. A record that may pass later (the
+// clock, an origin not known yet) holds the vector of its origin back, so it
+// is asked for again, and held says so; a record that can never pass is
+// counted and skipped. member: the records come from a member's answer;
+// otherwise (a hello and its answer, whose sender may be no member) a record
+// of a version this node cannot read is not kept, so a stranger stores
+// nothing it cannot check.
+func (n *Node) takeRecords(raws []json.RawMessage, covered map[string]uint64, member bool) (applied int, held bool, err error) {
 	// One take at a time, to its end: a node calls several members at once
 	// and each brings the same records. Without this the second call finds
 	// nothing new and reports the node in step while the first still
@@ -464,7 +728,7 @@ func (n *Node) take(raws []json.RawMessage, covered map[string]uint64) (applied 
 	})
 	have, err := n.vectorNow()
 	if err != nil {
-		return 0, err
+		return 0, false, err
 	}
 	again := n.retake.Load() > 0
 	// An answer that brings nothing and covers nothing new, which is what
@@ -476,12 +740,11 @@ func (n *Node) take(raws []json.RawMessage, covered map[string]uint64) (applied 
 			news = news || seq > have[origin]
 		}
 		if !news {
-			n.heldBack.Store(false)
-			return 0, nil
+			return 0, false, nil
 		}
 	}
 	if err := n.reload(); err != nil {
-		return 0, err
+		return 0, false, err
 	}
 	// The handlers run after the write lock is given back: a handler may
 	// hold a lock of its own that a Publish of the same owner waits with.
@@ -501,10 +764,10 @@ func (n *Node) take(raws []json.RawMessage, covered map[string]uint64) (applied 
 	}()
 	n.wmu.Lock()
 	defer n.wmu.Unlock()
-	held := map[string]uint64{} // origin -> first sequence number to ask for again
+	heldFrom := map[string]uint64{} // origin -> first sequence number to ask for again
 	hold := func(r *contract.Record) {
-		if cur, ok := held[r.Origin]; !ok || r.Seq < cur {
-			held[r.Origin] = r.Seq
+		if cur, ok := heldFrom[r.Origin]; !ok || r.Seq < cur {
+			heldFrom[r.Origin] = r.Seq
 		}
 	}
 	now := n.now()
@@ -521,17 +784,17 @@ func (n *Node) take(raws []json.RawMessage, covered map[string]uint64) (applied 
 		switch {
 		case cerr == nil:
 		case errors.Is(cerr, contract.ErrVersion):
-			if rec.Group == n.group {
+			if rec.Group == n.group && member {
 				tx, err := n.db.Begin()
 				if err != nil {
-					return applied, err
+					return applied, false, err
 				}
 				if err := putUnread(tx, rec, raw); err != nil {
 					tx.Rollback()
-					return applied, err
+					return applied, false, err
 				}
 				if err := tx.Commit(); err != nil {
-					return applied, err
+					return applied, false, err
 				}
 				n.Unread.Add(1)
 			}
@@ -553,15 +816,15 @@ func (n *Node) take(raws []json.RawMessage, covered map[string]uint64) (applied 
 		}
 		tx, err := n.db.Begin()
 		if err != nil {
-			return applied, err
+			return applied, false, err
 		}
 		ok, err := put(tx, rec, raw)
 		if err != nil {
 			tx.Rollback()
-			return applied, err
+			return applied, false, err
 		}
 		if err := tx.Commit(); err != nil {
-			return applied, err
+			return applied, false, err
 		}
 		n.clock.Observe(rec.HLC)
 		if !ok {
@@ -581,23 +844,23 @@ func (n *Node) take(raws []json.RawMessage, covered map[string]uint64) (applied 
 	}
 	// Records put off (a clock ahead, an origin not known yet) are asked for
 	// again: until they are taken this node is not in step with the member.
-	n.heldBack.Store(len(held) > 0)
+	held = len(heldFrom) > 0
 	tx, err := n.db.Begin()
 	if err != nil {
-		return applied, err
+		return applied, held, err
 	}
 	for origin, seq := range covered {
-		if first, ok := held[origin]; ok && first <= seq {
+		if first, ok := heldFrom[origin]; ok && first <= seq {
 			seq = first - 1
 		}
 		if seq > have[origin] {
 			if err := raiseVector(tx, origin, seq); err != nil {
 				tx.Rollback()
-				return applied, err
+				return applied, held, err
 			}
 		}
 	}
-	return applied, tx.Commit()
+	return applied, held, tx.Commit()
 }
 
 // selfCert is the certificate the node shows in the mesh: self-signed with
@@ -693,6 +956,7 @@ func (n *Node) Run(ctx context.Context) error {
 	tick := time.NewTicker(time.Second)
 	defer tick.Stop()
 	var sweep int
+	var noted time.Time
 	for {
 		select {
 		case <-ctx.Done():
@@ -720,6 +984,13 @@ func (n *Node) Run(ctx context.Context) error {
 				if _, err := n.expire(n.now()); err != nil {
 					n.log.Warn("cluster: expired records not dropped", "err", err)
 				}
+			}
+			// In step and in touch with its group (or its only gateway):
+			// noted now and then, so a node knows at its next start how
+			// long it was away (Open).
+			if n.now().Sub(noted) >= inStepNoteEvery && !n.Removed() && n.Synced() && (n.Alone() || len(n.Reachable()) > 0) {
+				noted = n.now()
+				n.noteInStep()
 			}
 		}
 	}
