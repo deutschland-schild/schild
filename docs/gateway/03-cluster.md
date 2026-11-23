@@ -357,7 +357,7 @@ Was eine Aufgabe schon erledigt hat, weiß jeder Server: wann sie zuletzt gestar
 - War zur fälligen Zeit kein Server in Betrieb, läuft die Aufgabe einmal nach, sobald wieder einer läuft und der Zeitraum noch der aktuelle ist. Ältere Zeiträume werden nicht nachgeholt.
 - Änderst du die Uhrzeit einer Aufgabe, läuft sie für einen Tag, an dem sie schon gelaufen ist, kein zweites Mal.
 
-Eine Grenze bleibt: Eine Aufgabe läuft mindestens einmal, aber nicht garantiert genau einmal. Erreichen sich die Server nicht, kann sie auf beiden Seiten laufen. Fällt ein Server genau zwischen einem Schritt und dessen Vermerk aus, wiederholt der nächste Server diesen einen Schritt. Eine E-Mail kann in diesen Fällen doppelt ankommen. Für die Schlüssel der Browser-Prüfung ist das unkritisch.
+Nach einem Ausfall oder während einer Netztrennung kann sich ein Schritt wiederholen. Für den Wechsel der Schlüssel der Browser-Prüfung, die einzige Aufgabe bisher, spielt das keine Rolle.
 
 Die ersten Schlüssel der Browser-Prüfung in einem neuen Cluster sind ein Sonderfall. Jeder Server erzeugt beim ersten Start eigene Schlüssel und arbeitet zunächst damit. Für den Cluster gibt nur ein Server seine Schlüssel weiter, nämlich der erreichbare Server mit der kleinsten Kennung, nachdem er das drei Sekunden lang war. Die anderen übernehmen sie. Sieht ein Server zehn Sekunden lang keine Schlüssel des Clusters, gibt er seine eigenen weiter. In einem neuen Cluster ist die Browser-Prüfung noch für keine Website eingeschaltet, deshalb bemerkt in diesen Sekunden niemand etwas.
 
