@@ -1,0 +1,262 @@
+{
+ "started": 1795388852.6176453,
+ "saved": 1795389619.7395883,
+ "seed": 27,
+ "rows": [
+  {
+   "scenario": "s26",
+   "id": "26.00",
+   "title": "three nodes, idle for 60 s before the streams: `shared_state` of every member, asked on every node once a second",
+   "result": "INFO",
+   "numbers": {
+    "answers": 182,
+    "answers_without_a_member_list": 0,
+    "member_views": 364,
+    "member_views_by_worst_class": {
+     "same": 364
+    },
+    "class_views": {
+     "access": {
+      "same": 364
+     },
+     "blocks": {
+      "same": 364
+     },
+     "logins": {
+      "same": 364
+     },
+     "settings": {
+      "same": 364
+     }
+    },
+    "overview_looks": 37,
+    "overview_looks_with_cluster_state_differs": 0,
+    "hint_first_seen_s_and_node": null,
+    "first_not_same": {
+     "differs": [],
+     "unknown": [],
+     "other": []
+    },
+    "unknown_runs": 0,
+    "unknown_longest_runs_s": [],
+    "unknown_run_s": {},
+    "differs_runs": 0,
+    "differs_longest_runs_s": [],
+    "differs_run_s": {},
+    "repairs_logged_per_node": {
+     "n1": 0,
+     "n2": 0,
+     "n3": 0
+    }
+   },
+   "evidence": ""
+  },
+  {
+   "scenario": "s26",
+   "id": "26.01",
+   "title": "three nodes, one block, its lift on the next node and one setting change on the node after that every 0.6 s for 300 s, watched for 15 s more: no member view reads `differs`, the overview never carries `cluster_state_differs`, no node logs a repair (contract 14: hashes are compared at the same point, so a change on its way is never a difference); how often and how long a view reads `unknown`",
+   "result": "PASS",
+   "numbers": {
+    "answers": 948,
+    "answers_without_a_member_list": 0,
+    "member_views": 1896,
+    "member_views_by_worst_class": {
+     "same": 1846,
+     "unknown": 50
+    },
+    "class_views": {
+     "access": {
+      "same": 1896
+     },
+     "blocks": {
+      "same": 1846,
+      "unknown": 50
+     },
+     "logins": {
+      "same": 1896
+     },
+     "settings": {
+      "same": 1896
+     }
+    },
+    "overview_looks": 192,
+    "overview_looks_with_cluster_state_differs": 0,
+    "hint_first_seen_s_and_node": null,
+    "first_not_same": {
+     "differs": [],
+     "unknown": [
+      [
+       180.0,
+       "n2",
+       "sg27-n1",
+       "blocks"
+      ],
+      [
+       180.0,
+       "n1",
+       "sg27-n2",
+       "blocks"
+      ],
+      [
+       181.0,
+       "n2",
+       "sg27-n1",
+       "blocks"
+      ],
+      [
+       181.0,
+       "n1",
+       "sg27-n2",
+       "blocks"
+      ]
+     ],
+     "other": []
+    },
+    "unknown_runs": 3,
+    "unknown_longest_runs_s": [
+     {
+      "s": 20.0,
+      "samples": 20,
+      "viewer": "n2",
+      "member": "sg27-n1",
+      "class": "blocks",
+      "from_s": 180.0
+     },
+     {
+      "s": 20.0,
+      "samples": 20,
+      "viewer": "n1",
+      "member": "sg27-n2",
+      "class": "blocks",
+      "from_s": 180.0
+     },
+     {
+      "s": 10.0,
+      "samples": 10,
+      "viewer": "n1",
+      "member": "sg27-n3",
+      "class": "blocks",
+      "from_s": 290.0
+     }
+    ],
+    "unknown_run_s": {
+     "n": 3,
+     "min": 10.0,
+     "p50": 20.0,
+     "p95": 20.0,
+     "p99": 20.0,
+     "max": 20.0
+    },
+    "differs_runs": 0,
+    "differs_longest_runs_s": [],
+    "differs_run_s": {},
+    "ticks": 501,
+    "blocks_made": 501,
+    "settings_made": 501,
+    "calls_that_failed": 0,
+    "failed_first": [],
+    "seconds_from_block_to_its_lift": {
+     "n": 501,
+     "min": 55.0,
+     "p50": 225.0,
+     "p95": 538.0,
+     "p99": 685.0,
+     "max": 938.0
+    },
+    "stream_s": 300,
+    "watched_s": 315,
+    "repairs_logged_per_node": {
+     "n1": 0,
+     "n2": 0,
+     "n3": 0
+    },
+    "repairs_logged": 0
+   },
+   "evidence": "{}"
+  },
+  {
+   "scenario": "s26",
+   "id": "26.01b",
+   "title": "three nodes, after the stream of every 0.6 s: every node reads every other as `same` again (within 90 s)",
+   "result": "PASS",
+   "numbers": {
+    "after_s": 0.0
+   },
+   "evidence": ""
+  },
+  {
+   "scenario": "s26",
+   "id": "26.02",
+   "title": "three nodes, one block, its lift on the next node and one setting change on the node after that every 2.0 s for 300 s, watched for 15 s more: no member view reads `differs`, the overview never carries `cluster_state_differs`, no node logs a repair (contract 14: hashes are compared at the same point, so a change on its way is never a difference); how often and how long a view reads `unknown`",
+   "result": "PASS",
+   "numbers": {
+    "answers": 948,
+    "answers_without_a_member_list": 0,
+    "member_views": 1896,
+    "member_views_by_worst_class": {
+     "same": 1896
+    },
+    "class_views": {
+     "access": {
+      "same": 1896
+     },
+     "blocks": {
+      "same": 1896
+     },
+     "logins": {
+      "same": 1896
+     },
+     "settings": {
+      "same": 1896
+     }
+    },
+    "overview_looks": 190,
+    "overview_looks_with_cluster_state_differs": 0,
+    "hint_first_seen_s_and_node": null,
+    "first_not_same": {
+     "differs": [],
+     "unknown": [],
+     "other": []
+    },
+    "unknown_runs": 0,
+    "unknown_longest_runs_s": [],
+    "unknown_run_s": {},
+    "differs_runs": 0,
+    "differs_longest_runs_s": [],
+    "differs_run_s": {},
+    "ticks": 150,
+    "blocks_made": 150,
+    "settings_made": 150,
+    "calls_that_failed": 0,
+    "failed_first": [],
+    "seconds_from_block_to_its_lift": {
+     "n": 150,
+     "min": 8.0,
+     "p50": 293.0,
+     "p95": 544.0,
+     "p99": 566.0,
+     "max": 573.0
+    },
+    "stream_s": 300,
+    "watched_s": 315,
+    "repairs_logged_per_node": {
+     "n1": 0,
+     "n2": 0,
+     "n3": 0
+    },
+    "repairs_logged": 0
+   },
+   "evidence": "{}"
+  },
+  {
+   "scenario": "s26",
+   "id": "26.02b",
+   "title": "three nodes, after the stream of every 2.0 s: every node reads every other as `same` again (within 90 s)",
+   "result": "PASS",
+   "numbers": {
+    "after_s": 0.0
+   },
+   "evidence": ""
+  }
+ ]
+}
