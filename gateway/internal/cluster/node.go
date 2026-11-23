@@ -161,8 +161,15 @@ func (n *Node) Addr() string {
 // were written by another node. It runs in the goroutine of the sync, one
 // record at a time.
 func (n *Node) On(class string, f func(*contract.Record)) {
+	// Copy on write: a take running at the same time holds the old map and
+	// reads it without the lock.
 	n.hmu.Lock()
-	n.handlers[class] = append(n.handlers[class], f)
+	hs := make(map[string][]func(*contract.Record), len(n.handlers)+1)
+	for c, fs := range n.handlers {
+		hs[c] = fs
+	}
+	hs[class] = append(append([]func(*contract.Record){}, n.handlers[class]...), f)
+	n.handlers = hs
 	n.hmu.Unlock()
 }
 
