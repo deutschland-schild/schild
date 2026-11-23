@@ -87,6 +87,12 @@ Measured by agents that did not build it: three gateways on one machine ([report
 
 - A block set by hand in the dashboard or by an agent for less than 7 days ended within a minute, at the engine's next sweep. It now runs until its end.
 
+### Upgrade
+
+- From 0.1.0-alpha.5: change the image tag, run `sudo apt update && sudo apt install schild` and `sudo systemctl restart schild`, or replace the binary and restart. `schild.yaml` and `schild.db` need no change.
+- A single gateway runs as before. The cluster is off unless `cluster.enabled` is set. The dashboard shows "Einzelner Server" in the top bar. A Caddyfile that uses `acme_server` is refused at start; remove that directive first.
+- The Debian package brings a unit with `TimeoutStopSec=90s`. With a unit you installed by hand or with Compose, set the same (`stop_grace_period: 90s`) before you run a cluster, so a stop does not cut the drain short. A single gateway stops at once either way.
+
 ## 0.1.0-alpha.5
 
 ### Rules

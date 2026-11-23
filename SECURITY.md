@@ -42,12 +42,12 @@ Images and tarballs are built only by the release workflow of this repository ([
 
 ```sh
 cosign verify-blob --bundle checksums.txt.sigstore.json \
-  --certificate-identity https://github.com/deutschland-schild/schild/.github/workflows/release.yml@refs/tags/v0.1.0-alpha.5 \
+  --certificate-identity https://github.com/deutschland-schild/schild/.github/workflows/release.yml@refs/tags/v0.1.0-alpha.6 \
   --certificate-oidc-issuer https://token.actions.githubusercontent.com checksums.txt
 sha256sum -c --ignore-missing checksums.txt
-gh attestation verify schild_0.1.0-alpha.5_linux_amd64.tar.gz --repo deutschland-schild/schild
-gh attestation verify oci://ghcr.io/deutschland-schild/schild:0.1.0-alpha.5 --repo deutschland-schild/schild
-cosign verify ghcr.io/deutschland-schild/schild:0.1.0-alpha.5 \
-  --certificate-identity https://github.com/deutschland-schild/schild/.github/workflows/release.yml@refs/tags/v0.1.0-alpha.5 \
+gh attestation verify schild_0.1.0-alpha.6_linux_amd64.tar.gz --repo deutschland-schild/schild
+gh attestation verify oci://ghcr.io/deutschland-schild/schild:0.1.0-alpha.6 --repo deutschland-schild/schild
+cosign verify ghcr.io/deutschland-schild/schild:0.1.0-alpha.6 \
+  --certificate-identity https://github.com/deutschland-schild/schild/.github/workflows/release.yml@refs/tags/v0.1.0-alpha.6 \
   --certificate-oidc-issuer https://token.actions.githubusercontent.com
 ```
