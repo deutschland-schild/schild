@@ -23,7 +23,7 @@ const DOCS = '/doku/gateway/01-funktionen'
 const CLUSTER_DOCS = '/doku/gateway/03-cluster'
 // The cluster screenshots were taken on their own (`npm run shots -- funktionen-cluster`), so they carry their own
 // date until the next full run of the script, which dates every screenshot alike (SHOTS_DATE).
-const CLUSTER_SHOTS_DATE = '22.11.2026'
+const CLUSTER_SHOTS_DATE = '23.11.2026'
 // Same for the basic protection, the login protection and the crawlers (`npm run shots -- funktionen-grundschutz`,
 // `funktionen-login`, `funktionen-crawler`).
 const BASICS_SHOTS_DATE = '23.11.2026'
@@ -172,7 +172,7 @@ const clusterShots: DashboardShot[] = [
     summary: 'Alle Server auf einen Blick',
     text: 'Die Seite „Cluster“ zeigt jeden Server unter dem Internet: ob er Anfragen annimmt, wie viele er gerade bedient und wie ausgelastet er ist. Darüber stehen die Summen aller Server.',
     benefit: 'Oben wählst du, ob Zahlen und Diagramme alle Server zusammen zeigen oder einen einzelnen.',
-    alt: 'Schild Dashboard, Seite Cluster: Abgleich aktiv, alle 3 Server haben denselben Stand. 3 von 3 Servern bereit, 124 Anfragen pro Sekunde, 2 laufende Sperren. Darunter eine Karte mit dem Internet und den drei Servern web-1, web-2 und web-3, die alle Anfragen annehmen. Oben die Auswahl „Zahlen von: Alle Server“. Testdaten.',
+    alt: 'Schild Dashboard, Seite Cluster: Abgleich aktiv, dieser Server erreicht alle 2 anderen Gateways. 3 von 3 Servern bereit, 124 Anfragen pro Sekunde, 2 laufende Sperren. Darunter eine Karte mit dem Internet und den drei Servern web-1, web-2 und web-3, die alle Anfragen annehmen. Oben die Auswahl „Zahlen von: Alle Server“. Testdaten.',
   },
   {
     src: '/img/dashboards/funktionen-cluster-server.webp',
@@ -180,13 +180,13 @@ const clusterShots: DashboardShot[] = [
     summary: 'Die Details eines Servers',
     text: 'Ein Klick auf einen Server öffnet seine Details: Auslastung, Start, letzter Kontakt, Version, Uhr und ob sein Stand mit dem dieses Servers übereinstimmt.',
     benefit: 'Weicht ein Server ab, siehst du das hier, ohne dich auf jedem einzeln anzumelden.',
-    alt: 'Schild Dashboard, Details des Servers web-2: nimmt Anfragen an, 38,9 Anfragen pro Sekunde, CPU 34 %, Arbeitsspeicher 52 %, Festplatte 41 %, gestartet vor 5 Stunden, letzter Kontakt gerade eben, Uhr, Stand und Konfiguration gleich. IP-Adresse unkenntlich gemacht. Testdaten.',
+    alt: 'Schild Dashboard, Details des Servers web-2: nimmt Anfragen an, 38,9 Anfragen pro Sekunde, CPU 34 %, Arbeitsspeicher 52 %, Festplatte 41 %, gestartet vor 5 Stunden, letzter Kontakt gerade eben, Version 0.1.0-alpha.6, Uhr, Stand und Konfiguration gleich. IP-Adresse unkenntlich gemacht. Testdaten.',
   },
   {
     src: '/img/dashboards/funktionen-cluster-hinweis.webp',
     title: '3. Hinweis',
     summary: 'Wenn ein Server fehlt',
-    text: 'Erreicht ein Server einen anderen nicht oder laufen die Server mit unterschiedlicher Konfiguration, steht das in jedem Dashboard unter „Einstellungen“ und als Zeile über jeder Seite.',
+    text: 'Erreicht ein Server einen anderen nicht oder laufen die Server mit unterschiedlicher Konfiguration, steht das in jedem Dashboard als Hinweis unter „Einstellungen“, mit einem Link zur Seite „Cluster“. Fehlen die Daten eines Servers, nennt eine Zeile oben auf der Seite den Server und seit wann.',
     benefit: 'Die übrigen Server bedienen weiter und gleichen ab, sobald der fehlende zurück ist.',
     alt: 'Schild Dashboard, Einstellungen: Grundschutz aktiv, eingeschränkt. Zwei Hinweise: Ein Server des Clusters ist von hier aus nicht erreichbar, und die Server des Clusters laufen mit unterschiedlicher Konfiguration, jeweils mit dem Knopf Ansehen. Darüber die Zeile, dass Daten von web-3 fehlen. Testdaten.',
   },
@@ -334,7 +334,7 @@ const more = [
         <p class="mt-4 max-w-2xl leading-relaxed text-slate">
           Läuft ein einzelnes Gateway vor deinen Websites, hängen sie alle an diesem einen Server. Mit einem Cluster stellst du zwei bis sechzehn Gateways nebeneinander, zum Beispiel hinter einen Loadbalancer. Sie teilen Sperren, Einstellungen, Logins, Zertifikate, Zähler, Ereignisse und Anfragen direkt untereinander. Eine Datenbank oder einen Cache daneben betreibst du dafür nicht. Fällt ein Server aus, bedienen die anderen weiter. Eine Sperre, die du auf einem Server setzt, gilt nach etwa einer Sekunde auf jedem.
         </p>
-        <DashboardShots class="mt-10" label="Ein Cluster aus drei Gateways im Dashboard in drei Schritten" :shots="clusterShots" :caption="`Echte Screenshots vom ${CLUSTER_SHOTS_DATE} mit Testdaten, IP-Adressen unkenntlich gemacht. Im Beispiel ist einer von drei Servern nicht erreichbar.`" />
+        <DashboardShots class="mt-10" label="Ein Cluster aus drei Gateways im Dashboard in drei Schritten" :shots="clusterShots" :caption="`Echte Screenshots vom ${CLUSTER_SHOTS_DATE} mit Testdaten, IP-Adressen unkenntlich gemacht. Im dritten Bild ist einer von drei Servern nicht erreichbar.`" />
         <p class="mt-6 text-sm text-slate">
           Einrichtung und Details:
           <NuxtLink :to="CLUSTER_DOCS" class="font-semibold text-link hover:underline">Mehrere Gateways als Cluster betreiben <span aria-hidden="true">→</span></NuxtLink>
