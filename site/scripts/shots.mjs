@@ -101,6 +101,17 @@ const SHOTS = [
     await page.waitForTimeout(600)
   }, ...DESKTOP },
   { name: 'funktionen-cluster-hinweis', scenario: 'group', route: '/settings', ...DESKTOP },
+  // The cluster guide (docs/gateway/03-cluster.md): the page with three gateways in order, one gateway's details,
+  // sixteen gateways (upright labels, the table), the hints and the counters with one gateway's data missing.
+  { name: 'doku-cluster-seite', scenario: 'group-ok', route: '/server/group', ...DOCS },
+  { name: 'doku-cluster-server', scenario: 'group-ok', route: '/server/group', run: async (page) => {
+    await page.locator('[data-testid="group-map-node"][data-name="web-2"]').click()
+    await page.getByTestId('group-node-sheet').waitFor()
+    await page.waitForTimeout(600)
+  }, ...DOCS },
+  { name: 'doku-cluster-gross', scenario: 'group-large', route: '/server/group', ...DOCS },
+  { name: 'doku-cluster-hinweise', scenario: 'group', route: '/settings', ...DOCS },
+  { name: 'doku-cluster-zahlen', scenario: 'group', route: '/', ...DOCS },
 
   // Gateway docs (docs/gateway/01-funktionen.md)
   { name: 'doku-regeln', route: '/settings/rules', ...DOCS },

@@ -210,12 +210,20 @@ Oben stehen die Summen: wie viele Server bereit sind, wie viele Anfragen der Clu
 
 Darunter zeigt eine Karte das Internet und alle Gateways nebeneinander, jedes mit dem Internet verbunden. Kein Gateway steht über einem anderen, weil der Cluster keinen Hauptserver hat. Ab neun Gateways sind die Kästen schmal und hochkant beschriftet, damit auch 16 in eine Reihe passen. Die Linie eines Gateways ist grün, wenn es Anfragen annimmt, und orange gestrichelt, wenn es gerade keine annimmt oder von diesem Server aus nicht erreichbar ist. Ein Klick auf einen Server öffnet seine Details.
 
+![Schild Dashboard, Seite Cluster: Abgleich aktiv, dieser Server erreicht alle 2 anderen Gateways. 3 von 3 Servern bereit, 124 Anfragen pro Sekunde, 2 laufende Sperren. Darunter die Karte mit dem Internet und den Servern web-1, web-2 und web-3, alle mit grüner Linie. Oben die Auswahl „Zahlen von: Alle Server“ und „Cluster · 3 Server“. Testdaten.](../../site/public/img/dashboards/doku-cluster-seite.webp)
+
+Mit sechzehn Gateways sieht die Seite so aus. web-7 ist nicht erreichbar, web-12 wird angehalten und web-15 ist noch nicht bereit:
+
+![Schild Dashboard, Seite Cluster mit 16 Gateways: Hinweis, dass Daten von web-7 fehlen, Abgleich eingeschränkt, 13 von 16 Servern bereit, 551 Anfragen pro Sekunde. Die Karte zeigt sechzehn hochkant beschriftete Kästen, drei davon mit orange gestrichelter Linie: web-7 nicht erreichbar, web-12 wird angehalten, web-15 noch nicht bereit. Darunter beginnt die Tabelle der Gateways. Testdaten.](../../site/public/img/dashboards/doku-cluster-gross.webp)
+
 Unter der Karte steht jedes Gateway als eigene Karte, ab sieben Gateways als Zeile einer Tabelle. Die Details eines Servers nennen:
 
 - ob er Anfragen annimmt, angehalten wird oder noch nicht bereit ist. Das ist die Antwort, die er dem Loadbalancer auf `/.schild/readyz` gibt.
 - Anfragen pro Sekunde, den Anteil gestoppter Anfragen und die Antwortzeit der letzten Minute.
 - CPU, Arbeitsspeicher und Festplatte. Ab 80 % wird der Balken orange, ab 95 % rot.
 - Start, letzten Kontakt, Rückstand, Version, Uhr, Stand und Konfiguration.
+
+![Schild Dashboard, Details des Servers web-2 als Seitenleiste: nimmt Anfragen an, 38,9 Anfragen pro Sekunde, CPU 34 %, Arbeitsspeicher 52 %, Festplatte 41 %, gestartet vor 5 Stunden, letzter Kontakt gerade eben, Uhr, Stand und Konfiguration gleich. IP-Adresse unkenntlich gemacht. Testdaten.](../../site/public/img/dashboards/doku-cluster-server.webp)
 
 Jeder Server meldet diese Zahlen alle fünf Sekunden an die anderen. Die Seite zeigt, was dieser Server zuletzt gehört hat, und fragt dafür keinen anderen. Erreicht er einen Server nicht, steht dort „Nicht erreichbar“ ohne Zahlen. Ob jener Server trotzdem Besucher:innen bedient, ist von hier aus nicht zu sehen. Die Zahlen dienen nur der Anzeige, kein Server entscheidet danach.
 
@@ -229,6 +237,8 @@ Jeder Server meldet diese Zahlen alle fünf Sekunden an die anderen. Die Seite z
 ### Hinweise
 
 Erreicht ein Server einen anderen nicht, weicht eine Konfiguration oder ein Stand ab oder geht eine Uhr auseinander, zeigt das Dashboard jedes Servers das unter „Einstellungen“ an, mit einem Link zur Seite „Cluster“. Die Startseite zeigt dann „Grundschutz aktiv“ mit dem Zusatz „Eingeschränkt“.
+
+![Schild Dashboard, Einstellungen: Grundschutz aktiv, eingeschränkt. Hinweise, dass ein Server des Clusters von hier aus nicht erreichbar ist und dass die Server mit unterschiedlicher Konfiguration laufen, jeweils mit dem Knopf Ansehen. Darüber die Zeile, dass Daten von web-3 fehlen. Testdaten.](../../site/public/img/dashboards/doku-cluster-hinweise.webp)
 
 **Gleicher Stand.** Die Server prüfen gegenseitig, ob bei ihnen dasselbe gilt. Jedes Gateway bildet eine Prüfsumme über seine Sperren, seine Einstellungen, seine Freigaben und seine Logins und nennt sie den anderen alle fünf Sekunden. Aus der Prüfsumme lässt sich nichts über den Inhalt lesen. Zu jeder Prüfsumme nennt das Gateway, auf welchem Stand der Einträge es sie gebildet hat. Zwei Server vergleichen ihre Prüfsummen nur, wenn beide auf demselben Stand waren. Eine Änderung, die gerade unterwegs ist, gilt deshalb nie als Abweichung, auch nicht, wenn laufend Änderungen kommen, etwa viele Sperren während eines Angriffs. Auf der Seite „Cluster“ steht bei jedem Server unter „Stand“, ob er gleich ist oder in welchem Bereich er abweicht. „Weicht ab“ heißt: Beide Server halten dieselben Einträge, und trotzdem gilt bei ihnen nicht dasselbe. Konnten zwei Server eine Minute lang nicht verglichen werden, weil ohne Pause Änderungen kamen oder einer zurückliegt, steht dort „unbekannt“. Bleibt eine Abweichung 30 Sekunden stehen, erscheint ein Hinweis, und der Server gleicht von selbst neu ab: Er fragt den anderen Server noch einmal nach allem und wendet den Stand des Clusters erneut an. Das geschieht höchstens einmal pro Minute. Bleibt der Hinweis stehen, nennt das Server-Log den Grund, zum Beispiel eine Einstellung, die nicht zur `schild.yaml` dieses Servers passt.
 
@@ -247,6 +257,8 @@ Jeder Server hält auch die Messwerte der anderen. Deshalb zeigen Zähler und Di
 Oben auf jeder Seite steht der Filter „Zahlen von“. „Alle Server“ ist die Vorgabe. Wählst du einen Server, zeigen Zähler und Diagramme nur ihn. Das geht auch für einen Server, der gerade aus ist: Seine Werte bis zum Ausfall liegen auf den anderen. Die Listen der Ereignisse und Anfragen zeigen immer alle Server.
 
 Liegt von einem Server seit 30 Sekunden nichts vor, fehlen seine Werte ab diesem Zeitpunkt. Das Dashboard nennt den Server und die Uhrzeit: „Daten von web-3 fehlen seit …“. Die Summen sind ab da ohne diesen Server.
+
+![Schild Dashboard, Alle Websites in einem Cluster aus drei Servern: oben die Auswahl „Zahlen von: Alle Server“ und „Cluster · 3 Server“, darunter die Zeile „Daten von web-3 fehlen seit …“. Die Summen und Diagramme sind ab da ohne diesen Server. Testdaten.](../../site/public/img/dashboards/doku-cluster-zahlen.webp)
 
 Die Messwerte der anderen Server liegen unter `metrics-nodes` im Datenverzeichnis, eine Datei je Server, mit denselben Fristen wie die eigenen Messwerte (`monitoring.keep`). Jede dieser Dateien kann so groß werden wie die eigene `metrics.db`. In der Messung mit sechzehn Servern belegten die Messwerte der fünfzehn anderen nach zehn Minuten zusammen 28,5 MiB. Nimmst du einen Server aus dem Cluster, löschen die anderen seine Messwerte.
 
