@@ -1,6 +1,6 @@
 ---
 short: Cluster
-description: "Mehrere Schild Gateways als Cluster betreiben: was sie teilen, wie du ihn mit einer Konfigurationsdatei oder von Hand einrichtest, was der Loadbalancer davor braucht, wie Sperren schon auf den Balancer-VMs greifen, was beim Ausfall eines Servers passiert und wo die Grenzen liegen."
+description: "Mehrere Schild Gateways als Cluster betreiben: was sie teilen, wie du ihn mit einer Konfigurationsdatei einrichtest, was der Loadbalancer davor braucht, was beim Ausfall eines Servers passiert und wo die Grenzen liegen."
 ---
 
 # Mehrere Gateways als Cluster betreiben
@@ -55,7 +55,7 @@ Ein paar Dinge beschreiben einen einzelnen Server und werden deshalb nicht getei
 
 **Zwei Server.** Davor steht der Loadbalancer deines Hosters oder eine Floating-IP, die zum jeweils aktiven Server zeigt. Beide Server halten den vollen Stand. Eine dritte Maschine brauchst du nicht.
 
-**Viele Server.** Davor stehen zwei oder mehr Balancer-VMs, zum Beispiel mit HAProxy im TCP-Modus. Sie verteilen die Verbindungen auf die Gateways. TLS endet auf den Gateways. Ein Cluster nimmt höchstens 16 Gateways und 8 Balancer-VMs auf.
+**Viele Server.** Davor verteilt ein Loadbalancer die Verbindungen auf die Gateways, zum Beispiel HAProxy im TCP-Modus oder der Loadbalancer eines Cloud-Anbieters, der TLS durchreicht. TLS endet auf den Gateways. Ein Cluster nimmt höchstens 16 Gateways auf.
 
 Schild verschiebt selbst keine IP-Adresse und ist kein Loadbalancer. Das übernimmt dein Hoster, keepalived oder HAProxy.
 
@@ -65,7 +65,7 @@ Die Server sprechen über einen eigenen Port miteinander (`cluster.listen`), ver
 
 ## Einrichten mit einer Konfigurationsdatei
 
-Das ist der Weg für ein Deployment, das dieselben Dateien auf jeden Server schreibt. Du rufst auf keinem Server einen Befehl auf.
+Ein Cluster entsteht allein aus der Konfiguration: Dein Deployment schreibt dieselben Dateien auf jeden Server. Einen Befehl zum Beitreten gibt es nicht.
 
 1. Erzeuge einmal ein Cluster-Secret und lege es dort ab, wo dein Deployment Secrets hält:
 
@@ -94,24 +94,9 @@ Das ist der Weg für ein Deployment, das dieselben Dateien auf jeden Server schr
 
 Das Secret lässt einen Server in den Cluster und kann sonst nichts. Wer es hat, kann einen Server aufnehmen. Behandle es deshalb wie ein Passwort.
 
-## Einrichten von Hand
-
-Ohne Secret-Datei läuft der Beitritt über Codes, die einmal gelten und nach einer Stunde verfallen.
-
-```bash
-# auf dem ersten Server
-schild cluster init
-sudo systemctl restart schild
-schild cluster invite
-
-# auf jedem weiteren Server, mit Adresse und Code aus der Ausgabe
-schild cluster join 10.0.0.1:8790 CODE
-sudo systemctl restart schild
-```
-
 ## Server mit unterschiedlichen Einstellungen zusammenführen
 
-Tritt ein Server einem Cluster bei, bringt er mit, was er hat. Seine eigenen Adressen, Freigaben, Limits und Einstellungen kommen zum Cluster dazu, und er übernimmt, was der Cluster hat.
+Kommt ein Server, der bisher allein lief, in einen Cluster, bringt er mit, was er hat. Seine eigenen Adressen, Freigaben, Limits und Einstellungen kommen zum Cluster dazu, und er übernimmt, was der Cluster hat.
 
 Nur wenn beide Seiten denselben Eintrag haben, etwa denselben Schalter mit verschiedenen Werten, gilt der Wert des Clusters. Was der Server dazu selbst hatte, bewahrt Schild auf dem Server auf und nennt es in `schild cluster status`.
 
@@ -200,25 +185,6 @@ www.example.org {
 
 **Verteilung.** Verteilt der Balancer nach der Adresse der Besucher:innen, landet ein Client immer auf demselben Server. Dann zählen Limits genau. Mit reihum verteilten Verbindungen zählen sie mit etwa einer Sekunde Verzug.
 
-## Sperren schon vor den Gateways
-
-Hinter einem Balancer mit PROXY-Protokoll kommen alle Pakete vom Balancer. Die Firewall auf dem Gateway selbst (`schild firewall run`) kann gesperrte Adressen dort nicht erkennen. Der richtige Ort ist die Balancer-VM. Das geht nur mit einer eigenen VM, auf der du Programme starten kannst, nicht mit dem fertigen Loadbalancer eines Hosters.
-
-Eine Balancer-VM tritt dem Cluster als Edge bei. Sie bekommt nur die Liste gesperrter Adressen mit ihrem Ende. Ereignisse, Einstellungen, Logins, Zertifikate und Schlüssel erreichen sie nie.
-
-```bash
-# auf einem Gateway
-schild cluster invite -role edge
-
-# auf der Balancer-VM, mit Adresse und Code aus der Ausgabe
-schild cluster join 10.0.0.1:8790 CODE -edge -name lb-1 -data /var/lib/schild-edge
-schild firewall run -group -data /var/lib/schild-edge
-```
-
-Jede Sperre endet in der Firewall von selbst, auch wenn die VM kein Gateway mehr erreicht. Wie bei der Firewall auf einem Gateway betrifft sie nur die Ports 80 und 443.
-
-Eine Edge lässt sich nur mit einem Code aufnehmen, nie mit dem Cluster-Secret. Das Secret gehört nicht auf eine Balancer-VM.
-
 ## Den Stand prüfen
 
 ```bash
@@ -231,7 +197,7 @@ Dasselbe zeigt das Dashboard. Oben auf jeder Seite steht, ob der Server allein l
 
 ### Die Seite „Cluster“
 
-Oben stehen die Summen: wie viele Server bereit sind, wie viele Anfragen der Cluster pro Sekunde bedient, wie viele Sperren laufen und wie viele Balancer-VMs dazugehören.
+Oben stehen die Summen: wie viele Server bereit sind, wie viele Anfragen der Cluster pro Sekunde bedient und wie viele Sperren laufen.
 
 Darunter zeigt eine Karte das Internet und alle Gateways nebeneinander, jedes mit dem Internet verbunden. Kein Gateway steht über einem anderen, weil der Cluster keinen Hauptserver hat. Ab neun Gateways sind die Kästen schmal und hochkant beschriftet, damit auch 16 in eine Reihe passen. Die Linie eines Gateways ist grün, wenn es Anfragen annimmt, und orange gestrichelt, wenn es gerade keine annimmt oder von diesem Server aus nicht erreichbar ist. Ein Klick auf einen Server öffnet seine Details.
 
@@ -241,8 +207,6 @@ Unter der Karte steht jedes Gateway als eigene Karte, ab sieben Gateways als Zei
 - Anfragen pro Sekunde, den Anteil gestoppter Anfragen und die Antwortzeit der letzten Minute.
 - CPU, Arbeitsspeicher und Festplatte. Ab 80 % wird der Balken orange, ab 95 % rot.
 - Start, letzten Kontakt, Rückstand, Version, Uhr, Stand und Konfiguration.
-
-Balancer-VMs stehen darunter für sich, mit ihrer letzten Abfrage und der Zahl der Adressen in ihrer Firewall.
 
 Jeder Server meldet diese Zahlen alle fünf Sekunden an die anderen. Die Seite zeigt, was dieser Server zuletzt gehört hat, und fragt dafür keinen anderen. Erreicht er einen Server nicht, steht dort „Nicht erreichbar“ ohne Zahlen. Ob jener Server trotzdem Besucher:innen bedient, ist von hier aus nicht zu sehen. Die Zahlen dienen nur der Anzeige, kein Server entscheidet danach.
 
@@ -332,10 +296,7 @@ Während des Wechsels gibt es zwei Cluster nebeneinander: Die Server, die schon 
 
 Halte den Wechsel deshalb kurz, am besten wenige Minuten.
 
-Zwei Arten von Mitgliedern wechseln nicht von selbst:
-
-- Balancer-VMs und von Hand aufgenommene Server haben kein Secret. Nimm sie mit einem neuen Code in den neuen Cluster auf (`schild cluster invite`). Eine Balancer-VM hält ihre alte Mitgliedschaft in ihrem Datenverzeichnis und lehnt den Beitritt sonst ab („this node belongs to a group already“). Halte dort zuerst `schild firewall run` an, leere das Datenverzeichnis, tritt mit dem neuen Code bei und starte die Firewall wieder.
-- Wer im alten Cluster entfernt war und das neue Secret bekommt, ist im neuen Cluster wieder Mitglied, bringt aber nichts mit. Gib einem Server, der draußen bleiben soll, das neue Secret nicht.
+Wer im alten Cluster entfernt war und das neue Secret bekommt, ist im neuen Cluster wieder Mitglied, bringt aber nichts mit. Gib einem Server, der draußen bleiben soll, das neue Secret nicht.
 
 Ein Secret, das fehlt, zu kurz ist oder von anderen lesbar ist, ändert nichts. Der Server bleibt Mitglied seines Clusters, läuft aber allein, bis die Datei stimmt, und schreibt den Grund ins Log.
 
@@ -375,6 +336,7 @@ Jeder Server speichert damit, was der ganze Cluster aufzeichnet. Das lässt sich
 - **Limits über alle Server.** Bis die Server voneinander wissen, vergeht bis zu eine Sekunde. Ein Client, der seine Anfragen über alle Server verteilt, kommt in dieser Sekunde etwas über ein Limit hinaus.
 - **Zahlen der anderen Server.** Diagramme zeigen die anderen Server mit etwa 10 bis 20 Sekunden Verzug. Besucherzahlen über mehrere Server sind eine Untergrenze, weil dieselbe Person mehrere Server erreicht haben kann.
 - **Uhren.** Halte die Uhren mit NTP synchron. Geht die Uhr eines Servers mehr als eine Minute falsch, nehmen ihn die anderen aus dem Traffic, sobald es mindestens drei Server sind.
+- **Firewall hinter dem Loadbalancer.** Hinter einem Loadbalancer mit PROXY-Protokoll kommen alle Pakete von ihm. `schild firewall run` auf einem Gateway kann gesperrte Adressen dort nicht verwerfen. Die Gateways weisen gesperrte Adressen selbst ab. Den Aufbau der Verbindung, bei HTTPS auch den TLS-Handshake, tragen sie dabei noch.
 - **Höchstens 16 Gateways.** Einen 17. Server lehnt der Cluster ab.
 
 ## Befehle
@@ -385,8 +347,3 @@ Jeder Server speichert damit, was der ganze Cluster aufzeichnet. Das lässt sich
 | `schild cluster status` | Zeigt Mitglieder, letzten Kontakt und den geteilten Stand. |
 | `schild cluster drain` | Nimmt diesen Server aus dem Traffic und hält ihn an. |
 | `schild cluster remove NODE` | Beendet die Mitgliedschaft eines Servers, genannt mit Name oder Kennung. |
-| `schild cluster init` | Macht diesen Server zum ersten eines neuen Clusters (von Hand). |
-| `schild cluster invite [-role edge]` | Gibt einen Beitrittscode aus, einmal gültig, eine Stunde lang. |
-| `schild cluster join ADRESSE CODE` | Tritt dem Cluster bei (von Hand). |
-| `schild cluster join ADRESSE CODE -edge -name NAME -data DIR` | Eine Balancer-VM tritt als Edge bei. |
-| `schild firewall run -group -data DIR` | Hält die Sperren des Clusters in der Firewall der Balancer-VM. |

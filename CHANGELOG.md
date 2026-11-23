@@ -14,7 +14,7 @@ The section of a version becomes the text of its GitHub release, so its heading 
 
 Two to sixteen gateways of one operator can form a cluster (in the code and the contract: a group) that shares its state from node to node, with no database, cache or queue beside it (D105, MVP-27). It is off by default and set up from `schild.yaml` alone: `cluster.enabled`, `cluster.listen`, `cluster.secret_file` and `cluster.peers`, the same on every node. How to run it is described in German under [docs/gateway/03-cluster.md](docs/gateway/03-cluster.md), the wire in [contracts/cluster.md](contracts/cluster.md).
 
-Measured by agents that did not build it: three gateways on one machine ([report](tests/results/MVP-27-group-measurement.md), last run 92 of 92 judged checks), faults, crashes, load, sixteen gateways, clocks and an upgrade in turn on one machine ([report](tests/results/MVP-27-hardening.md)), and sixteen gateways on Linux VMs behind HAProxy with an edge and an ACME test server ([first](tests/results/MVP-27-lab.md), [second](tests/results/MVP-27-lab-run2.md) and [third run](tests/results/MVP-27-lab-run3.md); the third: 294 of 361 checks pass, 11 fail, two of them new and fixed since without an independent look yet). What the runs found is fixed below; what was built after the second lab run is not measured independently yet. Not measured: real servers with real visitors.
+Measured by agents that did not build it: three gateways on one machine ([report](tests/results/MVP-27-group-measurement.md), last run 92 of 92 judged checks), faults, crashes, load, sixteen gateways, clocks and an upgrade in turn on one machine ([report](tests/results/MVP-27-hardening.md)), and sixteen gateways on Linux VMs behind HAProxy with an ACME test server ([first](tests/results/MVP-27-lab.md), [second](tests/results/MVP-27-lab-run2.md) and [third run](tests/results/MVP-27-lab-run3.md); the third: 294 of 361 checks pass, 11 fail, two of them new and fixed since without an independent look yet). What the runs found is fixed below; what was built after the second lab run is not measured independently yet. Not measured: real servers with real visitors.
 
 **What is shared**
 
@@ -33,11 +33,11 @@ Measured by agents that did not build it: three gateways on one machine ([report
 
 **Setting up and names**
 
-- By configuration: the same `cluster.secret_file` (`schild cluster secret` prints one) and `cluster.peers` on every node; a node lets itself in at its start. By hand: `schild cluster init`, `schild cluster invite`, `schild cluster join`. A gateway that joins adds what it holds; where both hold the same entry the cluster's value stands and the node keeps its own aside.
+- By configuration only: the same `cluster.secret_file` (`schild cluster secret` prints one) and `cluster.peers` on every node; a node lets itself in at its start. A gateway that joins adds what it holds; where both hold the same entry the cluster's value stands and the node keeps its own aside.
 - A node is named by `node_name`; with `cluster.name_from_host` by its host name, so one `schild.yaml` can lie on every node; `cluster.name` sets a fixed one.
 - `schild cluster status` shows the members, `schild cluster remove` ends the membership of one. A wrong setting is fixed by correcting it; the correction reaches every node as fast as the change did.
 - With `cluster.enabled`, a `proxy_protocol` wrapper in the Caddyfile needs an allow list: otherwise anyone who reaches a node could name any address as theirs.
-- Blocks in front of the gateways: a balancer VM joins as an edge (`schild cluster invite -role edge`, then `schild cluster join ADDRESS CODE -edge -name NAME -data DIR` and `schild firewall run -group -data DIR`) and keeps the cluster's blocks in its nftables table. An edge gets the block list and the member list and nothing else.
+- In front of the gateways stands a load balancer that passes TCP on: HAProxy in TCP mode or a cloud load balancer without TLS termination. TLS ends on the gateways, and they refuse blocked clients themselves.
 - The guide has HAProxy examples and says what a site with TLS on the gateways needs on ports 80 and 443.
 
 **Readiness, stopping and failures**
@@ -63,7 +63,7 @@ Measured by agents that did not build it: three gateways on one machine ([report
 
 **Replacing the cluster secret**
 
-- Deploy a new `cluster.secret_file` and restart the nodes one after the other. A node moves to the new cluster by itself and takes along what it held: blocks and lifts, settings, own addresses, logins, erasures, certificates and the state of the tasks. Nothing is deleted by hand. While the change runs there are two clusters side by side that exchange nothing. Balancer VMs and nodes that joined by a code are let in again by a code.
+- Deploy a new `cluster.secret_file` and restart the nodes one after the other. A node moves to the new cluster by itself and takes along what it held: blocks and lifts, settings, own addresses, logins, erasures, certificates and the state of the tasks. Nothing is deleted by hand. While the change runs there are two clusters side by side that exchange nothing.
 
 **Cost**
 
@@ -74,7 +74,7 @@ Measured by agents that did not build it: three gateways on one machine ([report
 - A gateway killed hard lacks the requests of its last second; a gateway so loaded that its writer falls behind drops requests it served itself. The other nodes hold them in both cases.
 - A node whose clock is more than a minute ahead is taken late or not at all by the others; in a pair it stays in traffic.
 - Limits and waves act with up to a second of delay across nodes; numbers of other nodes show 10 to 20 s late.
-- At most 16 gateways and 8 edges.
+- At most 16 gateways.
 
 **Also for a single gateway**
 

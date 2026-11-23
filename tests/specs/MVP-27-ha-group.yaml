@@ -22,9 +22,9 @@ id: MVP-27
 #   the balancer, so the host firewall of D87 holds nothing there; see `enforcement`.
 # - /healthz and /readyz exist on the dashboard listener only; a balancer needs one on the web ports.
 title: "Group: several gateways share blocks, settings, certificates, logins, events and requests from node to node, as a pair of two or a fleet of ten, with no store beside them"
-ships: false                        # draft, experimental, in no release. What is built, decided and measured as of 2026-11-22: section `state` at the end of the open questions. The technical text is contracts/cluster.md, the operator guide docs/gateway/03-cluster.md.
+ships: false                        # draft, experimental, in no release. What is built, decided and measured as of 2026-11-23: section `state` at the end of the open questions. The technical text is contracts/cluster.md, the operator guide docs/gateway/03-cluster.md.
 status: ENTWURF
-image: schild                       # same binary on gateways and on balancer VMs (role edge); nothing else to install
+image: schild                       # the same binary on every gateway; nothing else to install
 hypotheses: [D3]
 refs: [MVP-15, MVP-17, MVP-18, MVP-19, MVP-20, MVP-21, MVP-22, MVP-26, DECISIONS-D29, DECISIONS-D32, DECISIONS-D36, DECISIONS-D38, DECISIONS-D42, DECISIONS-D46, DECISIONS-D49, DECISIONS-D51, DECISIONS-D53, DECISIONS-D73, DECISIONS-D87, DECISIONS-D89, DECISIONS-D91, DECISIONS-D105]
 depends_on: [MVP-17, MVP-19, MVP-21, MVP-22]
@@ -51,14 +51,14 @@ prior_art:                          # checked 2026-11-21; what each project taug
 shapes:
   pair:
     - 'two gateways, both serve, both hold everything; what brings traffic to them is the operator''s choice from the runbook'
-    - 'a) the hoster''s load balancer in TCP mode with the PROXY protocol, health check on /schild/ready: both nodes take traffic'
+    - 'a) the hoster''s load balancer in TCP mode with the PROXY protocol, health check on /.schild/readyz: both nodes take traffic'
     - 'b) a floating or failover address with keepalived (unicast VRRP on the private network, notify script that calls the hoster API, nopreempt): one node takes traffic, the other is warm with the same state. Switching takes seconds at Hetzner Cloud and netcup, 90 to 110 s for a Hetzner Robot failover address (docs.hetzner.com, checked 2026-11-21); the runbook says so'
     - 'no third machine and no witness: no class needs a majority. The address goes to exactly one node because the hoster routes it to one; a cut between the nodes costs the sync and nothing else'
   fleet:
-    - 'tier 1, two or more balancer VMs: HAProxy or another layer 4 balancer in TCP mode, PROXY protocol v2 toward the gateways, backend picked by a consistent hash of the client address; reached over a floating address with keepalived, or over ECMP where the hoster routes that way. Each runs `schild firewall run` in the role edge'
-    - 'tier 2, three to sixteen gateways, TLS on the gateways, ports 80 and 443 open for tier 1 only; capacity holds with one node missing'
+    - 'in front, a load balancer that passes TCP on: a cloud load balancer with TCP passthrough, or HAProxy or another layer 4 balancer in TCP mode, PROXY protocol v2 toward the gateways, backend picked by a consistent hash of the client address where the balancer offers it. schild runs nothing on it (maintainer, 2026-11-23)'
+    - 'behind it, two to sixteen gateways, TLS on the gateways, ports 80 and 443 open for the balancer only; capacity holds with one node missing'
     - 'a hoster with direct server return (IPVS, Katran, Cilium) needs no PROXY protocol: the gateways see the client address themselves, and their own firewall of D87 holds the blocks'
-    - 'tested with 3 and 10 gateways and 2 edges; more than 16 gateways and 8 edges are refused in this version'
+    - 'measured with 2, 3 and 16 gateways; more than 16 gateways are refused in this version'
   not_built_here: 'schild moves no address, speaks no VRRP and no BGP and is no balancer. The runbook carries the keepalived and HAProxy examples; the testlab runs them'
 
 mesh:
@@ -68,16 +68,15 @@ mesh:
     - 'the validator refuses a cluster.listen that is not a private or loopback address unless cluster.allow_public_listen is set; the runbook asks for a private network or WireGuard between sites'
   identity:
     - 'every node has an Ed25519 key of its own, made on the node and never copied; members know each other by the public keys in the member list, as WireGuard peers do. No CA, no shared secret that opens everything'
-    - 'by configuration, for a deployment that writes the same files to every node (Ansible): cluster.secret_file, the same on every node, and cluster.peers, the addresses of the nodes. A node lets itself in at its start; the secret admits and nothing else: it signs the admission of a node key, every record is still signed by the node, and a removed node stays removed although it holds the secret. No command goes from node to node (initiator, 2026-11-21)'
+    - 'by configuration only, for a deployment that writes the same files to every node (Ansible): cluster.secret_file, the same on every node, and cluster.peers, the addresses of the nodes. A node lets itself in at its start; the secret admits and nothing else: it signs the admission of a node key, every record is still signed by the node, and a removed node stays removed although it holds the secret. No command goes from node to node (initiator, 2026-11-21)'
     - 'a new group secret (the old one became known): the new file on every node and a restart of each. A node moves to the new group by itself, keeps its key and carries over what it held of every class but members, with the clocks the records had; nothing is wiped by hand, and a move that fails leaves the node where it was (contracts/cluster.md section 6, built 2026-11-22)'
-    - 'by hand: `schild cluster init` on the first node makes the group id; `schild cluster invite [--role edge]` prints a join code for one use, valid one hour; `schild cluster join <address> <code>` on the new node. The member that takes the code adds the new key to the member list, and the list is a record class like any other'
-    - '`schild cluster remove <node>` on any member: a tombstone for its key. From then on no member talks to it and none takes a record it signed later. `schild cluster leave` on the node itself; it then runs alone with its copy, nothing is lost'
+    - 'the member list is a record class like any other; a member record that is no tombstone carries the admission of the group secret, whoever signed it, so only the secret lets a node in'
+    - '`schild cluster remove <node>` on any member: a tombstone for its key. From then on no member talks to it and none takes a record it signed later. To take a node out for good, cluster.enabled false on it; it then runs alone with its copy, nothing is lost'
     - 'every record carries the signature of the node that wrote it, so the change log names the node and a removed node cannot write through a member that still listens'
   roles:
-    gateway: 'serves traffic, holds every class, may write every class'
-    edge: 'a balancer VM that only enforces: it receives the drop list (client keys with their end, nothing else) and writes nothing but its own status. No event, request, setting, login, certificate or key ever reaches it, and no member takes a record from it'
+    gateway: 'serves traffic, holds every class, may write every class. The only role'
   joining_and_restarting:
-    - 'a node that starts pulls the state of one reachable member before /schild/ready answers 200 (as an HAProxy process does on reload); with no member reachable for 10 s it serves with its local copy and says so'
+    - 'a node that starts pulls the state of one reachable member before /.schild/readyz answers 200 (as an HAProxy process does on reload); with no member reachable for 10 s it serves with its local copy and says so, if it was in step with its group once'
     - 'nodes of version N and N-1 run side by side; a record of an unknown class or version stays unread, is passed on unchanged and is reported'
 
 classes:                            # what leaves a node, and how two writes of the same thing settle
@@ -88,7 +87,7 @@ classes:                            # what leaves a node, and how two writes of 
     secrets: 'the keys behind visitor cookies (human check, access lock), agent_pseudonym_key_v1, TLS session ticket keys. Only between gateways, only over the mesh, never in a log or an export'
     logins: 'users, sessions, agent tokens of every scope. A logout or a revoked token is a tombstone'
     certificates: 'the Caddy storage: certificates with their private keys, ACME accounts, challenge tokens'
-    members: 'node id, role, public key, addresses, version, joined, removed'
+    members: 'node id, role (gateway), public key, address, version, joined, the admission of the group secret; a removal is a tombstone'
     erasure: 'one record per erased address, kept until every member confirmed it, at least as long as the longest retention'
   merge:
     - 'every record: id, class, origin node, a sequence number per origin, a hybrid logical clock, signature. A node asks a peer for "everything of origin X after sequence N", so a reconnect sends what is missing and nothing twice; every 30 s the vectors are compared anyway'
@@ -125,11 +124,10 @@ node_failure:                       # what "seamless" means here, and what it ca
     - 'on the node it lands on, a visitor is still blocked or still let through, keeps a passed browser check and an access lock login, resumes the TLS session without a full handshake, finds the incident number of its block page, and its limits count on'
     - 'the dashboard on any other node shows the failed node''s events and requests from the copy, marked with the time of the last row it got'
   planned:
-    - '`schild cluster drain` (and a stop by systemd): /schild/ready answers 503, the node keeps serving for cluster.drain.delay (default 15 s, above the balancer''s check interval times its failures), then ends idle connections, sends GOAWAY on HTTP/2 and lets running requests finish within cluster.drain.grace (default 30 s)'
+    - '`schild cluster drain` (and a stop by systemd): /.schild/readyz answers 503, the node keeps serving for cluster.drain.delay (default 15 s, above the balancer''s check interval times its failures), then ends idle connections, sends GOAWAY on HTTP/2 and lets running requests finish within cluster.drain.grace (default 30 s)'
     - 'a rolling update of every node, one after the other, loses no request'
   readiness:
-    - '/schild/ready on the web ports: 200 when the gate, the rules and the first sync are there, 503 while draining; answers the balancer''s address only (ingress.trusted_proxies or loopback), in no log and no event'
-    - '`schild cluster healthcheck` for a keepalived vrrp_script: exit 0 under the same conditions'
+    - '/.schild/readyz on the web ports: 200 when the gate, the rules, the first sync and the running counts are there; 503 while draining and while the node''s clock is the odd one of the group (contracts/cluster.md section 10). It answers any caller; a keepalived vrrp_script asks it with curl'
   split:
     - 'a node cut off from every member serves on with its state and decides alone; the hint cluster_peers_unreachable appears after 60 s'
     - 'both halves stay writable. When they meet again the records merge by the rules above: a block set on either side holds, an allowlist entry set on either side holds, an erasure on either side holds'
@@ -140,7 +138,7 @@ certificates:
   - 'a challenge token is confirmed by every reachable member before the CA is told to look, so the check may land on any node'
   - 'session ticket keys go through the same storage (Caddy''s distributed key source): a TLS session resumes on every node'
   - 'a restart with no member reachable serves its certificates from the local copy; a renewal waits and is retried; a new domain waits'
-  - '`schild cluster seed` on the first node takes the certificates under ingress.storage into the group; none is issued again'
+  - 'the certificates a gateway held under ingress.storage before it entered the group go into the group with it; none is issued again'
 
 queries:                            # every event and request of the group, from any node
   - 'every gateway answers for the group: the dashboard, the agent API and the export of MVP-20 take scope=group (the default with cluster.enabled) or scope=node'
@@ -153,21 +151,16 @@ queries:                            # every event and request of the group, from
   - 'the central dashboard of MVP-20 attaches to one member of a group and gets the group through it; it no longer needs a tunnel per node. It stays the way to see several groups and single gateways in one place'
 
 enforcement:                        # where a block acts, from the outside in
-  edge:
-    - '`schild firewall run --group` on a balancer VM, joined with the role edge: the nftables table inet schild of D87, fed from the mesh. A blocked address is dropped at the first machine of the operator it reaches, before it costs a gateway a handshake'
-    - 'as in D87: own table only, every element with its end as kernel timeout so no block outlives its end when the edge or the mesh is down, a clean stop removes the table, web ports only, no policy drop'
-    - 'the edge reports the revision it applied; the list "Gesperrte Adressen" shows per block where it holds (edge, node firewall, gate) and names an edge that is behind'
-    - 'an edge holds at most 131 072 addresses per family (the default set size of the CrowdSec firewall bouncer); beyond that the blocks ending first stay at the gate'
   node_firewall: '`schild firewall run` on a gateway as today. It holds only where the gateway sees client addresses as packet sources (pair with a floating address, direct server return). Behind a balancer with the PROXY protocol the status says `not_effective: proxy in front` instead of `banned`'
   gate: 'always: the block page with its incident number on every node, from the replicated block. With the PROXY protocol the address is known before TLS, so a blocked client can be closed there (open question 3)'
-  who_is_dropped: 'what D29 and D87 say, unchanged: cgnat, mobile and tor are never blocked by behaviour, own and released addresses never; a receiving node and an edge check a block against the allowlist they hold before it acts'
+  who_is_dropped: 'what D29 and D87 say, unchanged: cgnat, mobile and tor are never blocked by behaviour, own and released addresses never; a receiving node checks a block against the allowlist it holds before it acts'
   not_built:
     - 'the firewall of the hoster''s cloud: Hetzner allows 500 rules per firewall, counted per prefix, and none on a load balancer (docs.hetzner.com/cloud/firewalls/faq, checked 2026-11-21)'
     - 'RTBH and Flowspec toward the hoster''s routers: no German hoster documents them for customers. A hoster who runs the routers can read the same block list over the agent API (syncAgentFirewall) and feed them'
     - 'XDP: an nftables set carries the sizes above'
 
 configuration:
-  - 'schild.yaml, rules.d and the Caddyfile stay files, deployed to every node as code (D32). Every node sends a config version (hash of schild.yaml without cluster.node, rules.d, Caddyfile) and the versions of its rule sets, bot ranges and geo database with its heartbeat; a difference raises the hint cluster_config_drift and names the nodes'
+  - 'schild.yaml, rules.d and the Caddyfile stay files, deployed to every node as code (D32). Every node sends a config version (hash of schild.yaml without node_name, cluster.name, cluster.listen and cluster.advertise, and of rules.d; the Caddyfile is not in it yet) and the versions of its rule sets, bot ranges and geo database with its heartbeat; a difference raises the hint cluster_config_drift and names the nodes'
   - 'what is set in the dashboard or by an agent is class `settings` and holds on every node within seconds. This amends D53, where a group made the dashboard read-only (D105)'
   - 'one member fetches the CrowdSec hub and the bot ranges (the one that holds the lock of `certificates`) and the others take the set from it, so every node decides with the same rules'
   - 'the first node to be set up owns the first-run setup; a node that joins takes users and settings from the group and never offers a setup of its own'
@@ -175,33 +168,32 @@ configuration:
 privacy:
   - 'a group is one operator and one controller. Client addresses reach other gateways of the same operator, over TLS, and nothing else. The privacy text names every node as a place of processing'
   - 'an erasure in the dashboard or CLI reaches every member and every copy; PrivacyDeleteResult lists the nodes reached and the nodes still open. A node that returns applies the erasures it missed before it answers a query or hands out a copy'
-  - 'an edge holds client keys of running blocks and nothing else, each until its end'
   - 'no record of the mesh carries a request body, a cookie or a query string, as today'
 
 security:
   - 'a member is trusted like the operator: it can set and lift blocks and change settings for the group. A node an attacker holds is therefore the group''s problem until `cluster remove`; the signature per record says afterwards what it wrote, and `cluster status` lists what every node changed in the last 24 h'
-  - 'a join code is one use, one hour, 128 bit; it admits one key with one role and is shown once'
-  - 'the node key and the join state are readable by the service user only; preflight refuses wider modes and every TEST ONLY key'
+  - 'the group secret admits a node and does nothing else; it never travels, and a removed node stays removed although it holds it. A leaked secret is replaced by a new one, which is a new group'
+  - 'the node key and the group secret are readable by the service user only (schild refuses a secret file others can read); preflight refuses every TEST ONLY key'
   - 'the mesh listener speaks to member keys only and answers nothing before the handshake; it has connection and rate limits of its own'
   - 'the validator refuses cluster.enabled when the Caddyfile has a proxy_protocol wrapper without an allow list, or with a fallback that accepts senders outside it: otherwise anyone reaching a node chooses their address, and a block in the group follows it (G5, D91)'
   - 'data from another member is checked like data from outside: strict schemas, size caps, no polymorphic decoding (as MVP-20 treats a gateway)'
   - 'nodes of one operator never count as independent operators (D72); a group has no network mode'
 
 ui:                                 # German, du-form, calm
-  - '/server gains the card "Gruppe": nodes with role, status, version, last contact, config version, how far its copy is behind; this node is marked'
+  - '/server gains the card "Cluster" and the page "Cluster": nodes with status, version, last contact, config version, clock, state, how far behind; this node is marked'
   - 'states: "Abgleich aktiv"; "Abgleich unterbrochen. Dieser Server arbeitet mit dem letzten Stand weiter."; "Daten von web-3 fehlen seit 14:05."'
   - 'every list and chart has the filter "Server" with "Alle" first; rows show their node'
   - 'a block shows where it was decided ("Von web-2 entschieden") and where it holds'
   - 'a setting changed on another node shows "Geändert auf web-2, 14:05" in the change log'
-  - 'CLI: schild cluster init | invite | join | leave | remove | status | drain | seed | healthcheck'
+  - 'CLI: schild cluster secret | status | remove | drain'
 
 contracts:
   new:                              # proposal; the contracts agent owns schemas, Go types and vectors
-    - 'contracts/cluster.md: roles, join, record envelope and signature, classes, clock, tombstones, merge rules per class, counter slots, data copies and their cursor, what a node does when it is alone, when it returns and when it was away longer than tombstones live'
-    - 'schild.yaml: cluster {enabled, node, listen, advertise, allow_public_listen, secret_file, peers, key_file, data_copies, drain {delay, grace}}; validator rules above; default off, without it nothing changes'
+    - 'contracts/cluster.md: admission by the group secret, record envelope and signature, classes, clock, tombstones, merge rules per class, counter slots, data copies and their cursor, what a node does when it is alone, when it returns and when it was away longer than tombstones live'
+    - 'schild.yaml: cluster {enabled, name, name_from_host, listen, advertise, allow_public_listen, secret_file, peers, drain {delay_s, grace_s}}; validator rules above; default off, without it nothing changes. The node key lies in <storage.path>/cluster/node.key, made by the node'
     - 'client dashboard API and agent API: scope and node on list, search, chart and export operations, partial {node, from, until} on their answers, GroupStatus, origin_node on blocks, events, incidents and requests, enforcement per block, hints cluster_peers_unreachable, cluster_config_drift and cluster_copy_behind, nodes in PrivacyDeleteResult'
     - 'events: origin_node on every local event; schild.cluster.member_joined.v1, member_removed.v1, record_rejected.v1'
-    - 'Caddy storage module schild_cluster; the readiness answer /schild/ready'
+    - 'Caddy storage module schild_cluster; the readiness answer /.schild/readyz'
     - 'vectors: envelope valid, tampered, wrong class, signed by a removed node, clock too far ahead; merge order per class, tombstone beats older write, lift by a person beats a detector; counter slots summed; a block over the caps; top list merge with its bound; config valid and invalid (public listen, proxy_protocol without allow, key file missing or readable by others)'
   version: 'next unreleased contracts version (backwards compatible addendum)'
 
@@ -210,7 +202,7 @@ steps:                              # each is usable on its own
   - '2 settings, secrets and logins: one dashboard for the group, a visitor keeps the passed check and the login on every node'
   - '3 data copies and group queries: every event and request from any node, also of a node that is gone'
   - '4 counters and wave aggregates: limits and scenarios count for the group'
-  - '5 the role edge: blocks on the balancer VMs'
+  # 5 the role edge (blocks on balancer VMs): built, then removed before any release (maintainer 2026-11-23), see `state.rejected`
 
 must:
   - 'a block set on one node acts on every reachable gateway within 1 s at p95 and on every reachable edge within 2 s, at the latest after one comparison of the vectors'
@@ -264,23 +256,30 @@ open_questions:                     # for the initiator
   #   A node that returns catches up on everything it missed by itself.
   # (2026-11-22) names: a node is named by node_name; with cluster.name_from_host by its host name, so one schild.yaml can lie on
   #   every node; cluster.name sets a fixed one. Decided with the initiator after the first lab run found equal names.
-  - '5 the caps (200 blocks per second, 2 000 hot keys, 20 000 running blocks, 131 072 addresses on an edge): confirm in the testlab'
+  - '5 the caps (200 blocks per second, 2 000 hot keys, 20 000 running blocks): confirm in the testlab'
   - '6 a block list as plain text for a hoster''s routers and appliances (as CrowdSec''s blocklist mirror), in a later step?'
 
-state:                              # 2026-11-22, written by the builder; `must`, `measure` and `kill_if` above are unchanged
+state:                              # 2026-11-23, written by the builder; `must`, `measure` and `kill_if` above are unchanged (a human decides
+                                    # on them): their parts on edges and on `seed` no longer have anything built to look at
   built:
-    - 'the mesh (TLS 1.3, keys per node, HTTP/2 pings), setting up by configuration (cluster.secret_file, cluster.peers) and by hand (join codes), names, readiness and drain, removal, a new group secret that moves a node with what it held'
+    - 'the mesh (TLS 1.3, keys per node, HTTP/2 pings), setting up by configuration (cluster.secret_file, cluster.peers; `schild cluster secret` makes the secret), names, readiness and drain, removal, a new group secret that moves a node with what it held. CLI: schild cluster secret | status | remove | drain'
     - 'classes members, blocks, settings, access, logins, erasure, certificates, jobs; every key of the runtime store travels as class settings unless it is on the per-node list; a fingerprint per class with self-repair'
     - 'counts of limits, scenarios and the distributed detectors once a second; their running state handed to a node that starts'
     - 'events, incidents and single requests of every node on every node (asked for when a member says it has news; requests in a compact form; catch-up from the request stores on disk); metric buckets of every member on every node, queries over all nodes or one (design_metrics_across_nodes below)'
-    - 'edges (`schild firewall run -group`), one set of CrowdSec Hub rules, tasks once per period for a single gateway and a group'
+    - 'one set of CrowdSec Hub rules, tasks once per period for a single gateway and a group'
     - 'ui: the mode on every page, the page "Cluster" with the map and the servers, the filter "Zahlen von", the reasons of the overview (member not reached, config drift, clock, state differs, counts not taken, clock out of service), the deciding node of a block, the nodes of an erasure'
   rejected:
     - 'copies on some nodes and queries from node to node (design_data_copies_and_queries below): every node holds everything, always (initiator 2026-11-22). `classes.data` and `queries` above describe the first design and are not what is built'
     - '`schild cluster pause` and `resume`, built first after Corrosion and removed (initiator 2026-11-23): a change reaches every node in about a second, so a bad record is everywhere before anyone pauses, and a paused node catches up after resume. The remedy is to correct the setting; the correction travels as fast'
+    - 'edges (balancer VMs in the role edge running `schild firewall run -group`), built and measured, removed before any release (maintainer 2026-11-23): a cloud load balancer has no VM to run them on, and the gateways refuse blocked clients themselves'
+    - 'joining by a one-time code (`schild cluster init`, `invite`, `join`), built and removed before any release (maintainer 2026-11-23): it did the job of the secret file a second way, and only edges needed it. With it went the founder: the group id comes from the group secret alone'
+    - '`schild cluster leave`, never built: cluster.enabled false on the node and `schild cluster remove` on a member do that job'
+    - '`schild cluster seed`, never built: a gateway brings the certificates it held into the group when it enters'
+    - '`schild cluster healthcheck`, never built: a vrrp_script asks /.schild/readyz'
+    - 'config keys cluster.node, cluster.key_file and cluster.data_copies, never built: the name is node_name, cluster.name or cluster.name_from_host; the node makes its key under <storage.path>/cluster; every node holds everything (data_copies belongs to the rejected design below)'
   not_built:
-    - 'the testlab profiles pair and fleet of `measure` and `done` (keepalived, two balancer VMs); the measurements below ran on other setups'
-    - 'where each block holds (edge, node firewall, gate) in the dashboard; closing a blocked client before TLS (open question 3); a block list as plain text (open question 6)'
+    - 'the testlab profiles pair and fleet of `measure` and `done` (keepalived, a balancer in front); the measurements below ran on other setups'
+    - 'where each block holds (node firewall, gate) in the dashboard; closing a blocked client before TLS (open question 3); a block list as plain text (open question 6)'
     - 'per node only: the 24 h counters of the overview, the host values of this moment, the live second, the status of a website; no filter by server on the lists of events and requests'
     - 'the Caddyfile, the versions of rule sets, bot ranges and the geo database in the config hint'
     - 'a node cannot take back from the others the requests it served itself and lost (the last second before a hard crash, what its writer dropped under saturation)'
