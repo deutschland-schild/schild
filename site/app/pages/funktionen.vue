@@ -198,9 +198,6 @@ const more = [
         <p class="mt-4 max-w-2xl leading-relaxed text-slate">
           Läuft ein einzelnes Gateway vor deinen Websites, hängen sie alle an diesem einen Server. Mit einem Cluster stellst du zwei bis sechzehn Gateways nebeneinander, zum Beispiel hinter einen Loadbalancer. Sie teilen Sperren, Einstellungen, Logins, Zertifikate, Zähler, Ereignisse und Anfragen direkt untereinander. Eine Datenbank oder einen Cache daneben betreibst du dafür nicht. Fällt ein Server aus, bedienen die anderen weiter. Eine Sperre, die du auf einem Server setzt, gilt nach etwa einer Sekunde auf jedem.
         </p>
-        <p class="mt-4 max-w-2xl leading-relaxed text-slate">
-          Der Cluster ist experimentell und noch in keinem Release enthalten. Gemessen ist er bisher mit virtuellen Servern, nicht im Betrieb mit echten Besucher:innen. Die Grenzen stehen in der Dokumentation.
-        </p>
         <DashboardShots class="mt-10" label="Ein Cluster aus drei Gateways im Dashboard in drei Schritten" :shots="clusterShots" :caption="`Echte Screenshots vom ${CLUSTER_SHOTS_DATE} mit Testdaten, IP-Adressen unkenntlich gemacht. Im Beispiel ist einer von drei Servern nicht erreichbar.`" />
         <p class="mt-6 text-sm text-slate">
           Einrichtung und Details:

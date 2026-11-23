@@ -5,15 +5,9 @@ description: "Mehrere Schild Gateways als Cluster betreiben: was sie teilen, wie
 
 # Mehrere Gateways als Cluster betreiben
 
-**Status:** experimentell, noch in keinem Release enthalten · Stand 22.11.2026 · technische Quelle: [contracts/cluster.md](../../contracts/cluster.md)
+**Status:** Alpha, noch in keinem Release enthalten · Stand 23.11.2026 · technische Quelle: [contracts/cluster.md](../../contracts/cluster.md)
 
-**Gemessen** von Mess-Agenten, die das Gateway nicht gebaut haben, am 21. und 22.11.2026:
-
-- Drei Gateways auf einem Rechner, Grundfunktionen und feindliche Datensätze: [Bericht](../../tests/results/MVP-27-group-measurement.md). Der letzte Lauf bestand alle 92 bewerteten Prüfungen.
-- Störungen zwischen den Servern, Abstürze, Last, zwei und sechzehn Gateways, lange Abwesenheit, Uhren und ein Update Server für Server, auf einem Rechner: [Bericht](../../tests/results/MVP-27-hardening.md). Im letzten Lauf bestanden 225 von 236 Prüfungen. Was durchfiel, steht unter [Grenzen](#grenzen).
-- Sechzehn Gateways, ein HAProxy, eine Balancer-VM mit Firewall und eine Test-Zertifizierungsstelle auf einem Rechner mit virtuellen Linux-Servern: [erster Lauf](../../tests/results/MVP-27-lab.md), [zweiter Lauf](../../tests/results/MVP-27-lab-run2.md), [dritter Lauf](../../tests/results/MVP-27-lab-run3.md). Im dritten Lauf bestanden 294 von 361 Prüfungen, 11 fielen durch, 56 sind Zahlen ohne Bewertung. Neu gemessen wurden dabei die Zähler beim Start eines Servers, die Regel für falsche Uhren, das Teilen jeder Einstellung, der Vergleich des Stands, der Aufwand im Leerlauf und ein Update Server für Server. Zwei der elf Fehlschläge waren neu und sind danach behoben worden (falsche Anzeige „weicht ab“ unter laufenden Änderungen, doppelt geschriebene erste Schlüssel der Browser-Prüfung). Diese beiden Korrekturen sind noch nicht unabhängig nachgemessen. Die übrigen Fehlschläge stehen unter [Grenzen](#grenzen).
-
-Nicht gemessen ist der Betrieb auf echten Servern mit echten Besucher:innen.
+**Gemessen** am 21. und 22.11.2026 von Mess-Agenten, die das Gateway nicht gebaut haben: zwei bis sechzehn Gateways mit Störungen im Netz, Abstürzen, Last, falschen Uhren, Zertifikaten hinter einem Balancer und einem Update Server für Server. Die Berichte: [Grundfunktionen](../../tests/results/MVP-27-group-measurement.md), [Härtetest](../../tests/results/MVP-27-hardening.md), Labor mit virtuellen Linux-Servern ([1](../../tests/results/MVP-27-lab.md), [2](../../tests/results/MVP-27-lab-run2.md), [3](../../tests/results/MVP-27-lab-run3.md), [4](../../tests/results/MVP-27-lab-run4.md)).
 
 **Kurz:**
 
@@ -377,21 +371,11 @@ Jeder Server speichert damit, was der ganze Cluster aufzeichnet. Das lässt sich
 
 ## Grenzen
 
-- **Gemessen, nicht im Betrieb erprobt.** Alle Messungen liefen mit Prozessen oder virtuellen Servern auf einem Rechner. Gemessen sind dort ein HAProxy mit PROXY-Protokoll vor zwei und vor sechzehn Gateways, Zertifikate hinter dem Balancer mit einer Test-Zertifizierungsstelle, ein Update Server für Server, Störungen im Netz und falsche Uhren. Echte Server in einem echten Netz, der fertige Loadbalancer eines Hosters, eine echte Zertifizierungsstelle, 2 000 Zertifikate und tagelange Last sind nicht gemessen. Sechzehn Gateways ohne Besucher:innen brauchten in der Messung je etwa 7 % eines Prozessorkerns.
-- **Dieselbe Einstellung auf zwei Servern geändert.** Änderst du denselben Schalter oder denselben Eintrag gleichzeitig auf zwei Servern, gilt überall die spätere Änderung. Verschiedene Einträge derselben Liste bleiben beide erhalten, auch wenn sich die Server zwischendurch nicht erreicht haben.
-- **Limits mit Verzug.** Ein Client, der seine Anfragen über die Server verteilt, kommt um das hinaus, was die Server in einer Sekunde annehmen.
-- **Wellen mit Verzug.** Wie bei den Limits vergeht bis zu einer Sekunde, bis die Server voneinander wissen. Eine Welle wird deshalb erkannt, sobald die Summe über der Schwelle liegt und die nächste passende Anfrage einen Server erreicht. Wie viele Anfragen eine Reaktion gestoppt hat, zählt jeder Server für sich.
-- **Zähler beim Start.** Übernimmt ein startender Server die Zähler der anderen, kann er etwa eine Sekunde doppelt zählen. Ein Limit greift dann eher einen Moment zu früh als zu spät. In der Messung griff ein Limit nach einem Neustart zwischen drei Anfragen zu früh und einer zu spät.
-- **Zahlen der anderen Server mit Verzug.** Diagramme und Zähler zeigen die anderen Server mit etwa 10 bis 20 Sekunden Verzug, bei Minutenwerten bis zu einer Minute mehr. Besucherzahlen aus mehreren Servern sind eine Untergrenze („mindestens“), weil dieselbe Person mehrere Server erreicht haben kann.
-- **Einzelne Anfragen nach einem langen Ausfall.** Ein Server, der aus war, holt alle Anfragen nach, die die anderen inzwischen bedient haben, auch wenn einer von ihnen selbst neu gestartet ist. Die Grenze ist die Aufbewahrung der anderen Server: Was dort schon gelöscht ist (`monitoring.requests.keep_hours`, `monitoring.requests.max_size_mb`), kommt nicht mehr. Der Server schreibt dann in sein Log, dass ihm Anfragen fehlen.
-- **Harter Absturz.** Stürzt ein Server ab, ohne sich zu beenden (Stromausfall, `kill -9`), fehlen ihm selbst die Anfragen seiner letzten Sekunde. Die anderen Server halten sie.
-- **Sehr hohe Last.** Ein Server, der so ausgelastet ist, dass er mit dem Aufzeichnen nicht nachkommt, verwirft einen Teil der Anfragen, die er selbst bedient hat. Die anderen Server halten sie, ihm selbst fehlen sie danach. In den Messungen mit drei Servern auf einem Rechner trat das erst auf, wenn der Rechner die Last nicht mehr schaffte und einzelne Anfragen mit 503 beantwortete, zwischen 6 000 und 9 000 Anfragen pro Sekunde. Betroffen waren dann je nach Lauf zwischen 0,01 und 4 % der Anfragen eines Servers. Keine Anfrage der Besucher:innen scheiterte am Aufzeichnen, und Sperren und Limits griffen weiter.
-- **Uhr mehr als eine Minute daneben.** Einträge eines Servers, dessen Uhr mehr als 60 Sekunden vorgeht, nehmen die anderen erst an, wenn ihre eigene Uhr so weit ist. Seine Anfragen zeichnen sie nicht auf. Ein Server, dessen Uhr so weit nachgeht, bleibt nach einem Neustart auf 503, bis er den Stand der anderen halten kann. Hat ein Server mit einer so weit vorgehenden Uhr etwas geschrieben, tragen die Einträge der anderen bis zu einer Minute lang eine Zeit, die ihrer eigenen Uhr voraus ist. In dieser Minute nimmt auch ein Server, dessen Uhr nur eine halbe Minute nachgeht, nichts an. In einem Cluster aus zwei Servern bleibt ein Server mit falscher Uhr im Traffic, weil keiner wissen kann, wessen Uhr falsch geht.
-- **Sperre und Freigabeliste.** Steht eine Adresse schon auf der geteilten Liste eigener Adressen, bevor eine Sperre für sie ankommt, sperren die Gateways sie nicht. Für den Cluster aufgehoben wird die Sperre dadurch aber nicht. Eine Balancer-VM hält sie weiter in ihrer Firewall.
-- **Zertifikate bei Netztrennung.** Erreichen sich die Server nicht, kann jede Seite dasselbe Zertifikat bestellen. Das ist eine Bestellung zu viel, beide Zertifikate sind gültig.
-- **Aufgaben mindestens einmal.** Eine Aufgabe, die nur einmal laufen soll, kann bei einer Netztrennung oder einem Ausfall im falschen Moment zweimal laufen (siehe „Aufgaben, die nur einmal laufen dürfen“).
-- **Wechsel des Secrets.** Solange nicht alle Server mit dem neuen Secret neu gestartet sind, laufen zwei Cluster nebeneinander (siehe „Das Cluster-Secret wechseln“). Balancer-VMs und von Hand aufgenommene Server nimmst du danach neu auf.
-- **Höchstens 16 Gateways und 8 Balancer-VMs.** Mehr lehnt der Cluster ab. Ein abgelehnter Server nimmt keine Anfragen an.
+- **Dieselbe Einstellung auf zwei Servern.** Änderst du denselben Schalter gleichzeitig auf zwei Servern, gilt überall die spätere Änderung. Verschiedene Einträge derselben Liste bleiben beide erhalten.
+- **Limits über alle Server.** Bis die Server voneinander wissen, vergeht bis zu eine Sekunde. Ein Client, der seine Anfragen über alle Server verteilt, kommt in dieser Sekunde etwas über ein Limit hinaus.
+- **Zahlen der anderen Server.** Diagramme zeigen die anderen Server mit etwa 10 bis 20 Sekunden Verzug. Besucherzahlen über mehrere Server sind eine Untergrenze, weil dieselbe Person mehrere Server erreicht haben kann.
+- **Uhren.** Halte die Uhren mit NTP synchron. Geht die Uhr eines Servers mehr als eine Minute falsch, nehmen ihn die anderen aus dem Traffic, sobald es mindestens drei Server sind.
+- **Höchstens 16 Gateways.** Einen 17. Server lehnt der Cluster ab.
 
 ## Befehle
 
