@@ -32,7 +32,8 @@ import (
 // the first request of those it has (takeOver).
 
 // keepSocket returns ln on the socket of its address that stays open, or ln
-// itself where that does not work (no TCP, not Linux).
+// itself where that does not work (no TCP, not Linux, Multipath TCP, which
+// schild turns off: cmd/schild/main.go).
 func keepSocket(ln net.Listener, ka net.KeepAliveConfig, fresh *atomic.Int64) net.Listener {
 	tl := tcpListenerOf(ln)
 	if tl == nil {
