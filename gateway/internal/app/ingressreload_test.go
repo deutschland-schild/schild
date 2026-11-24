@@ -217,8 +217,9 @@ func reloadUnderLoad(t *testing.T, scheme string) {
 	end := sync.OnceFunc(func() { close(release) })
 	defer end()
 	arrived := make(chan struct{})
+	arrive := sync.OnceFunc(func() { close(arrived) })
 	slow := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		close(arrived)
+		arrive()
 		<-release
 		_, _ = io.WriteString(w, "slow ok")
 	}))
@@ -232,6 +233,12 @@ func reloadUnderLoad(t *testing.T, scheme string) {
 	}
 	sites := site("shop.example", "{backend}") + site("slow.example", strings.TrimPrefix(slow.URL, "http://"))
 	b := &reloadBench{Harness: apptest.New(t, apptest.Options{Listeners: true, Caddyfile: global + sites}), t: t}
+	// This test counts what a reload costs. On a busy machine (the race
+	// detector in CI) a request may wait longer than the 100 ms of the queue
+	// for the WAF and is answered 503: load, not a reload.
+	lim := b.App.Gate.EvalLimits()
+	lim.QueueWait = time.Minute
+	b.App.Gate.SetEvalLimits(lim)
 	client := func(host string, kept, h2 bool) func() (string, error) {
 		tr := &http.Transport{DisableKeepAlives: !kept, ForceAttemptHTTP2: h2,
 			TLSClientConfig: &tls.Config{InsecureSkipVerify: true, ServerName: host}} //nolint:gosec // the test's own CA
@@ -266,13 +273,30 @@ func reloadUnderLoad(t *testing.T, scheme string) {
 	slowDone := make(chan string, 1)
 	get := client("slow.example", true, scheme == "https")
 	go func() {
-		s, err := get()
-		if err != nil {
-			s = err.Error()
+		for i := 0; ; i++ {
+			s, err := get()
+			if err != nil {
+				s = err.Error()
+			}
+			select {
+			case <-arrived:
+			default:
+				// The certificate of slow.example may come after that of
+				// shop.example.
+				if i < 100 {
+					time.Sleep(50 * time.Millisecond)
+					continue
+				}
+			}
+			slowDone <- s
+			return
 		}
-		slowDone <- s
 	}()
-	<-arrived
+	select {
+	case <-arrived:
+	case s := <-slowDone:
+		t.Fatalf("the slow request did not arrive: %q", s)
+	}
 
 	ctx, cancel := context.WithCancel(context.Background())
 	var sent, failed atomic.Int64
