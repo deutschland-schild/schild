@@ -101,13 +101,17 @@ type sampler struct {
 	cfg  SamplerConfig
 	p    prev
 	mets []metrics.Sample
+	// statfs is replaced in tests.
+	statfs func(string) (fsStat, error)
+	// rootOn: block mounts found to be the file system under an overlay root.
+	rootOn map[rootPair]bool
 }
 
 func newSampler(cfg SamplerConfig) *sampler {
 	if cfg.Root == "" {
 		cfg.Root = "/"
 	}
-	s := &sampler{cfg: cfg}
+	s := &sampler{cfg: cfg, statfs: statfs, rootOn: map[rootPair]bool{}}
 	s.mets = []metrics.Sample{{Name: "/memory/classes/heap/objects:bytes"}, {Name: "/sched/goroutines:goroutines"}, {Name: "/gc/pauses:seconds"}}
 	return s
 }
@@ -528,6 +532,78 @@ func (s *sampler) chosenMounts(all []mountInfo) []mountInfo {
 	return out
 }
 
+// rootPair names an overlay root and a block mount by their device numbers.
+type rootPair struct{ root, mount string }
+
+// overlayTries: how often sameFS compares when the file system changed
+// between its two calls.
+const overlayTries = 3
+
+// foldOverlayRoot: in a container "/" is an overlay with a device number of
+// its own, but its statfs is that of the file system it lies on. A volume on
+// the same disk is then the same disk once more, so it is left out and the
+// root takes its device (the overlay has none, and with it no disk I/O).
+// Mounts named in monitoring.mounts stay as they are.
+func (s *sampler) foldOverlayRoot(in []mountInfo) []mountInfo {
+	root := -1
+	for i, m := range in {
+		if m.point == "/" && m.fs == "overlay" {
+			root = i
+		}
+	}
+	if root < 0 || len(s.cfg.Mounts) > 0 {
+		return in
+	}
+	var out []mountInfo
+	device := ""
+	for i, m := range in {
+		if i != root && blockFS[m.fs] && s.sameFS(in[root], m) {
+			if device == "" {
+				device = m.device
+			}
+			continue
+		}
+		out = append(out, m)
+	}
+	if device != "" {
+		for i := range out {
+			if out[i].point == "/" {
+				out[i].device = device
+			}
+		}
+	}
+	return out
+}
+
+// sameFS: both mounts report the same sizes and the same free blocks and
+// inodes, to the last one. The answer yes is kept, so that a file system
+// under heavy writes does not come and go between samples. The fsid does not
+// tell: overlayfs has its own since Linux 6.6.
+func (s *sampler) sameFS(root, m mountInfo) bool {
+	k := rootPair{root.major, m.major}
+	if s.rootOn[k] {
+		return true
+	}
+	for range overlayTries {
+		a, err := s.statfs(s.path(root.point))
+		if err != nil {
+			return false
+		}
+		b, err := s.statfs(s.path(m.point))
+		if err != nil {
+			return false
+		}
+		if a.blocks != b.blocks || a.bsize != b.bsize {
+			return false
+		}
+		if a == b {
+			s.rootOn[k] = true
+			return true
+		}
+	}
+	return false
+}
+
 func (s *sampler) mounts(out *sample, dt float64, unav func(string, string)) {
 	all, err := s.mountList()
 	if err != nil {
@@ -536,8 +612,8 @@ func (s *sampler) mounts(out *sample, dt float64, unav func(string, string)) {
 	}
 	stats := s.diskstats(dt, unav)
 	var fullest *cm.DiskNow
-	for _, m := range s.chosenMounts(all) {
-		st, err := statfs(s.path(m.point))
+	for _, m := range s.foldOverlayRoot(s.chosenMounts(all)) {
+		st, err := s.statfs(s.path(m.point))
 		if err != nil {
 			continue
 		}

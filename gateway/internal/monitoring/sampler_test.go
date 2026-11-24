@@ -299,3 +299,93 @@ func TestSamplerNetNamespace(t *testing.T) {
 		}
 	}
 }
+
+// In a container the overlay root and a volume on the same disk have two
+// device numbers and one file system: it is shown once, as "/".
+func TestOverlayRootAndVolumeOnOneDiskAreOneMount(t *testing.T) {
+	const gib = int64(1) << 30
+	const info = "1563 1278 0:139 / / rw,relatime - overlay overlay rw,upperdir=/u\n" +
+		"1572 1563 8:1 /docker/volumes/a/_data /data/caddy rw,relatime - ext4 /dev/sda1 rw\n" +
+		"1575 1563 8:1 /docker/containers/c/hosts /etc/hosts rw,relatime - ext4 /dev/sda1 rw\n" +
+		"1576 1563 8:16 / /srv/data rw,relatime - ext4 /dev/sdb rw\n" +
+		"1577 1563 8:1 /docker/volumes/b/_data /var/lib/schild rw,relatime - ext4 /dev/sda1 rw\n"
+	disk := fsStat{blocks: 40 * gib / 4096, bfree: 9 * gib / 4096, bavail: 8 * gib / 4096, bsize: 4096, files: 1000, ffree: 800}
+	// The same model of disk with other content.
+	other := disk
+	other.bfree, other.bavail, other.ffree = disk.bfree-1, disk.bavail-1, disk.ffree-1
+
+	setup := func(cfg SamplerConfig) (*sampler, string, map[string]fsStat) {
+		root := fixtureRoot(t)
+		if err := os.WriteFile(filepath.Join(root, "proc/self/mountinfo"), []byte(info), 0o644); err != nil {
+			t.Fatal(err)
+		}
+		cfg.Root, cfg.Linux, cfg.Host, cfg.Started, cfg.StoragePath = root, true, true, time.Now(), "/var/lib/schild"
+		st := map[string]fsStat{"/": disk, "/data/caddy": disk, "/srv/data": other}
+		s := newSampler(cfg)
+		s.statfs = func(p string) (fsStat, error) {
+			rel, err := filepath.Rel(root, p)
+			if err != nil {
+				return fsStat{}, err
+			}
+			v, ok := st[filepath.Join("/", rel)]
+			if !ok {
+				return fsStat{}, os.ErrNotExist
+			}
+			return v, nil
+		}
+		return s, root, st
+	}
+	points := func(o *sample) string {
+		var l []string
+		for _, m := range o.snap.Mounts {
+			l = append(l, m.Mount)
+		}
+		return strings.Join(l, " ")
+	}
+	t0 := time.Unix(1_800_000_000, 0)
+
+	s, root, st := setup(SamplerConfig{})
+	if got := points(s.take(t0)); got != "/ /srv/data" {
+		t.Fatalf("mounts %q, want one for the shared disk and the second disk", got)
+	}
+	// The root shows the disk's I/O, which the overlay itself has not.
+	bump(t, root, "proc/diskstats", "sda1 100 0 2000", "sda1 110 0 4000")
+	// Writes between two calls: the mount does not come back.
+	busy := disk
+	busy.bfree--
+	st["/data/caddy"] = busy
+	second := s.take(t0.Add(10 * time.Second))
+	if got := points(second); got != "/ /srv/data" {
+		t.Errorf("mounts after a write %q", got)
+	}
+	if m := second.snap.Mounts[0]; m.Device != "sda1" || m.ReadBytesPerS == nil || *m.ReadBytesPerS != 2000*512/10 {
+		t.Errorf("root %+v, want the I/O of sda1", m)
+	}
+
+	// A write between the first two calls of all: the next try tells.
+	s, _, _ = setup(SamplerConfig{})
+	inner, calls := s.statfs, 0
+	s.statfs = func(p string) (fsStat, error) {
+		v, err := inner(p)
+		if calls++; calls == 1 {
+			v.bfree++
+		}
+		return v, err
+	}
+	if got := points(s.take(t0)); got != "/ /srv/data" {
+		t.Errorf("mounts with a write in between %q", got)
+	}
+
+	// A volume on a disk of its own stays, also one of the same size.
+	s, _, st = setup(SamplerConfig{})
+	st["/data/caddy"] = other
+	if got := points(s.take(t0)); got != "/ /data/caddy /srv/data" {
+		t.Errorf("mounts with a volume on another disk %q", got)
+	}
+
+	// The operator's own list is not changed.
+	s, _, _ = setup(SamplerConfig{Mounts: []string{"/", "/data/caddy"}})
+	if got := points(s.take(t0)); got != "/ /data/caddy" {
+		t.Errorf("configured mounts %q", got)
+	}
+}

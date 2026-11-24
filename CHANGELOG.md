@@ -9,6 +9,10 @@ The section of a version becomes the text of its GitHub release, so its heading 
 - Cluster: a node that took some of the first keys of the browser check waits for the rest. It could hand over the rest of its own, and the cluster then ran with a mix of two sets.
 - Cluster: a setting that changes on a node while that node stores a change of another one goes to the cluster. It could stay on this node only, and the repair then put the value of the cluster back over it.
 
+### Monitoring
+
+- In a container, a volume on the disk of the container's root is no longer counted as a second disk. The hints about a full disk came twice, once for `/` and once for the volume (for example `/data/caddy`). The disk is now shown once, as `/`, with its disk I/O. A volume on a disk of its own stays, and a list in `monitoring.mounts` is shown as written.
+
 ## 0.1.0-alpha.6
 
 ### Security
