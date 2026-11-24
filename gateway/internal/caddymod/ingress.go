@@ -164,7 +164,7 @@ func PrepareIngress(o IngressOptions) (*Ingress, error) {
 		return nil, errors.New("caddyfile: acme_server is not available under schild: a gateway obtains certificates and issues none (Caddy's ACME server parses keys and tokens that its clients send, through a library with known flaws, GHSA-mgcc-cww5-fp2q)")
 	}
 	if a, ok := m["admin"].(map[string]any); ok && a["disabled"] != true {
-		ing.Check.Warnings = append(ing.Check.Warnings, "the admin option of the Caddyfile is ignored: the Caddy admin API stays disabled under schild (changes need a restart)")
+		ing.Check.Warnings = append(ing.Check.Warnings, "the admin option of the Caddyfile is ignored: the Caddy admin API stays disabled under schild (changes of the Caddyfile: schild ingress reload)")
 	}
 	if w := trustedProxiesWarning(raw, o.TrustedProxies); w != "" {
 		ing.Check.Warnings = append(ing.Check.Warnings, w)

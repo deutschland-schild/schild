@@ -20,12 +20,12 @@ import (
 // that cannot be read gives the one website "default" (the start fails on
 // it anyway, see startCaddy).
 func (a *App) websitesView(cfg *config.Site) *sites.View {
-	v := deriveWebsites(cfg, a.dataDir)
+	v := deriveWebsites(cfg, a.dataDir, nil)
 	if !cfg.CaddyIngress() {
 		return v
 	}
 	switch {
-	case v.Err != nil && len(v.Websites()) == 1 && v.Websites()[0].ID == websites.DefaultID:
+	case notDerived(v):
 		a.log.Warn("websites not derived from the Caddyfile, counting everything as one website", "err", v.Err)
 	case v.Err != nil:
 		a.log.Warn("a Caddyfile block is no website (dropped), the other websites stay", "err", v.Err, "count", len(v.Websites()))
@@ -35,8 +35,14 @@ func (a *App) websitesView(cfg *config.Site) *sites.View {
 	return v
 }
 
-// deriveWebsites is websitesView without the log lines.
-func deriveWebsites(cfg *config.Site, dataDir string) *sites.View {
+// notDerived: the Caddyfile gave no websites, everything counts as one.
+func notDerived(v *sites.View) bool {
+	return v.Err != nil && len(v.Websites()) == 1 && v.Websites()[0].ID == websites.DefaultID
+}
+
+// deriveWebsites is websitesView without the log lines; prev is the view a
+// running gateway has (sites.NewViewAfter), nil at a start.
+func deriveWebsites(cfg *config.Site, dataDir string, prev *sites.View) *sites.View {
 	if !cfg.CaddyIngress() {
 		return sites.NewView(websites.Input{Mode: websites.ModeProxy, SiteHosts: cfg.Upstream.SiteHosts})
 	}
@@ -45,7 +51,7 @@ func deriveWebsites(cfg *config.Site, dataDir string) *sites.View {
 	if ing != nil {
 		in.Blocks, err = caddymod.SiteBlocks(cfg.Ingress.Caddyfile, ing.Check)
 	}
-	v := sites.NewView(in)
+	v := sites.NewViewAfter(prev, in)
 	if err != nil && v.Err == nil {
 		v = sites.NewView(websites.Input{Mode: websites.ModeProxy})
 		v.Source = websites.SourceCaddyfile
@@ -57,7 +63,7 @@ func deriveWebsites(cfg *config.Site, dataDir string) *sites.View {
 // WebsiteCount is the number of websites of cfg (the metrics.db bound of
 // the disk budget grows with it; preflight runs before the app exists).
 func WebsiteCount(cfg *config.Site, dataDir string) int {
-	return len(deriveWebsites(cfg, dataDir).Websites())
+	return len(deriveWebsites(cfg, dataDir, nil).Websites())
 }
 
 // configSHA is the hash of the effective configuration (annotations).

@@ -81,6 +81,45 @@ func NewView(in websites.Input) *View {
 	return v
 }
 
+// NewViewAfter derives the websites of in for a gateway that runs with prev
+// (a reload of the Caddyfile). A website keeps the slot it has, so a counter
+// never moves from one website to another; a website that is gone keeps its
+// slot and its name, because buckets that are still open hold its counts. A
+// new website takes a slot nobody had since the start; when none is left it
+// counts in _other until the next start.
+func NewViewAfter(prev *View, in websites.Input) *View {
+	v := NewView(in)
+	if prev == nil {
+		return v
+	}
+	v.names = prev.names
+	had := map[string]int{}
+	next := 0
+	for i := 0; i < OtherSlot; i++ {
+		if n := prev.names[i]; n != "" {
+			had[n] = i
+			next = i + 1
+		}
+	}
+	for i := range v.Set.Websites {
+		w := &v.Set.Websites[i]
+		if w.Protection == websites.Unprotected {
+			continue
+		}
+		s, ok := had[w.ID]
+		if !ok && next < OtherSlot {
+			s, ok = next, true
+			v.names[s] = w.ID
+			next++
+		}
+		if !ok {
+			s = OtherSlot
+		}
+		v.slot[i], w.Tracked = s, ok
+	}
+	return v
+}
+
 // deriveWithoutBroken derives the websites of the blocks that derive on
 // their own (D36 fix round 2): a block that alone is an error (an address
 // that does not parse, a backend without schild that is not listed) is
@@ -197,7 +236,13 @@ func (v *View) Untracked() int {
 }
 
 // Registry holds the current view (swapped on a configuration change).
-type Registry struct{ cur atomic.Pointer[View] }
+type Registry struct {
+	cur atomic.Pointer[View]
+	// prev is the view before a swap that is still under way: requests of
+	// both configurations run, and a host only the old one knows is still
+	// its website. Nil otherwise.
+	prev atomic.Pointer[View]
+}
 
 // NewRegistry returns a registry with v.
 func NewRegistry(v *View) *Registry {
@@ -212,12 +257,31 @@ func (r *Registry) View() *View { return r.cur.Load() }
 // Store swaps the view.
 func (r *Registry) Store(v *View) { r.cur.Store(v) }
 
+// Swap puts v in force and resolves a host v does not know with the view
+// before it until the caller commits. Without commit, rollback puts the view
+// before it back. One swap at a time.
+func (r *Registry) Swap(v *View) (commit, rollback func()) {
+	old := r.cur.Load()
+	r.prev.Store(old)
+	r.cur.Store(v)
+	return func() { r.prev.Store(nil) }, func() {
+		r.cur.Store(old)
+		r.prev.Store(nil)
+	}
+}
+
 // Resolve is View().Resolve; a nil registry resolves nothing.
 func (r *Registry) Resolve(host string) (string, int) {
 	if r == nil {
 		return "", NoSlot
 	}
-	return r.cur.Load().Resolve(host)
+	id, slot := r.cur.Load().Resolve(host)
+	if id == "" {
+		if p := r.prev.Load(); p != nil {
+			return p.Resolve(host)
+		}
+	}
+	return id, slot
 }
 
 // OwnHost is View().OwnHost; false for a nil registry.
@@ -225,7 +289,11 @@ func (r *Registry) OwnHost(host string) bool {
 	if r == nil {
 		return false
 	}
-	return r.cur.Load().OwnHost(host)
+	if r.cur.Load().OwnHost(host) {
+		return true
+	}
+	p := r.prev.Load()
+	return p != nil && p.OwnHost(host)
 }
 
 // ID is View().ID; "" for a nil registry.
@@ -233,7 +301,8 @@ func (r *Registry) ID(host string) string {
 	if r == nil {
 		return ""
 	}
-	return r.cur.Load().ID(host)
+	id, _ := r.Resolve(host)
+	return id
 }
 
 // ---------------------------------------------------------------- cache
