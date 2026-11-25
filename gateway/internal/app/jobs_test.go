@@ -69,7 +69,10 @@ func TestSingleGatewayRunsATaskOncePerPeriodAcrossARestart(t *testing.T) {
 // A task that notes what it has done picks up after a failure where it
 // stopped, on a single gateway as in a group.
 func TestSingleGatewayTakesUpAFailedRunWhereItStopped(t *testing.T) {
-	clock := &testClock{t: time.Date(2026, 11, 22, 10, 0, 0, 0, time.UTC)}
+	// 10:00 of today: the note of an item expires by the real clock, three
+	// days after the period (a fixed date fails from then on), and the test
+	// must not run into the next period.
+	clock := &testClock{t: time.Now().UTC().Truncate(24 * time.Hour).Add(10 * time.Hour)}
 	defer app.SetJobsClock(clock.now, 5*time.Millisecond)()
 	h := apptest.New(t, apptest.Options{})
 	var mu sync.Mutex
