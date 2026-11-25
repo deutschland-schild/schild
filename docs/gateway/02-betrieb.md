@@ -57,6 +57,46 @@ Läuft Schild als Caddy-Distribution hinter Cloudflare oder einem Load Balancer,
 
 Schild liest `schild.yaml` beim Start. Nach einer Änderung an der Datei startest du Schild neu (`sudo systemctl restart schild` oder `docker compose restart`). `schild preflight -config /etc/schild/schild.yaml` prüft die Datei vorher, ohne etwas zu starten. Was du im Dashboard einstellst, gilt sofort und braucht keinen Neustart. Eigene Regeln lädt `schild rules sync local` ohne Neustart neu.
 
+### Zertifikate über Hetzner DNS
+
+Let's Encrypt prüft normalerweise über Port 80 oder 443, ob dir eine Domain gehört. Für ein Wildcard-Zertifikat wie `*.example.org` und für Namen, die von außen nicht erreichbar sind, geht das nur über einen DNS-Eintrag. Liegt die Zone bei Hetzner (Hetzner Console, Cloud-API), setzt Schild diesen Eintrag selbst und löscht ihn danach wieder. Das Modul ist eingebaut und tut nichts, solange es nicht im Caddyfile steht.
+
+1. **Eigenes Projekt:** Leg in der Hetzner Console ein Projekt nur dafür an. Ein API-Token gilt für das ganze Projekt. Liegen dort auch Server, reicht das Token auch für sie.
+2. **Eigene Zone:** Leg in diesem Projekt eine Zone nur für die Prüfungen an, zum Beispiel `acme.example.net`. In der Zone deiner Website verweist ein CNAME darauf. Die Website-Zone muss dann nicht bei Hetzner liegen:
+
+   ```text
+   _acme-challenge.example.org.  CNAME  _acme-challenge.acme.example.net.
+   ```
+
+3. **Token:** Erstell im Projekt ein API-Token mit Lesen und Schreiben. Leg es in eine Datei, die nur der Benutzer `schild` lesen kann:
+
+   ```bash
+   sudo install -o schild -g schild -m 0400 /dev/null /etc/schild/hetzner.token
+   sudo nano /etc/schild/hetzner.token
+   ```
+
+4. **Caddyfile:**
+
+   ```caddyfile
+   *.example.org {
+   	tls {
+   		dns hetzner {file./etc/schild/hetzner.token}
+   		dns_challenge_override_domain _acme-challenge.acme.example.net
+   		propagation_delay 30s
+   	}
+   	import schild
+   	reverse_proxy 127.0.0.1:3000
+   }
+   ```
+
+5. **Prüfen:** `sudo -u schild schild ingress validate` lehnt ein fehlendes, leeres oder nicht lesbares Token ab. Ob Hetzner es annimmt, zeigt erst die erste Ausstellung.
+
+Liegt die Zone deiner Website selbst in dem Projekt, lässt du den CNAME und die Zeile `dns_challenge_override_domain` weg. Wer das Token hat, kann dann aber alle Einträge dieser Zone ändern. Auch mit der eigenen Zone kann jemand mit dem Token Zertifikate für die Namen holen, die dorthin verweisen.
+
+Fehlt das Token beim Start, startet Schild trotzdem, meldet den Fehler im Log und liefert die vorhandenen Zertifikate aus. Neue und erneuerte gibt es erst, wenn du das Token ergänzt und Schild neu gestartet hast. Im [Cluster](03-cluster.md) braucht jeder Server die Token-Datei.
+
+Getestet ist die Ausstellung gegen einen Nachbau der Hetzner-API und eine Test-Zertifizierungsstelle, noch nicht gegen Hetzner selbst.
+
 ### Dashboard von außen erreichen
 
 Ab Werk hört das Dashboard auf `127.0.0.1:8788` und ist damit nur auf dem Server selbst erreichbar. Der einfachste Weg hinein ist der SSH-Tunnel aus den [ersten Schritten](00-installieren.md#erste-schritte). Ein VPN geht genauso.

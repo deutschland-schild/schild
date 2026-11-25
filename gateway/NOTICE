@@ -13,6 +13,8 @@ schild and schild-agent, among them:
 
 - Caddy (https://github.com/caddyserver/caddy), Apache License 2.0
 - Coraza WAF and coraza-caddy (https://github.com/corazawaf), Apache License 2.0
+- caddy-dns/hetzner, libdns and hcloud-go (https://github.com/caddy-dns/hetzner,
+  https://github.com/libdns, https://github.com/hetznercloud/hcloud-go), MIT License
 - OWASP CRS, the Core Rule Set embedded through coraza-coreruleset
   (https://github.com/coreruleset/coreruleset), Apache License 2.0,
   Copyright the OWASP CRS project

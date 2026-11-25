@@ -901,6 +901,11 @@ func (a *App) startCaddy(cfg *config.Site) error {
 		if err != nil {
 			return fmt.Errorf("ingress: %w", err)
 		}
+		// A lost token must not take down sites whose certificates are
+		// valid, so this is an error in the log and not a refusal.
+		for _, p := range caddymod.DNSTokenProblems(ing.JSON) {
+			a.log.Error("ingress: "+p+"; schild serves the certificates it holds and obtains or renews none that needs this token. Fix it and restart schild", "caddyfile", cfg.Ingress.Caddyfile)
+		}
 		// The gate decides each request by the website of the site block
 		// Caddy routed it to (D69).
 		if ing.JSON, err = caddymod.BindWebsites(ing.JSON, a.Sites.View().Set.RouteWebsite); err != nil {

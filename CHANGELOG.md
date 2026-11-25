@@ -6,6 +6,7 @@ The section of a version becomes the text of its GitHub release, so its heading 
 
 ## Unreleased
 
+- Certificates by DNS challenge at Hetzner, wildcards included: the Caddy module `dns.providers.hetzner` is compiled in and does nothing without its line in the Caddyfile (MVP-37). `schild ingress validate` refuses an empty or unreadable API token; `schild run` logs it and goes on serving the certificates it holds. Tested against a stand-in of the Hetzner API and a test CA, not yet against Hetzner.
 ### Cluster of gateways
 
 - Fixed: when a cluster was set up, two nodes could each write some of the first keys of the browser check, and the cluster ran with a mix of two sets. Now a node waits until it has all keys of the first set, or until the wait is over.
