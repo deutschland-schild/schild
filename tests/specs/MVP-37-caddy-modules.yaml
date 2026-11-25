@@ -1,0 +1,115 @@
+id: MVP-37
+# Direction given by the initiator 2026-11-25, after issue 43 ("Schild als Caddy-Modul"): operators can use their own
+# Caddy modules with schild, and the base stays lean because special cases come as modules. No DECISIONS entry yet;
+# the points under `open` are the initiator's. MVP-32 to MVP-36 are taken by other drafts.
+# What issue 43 asks for and what this spec answers:
+# - asked: schild as an xcaddy plugin, so that an operator builds an own Caddy distribution, for example with another
+#   certificate storage for HA, with its locks.
+# - answered: schild stays the program and Caddy stays inside it (D31, approach A). The operator builds a schild with
+#   further Caddy modules. The plugin (approach B) stays possible and is not part of this spec.
+# Checked against the code of 2026-11-25 (main) in a throwaway copy, one machine, macOS, by the author of the spec:
+# - one file with a blank import in gateway/cmd/schild is enough: schild with github.com/pberkel/caddy-storage-redis
+#   v1.9.0 built, ran one gateway, kept its certificates in Redis and none on disk, answered 200 and an SQL injection
+#   with 403. The stock binary refuses that Caddyfile ("module not registered").
+# - `schild init -caddyfile` always writes ingress.storage, which replaces the storage of the Caddyfile with a warning.
+# - a foreign HTTP handler in front of schild is refused (github.com/mholt/caddy-ratelimit v0.1.0, `order rate_limit
+#   first`), behind schild it passes: the walker in ingress.go treats a handler outside knownHandlers as a backend.
+# - a foreign app and a foreign listener wrapper pass unseen: github.com/mholt/caddy-l4 v0.1.3 proxied to a backend as
+#   app and as listener wrapper, and `schild ingress validate -adapt-only` said PASS. CheckConfig reads apps.http only.
+# - with cluster.enabled a foreign storage is refused; without it PrepareIngress returns before the lines that share
+#   the keys of session tickets and set the grace period, so lifting the refusal alone would lose both in a group.
+# - an import from outside cannot work today: the code is below internal/, gateway/go.mod does not require the module
+#   contract (go.work resolves it), and the dashboard is not in the tree. The Dockerfile solves all three.
+# - caddy.RegisterModule and RegisterDirectiveOrder panic on a name that exists: a module cannot replace
+#   http.handlers.schild or move the directive schild.
+# - leaner Caddy saves little: linux/amd64, stripped, without the dashboard: stock Caddy 58 MB, schild 77 MB, schild
+#   with a reduced set of Caddy modules 73 MB (built only). Size is no reason to drop the standard modules.
+title: "Own Caddy modules in schild: an operator builds schild with further Caddy modules, schild shows them and refuses what would pass it by"
+ships: false
+status: ENTWURF
+image: schild                       # released images stay without further modules; only the operator's own build has them
+hypotheses: []
+refs: [MVP-19, MVP-27, DECISIONS-D31, DECISIONS-D53, DECISIONS-D79, DECISIONS-D105, DECISIONS-D106]  # D106 is a proposal in PR 41
+depends_on: [MVP-19]                # stage 2 also on MVP-27
+why: >-
+  Operators need parts of Caddy that schild does not carry: another certificate storage, a DNS provider, a handler.
+  Each part compiled into the released binary is third-party code for every operator, so the list must stay short. A
+  build of one's own solves both, if it is one command and if schild still keeps its promise that no website with a
+  backend is reached without it.
+stages:                             # one after the other, each with its own go of the initiator
+  1: 'build, show, refuse. No change to contracts/, no change for an operator of a released binary'
+  2: 'a foreign storage in a group. Starts only when a named operator says what the storage of the group (schild_cluster) lacks; without that it is not built'
+
+stage_1:
+  build:
+    - 'build argument CADDY_MODULES of gateway/Dockerfile, also of make gateway-image and make gateway-tarball: a list of <go module>@<version>, separated by spaces; empty (default) builds exactly what it builds today'
+    - 'the source is a release tag of this repository; the Dockerfile writes the blank imports into one generated file of cmd/schild and nothing else of the code changes'
+    - 'every version is exact: no @latest, no branch, no replace. The checksums come through the Go checksum database; a module that is not in it stops the build'
+    - 'a module that would change the version of Caddy, certmagic, Coraza, the CRS, quic-go, sqlite, x/crypto or x/net stops the build and names both versions: that combination was never tested. Every other version that changes is printed'
+    - 'CGO_ENABLED=0 and the license check of the Dockerfile hold for the added modules'
+    - 'why not a public Go package as entry: it would make internal code an API, need contract as a published module and bring no dashboard. The Dockerfile needs none of it'
+  show:
+    - 'foreign = a registered Caddy module whose id is not in the list of the released build. The list is a file, compared with caddy.Modules() at start; a test fails when the released set changes without it'
+    - 'the same comparison finds modules a fork added by hand, so the mark cannot be forgotten'
+    - '`schild version` (first line "custom build"), `schild ingress validate`, `schild preflight` and the start log name each foreign module id with its Go module and version'
+    - 'the issue form for bugs asks for the output of `schild version`'
+    - 'not seen: a package that registers no Caddy module and works in its init function. The docs say so'
+  refuse:
+    rule: 'what schild cannot check does not start, with the module id and the reason in the error, in `schild ingress validate` as in `schild run`'
+    allowed: 'storage (caddy.storage.*), DNS providers (dns.providers.*), certificate issuers, managers and permissions (tls.*), log writers and encoders (caddy.logging.*), matchers (http.matchers.*), what works inside reverse_proxy and encode, and HTTP handlers behind schild'
+    refused:
+      - 'a foreign app (an entry of apps that stock Caddy does not have), for example layer4'
+      - 'a foreign listener wrapper or network: it can take a connection before schild sees it'
+      - 'a foreign HTTP handler reached without schild, as today; unprotected_sites keeps its meaning'
+      - 'any foreign namespace not named under allowed (when unsure, refuse, as MVP-19)'
+    matcher: 'a schild line behind a foreign matcher is conditional and protects nothing after it, as behind any matcher'
+    no_switch: 'no option to allow a refused module in stage 1. Whoever needs one says which and why; then it is a decision of its own with a contract change'
+  storage:
+    - '`schild init -caddyfile` leaves ingress.storage out when the Caddyfile names a storage other than file_system, and its certificate hint says that nothing has to be copied'
+    - '`schild ingress validate` and the start log name the storage module when there is no directory; today the line is empty'
+    - 'ingress.storage next to a foreign storage in the Caddyfile is an error instead of a warning: it would silently order every certificate again'
+  docs:
+    - 'a page in docs/gateway: build, pin, update, the list of allowed and refused kinds, one example (a storage)'
+    - 'it says that a module runs in the same process and can read everything schild sees, private keys included; schild cannot confine it'
+    - 'it says who updates: a custom build gets no automatic release; the operator rebuilds on every schild release, and after a Caddy security release at once'
+  dns: 'after stage 1 no further DNS provider goes into the released binary; those of D106 (rfc2136, hetzner, ionos) may stay'
+
+stage_2:
+  opt_in: 'a foreign storage in the Caddyfile of a group instead of the refusal of today; schild_cluster stays the default and the recommendation. D105 says no store beside the gateways: this is the one exception, chosen by the operator'
+  owner: 'the storage holds certificates, ACME accounts, challenge tokens and session ticket keys and gives the locks. The group then shares no file of the Caddy storage, so there is one truth'
+  same_everywhere: 'the nodes compare a fingerprint of the storage settings without its secrets; a difference is named and the node does not become ready'
+  kept: 'shared ticket keys, the grace period and readiness hold as with schild_cluster'
+  failure: 'storage away: running nodes serve the certificates they hold in memory. A node that starts without it is not ready and says why. No order is placed without the lock'
+  no_move: 'no automatic move from schild_cluster to the foreign storage or back; the runbook writes the steps'
+
+must:
+  - 'CADDY_MODULES empty: the binary has the same modules and the same behaviour as before this spec'
+  - 'no Caddyfile that a released binary loads is refused after stage 1, except the one case under storage (ingress.storage next to a foreign storage, which a released binary cannot have)'
+  - 'every foreign module of a build shows in `schild version`'
+  - 'no configuration with a foreign module reaches a backend past schild without an entry in unprotected_sites, for the kinds schild can check; the rest does not start'
+  - 'PR 41 (reload): the same checks run on a reload; a reload that would bring in a refused module leaves the running config in place'
+  - 'released images, tarballs and packages never carry a foreign module; the release workflow fails when CADDY_MODULES is set'
+measure:                            # by an independent agent, not the builder
+  - 'build with one module of each allowed kind: start, request, certificate, attack request; and the released build next to it with the same Caddyfile minus the module'
+  - 'each refused kind with a real module (layer4 as app and as listener wrapper, a rate limit in front of schild), also by reload: not started, backend not reached'
+  - 'a module written for the test that tries to pass schild by as matcher, storage, log writer, reverse_proxy transport and encoder: what it reaches is written down, also where it succeeds'
+  - 'a module that needs a newer Caddy, one without a license file, one with @latest: each stops the build with the reason'
+  - 'stage 2: three nodes, one ACME test server, one storage: one order per certificate, storage cut for an hour, a node restarted meanwhile, different settings on one node'
+kill_if: "proposal for the initiator: a kind under allowed turns out to reach a backend past schild through configuration alone, or the released binary changes its behaviour for operators without own modules"
+stop_if:                            # so that it stays small; the initiator decides what follows
+  - 'stage 1 needs a public Go API, a change in contracts/ or a second build path next to the Dockerfile'
+  - 'stage 2 needs a change to the records of the group (contracts/cluster.md)'
+done: "make gateway-test && make gateway-caddy-modules-test"   # second target comes with stage 1: the builds and refusals above in containers
+open:                               # the initiator decides
+  - 'the rule no_switch: refuse foreign apps without exception (this draft), or allow them by id in schild.yaml with a permanent warning. Many modules bring an app of their own and cannot be used without the switch'
+  - 'support: does a custom build get help in issues, or only when the fault also shows in the released build (proposal: the latter)'
+  - 'the Debian package: a custom build as .deb, or image and tarball only (proposal: image and tarball only)'
+  - 'stage 2: is an outside storage in a group wanted at all, against "no store" of D105, or only if an operator needs it (proposal: the latter)'
+  - 'the DNS providers of D106: do hetzner and ionos stay in the released binary (proposal: yes, wildcards are common at small hosters)'
+out_of_scope:
+  - 'schild as an xcaddy plugin (approach B of D31)'
+  - 'an interface for modules of schild itself (detections, rule sources, notifications). It needs an API that stays stable, which no second user has shaped yet; a spec of its own'
+  - 'a catalogue, download service or automatic update of modules; prebuilt images with modules'
+  - 'loading modules at run time; a module is compiled in'
+  - 'removing standard modules of Caddy from the released binary'
+  - 'foreign modules in the dashboard (client API contract); `schild version` is enough for stage 1'
