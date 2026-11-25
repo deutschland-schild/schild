@@ -6,8 +6,14 @@ The section of a version becomes the text of its GitHub release, so its heading 
 
 ## Unreleased
 
-- Cluster: a node that took some of the first keys of the browser check waits for the rest. It could hand over the rest of its own, and the cluster then ran with a mix of two sets.
-- Cluster: a setting that changes on a node while that node stores a change of another one goes to the cluster. It could stay on this node only, and the repair then put the value of the cluster back over it.
+### Cluster of gateways
+
+- Fixed: when a cluster was set up, two nodes could each write some of the first keys of the browser check, and the cluster ran with a mix of two sets. Now a node waits until it has all keys of the first set, or until the wait is over.
+- Fixed: a setting changed on a node while that node stored a change from another node could stay on that node only. The repair then replaced it with the value of the cluster. The change now goes to the cluster.
+
+### Monitoring
+
+- In a container, a volume on the disk of the container's root is no longer counted as a second disk. The hints about a full disk came twice, once for `/` and once for the volume (for example `/data/caddy`). The disk is now shown once, as `/`, with its disk I/O. A volume on a disk of its own stays, and a list in `monitoring.mounts` is shown as written.
 
 ## 0.1.0-alpha.6
 
