@@ -10,6 +10,7 @@ The section of a version becomes the text of its GitHub release, so its heading 
 
 - Fixed: when a cluster was set up, two nodes could each write some of the first keys of the browser check, and the cluster ran with a mix of two sets. Now a node waits until it has all keys of the first set, or until the wait is over.
 - Fixed: a setting changed on a node while that node stored a change from another node could stay on that node only. The repair then replaced it with the value of the cluster. The change now goes to the cluster.
+- Fixed: "Freigeben" on a gateway could answer 404 when it came in the moment a block of another gateway started there. The incident is now stored before the block starts.
 
 ### Monitoring
 

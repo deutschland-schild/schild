@@ -126,6 +126,9 @@ func (a *App) startCluster(ctx context.Context) {
 // testBeforeMesh, in tests, runs right before the mesh starts.
 var testBeforeMesh func(*App)
 
+// testBlockRuns, in tests, runs right after a block of a record started here.
+var testBlockRuns atomic.Pointer[func(a *App, incident string)]
+
 // seedGroupBlocks applies the blocks of the group this node holds at its
 // start: what ran when it stopped runs again, also blocks under 24 h, which
 // a single gateway forgets with a restart.
@@ -189,6 +192,11 @@ func (a *App) applyGroupBlock(rec *contract.Record) bool {
 		a.liftForGroup(key, b.Incident)
 		return false
 	}
+	// The incident before the block: whoever sees the block here can release
+	// it, also in the moment it starts.
+	if _, runs := a.Behaviour.ActiveBlock(key.Addr()); !runs {
+		a.noteGroupIncident(b, key, since)
+	}
 	if !a.Behaviour.ApplyBlock(key, b.Bits, bi) {
 		// A block of this client runs here already. When it is the same
 		// one (a restart), the group knows it.
@@ -196,6 +204,9 @@ func (a *App) applyGroupBlock(rec *contract.Record) bool {
 			a.groupBlocks.known[key] = groupBlock{incident: b.Incident, until: until, node: b.Node, self: rec.Origin == a.Cluster.ID()}
 		}
 		return false
+	}
+	if f := testBlockRuns.Load(); f != nil {
+		(*f)(a, b.Incident)
 	}
 	// Looked at again now that the block runs: a lift that came between the
 	// first look and the start found no block to end. Its mark in the store
@@ -206,7 +217,6 @@ func (a *App) applyGroupBlock(rec *contract.Record) bool {
 		return false
 	}
 	a.groupBlocks.known[key] = groupBlock{incident: b.Incident, until: until, node: b.Node, self: rec.Origin == a.Cluster.ID()}
-	a.noteGroupIncident(b, key, since)
 	return true
 }
 

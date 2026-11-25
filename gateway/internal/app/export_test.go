@@ -179,3 +179,10 @@ func SetBeforeMesh(f func(*App)) (undo func()) {
 	testBeforeMesh = f
 	return func() { testBeforeMesh = old }
 }
+
+// SetTestBlockRuns sets what runs right after a block of a record started on
+// a node, and returns how to take it back.
+func SetTestBlockRuns(f func(a *App, incident string)) (undo func()) {
+	testBlockRuns.Store(&f)
+	return func() { testBlockRuns.Store(nil) }
+}

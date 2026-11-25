@@ -1133,3 +1133,34 @@ func TestUnblockOnAnotherNodeAsSoonAsItHoldsTheBlock(t *testing.T) {
 		}
 	}
 }
+
+// The same in the moment the block starts there: its incident is stored by
+// then, and the release ends the block on both nodes.
+func TestUnblockOnAnotherNodeInTheMomentTheBlockStarts(t *testing.T) {
+	a, b := pair(t)
+	b.h.Login()
+	const ip, incident = "203.0.113.215", "K7QM-4XWF"
+	type answer struct {
+		code int
+		body string
+	}
+	answers := make(chan answer, 1)
+	defer app.SetTestBlockRuns(func(x *app.App, in string) {
+		if x != b.h.App || in != incident {
+			return
+		}
+		code, body := b.h.API("POST", "/incidents/"+incident+"/unblock", map[string]any{})
+		answers <- answer{code, fmt.Sprintf("%s", body)}
+	})()
+	a.block(ip, incident, 15*time.Minute)
+	select {
+	case got := <-answers:
+		if got.code != 200 {
+			t.Fatalf("unblock on web-2 while the block starts: %d %s", got.code, got.body)
+		}
+	case <-time.After(20 * time.Second):
+		t.Fatal("the block did not reach web-2")
+	}
+	a.h.WaitFor("web-1 serves "+ip+" again", func() bool { return a.blocked(ip) == "" })
+	b.h.WaitFor("web-2 serves "+ip+" again", func() bool { return b.blocked(ip) == "" })
+}
