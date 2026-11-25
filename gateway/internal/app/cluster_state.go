@@ -53,6 +53,9 @@ type sharedThing struct {
 	// brought in step with the group: true keeps its entries back for now
 	// (holdFirstKeys).
 	hold func() bool
+	// first names the entries hold is about: those every node makes at its
+	// first start.
+	first func(entry string) bool
 }
 
 func (t sharedThing) key() string { return t.class + "/" + t.id }
@@ -157,6 +160,10 @@ var (
 // firstOnce marks a thing as made once for the group (see above).
 func (a *App) firstOnce(t sharedThing) sharedThing {
 	t.hold = a.holdFirstKeys
+	t.first = func(entry string) bool {
+		path, ok := pathOf(entry)
+		return ok && path[0] != "entries" // the policies of the websites
+	}
 	return t
 }
 
@@ -604,7 +611,16 @@ func (a *App) syncThing(ctx context.Context, t sharedThing, synced bool) {
 				set[k] = p.v
 			}
 		}
+		// What the marks say is what this round stored, not what it reads
+		// back: a change made on this node between the two is a change of
+		// its own and leaves with this round. Marked as in step, it stayed
+		// on this node, a value no record holds, until the repair put the
+		// value of the group back over it.
+		var stored map[string][]byte
 		next, err := t.codec.join(blob, set, del)
+		if err == nil {
+			stored, err = t.codec.split(next)
+		}
 		if err == nil {
 			err = t.write(ctx, next)
 		}
@@ -612,6 +628,7 @@ func (a *App) syncThing(ctx context.Context, t sharedThing, synced bool) {
 			// The node keeps its own. It notes the entries as in step all
 			// the same: its own value of them must not go to the group as
 			// if it were a new change.
+			stored = local
 			ratelog.Error(a.log, "cluster: a change of another node was not applied, this node keeps its own", "thing", t.key(), "from", from, "err", err)
 		} else {
 			a.log.Info("cluster: took a change of another node", "thing", t.key(), "from", from, "entries", len(pending))
@@ -625,8 +642,8 @@ func (a *App) syncThing(ctx context.Context, t sharedThing, synced bool) {
 			return
 		}
 		for k := range pending {
-			if cur, ok := local[k]; ok {
-				marks[k] = sum(cur)
+			if v, ok := stored[k]; ok {
+				marks[k] = sum(v)
 			} else {
 				delete(marks, k)
 			}
@@ -636,17 +653,18 @@ func (a *App) syncThing(ctx context.Context, t sharedThing, synced bool) {
 
 	// What changed on this node. Before its first sync a node publishes
 	// nothing: it does not know yet what the group holds.
-	if synced && t.hold != nil && !a.firstKeysDone && len(local) > 0 && len(marks) == 0 {
+	if synced && t.hold != nil && !a.firstKeysDone && len(local) > 0 {
 		// Made on every node at its first start and meant to be one for
 		// the group: the node that keeps the group's tasks hands its own
-		// over, the others wait for it. Once every entry is in step, or
-		// the wait is over, the thing is handed over like any other. Only
-		// the first ones: a node that brought an entry of the thing in step
-		// once holds the group's, and what changes later (the rotation of
-		// the keys, run once for the group) leaves at once.
+		// over, the others wait for it. Once each of these entries was in
+		// step, or the wait is over, the thing is handed over like any
+		// other: what changes later (the rotation of the keys, run once for
+		// the group) leaves at once. Each of them, not one: they arrive one
+		// by one, and a node that took the first and then handed over the
+		// rest of its own mixed two sets of keys.
 		own := false
-		for k, v := range local {
-			if marks[k] != sum(v) {
+		for k := range local {
+			if _, seen := marks[k]; !seen && t.first(k) {
 				own = true
 				break
 			}

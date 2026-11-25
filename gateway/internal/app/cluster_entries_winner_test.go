@@ -112,7 +112,9 @@ func TestTwoNodesWritingOneEntryAtOnceEndWithTheWinner(t *testing.T) {
 		}
 		return ""
 	}
-	deadline := time.Now().Add(4 * time.Second)
+	// The wait is long for the race detector on a busy CI machine, which took
+	// up to 12 s, and shorter than the repair, which must not have run.
+	deadline := time.Now().Add(25 * time.Second)
 	for agree() != "" && time.Now().Before(deadline) {
 		time.Sleep(100 * time.Millisecond)
 	}
@@ -122,6 +124,85 @@ func TestTwoNodesWritingOneEntryAtOnceEndWithTheWinner(t *testing.T) {
 	if n := a.h.App.StateRepairs() + b.h.App.StateRepairs(); n != 0 {
 		t.Fatalf("%d repairs ran", n)
 	}
+}
+
+// A change made on this node while a value of another node is written is a
+// change of its own: it goes to the group. The round used to read the value
+// back after it wrote it and to note what it read as in step, so a change
+// that landed between the two stayed on this node only, and the repair put
+// the value of the group back over it.
+func TestChangeWhileAValueOfTheGroupIsWrittenLeaves(t *testing.T) {
+	a, b := pair(t)
+	ctx := context.Background()
+	for _, g := range []*groupNode{a, b} {
+		g := g
+		g.h.WaitFor(g.name+" is in step", func() bool { return g.h.App.InService() })
+	}
+	const key = "future_meanwhile_v1"
+	var once sync.Once
+	// The reload runs after web-1 stored the value of web-2 and before it
+	// reads the value back.
+	a.h.App.OnSharedKey(key, func(ctx context.Context, v []byte) {
+		once.Do(func() {
+			if err := a.h.App.Store.Put(ctx, key, []byte(`{"mode":"meanwhile"}`)); err != nil {
+				t.Error(err)
+			}
+		})
+	})
+	if err := b.h.App.Store.Put(ctx, key, []byte(`{"mode":"group"}`)); err != nil {
+		t.Fatal(err)
+	}
+	for _, g := range []*groupNode{b, a} {
+		g := g
+		g.h.WaitFor(g.name+" holds the change web-1 made meanwhile", func() bool { return sameJSON(kvOf(g, key), `{"mode":"meanwhile"}`) })
+	}
+	if n := a.h.App.StateRepairs() + b.h.App.StateRepairs(); n != 0 {
+		t.Fatalf("%d repairs ran", n)
+	}
+}
+
+// The first keys of the browser check leave the node that writes them entry
+// by entry. A node that holds only some of them so far still waits for the
+// rest and does not add its own: one node writes the first keys.
+func TestFirstKeysThatArriveInPartsAreNotMixed(t *testing.T) {
+	// Nobody hands its own over for the length of this test.
+	defer app.SetFirstKeysTimes(time.Minute, time.Minute)()
+	a, b := pair(t)
+	for _, g := range []*groupNode{a, b} {
+		g := g
+		g.h.WaitFor(g.name+" is in step", func() bool { return g.h.App.InService() })
+	}
+	hand := func(entry, value string) {
+		t.Helper()
+		if _, err := a.h.App.Cluster.Publish(contract.ClassSettings, contract.EntryID(humancheck.StoreKey, entry),
+			contract.NewValue(entry, []byte(value), a.name), false, time.Time{}); err != nil {
+			t.Fatal(err)
+		}
+	}
+	st := *a.h.App.HumanCheck.State()
+	js := func(v any) string {
+		raw, err := json.Marshal(v)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return string(raw)
+	}
+	hand(`["prefix"]`, js(st.Prefix))
+	b.h.WaitFor("web-2 took the first of the keys", func() bool { return b.h.App.HumanCheck.State().Prefix == st.Prefix })
+	// Several looks of the loop later the rest of web-2 is still its own.
+	time.Sleep(1500 * time.Millisecond)
+	for _, entry := range []string{`["challenge_key"]`, `["clearance_key"]`, `["keys_rotated_at"]`} {
+		if _, origin := b.h.App.SharedEntryRecord(humancheck.StoreKey, entry); origin != "" {
+			t.Errorf("web-2 handed over %s of its own keys", entry)
+		}
+	}
+	hand(`["challenge_key"]`, js(st.ChallengeKey))
+	hand(`["clearance_key"]`, js(st.ClearanceKey))
+	hand(`["keys_rotated_at"]`, js(st.KeysRotatedAt))
+	b.h.WaitFor("web-2 runs the keys of web-1", func() bool {
+		x := b.h.App.HumanCheck.State()
+		return string(x.ChallengeKey) == string(st.ChallengeKey) && string(x.ClearanceKey) == string(st.ClearanceKey)
+	})
 }
 
 // The first keys of the browser check are made once for a new cluster:

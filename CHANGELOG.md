@@ -4,6 +4,11 @@ Notable changes per release. Contract changes are in [contracts/CHANGELOG.md](co
 
 The section of a version becomes the text of its GitHub release, so its heading stays `## <version>`. The date of a release is the one GitHub shows.
 
+## Unreleased
+
+- Cluster: a node that took some of the first keys of the browser check waits for the rest. It could hand over the rest of its own, and the cluster then ran with a mix of two sets.
+- Cluster: a setting that changes on a node while that node stores a change of another one goes to the cluster. It could stay on this node only, and the repair then put the value of the cluster back over it.
+
 ## 0.1.0-alpha.6
 
 ### Security
