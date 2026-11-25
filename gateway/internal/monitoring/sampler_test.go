@@ -383,6 +383,35 @@ func TestOverlayRootAndVolumeOnOneDiskAreOneMount(t *testing.T) {
 		t.Errorf("mounts with a volume on another disk %q", got)
 	}
 
+	// Under load the values never match again, and the mount stays away: near
+	// each other in every sample, or far apart in two samples in a row only.
+	s, _, st = setup(SamplerConfig{})
+	s.take(t0)
+	near, far := disk, disk
+	near.bfree -= 64 << 20 / disk.bsize
+	far.bfree -= 1 << 30 / disk.bsize
+	for i, v := range []fsStat{near, near, near, near, near, far, far, near, far, far, disk, far, far} {
+		st["/data/caddy"] = v
+		if got := points(s.take(t0.Add(time.Duration(i+1) * 10 * time.Second))); got != "/ /srv/data" {
+			t.Fatalf("mounts under load, sample %d: %q", i, got)
+		}
+	}
+
+	// Another disk that was equal once, by chance or as a copy, comes back
+	// with the third sample in a row that is far apart, and stays.
+	resized := disk
+	resized.blocks++
+	for name, v := range map[string]fsStat{"free space": far, "size": resized} {
+		s, _, st = setup(SamplerConfig{})
+		s.take(t0)
+		st["/data/caddy"] = v
+		for i, want := range []string{"/ /srv/data", "/ /srv/data", "/ /data/caddy /srv/data", "/ /data/caddy /srv/data"} {
+			if got := points(s.take(t0.Add(time.Duration(i+1) * 10 * time.Second))); got != want {
+				t.Errorf("%s apart, sample %d: mounts %q, want %q", name, i, got, want)
+			}
+		}
+	}
+
 	// The operator's own list is not changed.
 	s, _, _ = setup(SamplerConfig{Mounts: []string{"/", "/data/caddy"}})
 	if got := points(s.take(t0)); got != "/ /data/caddy" {
