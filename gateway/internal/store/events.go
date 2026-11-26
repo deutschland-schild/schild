@@ -549,6 +549,13 @@ func (s *Store) DeleteIP(ctx context.Context, ip string, keepIncidents bool, tru
 	}
 	a, _ := netip.ParseAddr(ip)
 	short := clientip.Truncate(a).String()
+	// Before the transaction, as every path that notes a lift (outbox.go).
+	if len(lifts) > 0 && s.outbox.on.Load() {
+		s.outbox.wmu.Lock()
+		defer s.outbox.wmu.Unlock()
+	} else {
+		lifts = nil
+	}
 	tx, err := s.db.BeginTx(ctx, nil)
 	if err != nil {
 		return nil, err
@@ -618,9 +625,6 @@ func (s *Store) DeleteIP(ctx context.Context, ip string, keepIncidents bool, tru
 	now := time.Now()
 	var noted []string
 	for _, id := range lifts {
-		if !s.outbox.on.Load() {
-			break // a single gateway has no group to tell
-		}
 		if _, err := tx.ExecContext(ctx, `UPDATE incidents SET status = 'unblocked', unblocked_ms = ? WHERE incident = ? AND status = 'blocked'`, ms(now), id); err != nil {
 			return nil, err
 		}

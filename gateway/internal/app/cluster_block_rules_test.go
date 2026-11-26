@@ -736,10 +736,22 @@ func TestKeptBlocksOfTheBuildBeforeAreResolvedByTheRecords(t *testing.T) {
 	}
 	// As the build before kept them.
 	b.putKept(t, keptUnmarked, rowTheirs, rowOwn)
+	// The first reads of those rows fail: until one succeeded web-2 neither
+	// writes the block without a record to the group nor ends it.
+	var reads atomic.Int32
+	defer app.SetTestUnmarkedBlocks(func(x *app.App) error {
+		if x.Cluster.Name() == "web-2" && reads.Add(1) <= 4 {
+			return errors.New("test: the kept blocks are not read")
+		}
+		return nil
+	})()
 	b.start(t)
 	// The first round of web-2 ran before its mesh.
 	if b.blocked(ipOwn) != own || b.blocked(ipTheirs) != theirs {
 		t.Fatalf("after its start web-2 runs %q and %q, want both kept blocks", b.blocked(ipOwn), b.blocked(ipTheirs))
+	}
+	if reads.Load() <= 4 && slices.Contains(recordIDs(t, b, contract.ClassIncidentBlocks), own) {
+		t.Fatal("web-2 wrote a kept block to the group before it read whose it is")
 	}
 	a.h.WaitFor("web-1 holds the block of web-2, which had no record", func() bool { return slices.Contains(recordIDs(t, a, contract.ClassIncidentBlocks), own) })
 	b.h.App.FlushBlocks()
@@ -1187,6 +1199,7 @@ func TestFreigebenFindsTheClientByItsBlockNotByTheStoredAddress(t *testing.T) {
 		g.h.WaitFor(g.name+" holds the three blocks", func() bool { return holds(t, g, contract.ClassIncidentBlocks, x, y, z) && g.blocked(short) == z })
 	}
 	// The incident as retention left it.
+	a.agedIncident(t, x, short, "dashboard")
 	a.unblock(t, x, short)
 	for _, g := range []*groupNode{a, b} {
 		g := g
@@ -1195,6 +1208,7 @@ func TestFreigebenFindsTheClientByItsBlockNotByTheStoredAddress(t *testing.T) {
 	// An incident with a shortened address and no block this node knows:
 	// the clicked incident alone.
 	const gone = "SHRT-AAA5"
+	a.agedIncident(t, gone, short, "dashboard")
 	a.unblock(t, gone, short)
 	time.Sleep(time.Second)
 	for _, g := range []*groupNode{a, b} {
@@ -1367,4 +1381,149 @@ func TestFreigebenOfABlockTheNodeHoldsAndDoesNotRun(t *testing.T) {
 		t.Fatalf("unblock on web-3, which holds the block and does not run it: %d %s", code, body)
 	}
 	a.h.WaitFor("web-1 ended the block", func() bool { return a.blocked(ip) == "" && holds(t, a, contract.ClassLifts, x) })
+}
+
+// agedIncident stores an incident on a node as retention leaves it after
+// retention.raw_ip_days: old, and with the address it was shortened to.
+func (g *groupNode) agedIncident(t *testing.T, incident, short, source string) {
+	t.Helper()
+	ctx := context.Background()
+	old := time.Now().Add(-time.Duration(g.h.App.Config().Retention.RawIPDays+1) * 24 * time.Hour)
+	if err := g.h.App.Store.InsertIncident(store.Foreign(ctx), &store.Incident{Incident: incident, Time: old, IP: short, Status: "blocked", Sources: []string{source}}); err != nil {
+		t.Fatal(err)
+	}
+	// An incident the node holds already (it took it with the record).
+	if _, err := g.h.App.Store.DB().Exec(`UPDATE incidents SET ip = ?, time_ms = ? WHERE incident = ?`, short, old.UnixMilli(), incident); err != nil {
+		t.Fatal(err)
+	}
+}
+
+// "Freigeben" of an incident whose address retention shortened finds the
+// client by the record the group holds, on a node that does not run the
+// block, and by the block the engine runs, on a node that holds no record
+// of it. In both cases the twin of the client is lifted with it, and the
+// client at the shortened address is left alone.
+func TestFreigebenOfAShortenedIncidentFindsTheHeldAndTheRunningBlock(t *testing.T) {
+	nodes := newGroup(t, "web-1", "web-2", "web-3")
+	a, b, c := nodes[0], nodes[1], nodes[2]
+	c.mode = "observe"
+	for _, g := range nodes {
+		g.start(t)
+	}
+	a.h.Login()
+	c.h.Login()
+	inService(t, nodes...)
+	const short, z = "203.0.113.0", "SHRT-AAB2"
+	a.block(short, z, 15*time.Minute) // another client, at the shortened address
+	// Held and not running: web-3 is in mode observe.
+	const ip1, x1, y1 = "203.0.113.81", "SHRT-AAB3", "SHRT-AAB4"
+	a.block(ip1, x1, 15*time.Minute)
+	b.block(ip1, y1, 15*time.Minute)
+	c.h.WaitFor("web-3 holds the three blocks and runs none", func() bool { return holds(t, c, contract.ClassIncidentBlocks, x1, y1, z) && c.blocked(ip1) == "" })
+	c.agedIncident(t, x1, short, "dashboard")
+	c.unblock(t, x1, short)
+	for _, g := range []*groupNode{a, b} {
+		g := g
+		g.h.WaitFor(g.name+" serves the first client again", func() bool { return g.blocked(ip1) == "" && holds(t, g, contract.ClassLifts, x1, y1) })
+	}
+	// Running and not held: web-1 has not written its block.
+	const ip2, x2, y2 = "203.0.113.82", "SHRT-AAB5", "SHRT-AAB6"
+	a.h.App.SetGroupBlocksMax(0)
+	a.block(ip2, x2, 15*time.Minute)
+	b.block(ip2, y2, 15*time.Minute)
+	a.h.WaitFor("web-1 holds the twin of web-2 and runs its own block", func() bool {
+		return slices.Contains(recordIDs(t, a, contract.ClassIncidentBlocks), y2) && a.blocked(ip2) == x2
+	})
+	a.agedIncident(t, x2, short, "dashboard")
+	a.unblock(t, x2, short)
+	for _, g := range []*groupNode{a, b} {
+		g := g
+		g.h.WaitFor(g.name+" serves the second client again", func() bool {
+			return g.blocked(ip2) == "" && slices.Contains(recordIDs(t, g, contract.ClassLifts), y2)
+		})
+	}
+	time.Sleep(time.Second)
+	for _, g := range []*groupNode{a, b} {
+		if got := g.blocked(short); got != z || slices.Contains(recordIDs(t, g, contract.ClassLifts), z) {
+			t.Errorf("%s runs %q for the client at the shortened address and holds the lifts %v, want its block %q and no lift of it", g.name, got, recordIDs(t, g, contract.ClassLifts), z)
+		}
+	}
+}
+
+// On a single gateway as in a group: an address is the shortened one only
+// when retention ran over the incident. "Freigeben" of a fresh incident of
+// a client whose address ends in .0, or is the first of its /48, makes the
+// exception and the allowlist entry. An incident older than
+// retention.raw_ip_days with such an address is shortened: neither is made
+// for it, unless a block of the incident names the client; and for a
+// client known by an IPv6 /64 no allowlist entry of one address is made.
+func TestFreigebenOfAnAddressThatOnlyLooksShortened(t *testing.T) {
+	h := apptest.New(t, apptest.Options{})
+	h.Login()
+	ctx := context.Background()
+	unblock := func(incident string) (entry *string) {
+		t.Helper()
+		code, body := h.API("POST", "/incidents/"+incident+"/unblock", map[string]any{"allow_ip": true})
+		if code != 200 {
+			t.Fatalf("unblock of %s: %d %s", incident, code, body)
+		}
+		var out struct {
+			AllowlistEntry *string `json:"allowlist_entry"`
+		}
+		if err := json.Unmarshal(body, &out); err != nil {
+			t.Fatal(err)
+		}
+		return out.AllowlistEntry
+	}
+	allowed := func(ip string) bool {
+		lvl, _ := h.App.Allow.Match(netip.MustParseAddr(ip), time.Now())
+		return lvl != ""
+	}
+	released := func(ip string) bool { return h.App.Gate.Exceptions.Running(netip.MustParseAddr(ip), time.Now()) }
+	// Fresh incidents of clients whose whole address looks like a shortened one.
+	for _, ip := range []string{"198.51.100.0", "2001:db8:77::"} {
+		h.Visit("GET", "/?q=%3Cscript%3Ealert(1)%3C%2Fscript%3E", ip, "", "")
+		h.Flush()
+		rows, _, err := h.App.Store.ListEvents(ctx, store.EventFilter{IP: ip}, 0, 10)
+		if err != nil || len(rows) == 0 || rows[0].Incident == "" {
+			t.Fatalf("no incident of %s: %v", ip, err)
+		}
+		if entry := unblock(rows[0].Incident); entry == nil || *entry == "" || !allowed(ip) || !released(ip) {
+			t.Errorf("Freigeben of a fresh incident of %s: allowlist entry in the answer %v, allowed %v, exception %v; want all three", ip, entry != nil && *entry != "", allowed(ip), released(ip))
+		}
+	}
+	// An old incident that retention shortened, with no block: nobody is released.
+	old := time.Now().Add(-time.Duration(h.App.Config().Retention.RawIPDays+1) * 24 * time.Hour)
+	const short = "198.51.101.0"
+	if err := h.App.Store.InsertIncident(ctx, &store.Incident{Incident: "K7QM-AAA2", Time: old, IP: short, Status: "blocked", Sources: []string{"dashboard"}}); err != nil {
+		t.Fatal(err)
+	}
+	if entry := unblock("K7QM-AAA2"); (entry != nil && *entry != "") || allowed(short) || released(short) {
+		t.Errorf("Freigeben of an old incident with a shortened address: entry %v, allowed %v, exception %v; want none, the address is somebody else's", entry, allowed(short), released(short))
+	}
+	// An old incident whose block runs: the client is the one of the block.
+	// IPv4: exception and entry for the client. IPv6: the client is a /64,
+	// so the exception alone.
+	for _, tc := range []struct {
+		client, short, incident string
+		entry                   bool
+	}{
+		{"198.51.102.77", "198.51.102.0", "K7QM-AAA3", true},
+		{"2001:db8:88:1::5", "2001:db8:88::", "K7QM-AAA4", false},
+	} {
+		h.App.Behaviour.SetAgentBlock(behaviour.AgentBlock{IP: netip.MustParseAddr(tc.client), Source: behaviour.DashboardSource, NetClass: "hosting", Duration: 15 * time.Minute,
+			Incident: tc.incident, Time: time.Now()})
+		if err := h.App.Store.InsertIncident(ctx, &store.Incident{Incident: tc.incident, Time: old, IP: tc.short, Status: "blocked", Sources: []string{"dashboard"}}); err != nil {
+			t.Fatal(err)
+		}
+		entry := unblock(tc.incident)
+		got := entry != nil && *entry != ""
+		if got != tc.entry || allowed(tc.client) != tc.entry || !released(tc.client) || released(tc.short) && tc.client != tc.short || allowed(tc.short) {
+			t.Errorf("Freigeben of an old incident of %s (stored as %s): entry in the answer %v, client allowed %v, exception of the client %v, shortened address allowed %v; want entry %v and the exception",
+				tc.client, tc.short, got, allowed(tc.client), released(tc.client), allowed(tc.short), tc.entry)
+		}
+		if _, runs := h.App.Behaviour.ActiveBlock(netip.MustParseAddr(tc.client)); runs {
+			t.Errorf("the block of %s still runs after Freigeben", tc.client)
+		}
+	}
 }

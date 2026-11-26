@@ -552,7 +552,8 @@ func (s *Server) unblock(w http.ResponseWriter, r *http.Request) {
 	// client is the one of the incident's block, and when no block of it is
 	// known, nobody: neither exception nor entry is made.
 	ip, ipErr := netip.ParseAddr(in.IP)
-	if ipErr == nil && clientip.Truncate(ip) == ip {
+	shortened := ipErr == nil && s.shortened(in, ip, now)
+	if shortened {
 		ipErr = errShortened
 		if client, ok := s.blockClient(in.Incident); ok {
 			ip, ipErr = client, nil
@@ -576,7 +577,11 @@ func (s *Server) unblock(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	allowID := ""
-	if req.AllowIP && ipErr == nil {
+	// The client of a block is known by its key, which for IPv6 is the /64:
+	// an allowlist entry of one address would not be the client's. Then
+	// none is made, and the answer names none; the exception above is by
+	// client and holds.
+	if req.AllowIP && ipErr == nil && (!shortened || ip.Is4()) {
 		e, errs := allowlist.Validate(allowlist.Input{IP: ip.String(), Label: "Vorfall " + in.Incident, Level: allowlist.NoBlock, TTL: req.AllowTTL}, now)
 		if len(errs) == 0 {
 			e.Source = "dashboard"
@@ -625,7 +630,11 @@ func (s *Server) unblock(w http.ResponseWriter, r *http.Request) {
 	}
 	var err error
 	if s.IncidentBlocks != nil && s.Behaviour != nil {
-		err = s.IncidentBlocks(in.Incident, in.IP, unblock)
+		stored := in.IP
+		if shortened {
+			stored = ""
+		}
+		err = s.IncidentBlocks(in.Incident, stored, unblock)
 	} else {
 		err = unblock(nil)
 	}
@@ -656,6 +665,17 @@ func (s *Server) unblock(w http.ResponseWriter, r *http.Request) {
 
 // errShortened: the address of an incident was shortened by retention.
 var errShortened = errors.New("the address of the incident is shortened")
+
+// shortened reports whether the address stored with an incident is the
+// shortened one: retention ran over it. Retention shortens the incidents
+// older than retention.raw_ip_days (store.ApplyRetention); a younger one
+// holds the whole address, also when that ends in .0 or is the first of
+// its /48. An old one that still reads as a whole address was not
+// shortened yet.
+func (s *Server) shortened(in *store.Incident, ip netip.Addr, now time.Time) bool {
+	days := s.Config().Retention.RawIPDays
+	return in.Time.Before(now.Add(-time.Duration(days)*24*time.Hour)) && clientip.Truncate(ip) == ip.Unmap()
+}
 
 // blockClient is the client of the block of an incident, as the engine runs
 // it or, on a node of a group, as the group holds it.

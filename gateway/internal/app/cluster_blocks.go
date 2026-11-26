@@ -13,7 +13,6 @@ import (
 	contract "github.com/deutschland-schild/schild/contract/cluster"
 	"github.com/deutschland-schild/schild/contract/config"
 	"github.com/deutschland-schild/schild/gateway/internal/behaviour"
-	"github.com/deutschland-schild/schild/gateway/internal/clientip"
 	"github.com/deutschland-schild/schild/gateway/internal/ratelog"
 	"github.com/deutschland-schild/schild/gateway/internal/store"
 )
@@ -61,6 +60,10 @@ type groupBlocks struct {
 	// read: held and lifted are what the store of the node holds. Before
 	// that the node ends no block for want of its record.
 	read bool
+	// resolved: the kept blocks that did not say who decided them are
+	// decided (resolveKeptBlocks). Before that the round neither writes a
+	// kept block without a record to the group nor ends it.
+	resolved bool
 	// waiting counts blocks that had to wait for a later round.
 	waiting uint64
 	// max is groupBlocksMax; tests lower it.
@@ -455,7 +458,7 @@ func (a *App) applyGroupBlocks() (int, bool) {
 	for key := range clients {
 		a.startGroupBlock(key)
 	}
-	a.resolveKeptBlocks()
+	g.resolved = a.resolveKeptBlocks()
 	g.read = true
 	return len(g.held), true
 }
@@ -465,14 +468,18 @@ func (a *App) applyGroupBlocks() (int, bool) {
 // (contracts/cluster.md section 16): a block whose record another node
 // signed is that node's; one whose record this node signed, and one the
 // node holds no record of at all, is its own. The answer is noted in
-// schild.db, so it is given once. Called with groupBlocks.mu held.
-func (a *App) resolveKeptBlocks() {
+// schild.db, so it is given once. It reports whether it read the rows; the
+// round tries again until it did. Called with groupBlocks.mu held.
+func (a *App) resolveKeptBlocks() bool {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	rows, err := a.Store.UnmarkedBlocks(ctx)
+	if f := testUnmarkedBlocks.Load(); f != nil && err == nil {
+		err = (*f)(a)
+	}
 	if err != nil {
-		ratelog.Warn(a.log, "cluster: kept blocks of a build before are not looked at; the next look decides who decided them", "err", err)
-		return
+		ratelog.Warn(a.log, "cluster: kept blocks of a build before are not looked at; the next round decides who decided them, and until then none of the kept blocks without a record is written to the group or ended", "err", err)
+		return false
 	}
 	var taken []string
 	for clientKey, incident := range rows {
@@ -486,7 +493,12 @@ func (a *App) resolveKeptBlocks() {
 		}
 	}
 	a.Behaviour.TakenBlocks(taken)
+	return true
 }
+
+// testUnmarkedBlocks, in tests, runs when a node reads the kept blocks that
+// do not say who decided them; its error is the error of the read.
+var testUnmarkedBlocks atomic.Pointer[func(a *App) error]
 
 // noteLifted notes that the node holds the lift of an incident, until its
 // record is over. Called with groupBlocks.mu held.
@@ -700,10 +712,11 @@ func (a *App) withClientBlocks(ip netip.Addr, f func(incidents []string) error) 
 
 // withIncidentBlocks is withClientBlocks for "Freigeben" of an incident:
 // the client is the one of the incident's block, as the engine runs it or
-// the group holds it. The address stored with the incident does not say:
-// retention shortens it, and the shortened address is another client's.
-// Only when no block of the incident is known here the stored address
-// counts, and only a full one; else f runs with no incident.
+// the group holds it. The address stored with the incident does not say
+// once retention shortened it: the shortened address is another client's.
+// stored is that address as long as it is the whole one ("" after), and
+// counts only when no block of the incident is known here; with neither, f
+// runs with no incident.
 func (a *App) withIncidentBlocks(incident, stored string, f func(incidents []string) error) error {
 	g := &a.groupBlocks
 	g.mu.Lock()
@@ -712,7 +725,7 @@ func (a *App) withIncidentBlocks(incident, stored string, f func(incidents []str
 	if b := g.held[incident]; !ok && b != nil {
 		key, ok = b.key, true
 	}
-	if ip, err := netip.ParseAddr(stored); !ok && err == nil && clientip.Truncate(ip) != ip {
+	if ip, err := netip.ParseAddr(stored); !ok && err == nil {
 		key, _ = behaviour.KeyOf(ip)
 		ok = key.IsValid()
 	}
@@ -815,6 +828,9 @@ func (a *App) publishGroupBlocks() {
 	// and started a second time.
 	g.mu.Lock()
 	defer g.mu.Unlock()
+	if !g.resolved {
+		g.resolved = a.resolveKeptBlocks()
+	}
 	for incident, b := range g.held {
 		if !b.info.Until.After(now) {
 			g.remove(incident)
@@ -847,6 +863,12 @@ func (a *App) publishGroupBlocks() {
 			continue
 		}
 		held := g.held[rb.Incident]
+		// A kept block without a record, while it is not decided whose it
+		// is: left as it is.
+		if !g.resolved && rb.Persisted && held == nil {
+			runs[rb.Key] = true
+			continue
+		}
 		// A block of the group whose source an exception of the operator
 		// covers for its client since it started: ended here, so the list
 		// of blocks and the firewall say what the gate does. No lift: the

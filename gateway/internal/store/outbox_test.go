@@ -315,8 +315,9 @@ func TestUnblockOfAPerson(t *testing.T) {
 }
 
 // A lift is in memory when its note is committed, as one step for the
-// round that removes it: a lift written to the group right after the
-// commit does not stay in memory.
+// round that removes it: the path that notes holds the lock of the outbox
+// from before its transaction until the lift is in memory, so a lift
+// written to the group right after the commit is removed from both.
 func TestLiftWrittenRightAfterItsNoteLeavesNothingBehind(t *testing.T) {
 	ctx := context.Background()
 	for name, note := range map[string]func(s *Store) error{
@@ -332,17 +333,22 @@ func TestLiftWrittenRightAfterItsNoteLeavesNothingBehind(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			s := open(t)
 			s.ShareLifts()
-			written := make(chan error, 1)
-			outboxCommitted = func() {
-				// The round finds the row and writes the lift at once.
-				go func() { written <- s.LiftWritten(ctx, "K7QM-AAA2") }()
-				time.Sleep(100 * time.Millisecond)
+			free := true
+			outboxCommitted = func(x *Store) {
+				// Between the commit and the memory: nobody removes a lift now.
+				if free = x.outbox.wmu.TryLock(); free {
+					x.outbox.wmu.Unlock()
+				}
 			}
 			defer func() { outboxCommitted = nil }()
 			if err := note(s); err != nil {
 				t.Fatal(err)
 			}
-			if err := <-written; err != nil {
+			if free {
+				t.Fatal("the lock of the outbox is free between the commit of a note and its place in memory")
+			}
+			// The round finds the row and writes the lift.
+			if err := s.LiftWritten(ctx, "K7QM-AAA2"); err != nil {
 				t.Fatal(err)
 			}
 			if s.LiftNoted("K7QM-AAA2") || s.LiftsWaiting() || len(noted(t, s)) != 0 {

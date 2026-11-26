@@ -114,8 +114,9 @@ type Server struct {
 	ClientBlocks func(ip netip.Addr, f func(incidents []string) error) error
 	// IncidentBlocks is ClientBlocks for "Freigeben" of an incident: the
 	// client is the one of the incident's block, not the address stored
-	// with the incident, which retention shortens. stored is that address,
-	// used only when it is a full one and no block of the incident is known.
+	// with the incident, which retention shortens. stored is that address
+	// when it is the whole one ("" when retention shortened it), used only
+	// when no block of the incident is known.
 	IncidentBlocks func(incident, stored string, f func(incidents []string) error) error
 	// BlockClient, on a node of a group, is the client of the block record
 	// the group holds of an incident.

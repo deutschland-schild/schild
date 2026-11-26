@@ -70,6 +70,10 @@ func (a *App) queueBlockOp(op blockOp) {
 	select {
 	case a.blockOps <- op:
 	default:
+		if op.ended != "" {
+			ratelog.Warn(a.log, "kept behaviour block queue full: the incident of a block that ended is not stored as unblocked (the block is ended; the incident keeps reading blocked on this node)")
+			return
+		}
 		ratelog.Warn(a.log, "kept behaviour block queue full, write skipped (the block still runs in memory)")
 	}
 }

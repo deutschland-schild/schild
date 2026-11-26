@@ -38,18 +38,31 @@ type Lift struct {
 // outbox is the state of the lifts in memory: whether this gateway notes
 // any (a single gateway has no group to tell and notes none), and which
 // incidents wait, so the node asks without a look into the database.
+//
+// Two locks, and one order. wmu is taken by whoever changes the table
+// cluster_outbox, before its transaction begins and until the change is in
+// memory: the paths that note a lift, the removal of a written one, the
+// first read. The database opens a write transaction with the write lock
+// (_txlock=immediate), so the order is always wmu, then the database, then
+// mu; nobody holds the database's write lock and waits for wmu. mu guards
+// the map alone and is never held across a statement, so LiftNoted and
+// LiftsWaiting, which the request path and the round call, never wait
+// behind the database. Nothing here takes a lock of another package.
 type outbox struct {
-	on    atomic.Bool
-	mu    sync.Mutex
+	on  atomic.Bool
+	wmu sync.Mutex
+	mu  sync.Mutex
+	// noted, under mu: the incidents whose lift waits.
 	noted map[string]struct{}
-	// loaded: noted holds what waited in the database before the start too.
+	// loaded, under mu: noted holds what waited before the start too.
 	loaded bool
 }
 
 // ShareLifts makes the store note lifts from now on: the gateway is a node
 // of a group. It cannot fail, so no lift of a node is lost because this
 // call was. What waited before the start is read with it, and when that
-// read fails, again with every later look until it succeeds (loadLifts).
+// read fails, again with every later look of the round until it succeeds
+// (WaitingLifts).
 func (s *Store) ShareLifts() {
 	s.outbox.on.Store(true)
 	_ = s.loadLifts(context.Background())
@@ -57,12 +70,12 @@ func (s *Store) ShareLifts() {
 
 // loadLifts reads the lifts that waited before the start, once.
 func (s *Store) loadLifts(ctx context.Context) error {
+	s.outbox.wmu.Lock()
+	defer s.outbox.wmu.Unlock()
 	s.outbox.mu.Lock()
-	defer s.outbox.mu.Unlock()
-	if s.outbox.noted == nil {
-		s.outbox.noted = map[string]struct{}{}
-	}
-	if s.outbox.loaded {
+	loaded := s.outbox.loaded
+	s.outbox.mu.Unlock()
+	if loaded {
 		return nil
 	}
 	rows, err := s.db.QueryContext(ctx, `SELECT incident FROM cluster_outbox`)
@@ -70,18 +83,32 @@ func (s *Store) loadLifts(ctx context.Context) error {
 		return err
 	}
 	defer rows.Close()
+	var ids []string
 	for rows.Next() {
 		var id string
 		if err := rows.Scan(&id); err != nil {
 			return err
 		}
-		s.outbox.noted[id] = struct{}{}
+		ids = append(ids, id)
 	}
 	if err := rows.Err(); err != nil {
 		return err
 	}
+	s.outbox.mu.Lock()
+	s.remember(ids)
 	s.outbox.loaded = true
+	s.outbox.mu.Unlock()
 	return nil
+}
+
+// remember puts incidents into noted. Called with mu held.
+func (s *Store) remember(incidents []string) {
+	if s.outbox.noted == nil {
+		s.outbox.noted = map[string]struct{}{}
+	}
+	for _, id := range incidents {
+		s.outbox.noted[id] = struct{}{}
+	}
 }
 
 // LiftsWaiting reports whether a lift waits for the group, without a look
@@ -96,21 +123,21 @@ func (s *Store) LiftsWaiting() bool {
 	return !s.outbox.loaded || len(s.outbox.noted) > 0
 }
 
-// LiftNoted reports whether the lift of an incident waits for the group,
-// without a look into the database once the lifts from before the start
-// are read.
+// LiftNoted reports whether the lift of an incident waits for the group. It
+// reads memory alone and waits for no statement: the request path asks when
+// a new block draws its number.
 func (s *Store) LiftNoted(incident string) bool {
 	if !s.outbox.on.Load() {
 		return false
 	}
-	_ = s.loadLifts(context.Background())
 	s.outbox.mu.Lock()
 	defer s.outbox.mu.Unlock()
 	_, ok := s.outbox.noted[incident]
 	return ok
 }
 
-// noteLiftTx notes a lift in tx; the caller commits with commitNoted.
+// noteLiftTx notes a lift in tx. The caller took outbox.wmu before it began
+// tx, and commits with commitNoted.
 func (s *Store) noteLiftTx(ctx context.Context, tx *sql.Tx, incident string, at time.Time) (bool, error) {
 	if !s.outbox.on.Load() || incident == "" {
 		return false, nil
@@ -121,27 +148,23 @@ func (s *Store) noteLiftTx(ctx context.Context, tx *sql.Tx, incident string, at 
 
 // outboxCommitted, in tests, runs after a transaction that notes lifts is
 // committed and before the lifts are in memory.
-var outboxCommitted func()
+var outboxCommitted func(s *Store)
 
-// commitNoted commits tx and puts the lifts it noted into memory, as one
-// step for LiftWritten: a lift that is written to the group and removed
-// right after the commit would otherwise stay in memory, and the node would
-// look into the database for it with every round until its restart.
+// commitNoted commits tx and puts the lifts it noted into memory. The
+// caller holds outbox.wmu since before tx began, so this is one step for
+// LiftWritten: a lift that is written to the group and removed right after
+// the commit would otherwise stay in memory, and the node would look into
+// the database for it with every round until its restart.
 func (s *Store) commitNoted(tx *sql.Tx, incidents []string) error {
-	s.outbox.mu.Lock()
-	defer s.outbox.mu.Unlock()
 	if err := tx.Commit(); err != nil {
 		return err
 	}
 	if outboxCommitted != nil {
-		outboxCommitted()
+		outboxCommitted(s)
 	}
-	if s.outbox.noted == nil {
-		s.outbox.noted = map[string]struct{}{}
-	}
-	for _, id := range incidents {
-		s.outbox.noted[id] = struct{}{}
-	}
+	s.outbox.mu.Lock()
+	s.remember(incidents)
+	s.outbox.mu.Unlock()
 	return nil
 }
 
@@ -155,6 +178,8 @@ func (s *Store) NoteLifts(ctx context.Context, at time.Time, incidents ...string
 	if len(incidents) == 0 || !s.outbox.on.Load() {
 		return nil
 	}
+	s.outbox.wmu.Lock()
+	defer s.outbox.wmu.Unlock()
 	tx, err := s.db.BeginTx(ctx, nil)
 	if err != nil {
 		return err
@@ -214,6 +239,8 @@ type Unblock struct {
 // is not live. The reference to the allowlist entry is for the incident
 // that was clicked alone.
 func (s *Store) MarkUnblockedLift(ctx context.Context, u Unblock) error {
+	s.outbox.wmu.Lock()
+	defer s.outbox.wmu.Unlock()
 	tx, err := s.db.BeginTx(ctx, nil)
 	if err != nil {
 		return err
@@ -293,11 +320,13 @@ func (s *Store) WaitingLifts(ctx context.Context, limit int) ([]Lift, error) {
 // LiftWritten removes a lift the group holds now, or one that can never be
 // written.
 func (s *Store) LiftWritten(ctx context.Context, incident string) error {
-	s.outbox.mu.Lock()
-	defer s.outbox.mu.Unlock()
+	s.outbox.wmu.Lock()
+	defer s.outbox.wmu.Unlock()
 	if _, err := s.db.ExecContext(ctx, `DELETE FROM cluster_outbox WHERE incident = ?`, incident); err != nil {
 		return err
 	}
+	s.outbox.mu.Lock()
 	delete(s.outbox.noted, incident)
+	s.outbox.mu.Unlock()
 	return nil
 }
