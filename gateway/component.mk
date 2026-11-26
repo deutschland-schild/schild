@@ -38,7 +38,7 @@ GATEWAY_BUILDER ?= $(BUILDX_BUILDER)
 .PHONY: gateway-test gateway-race gateway-bench gateway-coraza gateway-run gateway-image gateway-agent gateway-agent-deps gateway-bot-snapshot bot-snapshot gateway-crowdsec-snapshot crowdsec-snapshot
 
 gateway-test:
-	cd gateway && $(GO) vet ./... && $(GO) vet -tags release ./... && $(GO) test $(GO_TEST_FLAGS) ./... && $(GO) test $(GO_TEST_FLAGS) -tags release ./internal/app
+	cd gateway && $(GO) vet ./... && $(GO) vet -tags release ./... && $(GO) test -timeout $(GO_TEST_TIMEOUT) $(GO_TEST_FLAGS) ./... && $(GO) test -timeout $(GO_TEST_TIMEOUT) $(GO_TEST_FLAGS) -tags release ./internal/app
 
 gateway-race:
 	# The tests of a group of gateways start several gateways each; under the race detector on a hosted

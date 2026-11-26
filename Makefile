@@ -37,6 +37,9 @@ FUZZ_N  ?= 100000
 # fan-out, floods, latency guards) skip themselves, a shared runner or a busy laptop cannot hold their bounds.
 # make test-full runs them (GO_TEST_FLAGS empty).
 GO_TEST_FLAGS ?= -short
+# The limit of one package. The tests of a group of gateways (gateway/internal/app) start several gateways
+# each and need more than go test's ten minutes on a hosted runner; the CI job (go) has 45 minutes.
+GO_TEST_TIMEOUT ?= 25m
 FUZZ_VECTORS ?= 2000
 GO      ?= go
 PNPM    ?= pnpm
@@ -124,7 +127,7 @@ eval-MVP-01: contracts-test
 go-test: ## go test in every module (dev and release tags for contract)
 	@for m in $(GO_MODULES); do \
 	  if [ -z "$$(find $$m -name '*.go' -not -path '*/node_modules/*' -print -quit)" ]; then echo "== $$m: no Go files yet, skipped"; continue; fi; \
-	  echo "== go test $$m"; (cd $$m && $(GO) vet ./... && $(GO) test $(GO_TEST_FLAGS) ./...) || exit 1; \
+	  echo "== go test $$m"; (cd $$m && $(GO) vet ./... && $(GO) test -timeout $(GO_TEST_TIMEOUT) $(GO_TEST_FLAGS) ./...) || exit 1; \
 	done
 	cd contract && $(GO) test $(GO_TEST_FLAGS) -tags release ./...
 
