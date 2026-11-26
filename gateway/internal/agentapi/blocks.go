@@ -48,6 +48,15 @@ type BlockDeps struct {
 	Incident func(in *store.Incident)
 	// FlushIncidents stores what Incident queued, until ctx ends.
 	FlushIncidents func(ctx context.Context)
+	// Held, on a node of a group, reports whether the group holds a block
+	// record of the incident that is not lifted and not over: a block the
+	// node does not run itself (its own allowlist, the test profile) can be
+	// lifted here all the same. Nil on a single gateway.
+	Held func(incident string) bool
+	// Lift, on a node of a group, ends the block of an incident as
+	// Engine.LiftIncident does and starts the next block the group holds of
+	// that client. Nil on a single gateway.
+	Lift func(incident string) bool
 
 	mu     sync.Mutex
 	writes map[string][]time.Time // token id -> changing calls in the window
@@ -362,9 +371,15 @@ func keyBits(ip netip.Addr) int {
 // runs, so its row is what is late. It is written first, because the end of the
 // block marks that row and a row that comes later would stay blocked for good.
 // Should it not come (a full queue), the block can still be lifted.
+// running reports whether the block of an incident runs: in the engine of
+// this node or, in a group, as a block record the group holds.
+func (d *BlockDeps) running(incident string) bool {
+	return d.Engine.IncidentRunning(incident) || (d.Held != nil && d.Held(incident))
+}
+
 func (s *Server) incidentToLift(ctx context.Context, id string) (*store.Incident, error) {
 	in, err := s.St.GetIncident(ctx, id)
-	if !errors.Is(err, store.ErrNotFound) || !s.Blocks.Engine.IncidentRunning(id) {
+	if !errors.Is(err, store.ErrNotFound) || !s.Blocks.running(id) {
 		return in, err
 	}
 	if f := s.Blocks.FlushIncidents; f != nil {
@@ -416,7 +431,15 @@ func (s *Server) liftBlock(w http.ResponseWriter, r *http.Request) {
 	now := s.now()
 	d.mu.Lock()
 	defer d.mu.Unlock()
-	v := contractapi.CheckLift(contractapi.LiftInput{Scope: tok.Scope, Reason: req.Reason, Status: status, Running: d.Engine.IncidentRunning(id),
+	held := d.Held != nil && d.Held(id)
+	running := held || d.Engine.IncidentRunning(id)
+	// The status of an incident says nothing about a block that still runs:
+	// the end of a block on another node (its allowlist) travels with the
+	// incident, and the group may hold the block all the same.
+	if running && status == "unblocked" {
+		status = "blocked"
+	}
+	v := contractapi.CheckLift(contractapi.LiftInput{Scope: tok.Scope, Reason: req.Reason, Status: status, Running: running,
 		Budget: d.budget(tok.ID, c.BlockWritesPerHour, c.MaxAgentBlocks, now)})
 	if !v.Allowed {
 		refuseBlock(w, v)
@@ -430,7 +453,13 @@ func (s *Server) liftBlock(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
-	if v.Changed && d.Engine.LiftIncident(id) {
+	lift := d.Engine.LiftIncident
+	if d.Lift != nil {
+		lift = d.Lift
+	}
+	// In a group the lift counts also when no block ended on this node: the
+	// group held the block, and the lift ends it where it runs.
+	if v.Changed && (lift(id) || held) {
 		d.spend(tok.ID, now)
 		source := ""
 		if len(in.Sources) > 0 {

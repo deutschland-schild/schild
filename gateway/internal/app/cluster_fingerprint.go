@@ -234,6 +234,33 @@ func sameLook(a, b *stateLook) bool {
 	return true
 }
 
+// hashedBlocks are the blocks the hash of blocks covers at now, as incident
+// numbers: those the node holds a record of, of either class, that are not
+// lifted and not over. A lifted block has left the store. A block the node
+// wrote anew holds a record in both classes and counts once. ends is when
+// the first of them is over (zero: none).
+func (a *App) hashedBlocks(now time.Time) (incidents []string, ends time.Time) {
+	seen := map[string]bool{}
+	for _, class := range blockClasses {
+		recs, err := a.Cluster.State(class)
+		if err != nil {
+			continue
+		}
+		for _, rec := range recs {
+			b, ok := a.groupBlockOf(rec)
+			if !ok || !b.info.Until.After(now) || seen[b.info.Incident] {
+				continue
+			}
+			if ends.IsZero() || b.info.Until.Before(ends) {
+				ends = b.info.Until
+			}
+			seen[b.info.Incident] = true
+			incidents = append(incidents, b.info.Incident)
+		}
+	}
+	return incidents, ends
+}
+
 // statePoints reads the point of the vector and of every class.
 func (a *App) statePoints(now time.Time) map[string]string {
 	node := a.Cluster
@@ -267,26 +294,9 @@ func (a *App) computeStateLook(ctx context.Context, now time.Time) (look *stateL
 	taking := node.Taking()
 	before := a.statePoints(now)
 	lines := map[string][]string{}
-	// The blocks the node holds that are not lifted and not over, as
-	// incident number: a lifted block has left the store. A block the node
-	// wrote anew holds a record in both classes and counts once.
-	hashed := map[string]bool{}
-	for _, class := range blockClasses {
-		recs, err := node.State(class)
-		if err != nil {
-			continue
-		}
-		for _, rec := range recs {
-			b, ok := a.groupBlockOf(rec)
-			if !ok || !b.info.Until.After(now) || hashed[b.info.Incident] {
-				continue
-			}
-			if b.info.Until.Before(until) {
-				until = b.info.Until
-			}
-			hashed[b.info.Incident] = true
-			lines[stateBlocks] = append(lines[stateBlocks], b.info.Incident)
-		}
+	var ends time.Time
+	if lines[stateBlocks], ends = a.hashedBlocks(now); !ends.IsZero() && ends.Before(until) {
+		until = ends
 	}
 	unsettled := map[string]bool{}
 	a.sharedMu.Lock()

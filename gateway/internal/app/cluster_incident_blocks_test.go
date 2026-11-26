@@ -13,6 +13,7 @@ import (
 	"slices"
 	"sort"
 	"strings"
+	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -126,6 +127,71 @@ func (g *groupNode) writeStopped(t *testing.T, now func() time.Time, f func(n *c
 	f(n)
 }
 
+// blockAnew blocks a client under a new incident on a node whose block
+// table dropped its block. The node starts the dropped block again from its
+// record with its next round, so the new decision has to come first.
+func (g *groupNode) blockAnew(t *testing.T, ip, incident string) {
+	t.Helper()
+	addr := netip.MustParseAddr(ip)
+	for try := 0; try < 50; try++ {
+		g.h.App.Behaviour.EvictBlock(addr)
+		g.block(ip, incident, 15*time.Minute)
+		if g.blocked(ip) == incident {
+			return
+		}
+	}
+	t.Fatalf("%s: the block %s did not start before the dropped one came back", g.name, incident)
+}
+
+// watchBlocked samples whether the client is blocked on each node, from now
+// until stop: at every moment no change of a node's blocks is under way.
+// stop reports the nodes that served the client for a moment.
+func watchBlocked(t *testing.T, ip string, nodes ...*groupNode) (stop func()) {
+	t.Helper()
+	addr := netip.MustParseAddr(ip)
+	done := make(chan struct{})
+	gaps := make([]atomic.Int64, len(nodes))
+	var wg sync.WaitGroup
+	for i, g := range nodes {
+		wg.Add(1)
+		go func(i int, x *app.App) {
+			defer wg.Done()
+			for {
+				select {
+				case <-done:
+					return
+				default:
+				}
+				if x.GroupBlocked(addr) == "" {
+					gaps[i].Add(1)
+				}
+				time.Sleep(200 * time.Microsecond)
+			}
+		}(i, g.h.App)
+	}
+	return func() {
+		t.Helper()
+		close(done)
+		wg.Wait()
+		for i, g := range nodes {
+			if n := gaps[i].Load(); n > 0 {
+				t.Errorf("%s served the client in between (%d samples without a block), and one block of it ran the whole time", g.name, n)
+			}
+		}
+	}
+}
+
+// notReleased checks that no node released the address: the end of one
+// block of a client is not a release of the client.
+func notReleased(t *testing.T, ip string, since time.Time, nodes ...*groupNode) {
+	t.Helper()
+	for _, g := range nodes {
+		if g.h.App.Behaviour.ReleasedSince(netip.MustParseAddr(ip), since) {
+			t.Errorf("%s released the client, and one of its blocks was lifted", g.name)
+		}
+	}
+}
+
 func blockUntil() time.Time { return time.Now().Add(15 * time.Minute).UTC().Truncate(time.Second) }
 
 // blockBefore is the data of a block as the build before D109 wrote it.
@@ -162,6 +228,8 @@ func TestTwoBlocksOfOneClientStandSideBySide(t *testing.T) {
 	if nodes[0].blocked(ip) != x || nodes[1].blocked(ip) != y {
 		t.Fatalf("each node runs the block it decided: web-1 %q, web-2 %q", nodes[0].blocked(ip), nodes[1].blocked(ip))
 	}
+	start := time.Now()
+	stop := watchBlocked(t, ip, nodes...)
 	nodes[2].unblock(t, x, ip)
 	for _, g := range nodes {
 		g := g
@@ -170,6 +238,8 @@ func TestTwoBlocksOfOneClientStandSideBySide(t *testing.T) {
 		})
 	}
 	time.Sleep(time.Second)
+	stop()
+	notReleased(t, ip, start, nodes...)
 	for _, g := range nodes {
 		if got := g.blocked(ip); got != y {
 			t.Errorf("%s runs %q a second after one of two blocks was released, want %q", g.name, got, y)
@@ -190,9 +260,8 @@ func TestBlockAFullTableDropsIsNoLift(t *testing.T) {
 	a.block(ip, x, 15*time.Minute)
 	b.h.WaitFor("web-2 holds the block", func() bool { return b.blocked(ip) == x })
 	a.h.App.Behaviour.EvictBlock(netip.MustParseAddr(ip))
-	if a.blocked(ip) != "" {
-		t.Fatal("the block still runs on web-1")
-	}
+	// web-1 holds the record of the block, so the block starts there again.
+	a.h.WaitFor("web-1 runs the dropped block again", func() bool { return a.blocked(ip) == x })
 	time.Sleep(1500 * time.Millisecond)
 	for _, g := range []*groupNode{a, b} {
 		if lifts := recordIDs(t, g, contract.ClassLifts); len(lifts) != 0 {
@@ -215,8 +284,7 @@ func TestBlockAfterADroppedOneIsABlockOfItsOwn(t *testing.T) {
 	const ip, x, y = "203.0.113.33", "DDDD-AAA2", "DDDD-AAA3"
 	a.block(ip, x, 15*time.Minute)
 	b.h.WaitFor("web-2 holds the block", func() bool { return b.blocked(ip) == x })
-	a.h.App.Behaviour.EvictBlock(netip.MustParseAddr(ip))
-	a.block(ip, y, 15*time.Minute)
+	a.blockAnew(t, ip, y)
 	for _, g := range []*groupNode{a, b} {
 		g := g
 		g.h.WaitFor(g.name+" holds both blocks", func() bool { return holds(t, g, contract.ClassIncidentBlocks, x, y) })
@@ -224,6 +292,10 @@ func TestBlockAfterADroppedOneIsABlockOfItsOwn(t *testing.T) {
 	if a.blocked(ip) != y || b.blocked(ip) != x {
 		t.Fatalf("web-1 runs %q (want %q), web-2 runs %q (want %q)", a.blocked(ip), y, b.blocked(ip), x)
 	}
+	start := time.Now()
+	stop := watchBlocked(t, ip, a, b)
+	defer notReleased(t, ip, start, a, b)
+	defer stop()
 	a.unblock(t, y, ip)
 	for _, g := range []*groupNode{a, b} {
 		g := g
@@ -403,8 +475,7 @@ func TestLateLiftLeavesANewerBlockOfTheClientAlone(t *testing.T) {
 	b.release(t, ip)
 	// Meanwhile the block ends on web-1 without a lift, and the client is
 	// blocked anew there.
-	a.h.App.Behaviour.EvictBlock(netip.MustParseAddr(ip))
-	a.block(ip, y, 15*time.Minute)
+	a.blockAnew(t, ip, y)
 	b.h.WaitFor("web-2 runs the newer block", func() bool { return b.blocked(ip) == y })
 	fail.Store(false)
 	for _, g := range []*groupNode{a, b} {
@@ -453,6 +524,17 @@ func TestErasureEndsTheBlockANodeBringsBack(t *testing.T) {
 		}
 		if ids := recordIDs(t, g, contract.ClassIncidentBlocks); len(ids) != 0 {
 			t.Errorf("%s holds the block records %v of an erased client", g.name, ids)
+		}
+	}
+	// A block decided within the bound of clocks after the erasure runs on
+	// no node, the node that decided it included: the erasure wins.
+	const z = "JJJJ-AAA4"
+	a.block(ip, z, 15*time.Minute)
+	a.h.WaitFor("web-1 ended the block it decided right after the erasure", func() bool { return a.blocked(ip) == "" })
+	time.Sleep(600 * time.Millisecond)
+	for _, g := range []*groupNode{a, b} {
+		if got, ids := g.blocked(ip), recordIDs(t, g, contract.ClassIncidentBlocks); got != "" || len(ids) != 0 {
+			t.Errorf("%s runs %q and holds %v for a block from the minute after the erasure", g.name, got, ids)
 		}
 	}
 	// Later than the bound of clocks after the erasure.
@@ -724,10 +806,10 @@ func TestOneReleaseIsOneLiftOfOneNode(t *testing.T) {
 
 // m: lifts leave while the bound of running blocks holds new blocks back.
 func TestBoundOfBlocksDoesNotHoldALiftBack(t *testing.T) {
-	defer app.SetGroupBlocksMax(2)()
 	a, b := pair(t)
 	ctx := context.Background()
 	inService(t, a, b)
+	a.h.App.SetGroupBlocksMax(2)
 	a.block("203.0.113.48", "PPPP-AAA2", 15*time.Minute)
 	a.block("203.0.113.49", "PPPP-AAA3", 15*time.Minute)
 	b.h.WaitFor("web-2 runs the two blocks within the bound", func() bool { return b.blocked("203.0.113.48") != "" && b.blocked("203.0.113.49") != "" })
@@ -748,7 +830,8 @@ func TestBoundOfBlocksDoesNotHoldALiftBack(t *testing.T) {
 }
 
 // n: the hash of the blocks is the same on every node after blocks and
-// lifts settled, with a record of class blocks among them.
+// lifts settled, and it covers what the contract says: the blocks of both
+// classes that are not lifted, a block with a record in both classes once.
 func TestHashOfBlocksIsTheSameWithBothClasses(t *testing.T) {
 	defer app.SetStateDiffTimes(2*time.Second, 5*time.Second, 5*time.Second)()
 	nodes := trio(t)
@@ -760,14 +843,27 @@ func TestHashOfBlocksIsTheSameWithBothClasses(t *testing.T) {
 		g := g
 		g.h.WaitFor(g.name+" made the cut", func() bool { return g.h.App.Cluster.Mark(mark) == "asked" })
 	}
-	// A record of class blocks that stays one: the cut is made.
-	const ipBefore, before = "203.0.113.51", "QQQQ-AAA2"
+	// Records of class blocks; the cut is made, so they stay what they are:
+	// one block of that class alone, one that is lifted later, and one that
+	// has a record under its incident too, as a node writes it anew.
+	const (
+		ipBefore, before = "203.0.113.51", "QQQQ-AAA2"
+		ipBoth, both     = "203.0.113.56", "QQQQ-AAA6"
+		ipGone, gone     = "203.0.113.58", "QQQQ-AAA7"
+	)
 	if err := a.h.Stop(); err != nil {
 		t.Fatal(err)
 	}
 	until := blockUntil()
 	a.writeStopped(t, nil, func(n *cluster.Node) {
-		if _, err := n.Publish(contract.ClassBlocks, ipBefore, blockBefore(ipBefore, before, "web-1", until), false, until); err != nil {
+		for ip, incident := range map[string]string{ipBefore: before, ipBoth: both, ipGone: gone} {
+			if _, err := n.Publish(contract.ClassBlocks, ip, blockBefore(ip, incident, "web-1", until), false, until); err != nil {
+				t.Fatal(err)
+			}
+		}
+		old := blockBefore(ipBoth, both, "web-1", until)
+		if _, err := n.Publish(contract.ClassIncidentBlocks, both, &contract.IncidentBlock{Client: ipBoth, Bits: 32, Scope: contract.ScopeGateway, Source: old.Source, Level: 1,
+			Since: old.Since, Until: old.Until, DurationS: old.DurationS, NetClass: old.NetClass, Node: old.Node}, false, until); err != nil {
 			t.Fatal(err)
 		}
 	})
@@ -780,16 +876,24 @@ func TestHashOfBlocksIsTheSameWithBothClasses(t *testing.T) {
 	for _, g := range nodes {
 		g := g
 		g.h.WaitFor(g.name+" holds every block", func() bool {
-			return holds(t, g, contract.ClassIncidentBlocks, x, y, z) && holds(t, g, contract.ClassBlocks, ipBefore) && g.blocked(ipBefore) == before
+			return holds(t, g, contract.ClassIncidentBlocks, both, x, y, z) && holds(t, g, contract.ClassBlocks, ipBefore, ipBoth, ipGone) &&
+				g.blocked(ipBefore) == before && g.blocked(ipBoth) == both && g.blocked(ipGone) == gone
 		})
+		if got, want := g.h.App.HashedBlocks(), []string{before, x, y, z, both, gone}; !slices.Equal(got, want) {
+			t.Errorf("%s hashes the blocks %v, want %v: every block held, of both classes, the one with two records once", g.name, got, want)
+		}
 	}
 	b.release(t, ip2)
 	c.unblock(t, x, ip)
+	b.release(t, ipGone)
 	for _, g := range nodes {
 		g := g
 		g.h.WaitFor(g.name+" holds the blocks that are left", func() bool {
-			return holds(t, g, contract.ClassIncidentBlocks, y) && holds(t, g, contract.ClassBlocks, ipBefore) && holds(t, g, contract.ClassLifts, x, z)
+			return holds(t, g, contract.ClassIncidentBlocks, both, y) && holds(t, g, contract.ClassBlocks, ipBefore, ipBoth) && holds(t, g, contract.ClassLifts, gone, x, z)
 		})
+		if got, want := g.h.App.HashedBlocks(), []string{before, y, both}; !slices.Equal(got, want) {
+			t.Errorf("%s hashes the blocks %v after the lifts, want %v: no lifted block, of either class", g.name, got, want)
+		}
 	}
 	for _, g := range nodes {
 		for _, other := range nodes {
@@ -799,8 +903,8 @@ func TestHashOfBlocksIsTheSameWithBothClasses(t *testing.T) {
 			g, other := g, other
 			g.h.WaitFor(g.name+" sees the same blocks on "+other.name, func() bool { return sharedStateOf(g, other.name)["blocks"] == "same" })
 		}
-		if n := g.h.App.GroupStatus().Shared.Blocks; n != 2 {
-			t.Errorf("%s shows %d shared blocks, want the two that are not lifted, of both classes", g.name, n)
+		if n := g.h.App.GroupStatus().Shared.Blocks; n != 3 {
+			t.Errorf("%s shows %d shared blocks, want the three that are not lifted, of both classes", g.name, n)
 		}
 	}
 	time.Sleep(8 * time.Second)

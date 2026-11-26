@@ -35,6 +35,8 @@ type groupNode struct {
 	peers      []string
 	// mode: the gateway mode of this node ("" autoblock, observe).
 	mode string
+	// extra: more YAML of this node's schild.yaml.
+	extra string
 }
 
 func (g *groupNode) clusterDir() string { return app.ClusterDir(filepath.Join(g.dir, "data")) }
@@ -51,7 +53,7 @@ func (g *groupNode) clusterYAML() string {
 
 func (g *groupNode) start(t *testing.T) {
 	t.Helper()
-	g.h = apptest.New(t, apptest.Options{Dir: g.dir, Extra: g.clusterYAML(), Mode: g.mode})
+	g.h = apptest.New(t, apptest.Options{Dir: g.dir, Extra: g.clusterYAML() + g.extra, Mode: g.mode})
 	if g.h.App.Cluster == nil {
 		t.Fatalf("%s: no cluster node", g.name)
 	}

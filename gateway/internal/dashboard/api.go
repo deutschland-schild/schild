@@ -572,15 +572,11 @@ func (s *Server) unblock(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	// On a node of a group the lift for the group is noted with the
-	// decision (store/outbox.go); a single gateway notes none.
+	// decision, in one transaction (store/outbox.go); a single gateway
+	// notes none. When the allowlist entry of this request ended the
+	// behaviour block first, which marked the incident unblocked
+	// (Sink.Ended), the incident takes the reference to the entry.
 	err := s.St.MarkUnblockedLift(ctx, in.Incident, now, allowID)
-	if errors.Is(err, store.ErrNotFound) && allowID != "" {
-		// The allowlist entry of this request ended the behaviour block
-		// first, which marked the incident unblocked (Sink.Ended).
-		if err = s.St.SetUnblockRefs(ctx, in.Incident, allowID); err == nil {
-			err = s.St.NoteLifts(ctx, now, in.Incident)
-		}
-	}
 	if err != nil {
 		if errors.Is(err, store.ErrNotFound) {
 			problem(w, 409, "conflict", "Dieser Vorfall ist schon freigeschaltet.", nil)
@@ -592,7 +588,10 @@ func (s *Server) unblock(w http.ResponseWriter, r *http.Request) {
 	// D87: the timed block of this incident ends now, not only for the
 	// requests of this client (the exception above): it leaves the list of
 	// blocks and, within a second, the host's firewall.
-	if s.Behaviour != nil {
+	switch {
+	case s.LiftIncident != nil:
+		s.LiftIncident(in.Incident)
+	case s.Behaviour != nil:
 		s.Behaviour.LiftIncident(in.Incident)
 	}
 	reqID := in.EventID
@@ -1041,23 +1040,29 @@ func (s *Server) privacyDelete(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	// The blocks a group holds of this client end with the erasure: their
-	// lifts are noted in the transaction that erases.
-	var lifts []string
-	if s.BlockIncidents != nil {
-		lifts = s.BlockIncidents(ip)
+	// Art. 17 also lifts a running block, kept ones included (D29
+	// amendment). The blocks a group holds of this client end with the
+	// erasure: their lifts are noted in the transaction that erases, and no
+	// block of the group starts between that and the end of the block here.
+	var res *store.DeleteResult
+	erase := func(lifts []string) (err error) {
+		if res, err = s.St.DeleteIP(r.Context(), ip.String(), req.KeepIncidents, TruncateBody, lifts...); err == nil && s.Behaviour != nil {
+			s.Behaviour.Forget(ip)
+		}
+		return err
 	}
-	res, err := s.St.DeleteIP(r.Context(), ip.String(), req.KeepIncidents, TruncateBody, lifts...)
+	var err error
+	if s.ClientBlocks != nil {
+		err = s.ClientBlocks(ip, erase)
+	} else {
+		err = erase(nil)
+	}
 	if err != nil {
 		s.internal(w, err)
 		return
 	}
 	if xs, err := s.St.ActiveExceptions(r.Context(), s.now()); err == nil && s.Gate != nil {
 		s.Gate.Exceptions.Load(xs)
-	}
-	// Art. 17 also lifts a running block, kept ones included (D29 amendment).
-	if s.Behaviour != nil {
-		s.Behaviour.Forget(ip)
 	}
 	s.reloadAllow(r.Context())
 	erased := 0

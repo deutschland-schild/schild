@@ -3,6 +3,7 @@ package store
 import (
 	"context"
 	"database/sql"
+	"sync"
 	"sync/atomic"
 	"time"
 )
@@ -12,12 +13,18 @@ import (
 // that made it, and the node writes it to the group from here until that
 // succeeds, also after a restart. A row holds the incident number and the
 // time, no address.
+//
+// Migration 2 also marks the kept blocks this node decided itself
+// (kept_blocks.own): a node writes only its own decisions to its group, and
+// a block it took from the group and keeps over a restart is none. A row of
+// a build before the mark is not own.
 
 const outboxMigration = `
 CREATE TABLE cluster_outbox (
   incident TEXT PRIMARY KEY,
   at_ms INTEGER NOT NULL
 );
+ALTER TABLE kept_blocks ADD COLUMN own INTEGER NOT NULL DEFAULT 0;
 `
 
 // Lift is one lift that waits for the group.
@@ -27,38 +34,99 @@ type Lift struct {
 }
 
 // outbox is the state of the lifts in memory: whether this gateway notes
-// any (a single gateway has no group to tell and notes none), and how many
-// wait, so a node with nothing to hand over reads nothing.
+// any (a single gateway has no group to tell and notes none), and which
+// incidents wait, so the node asks without a look into the database.
 type outbox struct {
-	on      atomic.Bool
-	waiting atomic.Int64
+	on    atomic.Bool
+	mu    sync.Mutex
+	noted map[string]struct{}
+	// loaded: noted holds what waited in the database before the start too.
+	loaded bool
 }
 
 // ShareLifts makes the store note lifts from now on: the gateway is a node
-// of a group. It counts what waits from before the start.
-func (s *Store) ShareLifts(ctx context.Context) error {
-	var n int64
-	if err := s.db.QueryRowContext(ctx, `SELECT COUNT(*) FROM cluster_outbox`).Scan(&n); err != nil {
+// of a group. It cannot fail, so no lift of a node is lost because this
+// call was. What waited before the start is read with it, and when that
+// read fails, again with every later look until it succeeds (loadLifts).
+func (s *Store) ShareLifts() {
+	s.outbox.on.Store(true)
+	_ = s.loadLifts(context.Background())
+}
+
+// loadLifts reads the lifts that waited before the start, once.
+func (s *Store) loadLifts(ctx context.Context) error {
+	s.outbox.mu.Lock()
+	defer s.outbox.mu.Unlock()
+	if s.outbox.noted == nil {
+		s.outbox.noted = map[string]struct{}{}
+	}
+	if s.outbox.loaded {
+		return nil
+	}
+	rows, err := s.db.QueryContext(ctx, `SELECT incident FROM cluster_outbox`)
+	if err != nil {
 		return err
 	}
-	s.outbox.waiting.Store(n)
-	s.outbox.on.Store(true)
+	defer rows.Close()
+	for rows.Next() {
+		var id string
+		if err := rows.Scan(&id); err != nil {
+			return err
+		}
+		s.outbox.noted[id] = struct{}{}
+	}
+	if err := rows.Err(); err != nil {
+		return err
+	}
+	s.outbox.loaded = true
 	return nil
 }
 
 // LiftsWaiting reports whether a lift waits for the group, without a look
-// into the database.
-func (s *Store) LiftsWaiting() bool { return s.outbox.waiting.Load() > 0 }
+// into the database. Until the lifts from before the start are read it says
+// yes: the look that follows reads them.
+func (s *Store) LiftsWaiting() bool {
+	if !s.outbox.on.Load() {
+		return false
+	}
+	s.outbox.mu.Lock()
+	defer s.outbox.mu.Unlock()
+	return !s.outbox.loaded || len(s.outbox.noted) > 0
+}
 
-func (s *Store) noteLiftTx(ctx context.Context, tx *sql.Tx, incident string, at time.Time) (added int64, err error) {
+// LiftNoted reports whether the lift of an incident waits for the group,
+// without a look into the database once the lifts from before the start
+// are read.
+func (s *Store) LiftNoted(incident string) bool {
+	if !s.outbox.on.Load() {
+		return false
+	}
+	_ = s.loadLifts(context.Background())
+	s.outbox.mu.Lock()
+	defer s.outbox.mu.Unlock()
+	_, ok := s.outbox.noted[incident]
+	return ok
+}
+
+// noteLiftTx notes a lift in tx; the caller hands the incident to noted
+// when tx is committed.
+func (s *Store) noteLiftTx(ctx context.Context, tx *sql.Tx, incident string, at time.Time) (bool, error) {
 	if !s.outbox.on.Load() || incident == "" {
-		return 0, nil
+		return false, nil
 	}
-	r, err := tx.ExecContext(ctx, `INSERT OR IGNORE INTO cluster_outbox(incident, at_ms) VALUES(?, ?)`, incident, ms(at))
-	if err != nil {
-		return 0, err
+	_, err := tx.ExecContext(ctx, `INSERT OR IGNORE INTO cluster_outbox(incident, at_ms) VALUES(?, ?)`, incident, ms(at))
+	return err == nil, err
+}
+
+func (s *Store) liftsNoted(incidents []string) {
+	s.outbox.mu.Lock()
+	if s.outbox.noted == nil {
+		s.outbox.noted = map[string]struct{}{}
 	}
-	return r.RowsAffected()
+	for _, id := range incidents {
+		s.outbox.noted[id] = struct{}{}
+	}
+	s.outbox.mu.Unlock()
 }
 
 // NoteLifts notes the lift of each incident for the group and stores the
@@ -76,7 +144,8 @@ func (s *Store) NoteLifts(ctx context.Context, at time.Time, incidents ...string
 		return err
 	}
 	defer tx.Rollback()
-	var added, changed int64
+	var noted []string
+	var changed int64
 	for _, id := range incidents {
 		r, err := tx.ExecContext(ctx, `UPDATE incidents SET status = 'unblocked', unblocked_ms = ? WHERE incident = ? AND status = 'blocked'`, ms(at), id)
 		if err != nil {
@@ -84,23 +153,30 @@ func (s *Store) NoteLifts(ctx context.Context, at time.Time, incidents ...string
 		}
 		n, _ := r.RowsAffected()
 		changed += n
-		if n, err = s.noteLiftTx(ctx, tx, id, at); err != nil {
+		ok, err := s.noteLiftTx(ctx, tx, id, at)
+		if err != nil {
 			return err
 		}
-		added += n
+		if ok {
+			noted = append(noted, id)
+		}
 	}
 	if err := tx.Commit(); err != nil {
 		return err
 	}
-	s.outbox.waiting.Add(added)
+	s.liftsNoted(noted)
 	if changed > 0 {
 		s.noteOwn(ctx)
 	}
 	return nil
 }
 
-// MarkUnblockedLift is MarkUnblocked for the unblock a person made, and
-// notes the lift of the incident for the group in the same transaction.
+// MarkUnblockedLift records the unblock a person made, as MarkUnblocked
+// does, and notes the lift of the incident for the group in the same
+// transaction. An incident that the end of its block marked unblocked
+// already (the allowlist entry of the same request ended the block first,
+// Sink.Ended of the engine) takes the reference to that entry instead, as
+// SetUnblockRefs does, and its lift is noted too. ErrNotFound: neither.
 func (s *Store) MarkUnblockedLift(ctx context.Context, id string, at time.Time, allowEntry string) error {
 	tx, err := s.db.BeginTx(ctx, nil)
 	if err != nil {
@@ -112,33 +188,40 @@ func (s *Store) MarkUnblockedLift(ctx context.Context, id string, at time.Time, 
 	if err != nil {
 		return err
 	}
-	if n, _ := r.RowsAffected(); n == 0 {
-		return ErrNotFound
+	marked, _ := r.RowsAffected()
+	if marked == 0 {
+		if allowEntry == "" {
+			return ErrNotFound
+		}
+		r, err = tx.ExecContext(ctx, `UPDATE incidents SET allowlist_entry = ? WHERE incident = ? AND status = 'unblocked' AND allowlist_entry = ''`, allowEntry, id)
+		if err != nil {
+			return err
+		}
+		if n, _ := r.RowsAffected(); n == 0 {
+			return ErrNotFound
+		}
 	}
-	added, err := s.noteLiftTx(ctx, tx, id, at)
+	noted, err := s.noteLiftTx(ctx, tx, id, at)
 	if err != nil {
 		return err
 	}
 	if err := tx.Commit(); err != nil {
 		return err
 	}
-	s.outbox.waiting.Add(added)
-	s.noteOwn(ctx)
-	return nil
-}
-
-// LiftNoted reports whether the lift of an incident waits for the group.
-func (s *Store) LiftNoted(ctx context.Context, incident string) bool {
-	if !s.LiftsWaiting() {
-		return false
+	if noted {
+		s.liftsNoted([]string{id})
 	}
-	var n int
-	err := s.db.QueryRowContext(ctx, `SELECT 1 FROM cluster_outbox WHERE incident = ?`, incident).Scan(&n)
-	return err == nil
+	if marked > 0 {
+		s.noteOwn(ctx)
+	}
+	return nil
 }
 
 // WaitingLifts returns the lifts that wait, oldest first, at most limit.
 func (s *Store) WaitingLifts(ctx context.Context, limit int) ([]Lift, error) {
+	if err := s.loadLifts(ctx); err != nil {
+		return nil, err
+	}
 	rows, err := s.db.QueryContext(ctx, `SELECT incident, at_ms FROM cluster_outbox ORDER BY at_ms, incident LIMIT ?`, limit)
 	if err != nil {
 		return nil, err
@@ -157,13 +240,14 @@ func (s *Store) WaitingLifts(ctx context.Context, limit int) ([]Lift, error) {
 	return out, rows.Err()
 }
 
-// LiftWritten removes a lift the group holds now.
+// LiftWritten removes a lift the group holds now, or one that can never be
+// written.
 func (s *Store) LiftWritten(ctx context.Context, incident string) error {
-	r, err := s.db.ExecContext(ctx, `DELETE FROM cluster_outbox WHERE incident = ?`, incident)
-	if err != nil {
+	if _, err := s.db.ExecContext(ctx, `DELETE FROM cluster_outbox WHERE incident = ?`, incident); err != nil {
 		return err
 	}
-	n, _ := r.RowsAffected()
-	s.outbox.waiting.Add(-n)
+	s.outbox.mu.Lock()
+	delete(s.outbox.noted, incident)
+	s.outbox.mu.Unlock()
 	return nil
 }

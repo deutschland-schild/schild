@@ -16,7 +16,9 @@ import (
 // puts and deletes; the engine never waits for the disk.
 
 type blockOp struct {
-	put   *events.ActiveBlock
+	put *events.ActiveBlock
+	// taken: the block of put is one this node took from its group.
+	taken bool
 	del   string
 	flush chan struct{}
 	// ended: the incident of a block the operator ended early is stored
@@ -40,6 +42,8 @@ func (a *App) startBlockWriter() {
 				if err = a.Store.MarkUnblocked(ctx, op.ended, op.endedAt, ""); errors.Is(err, store.ErrNotFound) {
 					err = nil // already unblocked, deleted or never stored
 				}
+			case op.put != nil && op.taken:
+				err = a.Store.PutTakenBlock(ctx, *op.put)
 			case op.put != nil:
 				err = a.Store.PutBlock(ctx, *op.put)
 			default:
@@ -52,6 +56,7 @@ func (a *App) startBlockWriter() {
 		}
 	}()
 	a.Behaviour.Sink.Persist = func(ab events.ActiveBlock) { a.queueBlockOp(blockOp{put: &ab}) }
+	a.Behaviour.Sink.PersistTaken = func(ab events.ActiveBlock) { a.queueBlockOp(blockOp{put: &ab, taken: true}) }
 	a.Behaviour.Sink.Unpersist = func(k string) { a.queueBlockOp(blockOp{del: k}) }
 	a.Behaviour.Sink.Ended = func(incident string, at time.Time) { a.queueBlockOp(blockOp{ended: incident, endedAt: at}) }
 }
@@ -100,6 +105,19 @@ func (a *App) restoreBlocks(ctx context.Context) {
 	}
 	n, more := a.Behaviour.RestoreBlocks(keep, func(ip netip.Addr) bool { lvl, _ := a.Allow.Match(ip, now); return lvl != "" })
 	drop = append(drop, more...)
+	// Which of them this node decided itself: a node of a group writes only
+	// those to its group. A row without the mark of an own decision (a block
+	// taken from the group, a row of 0.1.0-alpha.6) is none; when the marks
+	// cannot be read, no kept block is.
+	taken, err := a.Store.TakenBlocks(ctx)
+	if err != nil {
+		a.log.Error("kept behaviour blocks: the marks of own decisions are not read; no kept block is handed to a group as this node's own", "err", err)
+		taken = taken[:0]
+		for _, r := range keep {
+			taken = append(taken, r.ClientKey)
+		}
+	}
+	a.Behaviour.TakenBlocks(taken)
 	if d := len(rows) - len(keep); d > 0 {
 		a.log.Info("kept behaviour blocks dropped: net class does not match the geo data", "blocks", d)
 	}

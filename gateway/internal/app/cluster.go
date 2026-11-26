@@ -237,6 +237,9 @@ func (a *App) prepareCluster(cfg *config.Site) error {
 	if !cfg.Cluster.Enabled {
 		return nil
 	}
+	// From the start: no release on this node goes without its lift for
+	// the group (store/outbox.go).
+	a.Store.ShareLifts()
 	dir := ClusterDir(a.dataDir)
 	if cfg.Cluster.SecretFile != "" {
 		// The same files were deployed to every node.

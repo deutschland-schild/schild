@@ -906,16 +906,27 @@ func (s *Server) releaseClient(w http.ResponseWriter, r *http.Request) {
 	}
 	ctx := r.Context()
 	now := s.now()
-	// A release ends every block the group holds of this client, also one
-	// that does not run on this node: one lift per incident, noted before
-	// the block ends here.
-	if s.BlockIncidents != nil {
-		if err := s.St.NoteLifts(ctx, now, s.BlockIncidents(ip)...); err != nil {
-			s.internal(w, err)
-			return
-		}
+	// On a node of a group a release ends every block the group holds of
+	// this client, also one that does not run on this node: the incidents
+	// the group holds and the incidents of the blocks that ended here are
+	// the lifts, one step with the end of the blocks. A single gateway
+	// notes none.
+	res := ReleaseResult{IP: ip.String()}
+	release := func(held []string) error {
+		ended, incidents := s.Behaviour.ReleaseIncidents(ip)
+		res.BlocksEnded = ended
+		return s.St.NoteLifts(ctx, now, append(held, incidents...)...)
 	}
-	res := ReleaseResult{IP: ip.String(), BlocksEnded: s.Behaviour.Release(ip)}
+	var err error
+	if s.ClientBlocks != nil {
+		err = s.ClientBlocks(ip, release)
+	} else {
+		err = release(nil)
+	}
+	if err != nil {
+		s.internal(w, err)
+		return
+	}
 	switch req.Allow {
 	case "exception":
 		srcs := []string{"behaviour", "ratelimit"}

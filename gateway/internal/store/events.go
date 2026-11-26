@@ -616,7 +616,7 @@ func (s *Store) DeleteIP(ctx context.Context, ip string, keepIncidents bool, tru
 		return nil, err
 	}
 	now := time.Now()
-	var added int64
+	var noted []string
 	for _, id := range lifts {
 		if !s.outbox.on.Load() {
 			break // a single gateway has no group to tell
@@ -624,16 +624,18 @@ func (s *Store) DeleteIP(ctx context.Context, ip string, keepIncidents bool, tru
 		if _, err := tx.ExecContext(ctx, `UPDATE incidents SET status = 'unblocked', unblocked_ms = ? WHERE incident = ? AND status = 'blocked'`, ms(now), id); err != nil {
 			return nil, err
 		}
-		n, err := s.noteLiftTx(ctx, tx, id, now)
+		ok, err := s.noteLiftTx(ctx, tx, id, now)
 		if err != nil {
 			return nil, err
 		}
-		added += n
+		if ok {
+			noted = append(noted, id)
+		}
 	}
 	if err := tx.Commit(); err != nil {
 		return nil, err
 	}
-	s.outbox.waiting.Add(added)
+	s.liftsNoted(noted)
 	return res, nil
 }
 
