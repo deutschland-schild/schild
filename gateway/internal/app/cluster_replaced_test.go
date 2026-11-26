@@ -102,7 +102,7 @@ func TestFirstBrowserCheckKeysKeepReplacedValues(t *testing.T) {
 			string(x.ChallengeKey) == string(y.ChallengeKey)
 	})
 
-	// Exactly the node that took the other's keys must have kept its replaced
+	// The node that took the other's keys must have kept its replaced
 	// human_check_v1 keys in cluster.db.
 	hasHumanCheckReplaced := func(g *groupNode) bool {
 		for k := range replacedKeys(t, g) {

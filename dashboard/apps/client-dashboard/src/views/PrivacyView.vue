@@ -260,7 +260,7 @@ async function doDelete() {
       <Card>
         <CardHeader>
           <CardTitle>So lange speichert Schild</CardTitle>
-          <CardDescription>{{ inGroup === undefined ? '' : inGroup ? 'Alles bleibt auf den Servern deines Clusters.' : 'Alles bleibt auf deinem Server.' }} Einstellen kannst du das unter Einstellungen.</CardDescription>
+          <CardDescription>{{ inGroup === undefined ? '' : inGroup ? 'Alles bleibt auf den Servern deines Clusters. ' : 'Alles bleibt auf deinem Server. ' }}Einstellen kannst du das unter Einstellungen.</CardDescription>
         </CardHeader>
         <CardContent>
           <div v-if="!r" class="space-y-2">

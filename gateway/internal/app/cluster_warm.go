@@ -10,6 +10,7 @@ import (
 
 	"github.com/deutschland-schild/schild/gateway/internal/behaviour"
 	"github.com/deutschland-schild/schild/gateway/internal/cluster"
+	"github.com/deutschland-schild/schild/gateway/internal/ratelog"
 )
 
 // A node that starts takes the running counts of its group before it serves
@@ -193,6 +194,7 @@ func (a *App) warmStart(ctx context.Context) {
 		}
 		unknown = 0
 		retry++
+		ratelog.Warn(a.log, "cluster: the running counts of the group were not taken on a later pass either; the node tries again", "from", node.PeerName(peer), "err", err)
 	}
 }
 

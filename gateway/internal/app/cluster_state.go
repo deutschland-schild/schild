@@ -641,6 +641,8 @@ func (a *App) syncThing(ctx context.Context, t sharedThing, synced bool) {
 				if cur, here := local[k]; here && (p.v == nil || sum(cur) != sum(p.v)) {
 					if kerr := node.Keep(t.key()+" "+k, cur); kerr == nil {
 						a.log.Warn("cluster: this node takes the group's value of an entry both held; its own is kept in cluster.db (table replaced)", "thing", t.key(), "entry", k)
+					} else {
+						a.log.Error("cluster: this node took the group's value of an entry both held, and its own could not be kept in cluster.db (table replaced)", "thing", t.key(), "entry", k, "err", kerr)
 					}
 				}
 			}
