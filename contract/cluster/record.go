@@ -171,9 +171,11 @@ type Record struct {
 
 // Reasons a record is not taken. ErrClock and ErrOrigin may pass with time
 // (the receiver's clock catches up, the member record of the origin
-// arrives); the others never do.
+// arrives). ErrVersion and ErrClass may pass with a later build: the record
+// is kept unread and handed on. The others never pass.
 var (
 	ErrVersion   = errors.New("cluster: unknown record version")
+	ErrClass     = errors.New("cluster: unknown record class")
 	ErrGroup     = errors.New("cluster: record of another group")
 	ErrSchema    = errors.New("cluster: record does not fit its class")
 	ErrOrigin    = errors.New("cluster: origin is no member")
@@ -281,7 +283,7 @@ func (r *Record) shape() error {
 			return ErrSchema
 		}
 	default:
-		return ErrSchema
+		return ErrClass
 	}
 	if r.Expires != "" {
 		if _, err := time.Parse("2006-01-02T15:04:05Z", r.Expires); err != nil {

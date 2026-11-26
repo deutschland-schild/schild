@@ -176,7 +176,7 @@ func genClusterRecord(g *gen) {
 	og := block(b, 1, h(40*time.Minute), "203.0.113.7")
 	og.Group = "g-00000000000000000000000000000000"
 	refused("group", "another-group", "A record of another group.", in(roster, og, nil))
-	refused("schema", "unknown-class", "A class this version does not have.", in(roster, rec(b, "tokens", "x", 1, h(40*time.Minute), false, "", m{"v": ""}), nil))
+	refused("class", "unknown-class", "A class this version does not have: kept unread, for a later build.", in(roster, rec(b, "tokens", "x", 1, h(40*time.Minute), false, "", m{"v": ""}), nil))
 	refused("schema", "seq-zero", "Sequence numbers start at 1.", in(roster, rec(b, cluster.ClassBlocks, "203.0.113.7", 0, h(40*time.Minute), false, until, blockData("203.0.113.7", 32)), nil))
 	refused("schema", "expires-no-time", "expires is a time in UTC with seconds.", in(roster, rec(b, cluster.ClassErasure, "203.0.113.7", 6, h(43*time.Minute), false, "tomorrow", cluster.Erasure{IP: "203.0.113.7"}), nil))
 	refused("schema", "expires-with-offset", "No offsets: UTC, written with Z.", in(roster, rec(b, cluster.ClassErasure, "203.0.113.7", 6, h(43*time.Minute), false, "2026-11-26T13:00:00+01:00", cluster.Erasure{IP: "203.0.113.7"}), nil))
@@ -321,7 +321,7 @@ func genClusterRecord(g *gen) {
 	taken("incident-block-second-of-client", "A second block of the same client is a record of its own, under its own incident.",
 		in(roster, ib(a, 9, h(40*time.Minute), "R3TV-8HNC", ibData("203.0.113.7", 32, cluster.ScopeGateway)), nil), nil)
 	taken("incident-block-ipv6", "The client of IPv6 is the first address of the /64.", in(roster, ib(b, 1, h(40*time.Minute), "K7QF-2M9X", ibData("2001:db8:1:2::", 64, cluster.ScopeGateway)), nil), nil)
-	taken("incident-block-of-website", "A block of one website names it in its scope.", in(roster, ib(b, 1, h(40*time.Minute), "K7QF-2M9X", ibData("203.0.113.7", 32, "website:shop")), nil), nil)
+	refused("schema", "incident-block-of-website", "This version has one scope, the gateway. A block of one website comes as a later record version.", in(roster, ib(b, 1, h(40*time.Minute), "K7QF-2M9X", ibData("203.0.113.7", 32, "website:shop")), nil))
 	taken("incident-lift", "A lift is a record of its own; its id is the incident it ends, and it carries no address.", in(roster, il(a, 9, h(41*time.Minute), "K7QF-2M9X"), nil), nil)
 	taken("incident-lift-of-unknown-block", "A lift needs no block record: it may arrive first.", in(roster, il(a, 9, h(41*time.Minute), "ZZZZ-9999"), nil), nil)
 	taken("incident-lift-replaces-earlier-lift", "Two lifts of one incident are two records of one thing; the later is the state.",
@@ -332,8 +332,7 @@ func genClusterRecord(g *gen) {
 	si("incident-block-tombstone", "A block record is never a tombstone: a lift is a record of class lifts.",
 		rec(b, cluster.ClassIncidentBlocks, "K7QF-2M9X", 2, h(41*time.Minute), true, until, ibData("203.0.113.7", 32, cluster.ScopeGateway)))
 	si("incident-block-without-scope", "A block names its scope.", ib(b, 1, h(40*time.Minute), "K7QF-2M9X", ibData("203.0.113.7", 32, "")))
-	si("incident-block-unknown-scope", "A scope is the gateway or one website.", ib(b, 1, h(40*time.Minute), "K7QF-2M9X", ibData("203.0.113.7", 32, "everywhere")))
-	si("incident-block-website-without-id", "A website scope names the website.", ib(b, 1, h(40*time.Minute), "K7QF-2M9X", ibData("203.0.113.7", 32, "website:")))
+	si("incident-block-unknown-scope", "A scope this version does not have.", ib(b, 1, h(40*time.Minute), "K7QF-2M9X", ibData("203.0.113.7", 32, "everywhere")))
 	si("incident-block-with-incident-field", "The incident is the id; the data has no such field.", ib(b, 1, h(40*time.Minute), "K7QF-2M9X", blockData("203.0.113.7", 32)))
 	si("incident-block-ipv4-with-64-bits", "IPv4 is one address, 32 bits.", ib(b, 1, h(40*time.Minute), "K7QF-2M9X", ibData("203.0.113.7", 64, cluster.ScopeGateway)))
 	si("incident-block-expires-not-until", "A block is dropped when it ends: expires is until.",

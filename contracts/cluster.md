@@ -49,7 +49,9 @@ In this order; the first failing check decides.
 | --- | --- | --- | --- |
 | 1 | `version` | `v` is not 1 | kept unread |
 | 2 | `group` | another group | never |
-| 3 | `schema` | fields missing, unknown class, `expires` no time | never |
+| 3 | `schema` | fields missing | never |
+| 3a | `class` | a class this version does not have | kept unread |
+| 3b | `schema` | `expires` no time | never |
 | 4 | `clock` | the wall part of `hlc` is more than 60 s ahead of the receiver | asked for again |
 | 5 | `origin` | the origin is no member and the record is not a node's record of itself with the admission of the group secret; or the record is a member record, no tombstone, whose data decodes and carries no admission of the group secret | asked for again |
 | 6 | `removed` | the origin was removed and `hlc` is not before its removal | never |
@@ -58,7 +60,7 @@ In this order; the first failing check decides.
 
 Rule 4 reaches further than the node whose clock is wrong. A node takes the time of every record it takes into its own hybrid clock, so after a node that was up to 60 s ahead wrote, the records of the others carry a time up to 60 s ahead of their own wall clocks, for as long as that lead lasts (at most a minute after the last such record). A third node whose clock is behind by less than 60 s may put their records off in that time: with one node 57 s ahead before, a node 30 s behind took nothing for about half a minute (second lab run, N4). The rule is not changed; clocks have to agree.
 
-A record that is refused for good is counted and never applied or stored. A record that may pass later holds back the sequence number the node asks its peers from, so it comes again.
+A record that is refused for good is counted and never applied or stored. A record kept unread (checks 1 and 3a) is stored as it came, not applied, counted as `unread` and handed on to the members that ask; at its start a node checks the records it keeps unread again and takes those its build reads now. So a later build may bring a class or a record version without a cut: an older node carries the records and says that it does not read them. (0.1.0-alpha.6 refused an unknown class for good and did not read again what it kept; see section 16.) A record that may pass later holds back the sequence number the node asks its peers from, so it comes again.
 
 Records a removed member signed before its removal stand: what it decided while it was a member reads the same on a node that joins later.
 
@@ -75,11 +77,11 @@ One block (D109). `id` is its incident number: 1 to 64 characters of `A` to `Z`,
 Data: `client` (the IPv4 address, or the first address of the IPv6 /64), `bits` (32 or 64), `scope`, `source` (`behaviour:<scenario>`, `agent:<token id>` or `dashboard`), `level`, `since`, `until`, `duration_s` (at most 7 days), optional `event_id`, `net_class`, `node` (name of the node that decided). `expires` equals `until`: a block that ends at its time needs no other record. The data has no field `incident`; the id is the incident.
 
 - **One block is one record.** The node that decided the block writes it. The record is never a tombstone; a tombstone of this class is refused (`schema`). What ends a block before its time is a record of class `lifts`.
-- **Two blocks of one client are two records.** They stand side by side: the blocks of two nodes of the same moment, a block after one that a full table dropped, a block of one website next to one of the gateway. No block replaces another, and none is lost because another came.
-- **Scope.** `gateway`: the block holds for every website. `website:` and 1 to 128 printable ASCII characters without a space: the block holds for that website ([MVP-34](../tests/specs/MVP-34-website-scope.yaml), not built). A node of this version writes `gateway` only. It takes and hands on a record of a website and does not enforce it.
+- **Two blocks of one client are two records.** They stand side by side: the blocks of two nodes of the same moment, a block after one that a full table dropped, a block of a later scope next to one of the gateway. No block replaces another, and none is lost because another came.
+- **Scope.** `gateway`: the block holds for every website. It is the only scope of this version; a record with another is refused (`schema`). A node never holds a block as the state of the group that it does not enforce. A block of one website (MVP-34, not built) comes as a record of a later version, which a node of this version keeps unread (check 1 of section 4).
 - **Which block runs.** A node that takes a record decides again with what it holds itself: an address on its own allowlist is not blocked, and the test profile blocks nothing. Per `client` and `scope` it enforces, of the records it holds that are not lifted and not over, the one with the latest `until`. When that one is lifted or ends, the next applies.
 - Only the deciding node writes the event and the incident; the others show its incident number.
-- **Two blocks with one number.** Incident numbers are random and not agreed on. Should two nodes give two blocks the same number, the records are two of one `(class, id)`, the later is the state (section 3), and the other block runs on its own node only. With 20 000 running blocks the chance of one such pair is below 1 in 5 000.
+- **Two blocks with one number.** Incident numbers are random and not agreed on. A node that draws a number it already holds an incident, a block record or a lift of draws another. Should two nodes still give two blocks the same number, the records are two of one `(class, id)`, the later is the state (section 3), and the other block runs on its own node only. With 20 000 running blocks the chance of one such pair is below 1 in 5 000.
 
 ### lifts
 
@@ -93,7 +95,7 @@ Data: `node` (name of the node the lift was made on). No address: who reads a li
 - Two lifts of one incident are two records of one `(class, id)`; the later is the state (section 3), and both say the same.
 - **What writes a lift:** the unblock of an incident; the release of an address and the erasure of an address, each as one lift per incident the node holds for that client (its own blocks and the records of the group). A block that ends at its time, and a block a full table drops, write none.
 - **A lift is not lost.** The node notes it in `schild.db` in the transaction of the change that made it (the incident number and the time, no address) and writes it to the group from there, again until the write succeeds, also after a restart. The answer to the person does not wait for the group.
-- **Erasure.** The record of class `erasure` names the address. A node that holds one drops every block record of that client whose `since` lies before the erasure and stores none it is handed later; a block set after the erasure is a new decision and stands. So a node that was away while an address was erased does not bring its block back.
+- **Erasure.** The record of class `erasure` names the address. A node that holds one drops every block record of that client whose `since` lies before the time of the erasure record or up to 60 s after it, and stores none it is handed later. The 60 s are the bound of clocks (check 4 of section 4): where two clocks leave it open which came first, the erasure wins, and a client that goes on is blocked again by the next decision. A block set later than that is a new decision and stands. So a node that was away while an address was erased does not bring its block back.
 
 ### blocks (before D109)
 
@@ -223,7 +225,7 @@ One listener per node (`cluster.listen`), TLS 1.3, HTTP/2. Both ends watch a con
 
 `POST /mesh/v0/hello`, any certificate: a node sends `record`, its own member record. The key of its certificate has to be the key of the record. The answering node checks the record like any other (section 4) before it stores anything; a record that fails is answered 403 (410 for a removed member) and leaves nothing behind. It answers with `group` and every member record when the caller is a member afterwards. The caller checks each of them the same way, so it does not matter that it could not know the answering key before. A hello and its answer never touch the readiness of either node.
 
-A record of a version a node cannot read (check 1 of section 4) is kept unread only from the sync answer of a member; from a hello or the answer to one, whose sender may be no member, it is dropped.
+A record of a version or a class a node cannot read (checks 1 and 3a of section 4) is kept unread only from the sync answer of a member; from a hello or the answer to one, whose sender may be no member, it is dropped.
 
 A caller that was a member and was removed gets 410 on sync and hello, any other caller that is no member 403. A node believes a 410 only when `X-Schild-Group` names its group, and only from a member: on sync the member it called by its key, on hello a key that is an active member in its own member list. A 410 without the header, or from a key it does not hold as a member, says nothing. A node that believes a 410 says in its log that it was removed, serves with the state it has and shares nothing, also after a restart.
 
@@ -335,7 +337,7 @@ Of [MVP-27](../tests/specs/MVP-27-ha-group.yaml): where each block holds (node f
 
 ## 16. From blocks by client to blocks by incident (D109)
 
-A hard cut: a build with D109 and a build before it do not share blocks in one group. This is the one exception so far to "N and N-1 run side by side", made while the project is an alpha. A node of 0.1.0-alpha.6 refuses a record of class `incident_blocks` or `lifts` for good (unknown class, check 3 of section 4). Everything else of the group works between the two builds as before.
+A hard cut: a build with D109 and a build before it do not share blocks in one group. This is the one exception so far to "N and N-1 run side by side", made while the project is an alpha. A node of 0.1.0-alpha.6 refuses a record of class `incident_blocks` or `lifts` for good: that build knew no class kept unread (check 3a of section 4 is new with D109). Everything else of the group works between the two builds as before.
 
 - **While both builds run in a group:** a block or a lift a new node writes does not reach an old node. The old node blocks when its own detectors decide, and a block released on a new node runs on the old ones until they are updated. `shared_state` of `blocks` reads `differs` between an old and a new node. So all nodes of a group are updated one after the other without a pause, and nothing is released meanwhile.
 - **Reading the old records.** A node of this version takes records of class `blocks` and writes none. A block record that names an incident runs as a block of scope `gateway` under that incident, by the rules of `incident_blocks`. A tombstone that names an incident counts as a lift of that incident, by the rules of `lifts`. A record without an incident is not read. These records end at their time, at the latest 7 days and an hour after the last node was updated; the build after that no longer reads the class.

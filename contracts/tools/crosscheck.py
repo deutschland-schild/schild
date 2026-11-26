@@ -4211,7 +4211,7 @@ CL_BLOCK = {"client": "str", "bits": "int", "source": "str", "level": "int", "si
 CL_INCIDENT_BLOCK = {"client": "str", "bits": "int", "scope": "str", "source": "str", "level": "int", "since": "str", "until": "str", "duration_s": "int",
                      "event_id": "str", "net_class": "str", "node": "str"}
 CL_INCIDENT_ID = re.compile(r"[A-Z0-9-]{1,64}\Z")
-CL_SCOPE = re.compile(r"(gateway|website:[!-~]{1,128})\Z")
+CL_SCOPE = re.compile(r"gateway\Z")
 
 
 def cl_key(m):
@@ -4353,7 +4353,7 @@ def cl_check(roster, group, rec, now):
         if not CL_INCIDENT_ID.match(rec["id"]):
             raise ClRefuse("schema")
     elif cls not in ("members", "blocks", "erasure", "certificates", "jobs"):
-        raise ClRefuse("schema")
+        raise ClRefuse("class")
     if rec.get("expires", "") != "" and cl_time(rec["expires"]) is None:
         raise ClRefuse("schema")
     if (rec["hlc"] >> 16) > (now + 60) * 1000:

@@ -107,7 +107,7 @@ func (b *Block) valid(id string) bool {
 }
 
 // ScopeGateway is the scope of a block that holds for every website of the
-// gateway. The other scope names one website: "website:" and its id.
+// gateway, the only scope of this version.
 const ScopeGateway = "gateway"
 
 // IncidentBlock is the data of a record of class incident_blocks; its id
@@ -118,7 +118,7 @@ type IncidentBlock struct {
 	// Client is the IPv4 address or the first address of the IPv6 /64.
 	Client string `json:"client"`
 	Bits   int    `json:"bits"`
-	// Scope is ScopeGateway or "website:<id>".
+	// Scope is ScopeGateway.
 	Scope string `json:"scope"`
 	// Source as the gateway names it: behaviour:<scenario>, agent:<token id>
 	// or dashboard.
@@ -155,23 +155,8 @@ func incidentID(id string) bool {
 	return true
 }
 
-// ValidScope says whether s is a scope of a block: the gateway, or one
-// website named by 1 to 128 printable ASCII characters without a space.
-func ValidScope(s string) bool {
-	if s == ScopeGateway {
-		return true
-	}
-	id, ok := strings.CutPrefix(s, "website:")
-	if !ok || id == "" || len(id) > 128 {
-		return false
-	}
-	for i := 0; i < len(id); i++ {
-		if id[i] <= ' ' || id[i] > '~' {
-			return false
-		}
-	}
-	return true
-}
+// ValidScope says whether s is a scope of a block this version has.
+func ValidScope(s string) bool { return s == ScopeGateway }
 
 // DecodeIncidentBlock returns the block of a record of class
 // incident_blocks.
