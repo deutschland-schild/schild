@@ -9,6 +9,15 @@ The section of a version becomes the text of its GitHub release, so its heading 
 - Certificates by DNS challenge at Hetzner, wildcards included: the Caddy module `dns.providers.hetzner` is compiled in and does nothing without its line in the Caddyfile (MVP-37). `schild ingress validate` refuses an empty or unreadable API token; `schild run` logs it and goes on serving the certificates it holds. Tested against a stand-in of the Hetzner API and a test CA, not yet against Hetzner.
 ### Cluster of gateways
 
+- **Not compatible with 0.1.0-alpha.6 for blocks in one cluster.** Blocks and their releases have a new format (D109). While servers of both versions run together, a block or release from an updated server does not reach the others. Update all servers one after the other without a pause, and release nothing meanwhile. The guide has a section "Von 0.1.0-alpha.6 aktualisieren". `schild.db` goes to schema version 2 at the first start, with a backup.
+- A block is now one entry under its incident number, and a release is an entry of its own. Two blocks of one address no longer share one entry, so a release cannot end the wrong block or be lost because another block came. A release always wins, also against a server whose clock is ahead.
+- "Freigeben" in the dashboard ends every block of that address in the cluster. Before, a second block that another server set in the same moment stayed. The agent API ends the one block whose incident it names, also on a server that does not run that block itself.
+- Fixed: a server whose table of blocks was full dropped a block, and the cluster took that for a release. The block ended on every server.
+- Fixed: "Freigeben" on a server that does not run the block itself (mode "Beobachten", an address in its own list) did not end it on the other servers.
+- Fixed: a release was lost when the server could not write to `cluster.db` at that moment. It is now noted in `schild.db` with the release and written until it succeeds, also after a restart.
+- Fixed: a server that was away while an address was erased could bring the block of that address back.
+- After a release or an erasure, the entry of the block, with the address, leaves `cluster.db` on every server. The entry of the release holds no address.
+- A server keeps an entry of a kind it does not know yet and reads it after its update. Later versions can add kinds of entries without a break like this one.
 - Fixed: when a cluster was set up, two nodes could each write some of the first keys of the browser check, and the cluster ran with a mix of two sets. Now a node waits until it has all keys of the first set, or until the wait is over.
 - Fixed: a setting changed on a node while that node stored a change from another node could stay on that node only. The repair then replaced it with the value of the cluster. The change now goes to the cluster.
 - Fixed: "Freigeben" on a gateway could answer 404 when it came in the moment a block of another gateway started there. The incident is now stored before the block starts.

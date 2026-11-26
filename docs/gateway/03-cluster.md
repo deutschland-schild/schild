@@ -27,7 +27,7 @@ Ohne Cluster arbeitet jedes Gateway für sich. Eine Sperre gilt dann nur auf ein
 
 | Was | Wie es sich verhält |
 | --- | --- |
-| Gesperrte Adressen | Eine Sperre aus einem Szenario, aus dem Dashboard oder von einem Agenten gilt nach etwa einer Sekunde auf jedem Server. „Freigeben“ hebt sie überall auf. Das gilt auch auf einem Server, den die Sperre beim Klick noch nicht erreicht hat. |
+| Gesperrte Adressen | Eine Sperre aus einem Szenario, aus dem Dashboard oder von einem Agenten gilt nach etwa einer Sekunde auf jedem Server. Jede Sperre hat ihre Vorfallnummer. Sperren zwei Server dieselbe Adresse im selben Moment, sind das zwei Sperren mit zwei Nummern. „Freigeben“ im Dashboard hebt alle Sperren dieser Adresse auf, auf jedem Server. Das gilt auch auf einem Server, den die Sperre beim Klick noch nicht erreicht hat. Ein Agent hebt über die Agent-API genau die Sperre auf, deren Vorfallnummer er nennt. |
 | Einstellungen | Alles, was du im Dashboard oder über die Agent-API einstellst, gilt auf jedem Server: Schalter der Regelquellen, Schwellen, Limits, Crawler-Regeln, Zugriffssperre, Browser-Prüfung, Ausnahmen. Das gilt auch für Einstellungen künftiger Funktionen. Diese Funktionen müssen dafür nichts tun. |
 | Eigene Adressen und Freigaben | Die Liste eigener Adressen und freigegebene Absender gelten überall. Die eigene Liste eines Servers aus seiner `schild.yaml` gewinnt immer gegen eine Sperre aus dem Cluster. |
 | Logins | Ein Passwort und eine Anmeldung gelten für das Dashboard jedes Servers. Agent-Tokens gelten auf allen Servern. |
@@ -346,6 +346,18 @@ Beide Zeiten stellst du unter `cluster.drain` ein (`delay_s`, `grace_s`). `delay
 
 Stellst du `delay_s` oder `grace_s` höher, gib systemd und Docker entsprechend mehr Zeit.
 
+## Von 0.1.0-alpha.6 aktualisieren
+
+Ab dieser Version teilen die Server Sperren in einem neuen Format: ein Eintrag pro Sperre unter ihrer Vorfallnummer, und eine Freigabe als eigener Eintrag. Ein Server mit 0.1.0-alpha.6 liest dieses Format nicht. Solange alte und neue Server zusammen laufen, gilt deshalb:
+
+- Eine Sperre oder Freigabe von einem neuen Server erreicht die alten Server nicht. Die alten sperren weiter, wenn ihre eigene Erkennung anschlägt.
+- Sperren und Freigaben der alten Server gelten auf den neuen weiter.
+- Die Seite „Cluster“ zeigt bei den Sperren „Stand weicht ab“, bis alle Server aktualisiert sind.
+
+Aktualisiere deshalb alle Server nacheinander ohne Pause, und gib in dieser Zeit nichts frei. Jeder Server schreibt beim ersten Start seine laufenden Sperren im neuen Format und holt von den anderen nach, was er vorher nicht lesen konnte. Die alten Einträge laufen von selbst ab, spätestens nach 7 Tagen und einer Stunde.
+
+Ein Weg zurück auf 0.1.0-alpha.6 führt dazu, dass der Server die Sperren und Freigaben seit dem Update nicht sieht.
+
 ## Einen Server aus dem Cluster nehmen
 
 1. Nimm den Server zuerst aus dem Loadbalancer, oder halte ihn mit `schild cluster drain` an.
@@ -439,6 +451,8 @@ Jeder Server speichert damit, was der ganze Cluster aufzeichnet. Das lässt sich
 ## Grenzen
 
 - **Dieselbe Einstellung auf zwei Servern.** Änderst du denselben Schalter gleichzeitig auf zwei Servern, gilt überall die spätere Änderung. Verschiedene Einträge derselben Liste bleiben beide erhalten.
+- **Freigabe in der Sekunde nach der Sperre.** Sperren zwei Server dieselbe Adresse im selben Moment, braucht die zweite Sperre bis zu eine Sekunde zu den anderen Servern. Gibst du in dieser Sekunde frei, kennt dein Server die zweite Sperre noch nicht und hebt sie nicht auf. Nach „Freigeben“ hält die Ausnahme für diesen Client sie zurück, solange die Ausnahme gilt. Danach läuft sie weiter, falls sie länger dauert. Nach „Adresse freigeben“ ohne Ausnahme sperrt sie den Client sofort wieder. Gib dann noch einmal frei.
+- **Mehr Sperren als Platz.** Ein Server führt höchstens 16.384 Sperren zugleich. Hält der Cluster mehr, laufen die übrigen auf diesem Server erst, wenn Platz frei wird.
 - **Limits über alle Server.** Bis die Server voneinander wissen, vergeht bis zu eine Sekunde. Ein Client, der seine Anfragen über alle Server verteilt, kommt in dieser Sekunde etwas über ein Limit hinaus.
 - **Zahlen der anderen Server.** Diagramme zeigen die anderen Server mit etwa 10 bis 20 Sekunden Verzug. Besucherzahlen über mehrere Server sind eine Untergrenze, weil dieselbe Person mehrere Server erreicht haben kann.
 - **Uhren.** Halte die Uhren mit NTP synchron. Geht die Uhr eines Servers eine Minute oder mehr falsch, nimmt er sich selbst aus dem Traffic, sobald es mindestens drei Server sind und die Mehrheit sich über die Uhrzeit einig ist.

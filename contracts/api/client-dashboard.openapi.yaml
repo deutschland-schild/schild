@@ -655,6 +655,10 @@ paths:
       tags: [incidents]
       operationId: unblockIncident
       summary: Unblock the visitor of an incident; optionally allowlist the IP.
+      description: >-
+        Ends the block of the incident and every other block that runs for that client, on this gateway and, in a
+        group, on every node (contracts/cluster.md, class lifts: one lift per incident). The exception for the client
+        and the status are those of this incident.
       parameters: [{ $ref: "#/components/parameters/Incident" }, { $ref: "#/components/parameters/CSRF" }]
       requestBody:
         required: true
@@ -3021,7 +3025,7 @@ components:
         net_class: { type: string, maxLength: 32 }
         incident: { type: string, maxLength: 9, description: "Incident number of the block page; ends the block with unblockIncident. Empty when none is known." }
         kept: { type: boolean, description: "Kept in schild.db (blocks over 24 h), survives a restart." }
-        node: { type: string, maxLength: 63, description: "In a group: name of the node that decided the block (contracts/cluster.md, class blocks). Absent on a single gateway and while the group does not know the block yet." }
+        node: { type: string, maxLength: 63, description: "In a group: name of the node that decided the block (contracts/cluster.md, class incident_blocks). Absent on a single gateway and while the group does not know the block yet." }
         node_self: { type: boolean, description: "With node: true when this node decided the block. Nodes of one deployment may carry the same name." }
         firewall: { type: string, enum: [off, stale, pending, banned], description: "off: no firewall has called; stale: its last call is older than 2 minutes, or it reports an error; pending: it has not applied this block yet; banned: the nftables table inet schild holds the client." }
     BlockRequest:
