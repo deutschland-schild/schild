@@ -27,6 +27,7 @@ import (
 	"fmt"
 	"net/netip"
 	"regexp"
+	"slices"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -220,6 +221,9 @@ type Sink struct {
 	// under Art. 17, allowlisted). Both must not block the caller.
 	Persist   func(events.ActiveBlock)
 	Unpersist func(clientKey string)
+	// PersistTaken is Persist for a block this node took from its group
+	// (blockState.taken), so the mark holds over a restart; nil: Persist.
+	PersistTaken func(events.ActiveBlock)
 	// Ended reports the incident of a block the operator ended early
 	// (Release, DropBlocks: dashboard release, allowlist, schild allow), so
 	// the incident is stored as unblocked (D36 fix round 2: released
@@ -593,6 +597,10 @@ type blockState struct {
 	started   int64
 	netClass  string
 	persisted bool // handed to Sink.Persist (and kept in long)
+	// taken: another node of the group decided this block and this node
+	// took it from the group's record (ApplyBlock). A node writes only the
+	// blocks it decided itself to its group.
+	taken bool
 }
 
 // Check runs before the WAF: an active block of the client key, then the
@@ -1114,12 +1122,18 @@ func (e *Engine) fire(r *Request, c *compiled, key Key, bits int, t trigger) {
 		var level int
 		var until time.Time
 		var dur time.Duration
-		// Drawn before the table is locked: on a node of a group the draw
-		// looks into its stores.
-		incident := e.NewIncident()
 		nc := r.Client.Geo.NetClass
 		created := false
 		now := r.Time.UnixNano()
+		// The number is drawn before the table is locked, because on a node
+		// of a group the draw looks into its stores; and only for a client
+		// that is not blocked, so a request of a blocked client reads none.
+		blocked := false
+		e.blocks.with(key, false, func(b *blockState) { blocked = b != nil && b.until > now })
+		if blocked {
+			return
+		}
+		incident := e.NewIncident()
 		e.blocks.with(key, true, func(b *blockState) {
 			if b.until > now {
 				return // already blocked
@@ -1142,7 +1156,7 @@ func (e *Engine) fire(r *Request, c *compiled, key Key, bits int, t trigger) {
 		if dur > PersistOver {
 			ab := events.ActiveBlock{ClientKey: key.Addr().String(), KeyBits: bits, NetClass: nc, Source: "behaviour:" + t.scenario, Level: level,
 				DurationS: d.DurationS, Since: r.Time.UTC().Truncate(time.Second).Format(time.RFC3339), Until: d.Until, Incident: incident}
-			e.keepLong(key, ab, id)
+			e.keepLong(key, ab, id, false)
 		}
 		if e.Sink.Incident != nil {
 			e.Sink.Incident(&store.Incident{Incident: incident, EventID: id, Time: r.Time.UTC(), IP: r.Client.IP, Status: "blocked", Host: r.Host,
@@ -1168,9 +1182,16 @@ func round2(v float64) float64 { return float64(int64(v*100+0.5)) / 100 }
 // rate-limit buckets, and remembers the release time (hits before it show
 // as released). It returns the number of blocks that ended.
 func (e *Engine) Release(ip netip.Addr) int {
+	ended, _ := e.ReleaseIncidents(ip)
+	return ended
+}
+
+// ReleaseIncidents is Release and names the incidents of the blocks it
+// ended: on a node of a group each of them is lifted for the group.
+func (e *Engine) ReleaseIncidents(ip netip.Addr) (int, []string) {
 	key, _ := KeyOf(ip)
 	if !key.IsValid() {
-		return 0
+		return 0, nil
 	}
 	now := e.now().UnixNano()
 	ended := 0
@@ -1192,7 +1213,13 @@ func (e *Engine) Release(ip netip.Addr) int {
 		e.buckets.delete(bucketKey{key, l.idx})
 	}
 	e.released.with(key, true, func(t *int64) { *t = now })
-	return ended
+	var named []string
+	for _, in := range incidents {
+		if in != "" && !slices.Contains(named, in) {
+			named = append(named, in)
+		}
+	}
+	return ended, named
 }
 
 // BlockInfo describes a running block.
@@ -1208,6 +1235,8 @@ type BlockInfo struct {
 	NetClass  string
 	Duration  time.Duration
 	Persisted bool
+	// Taken: another node of the group decided the block (blockState.taken).
+	Taken bool
 }
 
 // ActiveBlock returns the running block of the client key of ip.
@@ -1223,14 +1252,15 @@ func (e *Engine) ActiveBlock(ip netip.Addr) (BlockInfo, bool) {
 		if b != nil && b.until > now {
 			st := time.Unix(0, b.started).UTC()
 			bi, ok = BlockInfo{Scenario: b.scenario, Since: st, Until: time.Unix(0, b.until).UTC(), Level: b.level, Incident: b.incident, EventID: b.eventID,
-				NetClass: b.netClass, Duration: time.Unix(0, b.until).Sub(st.Truncate(time.Second)), Persisted: b.persisted}, true
+				NetClass: b.netClass, Duration: time.Unix(0, b.until).Sub(st.Truncate(time.Second)), Persisted: b.persisted, Taken: b.taken}, true
 		}
 	})
 	if !ok {
 		if lb, found := e.longCheck(key, now); found {
 			st, _ := time.Parse(time.RFC3339, lb.ab.Since)
 			bi, ok = BlockInfo{Scenario: strings.TrimPrefix(lb.ab.Source, "behaviour:"), Since: st, Until: time.Unix(0, lb.until).UTC(), Level: lb.ab.Level,
-				Incident: lb.ab.Incident, EventID: lb.eventID, NetClass: lb.ab.NetClass, Duration: time.Duration(lb.ab.DurationS) * time.Second, Persisted: true}, true
+				Incident: lb.ab.Incident, EventID: lb.eventID, NetClass: lb.ab.NetClass, Duration: time.Duration(lb.ab.DurationS) * time.Second, Persisted: true,
+				Taken: lb.taken}, true
 		}
 	}
 	return bi, ok

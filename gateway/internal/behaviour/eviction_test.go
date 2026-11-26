@@ -99,7 +99,7 @@ func TestLongBlockEvictionUnpersists(t *testing.T) {
 	for i, h := range []time.Duration{48, 24, 72} {
 		ip := fmt.Sprintf("198.51.100.%d", 20+i)
 		k, _ := KeyOf(netip.MustParseAddr(ip))
-		e.keepLong(k, events.ActiveBlock{ClientKey: ip, KeyBits: 32, Until: c.t.Add(h * time.Hour).Format(time.RFC3339)}, "")
+		e.keepLong(k, events.ActiveBlock{ClientKey: ip, KeyBits: 32, Until: c.t.Add(h * time.Hour).Format(time.RFC3339)}, "", false)
 	}
 	// The third block evicts the one ending first (198.51.100.21).
 	if len(gone) != 1 || gone[0] != "198.51.100.21" {

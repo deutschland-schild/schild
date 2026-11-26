@@ -7,11 +7,12 @@ import (
 	"github.com/deutschland-schild/schild/contract/events"
 )
 
-// ApplyBlock starts a block another node of the group decided (MVP-27,
-// D105): the same client key, source, step, incident and end, so the block
-// page shows the incident number of the node that decided, and the block
-// ends on every node at the same second. Nothing is counted and no event or
-// incident is written: the deciding node did that.
+// ApplyBlock starts a block from a record of the group (MVP-27, D105): the
+// same client key, source, step, incident and end, so the block page shows
+// the incident number of the node that decided, and the block ends on every
+// node at the same second. Nothing is counted and no event or incident is
+// written: the deciding node did that. bi.Taken says whether another node
+// decided it; it stays with the block, also over a restart.
 //
 // It reports false, and changes nothing, when the block ended or a block of
 // this client key runs already; that one stands, as with SetAgentBlock.
@@ -29,7 +30,7 @@ func (e *Engine) ApplyBlock(key Key, bits int, bi BlockInfo) bool {
 			return
 		}
 		next := blockState{until: until, lastUntil: until, level: bi.Level, scenario: bi.Scenario, incident: bi.Incident, eventID: bi.EventID,
-			started: bi.Since.UnixNano(), netClass: bi.NetClass, persisted: persist}
+			started: bi.Since.UnixNano(), netClass: bi.NetClass, persisted: persist, taken: bi.Taken}
 		if offLadder {
 			// As SetAgentBlock: the ladder of the client stays where it was.
 			next.lastUntil, next.ladder = b.lastUntil, b.ladderLevel()
@@ -40,7 +41,7 @@ func (e *Engine) ApplyBlock(key Key, bits int, bi BlockInfo) bool {
 	if created && persist {
 		e.keepLong(key, events.ActiveBlock{ClientKey: key.Addr().String(), KeyBits: bits, NetClass: bi.NetClass, Source: BlockSource(bi.Scenario), Level: bi.Level,
 			DurationS: int(bi.Duration / time.Second), Since: bi.Since.UTC().Truncate(time.Second).Format(time.RFC3339), Until: bi.Until.UTC().Format("2006-01-02T15:04:05Z"),
-			Incident: bi.Incident}, bi.EventID)
+			Incident: bi.Incident}, bi.EventID, bi.Taken)
 	}
 	return created
 }
