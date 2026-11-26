@@ -835,3 +835,119 @@ func TestBlockOfADetectorIsReleasedOnAnotherNode(t *testing.T) {
 		t.Errorf("a request of the released client on web-1: %d", r.StatusCode)
 	}
 }
+
+// "Freigeben" of an incident in the dashboard means the client: every block
+// the node holds for that client is lifted with it, one lift per incident.
+// Two nodes often block one client at the same moment under two incidents;
+// releasing one of them, on a third node or on one of the two, leaves the
+// client unblocked on every node. It is no release of the address.
+func TestFreigebenLiftsEveryBlockOfTheClient(t *testing.T) {
+	nodes := trio(t)
+	a, b, c := nodes[0], nodes[1], nodes[2]
+	ctx := context.Background()
+	for _, g := range nodes {
+		g.h.Login()
+	}
+	inService(t, nodes...)
+	start := time.Now()
+	for _, tc := range []struct {
+		ip, x, y string
+		on       *groupNode
+	}{
+		{"203.0.113.71", "FRGB-AAA2", "FRGB-AAA3", c}, // on a third node
+		{"203.0.113.72", "FRGB-AAA4", "FRGB-AAA5", a}, // on one of the two
+	} {
+		a.block(tc.ip, tc.x, 15*time.Minute)
+		b.block(tc.ip, tc.y, 15*time.Minute)
+		for _, g := range nodes {
+			g := g
+			g.h.WaitFor(g.name+" holds both blocks of "+tc.ip, func() bool {
+				return slices.Contains(recordIDs(t, g, contract.ClassIncidentBlocks), tc.x) && slices.Contains(recordIDs(t, g, contract.ClassIncidentBlocks), tc.y) && g.blocked(tc.ip) != ""
+			})
+		}
+		tc.on.unblock(t, tc.x, tc.ip)
+		if got := tc.on.blocked(tc.ip); got != "" {
+			t.Errorf("%s runs %q for %s right after Freigeben there, want no block of the client", tc.on.name, got, tc.ip)
+		}
+		for _, g := range nodes {
+			g := g
+			g.h.WaitFor(g.name+" serves "+tc.ip+" again and holds a lift for each of its incidents", func() bool {
+				lifts, blocks := recordIDs(t, g, contract.ClassLifts), recordIDs(t, g, contract.ClassIncidentBlocks)
+				return g.blocked(tc.ip) == "" && slices.Contains(lifts, tc.x) && slices.Contains(lifts, tc.y) && !slices.Contains(blocks, tc.x) && !slices.Contains(blocks, tc.y)
+			})
+		}
+		// The other incident reads unblocked too where the person released.
+		if in, err := tc.on.h.App.Store.GetIncident(ctx, tc.y); err != nil || in.Status != "unblocked" {
+			t.Errorf("%s: the incident %s of the other block is %+v (%v), want unblocked", tc.on.name, tc.y, in, err)
+		}
+		notReleased(t, tc.ip, start, nodes...)
+	}
+	time.Sleep(time.Second)
+	for _, g := range nodes {
+		lifts, err := g.h.App.Cluster.State(contract.ClassLifts)
+		if err != nil || len(lifts) != 4 {
+			t.Fatalf("%s holds %d lifts (%v), want one for each of the four incidents", g.name, len(lifts), err)
+		}
+		for _, l := range lifts {
+			want := c.h.App.Cluster.ID()
+			if l.ID == "FRGB-AAA4" || l.ID == "FRGB-AAA5" {
+				want = a.h.App.Cluster.ID()
+			}
+			if l.Origin != want {
+				t.Errorf("%s: the lift of %s is written by %s, want by the node the person released on", g.name, l.ID, g.h.App.Cluster.PeerName(l.Origin))
+			}
+		}
+		for _, ip := range []string{"203.0.113.71", "203.0.113.72"} {
+			if got := g.blocked(ip); got != "" {
+				t.Errorf("%s runs %q for %s a second after Freigeben", g.name, got, ip)
+			}
+		}
+	}
+}
+
+// What a block does that arrives after a person released its client: a twin
+// another node decided before it knew of the release. This is how the build
+// behaves; whether it should is a decision for the product (see the report
+// of the change).
+//
+// After "Freigeben" the client has an exception for the sources that
+// blocked it, for 24 h, on every node. A block of such a source that
+// arrives later is held and started like any other, and the exception lets
+// the requests of the client pass it, as it does on a single gateway for a
+// block that runs. After "Adresse freigeben" without an exception nothing
+// lets the client pass: the block that arrives blocks it again, as a new
+// decision of a detector would on a single gateway.
+func TestBlockThatArrivesAfterARelease(t *testing.T) {
+	a, b := pair(t)
+	a.h.Login()
+	inService(t, a, b)
+	b.h.App.SetGroupBlocksMax(0) // the twins of web-2 are not written yet
+	const (
+		ipA, xA, yA = "203.0.113.73", "TWNS-AAA2", "TWNS-AAA3" // Freigeben
+		ipB, xB, yB = "203.0.113.74", "TWNS-AAA4", "TWNS-AAA5" // Adresse freigeben
+	)
+	for ip, twins := range map[string][2]string{ipA: {xA, yA}, ipB: {xB, yB}} {
+		a.block(ip, twins[0], 15*time.Minute)
+		b.block(ip, twins[1], 15*time.Minute)
+		b.h.WaitFor("web-2 holds the block of web-1 for "+ip, func() bool { return slices.Contains(recordIDs(t, b, contract.ClassIncidentBlocks), twins[0]) })
+	}
+	a.unblock(t, xA, ipA)
+	a.release(t, ipB)
+	if a.blocked(ipA) != "" || a.blocked(ipB) != "" {
+		t.Fatalf("web-1 runs %q and %q after the releases", a.blocked(ipA), a.blocked(ipB))
+	}
+	b.h.WaitFor("web-2 took the lifts and the exception", func() bool {
+		return holds(t, b, contract.ClassLifts, xA, xB) && b.h.App.Gate.Exceptions.Has(netip.MustParseAddr(ipA), "dashboard", time.Now())
+	})
+	// The twins arrive.
+	b.h.App.SetGroupBlocksMax(20000)
+	a.h.WaitFor("web-1 holds and runs the twins that arrived after the releases", func() bool { return a.blocked(ipA) == yA && a.blocked(ipB) == yB })
+	for _, g := range []*groupNode{a, b} {
+		if r := g.h.Visit("GET", "/", ipA, "", ""); r.StatusCode != 200 {
+			t.Errorf("%s answers %d to the client released by Freigeben: its exception does not let it pass the block that arrived", g.name, r.StatusCode)
+		}
+		if r := g.h.Visit("GET", "/", ipB, "", ""); r.StatusCode != 403 {
+			t.Errorf("%s answers %d to the client released by address: the block that arrived does not block it", g.name, r.StatusCode)
+		}
+	}
+}

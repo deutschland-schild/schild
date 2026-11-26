@@ -180,7 +180,13 @@ func (s *Store) NoteLifts(ctx context.Context, at time.Time, incidents ...string
 // incident runs, on this node or in the group, although the incident reads
 // unblocked (an allowlist entry ended it for a while); then the lift is
 // noted whatever the row says. ErrNotFound: nothing of that.
-func (s *Store) MarkUnblockedLift(ctx context.Context, id string, at time.Time, allowEntry string, live bool) error {
+//
+// others are the incidents of the other blocks the node holds for the same
+// client: a person who releases means the client, so each of them is
+// lifted with the one that was clicked and stored as unblocked, in this
+// transaction. The reference to the allowlist entry is for the clicked
+// incident alone.
+func (s *Store) MarkUnblockedLift(ctx context.Context, id string, at time.Time, allowEntry string, live bool, others ...string) error {
 	tx, err := s.db.BeginTx(ctx, nil)
 	if err != nil {
 		return err
@@ -205,16 +211,28 @@ func (s *Store) MarkUnblockedLift(ctx context.Context, id string, at time.Time, 
 			return ErrNotFound
 		}
 	}
-	noted, err := s.noteLiftTx(ctx, tx, id, at)
-	if err != nil {
-		return err
+	var noted []string
+	for i, incident := range append([]string{id}, others...) {
+		if i > 0 && incident != id {
+			r, err := tx.ExecContext(ctx, `UPDATE incidents SET status = 'unblocked', unblocked_ms = ? WHERE incident = ? AND status = 'blocked'`, ms(at), incident)
+			if err != nil {
+				return err
+			}
+			n, _ := r.RowsAffected()
+			marked += n
+		}
+		ok, err := s.noteLiftTx(ctx, tx, incident, at)
+		if err != nil {
+			return err
+		}
+		if ok {
+			noted = append(noted, incident)
+		}
 	}
 	if err := tx.Commit(); err != nil {
 		return err
 	}
-	if noted {
-		s.liftsNoted([]string{id})
-	}
+	s.liftsNoted(noted)
 	if marked > 0 {
 		s.noteOwn(ctx)
 	}

@@ -581,7 +581,34 @@ func (s *Server) unblock(w http.ResponseWriter, r *http.Request) {
 	// notes none. When the allowlist entry of this request ended the
 	// behaviour block first, which marked the incident unblocked
 	// (Sink.Ended), the incident takes the reference to the entry.
-	err := s.St.MarkUnblockedLift(ctx, in.Incident, now, allowID, live)
+	//
+	// A person who releases means the client, and two nodes often block one
+	// client at the same moment under two incidents: every block the node
+	// holds for the client is lifted with this one (contracts/cluster.md,
+	// lifts), noted in the same transaction and ended here in the same
+	// step, with no block record arriving in between. It is no release of
+	// the address: counters, ladder and release time stay.
+	//
+	// D87: the timed block ends now, not only for the requests of this
+	// client (the exception above): it leaves the list of blocks and,
+	// within a second, the host's firewall.
+	unblock := func(held []string) error {
+		if err := s.St.MarkUnblockedLift(ctx, in.Incident, now, allowID, live, held...); err != nil {
+			return err
+		}
+		for _, incident := range held {
+			if incident != in.Incident {
+				s.Behaviour.LiftIncident(incident)
+			}
+		}
+		return nil
+	}
+	var err error
+	if s.ClientBlocks != nil && s.Behaviour != nil && ipErr == nil {
+		err = s.ClientBlocks(ip, unblock)
+	} else {
+		err = unblock(nil)
+	}
 	if err != nil {
 		if errors.Is(err, store.ErrNotFound) {
 			problem(w, 409, "conflict", "Dieser Vorfall ist schon freigeschaltet.", nil)
@@ -590,9 +617,8 @@ func (s *Server) unblock(w http.ResponseWriter, r *http.Request) {
 		s.internal(w, err)
 		return
 	}
-	// D87: the timed block of this incident ends now, not only for the
-	// requests of this client (the exception above): it leaves the list of
-	// blocks and, within a second, the host's firewall.
+	// The block of the clicked incident; in a group the next block of the
+	// client would start with it, and there is none left.
 	switch {
 	case s.LiftIncident != nil:
 		s.LiftIncident(in.Incident)

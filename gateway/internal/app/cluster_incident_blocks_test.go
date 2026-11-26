@@ -115,6 +115,30 @@ func (g *groupNode) unblock(t *testing.T, incident, ip string) {
 	}
 }
 
+// agentGroup is a group whose nodes serve the agent API.
+func agentGroup(t *testing.T, names ...string) []*groupNode {
+	t.Helper()
+	nodes := newGroup(t, names...)
+	for _, g := range nodes {
+		g.extra = agentYAML
+		g.start(t)
+	}
+	return nodes
+}
+
+// agentLift lifts one incident through the agent API of a node. As for
+// unblock, the node gets the incident the events of its node would bring.
+func (g *groupNode) agentLift(t *testing.T, incident, ip string) {
+	t.Helper()
+	ctx := context.Background()
+	if err := g.h.App.Store.InsertIncident(store.Foreign(ctx), &store.Incident{Incident: incident, Time: time.Now(), IP: ip, Status: "blocked", Sources: []string{"dashboard"}}); err != nil {
+		t.Fatal(err)
+	}
+	if w := g.agentCall(t, "POST", "/agent/v0/incidents/"+incident+"/lift", `{"reason":"false alarm"}`); w.Code != 200 {
+		t.Fatalf("lift of %s by an agent on %s: %d %s", incident, g.name, w.Code, w.Body)
+	}
+}
+
 // writeStopped writes into the store of a node that is stopped, with the
 // node's key and the clock now (nil: the clock of the machine).
 func (g *groupNode) writeStopped(t *testing.T, now func() time.Time, f func(n *cluster.Node)) {
@@ -209,11 +233,12 @@ func inService(t *testing.T, nodes ...*groupNode) {
 }
 
 // a: two nodes block one client at the same moment under two incidents.
-// Every node holds both records; releasing one incident ends that block
-// alone, the client stays blocked on every node; releasing the second
-// unblocks it everywhere.
+// Every node holds both records; the lift of one incident (an agent names
+// one) ends that block alone, the client stays blocked on every node; the
+// lift of the second unblocks it everywhere. ("Freigeben" in the dashboard
+// means the client and lifts both: TestFreigebenLiftsEveryBlockOfTheClient.)
 func TestTwoBlocksOfOneClientStandSideBySide(t *testing.T) {
-	nodes := trio(t)
+	nodes := agentGroup(t, "web-1", "web-2", "web-3")
 	for _, g := range nodes {
 		g.h.Login()
 	}
@@ -230,7 +255,7 @@ func TestTwoBlocksOfOneClientStandSideBySide(t *testing.T) {
 	}
 	start := time.Now()
 	stop := watchBlocked(t, ip, nodes...)
-	nodes[2].unblock(t, x, ip)
+	nodes[2].agentLift(t, x, ip)
 	for _, g := range nodes {
 		g := g
 		g.h.WaitFor(g.name+" ended the released block and runs the other", func() bool {
@@ -279,8 +304,9 @@ func TestBlockAFullTableDropsIsNoLift(t *testing.T) {
 // c: dropped by a full table and blocked anew under another incident on
 // that node: releasing the new incident ends the new block alone.
 func TestBlockAfterADroppedOneIsABlockOfItsOwn(t *testing.T) {
-	a, b := pair(t)
-	a.h.Login()
+	nodes := agentGroup(t, "web-1", "web-2")
+	a, b := nodes[0], nodes[1]
+	inService(t, a, b)
 	const ip, x, y = "203.0.113.33", "DDDD-AAA2", "DDDD-AAA3"
 	a.block(ip, x, 15*time.Minute)
 	b.h.WaitFor("web-2 holds the block", func() bool { return b.blocked(ip) == x })
@@ -296,7 +322,7 @@ func TestBlockAfterADroppedOneIsABlockOfItsOwn(t *testing.T) {
 	stop := watchBlocked(t, ip, a, b)
 	defer notReleased(t, ip, start, a, b)
 	defer stop()
-	a.unblock(t, y, ip)
+	a.agentLift(t, y, ip)
 	for _, g := range []*groupNode{a, b} {
 		g := g
 		g.h.WaitFor(g.name+" ended the new block and runs the first", func() bool {
@@ -884,7 +910,10 @@ func TestHashOfBlocksIsTheSameWithBothClasses(t *testing.T) {
 		}
 	}
 	b.release(t, ip2)
-	c.unblock(t, x, ip)
+	// The lift of one incident of a client that has two blocks.
+	if err := c.h.App.Store.NoteLifts(context.Background(), time.Now(), x); err != nil {
+		t.Fatal(err)
+	}
 	b.release(t, ipGone)
 	for _, g := range nodes {
 		g := g
