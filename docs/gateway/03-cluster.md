@@ -309,7 +309,7 @@ Ein Server, der startet oder zurückkommt, holt zuerst Sperren, Einstellungen, e
 
 Erst dann meldet er sich beim Balancer als bereit. Fehlt einem Client also noch ein Fehlversuch bis zur Sperre, gilt er auch auf dem frisch gestarteten Server als kurz vor der Sperre. In der Messung galt ein Limit von 60 Anfragen. Mit einem Neustart mittendrin griff das Limit hinter dem Balancer bei 57 bis 61 Anfragen, ohne Neustart bei 60 bis 62.
 
-Gelingt die Übernahme der Zähler nach drei Versuchen nicht, bedient der Server trotzdem. Seine Zähler beginnen dann bei null, und sein Dashboard zeigt einen Hinweis. Sperren, Einstellungen und Logins hat er in jedem Fall.
+Gelingt die Übernahme der Zähler nach drei Versuchen nicht, bedient der Server trotzdem. Seine Zähler beginnen dann bei null, und sein Dashboard zeigt einen Hinweis. Er versucht die Übernahme alle 30 Sekunden erneut. Sobald sie gelingt, verschwindet der Hinweis. Sperren, Einstellungen und Logins hat er in jedem Fall.
 
 Ereignisse und Vorfälle der anderen folgen in den Sekunden nach dem Start. Die einzelnen Anfragen, die die anderen inzwischen bedient haben, holt der Server im Hintergrund nach. Das geschieht von selbst, egal wie lange er weg war. Du musst nichts anstoßen.
 

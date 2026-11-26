@@ -145,3 +145,19 @@ func (s *Server) setupDone(ctx context.Context) error {
 	}
 	return nil
 }
+
+// ClearSetup drops a pending setup code once there are users (logins arrived
+// from the cluster). A reset of this moment keeps its code: it removes the
+// users and stores its hash in one transaction, and takes setupMu after it.
+func (s *Server) ClearSetup(ctx context.Context) error {
+	s.setupMu.Lock()
+	defer s.setupMu.Unlock()
+	if err := s.St.ClearPendingSetupWithUsers(ctx); err != nil && !errors.Is(err, context.Canceled) {
+		return err
+	}
+	if s.St.HasUsers(ctx) {
+		s.setupHash = nil
+		s.SetupCode = ""
+	}
+	return nil
+}

@@ -32,6 +32,7 @@ import { useQueryClient } from '@tanstack/vue-query'
 import { computed, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { api, csrf, errorMessage } from '@/api/client'
+import { useGroupStatus } from '@/api/group'
 import { keys, usePrivacySearch, useSettings } from '@/api/queries'
 import { erasureNodesText } from '@/lib/group'
 import { isIP } from '@/lib/ip'
@@ -56,6 +57,9 @@ const q = usePrivacySearch(ip)
 const s = computed(() => q.data.value)
 const settings = useSettings()
 const r = computed(() => settings.data.value?.retention)
+const groupQ = useGroupStatus()
+// Nothing is said about where addresses go before the mode is known.
+const inGroup = computed(() => groupQ.data.value ? groupQ.data.value.mode === 'group' : undefined)
 
 // Export
 const exporting = ref(false)
@@ -223,10 +227,15 @@ async function doDelete() {
                 Weitergegeben
               </dt>
               <dd>
-                <StatusPill tone="signal" size="sm">
-                  Nie
-                </StatusPill>
-                <span class="ml-2 text-muted-foreground">IP-Adressen verlassen den Server nicht.</span>
+                <template v-if="inGroup !== undefined">
+                  <StatusPill tone="signal" size="sm">
+                    {{ inGroup ? 'Nur im Cluster' : 'Nie' }}
+                  </StatusPill>
+                  <span class="ml-2 text-muted-foreground">{{ inGroup ? 'IP-Adressen gehen nur an die anderen Server deines Clusters, nicht an Dritte.' : 'IP-Adressen verlassen den Server nicht.' }}</span>
+                </template>
+                <template v-else>
+                  –
+                </template>
               </dd>
             </dl>
 
@@ -251,7 +260,7 @@ async function doDelete() {
       <Card>
         <CardHeader>
           <CardTitle>So lange speichert Schild</CardTitle>
-          <CardDescription>Alles bleibt auf deinem Server. Einstellen kannst du das unter Einstellungen.</CardDescription>
+          <CardDescription>{{ inGroup === undefined ? '' : inGroup ? 'Alles bleibt auf den Servern deines Clusters. ' : 'Alles bleibt auf deinem Server. ' }}Einstellen kannst du das unter Einstellungen.</CardDescription>
         </CardHeader>
         <CardContent>
           <div v-if="!r" class="space-y-2">
