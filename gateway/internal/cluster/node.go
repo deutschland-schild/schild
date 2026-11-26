@@ -63,8 +63,10 @@ type Node struct {
 
 	hmu      sync.Mutex
 	handlers map[string][]func(*contract.Record)
-	tells    map[string]func(from string, body []byte)
-	asks     map[string]func(from string, body []byte) ([]byte, error)
+	// refused: per class, which records are not stored (Refuse).
+	refused map[string]func(*contract.Record) bool
+	tells   map[string]func(from string, body []byte)
+	asks    map[string]func(from string, body []byte) ([]byte, error)
 
 	// news wakes the sync calls that wait.
 	nmu  sync.Mutex
@@ -434,6 +436,41 @@ func (n *Node) On(class string, f func(*contract.Record)) {
 	n.hmu.Unlock()
 }
 
+// Refuse registers f for the records of a class: a record that passed every
+// check and that f reports is not stored and not applied. The vector moves
+// past it as past a record that lost against the one held, so no member is
+// asked for it again; a record of another class (a lift, an erasure) is why
+// it must not come back, and the node holds that one and hands it on. f runs
+// with the write lock of the store held: it may read the store and must not
+// write to it or wait for a lock that a writer holds.
+func (n *Node) Refuse(class string, f func(*contract.Record) bool) {
+	n.hmu.Lock()
+	rs := make(map[string]func(*contract.Record) bool, len(n.refused)+1)
+	for c, r := range n.refused {
+		rs[c] = r
+	}
+	rs[class] = f
+	n.refused = rs
+	n.hmu.Unlock()
+}
+
+// Drop removes the record that is the state of one thing from the store,
+// before its time: the block a lift ended (contracts/cluster.md, lifts).
+// The vector stays, so the record is not asked for again; that it is not
+// stored when a member hands it over later is the word of Refuse.
+func (n *Node) Drop(class, id string) error {
+	n.wmu.Lock()
+	defer n.wmu.Unlock()
+	res, err := n.db.Exec(`DELETE FROM records WHERE class = ? AND id = ? AND state = ?`, class, id, stateWinner)
+	if err != nil {
+		return err
+	}
+	if c, _ := res.RowsAffected(); c > 0 {
+		n.storeGen.Add(1)
+	}
+	return nil
+}
+
 // Publish writes a record of this node and hands it to the peers.
 func (n *Node) Publish(class, id string, data any, deleted bool, expires time.Time) (*contract.Record, error) {
 	rec, err := n.publish(class, id, data, deleted, expires)
@@ -756,6 +793,9 @@ func (n *Node) takeRecords(raws []json.RawMessage, covered map[string]uint64, me
 	// The handlers run after the write lock is given back: a handler may
 	// hold a lock of its own that a Publish of the same owner waits with.
 	var won []*contract.Record
+	n.hmu.Lock()
+	refused := n.refused
+	n.hmu.Unlock()
 	defer func() {
 		n.hmu.Lock()
 		hs := n.handlers
@@ -821,6 +861,9 @@ func (n *Node) takeRecords(raws []json.RawMessage, covered map[string]uint64, me
 		default:
 			n.Rejected.Add(1)
 			n.log.Warn("cluster: record refused", "origin", rec.Origin, "seq", rec.Seq, "class", rec.Class, "reason", cerr)
+			continue
+		}
+		if f := refused[rec.Class]; f != nil && f(rec) {
 			continue
 		}
 		tx, err := n.db.Begin()
