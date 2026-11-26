@@ -76,7 +76,7 @@ mesh:
     gateway: 'serves traffic, holds every class, may write every class. The only role'
   joining_and_restarting:
     - 'a node that starts pulls the state of one reachable member before /.schild/readyz answers 200 (as an HAProxy process does on reload); with no member reachable for 10 s it serves with its local copy and says so, if it was in step with its group once'
-    - 'nodes of version N and N-1 run side by side; a record of an unknown class or version stays unread, is passed on unchanged and is reported'
+    - 'nodes of version N and N-1 run side by side; a record of an unknown version stays unread and is passed on unchanged; a record of an unknown class is refused (cluster.md section 4), so blocks by incident are a hard cut (D109, cluster.md section 16)'
 
 classes:                            # what leaves a node, and how two writes of the same thing settle
   control:                          # small, every gateway holds all of it

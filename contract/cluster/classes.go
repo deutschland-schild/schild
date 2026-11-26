@@ -106,6 +106,98 @@ func (b *Block) valid(id string) bool {
 	return len(b.Incident) <= 64 && len(b.EventID) <= 64 && len(b.NetClass) <= 32 && len(b.Node) <= 63
 }
 
+// ScopeGateway is the scope of a block that holds for every website of the
+// gateway. The other scope names one website: "website:" and its id.
+const ScopeGateway = "gateway"
+
+// IncidentBlock is the data of a record of class incident_blocks; its id
+// is the incident number. One block is one record, written by the node
+// that decided it; the record is never a tombstone. Two blocks of one
+// client are two records.
+type IncidentBlock struct {
+	// Client is the IPv4 address or the first address of the IPv6 /64.
+	Client string `json:"client"`
+	Bits   int    `json:"bits"`
+	// Scope is ScopeGateway or "website:<id>".
+	Scope string `json:"scope"`
+	// Source as the gateway names it: behaviour:<scenario>, agent:<token id>
+	// or dashboard.
+	Source    string `json:"source"`
+	Level     int    `json:"level"`
+	Since     string `json:"since"`
+	Until     string `json:"until"`
+	DurationS int    `json:"duration_s"`
+	EventID   string `json:"event_id,omitempty"`
+	NetClass  string `json:"net_class"`
+	// Node is the name of the node that decided the block.
+	Node string `json:"node"`
+}
+
+// IncidentLift is the data of a record of class lifts; its id is the
+// incident number of the block it ends. It carries no address.
+type IncidentLift struct {
+	// Node is the name of the node the lift was made on.
+	Node string `json:"node"`
+}
+
+// incidentID says whether id is written like an incident number: 1 to 64
+// characters of A to Z, 0 to 9 and the hyphen.
+func incidentID(id string) bool {
+	if id == "" || len(id) > 64 {
+		return false
+	}
+	for i := 0; i < len(id); i++ {
+		c := id[i]
+		if !(c >= 'A' && c <= 'Z' || c >= '0' && c <= '9' || c == '-') {
+			return false
+		}
+	}
+	return true
+}
+
+// ValidScope says whether s is a scope of a block: the gateway, or one
+// website named by 1 to 128 printable ASCII characters without a space.
+func ValidScope(s string) bool {
+	if s == ScopeGateway {
+		return true
+	}
+	id, ok := strings.CutPrefix(s, "website:")
+	if !ok || id == "" || len(id) > 128 {
+		return false
+	}
+	for i := 0; i < len(id); i++ {
+		if id[i] <= ' ' || id[i] > '~' {
+			return false
+		}
+	}
+	return true
+}
+
+// DecodeIncidentBlock returns the block of a record of class
+// incident_blocks.
+func DecodeIncidentBlock(r *Record) (*IncidentBlock, error) {
+	var b IncidentBlock
+	if err := decodeData(r, &b); err != nil || r.Deleted || !incidentID(r.ID) || !ValidScope(b.Scope) {
+		return nil, ErrSchema
+	}
+	// The rules of the fields both models share.
+	old := Block{Client: b.Client, Bits: b.Bits, Source: b.Source, Level: b.Level, Since: b.Since, Until: b.Until, DurationS: b.DurationS,
+		EventID: b.EventID, NetClass: b.NetClass, Node: b.Node}
+	if !old.valid(b.Client) || r.Expires != b.Until {
+		return nil, ErrSchema
+	}
+	return &b, nil
+}
+
+// DecodeIncidentLift returns the lift of a record of class lifts.
+func DecodeIncidentLift(r *Record) (*IncidentLift, error) {
+	var l IncidentLift
+	if err := decodeData(r, &l); err != nil || r.Deleted || !incidentID(r.ID) || len(l.Node) > 63 || r.Expires == "" {
+		return nil, ErrSchema
+	}
+	return &l, nil
+}
+
 // DecodeMember returns the member of a record of class members.
 func DecodeMember(r *Record) (*Member, error) {
 	var m Member

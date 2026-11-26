@@ -4208,6 +4208,10 @@ def cl_decode(rec, fields):
 CL_MEMBER = {"name": "str", "role": "str", "public_key": "str", "address": "str", "joined": "str", "version": "str", "admit_public_key": "str", "admit": "str"}
 CL_BLOCK = {"client": "str", "bits": "int", "source": "str", "level": "int", "since": "str", "until": "str", "duration_s": "int",
             "incident": "str", "event_id": "str", "net_class": "str", "node": "str"}
+CL_INCIDENT_BLOCK = {"client": "str", "bits": "int", "scope": "str", "source": "str", "level": "int", "since": "str", "until": "str", "duration_s": "int",
+                     "event_id": "str", "net_class": "str", "node": "str"}
+CL_INCIDENT_ID = re.compile(r"[A-Z0-9-]{1,64}\Z")
+CL_SCOPE = re.compile(r"(gateway|website:[!-~]{1,128})\Z")
 
 
 def cl_key(m):
@@ -4274,6 +4278,23 @@ def cl_class_rules(rec):
               and cl_blen(b["incident"]) <= 64 and cl_blen(b["event_id"]) <= 64 and cl_blen(b["net_class"]) <= 32 and cl_blen(b["node"]) <= 63)
         if not ok or expires != b["until"]:
             raise ClRefuse("schema")
+    elif cls == "incident_blocks":
+        # D109: one block per record, the id is the incident, never a tombstone.
+        b = cl_decode(rec, CL_INCIDENT_BLOCK)
+        a = cl_addr(b["client"])
+        since, until = cl_time(b["since"]), cl_time(b["until"])
+        ok = (not deleted and CL_INCIDENT_ID.match(rec["id"]) and CL_SCOPE.match(b["scope"])
+              and a is not None and a[0] == b["client"] and b["bits"] == (32 if a[1] else 64)
+              and since is not None and until is not None and until > since and until - since <= 7 * 86400 + 60
+              and b["source"] != "" and cl_blen(b["source"]) <= 96 and 1 <= b["level"] <= 16 and 1 <= b["duration_s"] <= 7 * 86400
+              and cl_blen(b["event_id"]) <= 64 and cl_blen(b["net_class"]) <= 32 and cl_blen(b["node"]) <= 63)
+        if not ok or expires != b["until"]:
+            raise ClRefuse("schema")
+    elif cls == "lifts":
+        # D109: the end of the block of one incident, without an address.
+        l = cl_decode(rec, {"node": "str"})
+        if deleted or not CL_INCIDENT_ID.match(rec["id"]) or cl_blen(l["node"]) > 63 or expires == "":
+            raise ClRefuse("schema")
     elif cls in CL_THINGS:
         # One entry of a thing: the id is the thing and the hash of the key.
         v = cl_decode(rec, {"key": "str", "value": "str", "node": "str"})
@@ -4327,6 +4348,9 @@ def cl_check(roster, group, rec, now):
         raise ClRefuse("schema")
     if cls in CL_THINGS:
         if cl_thing_of(cls, rec["id"]) is None:
+            raise ClRefuse("schema")
+    elif cls in ("incident_blocks", "lifts"):
+        if not CL_INCIDENT_ID.match(rec["id"]):
             raise ClRefuse("schema")
     elif cls not in ("members", "blocks", "erasure", "certificates", "jobs"):
         raise ClRefuse("schema")

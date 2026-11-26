@@ -29,7 +29,14 @@ const Version = 1
 // Record classes of this version.
 const (
 	ClassMembers = "members"
-	ClassBlocks  = "blocks"
+	// ClassBlocks is the class of blocks before D109: one record per client.
+	// A node reads it until the last such record is over and writes none.
+	ClassBlocks = "blocks"
+	// ClassIncidentBlocks is one block per record; its id is the incident.
+	ClassIncidentBlocks = "incident_blocks"
+	// ClassLifts is the end a person or an erasure put to the block of an
+	// incident; its id is the incident.
+	ClassLifts = "lifts"
 	// ClassSettings is what the dashboard and the agent API set.
 	ClassSettings = "settings"
 	// ClassAccess is who passes: allowlist, IP exceptions, rule decisions.
@@ -265,6 +272,10 @@ func (r *Record) shape() error {
 	}
 	switch r.Class {
 	case ClassMembers, ClassBlocks, ClassErasure, ClassCertificates, ClassJobs:
+	case ClassIncidentBlocks, ClassLifts:
+		if !incidentID(r.ID) {
+			return ErrSchema
+		}
 	case ClassSettings, ClassAccess, ClassLogins:
 		if _, ok := ThingOf(r.Class, r.ID); !ok {
 			return ErrSchema

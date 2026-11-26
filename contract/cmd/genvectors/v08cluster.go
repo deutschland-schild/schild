@@ -303,4 +303,43 @@ func genClusterRecord(g *gen) {
 		many[i] = first
 	}
 	bad("too-many-members", "At most 16 member records in a vector.", m{"group": group, "members": many, "record": good})
+
+	// ---- blocks by incident (D109). Added last, so the numbers of the
+	// vectors before stay.
+	ibData := func(client string, bits int, scope string) cluster.IncidentBlock {
+		return cluster.IncidentBlock{Client: client, Bits: bits, Scope: scope, Source: "behaviour:path_probing", Level: 1, Since: cluster.TimeText(Now.Add(-time.Minute)), Until: until,
+			DurationS: 3660, NetClass: "hosting", Node: "web-2"}
+	}
+	ib := func(signer ed25519.PrivateKey, seq, hlc uint64, incident string, data any) *cluster.Record {
+		return rec(signer, cluster.ClassIncidentBlocks, incident, seq, hlc, false, until, data)
+	}
+	liftEnd := cluster.TimeText(Now.Add(169 * time.Hour))
+	il := func(signer ed25519.PrivateKey, seq, hlc uint64, incident string) *cluster.Record {
+		return rec(signer, cluster.ClassLifts, incident, seq, hlc, false, liftEnd, cluster.IncidentLift{Node: "web-1"})
+	}
+	taken("incident-block", "A block is one record; its id is the incident number.", in(roster, ib(b, 1, h(40*time.Minute), "K7QF-2M9X", ibData("203.0.113.7", 32, cluster.ScopeGateway)), nil), nil)
+	taken("incident-block-second-of-client", "A second block of the same client is a record of its own, under its own incident.",
+		in(roster, ib(a, 9, h(40*time.Minute), "R3TV-8HNC", ibData("203.0.113.7", 32, cluster.ScopeGateway)), nil), nil)
+	taken("incident-block-ipv6", "The client of IPv6 is the first address of the /64.", in(roster, ib(b, 1, h(40*time.Minute), "K7QF-2M9X", ibData("2001:db8:1:2::", 64, cluster.ScopeGateway)), nil), nil)
+	taken("incident-block-of-website", "A block of one website names it in its scope.", in(roster, ib(b, 1, h(40*time.Minute), "K7QF-2M9X", ibData("203.0.113.7", 32, "website:shop")), nil), nil)
+	taken("incident-lift", "A lift is a record of its own; its id is the incident it ends, and it carries no address.", in(roster, il(a, 9, h(41*time.Minute), "K7QF-2M9X"), nil), nil)
+	taken("incident-lift-of-unknown-block", "A lift needs no block record: it may arrive first.", in(roster, il(a, 9, h(41*time.Minute), "ZZZZ-9999"), nil), nil)
+	taken("incident-lift-replaces-earlier-lift", "Two lifts of one incident are two records of one thing; the later is the state.",
+		in(roster, il(a, 9, h(42*time.Minute), "K7QF-2M9X"), il(b, 2, h(41*time.Minute), "K7QF-2M9X")), &yes)
+	si := func(name, desc string, r *cluster.Record) { refused("schema", name, desc, in(roster, r, nil)) }
+	si("incident-block-id-is-address", "The id of a block is its incident, not its client.", ib(b, 1, h(40*time.Minute), "203.0.113.7", ibData("203.0.113.7", 32, cluster.ScopeGateway)))
+	si("incident-block-id-lower-case", "An incident number has capital letters, digits and hyphens.", ib(b, 1, h(40*time.Minute), "k7qf-2m9x", ibData("203.0.113.7", 32, cluster.ScopeGateway)))
+	si("incident-block-tombstone", "A block record is never a tombstone: a lift is a record of class lifts.",
+		rec(b, cluster.ClassIncidentBlocks, "K7QF-2M9X", 2, h(41*time.Minute), true, until, ibData("203.0.113.7", 32, cluster.ScopeGateway)))
+	si("incident-block-without-scope", "A block names its scope.", ib(b, 1, h(40*time.Minute), "K7QF-2M9X", ibData("203.0.113.7", 32, "")))
+	si("incident-block-unknown-scope", "A scope is the gateway or one website.", ib(b, 1, h(40*time.Minute), "K7QF-2M9X", ibData("203.0.113.7", 32, "everywhere")))
+	si("incident-block-website-without-id", "A website scope names the website.", ib(b, 1, h(40*time.Minute), "K7QF-2M9X", ibData("203.0.113.7", 32, "website:")))
+	si("incident-block-with-incident-field", "The incident is the id; the data has no such field.", ib(b, 1, h(40*time.Minute), "K7QF-2M9X", blockData("203.0.113.7", 32)))
+	si("incident-block-ipv4-with-64-bits", "IPv4 is one address, 32 bits.", ib(b, 1, h(40*time.Minute), "K7QF-2M9X", ibData("203.0.113.7", 64, cluster.ScopeGateway)))
+	si("incident-block-expires-not-until", "A block is dropped when it ends: expires is until.",
+		rec(b, cluster.ClassIncidentBlocks, "K7QF-2M9X", 1, h(40*time.Minute), false, cluster.TimeText(Now.Add(2*time.Hour)), ibData("203.0.113.7", 32, cluster.ScopeGateway)))
+	si("incident-lift-tombstone", "A lift is never a tombstone.", rec(a, cluster.ClassLifts, "K7QF-2M9X", 9, h(41*time.Minute), true, liftEnd, cluster.IncidentLift{Node: "web-1"}))
+	si("incident-lift-without-end", "A lift names when it is dropped.", rec(a, cluster.ClassLifts, "K7QF-2M9X", 9, h(41*time.Minute), false, "", cluster.IncidentLift{Node: "web-1"}))
+	si("incident-lift-with-address", "A lift carries no address.", rec(a, cluster.ClassLifts, "K7QF-2M9X", 9, h(41*time.Minute), false, liftEnd, m{"node": "web-1", "client": "203.0.113.7"}))
+	si("incident-lift-id-is-address", "The id of a lift is the incident.", il(a, 9, h(41*time.Minute), "203.0.113.7"))
 }
