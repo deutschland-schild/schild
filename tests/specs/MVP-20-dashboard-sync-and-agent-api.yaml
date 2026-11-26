@@ -24,7 +24,8 @@ id: MVP-20
 # (local to its gateway). Top lists merge approximately (counts and errors add up; a key missing from a full list may
 # be undercounted by that list's smallest count). Status over several gateways: contract/websites.Status with one
 # entry per gateway in `servers` (all down = gestört, some down or unreachable = bitte ansehen); runs_on lists them.
-title: "Central Schild Dashboard for own projects (v1, tenant default, SSH tunnel): read-only export from every gateway, central store, charts and alerts, a fixed list of simple actions, read-only agent API"
+# Decision (initiator, 2026-11-25; D107): no tenants; the lines on tenant_id and tenant isolation are gone.
+title: "Central Schild Dashboard for own projects (v1, SSH tunnel): read-only export from every gateway, central store, charts and alerts, a fixed list of simple actions, read-only agent API"
 ships: false                        # draft
 status: ENTWURF
 image: schild-dashboard             # separate image and Debian package; the gateway side is part of schild
@@ -55,7 +56,6 @@ read_path:
   ip_mode: 'full by default for the own dashboard (same operator, same data as the built-in dashboard, E7); keyed pseudonyms for the agent API'
   not_exported: 'the full web server access log (stays on the server); request bodies (never stored anyway)'
 dashboard:
-  - 'data model multi-tenant from the start: tenant_id on gateways, users, events, metrics, logs, actions, alerts and agent tokens; every query scoped by tenant; v1 creates only tenant "default" and shows no tenant UI'
   - 'one or a few users, login with password plus TOTP or passkey; reachable only on localhost via SSH tunnel or a private network'
   - 'store: SQLite for the UI, DuckDB/Parquet per gateway and day for search and charts; cgo only in this image'
   - 'retention mirrors each gateway: never longer than its events_days, IP truncation and deletions applied within one poll (D32)'
@@ -97,7 +97,6 @@ packaging:
   - 'dashboard reads export N and N-1'
 measure:                            # by an independent agent
   - 'tunnel: the forwarded key gives no shell, no other port and no reverse forward; a gateway with a changed host key is refused'
-  - 'tenancy: two tenants created in a test fixture see 0 objects of each other through UI, API and agent API (model check, even though v1 ships one tenant)'
   - 'testlab t1: 3 gateways, one dashboard; restart the dashboard and a gateway -> no loss, no duplicates; reinstall a gateway -> new epoch, no mixed history; metrics gap only beyond the ring buffer'
   - 'privacy: deletion and IP truncation on a gateway reach the copy within one poll'
   - 'storage bounds (D38): a gateway whose size cap deletes rows during a flood -> the copy loses the same rows within one poll; the central copy stays within its own cap under a 3-gateway flood; metric and system-log copies never exceed their retention'
@@ -109,7 +108,7 @@ measure:                            # by an independent agent
 kill_if: "the export or actions measurably slow request handling OR any action outside the list reaches a gateway OR an action does not expire OR the copy outlives gateway retention or misses a deletion OR an agent token triggers an action"
 done: "make contracts-test && make test && make testlab-up PROFILE=t1 && make smoke PROFILE=t1 (incl. export, actions and dashboard steps)"
 out_of_scope:
-  - 'tenant UI, roles, service providers, per-admin signed actions (MVP-13, later); the data model already carries tenant_id'
+  - 'tenants, roles and logins for customers (D107); per-admin signed actions (MVP-13, later)'
   - 'WireGuard (possible later as an alternative transport)'
   - 'locking the settings of the built-in gateway dashboard when the config is managed as code (not in v1)'
   - 'an own AI agent; actions through the agent API'

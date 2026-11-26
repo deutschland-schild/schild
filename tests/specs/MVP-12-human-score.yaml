@@ -30,7 +30,7 @@ never:                              # each item is a kill criterion when found i
   - RUM, web vitals or any site-health metric collected by JS
   - persistent or cross-site browser ids, including random ids in cookies, localStorage, IndexedDB and WebCrypto device keys
   - third-party captchas or verification services (reCAPTCHA, Turnstile, hCaptcha, Friendly Captcha API, ALTCHA Sentinel)
-  - any browser-derived value (raw, hashed, bucketed per visitor) to labs or relays; a Schild Dashboard (built in or multi-tenant, MVP-13) shows only stage counts
+  - any browser-derived value (raw, hashed, bucketed per visitor) to labs or relays; a Schild Dashboard (built in or for many gateways, MVP-13) shows only stage counts
   - 'Accept-CH or Critical-CH to request high-entropy client hints'
   - interstitial or script content that the network, labs or rule bundles can set or change
   - injection into HTML responses of the protected site

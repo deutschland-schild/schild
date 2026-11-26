@@ -127,7 +127,7 @@ Schild schätzt bei jeder Anfrage, zunächst ohne JavaScript, ob eher ein Mensch
 - **Nur in Schild, nur für diese Anfrage.** Schild berechnet den Wert, entscheidet damit und vergisst ihn. Er wird **nicht pro Besucher gespeichert und nirgendwohin gesendet**, weder an Labs noch an den Verteiler, das zentrale Schild-Dashboard oder die Anwendung hinter Schild.
 - **Im Protokoll steht nur die Einstufung** (wahrscheinlich Mensch, unklar, wahrscheinlich Bot; V1), kein Zahlenwert und keine Einzelbefunde.
 - **Für Regeln** steht der Wert als Coraza-Variable bereit (`TX:human_score`, dazu `TX:human_stage`), nur für **lokale** Regeln des Betreibers. Fernregeln können ihn nicht lesen (SecLang-Teilmenge ohne `TX`). Bei unbekanntem Wert greift keine Regel auf „niedrigen Wert“.
-- **Im Dashboard** erscheinen nur die drei Stufen und Summen, etwa im Probelauf: „Hätte 312 Anfragen mit niedrigem Score gesperrt.“ Das gilt auch im Mehrmandanten-Modus (MVP-13).
+- **Im Dashboard** erscheinen nur die drei Stufen und Summen, etwa im Probelauf: „Hätte 312 Anfragen mit niedrigem Score gesperrt.“ Das gilt auch für ein Schild Dashboard mit mehreren Gateways (MVP-13).
 - **Kein Mensch-Nachweis.** Eine bestandene Rechenaufgabe macht Massenanfragen nur teurer ([Technologie](04-technologie-und-security.md), [Red-Team-Review](15-red-team-review.md), [Forschung](17-forschung-waf-und-ki-angriffe.md)). Sie ändert den Wert nicht und ist keine Ausnahme von WAF-Regeln.
 - **Fehlender Nachweis heißt unbekannt.** Wer kein JavaScript hat, keine Freigabe besitzt oder die Prüfung nicht schafft, wird **allein deshalb nie gesperrt**.
 
@@ -165,7 +165,7 @@ Schild schätzt bei jeder Anfrage, zunächst ohne JavaScript, ob eher ein Mensch
 | **Website-Betreiber** | Schaltet Stufe 1 ein, wählt Routen und Modus; damit Verantwortlicher und „Anbieter des digitalen Dienstes“ nach § 25 | ZU PRÜFEN |
 | **Deutschland-Schild (Verein)** | Liefert nur quelloffene Software und hat keinen Zugriff auf Daten. Weil Prüf-Code und Zwecke fest vorgegeben sind, ist eine gemeinsame Verantwortung nicht ausgeschlossen (EuGH C-683/21) | ZU PRÜFEN |
 | **Labs, Verteiler** | Bekommen nichts aus dem Browser und nichts über die Prüfung | ENTSCHIEDEN 27.10.2026 |
-| **Schild Dashboard** (auch Mehrmandanten-Modus) | Nur Zählwerte je Stufe, kein Wert pro Anfrage | ENTSCHIEDEN 27.10.2026 |
+| **Schild Dashboard** (auch mit mehreren Gateways) | Nur Zählwerte je Stufe, kein Wert pro Anfrage | ENTSCHIEDEN 27.10.2026 |
 
 ### 10.6 Textbaustein für die Datenschutzerklärung (Entwurf, nur wenn die Prüfung eingeschaltet ist)
 

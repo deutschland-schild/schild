@@ -2,12 +2,14 @@ id: MVP-13
 # Decisions (initiator, 2026-10-27):
 # - Name: "Schild Dashboard" (not "Leitstand"). There is one dashboard product; the lab has its own Lab Dashboard.
 # - A gateway is managed by exactly one Schild Dashboard: its own (built in, default) or one run by a service provider (agency) it attaches to. No observe-only second dashboard.
-# - The multi-tenant dashboard runs internally only (private network); gateways in other networks connect via VPN.
+# - The dashboard for many gateways runs internally only (private network); gateways in other networks connect via VPN.
 # - Same data and control as an own dashboard, incl. IPs; operator and provider settle this with a data processing agreement (AVV).
 # Decision (initiator, 2026-10-28; D32): MVP-20 adds the read path (export sync into the dashboard's own store, alerts,
 # read-only agent API, fixed action list; single tenant first) in the same image. The architecture line "no data copied into a parallel model beyond caching" is replaced
 # by: a copy is allowed, kept at most as long as the gateway keeps the data. Attached gateways run headless.
-title: "Schild Dashboard multi-tenant mode: one dashboard manages many gateways (own projects or as a service provider for customers), internal network only"
+# Decision (initiator, 2026-11-25; D107): no tenants, roles and customer logins in any Schild Dashboard. Customers of a hoster or
+# agency see their website in the portal of that hoster (MVP-35). What stays here: one operator, many gateways.
+title: "Schild Dashboard for many gateways: one operator manages many gateways of own projects or of customers, internal network only"
 ships: false                        # draft; build starts after MVP-11 is independently re-measured
 status: ENTWURF
 image: schild-dashboard             # same UI and API code as the built-in dashboard; self-hosted by an operator or service provider, never run by the Verein
@@ -15,19 +17,14 @@ hypotheses: [D3]
 refs: [concept-13-multi-server, concept-24, MVP-09, MVP-11, DECISIONS-D25]
 depends_on: [MVP-09, MVP-11]
 use_cases:
-  - 'Operator/admin: one Schild Dashboard for own gateways across several Hetzner Cloud projects (one tenant, several projects)'
-  - 'Service provider (agency, hoster, IT service): one Schild Dashboard for many customers, each customer a tenant; customers may get their own login'
+  - 'Operator/admin: one Schild Dashboard for own gateways across several Hetzner Cloud projects'
+  - 'Service provider (agency, hoster, IT service): one Schild Dashboard for the gateways of many customers, used by the staff of the provider only; customers use the portal of the provider (MVP-35)'
 model:
   modes:
     built_in: "default: every gateway serves its own Schild Dashboard for itself only (today's MVP-09 dashboard)"
-    attached: "the gateway is managed by an external Schild Dashboard (multi-tenant mode); its built-in dashboard is switched off while attached"
-  hierarchy: "tenant (customer) -> project (e.g. Hetzner project, free label) -> gateway (incl. its MVP-11 hosts and agents)"
-  roles:
-    provider_admin: "all tenants; manages tenants, users, gateway attachments"
-    tenant_admin: "own tenant only; full control of its gateways, manages its users"
-    operator: "own tenant only; operate gateways (approvals, mode, access lock), no user management"
-    viewer: "read-only, own tenant only"
-  single_tenant: "an operator running the dashboard for own gateways is the same software with one tenant"
+    attached: "the gateway is managed by an external Schild Dashboard; its built-in dashboard is switched off while attached"
+  hierarchy: "project (e.g. Hetzner project or customer, free label) -> gateway (incl. its MVP-11 hosts and agents); a project orders the list and limits nobody"
+  users: "staff of the operator; every user may see and operate every gateway"
 architecture:
   - 'the dashboard drives each attached gateway through the gateway''s existing management API (gateway dashboard API, MVP-09 and later) over the private network or VPN; no second API, no data copied into a parallel model beyond caching for the overview'
   - 'the gateway''s management listener binds to a private address only (RFC 1918, ULA, WireGuard/VPN interface); config validation refuses public addresses for it'
@@ -36,34 +33,33 @@ contracts:
   new:
     - attachment of a gateway to a dashboard (one-time code created on the gateway host by CLI, dashboard key fingerprint confirmed on the host), detach
     - authentication of dashboard requests at the gateway (per-dashboard Ed25519 key or mTLS; every request carries the acting dashboard user id, signed), replay window
-    - dashboard API (OpenAPI) for tenants, projects, gateways, users, attachments
+    - dashboard API (OpenAPI) for projects, gateways, users, attachments
   version: contracts v0.4 (backwards compatible addendum)
 must:
   - 'attach and detach only on the gateway host via CLI (`schild dashboard attach <url> --code ...`, `schild dashboard detach`); detach always works locally, even if the dashboard is down or hostile, and re-enables the built-in dashboard'
   - 'trust roots stay local-only and cannot be changed through any dashboard: lab keys, relay list, minimum independent operators, signing keys, attach/detach; a compromised dashboard must not be able to point gateways at other labs'
   - 'every change made through a dashboard is logged on the gateway itself with dashboard id and acting user, visible locally (`schild audit`) and in the dashboard'
-  - 'strict tenant isolation in storage, API and in which gateways a user can reach (every request scoped by tenant; tested with two tenants)'
-  - 'dashboard login with strong authentication (passkey or TOTP required for provider_admin and tenant_admin), session limits, access log per tenant'
+  - 'dashboard login with strong authentication (passkey or TOTP required), session limits, access log'
   - 'dashboard outage never affects request handling or Grundschutz; gateways keep running with their last configuration'
-  - 'nothing new goes to labs: the multi-tenant mode changes who manages a gateway, not what leaves it towards the network'
+  - 'nothing new goes to labs: this mode changes who manages a gateway, not what leaves it towards the network'
   - 'gateway management listener with bounded resources (MVP-11 review lesson: size check before reading, in-flight budget, per-address limits)'
   - 'German UI copy, du-form, website preview style; the term is "Gateway" throughout'
 dashboard:
-  - 'Overview: tenants (provider view) or projects (tenant view), gateway cards with status, Grundschutz, mode, counters, findings, pending approvals, "meldet sich nicht"'
-  - 'Gateway detail: the full built-in dashboard for that gateway (rules, approvals, incidents, servers, settings, Passwortschutz), scoped to the user''s role'
-  - 'Admin: tenants, projects, users with roles, gateway attachments with the one-line attach command'
+  - 'Overview: projects, gateway cards with status, Grundschutz, mode, counters, findings, pending approvals, "meldet sich nicht"'
+  - 'Gateway detail: the full built-in dashboard for that gateway (rules, approvals, incidents, servers, settings, Passwortschutz)'
+  - 'Admin: projects, users, gateway attachments with the one-line attach command'
 deploy:
   - one container plus SQLite, compose example; internal network only; WireGuard example for gateways in other networks
   - runbook section incl. AVV hint for service providers
 measure:
-  - 'testlab: one dashboard, two tenants, two gateways each (t1); attach, operate (approve, mode, access lock), detach locally, dashboard down (gateways unaffected), replayed and forged dashboard requests rejected'
-  - 'isolation test: tenant A users get 0 objects of and 0 actions on tenant B across all endpoints'
+  - 'testlab: one dashboard, four gateways (t1); attach, operate (approve, mode, access lock), detach locally, dashboard down (gateways unaffected), replayed and forged dashboard requests rejected'
   - 'trust-root test: no dashboard request can change lab keys, relays, min operators or attachment'
   - 'listener test: management listener refuses public bind addresses; flood with a memory limit leaves request handling unaffected'
-kill_if: "a dashboard request changes a trust root or the attachment OR one tenant reaches another tenant's data or gateways OR an unattached or detached dashboard is accepted by a gateway OR local detach fails OR dashboard outage or flood affects request handling OR a change through the dashboard is missing from the gateway's own audit log"
+kill_if: "a dashboard request changes a trust root or the attachment OR an unattached or detached dashboard is accepted by a gateway OR local detach fails OR dashboard outage or flood affects request handling OR a change through the dashboard is missing from the gateway's own audit log"
 done: "make contracts-test && make test && make testlab-up PROFILE=t1 && make smoke PROFILE=t1 (incl. dashboard steps)"
 out_of_scope:
-  - alerting (Slack, e-mail, webhooks, Matrix); later feature with per-tenant routes; keep a hook in the data model (status changes as events)
+  - tenants, roles and logins for customers (D107)
+  - alerting (Slack, e-mail, webhooks, Matrix); later feature with routes per project; keep a hook in the data model (status changes as events)
   - a public internet endpoint for the dashboard (VPN instead)
   - SSO/OIDC for dashboard users (later)
   - billing and reseller features for service providers
