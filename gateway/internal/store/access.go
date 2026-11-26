@@ -81,3 +81,10 @@ func (s *Store) ClearPendingSetup(ctx context.Context) error {
 	_, err := s.db.ExecContext(ctx, "DELETE FROM kv WHERE k = ?", DashboardSetupKey)
 	return err
 }
+
+// ClearPendingSetupWithUsers removes the hash only while there are users: one
+// statement, so it never takes the hash of a reset that just removed them.
+func (s *Store) ClearPendingSetupWithUsers(ctx context.Context) error {
+	_, err := s.db.ExecContext(ctx, "DELETE FROM kv WHERE k = ? AND EXISTS (SELECT 1 FROM users)", DashboardSetupKey)
+	return err
+}

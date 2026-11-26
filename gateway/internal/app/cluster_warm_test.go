@@ -3,7 +3,10 @@
 package app_test
 
 import (
+	"encoding/json"
+	"errors"
 	"slices"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -159,5 +162,104 @@ func TestNodeWithTheOddClockLeavesTrafficAndReturns(t *testing.T) {
 	b.h.WaitFor("web-2 takes traffic again", func() bool { return b.h.App.InService() })
 	if slices.Contains(b.h.App.ClusterReasons(), "cluster_clock_out_of_service") {
 		t.Error("the overview of web-2 still names the clock")
+	}
+}
+
+// If a multi-page warm handover fails on a later page, retrying from cursor 0
+// must not add the earlier pages' counters a second time.
+func TestWarmStartAbortedPageDoesNotDoubleCount(t *testing.T) {
+	a, b := pair(t)
+	b.h.WaitFor("web-2 is in service", func() bool { return b.h.App.InService() })
+	if err := b.h.Stop(); err != nil {
+		t.Fatal(err)
+	}
+	const client = "198.51.100.91/32"
+	var abortedOnce atomic.Bool
+	a.h.App.Cluster.OnAsk("counts_state", func(_ string, body []byte) ([]byte, error) {
+		var q struct {
+			Cursor int `json:"cursor"`
+		}
+		if err := json.Unmarshal(body, &q); err != nil {
+			return nil, err
+		}
+		if q.Cursor == 0 {
+			return json.Marshal(struct {
+				Next  int             `json:"next"`
+				State *behaviour.Warm `json:"state"`
+			}{
+				Next: 1,
+				State: &behaviour.Warm{
+					Clients: []behaviour.WarmClient{{Client: client, LoginFast: 4, LoginSlow: 4, LoginN: 4}},
+				},
+			})
+		}
+		if !abortedOnce.Swap(true) {
+			return nil, errors.New("simulated abort on second page")
+		}
+		return json.Marshal(struct {
+			Next  int             `json:"next"`
+			State *behaviour.Warm `json:"state"`
+		}{Next: -1, State: &behaviour.Warm{}})
+	})
+
+	b.start(t)
+	b.h.WaitFor("web-2 is in service again", func() bool { return b.h.App.InService() })
+	if !abortedOnce.Load() {
+		t.Fatal("test handler did not abort page 2")
+	}
+	if got := loginsOf(b, client); got < 3.9 || got > 4.1 {
+		t.Fatalf("after retry from cursor 0 web-2 counts %.2f failed logins, want 4.0", got)
+	}
+}
+
+// When the initial warm handover fails, the node serves with
+// cluster_counts_not_taken and clears it once a later pass succeeds.
+func TestWarmFailedClearsOnLaterPass(t *testing.T) {
+	defer app.SetWarmRetry(200 * time.Millisecond)()
+	a, b := pair(t)
+	b.h.WaitFor("web-2 is in service", func() bool { return b.h.App.InService() })
+	if err := b.h.Stop(); err != nil {
+		t.Fatal(err)
+	}
+	const client = "198.51.100.92/32"
+	var fail atomic.Bool
+	fail.Store(true)
+	a.h.App.Cluster.OnAsk("counts_state", func(_ string, body []byte) ([]byte, error) {
+		if fail.Load() {
+			return nil, errors.New("temporary warm failure")
+		}
+		return json.Marshal(struct {
+			Next  int             `json:"next"`
+			State *behaviour.Warm `json:"state"`
+		}{
+			Next: -1,
+			State: &behaviour.Warm{
+				Clients: []behaviour.WarmClient{{Client: client, LoginFast: 4, LoginSlow: 4, LoginN: 4}},
+			},
+		})
+	})
+
+	b.start(t)
+	b.h.WaitFor("web-2 is in service with warmFailed", func() bool {
+		return b.h.App.InService() && b.h.App.WarmFailed()
+	})
+	if !slices.Contains(b.h.App.ClusterReasons(), "cluster_counts_not_taken") {
+		t.Fatal("web-2 does not report cluster_counts_not_taken after failed warm handover")
+	}
+
+	// Allow subsequent passes to succeed; the reason must clear without a restart.
+	fail.Store(false)
+	deadline := time.Now().Add(3 * time.Second)
+	for time.Now().Before(deadline) {
+		if !b.h.App.WarmFailed() && !slices.Contains(b.h.App.ClusterReasons(), "cluster_counts_not_taken") {
+			break
+		}
+		time.Sleep(50 * time.Millisecond)
+	}
+	if b.h.App.WarmFailed() || slices.Contains(b.h.App.ClusterReasons(), "cluster_counts_not_taken") {
+		t.Fatal("cluster_counts_not_taken did not clear after counts_state recovered")
+	}
+	if got := loginsOf(b, client); got < 3.9 || got > 4.1 {
+		t.Fatalf("after later pass web-2 counts %.2f failed logins, want 4.0", got)
 	}
 }

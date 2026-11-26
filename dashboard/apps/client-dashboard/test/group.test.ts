@@ -1,5 +1,5 @@
 import type { GroupStatus } from '../src/api/group'
-import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest'
+import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
 import { blockNodeText, clockText, configHint, stateText, erasureNodesText, groupTotals, loadTone, modeView, nodeView, stateView } from '../src/lib/group'
 import groupFixture from '../../../../contracts/api/fixtures/client/getGroupStatus.json'
 import noGroupFixture from '../../../../contracts/api/fixtures/client/getGroupStatus.no-group.json'
@@ -195,5 +195,41 @@ describe('a node of a group', () => {
     const h = { 'Content-Type': 'application/json', 'X-CSRF-Token': mock.state.session.csrf_token! }
     const res = await (await fetch(`${BASE}/privacy/delete`, { method: 'POST', headers: h, body: JSON.stringify({ ip: '203.0.113.42', confirm: true }) })).json()
     expect(res.nodes).toEqual({ reached: ['web-1', 'web-2'], open: ['web-3'] })
+  })
+
+  it('adjusts the privacy page wording for cluster mode while keeping single-server wording', async () => {
+    // Single mode: keeps single-server statements.
+    await mountApp('/privacy?ip=203.0.113.42')
+    await waitFor(() => !!byTestId('privacy-result') && bodyText().includes('IP-Adressen verlassen den Server nicht.'))
+    expect(bodyText()).toContain('Alles bleibt auf deinem Server.')
+    cleanup()
+
+    // Cluster mode: addresses travel to other servers of the operator's cluster, not third parties.
+    mock.reset({ scenario: 'group' })
+    await mountApp('/privacy?ip=203.0.113.42')
+    await waitFor(() => !!byTestId('privacy-result') && byTestId('group-mode')?.dataset.mode === 'group')
+    expect(bodyText()).not.toContain('IP-Adressen verlassen den Server nicht.')
+    expect(bodyText()).not.toContain('Alles bleibt auf deinem Server.')
+    expect(bodyText()).toContain('Nur im Cluster')
+    expect(bodyText()).toContain('IP-Adressen gehen nur an die anderen Server deines Clusters, nicht an Dritte.')
+    expect(bodyText()).toContain('Alles bleibt auf den Servern deines Clusters.')
+    cleanup()
+
+    // The mode is not known (the answer is missing): nothing is claimed.
+    const real = globalThis.fetch
+    const spy = vi.spyOn(globalThis, 'fetch').mockImplementation(async (input, init) => {
+      const url = new URL(input instanceof Request ? input.url : String(input), BASE)
+      return url.pathname.endsWith('/group') ? new Response('{}', { status: 500, headers: { 'content-type': 'application/json' } }) : real(input, init)
+    })
+    try {
+      await mountApp('/privacy?ip=203.0.113.42')
+      await waitFor(() => !!byTestId('privacy-result'))
+      expect(bodyText()).not.toContain('IP-Adressen verlassen den Server nicht.')
+      expect(bodyText()).not.toContain('IP-Adressen gehen nur an')
+      expect(bodyText()).not.toContain('Alles bleibt auf')
+    }
+    finally {
+      spy.mockRestore()
+    }
   })
 })

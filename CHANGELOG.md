@@ -11,6 +11,11 @@ The section of a version becomes the text of its GitHub release, so its heading 
 - Fixed: when a cluster was set up, two nodes could each write some of the first keys of the browser check, and the cluster ran with a mix of two sets. Now a node waits until it has all keys of the first set, or until the wait is over.
 - Fixed: a setting changed on a node while that node stored a change from another node could stay on that node only. The repair then replaced it with the value of the cluster. The change now goes to the cluster.
 - Fixed: "Freigeben" on a gateway could answer 404 when it came in the moment a block of another gateway started there. The incident is now stored before the block starts.
+- Fixed: after more than 2,000 incidents of other nodes, a node stopped handing over its own.
+- Fixed: the setup code of a first start stayed valid on a node after it took the logins of the cluster.
+- Fixed: counts were added twice when a handover at the start broke off and was tried again. A handover that failed at the start is now tried again every 30 s, so the hint `cluster_counts_not_taken` ends without a restart.
+- Fixed: a value that a node gave up for the one of the cluster was often not kept in `cluster.db` (table `replaced`), contrary to the documentation.
+- The privacy page said "IP-Adressen verlassen den Server nicht" in a cluster too. It now says that they go to the other servers of the cluster.
 
 ### Monitoring
 

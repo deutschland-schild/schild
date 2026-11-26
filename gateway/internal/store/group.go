@@ -65,9 +65,14 @@ func (s *Store) EventsOfSource(ctx context.Context, source string, after int64, 
 // IncidentsOfSource returns incidents that changed at or after sinceMS and
 // whose event this node wrote itself, at most limit, oldest change first.
 func (s *Store) IncidentsOfSource(ctx context.Context, source string, sinceMS int64, limit int) ([]*Incident, error) {
-	rs, err := s.db.QueryContext(ctx, `SELECT i.incident, i.event_id, i.time_ms, i.ip, i.status, i.reason, i.sources, i.unblocked_ms, i.site, i.count, i.first_ms, i.last_ms, e.body
+	if source == "" || limit <= 0 {
+		return nil, nil
+	}
+	rs, err := s.db.QueryContext(ctx, `SELECT i.incident, i.event_id, i.time_ms, i.ip, i.status, i.reason, i.sources, i.unblocked_ms, i.site, i.count, i.first_ms, i.last_ms
 		FROM incidents i JOIN events e ON e.id = i.event_id
-		WHERE max(i.last_ms, i.unblocked_ms, i.time_ms) >= ? ORDER BY max(i.last_ms, i.unblocked_ms, i.time_ms) LIMIT ?`, sinceMS, limit*4)
+		WHERE max(i.last_ms, i.unblocked_ms, i.time_ms) >= ?
+		  AND CASE WHEN json_valid(CAST(e.body AS TEXT)) THEN json_extract(CAST(e.body AS TEXT), '$.source') END = ?
+		ORDER BY max(i.last_ms, i.unblocked_ms, i.time_ms) LIMIT ?`, sinceMS, source, limit)
 	if err != nil {
 		return nil, err
 	}
@@ -77,12 +82,8 @@ func (s *Store) IncidentsOfSource(ctx context.Context, source string, sinceMS in
 		var in Incident
 		var t, unblocked, first, last int64
 		var sources string
-		var body []byte
-		if err := rs.Scan(&in.Incident, &in.EventID, &t, &in.IP, &in.Status, &in.Reason, &sources, &unblocked, &in.Site, &in.Count, &first, &last, &body); err != nil {
+		if err := rs.Scan(&in.Incident, &in.EventID, &t, &in.IP, &in.Status, &in.Reason, &sources, &unblocked, &in.Site, &in.Count, &first, &last); err != nil {
 			return nil, err
-		}
-		if sourceOf(body) != source || len(out) >= limit {
-			continue
 		}
 		in.Time, in.Sources, in.FirstSeen, in.LastSeen = fromMS(t), splitList(sources), fromMS(first), fromMS(last)
 		in.UnblockedAt = fromMS(unblocked)

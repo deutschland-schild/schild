@@ -134,7 +134,13 @@ func (a *App) sharedThings() []sharedThing {
 				a.log.Error("cluster: rules not built again after a rule was disabled or enabled on another node; the running rules stay", "err", err)
 			}
 		}),
-		a.tableThing(contract.ClassLogins, "users", 1, nil),
+		a.tableThing(contract.ClassLogins, "users", 1, func(ctx context.Context) {
+			if a.Dashboard != nil {
+				if err := a.Dashboard.ClearSetup(ctx); err != nil {
+					a.log.Warn("cluster: setup code not cleared after taking logins", "err", err)
+				}
+			}
+		}),
 		a.tableThing(contract.ClassLogins, "sessions", 1, nil),
 		a.tableThing(contract.ClassLogins, "agent_tokens", 1, nil),
 	}
@@ -529,11 +535,6 @@ func (a *App) syncThing(ctx context.Context, t sharedThing, synced bool) {
 					continue
 				}
 				val, _ := v.Bytes()
-				if cur, here := local[v.K]; here && sum(cur) != sum(val) {
-					if err := node.Keep(t.key()+" "+v.K, cur); err == nil {
-						a.log.Warn("cluster: this node takes the group's value of an entry both held; its own is kept in cluster.db (table replaced)", "thing", t.key(), "entry", v.K)
-					}
-				}
 				if pending == nil {
 					pending = map[string]pendingEntry{}
 				}
@@ -631,6 +632,18 @@ func (a *App) syncThing(ctx context.Context, t sharedThing, synced bool) {
 			stored = local
 			ratelog.Error(a.log, "cluster: a change of another node was not applied, this node keeps its own", "thing", t.key(), "from", from, "err", err)
 		} else {
+			// Any local entry never brought in step yet that is replaced by
+			// the group's value is kept in cluster.db (table replaced).
+			for k, p := range pending {
+				if _, seen := marks[k]; seen {
+					continue
+				}
+				if cur, here := local[k]; here && (p.v == nil || sum(cur) != sum(p.v)) {
+					if kerr := node.Keep(t.key()+" "+k, cur); kerr == nil {
+						a.log.Warn("cluster: this node takes the group's value of an entry both held; its own is kept in cluster.db (table replaced)", "thing", t.key(), "entry", k)
+					}
+				}
+			}
 			a.log.Info("cluster: took a change of another node", "thing", t.key(), "from", from, "entries", len(pending))
 		}
 		if blob, err = t.read(ctx); err != nil {

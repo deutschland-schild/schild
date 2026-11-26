@@ -186,3 +186,10 @@ func SetTestBlockRuns(f func(a *App, incident string)) (undo func()) {
 	testBlockRuns.Store(&f)
 	return func() { testBlockRuns.Store(nil) }
 }
+
+// SetWarmRetry sets the retry interval after a failed warm handover and returns
+// how to undo it.
+func SetWarmRetry(d time.Duration) (undo func()) {
+	old := warmRetryNS.Swap(int64(d))
+	return func() { warmRetryNS.Store(old) }
+}
