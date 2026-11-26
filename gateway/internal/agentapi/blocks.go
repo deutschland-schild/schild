@@ -439,14 +439,6 @@ func (s *Server) liftBlock(w http.ResponseWriter, r *http.Request) {
 	if running && status == "unblocked" {
 		status = "blocked"
 	}
-	// In a group the incident of a block arrives with the events of its
-	// node, before or after the record of the block. A node that holds the
-	// incident as blocked cannot know that no block of it runs on another
-	// node, so the lift is taken and noted, as the dashboard takes it.
-	group := d.Held != nil
-	if group && status == "blocked" {
-		running = true
-	}
 	v := contractapi.CheckLift(contractapi.LiftInput{Scope: tok.Scope, Reason: req.Reason, Status: status, Running: running,
 		Budget: d.budget(tok.ID, c.BlockWritesPerHour, c.MaxAgentBlocks, now)})
 	if !v.Allowed {
@@ -467,7 +459,7 @@ func (s *Server) liftBlock(w http.ResponseWriter, r *http.Request) {
 	}
 	// In a group the lift counts also when no block ended on this node: the
 	// group held the block, and the lift ends it where it runs.
-	if v.Changed && (lift(id) || group) {
+	if v.Changed && (lift(id) || held) {
 		d.spend(tok.ID, now)
 		source := ""
 		if len(in.Sources) > 0 {

@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/netip"
 	"regexp"
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -545,7 +546,18 @@ func (s *Server) unblock(w http.ResponseWriter, r *http.Request) {
 	}
 	ctx := r.Context()
 	now := s.now()
+	// The client of the exception and of the allowlist entry: the address
+	// stored with the incident, as long as it is the whole one. Retention
+	// shortens it, and the shortened address is somebody else's; then the
+	// client is the one of the incident's block, and when no block of it is
+	// known, nobody: neither exception nor entry is made.
 	ip, ipErr := netip.ParseAddr(in.IP)
+	if ipErr == nil && clientip.Truncate(ip) == ip {
+		ipErr = errShortened
+		if client, ok := s.blockClient(in.Incident); ok {
+			ip, ipErr = client, nil
+		}
+	}
 	// Exception: this client passes the sources that blocked it, for 24 h.
 	var srcs []string
 	for _, src := range in.Sources {
@@ -592,8 +604,16 @@ func (s *Server) unblock(w http.ResponseWriter, r *http.Request) {
 	// D87: the timed block ends now, not only for the requests of this
 	// client (the exception above): it leaves the list of blocks and,
 	// within a second, the host's firewall.
+	//
+	// A lift is for an incident that has a block (a block of a scenario,
+	// of an agent or set by hand). The incident of a single refused request
+	// is unblocked as on a single gateway, without a lift.
+	lift := live || slices.ContainsFunc(in.Sources, behaviour.IsBlockSource)
 	unblock := func(held []string) error {
-		if err := s.St.MarkUnblockedLift(ctx, in.Incident, now, allowID, live, held...); err != nil {
+		if !lift {
+			held = nil
+		}
+		if err := s.St.MarkUnblockedLift(ctx, store.Unblock{Incident: in.Incident, At: now, AllowEntry: allowID, Live: live, Lift: lift, Others: held}); err != nil {
 			return err
 		}
 		for _, incident := range held {
@@ -604,8 +624,8 @@ func (s *Server) unblock(w http.ResponseWriter, r *http.Request) {
 		return nil
 	}
 	var err error
-	if s.ClientBlocks != nil && s.Behaviour != nil && ipErr == nil {
-		err = s.ClientBlocks(ip, unblock)
+	if s.IncidentBlocks != nil && s.Behaviour != nil {
+		err = s.IncidentBlocks(in.Incident, in.IP, unblock)
 	} else {
 		err = unblock(nil)
 	}
@@ -632,6 +652,23 @@ func (s *Server) unblock(w http.ResponseWriter, r *http.Request) {
 	}
 	in, _ = s.St.GetIncident(ctx, in.Incident)
 	writeJSON(w, 200, s.incidentView(ctx, in))
+}
+
+// errShortened: the address of an incident was shortened by retention.
+var errShortened = errors.New("the address of the incident is shortened")
+
+// blockClient is the client of the block of an incident, as the engine runs
+// it or, on a node of a group, as the group holds it.
+func (s *Server) blockClient(incident string) (netip.Addr, bool) {
+	if s.Behaviour != nil {
+		if key, ok := s.Behaviour.IncidentKey(incident); ok {
+			return key.Addr(), true
+		}
+	}
+	if s.BlockClient != nil {
+		return s.BlockClient(incident)
+	}
+	return netip.Addr{}, false
 }
 
 // ---------------------------------------------------------------- rules

@@ -227,8 +227,8 @@ func TestReleaseIsOneStepWithTheBlocksItLifts(t *testing.T) {
 	// at what it holds of the client, before it ends the blocks.
 	target := b.h.App
 	var inWindow atomic.Bool
-	defer app.SetTestClientBlocks(func(x *app.App) {
-		if x != target {
+	defer app.SetTestClientBlocks(func(x *app.App, done bool) {
+		if x != target || done {
 			return
 		}
 		go func() { _, _ = target.Cluster.Take(raws[0]) }()
@@ -307,6 +307,13 @@ func TestAgentLiftsABlockTheNodeDoesNotRun(t *testing.T) {
 		t.Errorf("the answer does not say that the incident is unblocked: %s", w.Body)
 	}
 	a.h.WaitFor("web-1 ended the block the agent lifted on web-2", func() bool { return a.blocked(ip) == "" })
+	// The lift counts on web-2 although no block ended there: its event is
+	// written, and it is one write of the token's budget.
+	b.h.Flush()
+	evs, err := b.h.App.Store.EventsByIncident(context.Background(), x, 20)
+	if err != nil || !slices.ContainsFunc(evs, func(e *store.EventRow) bool { return e.Type == events.BlockLifted }) {
+		t.Errorf("web-2 wrote no event of the lift (%d events of the incident, %v)", len(evs), err)
+	}
 	for _, g := range []*groupNode{a, b} {
 		g := g
 		g.h.WaitFor(g.name+" holds the lift and no record of the block", func() bool { return holds(t, g, contract.ClassLifts, x) && holds(t, g, contract.ClassIncidentBlocks) })
@@ -517,9 +524,16 @@ func keptRow(t *testing.T, g *groupNode, ip string) events.ActiveBlock {
 	return events.ActiveBlock{}
 }
 
+// Who decided a kept block, as its row says.
+const (
+	keptOwn      = 1
+	keptTaken    = 0
+	keptUnmarked = -1 // a row of the build before the mark
+)
+
 // putKept writes kept blocks into the store of a node that is stopped: a
-// row that outlived the end of its block.
-func (g *groupNode) putKept(t *testing.T, own bool, rows ...events.ActiveBlock) {
+// row that outlived the end of its block, or one of a build before.
+func (g *groupNode) putKept(t *testing.T, mark int, rows ...events.ActiveBlock) {
 	t.Helper()
 	st, err := store.Open(filepath.Join(g.dir, "data", "schild.db"))
 	if err != nil {
@@ -528,11 +542,16 @@ func (g *groupNode) putKept(t *testing.T, own bool, rows ...events.ActiveBlock) 
 	defer st.Close()
 	for _, r := range rows {
 		put := st.PutTakenBlock
-		if own {
+		if mark == keptOwn {
 			put = st.PutBlock
 		}
 		if err := put(context.Background(), r); err != nil {
 			t.Fatal(err)
+		}
+		if mark == keptUnmarked {
+			if _, err := st.DB().Exec(`UPDATE kept_blocks SET own = -1 WHERE client_key = ?`, r.ClientKey); err != nil {
+				t.Fatal(err)
+			}
 		}
 	}
 }
@@ -585,8 +604,8 @@ func TestKeptBlockThatMustNotRunEndsAtTheStart(t *testing.T) {
 		t.Fatal(err)
 	}
 	execCluster(t, b.clusterDir(), `DELETE FROM records WHERE class = ? AND id = ?`, contract.ClassIncidentBlocks, lost)
-	b.putKept(t, false, rowLifted, rowLost)
-	b.putKept(t, true, rowNoted, rowOwn)
+	b.putKept(t, keptTaken, rowLifted, rowLost)
+	b.putKept(t, keptOwn, rowNoted, rowOwn)
 	b.start(t)
 	// The first round of web-2 ran before its mesh.
 	for ip, why := range map[string]string{ipOwn: "web-2 decided it, and the group holds its lift", ipLifted: "the group holds its lift", ipLost: "web-2 did not decide it and holds no record of it", ipNoted: "it was released on web-2, and the lift waits"} {
@@ -614,6 +633,9 @@ func TestKeptBlockThatMustNotRunEndsAtTheStart(t *testing.T) {
 	}
 	if slices.Contains(recordIDs(t, a, contract.ClassLifts), lost) {
 		t.Error("a lift was written for a block that nobody released")
+	}
+	if in, err := b.h.App.Store.GetIncident(ctx, lost); err != nil || in.Status != "blocked" {
+		t.Errorf("web-2 holds the incident of that block as %+v (%v), want blocked: the block ended here without a lift", in, err)
 	}
 }
 
@@ -647,24 +669,34 @@ func TestRoundStartsNoBlockTheTableHasNoRoomFor(t *testing.T) {
 	}
 }
 
-// A gateway that is in no group decided every block it keeps, also the rows
-// a build before the mark kept. When it joins a group later, it hands its
-// long blocks over.
+// A gateway that is in no group decided every block it keeps that does not
+// say who did (a row of a build before the mark), and none it took from a
+// group it was in. When it joins a group later, it hands its own long
+// blocks over.
 func TestSingleGatewayOwnsItsKeptBlocksWhenItJoinsAGroup(t *testing.T) {
 	g := newGroup(t, "web-1")[0]
-	const ip, incident = "203.0.113.57", "YYYY-AAA2"
+	const ip, incident, ipTaken, taken = "203.0.113.57", "YYYY-AAA2", "203.0.113.58", "YYYY-AAA3"
 	single := func() *apptest.Harness { return apptest.New(t, apptest.Options{Dir: g.dir}) }
 	h := single()
 	if err := h.Stop(); err != nil {
 		t.Fatal(err)
 	}
-	// A row as 0.1.0-alpha.6 kept it: without the mark of an own decision.
 	now := time.Now().UTC().Truncate(time.Second)
-	g.putKept(t, false, events.ActiveBlock{ClientKey: ip, KeyBits: 32, NetClass: "hosting", Source: "dashboard", Level: 1, DurationS: 172800,
-		Since: now.Format(time.RFC3339), Until: now.Add(48 * time.Hour).Format(time.RFC3339), Incident: incident})
+	row := func(ip, incident string) events.ActiveBlock {
+		return events.ActiveBlock{ClientKey: ip, KeyBits: 32, NetClass: "hosting", Source: "dashboard", Level: 1, DurationS: 172800,
+			Since: now.Format(time.RFC3339), Until: now.Add(48 * time.Hour).Format(time.RFC3339), Incident: incident}
+	}
+	g.putKept(t, keptUnmarked, row(ip, incident))
+	g.putKept(t, keptTaken, row(ipTaken, taken))
 	h = single()
 	if bi, ok := h.App.Behaviour.ActiveBlock(netip.MustParseAddr(ip)); !ok || bi.Incident != incident || bi.Taken {
 		t.Fatalf("the single gateway runs %+v (%v), want its kept block as its own decision", bi, ok)
+	}
+	if bi, ok := h.App.Behaviour.ActiveBlock(netip.MustParseAddr(ipTaken)); !ok || !bi.Taken {
+		t.Fatalf("the single gateway runs %+v (%v) for the block it took from a group, want it as taken", bi, ok)
+	}
+	if rows, err := h.App.Store.TakenBlocks(context.Background()); err != nil || !slices.Equal(rows, []string{ipTaken}) {
+		t.Fatalf("the single gateway keeps %v as taken (%v), want the one block it took", rows, err)
 	}
 	if err := h.Stop(); err != nil {
 		t.Fatal(err)
@@ -674,6 +706,56 @@ func TestSingleGatewayOwnsItsKeptBlocksWhenItJoinsAGroup(t *testing.T) {
 	g.h.WaitFor("the node handed its kept block to the group", func() bool { return holds(t, g, contract.ClassIncidentBlocks, incident) })
 	if got := g.blocked(ip); got != incident {
 		t.Errorf("the node runs %q, want its kept block", got)
+	}
+	if got := g.blocked(ipTaken); got != "" {
+		t.Errorf("the node runs %q: a block of another node it holds no record of", got)
+	}
+}
+
+// A node that comes from the build before keeps blocks that do not say who
+// decided them. Once it read the records of its group it decides (section
+// 16): a block whose record another node signed is that node's and runs by
+// its record; a block the node holds no record of at all is its own and is
+// written to the group, not dropped. So a single gateway that is updated
+// and put into a group in one step keeps its long blocks.
+func TestKeptBlocksOfTheBuildBeforeAreResolvedByTheRecords(t *testing.T) {
+	a, b := pair(t)
+	ctx := context.Background()
+	inService(t, a, b)
+	const ipTheirs, theirs, ipOwn, own = "203.0.113.57", "YYYY-AAA4", "203.0.113.58", "YYYY-AAA5"
+	b.h.App.SetGroupBlocksMax(0) // the long block of web-2 has no record
+	a.block(ipTheirs, theirs, 48*time.Hour)
+	b.block(ipOwn, own, 48*time.Hour)
+	b.h.WaitFor("web-2 runs both blocks", func() bool { return b.blocked(ipTheirs) == theirs && b.blocked(ipOwn) == own })
+	if err := b.h.App.Store.InsertIncident(ctx, &store.Incident{Incident: own, Time: time.Now(), IP: ipOwn, Status: "blocked", Sources: []string{"dashboard"}}); err != nil {
+		t.Fatal(err)
+	}
+	rowTheirs, rowOwn := keptRow(t, b, ipTheirs), keptRow(t, b, ipOwn)
+	if err := b.h.Stop(); err != nil {
+		t.Fatal(err)
+	}
+	// As the build before kept them.
+	b.putKept(t, keptUnmarked, rowTheirs, rowOwn)
+	b.start(t)
+	// The first round of web-2 ran before its mesh.
+	if b.blocked(ipOwn) != own || b.blocked(ipTheirs) != theirs {
+		t.Fatalf("after its start web-2 runs %q and %q, want both kept blocks", b.blocked(ipOwn), b.blocked(ipTheirs))
+	}
+	a.h.WaitFor("web-1 holds the block of web-2, which had no record", func() bool { return slices.Contains(recordIDs(t, a, contract.ClassIncidentBlocks), own) })
+	b.h.App.FlushBlocks()
+	taken, err1 := b.h.App.Store.TakenBlocks(ctx)
+	unmarked, err2 := b.h.App.Store.UnmarkedBlocks(ctx)
+	if err1 != nil || err2 != nil || !slices.Equal(taken, []string{ipTheirs}) || len(unmarked) != 0 {
+		t.Errorf("web-2 keeps as taken %v, as not marked %v (%v, %v): want the block of web-1 as taken and none open", taken, unmarked, err1, err2)
+	}
+	if in, err := b.h.App.Store.GetIncident(ctx, own); err != nil || in.Status != "blocked" {
+		t.Errorf("the incident of the block of web-2 is %+v (%v), want blocked", in, err)
+	}
+	for _, rec := range func() []*contract.Record { r, _ := a.h.App.Cluster.State(contract.ClassIncidentBlocks); return r }() {
+		want := map[string]string{own: b.h.App.Cluster.ID(), theirs: a.h.App.Cluster.ID()}[rec.ID]
+		if rec.Origin != want {
+			t.Errorf("the record of %s is written by %s", rec.ID, a.h.App.Cluster.PeerName(rec.Origin))
+		}
 	}
 }
 
@@ -714,6 +796,20 @@ func TestRecordOfClassBlocksThatWasReplacedIsNoLongerHeld(t *testing.T) {
 			t.Errorf("%s holds %d blocks, want the one whose record its store holds", g.name, n)
 		}
 	}
+	// A tombstone of that class takes the place of the record too, whatever
+	// incident it names: here one that no node holds a block of.
+	if err := a.h.Stop(); err != nil {
+		t.Fatal(err)
+	}
+	a.writeStopped(t, nil, func(n *cluster.Node) {
+		if _, err := n.Publish(contract.ClassBlocks, ip, &contract.Lift{Incident: "ZZZZ-AAA9", Node: "web-1"}, true, time.Now().Add(contract.MaxBlockS*time.Second+time.Hour)); err != nil {
+			t.Fatal(err)
+		}
+	})
+	a.start(t)
+	b.h.WaitFor("web-2 holds no block of the client after the tombstone", func() bool {
+		return b.blocked(ip) == "" && len(b.h.App.HashedBlocks()) == 0 && b.h.App.GroupStatus().Shared.Blocks == 0
+	})
 }
 
 // The blocks from before an erasure end on a node that takes the erasure
@@ -749,9 +845,11 @@ func TestErasureEndsTheBlocksAlsoWhenTheStoreFails(t *testing.T) {
 	}
 }
 
-// An agent lifts an incident the node holds before the record of its block
-// arrived, as the dashboard does: the lift ends the block where it runs.
-func TestAgentLiftsAnIncidentBeforeTheRecordOfItsBlockCame(t *testing.T) {
+// An agent lifts an incident that has a block: one the engine runs or the
+// group holds a record of. Before the record of the block arrived the node
+// cannot say that, answers 409, and the agent tries again; the incident of
+// a single refused request has no block and is never lifted.
+func TestAgentLiftsOnlyAnIncidentThatHasABlock(t *testing.T) {
 	nodes := newGroup(t, "web-1", "web-2")
 	a, b := nodes[0], nodes[1]
 	b.extra = agentYAML
@@ -765,10 +863,38 @@ func TestAgentLiftsAnIncidentBeforeTheRecordOfItsBlockCame(t *testing.T) {
 	if err := b.h.App.Store.InsertIncident(store.Foreign(context.Background()), &store.Incident{Incident: x, Time: time.Now(), IP: ip, Status: "blocked", Sources: []string{"dashboard"}}); err != nil {
 		t.Fatal(err)
 	}
-	if w := b.agentCall(t, "POST", "/agent/v0/incidents/"+x+"/lift", `{"reason":"false alarm"}`); w.Code != 200 {
-		t.Fatalf("lift on web-2: %d %s", w.Code, w.Body)
+	lift := func(incident string) *httptest.ResponseRecorder {
+		return b.agentCall(t, "POST", "/agent/v0/incidents/"+incident+"/lift", `{"reason":"false alarm"}`)
+	}
+	if w := lift(x); w.Code != 409 || !strings.Contains(w.Body.String(), contractapi.CodeNoRunningBlock) {
+		t.Fatalf("lift on web-2 before the record of the block came: %d %s, want 409", w.Code, w.Body)
+	}
+	// The incident of a single request the WAF refused.
+	const attacker = "203.0.113.57"
+	b.h.Visit("GET", "/?q=%3Cscript%3Ealert(1)%3C%2Fscript%3E", attacker, "", "")
+	b.h.Flush()
+	rows, _, err := b.h.App.Store.ListEvents(t.Context(), store.EventFilter{IP: attacker}, 0, 10)
+	if err != nil || len(rows) == 0 || rows[0].Incident == "" {
+		t.Fatalf("no incident of %s: %v", attacker, err)
+	}
+	refused := rows[0].Incident
+	if w := lift(refused); w.Code != 409 || !strings.Contains(w.Body.String(), contractapi.CodeNoRunningBlock) {
+		t.Fatalf("lift of the incident of a refused request: %d %s, want 409", w.Code, w.Body)
+	}
+	if b.h.App.Store.LiftNoted(x) || b.h.App.Store.LiftNoted(refused) {
+		t.Fatal("a lift is noted for an incident the node knows no block of")
+	}
+	// The record arrives, and the agent tries again.
+	a.h.App.SetGroupBlocksMax(20000)
+	b.h.WaitFor("web-2 holds the record of the block", func() bool { return holds(t, b, contract.ClassIncidentBlocks, x) })
+	if w := lift(x); w.Code != 200 {
+		t.Fatalf("lift on web-2 when it holds the record: %d %s", w.Code, w.Body)
 	}
 	a.h.WaitFor("web-1 ended its block by the lift of the agent", func() bool { return a.blocked(ip) == "" && holds(t, a, contract.ClassLifts, x) })
+	time.Sleep(600 * time.Millisecond)
+	if lifts := recordIDs(t, a, contract.ClassLifts); !slices.Equal(lifts, []string{x}) {
+		t.Errorf("the group holds the lifts %v, want the one of the block", lifts)
+	}
 }
 
 // The whole way, through the detector: a client trips a scenario on one
@@ -850,12 +976,24 @@ func TestFreigebenLiftsEveryBlockOfTheClient(t *testing.T) {
 	}
 	inService(t, nodes...)
 	start := time.Now()
+	// What runs for the client on the releasing node when the unblock has
+	// acted and still holds the lock of the blocks.
+	var after atomic.Value
+	var watch atomic.Pointer[app.App]
+	var watched atomic.Value
+	defer app.SetTestClientBlocks(func(x *app.App, done bool) {
+		if done && x == watch.Load() {
+			bi, _ := x.Behaviour.ActiveBlock(netip.MustParseAddr(watched.Load().(string)))
+			after.Store(bi.Incident)
+		}
+	})()
 	for _, tc := range []struct {
 		ip, x, y string
 		on       *groupNode
+		click    string
 	}{
-		{"203.0.113.71", "FRGB-AAA2", "FRGB-AAA3", c}, // on a third node
-		{"203.0.113.72", "FRGB-AAA4", "FRGB-AAA5", a}, // on one of the two
+		{"203.0.113.71", "FRGB-AAA2", "FRGB-AAA3", c, "FRGB-AAA2"}, // on a third node
+		{"203.0.113.72", "FRGB-AAA4", "FRGB-AAA5", a, "FRGB-AAA5"}, // on one of the two, the incident of the other
 	} {
 		a.block(tc.ip, tc.x, 15*time.Minute)
 		b.block(tc.ip, tc.y, 15*time.Minute)
@@ -865,7 +1003,23 @@ func TestFreigebenLiftsEveryBlockOfTheClient(t *testing.T) {
 				return slices.Contains(recordIDs(t, g, contract.ClassIncidentBlocks), tc.x) && slices.Contains(recordIDs(t, g, contract.ClassIncidentBlocks), tc.y) && g.blocked(tc.ip) != ""
 			})
 		}
-		tc.on.unblock(t, tc.x, tc.ip)
+		// The node holds the incident of the other block too (it wrote it,
+		// or took it with the record).
+		for _, incident := range []string{tc.x, tc.y} {
+			if err := tc.on.h.App.Store.InsertIncident(store.Foreign(ctx), &store.Incident{Incident: incident, Time: time.Now(), IP: tc.ip, Status: "blocked", Sources: []string{"dashboard"}}); err != nil {
+				t.Fatal(err)
+			}
+		}
+		after.Store("")
+		watched.Store(tc.ip)
+		watch.Store(tc.on.h.App)
+		tc.on.unblock(t, tc.click, tc.ip)
+		watch.Store(nil)
+		// The other blocks of the client end in the step of the unblock,
+		// not with the next round: only the clicked one may still run then.
+		if got := after.Load().(string); got != "" && got != tc.click {
+			t.Errorf("%s still runs %q for %s when the unblock of %s has acted, under the lock", tc.on.name, got, tc.ip, tc.click)
+		}
 		if got := tc.on.blocked(tc.ip); got != "" {
 			t.Errorf("%s runs %q for %s right after Freigeben there, want no block of the client", tc.on.name, got, tc.ip)
 		}
@@ -877,8 +1031,12 @@ func TestFreigebenLiftsEveryBlockOfTheClient(t *testing.T) {
 			})
 		}
 		// The other incident reads unblocked too where the person released.
-		if in, err := tc.on.h.App.Store.GetIncident(ctx, tc.y); err != nil || in.Status != "unblocked" {
-			t.Errorf("%s: the incident %s of the other block is %+v (%v), want unblocked", tc.on.name, tc.y, in, err)
+		other := tc.x
+		if other == tc.click {
+			other = tc.y
+		}
+		if in, err := tc.on.h.App.Store.GetIncident(ctx, other); err != nil || in.Status != "unblocked" {
+			t.Errorf("%s: the incident %s of the other block is %+v (%v), want unblocked", tc.on.name, other, in, err)
 		}
 		notReleased(t, tc.ip, start, nodes...)
 	}
@@ -929,17 +1087,17 @@ func TestBlockThatArrivesAfterARelease(t *testing.T) {
 		ipB, xB, yB = "203.0.113.74", "TWNS-AAA4", "TWNS-AAA5" // Adresse freigeben
 	)
 	for ip, twins := range map[string][2]string{ipA: {xA, yA}, ipB: {xB, yB}} {
-		a.block(ip, twins[0], 15*time.Minute)
-		b.block(ip, twins[1], 15*time.Minute)
+		a.blockAgent(ip, twins[0])
+		b.blockAgent(ip, twins[1])
 		b.h.WaitFor("web-2 holds the block of web-1 for "+ip, func() bool { return slices.Contains(recordIDs(t, b, contract.ClassIncidentBlocks), twins[0]) })
 	}
-	a.unblock(t, xA, ipA)
+	a.unblockOf(t, xA, ipA, agentSource)
 	a.release(t, ipB)
 	if a.blocked(ipA) != "" || a.blocked(ipB) != "" {
 		t.Fatalf("web-1 runs %q and %q after the releases", a.blocked(ipA), a.blocked(ipB))
 	}
 	b.h.WaitFor("web-2 took the lifts and the exception", func() bool {
-		return holds(t, b, contract.ClassLifts, xA, xB) && b.h.App.Gate.Exceptions.Has(netip.MustParseAddr(ipA), "dashboard", time.Now())
+		return holds(t, b, contract.ClassLifts, xA, xB) && b.h.App.Gate.Exceptions.Has(netip.MustParseAddr(ipA), agentSource, time.Now())
 	})
 	// The exception reached web-2 while its twin ran: the twin ends there,
 	// by the round, and web-2 writes it all the same when it may.
@@ -975,12 +1133,238 @@ func TestBlockThatArrivesAfterARelease(t *testing.T) {
 			t.Errorf("%s answers %d to the client released by address and runs %q: the block that arrived does not block it", g.name, r.StatusCode, g.blocked(ipB))
 		}
 	}
+	// The block that ended on web-2 by the exception ended without a lift:
+	// its incident reads as it did.
 	// When the exception is over, the block the group still holds runs.
+	// Over in the store, and loaded from there as the gateway loads its
+	// exceptions every minute.
 	for _, g := range []*groupNode{a, b} {
-		g.h.App.Gate.Exceptions.Load(nil)
+		g.endExceptions(t, ipA)
 	}
 	for _, g := range []*groupNode{a, b} {
 		g := g
 		g.h.WaitFor(g.name+" runs the twin when the exception is over", func() bool { return g.blocked(ipA) == yA })
 	}
+}
+
+// agentSource is the source of the blocks blockAgent sets.
+const agentSource = "agent:tok"
+
+// blockAgent sets a block as an agent does, in the engine of the node.
+func (g *groupNode) blockAgent(ip, incident string) {
+	g.h.App.Behaviour.SetAgentBlock(behaviour.AgentBlock{IP: netip.MustParseAddr(ip), TokenID: "tok", NetClass: "hosting", Duration: 15 * time.Minute,
+		Incident: incident, Time: time.Now()})
+}
+
+// endExceptions lets the exceptions of an address run out: over in the
+// store, and loaded from it as the gateway does every minute.
+func (g *groupNode) endExceptions(t *testing.T, ip string) {
+	t.Helper()
+	ctx := context.Background()
+	if _, err := g.h.App.Store.DB().Exec(`UPDATE exceptions SET expires_ms = ? WHERE ip = ?`, time.Now().Add(-time.Minute).UnixMilli(), ip); err != nil {
+		t.Fatal(err)
+	}
+	xs, err := g.h.App.Store.ActiveExceptions(ctx, time.Now())
+	if err != nil {
+		t.Fatal(err)
+	}
+	g.h.App.Gate.Exceptions.Load(xs)
+}
+
+// "Freigeben" finds the client by the block of the incident, not by the
+// address stored with the incident: retention shortens that one to its /24,
+// and the shortened address is the client key of somebody else.
+func TestFreigebenFindsTheClientByItsBlockNotByTheStoredAddress(t *testing.T) {
+	a, b := pair(t)
+	a.h.Login()
+	inService(t, a, b)
+	const ip, x, y, short, z = "203.0.113.77", "SHRT-AAA2", "SHRT-AAA3", "203.0.113.0", "SHRT-AAA4"
+	a.block(ip, x, 15*time.Minute)
+	b.block(ip, y, 15*time.Minute)
+	a.block(short, z, 15*time.Minute) // another client, at the address the first one is shortened to
+	for _, g := range []*groupNode{a, b} {
+		g := g
+		g.h.WaitFor(g.name+" holds the three blocks", func() bool { return holds(t, g, contract.ClassIncidentBlocks, x, y, z) && g.blocked(short) == z })
+	}
+	// The incident as retention left it.
+	a.unblock(t, x, short)
+	for _, g := range []*groupNode{a, b} {
+		g := g
+		g.h.WaitFor(g.name+" serves the client of the incident again", func() bool { return g.blocked(ip) == "" && holds(t, g, contract.ClassLifts, x, y) })
+	}
+	// An incident with a shortened address and no block this node knows:
+	// the clicked incident alone.
+	const gone = "SHRT-AAA5"
+	a.unblock(t, gone, short)
+	time.Sleep(time.Second)
+	for _, g := range []*groupNode{a, b} {
+		if got := g.blocked(short); got != z {
+			t.Errorf("%s runs %q for the other client at the shortened address, want its block %q", g.name, got, z)
+		}
+		if lifts := recordIDs(t, g, contract.ClassLifts); slices.Contains(lifts, z) || !slices.Contains(lifts, gone) {
+			t.Errorf("%s holds the lifts %v: the block of the other client was lifted, or the clicked incident was not", g.name, lifts)
+		}
+	}
+}
+
+// "Freigeben" of the incident of a single refused request, which has no
+// block: unblocked as on a single gateway, and no lift for the group.
+func TestFreigebenOfAnIncidentWithoutABlockWritesNoLift(t *testing.T) {
+	a, b := pair(t)
+	ctx := context.Background()
+	b.h.Login()
+	inService(t, a, b)
+	const attacker = "203.0.113.57"
+	b.h.Visit("GET", "/?q=%3Cscript%3Ealert(1)%3C%2Fscript%3E", attacker, "", "")
+	b.h.Flush()
+	rows, _, err := b.h.App.Store.ListEvents(ctx, store.EventFilter{IP: attacker}, 0, 10)
+	if err != nil || len(rows) == 0 || rows[0].Incident == "" {
+		t.Fatalf("no incident of %s: %v", attacker, err)
+	}
+	incident := rows[0].Incident
+	if code, body := b.h.API("POST", "/incidents/"+incident+"/unblock", map[string]any{}); code != 200 {
+		t.Fatalf("unblock on web-2: %d %s", code, body)
+	}
+	if in, err := b.h.App.Store.GetIncident(ctx, incident); err != nil || in.Status != "unblocked" {
+		t.Fatalf("the incident is %+v (%v), want unblocked", in, err)
+	}
+	time.Sleep(time.Second)
+	for _, g := range []*groupNode{a, b} {
+		if lifts := recordIDs(t, g, contract.ClassLifts); len(lifts) != 0 || g.h.App.Store.LiftNoted(incident) {
+			t.Errorf("%s holds the lifts %v (noted: %v) for an incident that never had a block", g.name, lifts, g.h.App.Store.LiftNoted(incident))
+		}
+	}
+}
+
+// A node that takes a lift stores the incident as unblocked, also when the
+// block does not run there any more: the exception of a "Freigeben" made on
+// another node arrived first and ended the block without a word. The node
+// that decided the block wrote the incident, so its change travels; on a
+// third node it is no news of that node.
+func TestLiftMarksTheIncidentWhereTheBlockEndedBefore(t *testing.T) {
+	nodes := trio(t)
+	a, b, c := nodes[0], nodes[1], nodes[2]
+	ctx := context.Background()
+	b.h.Login()
+	inService(t, nodes...)
+	var fail atomic.Bool
+	fail.Store(true)
+	defer app.SetTestLiftWrite(func(x *app.App, _ string) error {
+		if x == b.h.App && fail.Load() {
+			return errors.New("test: the lift of web-2 is late")
+		}
+		return nil
+	})()
+	const ip, x = "203.0.113.78", "LFTM-AAA2"
+	a.blockAgent(ip, x)
+	// web-1 decided the block and wrote its incident.
+	if err := a.h.App.Store.InsertIncident(ctx, &store.Incident{Incident: x, Time: time.Now(), IP: ip, Status: "blocked", Sources: []string{agentSource}}); err != nil {
+		t.Fatal(err)
+	}
+	for _, g := range nodes {
+		g := g
+		g.h.WaitFor(g.name+" runs the block", func() bool { return g.blocked(ip) == x })
+	}
+	status := func(g *groupNode) string {
+		g.h.App.FlushBlocks()
+		in, err := g.h.App.Store.GetIncident(ctx, x)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return in.Status
+	}
+	// Freigeben on web-2: its exception reaches the others, its lift not yet.
+	if code, body := b.h.API("POST", "/incidents/"+x+"/unblock", map[string]any{}); code != 200 {
+		t.Fatalf("unblock on web-2: %d %s", code, body)
+	}
+	for _, g := range []*groupNode{a, c} {
+		g := g
+		g.h.WaitFor(g.name+" ended the block by the exception", func() bool { return g.blocked(ip) == "" })
+		if got := status(g); got != "blocked" {
+			t.Fatalf("%s holds the incident as %s after the exception ended the block: a block that ends without a lift leaves its incident alone", g.name, got)
+		}
+		if lifts := recordIDs(t, g, contract.ClassLifts); len(lifts) != 0 {
+			t.Fatalf("%s holds the lifts %v before web-2 wrote one", g.name, lifts)
+		}
+	}
+	ownA, ownC := a.h.App.Store.OwnGen(), c.h.App.Store.OwnGen()
+	fail.Store(false)
+	for _, g := range []*groupNode{a, c} {
+		g := g
+		g.h.WaitFor(g.name+" holds the lift and the incident as unblocked", func() bool { return holds(t, g, contract.ClassLifts, x) && status(g) == "unblocked" })
+	}
+	if a.h.App.Store.OwnGen() == ownA {
+		t.Error("web-1 wrote the incident, and its change is no news of web-1: no node asks it again")
+	}
+	if got := c.h.App.Store.OwnGen(); got != ownC {
+		t.Errorf("web-3 did not write the incident, and marked it as news of its own (%d, was %d)", got, ownC)
+	}
+}
+
+// A block a person sets by hand while an exception covers its source: on
+// its node it runs and is listed, and the gate lets the requests of the
+// client pass it while the exception runs, as on a single gateway. The
+// other nodes hold its record and do not run it.
+func TestBlockSetByHandUnderAnExceptionRunsOnItsNode(t *testing.T) {
+	a, b := pair(t)
+	ctx := context.Background()
+	a.h.Login()
+	inService(t, a, b)
+	const ip = "198.51.100.77"
+	until := time.Now().Add(24 * time.Hour)
+	if err := a.h.App.Store.AddException(ctx, store.Exception{IP: ip, Sources: []string{"dashboard"}, Expires: until}); err != nil {
+		t.Fatal(err)
+	}
+	a.h.App.Gate.Exceptions.Add(netip.MustParseAddr(ip), []string{"dashboard"}, until)
+	b.h.WaitFor("web-2 took the exception", func() bool { return b.h.App.Gate.Exceptions.Has(netip.MustParseAddr(ip), "dashboard", time.Now()) })
+	code, body := a.h.API("POST", "/blocks", map[string]any{"address": ip, "duration_s": 3600, "reason": "test"})
+	if code != 200 {
+		t.Fatalf("block by hand on web-1: %d %s", code, body)
+	}
+	var rb struct {
+		Incident string `json:"incident"`
+	}
+	_ = json.Unmarshal(body, &rb)
+	b.h.WaitFor("web-2 holds the record of the block", func() bool { return holds(t, b, contract.ClassIncidentBlocks, rb.Incident) })
+	time.Sleep(time.Second)
+	if got := a.blocked(ip); got != rb.Incident {
+		t.Errorf("web-1 runs %q a second after the block was set by hand, want %q: the answer said it is set", got, rb.Incident)
+	}
+	if got := b.blocked(ip); got != "" {
+		t.Errorf("web-2 runs %q for a block whose source the exception covers", got)
+	}
+	for _, g := range []*groupNode{a, b} {
+		if r := g.h.Visit("GET", "/", ip, "", ""); r.StatusCode != 200 {
+			t.Errorf("%s answers %d to the client with the exception", g.name, r.StatusCode)
+		}
+	}
+}
+
+// "Freigeben" works for a block the node holds and does not run, although
+// its incident reads unblocked: the group holds the block, that is enough.
+func TestFreigebenOfABlockTheNodeHoldsAndDoesNotRun(t *testing.T) {
+	nodes := newGroup(t, "web-1", "web-2", "web-3")
+	a, c := nodes[0], nodes[2]
+	c.mode = "observe"
+	for _, g := range nodes {
+		g.start(t)
+	}
+	ctx := context.Background()
+	c.h.Login()
+	inService(t, nodes...)
+	const ip, x = "203.0.113.79", "HELD-AAA2"
+	a.block(ip, x, 15*time.Minute)
+	c.h.WaitFor("web-3 holds the record of the block and its incident", func() bool {
+		_, err := c.h.App.Store.GetIncident(ctx, x)
+		return err == nil && holds(t, c, contract.ClassIncidentBlocks, x)
+	})
+	// The word that the block ended somewhere for a while, which travels
+	// with the incident.
+	if err := c.h.App.Store.MarkUnblocked(store.Foreign(ctx), x, time.Now(), ""); err != nil {
+		t.Fatal(err)
+	}
+	if code, body := c.h.API("POST", "/incidents/"+x+"/unblock", map[string]any{}); code != 200 {
+		t.Fatalf("unblock on web-3, which holds the block and does not run it: %d %s", code, body)
+	}
+	a.h.WaitFor("web-1 ended the block", func() bool { return a.blocked(ip) == "" && holds(t, a, contract.ClassLifts, x) })
 }

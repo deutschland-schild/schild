@@ -22,9 +22,11 @@ type blockOp struct {
 	del   string
 	flush chan struct{}
 	// ended: the incident of a block the operator ended early is stored
-	// as unblocked at endedAt.
+	// as unblocked at endedAt. foreign: another node wrote the incident,
+	// so the change is no news of this node (store.Foreign).
 	ended   string
 	endedAt time.Time
+	foreign bool
 }
 
 func (a *App) startBlockWriter() {
@@ -36,6 +38,9 @@ func (a *App) startBlockWriter() {
 				continue
 			}
 			ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+			if op.foreign {
+				ctx = store.Foreign(ctx)
+			}
 			var err error
 			switch {
 			case op.ended != "":
@@ -83,10 +88,11 @@ func (a *App) FlushBlocks() {
 // restoreBlocks reloads the kept blocks at start; ended and allowlisted
 // ones are deleted.
 func (a *App) restoreBlocks(ctx context.Context) {
-	// A gateway that is in no group decided every block it keeps. A node of
-	// a group keeps the marks: what it took from the group is not its own,
-	// nor is a row of a build before the mark (contracts/cluster.md
-	// section 16 says what of those it writes anew).
+	// A gateway that is in no group decided every block it keeps that does
+	// not say who did (a row of a build before the mark); what it took from
+	// a group it was in stays taken. A node of a group decides on the rows
+	// that do not say once it read the records of its group
+	// (resolveKeptBlocks).
 	if !a.Config().Cluster.Enabled {
 		if err := a.Store.OwnKeptBlocks(ctx); err != nil {
 			a.log.Warn("kept behaviour blocks not marked as this gateway's own; should it join a group, it does not hand them over", "err", err)
@@ -114,10 +120,9 @@ func (a *App) restoreBlocks(ctx context.Context) {
 	}
 	n, more := a.Behaviour.RestoreBlocks(keep, func(ip netip.Addr) bool { lvl, _ := a.Allow.Match(ip, now); return lvl != "" })
 	drop = append(drop, more...)
-	// Which of them this node decided itself: a node of a group writes only
-	// those to its group. A row without the mark of an own decision (a block
-	// taken from the group, a row of 0.1.0-alpha.6) is none; when the marks
-	// cannot be read, no kept block is.
+	// Which of them another node decided: a node of a group writes only its
+	// own decisions to its group. When the marks cannot be read, no kept
+	// block counts as its own.
 	taken, err := a.Store.TakenBlocks(ctx)
 	if err != nil {
 		a.log.Error("kept behaviour blocks: the marks of own decisions are not read; no kept block is handed to a group as this node's own", "err", err)

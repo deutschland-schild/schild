@@ -55,20 +55,50 @@ VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, b.ClientKey, b.KeyBits, b.NetClass, b.Sou
 	return err
 }
 
-// OwnKeptBlocks marks every kept block as a decision of this gateway: on a
-// gateway that is in no group each one is, also a row a build before the
-// mark kept. So a gateway that joins a group later hands its long blocks to
-// the group.
+// OwnKeptBlocks marks the kept blocks that do not say who decided them
+// (rows of a build before the mark) as decisions of this gateway: on a
+// gateway that is in no group each of them is. So a gateway that joins a
+// group later hands its long blocks to the group. A row known as taken
+// from a group stays what it is.
 func (s *Store) OwnKeptBlocks(ctx context.Context) error {
-	_, err := s.db.ExecContext(ctx, `UPDATE kept_blocks SET own = 1 WHERE own = 0`)
+	_, err := s.db.ExecContext(ctx, `UPDATE kept_blocks SET own = 1 WHERE own = -1`)
 	return err
 }
 
-// TakenBlocks returns the client keys of the kept blocks this gateway did
-// not decide itself, as far as it knows: those it took from its group, and
-// those a build before the mark kept.
+// MarkKeptBlock notes who decided the kept block of a client key, for a
+// row that did not say: this gateway (own) or another node of its group.
+func (s *Store) MarkKeptBlock(ctx context.Context, clientKey string, own bool) error {
+	_, err := s.db.ExecContext(ctx, `UPDATE kept_blocks SET own = ? WHERE client_key = ? AND own = -1`, own, clientKey)
+	return err
+}
+
+// TakenBlocks returns the client keys of the kept blocks another node of
+// the group decided: those this node took from its group.
 func (s *Store) TakenBlocks(ctx context.Context) ([]string, error) {
-	rows, err := s.db.QueryContext(ctx, `SELECT client_key FROM kept_blocks WHERE own = 0`)
+	return s.keptKeys(ctx, 0)
+}
+
+// UnmarkedBlocks returns the kept blocks that do not say who decided them,
+// as client key and incident.
+func (s *Store) UnmarkedBlocks(ctx context.Context) (map[string]string, error) {
+	rows, err := s.db.QueryContext(ctx, `SELECT client_key, incident FROM kept_blocks WHERE own = -1`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	out := map[string]string{}
+	for rows.Next() {
+		var k, in string
+		if err := rows.Scan(&k, &in); err != nil {
+			return nil, err
+		}
+		out[k] = in
+	}
+	return out, rows.Err()
+}
+
+func (s *Store) keptKeys(ctx context.Context, own int) ([]string, error) {
+	rows, err := s.db.QueryContext(ctx, `SELECT client_key FROM kept_blocks WHERE own = ?`, own)
 	if err != nil {
 		return nil, err
 	}

@@ -41,7 +41,7 @@ func TestLiftsAreNotedForTheGroupUntilWritten(t *testing.T) {
 		}
 	}
 	// A single gateway.
-	if err := s.MarkUnblockedLift(ctx, "K7QM-AAA2", now, "", false); err != nil {
+	if err := s.MarkUnblockedLift(ctx, Unblock{Incident: "K7QM-AAA2", At: now, AllowEntry: "", Lift: true}); err != nil {
 		t.Fatal(err)
 	}
 	if err := s.NoteLifts(ctx, now, "K7QM-AAA3"); err != nil {
@@ -59,13 +59,13 @@ func TestLiftsAreNotedForTheGroupUntilWritten(t *testing.T) {
 
 	// A node of a group.
 	s.ShareLifts()
-	if err := s.MarkUnblockedLift(ctx, "K7QM-AAA2", now, "", false); !errors.Is(err, ErrNotFound) {
+	if err := s.MarkUnblockedLift(ctx, Unblock{Incident: "K7QM-AAA2", At: now, AllowEntry: "", Lift: true}); !errors.Is(err, ErrNotFound) {
 		t.Fatalf("an incident that is unblocked already: %v, want ErrNotFound", err)
 	}
 	if got := noted(t, s); len(got) != 0 {
 		t.Fatalf("a lift was noted for an unblock that did not happen: %v", got)
 	}
-	if err := s.MarkUnblockedLift(ctx, "K7QM-AAA4", now, "", false); err != nil {
+	if err := s.MarkUnblockedLift(ctx, Unblock{Incident: "K7QM-AAA4", At: now, AllowEntry: "", Lift: true}); err != nil {
 		t.Fatal(err)
 	}
 	// An incident the node does not hold is lifted all the same, and one
@@ -182,7 +182,7 @@ func TestUnblockAfterTheAllowlistEndedTheBlockNotesItsLift(t *testing.T) {
 	if s.LiftsWaiting() {
 		t.Fatal("the end of a block by the allowlist noted a lift")
 	}
-	if err := s.MarkUnblockedLift(ctx, "K7QM-AAA2", now, "entry-1", false); err != nil {
+	if err := s.MarkUnblockedLift(ctx, Unblock{Incident: "K7QM-AAA2", At: now, AllowEntry: "entry-1", Lift: true}); err != nil {
 		t.Fatal(err)
 	}
 	in, err := s.GetIncident(ctx, "K7QM-AAA2")
@@ -190,13 +190,14 @@ func TestUnblockAfterTheAllowlistEndedTheBlockNotesItsLift(t *testing.T) {
 		t.Fatalf("incident %+v (%v), lift noted: %v", in, err, s.LiftNoted("K7QM-AAA2"))
 	}
 	// A second unblock finds the reference set and notes nothing new.
-	if err := s.MarkUnblockedLift(ctx, "K7QM-AAA2", now, "entry-2", false); !errors.Is(err, ErrNotFound) {
+	if err := s.MarkUnblockedLift(ctx, Unblock{Incident: "K7QM-AAA2", At: now, AllowEntry: "entry-2", Lift: true}); !errors.Is(err, ErrNotFound) {
 		t.Fatalf("second unblock: %v, want ErrNotFound", err)
 	}
 }
 
-// A kept block carries whether this gateway decided it: a block taken from
-// the group, and a row of a build before the mark, are not its own.
+// A kept block carries who decided it: this gateway, another node of its
+// group, or nobody says (a row of a build before the mark). A gateway in no
+// group owns the rows that do not say, and never one it took from a group.
 func TestKeptBlockCarriesWhoDecidedIt(t *testing.T) {
 	ctx := context.Background()
 	s := open(t)
@@ -209,20 +210,144 @@ func TestKeptBlockCarriesWhoDecidedIt(t *testing.T) {
 	if err := s.PutTakenBlock(ctx, b); err != nil {
 		t.Fatal(err)
 	}
-	// As 0.1.0-alpha.6 wrote a row: without the column.
-	if _, err := s.DB().Exec(`INSERT INTO kept_blocks(client_key, key_bits, net_class, source, level, duration_s, since_ms, until_ms, incident)
-		VALUES('203.0.113.3', 32, 'hosting', 'dashboard', 1, 172800, 1, 2, 'K7QM-AAA4')`); err != nil {
+	// As 0.1.0-alpha.6 wrote rows: without the column.
+	for _, k := range []string{"203.0.113.3", "203.0.113.4"} {
+		if _, err := s.DB().Exec(`INSERT INTO kept_blocks(client_key, key_bits, net_class, source, level, duration_s, since_ms, until_ms, incident)
+			VALUES(?, 32, 'hosting', 'dashboard', 1, 172800, 1, 2, ?)`, k, "K7QM-"+k[len(k)-1:]); err != nil {
+			t.Fatal(err)
+		}
+	}
+	state := func() (taken []string, unmarked map[string]string) {
+		t.Helper()
+		taken, err := s.TakenBlocks(ctx)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if unmarked, err = s.UnmarkedBlocks(ctx); err != nil {
+			t.Fatal(err)
+		}
+		sort.Strings(taken)
+		return taken, unmarked
+	}
+	taken, unmarked := state()
+	if len(taken) != 1 || taken[0] != "203.0.113.2" || len(unmarked) != 2 || unmarked["203.0.113.3"] != "K7QM-3" {
+		t.Fatalf("taken %v, not marked %v: want the taken block, and the two rows of the build before as not marked", taken, unmarked)
+	}
+	// A node of a group decides on one of them, each way, and once.
+	if err := s.MarkKeptBlock(ctx, "203.0.113.3", false); err != nil {
 		t.Fatal(err)
 	}
-	taken, err := s.TakenBlocks(ctx)
-	if err != nil {
+	if err := s.MarkKeptBlock(ctx, "203.0.113.3", true); err != nil {
 		t.Fatal(err)
 	}
-	sort.Strings(taken)
-	if len(taken) != 2 || taken[0] != "203.0.113.2" || taken[1] != "203.0.113.3" {
-		t.Fatalf("not this gateway's own: %v, want the taken block and the row without a mark", taken)
+	if err := s.MarkKeptBlock(ctx, "203.0.113.1", false); err != nil {
+		t.Fatal(err)
 	}
-	if all, _ := s.ListBlocks(ctx); len(all) != 3 {
-		t.Fatalf("%d kept blocks, want 3", len(all))
+	if taken, unmarked = state(); len(taken) != 2 || taken[1] != "203.0.113.3" || len(unmarked) != 1 {
+		t.Fatalf("after the node decided: taken %v, not marked %v", taken, unmarked)
+	}
+	// A gateway in no group owns what does not say, and nothing it took.
+	if err := s.OwnKeptBlocks(ctx); err != nil {
+		t.Fatal(err)
+	}
+	if taken, unmarked = state(); len(taken) != 2 || len(unmarked) != 0 {
+		t.Fatalf("after a start in no group: taken %v, not marked %v, want the taken blocks as they were", taken, unmarked)
+	}
+	if all, _ := s.ListBlocks(ctx); len(all) != 4 {
+		t.Fatalf("%d kept blocks, want 4", len(all))
+	}
+}
+
+// The unblock a person made: with the lifts of the other blocks of the
+// client, of a block that runs although its incident reads unblocked, and
+// of an incident that has no block.
+func TestUnblockOfAPerson(t *testing.T) {
+	ctx := context.Background()
+	s := open(t)
+	s.ShareLifts()
+	now := time.Now()
+	for _, id := range []string{"K7QM-AAA2", "K7QM-AAA3", "K7QM-AAA4", "K7QM-AAA5", "K7QM-AAA6"} {
+		if err := s.InsertIncident(ctx, &Incident{Incident: id, Time: now, IP: "203.0.113.9", Status: "blocked"}); err != nil {
+			t.Fatal(err)
+		}
+	}
+	status := func(id string) string {
+		in, err := s.GetIncident(ctx, id)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return in.Status + " " + in.AllowlistEntry
+	}
+	// With the other blocks of the client, one of them of an incident the
+	// node does not hold.
+	if err := s.MarkUnblockedLift(ctx, Unblock{Incident: "K7QM-AAA2", At: now, AllowEntry: "entry-1", Lift: true, Others: []string{"K7QM-AAA3", "K7QM-AAA2", "K7QM-ZZZZ"}}); err != nil {
+		t.Fatal(err)
+	}
+	if status("K7QM-AAA2") != "unblocked entry-1" || status("K7QM-AAA3") != "unblocked " {
+		t.Fatalf("the clicked incident is %q, the other %q: want both unblocked, the entry with the clicked one alone", status("K7QM-AAA2"), status("K7QM-AAA3"))
+	}
+	if got := noted(t, s); len(got) != 3 || !s.LiftNoted("K7QM-AAA3") || !s.LiftNoted("K7QM-ZZZZ") {
+		t.Fatalf("noted %v, want one lift for each of the three incidents", got)
+	}
+	// An incident without a block: unblocked, no lift, and no other.
+	if err := s.MarkUnblockedLift(ctx, Unblock{Incident: "K7QM-AAA4", At: now, Others: []string{"K7QM-AAA5"}}); err != nil {
+		t.Fatal(err)
+	}
+	if status("K7QM-AAA4") != "unblocked " || status("K7QM-AAA5") != "blocked " || s.LiftNoted("K7QM-AAA4") || s.LiftNoted("K7QM-AAA5") {
+		t.Fatalf("an unblock without a lift: %q, %q, lifts %v", status("K7QM-AAA4"), status("K7QM-AAA5"), noted(t, s))
+	}
+	// A block that runs although its incident reads unblocked.
+	if err := s.MarkUnblocked(ctx, "K7QM-AAA6", now, ""); err != nil {
+		t.Fatal(err)
+	}
+	if err := s.MarkUnblockedLift(ctx, Unblock{Incident: "K7QM-AAA6", At: now, Lift: true}); !errors.Is(err, ErrNotFound) {
+		t.Fatalf("an incident that is unblocked and has no running block: %v, want ErrNotFound", err)
+	}
+	if s.LiftNoted("K7QM-AAA6") {
+		t.Fatal("a lift was noted for an unblock that did not happen")
+	}
+	if err := s.MarkUnblockedLift(ctx, Unblock{Incident: "K7QM-AAA6", At: now, Live: true, Lift: true}); err != nil {
+		t.Fatal(err)
+	}
+	if !s.LiftNoted("K7QM-AAA6") {
+		t.Fatal("no lift for the block that runs although its incident reads unblocked")
+	}
+}
+
+// A lift is in memory when its note is committed, as one step for the
+// round that removes it: a lift written to the group right after the
+// commit does not stay in memory.
+func TestLiftWrittenRightAfterItsNoteLeavesNothingBehind(t *testing.T) {
+	ctx := context.Background()
+	for name, note := range map[string]func(s *Store) error{
+		"NoteLifts": func(s *Store) error { return s.NoteLifts(ctx, time.Now(), "K7QM-AAA2") },
+		"DeleteIP": func(s *Store) error {
+			_, err := s.DeleteIP(ctx, "198.51.100.1", false, func(b []byte, _ string) []byte { return b }, "K7QM-AAA2")
+			return err
+		},
+		"MarkUnblockedLift": func(s *Store) error {
+			return s.MarkUnblockedLift(ctx, Unblock{Incident: "K7QM-AAA2", At: time.Now(), Live: true, Lift: true})
+		},
+	} {
+		t.Run(name, func(t *testing.T) {
+			s := open(t)
+			s.ShareLifts()
+			written := make(chan error, 1)
+			outboxCommitted = func() {
+				// The round finds the row and writes the lift at once.
+				go func() { written <- s.LiftWritten(ctx, "K7QM-AAA2") }()
+				time.Sleep(100 * time.Millisecond)
+			}
+			defer func() { outboxCommitted = nil }()
+			if err := note(s); err != nil {
+				t.Fatal(err)
+			}
+			if err := <-written; err != nil {
+				t.Fatal(err)
+			}
+			if s.LiftNoted("K7QM-AAA2") || s.LiftsWaiting() || len(noted(t, s)) != 0 {
+				t.Fatalf("the lift is written and removed, and the store says: noted %v, waiting %v, rows %v", s.LiftNoted("K7QM-AAA2"), s.LiftsWaiting(), noted(t, s))
+			}
+		})
 	}
 }

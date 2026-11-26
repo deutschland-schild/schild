@@ -632,10 +632,9 @@ func (s *Store) DeleteIP(ctx context.Context, ip string, keepIncidents bool, tru
 			noted = append(noted, id)
 		}
 	}
-	if err := tx.Commit(); err != nil {
+	if err := s.commitNoted(tx, noted); err != nil {
 		return nil, err
 	}
-	s.liftsNoted(noted)
 	return res, nil
 }
 

@@ -106,8 +106,14 @@ func (g *groupNode) release(t *testing.T, ip string) {
 // are set in the engine and have none, so the node gets one here.
 func (g *groupNode) unblock(t *testing.T, incident, ip string) {
 	t.Helper()
+	g.unblockOf(t, incident, ip, "dashboard")
+}
+
+// unblockOf is unblock for an incident of a block of the source.
+func (g *groupNode) unblockOf(t *testing.T, incident, ip, source string) {
+	t.Helper()
 	ctx := context.Background()
-	if err := g.h.App.Store.InsertIncident(store.Foreign(ctx), &store.Incident{Incident: incident, Time: time.Now(), IP: ip, Status: "blocked", Sources: []string{"dashboard"}}); err != nil {
+	if err := g.h.App.Store.InsertIncident(store.Foreign(ctx), &store.Incident{Incident: incident, Time: time.Now(), IP: ip, Status: "blocked", Sources: []string{source}}); err != nil {
 		t.Fatal(err)
 	}
 	if code, body := g.h.API("POST", "/incidents/"+incident+"/unblock", map[string]any{}); code != 200 {

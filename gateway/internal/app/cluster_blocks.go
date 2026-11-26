@@ -13,6 +13,7 @@ import (
 	contract "github.com/deutschland-schild/schild/contract/cluster"
 	"github.com/deutschland-schild/schild/contract/config"
 	"github.com/deutschland-schild/schild/gateway/internal/behaviour"
+	"github.com/deutschland-schild/schild/gateway/internal/clientip"
 	"github.com/deutschland-schild/schild/gateway/internal/ratelog"
 	"github.com/deutschland-schild/schild/gateway/internal/store"
 )
@@ -118,9 +119,11 @@ var testBlockRuns atomic.Pointer[func(a *App, incident string)]
 // error is the error of the write.
 var testLiftWrite atomic.Pointer[func(a *App, incident string) error]
 
-// testClientBlocks, in tests, runs in withClientBlocks after the blocks of
-// the client were read and before the release or the erasure acts.
-var testClientBlocks atomic.Pointer[func(a *App)]
+// testClientBlocks, in tests, runs in clientBlocks under the lock of the
+// blocks: after the blocks of the client were read and before the release,
+// the erasure or the unblock acts (done false), and after it acted (done
+// true).
+var testClientBlocks atomic.Pointer[func(a *App, done bool)]
 
 // startGroupBlocks wires the blocks of the group into the node and applies
 // what the node holds. Called before the mesh runs.
@@ -136,6 +139,7 @@ func (a *App) startGroupBlocks(ctx context.Context) {
 	g.max.CompareAndSwap(0, groupBlocksMax)
 	a.Behaviour.KnownIncidents(a.incidentKnown)
 	a.Dashboard.ClientBlocks, a.Dashboard.LiftIncident, a.Dashboard.BlockHeld = a.withClientBlocks, a.endIncident, a.groupHolds
+	a.Dashboard.IncidentBlocks, a.Dashboard.BlockClient = a.withIncidentBlocks, a.blockClient
 	for _, class := range []string{contract.ClassIncidentBlocks, contract.ClassBlocks} {
 		node.Refuse(class, a.refuseGroupBlock)
 	}
@@ -320,7 +324,19 @@ func (a *App) forgetReplaced(key behaviour.Key, incident string) {
 // block that runs; so a node does not run a block of the group for it
 // either. The exceptions are shared, every node says the same. It reads
 // the memory of the gate.
-func (a *App) excepted(key behaviour.Key, scenario string, now time.Time) bool {
+//
+// The questions are those of the engine for a block that runs
+// (Engine.Check): the source "behaviour", and the source of the block,
+// which is behaviour:<scenario>, agent:<token id> or dashboard. No other.
+//
+// own: this node decided the block. A block a person set by hand here runs
+// on its node also under an exception, as on a single gateway: the person
+// set it knowing of the release, the block is listed, and the gate lets the
+// requests of the client pass it while the exception runs.
+func (a *App) excepted(key behaviour.Key, scenario string, own bool, now time.Time) bool {
+	if own && scenario == behaviour.DashboardSource {
+		return false
+	}
 	x := a.Gate.Exceptions
 	return x.Has(key.Addr(), "behaviour", now) || x.Has(key.Addr(), behaviour.BlockSource(scenario), now)
 }
@@ -350,7 +366,7 @@ func (a *App) startGroupBlock(key behaviour.Key) bool {
 	var next *groupBlock
 	for incident := range g.clients[key] {
 		b := g.held[incident]
-		if !b.info.Until.After(now) || a.Store.LiftNoted(incident) || a.excepted(key, b.info.Scenario, now) {
+		if !b.info.Until.After(now) || a.Store.LiftNoted(incident) || a.excepted(key, b.info.Scenario, b.self, now) {
 			continue
 		}
 		if next == nil || b.info.Until.After(next.info.Until) || (b.info.Until.Equal(next.info.Until) && incident < next.info.Incident) {
@@ -439,8 +455,37 @@ func (a *App) applyGroupBlocks() (int, bool) {
 	for key := range clients {
 		a.startGroupBlock(key)
 	}
+	a.resolveKeptBlocks()
 	g.read = true
 	return len(g.held), true
+}
+
+// resolveKeptBlocks decides who decided the kept blocks that do not say (a
+// build before D109 kept them), now that the records of the group are read
+// (contracts/cluster.md section 16): a block whose record another node
+// signed is that node's; one whose record this node signed, and one the
+// node holds no record of at all, is its own. The answer is noted in
+// schild.db, so it is given once. Called with groupBlocks.mu held.
+func (a *App) resolveKeptBlocks() {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	rows, err := a.Store.UnmarkedBlocks(ctx)
+	if err != nil {
+		ratelog.Warn(a.log, "cluster: kept blocks of a build before are not looked at; the next look decides who decided them", "err", err)
+		return
+	}
+	var taken []string
+	for clientKey, incident := range rows {
+		b := a.groupBlocks.held[incident]
+		own := b == nil || b.self
+		if !own {
+			taken = append(taken, clientKey)
+		}
+		if err := a.Store.MarkKeptBlock(ctx, clientKey, own); err != nil {
+			ratelog.Warn(a.log, "cluster: who decided a kept block is not noted; the next start decides again", "err", err)
+		}
+	}
+	a.Behaviour.TakenBlocks(taken)
 }
 
 // noteLifted notes that the node holds the lift of an incident, until its
@@ -509,14 +554,25 @@ func (a *App) applyBlockBefore(rec *contract.Record) {
 func (a *App) liftGroupBlock(incident string) {
 	g := &a.groupBlocks
 	key, ok := a.Behaviour.IncidentKey(incident)
-	if b := g.held[incident]; b != nil {
+	b := g.held[incident]
+	if b != nil {
 		a.dropGroupBlock(b)
 		g.remove(incident)
 		key, ok = b.key, true
 	} else if err := a.Cluster.Drop(contract.ClassIncidentBlocks, incident); err != nil {
 		ratelog.Warn(a.log, "cluster: the record of a lifted block is not dropped; it leaves at the end of the block", "err", err)
 	}
+	// The incident reads unblocked on every node that holds the lift, also
+	// where the block did not run when the lift came (an exception that
+	// arrived first ended it without a word). The node that decided the
+	// block wrote the incident: its change travels; on the others it is no
+	// news of theirs.
+	own := b != nil && b.self
+	if run, runs := a.Behaviour.ActiveBlock(key.Addr()); b == nil && ok && runs && run.Incident == incident {
+		own = !run.Taken
+	}
 	a.Behaviour.LiftIncident(incident)
+	a.queueBlockOp(blockOp{ended: incident, endedAt: time.Now().UTC(), foreign: !own})
 	if ok {
 		a.startGroupBlock(key)
 	}
@@ -550,6 +606,18 @@ func (a *App) groupHolds(incident string) bool {
 	defer g.mu.Unlock()
 	b := g.held[incident]
 	return b != nil && b.info.Until.After(time.Now()) && !a.Store.LiftNoted(incident)
+}
+
+// blockClient is the client of the block record the group holds of an
+// incident.
+func (a *App) blockClient(incident string) (netip.Addr, bool) {
+	g := &a.groupBlocks
+	g.mu.Lock()
+	defer g.mu.Unlock()
+	if b := g.held[incident]; b != nil {
+		return b.key.Addr(), true
+	}
+	return netip.Addr{}, false
 }
 
 // noteErased notes the erasure record of the client of ip.
@@ -627,8 +695,39 @@ func (a *App) withClientBlocks(ip netip.Addr, f func(incidents []string) error) 
 	g := &a.groupBlocks
 	g.mu.Lock()
 	defer g.mu.Unlock()
+	return a.clientBlocks(key, f)
+}
+
+// withIncidentBlocks is withClientBlocks for "Freigeben" of an incident:
+// the client is the one of the incident's block, as the engine runs it or
+// the group holds it. The address stored with the incident does not say:
+// retention shortens it, and the shortened address is another client's.
+// Only when no block of the incident is known here the stored address
+// counts, and only a full one; else f runs with no incident.
+func (a *App) withIncidentBlocks(incident, stored string, f func(incidents []string) error) error {
+	g := &a.groupBlocks
+	g.mu.Lock()
+	defer g.mu.Unlock()
+	key, ok := a.Behaviour.IncidentKey(incident)
+	if b := g.held[incident]; !ok && b != nil {
+		key, ok = b.key, true
+	}
+	if ip, err := netip.ParseAddr(stored); !ok && err == nil && clientip.Truncate(ip) != ip {
+		key, _ = behaviour.KeyOf(ip)
+		ok = key.IsValid()
+	}
+	if !ok {
+		return f(nil)
+	}
+	return a.clientBlocks(key, f)
+}
+
+// clientBlocks runs f with the incidents of the blocks held for a client.
+// Called with groupBlocks.mu held.
+func (a *App) clientBlocks(key behaviour.Key, f func(incidents []string) error) error {
+	g := &a.groupBlocks
 	var out []string
-	run, runs := a.Behaviour.ActiveBlock(ip)
+	run, runs := a.Behaviour.ActiveBlock(key.Addr())
 	if runs && run.Incident != "" {
 		out = append(out, run.Incident)
 	}
@@ -638,10 +737,15 @@ func (a *App) withClientBlocks(ip netip.Addr, f func(incidents []string) error) 
 		}
 	}
 	sort.Strings(out)
-	if hook := testClientBlocks.Load(); hook != nil {
-		(*hook)(a)
+	hook := testClientBlocks.Load()
+	if hook != nil {
+		(*hook)(a, false)
 	}
-	return f(out)
+	err := f(out)
+	if hook != nil {
+		(*hook)(a, true)
+	}
+	return err
 }
 
 // incidentKnown reports whether this node holds an incident, a block record
@@ -748,7 +852,7 @@ func (a *App) publishGroupBlocks() {
 		// of blocks and the firewall say what the gate does. No lift: the
 		// record stays, and the block starts again when the exception is
 		// over. A block this node has not written yet is written first.
-		if held != nil && held.key == rb.Key && exceptions && a.excepted(rb.Key, rb.Scenario, now) {
+		if held != nil && held.key == rb.Key && exceptions && a.excepted(rb.Key, rb.Scenario, !rb.Taken, now) {
 			a.Behaviour.DropIncident(rb.Incident)
 			continue
 		}

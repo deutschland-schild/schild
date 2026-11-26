@@ -209,7 +209,7 @@ func (a *App) SetGroupBlocksMax(n int64) { a.groupBlocks.max.Store(n) }
 
 // SetTestClientBlocks makes f run while a node releases or erases an
 // address, after it read the blocks of the client and before it acts.
-func SetTestClientBlocks(f func(a *App)) (undo func()) {
+func SetTestClientBlocks(f func(a *App, done bool)) (undo func()) {
 	testClientBlocks.Store(&f)
 	return func() { testClientBlocks.Store(nil) }
 }

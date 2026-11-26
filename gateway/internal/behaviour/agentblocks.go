@@ -28,6 +28,14 @@ func BlockSource(scenario string) string {
 	return "behaviour:" + scenario
 }
 
+// IsBlockSource reports whether a decision source of an incident names a
+// block: one of a scenario, of an agent or set by hand. The incident of a
+// single refused request (a rule, a rate limit, a limit of the gate) has
+// no such source, and no block to lift.
+func IsBlockSource(source string) bool {
+	return strings.HasPrefix(source, "behaviour:") || strings.HasPrefix(source, AgentSource) || source == DashboardSource
+}
+
 // AgentBlock is what an agent asks for, after every check. Source set to
 // DashboardSource is a block the operator set by hand (D88), without a token.
 type AgentBlock struct {
