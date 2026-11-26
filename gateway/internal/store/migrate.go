@@ -35,7 +35,9 @@ type migration struct {
 
 // migrations are the steps after the baseline, in order and without gaps:
 // the first has version baselineVersion+1. Tests replace the list.
-var migrations = []migration{}
+var migrations = []migration{
+	{version: 2, name: "cluster_outbox", sql: outboxMigration},
+}
 
 const migrationsSchema = `
 CREATE TABLE IF NOT EXISTS schema_migrations (

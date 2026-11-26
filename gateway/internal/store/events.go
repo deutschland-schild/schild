@@ -538,8 +538,11 @@ type DeleteResult struct {
 }
 
 // DeleteIP deletes everything stored about one address. With keepIncidents
-// the blocked events and incidents stay, with the address truncated.
-func (s *Store) DeleteIP(ctx context.Context, ip string, keepIncidents bool, truncate func(body []byte, ip string) []byte) (*DeleteResult, error) {
+// the blocked events and incidents stay, with the address truncated. lifts
+// are the incidents of the blocks a node of a group holds for the address:
+// the erasure ends them for the group, noted in the same transaction
+// (outbox.go). The node that takes the erasure of another node names none.
+func (s *Store) DeleteIP(ctx context.Context, ip string, keepIncidents bool, truncate func(body []byte, ip string) []byte, lifts ...string) (*DeleteResult, error) {
 	k := ipKey(ip)
 	if k == "" {
 		return nil, errors.New("invalid ip")
@@ -612,7 +615,26 @@ func (s *Store) DeleteIP(ctx context.Context, ip string, keepIncidents bool, tru
 	if err := bumpAllowVersion(ctx, tx); err != nil {
 		return nil, err
 	}
-	return res, tx.Commit()
+	now := time.Now()
+	var added int64
+	for _, id := range lifts {
+		if !s.outbox.on.Load() {
+			break // a single gateway has no group to tell
+		}
+		if _, err := tx.ExecContext(ctx, `UPDATE incidents SET status = 'unblocked', unblocked_ms = ? WHERE incident = ? AND status = 'blocked'`, ms(now), id); err != nil {
+			return nil, err
+		}
+		n, err := s.noteLiftTx(ctx, tx, id, now)
+		if err != nil {
+			return nil, err
+		}
+		added += n
+	}
+	if err := tx.Commit(); err != nil {
+		return nil, err
+	}
+	s.outbox.waiting.Add(added)
+	return res, nil
 }
 
 // RequestLite is the part of a stored request event a rate-limit dry run
