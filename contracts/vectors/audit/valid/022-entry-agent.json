@@ -1,0 +1,57 @@
+{
+  "contract": "audit",
+  "description": "A token sets an exception.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"entry\":{\"action\":\"rule_exception.set\",\"actor\":{\"id\":\"tok_0123456789ab\",\"kind\":\"agent\",\"label\":\"coding-agent\"},\"change\":{\"fields\":[{\"after\":\"/kontakt\",\"change\":\"added\",\"field\":\"/path\"},{\"added\":[\"942100\"],\"change\":\"added\",\"field\":\"/rules\"}]},\"class\":\"change\",\"id\":\"0a1b2c3d4e5f6071-k-17\",\"node\":\"gw-1\",\"operation\":\"agent:createAgentException\",\"reason\":\"Contact form\",\"result\":\"done\",\"schema\":\"schild.audit/0.1\",\"subject\":{\"id\":\"1900001\",\"kind\":\"rule_exception\"},\"time\":\"2026-10-26T12:00:00Z\",\"website\":\"shop.example\"},\"from\":\"local\",\"op\":\"entry\"}",
+  "input_decoded": {
+    "entry": {
+      "action": "rule_exception.set",
+      "actor": {
+        "id": "tok_0123456789ab",
+        "kind": "agent",
+        "label": "coding-agent"
+      },
+      "change": {
+        "fields": [
+          {
+            "after": "/kontakt",
+            "change": "added",
+            "field": "/path"
+          },
+          {
+            "added": [
+              "942100"
+            ],
+            "change": "added",
+            "field": "/rules"
+          }
+        ]
+      },
+      "class": "change",
+      "id": "0a1b2c3d4e5f6071-k-17",
+      "node": "gw-1",
+      "operation": "agent:createAgentException",
+      "reason": "Contact form",
+      "result": "done",
+      "schema": "schild.audit/0.1",
+      "subject": {
+        "id": "1900001",
+        "kind": "rule_exception"
+      },
+      "time": "2026-10-26T12:00:00Z",
+      "website": "shop.example"
+    },
+    "from": "local",
+    "op": "entry"
+  },
+  "expect": {
+    "valid": true,
+    "result": {
+      "kept": true,
+      "known": true,
+      "stripped": 0
+    }
+  }
+}

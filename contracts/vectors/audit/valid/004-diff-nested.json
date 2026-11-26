@@ -1,0 +1,59 @@
+{
+  "contract": "audit",
+  "description": "Nested objects to their last field, * for one segment.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"action\":\"behaviour.set\",\"after\":{\"scenarios\":{\"path_probing\":\"block\"},\"thresholds\":{\"path_probing\":{\"baseline_factor\":1.5,\"count\":30,\"window_s\":60}}},\"before\":{\"scenarios\":{\"path_probing\":\"observe\"},\"thresholds\":{\"path_probing\":{\"count\":20,\"window_s\":60}}},\"op\":\"diff\"}",
+  "input_decoded": {
+    "action": "behaviour.set",
+    "after": {
+      "scenarios": {
+        "path_probing": "block"
+      },
+      "thresholds": {
+        "path_probing": {
+          "baseline_factor": 1.5,
+          "count": 30,
+          "window_s": 60
+        }
+      }
+    },
+    "before": {
+      "scenarios": {
+        "path_probing": "observe"
+      },
+      "thresholds": {
+        "path_probing": {
+          "count": 20,
+          "window_s": 60
+        }
+      }
+    },
+    "op": "diff"
+  },
+  "expect": {
+    "valid": true,
+    "result": {
+      "fields": [
+        {
+          "field": "/scenarios/path_probing",
+          "change": "changed",
+          "before": "observe",
+          "after": "block"
+        },
+        {
+          "field": "/thresholds/path_probing/baseline_factor",
+          "change": "added",
+          "after": 1.5
+        },
+        {
+          "field": "/thresholds/path_probing/count",
+          "change": "changed",
+          "before": 20,
+          "after": 30
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,47 @@
+{
+  "contract": "audit",
+  "description": "A command on the host; the account is a hint.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"entry\":{\"action\":\"token.add\",\"actor\":{\"account\":\"deploy\",\"kind\":\"cli\"},\"change\":{\"fields\":[{\"after\":\"exceptions:write\",\"change\":\"added\",\"field\":\"/scope\"}]},\"class\":\"credential\",\"id\":\"0a1b2c3d4e5f6071-k-17\",\"node\":\"gw-1\",\"operation\":\"cli:token add\",\"result\":\"done\",\"schema\":\"schild.audit/0.1\",\"subject\":{\"id\":\"tok_0123456789ab\",\"kind\":\"token\"},\"time\":\"2026-10-26T12:00:00Z\"},\"from\":\"local\",\"op\":\"entry\"}",
+  "input_decoded": {
+    "entry": {
+      "action": "token.add",
+      "actor": {
+        "account": "deploy",
+        "kind": "cli"
+      },
+      "change": {
+        "fields": [
+          {
+            "after": "exceptions:write",
+            "change": "added",
+            "field": "/scope"
+          }
+        ]
+      },
+      "class": "credential",
+      "id": "0a1b2c3d4e5f6071-k-17",
+      "node": "gw-1",
+      "operation": "cli:token add",
+      "result": "done",
+      "schema": "schild.audit/0.1",
+      "subject": {
+        "id": "tok_0123456789ab",
+        "kind": "token"
+      },
+      "time": "2026-10-26T12:00:00Z"
+    },
+    "from": "local",
+    "op": "entry"
+  },
+  "expect": {
+    "valid": true,
+    "result": {
+      "kept": true,
+      "known": true,
+      "stripped": 0
+    }
+  }
+}

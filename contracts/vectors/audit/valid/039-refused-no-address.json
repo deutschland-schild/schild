@@ -1,0 +1,38 @@
+{
+  "contract": "audit",
+  "description": "A call without an address.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"calls\":[{\"action\":\"agent_api.call\",\"operation\":\"agent:any\",\"t\":1793016000000},{\"action\":\"agent_api.call\",\"operation\":\"agent:any\",\"t\":1793016000005}],\"max_open\":0,\"op\":\"refused\"}",
+  "input_decoded": {
+    "calls": [
+      {
+        "action": "agent_api.call",
+        "operation": "agent:any",
+        "t": 1793016000000
+      },
+      {
+        "action": "agent_api.call",
+        "operation": "agent:any",
+        "t": 1793016000005
+      }
+    ],
+    "max_open": 0,
+    "op": "refused"
+  },
+  "expect": {
+    "valid": true,
+    "result": {
+      "entries": [
+        {
+          "action": "agent_api.call",
+          "operation": "agent:any",
+          "first": 1793016000000,
+          "last": 1793016000005,
+          "count": 2
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,35 @@
+{
+  "contract": "audit",
+  "description": "A client has no id.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"entry\":{\"action\":\"client.release\",\"actor\":{\"kind\":\"dashboard\"},\"class\":\"change\",\"id\":\"0a1b2c3d4e5f6071-k-17\",\"node\":\"gw-1\",\"operation\":\"dashboard:releaseClient\",\"reason\":\"Contact form\",\"result\":\"done\",\"schema\":\"schild.audit/0.1\",\"subject\":{\"id\":\"c1\",\"kind\":\"client\"},\"time\":\"2026-10-26T12:00:00Z\",\"website\":\"shop.example\"},\"from\":\"member\",\"op\":\"entry\"}",
+  "input_decoded": {
+    "entry": {
+      "action": "client.release",
+      "actor": {
+        "kind": "dashboard"
+      },
+      "class": "change",
+      "id": "0a1b2c3d4e5f6071-k-17",
+      "node": "gw-1",
+      "operation": "dashboard:releaseClient",
+      "reason": "Contact form",
+      "result": "done",
+      "schema": "schild.audit/0.1",
+      "subject": {
+        "id": "c1",
+        "kind": "client"
+      },
+      "time": "2026-10-26T12:00:00Z",
+      "website": "shop.example"
+    },
+    "from": "member",
+    "op": "entry"
+  },
+  "expect": {
+    "valid": false,
+    "error": "schema"
+  }
+}

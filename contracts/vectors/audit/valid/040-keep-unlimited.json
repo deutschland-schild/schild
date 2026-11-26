@@ -1,0 +1,44 @@
+{
+  "contract": "audit",
+  "description": "audit.keep_days unlimited: changes, credentials and privacy entries of ten years stay.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"keep_days\":null,\"max_rows\":10,\"now\":1793016000000,\"op\":\"keep\",\"rows\":[{\"class\":\"change\",\"id\":\"0a1b2c3d4e5f6071-k-1\",\"t\":1477656000000},{\"class\":\"credential\",\"id\":\"0a1b2c3d4e5f6071-k-2\",\"t\":1477656000000},{\"class\":\"privacy\",\"id\":\"0a1b2c3d4e5f6071-k-3\",\"t\":1477656000000},{\"class\":\"access\",\"id\":\"0a1b2c3d4e5f6071-a-1\",\"t\":1477656000000}]}",
+  "input_decoded": {
+    "keep_days": null,
+    "max_rows": 10,
+    "now": 1793016000000,
+    "op": "keep",
+    "rows": [
+      {
+        "class": "change",
+        "id": "0a1b2c3d4e5f6071-k-1",
+        "t": 1477656000000
+      },
+      {
+        "class": "credential",
+        "id": "0a1b2c3d4e5f6071-k-2",
+        "t": 1477656000000
+      },
+      {
+        "class": "privacy",
+        "id": "0a1b2c3d4e5f6071-k-3",
+        "t": 1477656000000
+      },
+      {
+        "class": "access",
+        "id": "0a1b2c3d4e5f6071-a-1",
+        "t": 1477656000000
+      }
+    ]
+  },
+  "expect": {
+    "valid": true,
+    "result": {
+      "deleted": [
+        "0a1b2c3d4e5f6071-a-1"
+      ]
+    }
+  }
+}

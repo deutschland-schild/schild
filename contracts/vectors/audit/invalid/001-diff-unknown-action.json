@@ -1,0 +1,18 @@
+{
+  "contract": "audit",
+  "description": "An action outside the closed list.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"action\":\"allowlist.replace\",\"after\":{},\"before\":null,\"op\":\"diff\"}",
+  "input_decoded": {
+    "action": "allowlist.replace",
+    "after": {},
+    "before": null,
+    "op": "diff"
+  },
+  "expect": {
+    "valid": false,
+    "error": "schema"
+  }
+}

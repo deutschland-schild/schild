@@ -88,6 +88,7 @@ RESULT_LIMITS = {"bot-match": 4 << 20, "geo-map": 64 << 10,
                  "access-gate": 64 << 10,  # D56 (MVP-14 step 1)
                  "crawler-policy": 4 << 20,  # D57 (MVP-29)
                  "human-check": 64 << 10,  # MVP-12 v1_cut
+                 "audit": 1 << 20,  # draft, MVP-36
                  "cluster-record": 4 << 20}  # D105 (MVP-27)
 FORBIDDEN_FIELDS = [
     "ip", "ips", "ip_address", "ip_prefix", "ip_hash", "ip_pseudonym", "oprf", "client_ip", "remote_addr", "remote_ip",
@@ -4407,6 +4408,461 @@ def cluster_record(v, now):
     return {"taken": True, "reason": "", "replaces": cl_wins(rec, held) if held is not None else None}
 
 
+# ---------------------------------------------------------------- audit log (draft, MVP-36)
+
+AU_SECRET = ("password", "passwd", "secret", "token", "key", "hash", "cookie", "code", "seed", "credential", "credentials", "authorization")
+AU_VALUES = ("before", "after", "added", "removed")
+AU_DAY = 24 * 3600 * 1000
+AU_ACTIONS = {}
+
+
+def au_load(root):
+    """Reads the catalogue of actions."""
+    with open(os.path.join(root, "audit-actions.json"), "rb") as f:
+        doc = strict_object(f.read())
+    for a in doc["actions"]:
+        if a["action"] in AU_ACTIONS:
+            raise SystemExit("audit-actions: %s twice" % a["action"])
+        AU_ACTIONS[a["action"]] = a
+
+
+def au_fold(seg):
+    return "".join(ch.lower() if "A" <= ch <= "Z" else ch for ch in seg if ch not in "-_.")
+
+
+def au_is_secret(ptr):
+    return any(au_fold(seg).endswith(AU_SECRET) for seg in ptr.split("/"))
+
+
+def au_match(patterns, ptr):
+    seg = ptr.split("/")
+    return any(len(seg) == len(p.split("/")) and all(x in ("*", y) for x, y in zip(p.split("/"), seg)) for p in patterns)
+
+
+def au_records(a, ptr):
+    return not au_is_secret(ptr) and au_match(a["fields"], ptr)
+
+
+def au_clean(s):
+    def odd(o):
+        return (o < 0x20 or 0x7F <= o <= 0x9F or 0x200B <= o <= 0x200F or 0x2028 <= o <= 0x202E
+                or 0x2060 <= o <= 0x2069 or o == 0xFEFF)
+    return "".join("�" if odd(ord(ch)) else ch for ch in s)
+
+
+def au_len(s):
+    return len(s.encode("utf-8"))
+
+
+def au_clip(s, n):
+    raw = s.encode("utf-8")
+    if len(raw) <= n:
+        return s, False
+    return raw[:n].decode("utf-8", "ignore"), True
+
+
+def au_flatten(v, ptr, out):
+    if v is None:
+        return
+    if isinstance(v, dict):
+        for k, x in v.items():
+            au_flatten(x, ptr + "/" + k.replace("~", "~0").replace("/", "~1"), out)
+        return
+    out[ptr] = v
+
+
+def au_equal(x, y):
+    if isinstance(x, bool) or isinstance(y, bool):
+        return x is y
+    if isinstance(x, (int, float)) and isinstance(y, (int, float)):
+        return x == y
+    if type(x) is not type(y):
+        return False
+    if isinstance(x, list):
+        return len(x) == len(y) and all(au_equal(p, q) for p, q in zip(x, y))
+    if isinstance(x, dict):
+        return set(x) == set(y) and all(au_equal(x[k], y[k]) for k in x)
+    return x == y
+
+
+def au_minus(a, b):
+    return sorted(set(a) - set(b), key=lambda s: s.encode("utf-8"))
+
+
+def au_values(f, have_b, x, have_n, y):
+    """Puts the values of a field into f, returns what they cost."""
+    if not isinstance(x, list) and not isinstance(y, list):
+        cost = 0
+        for k, there, v in (("before", have_b, x), ("after", have_n, y)):
+            if not there:
+                continue
+            cost += 8
+            if isinstance(v, str):
+                v, was = au_clip(au_clean(v), 512)
+                if was:
+                    f["cut"] = True
+                cost += au_len(v)
+            f[k] = v
+        return cost
+    lists = []
+    for there, v in ((have_b, x), (have_n, y)):
+        if not there:
+            v = []
+        if not isinstance(v, list) or not all(isinstance(i, str) for i in v):
+            f["hidden"] = "list"
+            return 0
+        lists.append(v)
+    added, removed = au_minus(lists[1], lists[0]), au_minus(lists[0], lists[1])
+    if not added and not removed:
+        f["hidden"] = "order"
+        return 0
+    cost = 16
+    for k, items in (("added", added), ("removed", removed)):
+        if len(items) > 32:
+            f["more"] = f.get("more", 0) + len(items) - 32
+        taken = []
+        for i in items[:32]:
+            i, was = au_clip(au_clean(i), 256)
+            if was:
+                f["cut"] = True
+            cost += au_len(i)
+            taken.append(i)
+        if taken:
+            f[k] = taken
+    return cost
+
+
+def au_diff(v):
+    a = AU_ACTIONS.get(v["action"])
+    if a is None:
+        raise Reject("schema", "unknown action")
+    b, n = {}, {}
+    au_flatten(v["before"], "", b)
+    au_flatten(v["after"], "", n)
+    out, used, more = [], 0, 0
+    for p in sorted(set(b) | set(n), key=lambda s: s.encode("utf-8")):
+        if p in b and p in n and au_equal(b[p], n[p]):
+            continue
+        name = au_clean(p)
+        if au_len(name) > 512:
+            more += 1
+            continue
+        kind = "added" if p not in b else "removed" if p not in n else "changed"
+        base = {"field": name, "change": kind}
+        f, cost = dict(base), 0
+        if not au_records(a, p):
+            f["hidden"] = "secret" if au_is_secret(p) else "unlisted"
+        else:
+            cost = au_values(f, p in b, b.get(p), p in n, n.get(p))
+        head = au_len(name) + 16
+        if cost and used + head + cost > 8192:
+            f, cost = dict(base, hidden="size"), 0
+        if used + head + cost > 8192 or len(out) == 64:
+            more += 1
+            continue
+        used += head + cost
+        out.append(f)
+    res = {"fields": out}
+    if more:
+        res["more_fields"] = more
+    return res
+
+
+def au_letter(cls):
+    return {"access": "a", "refused": "r"}.get(cls, "k")
+
+
+def au_hide(f, why):
+    for k in AU_VALUES + ("more", "cut"):
+        f.pop(k, None)
+    f["hidden"] = why
+
+
+def au_fields(e):
+    return e.get("change", {}).get("fields", [])
+
+
+def au_entry(e, local):
+    def need(ok, msg):
+        if not ok:
+            raise Reject("schema", msg)
+    for k in ("time", "last"):
+        if k in e:
+            parse_time(e[k], k)
+    cls, actor = e["class"], e["actor"]
+    refused = cls == "refused"
+    need(e["id"].split("-")[1] == au_letter(cls), "id")
+    need((e["result"] == "refused") == refused, "result")
+    if refused:
+        need("change" not in e, "a refused call changes nothing")
+        need(("count" in e) == ("last" in e), "count and last")
+    else:
+        need("count" not in e and "last" not in e, "count and last")
+    need(e["operation"].split(":", 1)[0] == actor["kind"], "actor")
+    if not refused and actor["kind"] in ("agent", "integration"):
+        need("id" in actor, "actor id")
+    sub_id, sub_kind = e["subject"].get("id"), e["subject"]["kind"]
+    if sub_id is not None and sub_kind != "website":
+        need(sub_kind not in ("address", "client") and au_net(sub_id) is None, "subject")
+    if "last" in e:
+        need(e["last"] >= e["time"], "last")
+    if e.get("address_cut") == "erased":
+        need("address" not in e, "address")
+    a = AU_ACTIONS.get(e["action"])
+    if a is None:
+        need(not local, "unknown action")
+    else:
+        need(refused or cls == a["class"], "class")
+        need(refused or not a.get("refused_only"), "refused only")
+        need(e["subject"]["kind"] == a["subject"], "subject")
+        if local:
+            need(e["operation"] in a["operations"], "operation")
+            need(not (a["website"] == "none" and "website" in e), "website")
+            need(refused or a["website"] != "required" or "website" in e, "website")
+    stripped = 0
+    for f in au_fields(e):
+        valued = any(k in f for k in AU_VALUES)
+        need(valued != ("hidden" in f), "field")
+        may = au_records(a, f["field"]) if a else not au_is_secret(f["field"])
+        if valued and not may:
+            need(not local, "field may not be recorded")
+            au_hide(f, "secret" if au_is_secret(f["field"]) else "unlisted")
+            stripped += 1
+    return {"kept": au_letter(cls) == "k", "known": a is not None, "stripped": stripped}
+
+
+def au_client(s):
+    ip = au_addr(s)
+    if ip is None:
+        return ""
+    if ip.version == 4:
+        return str(ip)
+    return str(ipaddress.ip_network((ip, 64), strict=False).network_address)
+
+
+def au_refused(v):
+    out, opened, minute, n = [], {}, -1, 0
+    for c in v["calls"]:
+        m = c["t"] // 60000
+        if m > minute:
+            minute, n, opened = m, 0, {}
+        client, shown = au_client(c.get("address", "")), c.get("address", "")
+        who = (c["action"], c["operation"], c.get("actor", ""))
+        if client and who + (client,) not in opened and n >= v["max_open"]:
+            client, shown = "", ""
+        g = opened.get(who + (client,))
+        if g is None:
+            if client:
+                n += 1
+            g = {"action": c["action"], "operation": c["operation"], "first": c["t"], "last": c["t"], "count": 0}
+            if "actor" in c:
+                g["actor"] = c["actor"]
+            if shown:
+                g["address"] = shown
+            opened[who + (client,)] = g
+            out.append(g)
+        g["count"] += 1
+        g["first"], g["last"] = min(g["first"], c["t"]), max(g["last"], c["t"])
+    return {"entries": out}
+
+
+def au_keep(v):
+    ids = [r["id"] for r in v["rows"]]
+    if len(set(ids)) != len(ids) or any(r["id"].split("-")[1] != au_letter(r["class"]) for r in v["rows"]):
+        raise Reject("schema", "rows: id")
+    gone = set()
+    for r in v["rows"]:
+        days = 90 if r["class"] in ("access", "refused") else v["keep_days"]
+        if days is not None and v["now"] - r["t"] >= days * AU_DAY:
+            gone.add(r["id"])
+    order = sorted(v["rows"], key=lambda r: (r["t"], r["id"].encode()))
+    for cls in ("access", "refused"):
+        left = [r for r in order if r["class"] == cls]
+        for r in left[:max(0, len(left) - v["max_rows"])]:
+            gone.add(r["id"])
+    return {"deleted": [r["id"] for r in order if r["id"] in gone]}
+
+
+def au_addr(s):
+    if "%" in s:
+        return None
+    try:
+        ip = ipaddress.ip_address(s)
+    except ValueError:
+        return None
+    if ip.version == 6 and ip.ipv4_mapped is not None:
+        ip = ip.ipv4_mapped
+    return ip
+
+
+def au_net(s):
+    """(address, bits) of an address or a network."""
+    addr, slash, bits = s.partition("/")
+    ip = au_addr(addr)
+    if ip is None:
+        return None
+    if not slash:
+        return ip, ip.max_prefixlen
+    if not re.match(r"(0|[1-9][0-9]{0,2})\Z", bits) or int(bits) > ip.max_prefixlen or (":" in addr and ip.version == 4):
+        return None
+    return ip, int(bits)
+
+
+def au_names(s, ip):
+    n = au_net(s)
+    if n is None or n[0].version != ip.version or n[1] < (32 if ip.version == 4 else 64):
+        return False
+    return ip in ipaddress.ip_network(n, strict=False)
+
+
+def au_short(s):
+    n = au_net(s)
+    if n is None:
+        return s
+    bits = 24 if n[0].version == 4 else 48
+    if n[1] <= bits:
+        return s
+    return str(ipaddress.ip_network((n[0], bits), strict=False))
+
+
+def au_single(ip):
+    return "%s/%d" % (ip, ip.max_prefixlen)
+
+
+def au_each(f, fn):
+    for k in ("before", "after"):
+        if isinstance(f.get(k), str):
+            f[k] = fn(f[k])
+    for k in ("added", "removed"):
+        if k in f:
+            f[k] = sorted(set([fn(s) for s in f[k]]), key=lambda s: s.encode("utf-8"))
+
+
+def au_rewrite(e, repl):
+    if not repl:
+        return
+    rules = []
+    for k in sorted(repl, key=lambda s: (-au_len(s), s.encode())):
+        h = r"[0-9a-fA-F.:]"
+        # stands alone: no address character before it; after it neither a network length nor more of an address
+        rules.append((re.compile(r"(?<!%s)%s(?!/[0-9])(?![0-9a-fA-F])(?![.:][0-9a-fA-F])" % (h, re.escape(k))), repl[k]))
+
+    def fix(s, n):
+        for pat, to in rules:
+            s = pat.sub(to, s)
+        return au_clip(s, n)[0]
+
+    def put(m, k, n):
+        if isinstance(m.get(k), str):
+            m[k] = fix(m[k], n)
+    put(e, "reason", 500)
+    put(e["actor"], "label", 64)
+    put(e["actor"], "on_behalf_of", 128)
+    put(e["subject"], "id", 253)
+    for f in au_fields(e):
+        put(f, "before", 512)
+        put(f, "after", 512)
+        for k in ("added", "removed"):
+            if k in f:
+                f[k] = [fix(s, 256) for s in f[k]]
+
+
+def au_cut(v, now_of):
+    e = json.loads(json.dumps(v["entry"]))
+    who = {"dashboard": "user", "integration": "on_behalf_of", "cli": "account"}
+    for p in v.get("forgotten", []):
+        k = who[p["kind"]]
+        if e["actor"]["kind"] == p["kind"] and e["actor"].get(k) == p["name"]:
+            e["actor"][k] = p["pseudonym"]
+    gone = [ip for ip in map(au_addr, v.get("erased", [])) if ip is not None]
+    if gone:
+        repl = {}
+        for ip in gone:
+            repl[str(ip)] = repl[au_single(ip)] = "erased"
+
+        def hit(s):
+            if any(au_names(s, ip) for ip in gone):
+                repl[s] = "erased"
+                return True
+            return False
+        if "address" in e and hit(e["address"]):
+            del e["address"]
+            e["address_cut"] = "erased"
+        for f in au_fields(e):
+            vals = [f[k] for k in ("before", "after") if isinstance(f.get(k), str)] + f.get("added", []) + f.get("removed", [])
+            if any([hit(s) for s in vals]):
+                au_hide(f, "erased")
+        au_rewrite(e, repl)
+    if now_of(v["now"]) - now_of(e["time"]) < v["raw_ip_days"] * 24 * 3600:
+        return {"entry": e}
+    repl = {}
+
+    def cut(s):
+        n = au_short(s)
+        if n != s:
+            repl[s] = n
+            ip, bits = au_net(s)
+            if bits == ip.max_prefixlen:
+                repl[str(ip)] = repl[au_single(ip)] = n
+        return n
+    if "address" in e:
+        n = cut(e["address"])
+        if n != e["address"]:
+            e["address"], e["address_cut"] = n, "short"
+    for f in au_fields(e):
+        au_each(f, cut)
+    au_rewrite(e, repl)
+    return {"entry": e}
+
+
+def au_view(v):
+    e, who = json.loads(json.dumps(v["entry"])), v["viewer"]
+    if who["kind"] == "dashboard":
+        return {"entry": e}
+    if who["kind"] == "agent":
+        if e["class"] not in ("change", "credential"):
+            return {"entry": None}
+        for k in ("address", "address_cut"):
+            e.pop(k, None)
+        e["actor"] = {k: x for k, x in e["actor"].items() if k in ("kind", "id", "label")}
+        return {"entry": e}
+    a = AU_ACTIONS.get(e["action"], {})
+    if not a.get("portal") or e["class"] != "change" or e.get("website") != who["website"]:
+        return {"entry": None}
+    out = {k: e[k] for k in ("id", "time", "action", "subject", "website")}
+    if e["actor"]["kind"] == "integration":
+        out["actor"] = {"kind": "portal"}
+        if "on_behalf_of" in e["actor"]:
+            out["actor"]["on_behalf_of"] = e["actor"]["on_behalf_of"]
+        if "reason" in e:
+            out["reason"] = e["reason"]
+    else:
+        out["actor"] = {"kind": "operator"}
+        for f in au_fields(e):
+            if "hidden" not in f and (f["field"] == "/label" or au_match(a.get("addresses", []), f["field"])):
+                au_hide(f, "operator")
+    if "change" in e:
+        out["change"] = e["change"]
+    return {"entry": out}
+
+
+def audit_log(v):
+    op = v["op"]
+    if "entry" in v and op != "entry":
+        au_entry(v["entry"], False)
+    if op == "diff":
+        return au_diff(v)
+    if op == "entry":
+        return au_entry(v["entry"], v["from"] == "local")
+    if op == "refused":
+        return au_refused(v)
+    if op == "keep":
+        return au_keep(v)
+    if op == "cut":
+        return au_cut(v, lambda s: parse_time(s, "time"))
+    return au_view(v)
+
+
 def run_vector(checker, keys, v):
     ctx = Ctx(v.get("context", {}), keys)
     raw = v["input_raw"].encode("utf-8")
@@ -4446,6 +4902,8 @@ def run_vector(checker, keys, v):
                 result = agent_block(doc)
             elif c == "cluster-record":
                 result = cluster_record(doc, ctx.now)
+            elif c == "audit":
+                result = audit_log(doc)
             elif c == "storage-bounds":
                 result = storage_bounds(doc)
             elif c == "ingress-order":
@@ -4571,6 +5029,7 @@ def main():
     selftest()
     root = os.path.abspath(a.contracts)
     schemas = Schemas(root)
+    au_load(root if os.path.exists(os.path.join(root, "audit-actions.json")) else os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
     keys = load_keys(os.path.join(root, "testkeys", "keys.json"))
     checker = Checker(schemas)
     vdir = os.path.join(root, "vectors")

@@ -15,6 +15,7 @@ import (
 	"github.com/santhosh-tekuri/jsonschema/v6"
 
 	"github.com/deutschland-schild/schild/contract/agentapi"
+	"github.com/deutschland-schild/schild/contract/audit"
 	"github.com/deutschland-schild/schild/contract/config"
 	"github.com/deutschland-schild/schild/contract/schema"
 )
@@ -652,5 +653,55 @@ func TestAgentBundle(t *testing.T) {
 	}
 	if len(b) > agentapi.MaxBytes/2 {
 		t.Errorf("bundle %d bytes", len(b))
+	}
+}
+
+// TestAuditActions: every writing operation of the dashboard and the agent
+// API writes an audit entry or stands in not_audited with its reason
+// (contracts/audit.md), and the catalogue names no operation that is gone.
+func TestAuditActions(t *testing.T) {
+	listed := map[string]bool{}
+	for _, a := range audit.Actions.Actions {
+		for _, o := range a.Operations {
+			listed[o] = true
+		}
+	}
+	for _, o := range audit.Actions.NotAudited {
+		listed[o.Operation] = true
+	}
+	known := map[string]bool{"agent:any": true}
+	for _, o := range audit.Actions.Undocumented {
+		known[o.Operation] = true
+	}
+	for way, name := range map[string]string{"dashboard": "client-dashboard.openapi.yaml", "agent": "gateway-agent.openapi.yaml"} {
+		paths, _ := load(t, name)["paths"].(map[string]any)
+		routes := map[string]bool{}
+		for p, item := range paths {
+			for method, op := range item.(map[string]any) {
+				o, ok := op.(map[string]any)
+				if !ok {
+					continue
+				}
+				routes[strings.ToUpper(method)+" "+p] = true
+				if method == "get" {
+					continue
+				}
+				id := way + ":" + o["operationId"].(string)
+				known[id] = true
+				if !listed[id] {
+					t.Errorf("%s %s (%s): no action in contracts/audit-actions.json", strings.ToUpper(method), p, id)
+				}
+			}
+		}
+		for _, o := range audit.Actions.Undocumented {
+			if strings.HasPrefix(o.Operation, way+":") && routes[o.Route] {
+				t.Errorf("%s is documented now: take it out of undocumented", o.Operation)
+			}
+		}
+	}
+	for o := range listed {
+		if (strings.HasPrefix(o, "dashboard:") || strings.HasPrefix(o, "agent:")) && !known[o] {
+			t.Errorf("%s: no such operation", o)
+		}
 	}
 }

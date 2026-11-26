@@ -210,6 +210,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/audit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Draft (D108, MVP-36), no gateway serves it yet: the audit log, newest first, with time in [from, to). Every change with who made it, through which way, and what it was before (contracts/audit.md). In a group the entries of every node this gateway holds. `actor` is a token or portal key id. `subject` with `subject_id` and limit 1 answers who changed a thing last. Index ranges, no scan of the log. */
+        get: operations["listAudit"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/auth/session": {
         parameters: {
             query?: never;
@@ -3773,6 +3790,10 @@ export interface components {
              */
             reset?: true;
         };
+        AuditPage: {
+            items: components["schemas"]["audit-entry.schema"][];
+            next_cursor: string | null;
+        };
         AgentCallLog: {
             /** @description The agent API is on (AgentAPIState.enabled). */
             enabled: boolean;
@@ -3927,6 +3948,165 @@ export interface components {
         uuid: string;
         /** @description ISO 3166-1 alpha-2, upper case; ZZ = unknown. */
         country: string;
+        /** @enum {string} */
+        class: "change" | "credential" | "privacy" | "access" | "refused";
+        action: string;
+        name: string;
+        /** @description Short id of a session, never its token. */
+        session: string;
+        label: string;
+        pointer: string;
+        scalar: string | number | boolean;
+        items: string[];
+        /** @description <name of the log, 16 hex>-<k kept, a access, r refused>-<number, counted per log and letter from 1>. */
+        entryId: string;
+        /** @description UTC timestamp, whole seconds, always with Z. */
+        timestamp: string;
+        actor: {
+            /** @constant */
+            kind: "dashboard";
+            user?: components["schemas"]["name"];
+            session?: components["schemas"]["session"];
+        } | {
+            /** @constant */
+            kind: "agent";
+            id?: string;
+            label?: components["schemas"]["label"];
+        } | {
+            /** @constant */
+            kind: "integration";
+            id?: string;
+            label?: components["schemas"]["label"];
+            session?: components["schemas"]["session"];
+            /** @description Who the portal says it acts for. Untrusted text. */
+            on_behalf_of?: components["schemas"]["name"];
+        } | {
+            /** @constant */
+            kind: "cli";
+            /** @description Host account as the command saw it ($SUDO_USER, $USER); a hint, not a proof. */
+            account?: components["schemas"]["name"];
+        } | {
+            /** @enum {string} */
+            kind: "config" | "system";
+        };
+        website: string;
+        /** @description One changed field. Without before, after, added and removed, hidden says why. */
+        field: {
+            field: components["schemas"]["pointer"];
+            /** @enum {string} */
+            change: "added" | "changed" | "removed";
+            before?: components["schemas"]["scalar"];
+            after?: components["schemas"]["scalar"];
+            added?: components["schemas"]["items"];
+            removed?: components["schemas"]["items"];
+            /** @description Items of the list left out. */
+            more?: number;
+            /**
+             * @description A value is longer than what is recorded.
+             * @constant
+             */
+            cut?: true;
+            /** @enum {string} */
+            hidden?: "secret" | "unlisted" | "list" | "order" | "size" | "erased" | "operator";
+        };
+        /**
+         * Audit entry (draft, MVP-36)
+         * @description One entry of the audit log (audit.md). Stored on the gateway and, in a group, on every node; never sent to a lab or relay. Holds no password, token, key or other secret.
+         */
+        "audit-entry.schema": {
+            /** @constant */
+            schema: "schild.audit/0.1";
+            id: components["schemas"]["entryId"];
+            time: components["schemas"]["timestamp"];
+            /** @description The node that made the change: the CloudEvents source of its events without schild:// (cluster.md section 9). */
+            node: string;
+            /** @enum {string} */
+            class: "change" | "credential" | "privacy" | "access" | "refused";
+            action: components["schemas"]["action"];
+            /** @description What was called: <way>:<operation id, command or source>. */
+            operation: string;
+            /** @enum {string} */
+            result: "done" | "refused";
+            actor: components["schemas"]["actor"];
+            /** @description Address the call came from, or its network after retention.raw_ip_days. Absent on the host and after an erasure. */
+            address?: string;
+            /** @enum {string} */
+            address_cut?: "short" | "erased";
+            subject: {
+                kind: string;
+                /** @description Never an address: a block is named by its incident, a client by nothing. */
+                id?: string;
+            };
+            website?: components["schemas"]["website"];
+            change?: {
+                fields: components["schemas"]["field"][];
+                more_fields?: number;
+            };
+            /** @description Untrusted text of the operator, an agent or a portal. */
+            reason?: string;
+            /** @description Refused calls gathered in this entry (one minute). */
+            count?: number;
+            last?: components["schemas"]["timestamp"];
+            $defs: {
+                /** @description <name of the log, 16 hex>-<k kept, a access, r refused>-<number, counted per log and letter from 1>. */
+                entryId: string;
+                action: string;
+                website: string;
+                name: string;
+                actor: {
+                    /** @constant */
+                    kind: "dashboard";
+                    user?: components["schemas"]["name"];
+                    session?: components["schemas"]["session"];
+                } | {
+                    /** @constant */
+                    kind: "agent";
+                    id?: string;
+                    label?: components["schemas"]["label"];
+                } | {
+                    /** @constant */
+                    kind: "integration";
+                    id?: string;
+                    label?: components["schemas"]["label"];
+                    session?: components["schemas"]["session"];
+                    /** @description Who the portal says it acts for. Untrusted text. */
+                    on_behalf_of?: components["schemas"]["name"];
+                } | {
+                    /** @constant */
+                    kind: "cli";
+                    /** @description Host account as the command saw it ($SUDO_USER, $USER); a hint, not a proof. */
+                    account?: components["schemas"]["name"];
+                } | {
+                    /** @enum {string} */
+                    kind: "config" | "system";
+                };
+                /** @description Short id of a session, never its token. */
+                session: string;
+                label: string;
+                pointer: string;
+                scalar: string | number | boolean;
+                items: string[];
+                /** @description One changed field. Without before, after, added and removed, hidden says why. */
+                field: {
+                    field: components["schemas"]["pointer"];
+                    /** @enum {string} */
+                    change: "added" | "changed" | "removed";
+                    before?: components["schemas"]["scalar"];
+                    after?: components["schemas"]["scalar"];
+                    added?: components["schemas"]["items"];
+                    removed?: components["schemas"]["items"];
+                    /** @description Items of the list left out. */
+                    more?: number;
+                    /**
+                     * @description A value is longer than what is recorded.
+                     * @constant
+                     */
+                    cut?: true;
+                    /** @enum {string} */
+                    hidden?: "secret" | "unlisted" | "list" | "order" | "size" | "erased" | "operator";
+                };
+            };
+        };
         /** @description Full visitor IP in plaintext (local only, E7). */
         ip: string | unknown | unknown | unknown;
         /** @description Autonomous system number; 0 = unknown. At most 2^24 - 1: covers every ASN IANA has delegated (well below 1,000,000 in 2026) and rules out an IPv4 address written as an integer. */
@@ -4000,13 +4180,13 @@ export interface components {
          */
         category: "search_engine" | "ai_training" | "ai_search" | "ai_assistant" | "preview_social" | "feed_reader" | "monitoring" | "seo_tool" | "archive_research" | "security_scanner" | "tool_library";
         /** @enum {string} */
-        action: "allow" | "block";
+        "$defs-action": "allow" | "block";
         categories: {
-            [key: string]: components["schemas"]["action"];
+            [key: string]: components["schemas"]["$defs-action"];
         };
         botId: string;
         bots: {
-            [key: string]: components["schemas"]["action"];
+            [key: string]: components["schemas"]["$defs-action"];
         };
         /**
          * @description block_ai_training: block the category ai_training, allow every other category.
@@ -4023,8 +4203,6 @@ export interface components {
          * @enum {string}
          */
         behaviourReason: "net_class" | "allowlisted" | "released" | "challenge_unavailable" | "unverified_bot" | "site_scope" | "learning";
-        /** @description UTC timestamp, whole seconds, always with Z. */
-        timestamp: string;
         sha256: string;
         request: {
             request_id: string;
@@ -4385,7 +4563,7 @@ export interface components {
             website: string;
             categories: components["schemas"]["categories"];
             bots: components["schemas"]["bots"];
-            impersonators: components["schemas"]["action"];
+            impersonators: components["schemas"]["$defs-action"];
             preset?: components["schemas"]["preset"];
             /** @enum {string} */
             actor: "dashboard" | "agent";
@@ -4644,7 +4822,7 @@ export interface components {
                     website: string;
                     categories: components["schemas"]["categories"];
                     bots: components["schemas"]["bots"];
-                    impersonators: components["schemas"]["action"];
+                    impersonators: components["schemas"]["$defs-action"];
                     preset?: components["schemas"]["preset"];
                     /** @enum {string} */
                     actor: "dashboard" | "agent";
@@ -5637,6 +5815,40 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AgentCallLog"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            default: components["responses"]["Problem"];
+        };
+    };
+    listAudit: {
+        parameters: {
+            query?: {
+                from?: components["parameters"]["From"];
+                to?: components["parameters"]["To"];
+                website?: components["schemas"]["WebsiteId"];
+                class?: components["schemas"]["class"];
+                action?: components["schemas"]["action"];
+                way?: "dashboard" | "agent" | "integration" | "cli" | "config" | "system";
+                actor?: string;
+                subject?: string;
+                subject_id?: string;
+                cursor?: components["parameters"]["Cursor"];
+                limit?: components["parameters"]["Limit"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Entries. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuditPage"];
                 };
             };
             400: components["responses"]["Problem"];

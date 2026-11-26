@@ -1,0 +1,51 @@
+{
+  "contract": "audit",
+  "description": "true is not 1 and \"1\" is not 1.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"action\":\"settings.set\",\"after\":{\"retention\":{\"a\":1,\"b\":1,\"c\":0}},\"before\":{\"retention\":{\"a\":true,\"b\":\"1\",\"c\":false}},\"op\":\"diff\"}",
+  "input_decoded": {
+    "action": "settings.set",
+    "after": {
+      "retention": {
+        "a": 1,
+        "b": 1,
+        "c": 0
+      }
+    },
+    "before": {
+      "retention": {
+        "a": true,
+        "b": "1",
+        "c": false
+      }
+    },
+    "op": "diff"
+  },
+  "expect": {
+    "valid": true,
+    "result": {
+      "fields": [
+        {
+          "field": "/retention/a",
+          "change": "changed",
+          "before": true,
+          "after": 1
+        },
+        {
+          "field": "/retention/b",
+          "change": "changed",
+          "before": "1",
+          "after": 1
+        },
+        {
+          "field": "/retention/c",
+          "change": "changed",
+          "before": false,
+          "after": 0
+        }
+      ]
+    }
+  }
+}

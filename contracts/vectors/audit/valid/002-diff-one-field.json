@@ -1,0 +1,33 @@
+{
+  "contract": "audit",
+  "description": "Only what changed, not what stayed.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"action\":\"rule_repository.set\",\"after\":{\"paranoia_level\":1,\"state\":\"block\"},\"before\":{\"paranoia_level\":1,\"state\":\"detect\"},\"op\":\"diff\"}",
+  "input_decoded": {
+    "action": "rule_repository.set",
+    "after": {
+      "paranoia_level": 1,
+      "state": "block"
+    },
+    "before": {
+      "paranoia_level": 1,
+      "state": "detect"
+    },
+    "op": "diff"
+  },
+  "expect": {
+    "valid": true,
+    "result": {
+      "fields": [
+        {
+          "field": "/state",
+          "change": "changed",
+          "before": "detect",
+          "after": "block"
+        }
+      ]
+    }
+  }
+}

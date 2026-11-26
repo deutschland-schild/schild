@@ -35,7 +35,7 @@ func TestGoldenVectors(t *testing.T) {
 		}
 		// v0.5: exactly the valid classifier vectors expect a result.
 		// D36: also website-derive and website-status.
-		classifier := vecs[i].Contract == "bot-match" || vecs[i].Contract == "geo-map" || strings.HasPrefix(vecs[i].Contract, "website-") || vecs[i].Contract == "waiting-page" || vecs[i].Contract == "storage-bounds" || vecs[i].Contract == "ingress-order" || vecs[i].Contract == "request-recheck" || vecs[i].Contract == "crowdsec-hub" || vecs[i].Contract == "rule-effect" || vecs[i].Contract == "body-limits" || vecs[i].Contract == "agent-block" || vecs[i].Contract == "access-gate" || vecs[i].Contract == "crawler-policy" || vecs[i].Contract == "human-check" || vecs[i].Contract == "cluster-record"
+		classifier := vecs[i].Contract == "bot-match" || vecs[i].Contract == "geo-map" || strings.HasPrefix(vecs[i].Contract, "website-") || vecs[i].Contract == "waiting-page" || vecs[i].Contract == "storage-bounds" || vecs[i].Contract == "ingress-order" || vecs[i].Contract == "request-recheck" || vecs[i].Contract == "crowdsec-hub" || vecs[i].Contract == "rule-effect" || vecs[i].Contract == "body-limits" || vecs[i].Contract == "agent-block" || vecs[i].Contract == "access-gate" || vecs[i].Contract == "crawler-policy" || vecs[i].Contract == "human-check" || vecs[i].Contract == "cluster-record" || vecs[i].Contract == "audit"
 		if (len(vecs[i].Expect.Result) > 0) != (classifier && vecs[i].Expect.Valid) {
 			t.Errorf("%s: result expected exactly for valid classifier vectors", v.File)
 		}
@@ -56,6 +56,7 @@ func TestGoldenVectors(t *testing.T) {
 		"access-gate",     // D56
 		"crawler-policy",  // D57
 		"human-check",     // MVP-12 v1_cut
+		"audit",           // draft, MVP-36
 		"rule-effect"}     // D73
 	for _, c := range want {
 		if counts[c][0] < 5 || counts[c][1] < 10 {

@@ -1,0 +1,89 @@
+{
+  "contract": "audit",
+  "description": "An IPv6 client is its /64.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"entry\":{\"action\":\"block.set\",\"actor\":{\"kind\":\"dashboard\",\"user\":\"admin\"},\"change\":{\"fields\":[{\"after\":\"2001:db8:1:2::/64\",\"change\":\"added\",\"field\":\"/client\"},{\"after\":3600,\"change\":\"added\",\"field\":\"/duration_s\"}]},\"class\":\"change\",\"id\":\"0a1b2c3d4e5f6071-k-17\",\"node\":\"gw-1\",\"operation\":\"dashboard:createBlock\",\"reason\":\"Contact form\",\"result\":\"done\",\"schema\":\"schild.audit/0.1\",\"subject\":{\"id\":\"K7Q2-9MXT\",\"kind\":\"block\"},\"time\":\"2026-10-26T12:00:00Z\",\"website\":\"shop.example\"},\"erased\":[\"2001:db8:1:2::3\"],\"now\":\"2026-10-27T12:00:00Z\",\"op\":\"cut\",\"raw_ip_days\":14}",
+  "input_decoded": {
+    "entry": {
+      "action": "block.set",
+      "actor": {
+        "kind": "dashboard",
+        "user": "admin"
+      },
+      "change": {
+        "fields": [
+          {
+            "after": "2001:db8:1:2::/64",
+            "change": "added",
+            "field": "/client"
+          },
+          {
+            "after": 3600,
+            "change": "added",
+            "field": "/duration_s"
+          }
+        ]
+      },
+      "class": "change",
+      "id": "0a1b2c3d4e5f6071-k-17",
+      "node": "gw-1",
+      "operation": "dashboard:createBlock",
+      "reason": "Contact form",
+      "result": "done",
+      "schema": "schild.audit/0.1",
+      "subject": {
+        "id": "K7Q2-9MXT",
+        "kind": "block"
+      },
+      "time": "2026-10-26T12:00:00Z",
+      "website": "shop.example"
+    },
+    "erased": [
+      "2001:db8:1:2::3"
+    ],
+    "now": "2026-10-27T12:00:00Z",
+    "op": "cut",
+    "raw_ip_days": 14
+  },
+  "expect": {
+    "valid": true,
+    "result": {
+      "entry": {
+        "action": "block.set",
+        "actor": {
+          "kind": "dashboard",
+          "user": "admin"
+        },
+        "change": {
+          "fields": [
+            {
+              "change": "added",
+              "field": "/client",
+              "hidden": "erased"
+            },
+            {
+              "after": 3600,
+              "change": "added",
+              "field": "/duration_s"
+            }
+          ]
+        },
+        "class": "change",
+        "id": "0a1b2c3d4e5f6071-k-17",
+        "node": "gw-1",
+        "operation": "dashboard:createBlock",
+        "reason": "Contact form",
+        "result": "done",
+        "schema": "schild.audit/0.1",
+        "subject": {
+          "id": "K7Q2-9MXT",
+          "kind": "block"
+        },
+        "time": "2026-10-26T12:00:00Z",
+        "website": "shop.example"
+      }
+    }
+  }
+}

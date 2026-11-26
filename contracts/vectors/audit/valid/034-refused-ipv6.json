@@ -1,0 +1,55 @@
+{
+  "contract": "audit",
+  "description": "An IPv6 client is its /64.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"calls\":[{\"action\":\"session.start\",\"address\":\"2001:db8:0:1::1\",\"operation\":\"dashboard:login\",\"t\":1793016000000},{\"action\":\"session.start\",\"address\":\"2001:db8:0:1::2\",\"operation\":\"dashboard:login\",\"t\":1793016000001},{\"action\":\"session.start\",\"address\":\"2001:db8:0:2::1\",\"operation\":\"dashboard:login\",\"t\":1793016000002}],\"max_open\":4,\"op\":\"refused\"}",
+  "input_decoded": {
+    "calls": [
+      {
+        "action": "session.start",
+        "address": "2001:db8:0:1::1",
+        "operation": "dashboard:login",
+        "t": 1793016000000
+      },
+      {
+        "action": "session.start",
+        "address": "2001:db8:0:1::2",
+        "operation": "dashboard:login",
+        "t": 1793016000001
+      },
+      {
+        "action": "session.start",
+        "address": "2001:db8:0:2::1",
+        "operation": "dashboard:login",
+        "t": 1793016000002
+      }
+    ],
+    "max_open": 4,
+    "op": "refused"
+  },
+  "expect": {
+    "valid": true,
+    "result": {
+      "entries": [
+        {
+          "action": "session.start",
+          "operation": "dashboard:login",
+          "address": "2001:db8:0:1::1",
+          "first": 1793016000000,
+          "last": 1793016000001,
+          "count": 2
+        },
+        {
+          "action": "session.start",
+          "operation": "dashboard:login",
+          "address": "2001:db8:0:2::1",
+          "first": 1793016000002,
+          "last": 1793016000002,
+          "count": 1
+        }
+      ]
+    }
+  }
+}

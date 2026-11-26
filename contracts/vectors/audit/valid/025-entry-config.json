@@ -1,0 +1,51 @@
+{
+  "contract": "audit",
+  "description": "A configuration that was applied: the names of the fields, no values.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"entry\":{\"action\":\"config.apply\",\"actor\":{\"kind\":\"config\"},\"change\":{\"fields\":[{\"after\":\"4c5b6a\",\"before\":\"1f2e3d\",\"change\":\"changed\",\"field\":\"/digest\"},{\"change\":\"changed\",\"field\":\"/geo/ipinfo_key\",\"hidden\":\"secret\"}]},\"class\":\"change\",\"id\":\"0a1b2c3d4e5f6071-k-17\",\"node\":\"gw-1\",\"operation\":\"config:schild_yaml\",\"result\":\"done\",\"schema\":\"schild.audit/0.1\",\"subject\":{\"kind\":\"config\"},\"time\":\"2026-10-26T12:00:00Z\"},\"from\":\"local\",\"op\":\"entry\"}",
+  "input_decoded": {
+    "entry": {
+      "action": "config.apply",
+      "actor": {
+        "kind": "config"
+      },
+      "change": {
+        "fields": [
+          {
+            "after": "4c5b6a",
+            "before": "1f2e3d",
+            "change": "changed",
+            "field": "/digest"
+          },
+          {
+            "change": "changed",
+            "field": "/geo/ipinfo_key",
+            "hidden": "secret"
+          }
+        ]
+      },
+      "class": "change",
+      "id": "0a1b2c3d4e5f6071-k-17",
+      "node": "gw-1",
+      "operation": "config:schild_yaml",
+      "result": "done",
+      "schema": "schild.audit/0.1",
+      "subject": {
+        "kind": "config"
+      },
+      "time": "2026-10-26T12:00:00Z"
+    },
+    "from": "local",
+    "op": "entry"
+  },
+  "expect": {
+    "valid": true,
+    "result": {
+      "kept": true,
+      "known": true,
+      "stripped": 0
+    }
+  }
+}

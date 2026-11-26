@@ -1,0 +1,415 @@
+{
+  "contract": "audit",
+  "description": "64 fields, the rest as a number.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"action\":\"crawlers.set\",\"after\":{\"bots\":{\"b00\":\"block\",\"b01\":\"block\",\"b02\":\"block\",\"b03\":\"block\",\"b04\":\"block\",\"b05\":\"block\",\"b06\":\"block\",\"b07\":\"block\",\"b08\":\"block\",\"b09\":\"block\",\"b10\":\"block\",\"b11\":\"block\",\"b12\":\"block\",\"b13\":\"block\",\"b14\":\"block\",\"b15\":\"block\",\"b16\":\"block\",\"b17\":\"block\",\"b18\":\"block\",\"b19\":\"block\",\"b20\":\"block\",\"b21\":\"block\",\"b22\":\"block\",\"b23\":\"block\",\"b24\":\"block\",\"b25\":\"block\",\"b26\":\"block\",\"b27\":\"block\",\"b28\":\"block\",\"b29\":\"block\",\"b30\":\"block\",\"b31\":\"block\",\"b32\":\"block\",\"b33\":\"block\",\"b34\":\"block\",\"b35\":\"block\",\"b36\":\"block\",\"b37\":\"block\",\"b38\":\"block\",\"b39\":\"block\",\"b40\":\"block\",\"b41\":\"block\",\"b42\":\"block\",\"b43\":\"block\",\"b44\":\"block\",\"b45\":\"block\",\"b46\":\"block\",\"b47\":\"block\",\"b48\":\"block\",\"b49\":\"block\",\"b50\":\"block\",\"b51\":\"block\",\"b52\":\"block\",\"b53\":\"block\",\"b54\":\"block\",\"b55\":\"block\",\"b56\":\"block\",\"b57\":\"block\",\"b58\":\"block\",\"b59\":\"block\",\"b60\":\"block\",\"b61\":\"block\",\"b62\":\"block\",\"b63\":\"block\",\"b64\":\"block\",\"b65\":\"block\",\"b66\":\"block\",\"b67\":\"block\",\"b68\":\"block\",\"b69\":\"block\"}},\"before\":null,\"op\":\"diff\"}",
+  "input_decoded": {
+    "action": "crawlers.set",
+    "after": {
+      "bots": {
+        "b00": "block",
+        "b01": "block",
+        "b02": "block",
+        "b03": "block",
+        "b04": "block",
+        "b05": "block",
+        "b06": "block",
+        "b07": "block",
+        "b08": "block",
+        "b09": "block",
+        "b10": "block",
+        "b11": "block",
+        "b12": "block",
+        "b13": "block",
+        "b14": "block",
+        "b15": "block",
+        "b16": "block",
+        "b17": "block",
+        "b18": "block",
+        "b19": "block",
+        "b20": "block",
+        "b21": "block",
+        "b22": "block",
+        "b23": "block",
+        "b24": "block",
+        "b25": "block",
+        "b26": "block",
+        "b27": "block",
+        "b28": "block",
+        "b29": "block",
+        "b30": "block",
+        "b31": "block",
+        "b32": "block",
+        "b33": "block",
+        "b34": "block",
+        "b35": "block",
+        "b36": "block",
+        "b37": "block",
+        "b38": "block",
+        "b39": "block",
+        "b40": "block",
+        "b41": "block",
+        "b42": "block",
+        "b43": "block",
+        "b44": "block",
+        "b45": "block",
+        "b46": "block",
+        "b47": "block",
+        "b48": "block",
+        "b49": "block",
+        "b50": "block",
+        "b51": "block",
+        "b52": "block",
+        "b53": "block",
+        "b54": "block",
+        "b55": "block",
+        "b56": "block",
+        "b57": "block",
+        "b58": "block",
+        "b59": "block",
+        "b60": "block",
+        "b61": "block",
+        "b62": "block",
+        "b63": "block",
+        "b64": "block",
+        "b65": "block",
+        "b66": "block",
+        "b67": "block",
+        "b68": "block",
+        "b69": "block"
+      }
+    },
+    "before": null,
+    "op": "diff"
+  },
+  "expect": {
+    "valid": true,
+    "result": {
+      "fields": [
+        {
+          "field": "/bots/b00",
+          "change": "added",
+          "after": "block"
+        },
+        {
+          "field": "/bots/b01",
+          "change": "added",
+          "after": "block"
+        },
+        {
+          "field": "/bots/b02",
+          "change": "added",
+          "after": "block"
+        },
+        {
+          "field": "/bots/b03",
+          "change": "added",
+          "after": "block"
+        },
+        {
+          "field": "/bots/b04",
+          "change": "added",
+          "after": "block"
+        },
+        {
+          "field": "/bots/b05",
+          "change": "added",
+          "after": "block"
+        },
+        {
+          "field": "/bots/b06",
+          "change": "added",
+          "after": "block"
+        },
+        {
+          "field": "/bots/b07",
+          "change": "added",
+          "after": "block"
+        },
+        {
+          "field": "/bots/b08",
+          "change": "added",
+          "after": "block"
+        },
+        {
+          "field": "/bots/b09",
+          "change": "added",
+          "after": "block"
+        },
+        {
+          "field": "/bots/b10",
+          "change": "added",
+          "after": "block"
+        },
+        {
+          "field": "/bots/b11",
+          "change": "added",
+          "after": "block"
+        },
+        {
+          "field": "/bots/b12",
+          "change": "added",
+          "after": "block"
+        },
+        {
+          "field": "/bots/b13",
+          "change": "added",
+          "after": "block"
+        },
+        {
+          "field": "/bots/b14",
+          "change": "added",
+          "after": "block"
+        },
+        {
+          "field": "/bots/b15",
+          "change": "added",
+          "after": "block"
+        },
+        {
+          "field": "/bots/b16",
+          "change": "added",
+          "after": "block"
+        },
+        {
+          "field": "/bots/b17",
+          "change": "added",
+          "after": "block"
+        },
+        {
+          "field": "/bots/b18",
+          "change": "added",
+          "after": "block"
+        },
+        {
+          "field": "/bots/b19",
+          "change": "added",
+          "after": "block"
+        },
+        {
+          "field": "/bots/b20",
+          "change": "added",
+          "after": "block"
+        },
+        {
+          "field": "/bots/b21",
+          "change": "added",
+          "after": "block"
+        },
+        {
+          "field": "/bots/b22",
+          "change": "added",
+          "after": "block"
+        },
+        {
+          "field": "/bots/b23",
+          "change": "added",
+          "after": "block"
+        },
+        {
+          "field": "/bots/b24",
+          "change": "added",
+          "after": "block"
+        },
+        {
+          "field": "/bots/b25",
+          "change": "added",
+          "after": "block"
+        },
+        {
+          "field": "/bots/b26",
+          "change": "added",
+          "after": "block"
+        },
+        {
+          "field": "/bots/b27",
+          "change": "added",
+          "after": "block"
+        },
+        {
+          "field": "/bots/b28",
+          "change": "added",
+          "after": "block"
+        },
+        {
+          "field": "/bots/b29",
+          "change": "added",
+          "after": "block"
+        },
+        {
+          "field": "/bots/b30",
+          "change": "added",
+          "after": "block"
+        },
+        {
+          "field": "/bots/b31",
+          "change": "added",
+          "after": "block"
+        },
+        {
+          "field": "/bots/b32",
+          "change": "added",
+          "after": "block"
+        },
+        {
+          "field": "/bots/b33",
+          "change": "added",
+          "after": "block"
+        },
+        {
+          "field": "/bots/b34",
+          "change": "added",
+          "after": "block"
+        },
+        {
+          "field": "/bots/b35",
+          "change": "added",
+          "after": "block"
+        },
+        {
+          "field": "/bots/b36",
+          "change": "added",
+          "after": "block"
+        },
+        {
+          "field": "/bots/b37",
+          "change": "added",
+          "after": "block"
+        },
+        {
+          "field": "/bots/b38",
+          "change": "added",
+          "after": "block"
+        },
+        {
+          "field": "/bots/b39",
+          "change": "added",
+          "after": "block"
+        },
+        {
+          "field": "/bots/b40",
+          "change": "added",
+          "after": "block"
+        },
+        {
+          "field": "/bots/b41",
+          "change": "added",
+          "after": "block"
+        },
+        {
+          "field": "/bots/b42",
+          "change": "added",
+          "after": "block"
+        },
+        {
+          "field": "/bots/b43",
+          "change": "added",
+          "after": "block"
+        },
+        {
+          "field": "/bots/b44",
+          "change": "added",
+          "after": "block"
+        },
+        {
+          "field": "/bots/b45",
+          "change": "added",
+          "after": "block"
+        },
+        {
+          "field": "/bots/b46",
+          "change": "added",
+          "after": "block"
+        },
+        {
+          "field": "/bots/b47",
+          "change": "added",
+          "after": "block"
+        },
+        {
+          "field": "/bots/b48",
+          "change": "added",
+          "after": "block"
+        },
+        {
+          "field": "/bots/b49",
+          "change": "added",
+          "after": "block"
+        },
+        {
+          "field": "/bots/b50",
+          "change": "added",
+          "after": "block"
+        },
+        {
+          "field": "/bots/b51",
+          "change": "added",
+          "after": "block"
+        },
+        {
+          "field": "/bots/b52",
+          "change": "added",
+          "after": "block"
+        },
+        {
+          "field": "/bots/b53",
+          "change": "added",
+          "after": "block"
+        },
+        {
+          "field": "/bots/b54",
+          "change": "added",
+          "after": "block"
+        },
+        {
+          "field": "/bots/b55",
+          "change": "added",
+          "after": "block"
+        },
+        {
+          "field": "/bots/b56",
+          "change": "added",
+          "after": "block"
+        },
+        {
+          "field": "/bots/b57",
+          "change": "added",
+          "after": "block"
+        },
+        {
+          "field": "/bots/b58",
+          "change": "added",
+          "after": "block"
+        },
+        {
+          "field": "/bots/b59",
+          "change": "added",
+          "after": "block"
+        },
+        {
+          "field": "/bots/b60",
+          "change": "added",
+          "after": "block"
+        },
+        {
+          "field": "/bots/b61",
+          "change": "added",
+          "after": "block"
+        },
+        {
+          "field": "/bots/b62",
+          "change": "added",
+          "after": "block"
+        },
+        {
+          "field": "/bots/b63",
+          "change": "added",
+          "after": "block"
+        }
+      ],
+      "more_fields": 6
+    }
+  }
+}

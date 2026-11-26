@@ -1,0 +1,44 @@
+{
+  "contract": "audit",
+  "description": "A list of texts as what came and what went.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"action\":\"access_lock.set\",\"after\":{\"paths\":[\"/wp-admin/*\",\"/backend\",\"/admin2\",\"/backend\"]},\"before\":{\"paths\":[\"/admin\",\"/wp-admin/*\"]},\"op\":\"diff\"}",
+  "input_decoded": {
+    "action": "access_lock.set",
+    "after": {
+      "paths": [
+        "/wp-admin/*",
+        "/backend",
+        "/admin2",
+        "/backend"
+      ]
+    },
+    "before": {
+      "paths": [
+        "/admin",
+        "/wp-admin/*"
+      ]
+    },
+    "op": "diff"
+  },
+  "expect": {
+    "valid": true,
+    "result": {
+      "fields": [
+        {
+          "field": "/paths",
+          "change": "changed",
+          "added": [
+            "/admin2",
+            "/backend"
+          ],
+          "removed": [
+            "/admin"
+          ]
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,24 @@
+{
+  "contract": "audit",
+  "description": "Only what comes over the network is gathered.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"calls\":[{\"action\":\"session.start\",\"address\":\"198.51.100.66\",\"operation\":\"cli:allow\",\"t\":1793016000000}],\"max_open\":4,\"op\":\"refused\"}",
+  "input_decoded": {
+    "calls": [
+      {
+        "action": "session.start",
+        "address": "198.51.100.66",
+        "operation": "cli:allow",
+        "t": 1793016000000
+      }
+    ],
+    "max_open": 4,
+    "op": "refused"
+  },
+  "expect": {
+    "valid": false,
+    "error": "schema"
+  }
+}

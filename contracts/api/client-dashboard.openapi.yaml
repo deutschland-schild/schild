@@ -81,6 +81,8 @@ tags:
       lists); combined filters and filters on visitors or latency only within the request ring (RequestPage.keep_hours, by default 14 days). Entry pages are
       not provided (they need sessions; open). Net class tabs vpn, proxy and tor appear only when the geo database
       provides them (Overview.geo_db.optional_fields).
+  - name: audit
+    description: The audit log (contracts/audit.md), read only. Draft (MVP-36), not served yet.
   - name: agent-api
     description: Read-only view of the agent API call log; tokens are created, listed and revoked only on the host.
 paths:
@@ -430,6 +432,36 @@ paths:
           content:
             application/json:
               schema: { $ref: "#/components/schemas/AgentCallLog" }
+        "400": { $ref: "#/components/responses/Problem" }
+
+  /audit:
+    get:
+      tags: [audit]
+      operationId: listAudit
+      summary: >-
+        Draft (D108, MVP-36), no gateway serves it yet: the audit log, newest first, with time in [from, to). Every
+        change with who made it, through which way, and what it was before (contracts/audit.md). In a group the
+        entries of every node this gateway holds. `actor` is a token or portal key id. `subject` with `subject_id` and
+        limit 1 answers who changed a thing last. Index ranges, no scan of the log.
+      parameters:
+        - { $ref: "#/components/parameters/From" }
+        - { $ref: "#/components/parameters/To" }
+        - { name: website, in: query, schema: { $ref: "#/components/schemas/WebsiteId" } }
+        - { name: class, in: query, schema: { $ref: "../audit-entry.schema.json#/properties/class" } }
+        - { name: action, in: query, schema: { $ref: "../audit-entry.schema.json#/$defs/action" } }
+        - { name: way, in: query, schema: { type: string, enum: [dashboard, agent, integration, cli, config, system] } }
+        - { name: actor, in: query, schema: { type: string, pattern: "^(tok|pk)_[0-9a-f]{12}$" } }
+        - { name: subject, in: query, schema: { type: string, pattern: "^[a-z][a-z_]{0,31}$" } }
+        - { name: subject_id, in: query, schema: { type: string, minLength: 1, maxLength: 253 } }
+        - { $ref: "#/components/parameters/Cursor" }
+        - { $ref: "#/components/parameters/Limit" }
+      responses:
+        default: { $ref: "#/components/responses/Problem" }
+        "200":
+          description: Entries.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AuditPage" }
         "400": { $ref: "#/components/responses/Problem" }
 
   /auth/session:
@@ -4992,6 +5024,13 @@ components:
       properties:
         enabled: { type: boolean }
         reset: { type: boolean, const: true, description: "Drop the value of the dashboard: agent_api.enabled of schild.yaml decides again." }
+    AuditPage:
+      type: object
+      additionalProperties: false
+      required: [items, next_cursor]
+      properties:
+        items: { type: array, maxItems: 500, items: { $ref: "../audit-entry.schema.json" } }
+        next_cursor: { type: [string, "null"] }
     AgentCallLog:
       type: object
       additionalProperties: false

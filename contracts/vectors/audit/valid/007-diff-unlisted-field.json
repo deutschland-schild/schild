@@ -1,0 +1,52 @@
+{
+  "contract": "audit",
+  "description": "A field the action does not list is named, its value is not recorded.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"action\":\"token.add\",\"after\":{\"apiKey\":\"marker-6\",\"internal\":\"marker-4\",\"label\":\"Laptop\",\"scope\":\"agent:read\",\"token_hash\":\"marker-5\"},\"before\":null,\"op\":\"diff\"}",
+  "input_decoded": {
+    "action": "token.add",
+    "after": {
+      "apiKey": "marker-6",
+      "internal": "marker-4",
+      "label": "Laptop",
+      "scope": "agent:read",
+      "token_hash": "marker-5"
+    },
+    "before": null,
+    "op": "diff"
+  },
+  "expect": {
+    "valid": true,
+    "result": {
+      "fields": [
+        {
+          "field": "/apiKey",
+          "change": "added",
+          "hidden": "secret"
+        },
+        {
+          "field": "/internal",
+          "change": "added",
+          "hidden": "unlisted"
+        },
+        {
+          "field": "/label",
+          "change": "added",
+          "after": "Laptop"
+        },
+        {
+          "field": "/scope",
+          "change": "added",
+          "after": "agent:read"
+        },
+        {
+          "field": "/token_hash",
+          "change": "added",
+          "hidden": "secret"
+        }
+      ]
+    }
+  }
+}

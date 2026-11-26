@@ -1,0 +1,103 @@
+{
+  "contract": "audit",
+  "description": "Art. 17: the address is gone everywhere in the entry, the entry stays.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"entry\":{\"action\":\"allowlist.add\",\"actor\":{\"kind\":\"dashboard\",\"session\":\"0a1b2c3d\",\"user\":\"admin\"},\"address\":\"203.0.113.7\",\"change\":{\"fields\":[{\"after\":\"203.0.113.7\",\"change\":\"added\",\"field\":\"/ip\"},{\"after\":\"CLI 203.0.113.7\",\"change\":\"added\",\"field\":\"/label\"},{\"after\":\"no_block\",\"change\":\"added\",\"field\":\"/level\"}]},\"class\":\"change\",\"id\":\"0a1b2c3d4e5f6071-k-17\",\"node\":\"gw-1\",\"operation\":\"dashboard:addAllowlistEntry\",\"reason\":\"Office 203.0.113.7, see ticket\",\"result\":\"done\",\"schema\":\"schild.audit/0.1\",\"subject\":{\"id\":\"al_1\",\"kind\":\"allowlist_entry\"},\"time\":\"2026-10-26T12:00:00Z\",\"website\":\"shop.example\"},\"erased\":[\"203.0.113.7\"],\"now\":\"2026-10-27T12:00:00Z\",\"op\":\"cut\",\"raw_ip_days\":14}",
+  "input_decoded": {
+    "entry": {
+      "action": "allowlist.add",
+      "actor": {
+        "kind": "dashboard",
+        "session": "0a1b2c3d",
+        "user": "admin"
+      },
+      "address": "203.0.113.7",
+      "change": {
+        "fields": [
+          {
+            "after": "203.0.113.7",
+            "change": "added",
+            "field": "/ip"
+          },
+          {
+            "after": "CLI 203.0.113.7",
+            "change": "added",
+            "field": "/label"
+          },
+          {
+            "after": "no_block",
+            "change": "added",
+            "field": "/level"
+          }
+        ]
+      },
+      "class": "change",
+      "id": "0a1b2c3d4e5f6071-k-17",
+      "node": "gw-1",
+      "operation": "dashboard:addAllowlistEntry",
+      "reason": "Office 203.0.113.7, see ticket",
+      "result": "done",
+      "schema": "schild.audit/0.1",
+      "subject": {
+        "id": "al_1",
+        "kind": "allowlist_entry"
+      },
+      "time": "2026-10-26T12:00:00Z",
+      "website": "shop.example"
+    },
+    "erased": [
+      "203.0.113.7"
+    ],
+    "now": "2026-10-27T12:00:00Z",
+    "op": "cut",
+    "raw_ip_days": 14
+  },
+  "expect": {
+    "valid": true,
+    "result": {
+      "entry": {
+        "action": "allowlist.add",
+        "actor": {
+          "kind": "dashboard",
+          "session": "0a1b2c3d",
+          "user": "admin"
+        },
+        "address_cut": "erased",
+        "change": {
+          "fields": [
+            {
+              "change": "added",
+              "field": "/ip",
+              "hidden": "erased"
+            },
+            {
+              "after": "CLI erased",
+              "change": "added",
+              "field": "/label"
+            },
+            {
+              "after": "no_block",
+              "change": "added",
+              "field": "/level"
+            }
+          ]
+        },
+        "class": "change",
+        "id": "0a1b2c3d4e5f6071-k-17",
+        "node": "gw-1",
+        "operation": "dashboard:addAllowlistEntry",
+        "reason": "Office erased, see ticket",
+        "result": "done",
+        "schema": "schild.audit/0.1",
+        "subject": {
+          "id": "al_1",
+          "kind": "allowlist_entry"
+        },
+        "time": "2026-10-26T12:00:00Z",
+        "website": "shop.example"
+      }
+    }
+  }
+}
