@@ -1,0 +1,61 @@
+{
+  "contract": "audit",
+  "description": "One entry per client and minute.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"calls\":[{\"action\":\"session.start\",\"address\":\"198.51.100.66\",\"operation\":\"dashboard:login\",\"t\":1793016000000},{\"action\":\"session.start\",\"address\":\"198.51.100.66\",\"operation\":\"dashboard:login\",\"t\":1793016001000},{\"action\":\"session.start\",\"address\":\"198.51.100.66\",\"operation\":\"dashboard:login\",\"t\":1793016059999},{\"action\":\"session.start\",\"address\":\"198.51.100.66\",\"operation\":\"dashboard:login\",\"t\":1793016060000}],\"max_open\":4,\"op\":\"refused\"}",
+  "input_decoded": {
+    "calls": [
+      {
+        "action": "session.start",
+        "address": "198.51.100.66",
+        "operation": "dashboard:login",
+        "t": 1793016000000
+      },
+      {
+        "action": "session.start",
+        "address": "198.51.100.66",
+        "operation": "dashboard:login",
+        "t": 1793016001000
+      },
+      {
+        "action": "session.start",
+        "address": "198.51.100.66",
+        "operation": "dashboard:login",
+        "t": 1793016059999
+      },
+      {
+        "action": "session.start",
+        "address": "198.51.100.66",
+        "operation": "dashboard:login",
+        "t": 1793016060000
+      }
+    ],
+    "max_open": 4,
+    "op": "refused"
+  },
+  "expect": {
+    "valid": true,
+    "result": {
+      "entries": [
+        {
+          "action": "session.start",
+          "operation": "dashboard:login",
+          "address": "198.51.100.66",
+          "first": 1793016000000,
+          "last": 1793016059999,
+          "count": 3
+        },
+        {
+          "action": "session.start",
+          "operation": "dashboard:login",
+          "address": "198.51.100.66",
+          "first": 1793016060000,
+          "last": 1793016060000,
+          "count": 1
+        }
+      ]
+    }
+  }
+}

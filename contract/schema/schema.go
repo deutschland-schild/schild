@@ -76,6 +76,9 @@ const (
 	HumanCheck = "human-check"
 	// D105 (unreleased, MVP-27): whether a node of a group takes a record.
 	ClusterRecord = "cluster-record"
+	// Draft (MVP-36): the audit log.
+	Audit      = "audit"
+	AuditEntry = "audit-entry"
 )
 
 var (

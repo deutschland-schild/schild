@@ -1,0 +1,32 @@
+{
+  "contract": "audit",
+  "description": "A value that becomes a list is not recorded.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"action\":\"access_lock.set\",\"after\":{\"paths\":[\"/a\"]},\"before\":{\"paths\":\"/a\"},\"op\":\"diff\"}",
+  "input_decoded": {
+    "action": "access_lock.set",
+    "after": {
+      "paths": [
+        "/a"
+      ]
+    },
+    "before": {
+      "paths": "/a"
+    },
+    "op": "diff"
+  },
+  "expect": {
+    "valid": true,
+    "result": {
+      "fields": [
+        {
+          "field": "/paths",
+          "change": "changed",
+          "hidden": "list"
+        }
+      ]
+    }
+  }
+}

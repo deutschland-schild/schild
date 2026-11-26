@@ -1,0 +1,39 @@
+{
+  "contract": "audit",
+  "description": "Only what a portal may change.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"entry\":{\"action\":\"access_lock.set\",\"actor\":{\"kind\":\"cli\"},\"class\":\"change\",\"id\":\"0a1b2c3d4e5f6071-k-17\",\"node\":\"gw-1\",\"operation\":\"cli:lock on\",\"reason\":\"Contact form\",\"result\":\"done\",\"schema\":\"schild.audit/0.1\",\"subject\":{\"kind\":\"website\"},\"time\":\"2026-10-26T12:00:00Z\",\"website\":\"shop.example\"},\"op\":\"view\",\"viewer\":{\"kind\":\"website\",\"website\":\"shop.example\"}}",
+  "input_decoded": {
+    "entry": {
+      "action": "access_lock.set",
+      "actor": {
+        "kind": "cli"
+      },
+      "class": "change",
+      "id": "0a1b2c3d4e5f6071-k-17",
+      "node": "gw-1",
+      "operation": "cli:lock on",
+      "reason": "Contact form",
+      "result": "done",
+      "schema": "schild.audit/0.1",
+      "subject": {
+        "kind": "website"
+      },
+      "time": "2026-10-26T12:00:00Z",
+      "website": "shop.example"
+    },
+    "op": "view",
+    "viewer": {
+      "kind": "website",
+      "website": "shop.example"
+    }
+  },
+  "expect": {
+    "valid": true,
+    "result": {
+      "entry": null
+    }
+  }
+}

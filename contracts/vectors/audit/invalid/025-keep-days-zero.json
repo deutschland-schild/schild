@@ -1,0 +1,25 @@
+{
+  "contract": "audit",
+  "description": "0 is not unlimited.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"keep_days\":0,\"max_rows\":10,\"now\":1793016000000,\"op\":\"keep\",\"rows\":[{\"class\":\"change\",\"id\":\"0a1b2c3d4e5f6071-k-1\",\"t\":1793016000000}]}",
+  "input_decoded": {
+    "keep_days": 0,
+    "max_rows": 10,
+    "now": 1793016000000,
+    "op": "keep",
+    "rows": [
+      {
+        "class": "change",
+        "id": "0a1b2c3d4e5f6071-k-1",
+        "t": 1793016000000
+      }
+    ]
+  },
+  "expect": {
+    "valid": false,
+    "error": "schema"
+  }
+}

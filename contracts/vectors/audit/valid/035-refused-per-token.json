@@ -1,0 +1,60 @@
+{
+  "contract": "audit",
+  "description": "Per token and operation.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"calls\":[{\"action\":\"rule.set\",\"actor\":\"tok_0123456789ab\",\"address\":\"198.51.100.66\",\"operation\":\"agent:updateAgentRule\",\"t\":1793016000000},{\"action\":\"rule.set\",\"actor\":\"tok_ba9876543210\",\"address\":\"198.51.100.66\",\"operation\":\"agent:updateAgentRule\",\"t\":1793016000001},{\"action\":\"rule.set\",\"actor\":\"tok_0123456789ab\",\"address\":\"198.51.100.66\",\"operation\":\"agent:updateAgentRule\",\"t\":1793016000002}],\"max_open\":4,\"op\":\"refused\"}",
+  "input_decoded": {
+    "calls": [
+      {
+        "action": "rule.set",
+        "actor": "tok_0123456789ab",
+        "address": "198.51.100.66",
+        "operation": "agent:updateAgentRule",
+        "t": 1793016000000
+      },
+      {
+        "action": "rule.set",
+        "actor": "tok_ba9876543210",
+        "address": "198.51.100.66",
+        "operation": "agent:updateAgentRule",
+        "t": 1793016000001
+      },
+      {
+        "action": "rule.set",
+        "actor": "tok_0123456789ab",
+        "address": "198.51.100.66",
+        "operation": "agent:updateAgentRule",
+        "t": 1793016000002
+      }
+    ],
+    "max_open": 4,
+    "op": "refused"
+  },
+  "expect": {
+    "valid": true,
+    "result": {
+      "entries": [
+        {
+          "action": "rule.set",
+          "operation": "agent:updateAgentRule",
+          "actor": "tok_0123456789ab",
+          "address": "198.51.100.66",
+          "first": 1793016000000,
+          "last": 1793016000002,
+          "count": 2
+        },
+        {
+          "action": "rule.set",
+          "operation": "agent:updateAgentRule",
+          "actor": "tok_ba9876543210",
+          "address": "198.51.100.66",
+          "first": 1793016000001,
+          "last": 1793016000001,
+          "count": 1
+        }
+      ]
+    }
+  }
+}

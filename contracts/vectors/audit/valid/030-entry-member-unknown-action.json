@@ -1,0 +1,47 @@
+{
+  "contract": "audit",
+  "description": "A member runs a later build: the entry is taken, its action is unknown here.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"entry\":{\"action\":\"portal.add\",\"actor\":{\"kind\":\"cli\"},\"change\":{\"fields\":[{\"after\":\"Portal\",\"change\":\"added\",\"field\":\"/label\"}]},\"class\":\"change\",\"id\":\"0a1b2c3d4e5f6071-k-17\",\"node\":\"gw-1\",\"operation\":\"cli:portal add\",\"reason\":\"Contact form\",\"result\":\"done\",\"schema\":\"schild.audit/0.1\",\"subject\":{\"kind\":\"portal\"},\"time\":\"2026-10-26T12:00:00Z\",\"website\":\"shop.example\"},\"from\":\"member\",\"op\":\"entry\"}",
+  "input_decoded": {
+    "entry": {
+      "action": "portal.add",
+      "actor": {
+        "kind": "cli"
+      },
+      "change": {
+        "fields": [
+          {
+            "after": "Portal",
+            "change": "added",
+            "field": "/label"
+          }
+        ]
+      },
+      "class": "change",
+      "id": "0a1b2c3d4e5f6071-k-17",
+      "node": "gw-1",
+      "operation": "cli:portal add",
+      "reason": "Contact form",
+      "result": "done",
+      "schema": "schild.audit/0.1",
+      "subject": {
+        "kind": "portal"
+      },
+      "time": "2026-10-26T12:00:00Z",
+      "website": "shop.example"
+    },
+    "from": "member",
+    "op": "entry"
+  },
+  "expect": {
+    "valid": true,
+    "result": {
+      "kept": true,
+      "known": false,
+      "stripped": 0
+    }
+  }
+}

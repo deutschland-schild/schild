@@ -1,0 +1,30 @@
+{
+  "contract": "audit",
+  "description": "A name with / and ~ as in a JSON pointer.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"action\":\"crawlers.set\",\"after\":{\"bots\":{\"a/b~c\":\"block\"}},\"before\":null,\"op\":\"diff\"}",
+  "input_decoded": {
+    "action": "crawlers.set",
+    "after": {
+      "bots": {
+        "a/b~c": "block"
+      }
+    },
+    "before": null,
+    "op": "diff"
+  },
+  "expect": {
+    "valid": true,
+    "result": {
+      "fields": [
+        {
+          "field": "/bots/a~1b~0c",
+          "change": "added",
+          "after": "block"
+        }
+      ]
+    }
+  }
+}

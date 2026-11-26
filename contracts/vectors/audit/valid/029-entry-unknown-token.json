@@ -1,0 +1,38 @@
+{
+  "contract": "audit",
+  "description": "A call with an unknown token.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"entry\":{\"action\":\"agent_api.call\",\"actor\":{\"kind\":\"agent\"},\"class\":\"refused\",\"count\":12,\"id\":\"0a1b2c3d4e5f6071-r-3\",\"last\":\"2026-10-26T12:00:40Z\",\"node\":\"gw-1\",\"operation\":\"agent:any\",\"result\":\"refused\",\"schema\":\"schild.audit/0.1\",\"subject\":{\"kind\":\"agent_api\"},\"time\":\"2026-10-26T12:00:00Z\"},\"from\":\"local\",\"op\":\"entry\"}",
+  "input_decoded": {
+    "entry": {
+      "action": "agent_api.call",
+      "actor": {
+        "kind": "agent"
+      },
+      "class": "refused",
+      "count": 12,
+      "id": "0a1b2c3d4e5f6071-r-3",
+      "last": "2026-10-26T12:00:40Z",
+      "node": "gw-1",
+      "operation": "agent:any",
+      "result": "refused",
+      "schema": "schild.audit/0.1",
+      "subject": {
+        "kind": "agent_api"
+      },
+      "time": "2026-10-26T12:00:00Z"
+    },
+    "from": "local",
+    "op": "entry"
+  },
+  "expect": {
+    "valid": true,
+    "result": {
+      "kept": false,
+      "known": true,
+      "stripped": 0
+    }
+  }
+}

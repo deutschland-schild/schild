@@ -1,0 +1,127 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://contracts.schild.invalid/v0/audit.schema.json",
+  "title": "Audit log decision input (draft, MVP-36)",
+  "description": "Input of the audit vectors: one decision of the audit log (contract/audit, rules in audit.md). op diff: what an entry records of a change; op entry: is an entry valid and how long is it kept; op refused: how refused calls are gathered; op keep: which entries are deleted; op cut: what is left of an entry after address retention, an erasure and a forgotten person; op view: what a viewer sees of an entry.",
+  "oneOf": [
+    { "$ref": "#/$defs/diff" },
+    { "$ref": "#/$defs/entry" },
+    { "$ref": "#/$defs/refused" },
+    { "$ref": "#/$defs/keep" },
+    { "$ref": "#/$defs/cut" },
+    { "$ref": "#/$defs/view" }
+  ],
+  "$defs": {
+    "ms": { "type": "integer", "minimum": 0, "maximum": 9007199254740991 },
+    "state": { "type": ["object", "null"] },
+    "diff": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["op", "action", "before", "after"],
+      "properties": {
+        "op": { "const": "diff" },
+        "action": { "$ref": "audit-entry.schema.json#/$defs/action" },
+        "before": { "$ref": "#/$defs/state" },
+        "after": { "$ref": "#/$defs/state" }
+      }
+    },
+    "entry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["op", "from", "entry"],
+      "properties": {
+        "op": { "const": "entry" },
+        "from": { "description": "local: written by this node; member: handed over by a member of the group.", "type": "string", "enum": ["local", "member"] },
+        "entry": { "$ref": "audit-entry.schema.json" }
+      }
+    },
+    "refused": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["op", "max_open", "calls"],
+      "properties": {
+        "op": { "const": "refused" },
+        "max_open": { "description": "Open entries of a minute (audit.MaxOpenRefused, 4096); vectors use small values.", "type": "integer", "minimum": 0, "maximum": 4096 },
+        "calls": {
+          "type": "array", "minItems": 1, "maxItems": 1000,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["t", "action", "operation"],
+            "properties": {
+              "t": { "$ref": "#/$defs/ms" },
+              "action": { "$ref": "audit-entry.schema.json#/$defs/action" },
+              "operation": { "type": "string", "maxLength": 96, "pattern": "^(dashboard|agent|integration):[A-Za-z][A-Za-z0-9]*$" },
+              "actor": { "type": "string", "pattern": "^(tok|pk)_[0-9a-f]{12}$" },
+              "address": { "type": "string", "maxLength": 64 }
+            }
+          }
+        }
+      }
+    },
+    "keep": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["op", "now", "keep_days", "max_rows", "rows"],
+      "properties": {
+        "op": { "const": "keep" },
+        "now": { "$ref": "#/$defs/ms" },
+        "keep_days": { "description": "audit.keep_days (365 by default); null: unlimited, changes are not deleted.", "type": ["integer", "null"], "minimum": 90, "maximum": 36500 },
+        "max_rows": { "description": "Rows of access and of refused (audit.MaxAccessRows, 20000); vectors use small values.", "type": "integer", "minimum": 1, "maximum": 20000 },
+        "rows": {
+          "type": "array", "maxItems": 2000,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["id", "class", "t"],
+            "properties": {
+              "id": { "$ref": "audit-entry.schema.json#/$defs/entryId" },
+              "class": { "$ref": "audit-entry.schema.json#/properties/class" },
+              "t": { "$ref": "#/$defs/ms" }
+            }
+          }
+        }
+      }
+    },
+    "cut": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["op", "now", "raw_ip_days", "entry"],
+      "properties": {
+        "op": { "const": "cut" },
+        "now": { "$ref": "common.schema.json#/$defs/timestamp" },
+        "raw_ip_days": { "type": "integer", "minimum": 1, "maximum": 30 },
+        "erased": { "type": "array", "maxItems": 64, "items": { "type": "string", "maxLength": 64 } },
+        "forgotten": {
+          "type": "array", "maxItems": 64,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["kind", "name", "pseudonym"],
+            "properties": {
+              "kind": { "type": "string", "enum": ["dashboard", "integration", "cli"] },
+              "name": { "$ref": "audit-entry.schema.json#/$defs/name" },
+              "pseudonym": { "type": "string", "pattern": "^person-[0-9a-f]{8}$" }
+            }
+          }
+        },
+        "entry": { "$ref": "audit-entry.schema.json" }
+      }
+    },
+    "view": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["op", "viewer", "entry"],
+      "properties": {
+        "op": { "const": "view" },
+        "viewer": {
+          "oneOf": [
+            { "type": "object", "additionalProperties": false, "required": ["kind"], "properties": { "kind": { "type": "string", "enum": ["dashboard", "agent"] } } },
+            { "type": "object", "additionalProperties": false, "required": ["kind", "website"], "properties": { "kind": { "const": "website" }, "website": { "$ref": "audit-entry.schema.json#/$defs/website" } } }
+          ]
+        },
+        "entry": { "$ref": "audit-entry.schema.json" }
+      }
+    }
+  }
+}

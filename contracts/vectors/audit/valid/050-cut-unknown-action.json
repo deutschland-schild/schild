@@ -1,0 +1,72 @@
+{
+  "contract": "audit",
+  "description": "Also the addresses in an entry of a later build.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"entry\":{\"action\":\"portal.add\",\"actor\":{\"kind\":\"cli\"},\"change\":{\"fields\":[{\"after\":\"203.0.113.9\",\"change\":\"added\",\"field\":\"/origin\"}]},\"class\":\"change\",\"id\":\"0a1b2c3d4e5f6071-k-17\",\"node\":\"gw-1\",\"operation\":\"cli:portal add\",\"reason\":\"Contact form\",\"result\":\"done\",\"schema\":\"schild.audit/0.1\",\"subject\":{\"kind\":\"portal\"},\"time\":\"2026-10-26T12:00:00Z\",\"website\":\"shop.example\"},\"now\":\"2026-11-09T12:00:00Z\",\"op\":\"cut\",\"raw_ip_days\":14}",
+  "input_decoded": {
+    "entry": {
+      "action": "portal.add",
+      "actor": {
+        "kind": "cli"
+      },
+      "change": {
+        "fields": [
+          {
+            "after": "203.0.113.9",
+            "change": "added",
+            "field": "/origin"
+          }
+        ]
+      },
+      "class": "change",
+      "id": "0a1b2c3d4e5f6071-k-17",
+      "node": "gw-1",
+      "operation": "cli:portal add",
+      "reason": "Contact form",
+      "result": "done",
+      "schema": "schild.audit/0.1",
+      "subject": {
+        "kind": "portal"
+      },
+      "time": "2026-10-26T12:00:00Z",
+      "website": "shop.example"
+    },
+    "now": "2026-11-09T12:00:00Z",
+    "op": "cut",
+    "raw_ip_days": 14
+  },
+  "expect": {
+    "valid": true,
+    "result": {
+      "entry": {
+        "action": "portal.add",
+        "actor": {
+          "kind": "cli"
+        },
+        "change": {
+          "fields": [
+            {
+              "after": "203.0.113.0/24",
+              "change": "added",
+              "field": "/origin"
+            }
+          ]
+        },
+        "class": "change",
+        "id": "0a1b2c3d4e5f6071-k-17",
+        "node": "gw-1",
+        "operation": "cli:portal add",
+        "reason": "Contact form",
+        "result": "done",
+        "schema": "schild.audit/0.1",
+        "subject": {
+          "kind": "portal"
+        },
+        "time": "2026-10-26T12:00:00Z",
+        "website": "shop.example"
+      }
+    }
+  }
+}

@@ -1,0 +1,52 @@
+{
+  "contract": "audit",
+  "description": "A first list: everything came.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"action\":\"rule_exception.set\",\"after\":{\"path\":\"/kontakt\",\"repository\":\"crs\",\"rules\":[\"942100\",\"942200\"],\"target\":\"ARGS:message\"},\"before\":null,\"op\":\"diff\"}",
+  "input_decoded": {
+    "action": "rule_exception.set",
+    "after": {
+      "path": "/kontakt",
+      "repository": "crs",
+      "rules": [
+        "942100",
+        "942200"
+      ],
+      "target": "ARGS:message"
+    },
+    "before": null,
+    "op": "diff"
+  },
+  "expect": {
+    "valid": true,
+    "result": {
+      "fields": [
+        {
+          "field": "/path",
+          "change": "added",
+          "after": "/kontakt"
+        },
+        {
+          "field": "/repository",
+          "change": "added",
+          "after": "crs"
+        },
+        {
+          "field": "/rules",
+          "change": "added",
+          "added": [
+            "942100",
+            "942200"
+          ]
+        },
+        {
+          "field": "/target",
+          "change": "added",
+          "after": "ARGS:message"
+        }
+      ]
+    }
+  }
+}

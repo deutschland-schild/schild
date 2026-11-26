@@ -1,0 +1,55 @@
+{
+  "contract": "audit",
+  "description": "A flood of refused calls pushes out refused calls only.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"keep_days\":null,\"max_rows\":2,\"now\":1793016000000,\"op\":\"keep\",\"rows\":[{\"class\":\"change\",\"id\":\"0a1b2c3d4e5f6071-k-1\",\"t\":1788696000000},{\"class\":\"access\",\"id\":\"0a1b2c3d4e5f6071-a-1\",\"t\":1789560000000},{\"class\":\"refused\",\"id\":\"0a1b2c3d4e5f6071-r-1\",\"t\":1793015999970},{\"class\":\"refused\",\"id\":\"0a1b2c3d4e5f6071-r-2\",\"t\":1793015999980},{\"class\":\"refused\",\"id\":\"0a1b2c3d4e5f6071-r-3\",\"t\":1793015999990},{\"class\":\"refused\",\"id\":\"0a1b2c3d4e5f6071-r-4\",\"t\":1793016000000}]}",
+  "input_decoded": {
+    "keep_days": null,
+    "max_rows": 2,
+    "now": 1793016000000,
+    "op": "keep",
+    "rows": [
+      {
+        "class": "change",
+        "id": "0a1b2c3d4e5f6071-k-1",
+        "t": 1788696000000
+      },
+      {
+        "class": "access",
+        "id": "0a1b2c3d4e5f6071-a-1",
+        "t": 1789560000000
+      },
+      {
+        "class": "refused",
+        "id": "0a1b2c3d4e5f6071-r-1",
+        "t": 1793015999970
+      },
+      {
+        "class": "refused",
+        "id": "0a1b2c3d4e5f6071-r-2",
+        "t": 1793015999980
+      },
+      {
+        "class": "refused",
+        "id": "0a1b2c3d4e5f6071-r-3",
+        "t": 1793015999990
+      },
+      {
+        "class": "refused",
+        "id": "0a1b2c3d4e5f6071-r-4",
+        "t": 1793016000000
+      }
+    ]
+  },
+  "expect": {
+    "valid": true,
+    "result": {
+      "deleted": [
+        "0a1b2c3d4e5f6071-r-1",
+        "0a1b2c3d4e5f6071-r-2"
+      ]
+    }
+  }
+}

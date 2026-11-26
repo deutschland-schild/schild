@@ -95,6 +95,7 @@ contracts-sync: ## copy contracts/*.schema.json into the Go embed dir, bundle th
 	rm -f contract/schema/files/*.schema.json contract/schema/files/config/*.schema.json
 	cp contracts/*.schema.json contract/schema/files/
 	cp contracts/config/*.schema.json contract/schema/files/config/
+	cp contracts/audit-actions.json contract/audit/actions.json
 	cd contract && $(GO) run ./cmd/genagentspec
 
 .PHONY: contracts-vectors
@@ -117,6 +118,9 @@ contracts-fuzz: py-deps ## differential fuzz of the SecLang subset, Go vs Python
 	$(PY) contracts/tools/vector_fuzz.py --contracts contracts --seed $(SEED) --n $(FUZZ_VECTORS) --out $(CHECK_DIR)/fuzz
 	cd contract && ($(GO) run ./cmd/contracts-check -contracts ../$(CHECK_DIR)/fuzz -out ../$(CHECK_DIR)/fuzz/go.json >/dev/null || true)
 	$(PY) contracts/tools/crosscheck.py --contracts $(CHECK_DIR)/fuzz --go $(CHECK_DIR)/fuzz/go.json --agreement-only
+	$(PY) contracts/tools/audit_fuzz.py --contracts contracts --seed $(SEED) --out $(CHECK_DIR)/fuzz-audit
+	cd contract && ($(GO) run ./cmd/contracts-check -contracts ../$(CHECK_DIR)/fuzz-audit -out ../$(CHECK_DIR)/fuzz-audit/go.json >/dev/null || true)
+	$(PY) contracts/tools/crosscheck.py --contracts $(CHECK_DIR)/fuzz-audit --go $(CHECK_DIR)/fuzz-audit/go.json --agreement-only
 
 .PHONY: eval-MVP-01
 eval-MVP-01: contracts-test

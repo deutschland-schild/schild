@@ -1,0 +1,61 @@
+{
+  "contract": "audit",
+  "description": "Nothing of another website.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"entry\":{\"action\":\"rule_exception.set\",\"actor\":{\"id\":\"pk_0123456789ab\",\"kind\":\"integration\",\"label\":\"Portal\",\"on_behalf_of\":\"customer-17\",\"session\":\"0a1b2c3d\"},\"address\":\"198.51.100.20\",\"change\":{\"fields\":[{\"after\":\"/kontakt\",\"change\":\"added\",\"field\":\"/path\"},{\"added\":[\"942100\"],\"change\":\"added\",\"field\":\"/rules\"}]},\"class\":\"change\",\"id\":\"0a1b2c3d4e5f6071-k-17\",\"node\":\"gw-1\",\"operation\":\"integration:createException\",\"reason\":\"Contact form\",\"result\":\"done\",\"schema\":\"schild.audit/0.1\",\"subject\":{\"id\":\"1900001\",\"kind\":\"rule_exception\"},\"time\":\"2026-10-26T12:00:00Z\",\"website\":\"shop.example\"},\"op\":\"view\",\"viewer\":{\"kind\":\"website\",\"website\":\"other.example\"}}",
+  "input_decoded": {
+    "entry": {
+      "action": "rule_exception.set",
+      "actor": {
+        "id": "pk_0123456789ab",
+        "kind": "integration",
+        "label": "Portal",
+        "on_behalf_of": "customer-17",
+        "session": "0a1b2c3d"
+      },
+      "address": "198.51.100.20",
+      "change": {
+        "fields": [
+          {
+            "after": "/kontakt",
+            "change": "added",
+            "field": "/path"
+          },
+          {
+            "added": [
+              "942100"
+            ],
+            "change": "added",
+            "field": "/rules"
+          }
+        ]
+      },
+      "class": "change",
+      "id": "0a1b2c3d4e5f6071-k-17",
+      "node": "gw-1",
+      "operation": "integration:createException",
+      "reason": "Contact form",
+      "result": "done",
+      "schema": "schild.audit/0.1",
+      "subject": {
+        "id": "1900001",
+        "kind": "rule_exception"
+      },
+      "time": "2026-10-26T12:00:00Z",
+      "website": "shop.example"
+    },
+    "op": "view",
+    "viewer": {
+      "kind": "website",
+      "website": "other.example"
+    }
+  },
+  "expect": {
+    "valid": true,
+    "result": {
+      "entry": null
+    }
+  }
+}

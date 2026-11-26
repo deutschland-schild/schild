@@ -1,0 +1,89 @@
+id: MVP-36
+# Asked by the initiator 2026-11-25: "haben wir ein globales Auditlog? Dass man sehen kann, welcher Token was geändert
+# hat?" Not yet. Checked against the code of 2026-11-25:
+# - events with the actor exist for: state of a rule repository, single rules disabled and enabled, rule exceptions,
+#   blocks set by hand or by an agent and lifted by an agent, crawler policy, access protection and maintenance,
+#   incident unblocked (by "operator") and exported, access to the dashboard reset. Most name token id and label.
+# - no event: own IPs, release of a client, scenarios, thresholds, presets, rate limits, distributed detectors,
+#   settings of the CRS, retention, browser verification and Under Attack, sign-in and failed sign-in, password,
+#   tokens added and revoked, erasure and export by address.
+# - the call log of the agent API (schild token log, listAgentCalls) has token, operation, status and size of a call,
+#   not what changed; kept log_days (30), at most 50 000 rows, the first thing the size cap deletes. No page shows it.
+# - config_changes holds time and hash of the configuration, 1000 rows, per node.
+# - events end after events_days (14 by default).
+# Initiator 2026-11-25: kept a year by default, unlimited possible ("auch unbegrenzt möglich. Default = 1 Jahr").
+# - the dashboard has one user; an actor "dashboard" is always that user.
+title: "Audit log: every change and every sign-in with who, when, where and before/after, in one list that outlives the events"
+ships: false                        # draft, nothing built
+status: ENTWURF
+image: schild                       # same binary
+hypotheses: [D1]
+refs: [MVP-09, MVP-21, MVP-27, MVP-28, MVP-32, MVP-34, MVP-35, DECISIONS-D33, DECISIONS-D38, DECISIONS-D54, DECISIONS-D84, DECISIONS-D107, DECISIONS-D108]
+depends_on: [MVP-09, MVP-21]
+contracts:
+  in: [client dashboard API, agent API, group of gateways, storage bounds]
+  out: 'contracts/audit.md (draft): audit-entry.schema.json, audit-actions.json, contract/audit, vectors audit, listAudit in the dashboard API'
+why: >-
+  Several ways change the protection: dashboard, agents with tokens, the CLI and, with MVP-35, portals of hosters. When
+  a website is suddenly open or a visitor is blocked, the first question is who changed what. Today the answer is
+  spread over event types, a call log without content and a list of hashes, and half of the changes are in none.
+
+entry:
+  # contracts/audit.md sections 1 and 3
+  fields: 'id, time, node, class, action (closed list, e.g. allowlist.add), operation, actor, address, subject (kind and id), website or none, change, reason, result (done, refused)'
+  actor:
+    - 'dashboard: user and session (short id)'
+    - 'agent: token id and label'
+    - 'integration: portal key id and label, session (short id), actor the portal named'
+    - 'cli: host account, as far as known'
+    - 'config: schild.yaml or Caddyfile applied, with digest and the names of the changed keys'
+    - 'system: what schild does itself, e.g. an entry that expired'
+  values: 'a value is recorded only for a field the action lists; every other changed field by its name. A password, token, key or other secret never, it shows as added, changed or removed. 8 KiB per change'
+  addresses: 'own IPs and released addresses are personal data: stored here like in events, cut after retention.raw_ip_days, erased with Art. 17'
+  untrusted: 'reason, label and actor of the portal are text from outside: capped, cleaned of control characters, shown as text, never an instruction'
+actions:
+  changes: 'every operation with POST, PUT, PATCH or DELETE of the dashboard API, every write of the agent API and the integration API, every writing CLI command, every applied configuration. The closed list is contracts/audit-actions.json'
+  access: 'sign-in, sign-out, failed sign-in and refused calls (one entry per client, operation and minute with a count)'
+  credentials: 'password set, changed, reset; agent token, portal key: added, revoked, expired; agent enrolled, revoked'
+  privacy: 'export and erasure by address: that it happened and how much, not the content'
+  not_here: 'reading calls (the call log of the APIs stays for them) and decisions on requests (events)'
+guarantee:
+  - 'written in the transaction of the change into an outbox of schild.db, then moved to audit.db; a change whose entry cannot be written is refused. A change outside of schild.db: the entry before the answer'
+  - 'an operation without an audit action fails a test: the list is compared with the OpenAPI documents, the registered routes and the commands'
+  - 'append only: no API changes or removes an entry; erasure of an address cuts the address and keeps the entry'
+  - 'the existing events stay as they are; the timeline of a website shows audit entries of that website next to them'
+retention:
+  - 'changes, credentials and privacy entries: audit.keep_days in schild.yaml, 365 by default, 90 to 36500 or unlimited; never deleted by a size cap'
+  - 'sign-ins: 90 days and at most 20 000 rows; failed sign-ins and refused calls the same with a cap of their own, so a flood pushes out neither changes nor sign-ins'
+  - 'what is cut stays as an entry: addresses after retention.raw_ip_days as in events; a named person (user, actor of the portal) is replaced by a pseudonym on request, schild audit forget'
+  - 'size: audit.db, a file of its own outside the size cap and the disk budget. An entry is about 1 KiB with its indexes, 64 KiB at most: 100 changes a day are about 36 MB a year. A token writes at most 600 entries an hour, portals are bounded per session, website and gateway; at 1 GiB a hint names the growth. Nothing is deleted because of its size'
+  - 'optional copy as JSON lines to stdout or a file (audit.stream) for a log system of the operator'
+group:                              # MVP-27
+  - 'an entry is written by the node that made the change; members ask for entries and hand on all they hold, so a node that joins later has the history of nodes that are gone; every dashboard shows all of them with the node'
+  - 'a change that arrives from another node writes no second entry'
+tamper_evidence:
+  - 'first version: none beyond append only; who has root on the host can change the file. The copy to another system is the answer, and the docs say so'
+surface:
+  dashboard: 'Einstellungen > Protokoll: list with filters website, actor, token, action and time; an entry shows before and after. From a token to its entries, from a setting to its last change ("Zuletzt geändert von …")'
+  api: 'GET /audit (dashboard API); agent API for agent:read: changes and credentials, without people and addresses of calls; integration API: changes of the own website a portal may make, the operator without name, reason and the addresses they set'
+  cli: 'schild audit [--website ID] [--token ID] [--since 7d] [--json]'
+must:
+  - 'every change through every way is found in GET /audit with actor, subject, before and after'
+  - 'no secret is in any entry, checked with marker values in every writable field'
+  - 'no flood and no size cap removes an entry of a change, and no age under audit.keep_days'
+  - 'an entry survives restart, update and the size cap of events'
+  - 'a session of one website sees no entry of another'
+measure:                            # by an independent agent, not the builder
+  - 'the matrix of every writing operation and command, done once each: one entry with the right actor and values'
+  - 'kill -9 between change and answer, 1000 times: no change without entry, no entry without change'
+  - 'group of three with a partition: every entry once on every node after it'
+  - 'flood of 1 million refused calls and failed sign-ins; secrets with marker values; Art. 17 erasure'
+kill_if: "proposal for the initiator: a change is missing from the audit log OR a secret is in it OR a flood removes entries of changes OR a website session reads entries of another"
+done: "make contracts-test && make test && (cd dashboard && pnpm check)"
+open:
+  - 'erasure under Art. 17 against keeping who changed what: the pseudonym is the proposal; the docs leave the judgement to the operator'
+  - 'several dashboard users would make "dashboard" a person; not part of this spec'
+out_of_scope:
+  - 'a tamper-proof log (signed chain, write-once storage)'
+  - 'logging every read'
+  - 'sending the log anywhere by itself'

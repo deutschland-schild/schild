@@ -1,0 +1,101 @@
+{
+  "contract": "audit",
+  "description": "A longer address that begins the same stays; the end of a sentence does not hide one.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"entry\":{\"action\":\"allowlist.add\",\"actor\":{\"kind\":\"dashboard\",\"session\":\"0a1b2c3d\",\"user\":\"admin\"},\"address\":\"198.51.100.20\",\"change\":{\"fields\":[{\"after\":\"203.0.113.7\",\"change\":\"added\",\"field\":\"/ip\"},{\"after\":\"CLI 203.0.113.7\",\"change\":\"added\",\"field\":\"/label\"},{\"after\":\"no_block\",\"change\":\"added\",\"field\":\"/level\"}]},\"class\":\"change\",\"id\":\"0a1b2c3d4e5f6071-k-17\",\"node\":\"gw-1\",\"operation\":\"dashboard:addAllowlistEntry\",\"reason\":\"203.0.113.7. Not 203.0.113.77 and 1203.0.113.7, but (203.0.113.7/32)\",\"result\":\"done\",\"schema\":\"schild.audit/0.1\",\"subject\":{\"id\":\"al_1\",\"kind\":\"allowlist_entry\"},\"time\":\"2026-10-26T12:00:00Z\",\"website\":\"shop.example\"},\"now\":\"2026-11-09T12:00:00Z\",\"op\":\"cut\",\"raw_ip_days\":14}",
+  "input_decoded": {
+    "entry": {
+      "action": "allowlist.add",
+      "actor": {
+        "kind": "dashboard",
+        "session": "0a1b2c3d",
+        "user": "admin"
+      },
+      "address": "198.51.100.20",
+      "change": {
+        "fields": [
+          {
+            "after": "203.0.113.7",
+            "change": "added",
+            "field": "/ip"
+          },
+          {
+            "after": "CLI 203.0.113.7",
+            "change": "added",
+            "field": "/label"
+          },
+          {
+            "after": "no_block",
+            "change": "added",
+            "field": "/level"
+          }
+        ]
+      },
+      "class": "change",
+      "id": "0a1b2c3d4e5f6071-k-17",
+      "node": "gw-1",
+      "operation": "dashboard:addAllowlistEntry",
+      "reason": "203.0.113.7. Not 203.0.113.77 and 1203.0.113.7, but (203.0.113.7/32)",
+      "result": "done",
+      "schema": "schild.audit/0.1",
+      "subject": {
+        "id": "al_1",
+        "kind": "allowlist_entry"
+      },
+      "time": "2026-10-26T12:00:00Z",
+      "website": "shop.example"
+    },
+    "now": "2026-11-09T12:00:00Z",
+    "op": "cut",
+    "raw_ip_days": 14
+  },
+  "expect": {
+    "valid": true,
+    "result": {
+      "entry": {
+        "action": "allowlist.add",
+        "actor": {
+          "kind": "dashboard",
+          "session": "0a1b2c3d",
+          "user": "admin"
+        },
+        "address": "198.51.100.0/24",
+        "address_cut": "short",
+        "change": {
+          "fields": [
+            {
+              "after": "203.0.113.0/24",
+              "change": "added",
+              "field": "/ip"
+            },
+            {
+              "after": "CLI 203.0.113.0/24",
+              "change": "added",
+              "field": "/label"
+            },
+            {
+              "after": "no_block",
+              "change": "added",
+              "field": "/level"
+            }
+          ]
+        },
+        "class": "change",
+        "id": "0a1b2c3d4e5f6071-k-17",
+        "node": "gw-1",
+        "operation": "dashboard:addAllowlistEntry",
+        "reason": "203.0.113.0/24. Not 203.0.113.77 and 1203.0.113.7, but (203.0.113.0/24)",
+        "result": "done",
+        "schema": "schild.audit/0.1",
+        "subject": {
+          "id": "al_1",
+          "kind": "allowlist_entry"
+        },
+        "time": "2026-10-26T12:00:00Z",
+        "website": "shop.example"
+      }
+    }
+  }
+}

@@ -951,6 +951,21 @@ Two findings before the release. First: the session cookie was `Secure` for ever
 - **Rejected: a class of lifts next to blocks by client.** It ends the guessing for the lift and keeps one record per client, which MVP-34 cannot use.
 - Contract: [cluster.md](cluster.md) sections 2, 4, 5, 13, 14 and 16; Go `cluster.IncidentBlock`, `cluster.IncidentLift`; vectors `cluster-record` rebuilt on the new classes; `unknown-class` now answers `class`.
 
+## D108 Audit log: changes are kept a year by default, values only from a list (DRAFT / ENTWURF, 2026-11-25; MVP-36, not built)
+
+Contract: [audit.md](audit.md). Asked for by the initiator on 2026-11-25 ("welcher Token was geändert hat"), and on the same day: a year by default, unlimited possible ("auch unbegrenzt möglich. Default = 1 Jahr"). That replaces the earlier direction that changes are never deleted ("warum überhaupt löschen?"). The points below are the contracts agent's, for the initiator to confirm.
+
+- **`audit.keep_days` in `schild.yaml`: 365 by default, 90 to 36 500 or `unlimited`** for changes, credentials and privacy entries, without a cap on rows. A word instead of 0: 0 days reads like nothing is kept. No entry about a deletion by age: with a default there would be one every day. Sign-ins and refused calls: 90 days and 20 000 rows, each with a cap of its own, because anybody can make refused calls.
+- **An own file, `audit.db`.** In `schild.db` a growing log would push events out of the 100 MB cap. The entry is written into an outbox of `schild.db` in the transaction of the change and moved afterwards, because SQLite in WAL mode is not atomic over two files.
+- **Not in the disk budget.** A log without a bound in size must not keep a gateway from starting. A hint at 1 GiB instead.
+- **Values come from a closed list of fields per action.** A field nobody listed shows by its name only, and a name that ends like a secret never has a value. A block list of secrets alone would miss the next one.
+- **`config.apply` records names, no values.** `schild.yaml` holds keys, and the operator has the file in their deployment.
+- **In a group every node hands on every entry**, not only its own as with events, so a node that joins later has the history of nodes that are gone.
+- **An agent sees changes, not people.** No sign-ins, refused calls, user names or addresses of calls: what an agent reads may leave the server.
+- **A failed sign-in names no user.** What was typed may be a password.
+- **No new setting or agent call in the published contracts before the build** (section 10): a gateway that accepts `audit.keep_days` and does nothing would be a false promise.
+- **Found on the way.** The dashboard serves `GET`, `PUT` and `DELETE /websites/{website}/human-check` without an entry in `client-dashboard.openapi.yaml`. The list names the two writing ones under `undocumented`; the document is still to be completed.
+
 ## D107 No tenants: customers of hosters see their website in the hoster's portal (DRAFT / ENTWURF, initiator 2026-11-25; MVP-34, MVP-35, MVP-36, not built)
 
 - **Finding (initiator, issue 42).** Users should see only what they are responsible for. A multi-tenant gateway would be "extrem kompliziert", and customers signing in to the dashboard of the firewall "fänd ich voll merkwürdig". The portal of a hoster already knows customers, contracts and logins.

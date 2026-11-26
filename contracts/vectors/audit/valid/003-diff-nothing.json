@@ -1,0 +1,28 @@
+{
+  "contract": "audit",
+  "description": "The same state: no field.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"action\":\"settings.set\",\"after\":{\"retention\":{\"raw_ip_days\":14}},\"before\":{\"retention\":{\"raw_ip_days\":14}},\"op\":\"diff\"}",
+  "input_decoded": {
+    "action": "settings.set",
+    "after": {
+      "retention": {
+        "raw_ip_days": 14
+      }
+    },
+    "before": {
+      "retention": {
+        "raw_ip_days": 14
+      }
+    },
+    "op": "diff"
+  },
+  "expect": {
+    "valid": true,
+    "result": {
+      "fields": []
+    }
+  }
+}

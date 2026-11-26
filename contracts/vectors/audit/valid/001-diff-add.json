@@ -1,0 +1,46 @@
+{
+  "contract": "audit",
+  "description": "A new own IP: every field of the action with its value.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"action\":\"allowlist.add\",\"after\":{\"expires\":\"2026-11-02T12:00:00Z\",\"ip\":\"203.0.113.7\",\"label\":\"Office\",\"level\":\"no_block\"},\"before\":null,\"op\":\"diff\"}",
+  "input_decoded": {
+    "action": "allowlist.add",
+    "after": {
+      "expires": "2026-11-02T12:00:00Z",
+      "ip": "203.0.113.7",
+      "label": "Office",
+      "level": "no_block"
+    },
+    "before": null,
+    "op": "diff"
+  },
+  "expect": {
+    "valid": true,
+    "result": {
+      "fields": [
+        {
+          "field": "/expires",
+          "change": "added",
+          "after": "2026-11-02T12:00:00Z"
+        },
+        {
+          "field": "/ip",
+          "change": "added",
+          "after": "203.0.113.7"
+        },
+        {
+          "field": "/label",
+          "change": "added",
+          "after": "Office"
+        },
+        {
+          "field": "/level",
+          "change": "added",
+          "after": "no_block"
+        }
+      ]
+    }
+  }
+}

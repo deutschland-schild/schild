@@ -1,0 +1,38 @@
+{
+  "contract": "audit",
+  "description": "No sign-ins.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"entry\":{\"action\":\"session.start\",\"actor\":{\"kind\":\"dashboard\"},\"class\":\"refused\",\"count\":12,\"id\":\"0a1b2c3d4e5f6071-r-3\",\"last\":\"2026-10-26T12:00:40Z\",\"node\":\"gw-1\",\"operation\":\"dashboard:login\",\"result\":\"refused\",\"schema\":\"schild.audit/0.1\",\"subject\":{\"kind\":\"user\"},\"time\":\"2026-10-26T12:00:00Z\"},\"op\":\"view\",\"viewer\":{\"kind\":\"agent\"}}",
+  "input_decoded": {
+    "entry": {
+      "action": "session.start",
+      "actor": {
+        "kind": "dashboard"
+      },
+      "class": "refused",
+      "count": 12,
+      "id": "0a1b2c3d4e5f6071-r-3",
+      "last": "2026-10-26T12:00:40Z",
+      "node": "gw-1",
+      "operation": "dashboard:login",
+      "result": "refused",
+      "schema": "schild.audit/0.1",
+      "subject": {
+        "kind": "user"
+      },
+      "time": "2026-10-26T12:00:00Z"
+    },
+    "op": "view",
+    "viewer": {
+      "kind": "agent"
+    }
+  },
+  "expect": {
+    "valid": true,
+    "result": {
+      "entry": null
+    }
+  }
+}

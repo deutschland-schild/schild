@@ -167,6 +167,8 @@ func main() {
 	genSiteConfigD95(g)
 	// D105 (MVP-27): the records of a group of gateways.
 	genClusterRecord(g)
+	// Draft (MVP-36): the audit log.
+	genAudit(g)
 	genSiteConfigD103(g)
 	g.summary()
 }
