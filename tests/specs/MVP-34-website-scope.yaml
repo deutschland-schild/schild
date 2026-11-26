@@ -1,0 +1,114 @@
+id: MVP-34
+# Asked for by the initiator 2026-11-25 while planning MVP-35 (issue 42): own IPs hold for the whole gateway, "alle
+# globalen Felder müsste man nochmal durchgehen, inwiefern sie auf Website-Ebene fehlen". Useful without MVP-35 to
+# everyone who runs several websites on one gateway.
+# Proposed by the planning agent, agreed by the initiator with "ja" 2026-11-25 (D107):
+# behaviour.block_scope stays gateway by default, website is a setting.
+# Checked against the code of 2026-11-25:
+# - per website today: access protection, maintenance, browser verification, crawler policy, rule exceptions.
+# - rate limits: site is compared with one host name (behaviour.Limit.matches), so a website with several hosts needs
+#   several limits.
+# - allowlist: one list for the gateway; an entry ends blocks, skips limits, with bypass_waf skips the WAF, and passes
+#   every access protection and maintenance mode with own_networks, on every website.
+# - behaviour counters and blocks are keyed by the client only (behaviour.Key), in the table, in kept blocks, in the
+#   group records and in the host's firewall.
+# - released senders (ip_exceptions) are keyed by address and source.
+# - the state of a rule repository and the block decision are applied after the evaluation (gate.applyRules), so a
+#   state per website needs no second WAF instance.
+# - a rule exception stores the hosts of its website when it is set and never reads them again.
+# - limits that stand in the way of many websites: 32 tracked websites (contract/websites.MaxTracked), 256 websites
+#   with own behaviour state (behaviour.CapacitySites), 256 rule exceptions per gateway.
+title: "Settings per website: own IPs, released senders, automatic blocks, detect only, scenarios, presets and limits get a website scope; everything else is named as gateway scope"
+ships: false                        # draft, nothing built
+status: ENTWURF
+image: schild                       # same binary
+hypotheses: [D1, D3]
+refs: [MVP-14, MVP-16, MVP-17, MVP-18, MVP-21, MVP-27, MVP-28, MVP-35, MVP-36, DECISIONS-D36, DECISIONS-D42, DECISIONS-D54, DECISIONS-D84, DECISIONS-D87, DECISIONS-D89, DECISIONS-D107]
+depends_on: [MVP-16, MVP-17]
+contracts:
+  in: [config-schild, website ids (contract/websites), cluster records, events, client dashboard API]
+  out: 'to be written by the contracts agent: x-scope in config-schild, website overlay, allowlist and block records with a website, cluster record versions, vectors'
+why: >-
+  One gateway serves websites of different people: the customers of a hoster, the clients of an agency. Today one
+  address list, one set of scenarios and one block table hold for all of them. What one website needs changes the
+  others: an own IP of one is trusted by all, and a visitor blocked after a false positive on one is blocked on all.
+
+principles:
+  - 'every setting of schild.yaml and of the dashboard carries its scope in the schema: x-scope gateway or website. A test fails for a field without one'
+  - 'a website setting inherits the gateway value until it is set; the dashboard shows "wie Gateway" or the own value, and one click goes back'
+  - 'the operator may lock a website setting; a lock is shown and refused with the code locked'
+  - 'a setting of one website never changes a decision on another'
+  - 'one website only: no new step anywhere, the dashboard looks like today'
+
+scope:
+  website:
+    own_ips: 'see own_ips'
+    released_senders: 'a release names the website; releases of the operator may still hold for all'
+    blocks: 'see blocks'
+    detect_only: 'rule repositories, scenarios and limits of one website only detect; for setting up a website. Never a weaker bound on body size, unparsable bodies or evaluation time'
+    rule_repository_state: 'off, detect, block per repository'
+    disabled_rules: 'single CRS and crowdsec rules off for a website'
+    anomaly_threshold: 'inbound anomaly threshold of the CRS'
+    scenarios: 'mode and thresholds of the five scenarios'
+    presets: 'the application presets (login routes, preset limits), because websites run different applications'
+    rate_limits: 'site becomes a website id that covers all its hosts; a host name of today is read as its website when that website has one host, else it keeps its meaning and the dashboard says so'
+    privacy: 'search, export and erasure of an address may name a website; the export of one website holds nothing of another. Erasure without a website stays as it is'
+    block_page: 'optional contact link of the website'
+  gateway:
+    - 'listeners, TLS, trusted proxies, client IP headers, hosts and routes (Caddyfile)'
+    - 'paranoia level, CrowdSec updates, local rules (the operator''s file)'
+    - 'distributed detectors (MVP-18), for now'
+    - 'retention and size caps, geo database, server check, cluster, notifications'
+    - 'total limits of memory, connections, waiting requests and WAF slots; see fair_share'
+
+own_ips:
+  - 'an entry has an optional website; without one it is an entry of the operator and holds as today'
+  - 'a website entry has level no_block only: the WAF still evaluates, and what it would have stopped is recorded as today for allowlisted requests'
+  - 'a website entry passes own_networks of that website only. Entries of the operator pass it as today'
+  - 'size of a website entry: IPv4 /24 or smaller, IPv6 /48 or smaller, at most 50 entries per website, a host name counts as one'
+  - 'the website is known before the list is asked; a request without a website matches entries of the operator only'
+blocks:
+  - 'behaviour.block_scope: gateway (default, as today) or website'
+  - 'website: counters and automatic blocks are keyed by website and client; a client blocked on three websites at the same time is blocked on the gateway (behaviour.escalate_websites, default 3, 0 never)'
+  - 'the event and the incident name the scope; unblock ends the block of its scope; a gateway block names the websites it came from to the operator only'
+  - 'manual blocks of the operator and of the agent API (D42, D88) hold for the gateway'
+  - 'the host''s firewall and an edge get gateway blocks only. A client key that shares an address with an entry of any website stays out of them, as for the allowlist today (D42), and is blocked in the gateway instead'
+order:                              # first match decides whether a client is let through or stopped before the WAF
+  - 'own IPs of the operator'
+  - 'manual blocks'
+  - 'own IPs of the website'
+  - 'automatic blocks of the gateway, then of the website'
+  - 'access protection and maintenance keep their place before all of it (D56)'
+exceptions:
+  - 'a rule exception renders the hosts its website has now, at every load of the configuration; a website that is gone takes its exceptions out of force, and the dashboard lists them to remove'
+  - 'cap per website (50) next to a higher cap of the gateway; the number comes from the measurement of the cost per request'
+fair_share:
+  - 'one website holds at most a share of the waiting requests, body reads and WAF slots while others wait (proposal: half); alone it may use all'
+  - 'event store and request ring: what one attacked website writes does not push out the newest rows of the others; a floor per website, measured with 100 websites'
+group:                              # MVP-27
+  - 'records of blocks, allowlist entries and releases carry the website; a node that does not know the field refuses the record instead of reading it as a gateway block or entry'
+  - 'mixed versions: website scope is switched on only when every member knows it; the status names the member that does not'
+
+must:
+  - 'an entry, release, block, exception or setting of website A changes no decision on website B; tested for every field with scope website'
+  - 'with block_scope gateway and no website setting every decision is the same as before; existing vectors stay unchanged'
+  - 'a website entry never skips the WAF and never opens another website''s access protection or maintenance mode'
+  - 'removing a website or moving its host leaves no entry, exception or block of it in force elsewhere'
+  - 'bounded memory: the tables keep their capacity with website keys, and eviction never lifts a kept block'
+measure:                            # by an independent agent, not the builder
+  - 'testlab, three websites, two with several hosts: the matrix of every field with scope website, set on A, probed on B and C'
+  - 'own IPs: entry on A; blocks, limits, WAF and maintenance on B unchanged; the firewall leaves the address out'
+  - 'blocks: false positives on A block on A only; three websites escalate; unblock on one of them'
+  - 'host moved from A to B: exceptions, entries, blocks and releases of A do not hold on B'
+  - 'group of three with a member on the old version, then updated; a partition while entries change'
+  - 'cost per request with 500 websites, 1000 entries and 2000 exceptions against the budget of M1; memory of the tables under a flood over 500 websites'
+kill_if: "proposal for the initiator: a setting of one website changes a decision on another OR a website entry lets a request past the WAF OR a decision changes with no website setting in use OR the cost per request is over the M1 budget with 500 websites"
+done: "make contracts-test && make test && (cd dashboard && pnpm check)"
+open:
+  - 'escalate_websites 3: the number needs replayed scanner traffic over many websites'
+  - 'fair share of half: the number comes from the measurement'
+  - 'may a website weaken the gateway value (block to detect)? Proposal: the operator may, a session of MVP-35 may not in its first version'
+out_of_scope:
+  - 'tenants, users and roles; a website has no owner in schild'
+  - 'a WAF instance or local rules per website'
+  - 'the 32 tracked websites of the monitoring (MVP-35, scale)'

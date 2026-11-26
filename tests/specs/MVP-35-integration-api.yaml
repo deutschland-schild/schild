@@ -1,0 +1,130 @@
+id: MVP-35
+# Issue 42 ("Tenants"). Direction of the initiator 2026-11-25: no multi-tenant application, instead an integration API,
+# so hosters show their customers traffic and events in their own portal. Customers never sign in to the dashboard of
+# the firewall. A way back for rule exceptions and own IPs is needed.
+# Initiator 2026-11-26: the integration API is an API only ("kein frontend"). Schild ships no frontend; the portal
+# builds its own pages.
+# Design after research on other products that show their data in portals of others (2026-11-25): a short session
+# opened by the portal with named capabilities, its scope taken from the token.
+# Agreed by the initiator 2026-11-25 (D107): replaces the tenants, roles and customer logins of MVP-13 and the tenant_id
+# of MVP-20.
+# Checked against the code of 2026-11-25:
+# - bearer tokens, scopes, expiry, revocation, rate limit and call log exist for the agent API; tokens are records of
+#   the group. The agent API listens on loopback only and refuses requests with Origin.
+# - the site filter of the agent API is a filter and not a boundary: sites_affected, the context of an event, runs_on
+#   and the hints of the server name what belongs to others.
+# - numbers exist for 32 websites (MaxTracked); the rings keep 14 days by default, 90 at most.
+# - numbers under a filter come from the request ring, which answers one query at a time.
+title: "Integration API: portals of hosters and agencies show one website's traffic and events and set its exceptions and own IPs, through short sessions; an API only, no frontend; no customer login in schild"
+ships: false                        # draft, nothing built
+status: ENTWURF
+image: schild                       # same binary
+hypotheses: [D3]
+refs: [MVP-13, MVP-16, MVP-20, MVP-21, MVP-22, MVP-27, MVP-28, MVP-34, MVP-36, stories-02-agentur, stories-03-hoster-admin, DECISIONS-D33, DECISIONS-D36, DECISIONS-D54, DECISIONS-D85, DECISIONS-D107]
+depends_on: [MVP-16, MVP-21, MVP-34, MVP-36]   # reading needs neither MVP-34 nor MVP-36
+contracts:
+  in: [website ids, monitoring counters, events, rule exceptions, allowlist of MVP-34]
+  out: 'to be written by the contracts agent: contracts/api/integration.openapi.yaml, session format, actor integration in events, vectors, fixtures'
+why: >-
+  A hoster has customers, contracts and logins in its portal. The gateway has traffic and events. A second user
+  management in the firewall would keep the same facts twice and put its control surface in front of customers. The
+  portal knows who may see which website; the gateway only has to hold a session to that website.
+
+trust:
+  portal: 'signs customers in, decides who may see which website, asks the gateway for a session; a taken over portal can do what its key allows and nothing more'
+  gateway: 'enforces website, capabilities and end of a session on every call'
+  browser: 'never calls the API and never holds the portal key; what a customer sees comes from the portal'
+
+listener:
+  - 'integration_api.enabled (default false), listen (default 127.0.0.1:8790), allowed_hosts; its own port, no route of the dashboard or the agent API on it, its tokens refused there and theirs here'
+  - 'loopback or private addresses only, else preflight refuses; another address than loopback needs TLS'
+  - 'called by the backend of the portal only; no CORS in the first version'
+portal_key:
+  - 'created on the host only: schild portal add --website ID [--website ID] | --all-websites --allow CAPABILITY... --expires 365d --label TEXT; stored as a hash, shown once; list, revoke'
+  - 'opens sessions and lists its websites; reads nothing else'
+  - 'websites and capabilities of the key are the ceiling of every session; --allow is required, there is no default'
+session:
+  open: 'POST /integration/v0/sessions {website, capabilities[], actor, ttl_s?, addresses?}; answer token and end. A website or capability above the ceiling: 403, nothing is cut silently'
+  ttl: '900 s default, 60 to 3600'
+  token: 'Authorization header only, never in a URL or cookie; bound to one website, its capabilities, the key and the actor'
+  actor: 'opaque id of the portal (1..64 of A-Za-z0-9._-), for the audit log; the docs say not to use names or mail addresses'
+  end: 'by time, by DELETE of itself, by revoking the key (in force on every node within 15 s); a streaming or long call ends with it'
+  group: 'a session opened on one node is valid on every node; signed with a key of the group, with the revocation state of the portal key (contracts agent)'
+  read_token: 'schild token add --scope website:read --website ID for scripts without a portal; the same reading calls, its website required'
+capabilities:                       # each named by the portal, none implied by another
+  traffic_read: 'traffic:read'
+  events_read: 'events:read'
+  exceptions_write: 'exceptions:write, includes reading exceptions'
+  allowlist_write: 'allowlist:write, includes reading the website''s own IPs'
+  blocks_release: 'blocks:release, automatic blocks of the website only'
+  later: 'detect only, crawlers, access protection and maintenance'
+
+api:                                # the website comes from the token and is no parameter
+  - 'GET /website: label, hosts, protection, status; no node, server or hint of the server'
+  - 'GET /report?range&compare&filter: KPIs with the previous period, main series, markers of this website, every top list, in one answer; cached for 30 s per website and query'
+  - 'GET /breakdown?by&range&top: one longer list; by is a closed list without ip, user_agent and site'
+  - 'GET /realtime: the last 30 minutes'
+  - 'GET /history?from&to: one row per UTC day'
+  - 'GET /events, GET /events/{event}: request and block events of this website; search by incident number'
+  - 'GET /events/{event}/exception: the exceptions that fit this event, or reason no_named_field, not_crs, local_rule'
+  - 'GET /exceptions, POST /exceptions {event, reason, expires?}, POST /exceptions/{id}/remove {reason}'
+  - 'GET /allowlist, POST /allowlist, DELETE /allowlist/{id}: entries with scope of this website (MVP-34)'
+  - 'GET /blocks, POST /blocks/{incident}/release {reason}'
+  - 'own answer types with a closed list of fields; none of the agent or dashboard types is served'
+writes:
+  - 'an exception is made from an event of this website; path, field and rules come from the event, never from the request. CRS rules only'
+  - 'only what the integration API set can be removed by it; the operator can remove everything in the dashboard'
+  - 'limits: writes per session, per website and for all portals together, because each exception rebuilds the WAF; 50 exceptions and 50 entries per website'
+  - 'an approval by the hoster happens in the portal, which keeps the request and calls the API after it; no approval in schild'
+  - 'schild.rule.exception_set.v1 and the events of MVP-36 carry actor integration, key id, label and the actor of the session'
+privacy:
+  - 'addresses: by default network (/24, /48) and pseudonym; addresses full needs the portal key to allow it'
+  - 'the pseudonym key is derived per website, so two websites cannot compare visitors'
+  - 'data_from per website: nothing older is answered. A host that moved to another customer must not show the events of the one before'
+  - 'the portal shows data to the people responsible for the website; agreements on that are between hoster and customer'
+
+docs:                               # an API only (initiator 2026-11-26): the portal builds its own pages
+  contract: 'contracts/api/integration.openapi.yaml is the product: every field with unit, range and meaning, every error code, examples for every operation; a client can be generated from it in any language'
+  guide: 'one guide for the portal backend: create a key, open a session for a customer, call the API with it, end the session; every step as a curl call'
+  hostile_text: 'paths, hosts, User-Agents, referrers, labels and reasons are written by attackers or customers: x-untrusted on every such field; the guide says to show them as text only, never as HTML, and to link nothing from data without a fixed scheme'
+  numbers: 'counts and series as numbers, no text to show; the guide says how ranges, comparisons and gaps are meant'
+  meaning: 'no sessions, bounce rate, entry pages, conversions or UTM; the docs say what is counted and that hits of a CDN cache in front are missing'
+
+scale:
+  - 'more than 32 websites with own numbers; target 500 (MVP-16). The documented bound of metrics.db is about 13.6 MB per website with default rings, 6.8 GB for 500: small websites need a smaller format'
+  - 'history: daily totals and top lists per website without addresses, kept 25 months by default; visitors are counted per UTC day already'
+  - 'first version: the filter acts on KPIs and the main series, lists say that they are not filtered; the full filter needs its own query budget'
+  - 'a global bound on calls and query time of all portals together, after the dashboard of the operator'
+
+must:
+  - 'no call, with any token of the API, returns a field, count, id or difference in time or status that tells of another website; unknown and foreign ids answer alike'
+  - 'a session does exactly its capabilities; a missing one answers 403 and changes nothing'
+  - 'no route of this listener reaches the dashboard or the agent API, and no token of one works on another'
+  - 'the API under full load of portals leaves the added latency of requests within the M1 budget and the dashboard usable'
+  - 'every write is in the audit log of MVP-36 before its answer'
+  - 'revoking a portal key ends every session within 15 s on every reachable node'
+measure:                            # by an independent agent, not the builder
+  - 'isolation: every operation of the OpenAPI document with two websites, two keys and swapped ids; 0 objects and 0 actions of the other, with both orders of creation and after a host moved'
+  - 'sessions: above the ceiling, expired, revoked, replayed on another node, tampered, sent in URL and cookie'
+  - 'load: 500 websites, 1000 sessions that ask for realtime every 10 s, traffic at the M1 profile'
+  - 'document: every field that carries text from outside is x-untrusted, checked against a hostile event corpus that reaches every field of every answer'
+  - 'the numbers of report equal those of the dashboard for the same website and range'
+  - 'three people who did not build it read the report and the events of one website and set an exception from a program of their own, with the guide and the OpenAPI document alone, in under 4 h'
+kill_if: "proposal for the initiator: one website's session learns or changes anything of another OR a portal token reaches a route of the dashboard or agent API OR portals move request latency over the M1 budget OR a field with text from outside is not marked x-untrusted"
+done: "make contracts-test && make test"
+steps:
+  - 'contract, portal key, sessions, isolation test; website, report, realtime, events; guide'
+  - 'writes (after MVP-34 and MVP-36)'
+  - 'more than 32 websites and history; measured early, in parallel'
+  - 'full filter'
+open:
+  - 'full visitor addresses for customers: proposal off, allowed per portal key'
+  - 'issue 42 speaks of "verschiedene Nutzer": whoever has no portal with logins gets nothing from this spec; ask there'
+  - 'websites on several gateways that are no group: the portal asks each; is that enough?'
+  - 'direct calls from the browser (CORS) and an own public address: only if portals ask for it'
+out_of_scope:
+  - 'users, roles, passwords or single sign-on for customers in schild'
+  - 'changing rules, paranoia level, repositories, manual blocks or anything with effect on another website'
+  - 'a frontend: components, client packages, examples in frameworks, plugins for single portals or panels (initiator 2026-11-26)'
+  - 'single requests and live streams'
+  - 'billing'

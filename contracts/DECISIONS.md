@@ -951,6 +951,17 @@ Two findings before the release. First: the session cookie was `Secure` for ever
 - **Rejected: a class of lifts next to blocks by client.** It ends the guessing for the lift and keeps one record per client, which MVP-34 cannot use.
 - Contract: [cluster.md](cluster.md) sections 2, 4, 5, 13, 14 and 16; Go `cluster.IncidentBlock`, `cluster.IncidentLift`; vectors `cluster-record` rebuilt on the new classes; `unknown-class` now answers `class`.
 
+## D107 No tenants: customers of hosters see their website in the hoster's portal (DRAFT / ENTWURF, initiator 2026-11-25; MVP-34, MVP-35, MVP-36, not built)
+
+- **Finding (initiator, issue 42).** Users should see only what they are responsible for. A multi-tenant gateway would be "extrem kompliziert", and customers signing in to the dashboard of the firewall "fänd ich voll merkwürdig". The portal of a hoster already knows customers, contracts and logins.
+- **No tenants, roles and customer logins** in the gateway and in any Schild Dashboard. Amends D32 and MVP-20 (no `tenant_id`, no scoping by tenant) and MVP-13 (what stays: one operator, many gateways). The dashboard is for the operator and the operator's staff.
+- **Integration API instead** ([MVP-35](../tests/specs/MVP-35-integration-api.yaml)): a listener of its own; a portal key that only opens short sessions; a session holds one website and named capabilities, and the gateway enforces both. Own answer types, because the `site` filter of the agent API is a filter and not a boundary.
+- **No frontend** (initiator 2026-11-26: "kein frontend"). Schild offers the API, its OpenAPI document and a guide for the portal backend. The portal builds its own pages. Every field with text from outside is `x-untrusted`, because a portal that shows it as HTML runs script of an attacker.
+- **The way back stays inside one website:** rule exceptions made from an event, own IPs of the website, ending its automatic blocks. Everything with effect on another website stays with the operator. Own IPs and blocks need a website scope first ([MVP-34](../tests/specs/MVP-34-website-scope.yaml)); `behaviour.block_scope` stays `gateway` by default.
+- **Every change is in one audit log** ([MVP-36](../tests/specs/MVP-36-audit-log.yaml)) with who changed it, also which token. It comes first. Entries of changes are kept a year by default, without an end when the operator sets it (D108); personal data in them is cut.
+- **Order:** MVP-36, then MVP-34, the reading part of MVP-35 next to them, then its writes.
+- **Not included.** Users who have no portal with logins get no separate access.
+
 ## D105 Group without a store: gateways share their state from node to node (DRAFT / ENTWURF, direction given by the initiator 2026-11-21; MVP-27, not built)
 
 - **Finding (initiator).** A group should run as a pair of two and as a fleet of about ten nodes, for example at a hoster. Every event and request has to be reachable across the nodes, a failed node must cost neither requests nor protection, blocks may have to act in front of the gateways, and there should be no database cluster beside them: "mehr in peer to peer richtung denken". Replaces the Valkey store of D53. Spec: [MVP-27](../tests/specs/MVP-27-ha-group.yaml), with the projects looked at (checked 2026-11-21).

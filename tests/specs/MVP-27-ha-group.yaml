@@ -241,7 +241,7 @@ out_of_scope:
   - 'keeping a connection alive across the loss of its node'
   - 'more than one site or data centre per group, and groups joined to each other'
   - 'distributing schild.yaml, rules.d and the Caddyfile through the mesh: they stay a deployment (D32)'
-  - 'tenants, roles and what a hoster''s customer may see of a shared fleet (MVP-13)'
+  - 'what a hoster''s customer may see of a shared fleet (MVP-35; no tenants and roles, D107)'
   - 'gateways of different operators in one group; network mode in a group (D72)'
   - 'scaling the group by itself; HTTP/3 behind a layer 4 balancer (QUIC-LB is still a draft, checked 2026-11-21)'
 open_questions:                     # for the initiator

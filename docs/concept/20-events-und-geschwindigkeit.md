@@ -274,7 +274,7 @@ Bei vielen Gateways kann niemand Relay-Listen von Hand pflegen, und eine offene 
 | Betreiber offen | Jeder Eintrag nennt den Betreiber, weil v1 für OHTTP verschiedene Betreiber für Relay und Lab braucht ([Prototyp-Verifikation](23-verifikation.md), E1) und Regel-Strom- und OHTTP-Relay getrennt sind (4.3). |
 | Eigene Relays | Fest eingetragene eigene Relays (z. B. beim Hoster) bleiben, auch wenn sich Lab-Listen ändern. |
 | Keine P2P-Suche | Vorerst keine Relay-Suche im Peer-to-Peer-Netz (Eclipse-Angriff). GossipSub erst später (2.2, OFFEN). |
-| Lokaler Vertrauensanker | Die Wahl der Labs und fest eingetragener Relays ändert sich nur lokal (Datei oder lokales Dashboard), **nie** über ein Schild Dashboard im Mehrmandanten-Modus ([`tests/specs/MVP-13`](../../tests/specs/MVP-13-schild-dashboard.yaml)). |
+| Lokaler Vertrauensanker | Die Wahl der Labs und fest eingetragener Relays ändert sich nur lokal (Datei oder lokales Dashboard), **nie** über ein Schild Dashboard mit mehreren Gateways ([`tests/specs/MVP-13`](../../tests/specs/MVP-13-schild-dashboard.yaml)). |
 
 ```yaml
 # schild.yaml – sketch for v1, not in contracts v0
