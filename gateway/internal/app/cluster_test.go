@@ -17,6 +17,7 @@ import (
 	"testing"
 	"time"
 
+	contract "github.com/deutschland-schild/schild/contract/cluster"
 	"github.com/deutschland-schild/schild/gateway/internal/app"
 	"github.com/deutschland-schild/schild/gateway/internal/apptest"
 	"github.com/deutschland-schild/schild/gateway/internal/behaviour"
@@ -357,6 +358,12 @@ func TestGroupErasesAnAddressOnEveryNode(t *testing.T) {
 	}
 	b.h.WaitFor("web-2 erased the events of the address", func() bool { return eventsOf(t, b, ip) == 0 })
 	b.h.WaitFor("web-2 ended the block of the address", func() bool { return b.blocked(ip) == "" })
+	// The erasure lifts the block it ends, as a record of its own next to
+	// the erasure record: one lift for the incident web-1 held.
+	for _, g := range []*groupNode{a, b} {
+		g := g
+		g.h.WaitFor(g.name+" holds the lift of the erased client's block", func() bool { return holds(t, g, contract.ClassLifts, "S-ERASE") })
+	}
 	// Nothing else went with it.
 	if !allowed(b, "198.51.100.88") || !allowed(a, "198.51.100.88") {
 		t.Error("the erasure took an allowlist entry of another address")

@@ -116,6 +116,10 @@ type Server struct {
 	// Behaviour.LiftIncident does and starts the next block the group holds
 	// of that client. Nil on a single gateway.
 	LiftIncident func(incident string) bool
+	// BlockHeld, on a node of a group, reports whether the group holds a
+	// block record of the incident that is not lifted and not over. Nil on
+	// a single gateway.
+	BlockHeld func(incident string) bool
 	// Erased is told an address this node erased (Art. 17), so a group of
 	// gateways erases it on every node (MVP-27); nil without a group. It
 	// answers with the nodes the erasure reached, within the deadline of ctx

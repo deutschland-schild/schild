@@ -856,6 +856,10 @@ func (a *App) takeErasure(ctx context.Context, rec *contract.Record) {
 	// Noted first: a request of the address that a member hands over from
 	// now on is not stored (cluster_data.go).
 	a.erased.note(ip, contract.HLCTime(rec.HLC))
+	// The blocks from before the erasure end with it, on this node and in
+	// its records; no lift is written for that, the node that erased wrote
+	// them. Before the store is touched: they end also when that fails.
+	a.eraseGroupBlocks(ip, rec)
 	if _, err := a.Store.DeleteIP(ctx, e.IP, e.KeepIncidents, dashboard.TruncateBody); err != nil {
 		a.log.Error("cluster: an address erased on another node was not erased here", "from", e.Node, "err", err)
 		return
@@ -863,10 +867,6 @@ func (a *App) takeErasure(ctx context.Context, rec *contract.Record) {
 	if xs, err := a.Store.ActiveExceptions(ctx, time.Now()); err == nil {
 		a.Gate.Exceptions.Load(xs)
 	}
-	// The blocks from before the erasure end with it, on this node and in
-	// its records; no lift is written for that, the node that erased wrote
-	// them.
-	a.eraseGroupBlocks(ip, rec)
 	_ = a.ReloadAllow(ctx)
 	if a.Requests != nil {
 		if _, err := a.Requests.ForgetIP(ctx, ip); err != nil {

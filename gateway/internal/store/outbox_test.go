@@ -41,7 +41,7 @@ func TestLiftsAreNotedForTheGroupUntilWritten(t *testing.T) {
 		}
 	}
 	// A single gateway.
-	if err := s.MarkUnblockedLift(ctx, "K7QM-AAA2", now, ""); err != nil {
+	if err := s.MarkUnblockedLift(ctx, "K7QM-AAA2", now, "", false); err != nil {
 		t.Fatal(err)
 	}
 	if err := s.NoteLifts(ctx, now, "K7QM-AAA3"); err != nil {
@@ -59,13 +59,13 @@ func TestLiftsAreNotedForTheGroupUntilWritten(t *testing.T) {
 
 	// A node of a group.
 	s.ShareLifts()
-	if err := s.MarkUnblockedLift(ctx, "K7QM-AAA2", now, ""); !errors.Is(err, ErrNotFound) {
+	if err := s.MarkUnblockedLift(ctx, "K7QM-AAA2", now, "", false); !errors.Is(err, ErrNotFound) {
 		t.Fatalf("an incident that is unblocked already: %v, want ErrNotFound", err)
 	}
 	if got := noted(t, s); len(got) != 0 {
 		t.Fatalf("a lift was noted for an unblock that did not happen: %v", got)
 	}
-	if err := s.MarkUnblockedLift(ctx, "K7QM-AAA4", now, ""); err != nil {
+	if err := s.MarkUnblockedLift(ctx, "K7QM-AAA4", now, "", false); err != nil {
 		t.Fatal(err)
 	}
 	// An incident the node does not hold is lifted all the same, and one
@@ -182,7 +182,7 @@ func TestUnblockAfterTheAllowlistEndedTheBlockNotesItsLift(t *testing.T) {
 	if s.LiftsWaiting() {
 		t.Fatal("the end of a block by the allowlist noted a lift")
 	}
-	if err := s.MarkUnblockedLift(ctx, "K7QM-AAA2", now, "entry-1"); err != nil {
+	if err := s.MarkUnblockedLift(ctx, "K7QM-AAA2", now, "entry-1", false); err != nil {
 		t.Fatal(err)
 	}
 	in, err := s.GetIncident(ctx, "K7QM-AAA2")
@@ -190,7 +190,7 @@ func TestUnblockAfterTheAllowlistEndedTheBlockNotesItsLift(t *testing.T) {
 		t.Fatalf("incident %+v (%v), lift noted: %v", in, err, s.LiftNoted("K7QM-AAA2"))
 	}
 	// A second unblock finds the reference set and notes nothing new.
-	if err := s.MarkUnblockedLift(ctx, "K7QM-AAA2", now, "entry-2"); !errors.Is(err, ErrNotFound) {
+	if err := s.MarkUnblockedLift(ctx, "K7QM-AAA2", now, "entry-2", false); !errors.Is(err, ErrNotFound) {
 		t.Fatalf("second unblock: %v, want ErrNotFound", err)
 	}
 }

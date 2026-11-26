@@ -128,3 +128,48 @@ func TestBlockKeepsWhoDecidedIt(t *testing.T) {
 		t.Fatalf("release of a client without a block: %d, %v", n, incidents)
 	}
 }
+
+// With a full block table a block of the group has room only where it drops
+// none that runs; DropIncident ends a block without a word, its kept row
+// included.
+func TestBlockRoomAndDropIncident(t *testing.T) {
+	e, _, c := newEngine(modes(nil))
+	e.blocks.per = 1 // one block in each part of the table
+	var gone []string
+	ended := 0
+	e.Sink.Persist = func(events.ActiveBlock) {}
+	e.Sink.Unpersist = func(k string) { gone = append(gone, k) }
+	e.Sink.Ended = func(string, time.Time) { ended++ }
+	addr := func(i int) netip.Addr { return netip.AddrFrom4([4]byte{198, 18, byte(i >> 8), byte(i)}) }
+	first, bits := KeyOf(addr(1))
+	e.ApplyBlock(first, bits, BlockInfo{Scenario: DashboardSource, Since: c.t, Until: c.t.Add(48 * time.Hour), Level: 1, Incident: "AAAA-AAA2", NetClass: "hosting",
+		Duration: 48 * time.Hour, Taken: true})
+	room := e.BlockRoom()
+	if !room(first) {
+		t.Fatal("no room for the client whose block runs")
+	}
+	// Another client of the same part of the table.
+	var other Key
+	for i := 2; i < 5000; i++ {
+		if k, _ := KeyOf(addr(i)); e.blocks.hash(k)%shards == e.blocks.hash(first)%shards {
+			other = k
+			break
+		}
+	}
+	if !other.IsValid() {
+		t.Fatal("no second client in the part of the table")
+	}
+	if room(other) || e.BlockRoom()(other) {
+		t.Fatal("room for a block that would drop one that runs")
+	}
+	if !e.DropIncident("AAAA-AAA2") || e.IncidentRunning("AAAA-AAA2") {
+		t.Fatal("the block did not end")
+	}
+	if ended != 0 || len(gone) != 1 || gone[0] != "198.18.0.1" {
+		t.Fatalf("after the drop: %d reported as ended (want none), kept rows removed %v", ended, gone)
+	}
+	// The ended block is one a full table drops first: there is room now.
+	if !e.BlockRoom()(other) {
+		t.Fatal("no room although the only block of the part ended")
+	}
+}

@@ -13,3 +13,7 @@ func (e *Engine) EvictBlock(ip netip.Addr) {
 		e.blocks.delete(key)
 	}
 }
+
+// SetBlockCapacity shrinks the block table to n entries (32 parts, at least
+// one entry each), for tests of a full table. Called before any block.
+func (e *Engine) SetBlockCapacity(n int) { e.blocks.per = max(n/shards, 1) }

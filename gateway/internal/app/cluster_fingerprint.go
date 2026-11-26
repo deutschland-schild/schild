@@ -554,7 +554,7 @@ func (a *App) repairState(ctx context.Context, member string, classes []string) 
 	again := map[string]bool{}
 	for _, class := range classes {
 		if class == stateBlocks {
-			a.applyGroupBlocks()
+			_, _ = a.applyGroupBlocks()
 			continue
 		}
 		again[class] = true

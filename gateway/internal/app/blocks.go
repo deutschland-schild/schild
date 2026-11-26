@@ -83,6 +83,15 @@ func (a *App) FlushBlocks() {
 // restoreBlocks reloads the kept blocks at start; ended and allowlisted
 // ones are deleted.
 func (a *App) restoreBlocks(ctx context.Context) {
+	// A gateway that is in no group decided every block it keeps. A node of
+	// a group keeps the marks: what it took from the group is not its own,
+	// nor is a row of a build before the mark (contracts/cluster.md
+	// section 16 says what of those it writes anew).
+	if !a.Config().Cluster.Enabled {
+		if err := a.Store.OwnKeptBlocks(ctx); err != nil {
+			a.log.Warn("kept behaviour blocks not marked as this gateway's own; should it join a group, it does not hand them over", "err", err)
+		}
+	}
 	rows, err := a.Store.ListBlocks(ctx)
 	if err != nil {
 		a.log.Error("kept behaviour blocks not loaded", "err", err)

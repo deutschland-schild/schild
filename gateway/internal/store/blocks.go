@@ -55,6 +55,15 @@ VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, b.ClientKey, b.KeyBits, b.NetClass, b.Sou
 	return err
 }
 
+// OwnKeptBlocks marks every kept block as a decision of this gateway: on a
+// gateway that is in no group each one is, also a row a build before the
+// mark kept. So a gateway that joins a group later hands its long blocks to
+// the group.
+func (s *Store) OwnKeptBlocks(ctx context.Context) error {
+	_, err := s.db.ExecContext(ctx, `UPDATE kept_blocks SET own = 1 WHERE own = 0`)
+	return err
+}
+
 // TakenBlocks returns the client keys of the kept blocks this gateway did
 // not decide itself, as far as it knows: those it took from its group, and
 // those a build before the mark kept.

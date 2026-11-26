@@ -54,6 +54,12 @@ type groupBlocks struct {
 	held map[string]*groupBlock
 	// clients: the incidents of the blocks held per client.
 	clients map[behaviour.Key]map[string]bool
+	// lifted: the incidents whose lift the node holds, of either class,
+	// and until when. A block of one of them runs on no node.
+	lifted map[string]time.Time
+	// read: held and lifted are what the store of the node holds. Before
+	// that the node ends no block for want of its record.
+	read bool
 	// waiting counts blocks that had to wait for a later round.
 	waiting uint64
 	// max is groupBlocksMax; tests lower it.
@@ -122,23 +128,27 @@ func (a *App) startGroupBlocks(ctx context.Context) {
 	node := a.Cluster
 	g := &a.groupBlocks
 	g.mu.Lock()
-	g.held, g.clients = map[string]*groupBlock{}, map[behaviour.Key]map[string]bool{}
+	g.held, g.clients, g.lifted = map[string]*groupBlock{}, map[behaviour.Key]map[string]bool{}, map[string]time.Time{}
 	g.mu.Unlock()
 	g.emu.Lock()
 	g.erased = map[behaviour.Key]erasure{}
 	g.emu.Unlock()
 	g.max.CompareAndSwap(0, groupBlocksMax)
 	a.Behaviour.KnownIncidents(a.incidentKnown)
-	a.Dashboard.ClientBlocks, a.Dashboard.LiftIncident = a.withClientBlocks, a.endIncident
+	a.Dashboard.ClientBlocks, a.Dashboard.LiftIncident, a.Dashboard.BlockHeld = a.withClientBlocks, a.endIncident, a.groupHolds
 	for _, class := range []string{contract.ClassIncidentBlocks, contract.ClassBlocks} {
 		node.Refuse(class, a.refuseGroupBlock)
 	}
 	node.On(contract.ClassIncidentBlocks, a.applyGroupBlock)
 	node.On(contract.ClassLifts, a.applyGroupLift)
 	node.On(contract.ClassBlocks, a.applyBlockBefore)
-	if n := a.applyGroupBlocks(); n > 0 {
+	if n, _ := a.applyGroupBlocks(); n > 0 {
 		a.log.Info("cluster: blocks of the group applied at start", "blocks", n)
 	}
+	// The first round before the mesh runs: what the node kept over its
+	// restart and must not run (a block that was lifted, a block of another
+	// node it holds no record of) ends before a request meets it.
+	a.publishGroupBlocks()
 	a.goLoop(ctx, "cluster-blocks", tick(250*time.Millisecond, a.publishGroupBlocks))
 	a.goLoop(ctx, "cluster-blocks-cut", a.cutToIncidentBlocks)
 }
@@ -256,6 +266,9 @@ func (a *App) holdGroupBlock(rec *contract.Record, lifted func(*groupBlock) bool
 	}
 	g := &a.groupBlocks
 	incident := b.info.Incident
+	if b.legacy {
+		a.forgetReplaced(b.key, incident)
+	}
 	if lifted(b) {
 		a.dropGroupBlock(b)
 		g.remove(incident)
@@ -278,11 +291,6 @@ func (a *App) holdGroupBlock(rec *contract.Record, lifted func(*groupBlock) bool
 		}
 		g.remove(incident)
 	}
-	// A person released the incident here and the lift is on its way to the
-	// group: a block kept over a restart must not run meanwhile.
-	if a.Store.LiftNoted(incident) {
-		a.Behaviour.LiftIncident(incident)
-	}
 	// The incident with the record: whoever sees the block here can release
 	// it, also in the moment it starts.
 	if cur == nil && !b.self {
@@ -290,6 +298,19 @@ func (a *App) holdGroupBlock(rec *contract.Record, lifted func(*groupBlock) bool
 	}
 	g.put(b)
 	return b.key, true
+}
+
+// forgetReplaced drops what the node holds of class blocks alone for a
+// client under another incident than this one: that class has one record
+// per client (section 16), so a record that arrives for the client replaced
+// the one before in the store. Called with groupBlocks.mu held.
+func (a *App) forgetReplaced(key behaviour.Key, incident string) {
+	g := &a.groupBlocks
+	for other := range g.clients[key] {
+		if b := g.held[other]; b.legacy && other != incident {
+			g.remove(other)
+		}
+	}
 }
 
 // startGroupBlock starts a block of the client when none runs here: of the
@@ -325,18 +346,13 @@ func (a *App) startGroupBlock(key behaviour.Key) bool {
 	if next == nil || !a.Behaviour.ApplyBlock(next.key, next.bits, next.info) {
 		return false // none to start, or a block of this client started meanwhile
 	}
+	// A release that comes in this moment ends the block when it has the
+	// lock (endIncident, withClientBlocks): it notes its lift before.
 	if f := testBlockRuns.Load(); f != nil {
 		// Without the lock, as a person's release comes: it takes it.
 		g.mu.Unlock()
 		(*f)(a, next.info.Incident)
 		g.mu.Lock()
-	}
-	// Looked at again now that the block runs: a release that came between
-	// the look and the start found no block to end. Its note in the store
-	// is written before it ends the block, so one of the two sees the other.
-	if a.Store.LiftNoted(next.info.Incident) {
-		a.Behaviour.LiftIncident(next.info.Incident)
-		return a.startGroupBlock(key)
 	}
 	return true
 }
@@ -364,9 +380,10 @@ func (a *App) noteGroupIncident(b *groupBlock) {
 
 // applyGroupBlocks applies the blocks of both classes this node holds,
 // minus those a lift or an erasure ended, and returns how many it holds
-// then. At the start: what ran when the node stopped runs again, also
-// blocks under 24 h, which a single gateway forgets with a restart.
-func (a *App) applyGroupBlocks() int {
+// then, and whether it read them. At the start: what ran when the node
+// stopped runs again, also blocks under 24 h, which a single gateway
+// forgets with a restart.
+func (a *App) applyGroupBlocks() (int, bool) {
 	node := a.Cluster
 	g := &a.groupBlocks
 	if recs, err := node.State(contract.ClassErasure); err == nil {
@@ -387,29 +404,39 @@ func (a *App) applyGroupBlocks() int {
 	blocks, err3 := node.State(contract.ClassIncidentBlocks)
 	for _, err := range []error{err1, err2, err3} {
 		if err != nil {
-			a.log.Warn("cluster: blocks of the group not read", "err", err)
-			return 0
+			ratelog.Warn(a.log, "cluster: blocks of the group not read; the next round reads them", "err", err)
+			return 0, false
 		}
 	}
-	lifted := map[string]bool{}
 	for _, rec := range lifts {
-		lifted[rec.ID] = true
+		a.noteLifted(rec.ID, rec)
 	}
 	for _, rec := range before {
 		if l, err := contract.DecodeLift(rec); rec.Deleted && err == nil && l.Incident != "" {
-			lifted[l.Incident] = true
+			a.noteLifted(l.Incident, rec)
 		}
 	}
 	clients := map[behaviour.Key]bool{}
 	for _, rec := range append(before, blocks...) {
-		if key, ok := a.holdGroupBlock(rec, func(b *groupBlock) bool { return lifted[b.info.Incident] }); ok {
+		if key, ok := a.holdGroupBlock(rec, func(b *groupBlock) bool { _, ok := g.lifted[b.info.Incident]; return ok }); ok {
 			clients[key] = true
 		}
 	}
 	for key := range clients {
 		a.startGroupBlock(key)
 	}
-	return len(g.held)
+	g.read = true
+	return len(g.held), true
+}
+
+// noteLifted notes that the node holds the lift of an incident, until its
+// record is over. Called with groupBlocks.mu held.
+func (a *App) noteLifted(incident string, rec *contract.Record) {
+	until, ok := rec.ExpiresAt()
+	if !ok {
+		until = time.Now().Add(liftKeep)
+	}
+	a.groupBlocks.lifted[incident] = until
 }
 
 // applyGroupBlock takes the block record of another node.
@@ -429,6 +456,7 @@ func (a *App) applyGroupLift(rec *contract.Record) {
 	}
 	a.groupBlocks.mu.Lock()
 	defer a.groupBlocks.mu.Unlock()
+	a.noteLifted(rec.ID, rec)
 	a.liftGroupBlock(rec.ID)
 }
 
@@ -447,6 +475,14 @@ func (a *App) applyBlockBefore(rec *contract.Record) {
 	}
 	a.groupBlocks.mu.Lock()
 	defer a.groupBlocks.mu.Unlock()
+	// The tombstone took the place of the record of its client, whatever
+	// incident that one named.
+	if ip, err := netip.ParseAddr(rec.ID); err == nil {
+		if key, _ := behaviour.KeyOf(ip); key.IsValid() {
+			a.forgetReplaced(key, l.Incident)
+		}
+	}
+	a.noteLifted(l.Incident, rec)
 	a.liftGroupBlock(l.Incident)
 }
 
@@ -621,13 +657,30 @@ func (a *App) incidentKnown(incident string) bool {
 // Nothing is written when a block ends at its time, when a full table drops
 // it or when a lift of the group ended it.
 //
+// It ends what must not run here: a block whose incident is lifted, by a
+// record the node holds or by a release made here that waits for the
+// group, and a block another node decided that the node holds no record
+// of. Such blocks come back with a restart when their kept row outlived
+// the lift or the record (a write that was dropped, a stop before it, a
+// backup put back).
+//
 // Then it starts a block for every client the node holds one of and runs
 // none for: the block before ended at its time, a full table dropped it,
-// the address left the allowlist, the mode changed.
+// the address left the allowlist, the mode changed. It starts none that
+// the block table has no room for: a full table would drop another block
+// for each, round after round.
 func (a *App) publishGroupBlocks() {
 	node := a.Cluster
 	if node == nil {
 		return
+	}
+	a.groupBlocks.mu.Lock()
+	read := a.groupBlocks.read
+	a.groupBlocks.mu.Unlock()
+	if !read {
+		if _, read = a.applyGroupBlocks(); !read {
+			return
+		}
 	}
 	a.publishGroupLifts()
 	if node.Removed() {
@@ -649,6 +702,12 @@ func (a *App) publishGroupBlocks() {
 			g.remove(incident)
 		}
 	}
+	for incident, until := range g.lifted {
+		if !until.After(now) {
+			delete(g.lifted, incident)
+		}
+	}
+	waiting := a.Store.LiftsWaiting()
 	name := node.Name()
 	running := a.Behaviour.RunningBlocks()
 	runs := make(map[behaviour.Key]bool, len(running))
@@ -664,8 +723,23 @@ func (a *App) publishGroupBlocks() {
 			a.Behaviour.Forget(rb.Key.Addr())
 			continue
 		}
+		if _, lifted := g.lifted[rb.Incident]; lifted || (waiting && a.Store.LiftNoted(rb.Incident)) {
+			a.Behaviour.LiftIncident(rb.Incident)
+			continue
+		}
+		held := g.held[rb.Incident]
+		if rb.Taken {
+			// Not this node's decision: it runs by its record, and is
+			// never written to the group by this node.
+			if held == nil || held.key != rb.Key {
+				a.Behaviour.DropIncident(rb.Incident)
+				continue
+			}
+			runs[rb.Key] = true
+			continue
+		}
 		runs[rb.Key] = true
-		if rb.Incident == "" || rb.Taken || g.held[rb.Incident] != nil {
+		if rb.Incident == "" || held != nil {
 			continue
 		}
 		if sent >= groupBlocksPerTick || sent >= room {
@@ -678,12 +752,6 @@ func (a *App) publishGroupBlocks() {
 		}
 		b := &groupBlock{key: rb.Key, bits: rb.Key.Bits(), info: rb.BlockInfo, node: name, self: true}
 		b.info.Until = until
-		// A block kept over a restart whose lift arrived before the stop.
-		if a.groupLifted(b) {
-			a.Behaviour.LiftIncident(rb.Incident)
-			delete(runs, rb.Key)
-			continue
-		}
 		sent++
 		blk := contract.IncidentBlock{Client: rb.Key.Addr().String(), Bits: rb.Key.Bits(), Scope: contract.ScopeGateway, Source: behaviour.BlockSource(rb.Scenario), Level: rb.Level,
 			Since: contract.TimeText(rb.Since), Until: contract.TimeText(until), DurationS: max(int(rb.Duration/time.Second), 1), EventID: rb.EventID, NetClass: rb.NetClass, Node: name}
@@ -696,9 +764,10 @@ func (a *App) publishGroupBlocks() {
 	if a.Config().Mode == config.ModeObserve {
 		return
 	}
+	fits := a.Behaviour.BlockRoom()
 	started := 0
 	for key := range g.clients {
-		if !runs[key] && a.startGroupBlock(key) {
+		if !runs[key] && fits(key) && a.startGroupBlock(key) {
 			if started++; started >= groupStartsPerTick {
 				break
 			}
@@ -766,6 +835,7 @@ func (a *App) writeGroupLift(l store.Lift) error {
 	}
 	a.groupBlocks.mu.Lock()
 	defer a.groupBlocks.mu.Unlock()
+	a.groupBlocks.lifted[l.Incident] = l.At.Add(liftKeep)
 	a.liftGroupBlock(l.Incident)
 	return nil
 }

@@ -176,8 +176,11 @@ func (s *Store) NoteLifts(ctx context.Context, at time.Time, incidents ...string
 // transaction. An incident that the end of its block marked unblocked
 // already (the allowlist entry of the same request ended the block first,
 // Sink.Ended of the engine) takes the reference to that entry instead, as
-// SetUnblockRefs does, and its lift is noted too. ErrNotFound: neither.
-func (s *Store) MarkUnblockedLift(ctx context.Context, id string, at time.Time, allowEntry string) error {
+// SetUnblockRefs does, and its lift is noted too. live: the block of the
+// incident runs, on this node or in the group, although the incident reads
+// unblocked (an allowlist entry ended it for a while); then the lift is
+// noted whatever the row says. ErrNotFound: nothing of that.
+func (s *Store) MarkUnblockedLift(ctx context.Context, id string, at time.Time, allowEntry string, live bool) error {
 	tx, err := s.db.BeginTx(ctx, nil)
 	if err != nil {
 		return err
@@ -190,14 +193,15 @@ func (s *Store) MarkUnblockedLift(ctx context.Context, id string, at time.Time, 
 	}
 	marked, _ := r.RowsAffected()
 	if marked == 0 {
-		if allowEntry == "" {
-			return ErrNotFound
+		var refs int64
+		if allowEntry != "" {
+			r, err = tx.ExecContext(ctx, `UPDATE incidents SET allowlist_entry = ? WHERE incident = ? AND status = 'unblocked' AND allowlist_entry = ''`, allowEntry, id)
+			if err != nil {
+				return err
+			}
+			refs, _ = r.RowsAffected()
 		}
-		r, err = tx.ExecContext(ctx, `UPDATE incidents SET allowlist_entry = ? WHERE incident = ? AND status = 'unblocked' AND allowlist_entry = ''`, allowEntry, id)
-		if err != nil {
-			return err
-		}
-		if n, _ := r.RowsAffected(); n == 0 {
+		if refs == 0 && !live {
 			return ErrNotFound
 		}
 	}

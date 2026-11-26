@@ -130,12 +130,12 @@ func (g *groupNode) writeStopped(t *testing.T, now func() time.Time, f func(n *c
 // blockAnew blocks a client under a new incident on a node whose block
 // table dropped its block. The node starts the dropped block again from its
 // record with its next round, so the new decision has to come first.
-func (g *groupNode) blockAnew(t *testing.T, ip, incident string) {
+func (g *groupNode) blockAnew(t *testing.T, ip, incident string, d time.Duration) {
 	t.Helper()
 	addr := netip.MustParseAddr(ip)
 	for try := 0; try < 50; try++ {
 		g.h.App.Behaviour.EvictBlock(addr)
-		g.block(ip, incident, 15*time.Minute)
+		g.block(ip, incident, d)
 		if g.blocked(ip) == incident {
 			return
 		}
@@ -284,7 +284,7 @@ func TestBlockAfterADroppedOneIsABlockOfItsOwn(t *testing.T) {
 	const ip, x, y = "203.0.113.33", "DDDD-AAA2", "DDDD-AAA3"
 	a.block(ip, x, 15*time.Minute)
 	b.h.WaitFor("web-2 holds the block", func() bool { return b.blocked(ip) == x })
-	a.blockAnew(t, ip, y)
+	a.blockAnew(t, ip, y, 15*time.Minute)
 	for _, g := range []*groupNode{a, b} {
 		g := g
 		g.h.WaitFor(g.name+" holds both blocks", func() bool { return holds(t, g, contract.ClassIncidentBlocks, x, y) })
@@ -475,7 +475,7 @@ func TestLateLiftLeavesANewerBlockOfTheClientAlone(t *testing.T) {
 	b.release(t, ip)
 	// Meanwhile the block ends on web-1 without a lift, and the client is
 	// blocked anew there.
-	a.blockAnew(t, ip, y)
+	a.blockAnew(t, ip, y, 15*time.Minute)
 	b.h.WaitFor("web-2 runs the newer block", func() bool { return b.blocked(ip) == y })
 	fail.Store(false)
 	for _, g := range []*groupNode{a, b} {

@@ -534,7 +534,12 @@ func (s *Server) unblock(w http.ResponseWriter, r *http.Request) {
 	if in == nil {
 		return
 	}
-	if in.Status != "blocked" {
+	// A block that runs, here or on the nodes of the group that hold its
+	// record, can be released whatever the status of its incident says: an
+	// allowlist entry ends a block and marks its incident unblocked without
+	// a lift, and the block runs again when the entry is gone.
+	live := (s.Behaviour != nil && s.Behaviour.IncidentRunning(in.Incident)) || (s.BlockHeld != nil && s.BlockHeld(in.Incident))
+	if in.Status != "blocked" && !live {
 		problem(w, 409, "conflict", "Dieser Vorfall ist schon freigeschaltet.", nil)
 		return
 	}
@@ -576,7 +581,7 @@ func (s *Server) unblock(w http.ResponseWriter, r *http.Request) {
 	// notes none. When the allowlist entry of this request ended the
 	// behaviour block first, which marked the incident unblocked
 	// (Sink.Ended), the incident takes the reference to the entry.
-	err := s.St.MarkUnblockedLift(ctx, in.Incident, now, allowID)
+	err := s.St.MarkUnblockedLift(ctx, in.Incident, now, allowID, live)
 	if err != nil {
 		if errors.Is(err, store.ErrNotFound) {
 			problem(w, 409, "conflict", "Dieser Vorfall ist schon freigeschaltet.", nil)

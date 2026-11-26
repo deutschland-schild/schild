@@ -46,6 +46,51 @@ func (e *Engine) ApplyBlock(key Key, bits int, bi BlockInfo) bool {
 	return created
 }
 
+// BlockRoom returns a look at the block table for one round of starts:
+// whether a block of a client can start without dropping a block that runs.
+// A node of a group asks before it starts a block it holds a record of and
+// does not run: with a full table it would drop another block for each it
+// starts, round after round. A part of the table found full is not looked
+// through again by the same look.
+func (e *Engine) BlockRoom() func(Key) bool {
+	var full [shards]bool
+	now := e.now().UnixNano()
+	return func(key Key) bool {
+		part := e.blocks.hash(key) % shards
+		if full[part] {
+			has := false
+			e.blocks.with(key, false, func(b *blockState) { has = b != nil })
+			return has
+		}
+		ok := e.blocks.room(key, func(b *blockState) bool { return b.until <= now })
+		full[part] = !ok
+		return ok
+	}
+}
+
+// DropIncident ends the running block of an incident and removes its kept
+// row, and reports nothing (no Sink.Ended): the block is not lifted, this
+// node only must not run it. It reports whether a block ended.
+func (e *Engine) DropIncident(incident string) bool {
+	if incident == "" {
+		return false
+	}
+	now := e.now().UnixNano()
+	ended := false
+	e.blocks.sweep(func(_ Key, b *blockState) bool {
+		if b.incident == incident && b.until > now {
+			b.until = now
+			ended = true
+		}
+		return false
+	})
+	if k := e.longKey(incident, now); k.IsValid() {
+		e.dropLong(k)
+		ended = true
+	}
+	return ended
+}
+
 // KnownIncidents sets what a node of a group asks before it gives a block
 // an incident number: whether it holds an incident, a block record or a
 // lift of that number already (contracts/cluster.md, incident_blocks).
