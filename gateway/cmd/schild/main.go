@@ -772,6 +772,14 @@ func cmdIngress(args []string) error {
 		return refuse("Caddy provisioning", "schild would not start", []string{"caddy: " + err.Error()})
 	}
 	fmt.Printf("caddy provisioning: valid (caddy %s)\n", caddymod.CaddyVersion())
+	// Caddy takes a DNS provider without a token; the first order would
+	// find out.
+	if bad := caddymod.DNSTokenProblems(ing.JSON); len(bad) > 0 {
+		for _, p := range bad {
+			fmt.Printf("  REFUSE    %s\n", p)
+		}
+		return refuse("DNS provider", "schild would start, serve the certificates it holds and obtain or renew none that needs this token", bad)
+	}
 	// Provisioning opens no log file and dials no backend; what the
 	// Caddyfile needs from the file system is checked for this user.
 	problems, warnings := fileAccess(os.Stdout, ing.JSON, dataDir)

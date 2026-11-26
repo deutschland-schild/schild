@@ -1,0 +1,73 @@
+id: MVP-37
+# Direction given by the initiator 2026-11-25, after issue 43 ("Schild als Caddy-Modul"): own Caddy modules with
+# schild, but by an allowlist ("wir brauchen vermutlich eine whitelist"), first use the DNS challenge with Hetzner.
+# The first draft of the same day (an operator builds a schild of their own) is dropped: it needed a build, a list of
+# kinds and refusals at run time for what an allowlist decides once. No DECISIONS entry yet; `open` is the initiator's.
+# MVP-32 to MVP-36 are taken by other drafts. D106 and its DNS modules are a proposal in PR 41.
+# Checked against the code of 2026-11-25:
+# - schild stays the program and Caddy stays inside it (D31, approach A). The xcaddy plugin (approach B) stays possible.
+# - caddy-dns/hetzner v2.0.1 and libdns/hetzner v2.0.1 (MIT, about 380 lines without tests) use hcloud-go v2.37.0 of
+#   Hetzner. Caddy calls AppendRecords and DeleteRecords only: add_records and remove_records on the RRSet
+#   _acme-challenge TXT. The change is an action of the API; the module waits for it.
+# - the module takes an empty token at provisioning and panics at the first order. certmagic recovers the panic in its
+#   worker: the gateway goes on serving and obtains no certificate. `schild ingress validate` said PASS.
+# - issue 14 of caddy-dns/hetzner (change protected records): in the mock, protected MX and TXT records of the zone do
+#   not matter, a protected RRSet _acme-challenge stops the order and nothing is changed. Not checked at Hetzner.
+# - a Hetzner Cloud token belongs to one project and has read or read and write; no scope for DNS alone was found in
+#   Hetzner's documentation.
+# - a build with a foreign module is a fork; there mholt/caddy-l4 passed `schild ingress validate` unseen. A released
+#   binary cannot hold it, because the list is compiled in.
+title: "Caddy modules by allowlist: a short list of checked modules is compiled into schild, the first one is DNS at Hetzner"
+ships: false
+status: ENTWURF                     # hetzner built and tested against a mock by the builder; no certificate of a public CA yet
+image: schild
+hypotheses: []
+refs: [MVP-19, MVP-27, DECISIONS-D31]
+depends_on: [MVP-19]
+why: >-
+  Wildcard certificates and names that are not reachable from outside need the DNS challenge, and stock Caddy has no
+  DNS module. Every module is third-party code in the gateway of every operator, so the list stays short and each
+  entry is checked once, by us, instead of by every operator.
+allowlist:
+  kinds: 'DNS providers (dns.providers.*); later, with a go of its own, certificate storages (caddy.storage.*). Neither sits in the path of a request'
+  never: 'apps, listener wrappers, networks and HTTP handlers of others: they can take or answer a connection before schild sees it'
+  criteria:                         # all of them, for every entry
+    - 'a named operator needs it'
+    - 'MIT, BSD or Apache-2.0; an exact version in go.mod; it does not raise the version of Caddy, certmagic, Coraza or the CRS'
+    - 'small enough that the code and its client library were read; what it calls is written down'
+    - 'a test orders a certificate through a stand-in of the service, and one order against the real service went through'
+    - 'a missing or unusable credential is found by `schild ingress validate`'
+    - 'without its line in the Caddyfile it does nothing'
+  fixed: 'TestDNSModules holds the list; a module more or less is a change of that test and of this spec'
+  leaves: 'a module that is not maintained or fails a criterion leaves with a release that says so beforehand'
+  now: [dns.providers.hetzner]
+hetzner:
+  token: 'from a file or an environment variable, never in the adapted config or an error of schild'
+  check: '`schild ingress validate` refuses a token that is empty, not readable or holds a space or line break; -adapt-only does not look at the server''s files'
+  start: 'schild run logs the same as an error and starts: a lost token must not take down sites whose certificates are valid'
+  recommended:
+    - 'a Hetzner project for DNS challenges alone, because a token opens its whole project'
+    - 'a zone for challenges alone in it; the website''s zone points to it with a CNAME for _acme-challenge (dns_challenge_override_domain). A stolen token then reaches no server and no other record. It can still obtain certificates for the names that point there'
+must:
+  - 'a wildcard certificate by DNS challenge, with the website''s zone at Hetzner and with a zone for challenges only'
+  - 'one TXT record at _acme-challenge per challenge and gone after it; every other record of the zone as before'
+  - 'the API of Hetzner away: stored certificates are served, also after a restart, without a call to the API'
+  - 'no token: the process stays up and other sites are served'
+  - 'a Caddyfile without a DNS provider behaves as before'
+measure:                            # by an independent agent, not the builder
+  - 'a test zone at Hetzner and the staging CA of Let''s Encrypt: order, renewal, a second name at once, a protected RRSet, a revoked token'
+  - 'two nodes of a group (MVP-27): one order, the certificate on both; the same with the API cut during the order'
+  - 'image and tarball of a release build: size before and after, THIRD_PARTY_LICENSES names the new modules'
+kill_if: "proposal for the initiator: a module of the list changes a record other than the challenge's, or brings the process down"
+stop_if:
+  - 'an entry needs a change in contracts/ or a module of a kind under never'
+done: "cd gateway && go test -count=1 -run 'Hetzner|DNS' ./internal/caddymod ./cmd/schild"
+open:                               # the initiator decides
+  - 'rfc2136 and ionos of PR 41: rfc2136 was tested with a nameserver, ionos only loaded. By the criteria ionos waits for an operator and a test'
+  - 'a certificate storage (issue 43): which one, and whether a group may use it against "no store" of D105. Not before an operator says what schild_cluster lacks'
+  - 'the real order at Hetzner: needs a token of a test project and a test zone'
+out_of_scope:
+  - 'schild as an xcaddy plugin, builds of an operator with other modules (a fork may, without support)'
+  - 'an interface for modules of schild itself; a spec of its own'
+  - 'loading modules at run time'
+  - 'TTL, propagation and resolvers: options of Caddy, used as they are'

@@ -3,12 +3,15 @@ module github.com/deutschland-schild/schild/gateway
 go 1.27.4
 
 require (
+	github.com/caddy-dns/hetzner/v2 v2.0.1
 	github.com/caddyserver/caddy/v2 v2.11.9
 	github.com/corazawaf/coraza-caddy/v2 v2.6.2
 	github.com/corazawaf/coraza-coreruleset/crs/v4 v4.30.0
 	github.com/corazawaf/coraza/v3 v3.8.1
 	github.com/google/nftables v0.3.0
+	github.com/libdns/libdns v1.1.1
 	github.com/maxmind/mmdbwriter v1.2.0
+	github.com/miekg/dns v1.1.73
 	github.com/oschwald/maxminddb-golang/v2 v2.9.1
 	github.com/prometheus/client_golang v1.25.0
 	github.com/prometheus/client_model v0.6.3
@@ -82,6 +85,7 @@ require (
 	github.com/googleapis/enterprise-certificate-proxy v0.3.25 // indirect
 	github.com/googleapis/gax-go/v2 v2.27.0 // indirect
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.33.0 // indirect
+	github.com/hetznercloud/hcloud-go/v2 v2.37.0 // indirect
 	github.com/huandu/xstrings v1.6.3 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/jackc/pgpassfile v1.0.0 // indirect
@@ -94,7 +98,7 @@ require (
 	github.com/klauspost/compress v1.20.4 // indirect
 	github.com/klauspost/cpuid/v2 v2.4.2 // indirect
 	github.com/kylelemons/godebug v1.1.0 // indirect
-	github.com/libdns/libdns v1.1.1 // indirect
+	github.com/libdns/hetzner/v2 v2.0.1 // indirect
 	github.com/magefile/mage v1.17.2 // indirect
 	github.com/manifoldco/promptui v0.9.0 // indirect
 	github.com/mattn/go-colorable v0.1.16 // indirect
@@ -103,7 +107,6 @@ require (
 	github.com/mdlayher/socket v0.5.1 // indirect
 	github.com/mgutz/ansi v0.0.0-20200706080929-d51e80ef957d // indirect
 	github.com/mholt/acmez/v3 v3.1.7 // indirect
-	github.com/miekg/dns v1.1.73 // indirect
 	github.com/mitchellh/copystructure v1.2.0 // indirect
 	github.com/mitchellh/go-ps v1.0.0 // indirect
 	github.com/mitchellh/reflectwalk v1.0.2 // indirect
