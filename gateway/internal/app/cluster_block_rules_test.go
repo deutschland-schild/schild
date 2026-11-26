@@ -905,18 +905,20 @@ func TestFreigebenLiftsEveryBlockOfTheClient(t *testing.T) {
 	}
 }
 
-// What a block does that arrives after a person released its client: a twin
-// another node decided before it knew of the release. This is how the build
-// behaves; whether it should is a decision for the product (see the report
-// of the change).
+// A block that arrives after a person released its client: a twin another
+// node decided before it knew of the release.
 //
 // After "Freigeben" the client has an exception for the sources that
-// blocked it, for 24 h, on every node. A block of such a source that
-// arrives later is held and started like any other, and the exception lets
-// the requests of the client pass it, as it does on a single gateway for a
-// block that runs. After "Adresse freigeben" without an exception nothing
-// lets the client pass: the block that arrives blocks it again, as a new
-// decision of a detector would on a single gateway.
+// blocked it, for 24 h, on every node. A block of such a source is held
+// and does not run while the exception runs, on no node, the node that
+// decided it included: as the detector of a single gateway decides nothing
+// for such a client. So the list of blocks and the firewall say what the
+// gate does. No lift is written for it.
+//
+// Known limit: after "Adresse freigeben" without an exception nothing says
+// that the client was released. The block that arrives blocks it again,
+// although it was decided before the person released; a single gateway
+// would need the client to trip a detector anew.
 func TestBlockThatArrivesAfterARelease(t *testing.T) {
 	a, b := pair(t)
 	a.h.Login()
@@ -939,15 +941,46 @@ func TestBlockThatArrivesAfterARelease(t *testing.T) {
 	b.h.WaitFor("web-2 took the lifts and the exception", func() bool {
 		return holds(t, b, contract.ClassLifts, xA, xB) && b.h.App.Gate.Exceptions.Has(netip.MustParseAddr(ipA), "dashboard", time.Now())
 	})
-	// The twins arrive.
+	// The exception reached web-2 while its twin ran: the twin ends there,
+	// by the round, and web-2 writes it all the same when it may.
 	b.h.App.SetGroupBlocksMax(20000)
-	a.h.WaitFor("web-1 holds and runs the twins that arrived after the releases", func() bool { return a.blocked(ipA) == yA && a.blocked(ipB) == yB })
+	listed := func(g *groupNode, ip string) bool {
+		for _, rb := range g.h.App.Behaviour.RunningBlocks() {
+			if rb.Key.Addr().String() == ip {
+				return true
+			}
+		}
+		return false
+	}
 	for _, g := range []*groupNode{a, b} {
+		g := g
+		g.h.WaitFor(g.name+" holds both twins and runs the one of the client released by address", func() bool {
+			return holds(t, g, contract.ClassIncidentBlocks, yA, yB) && g.blocked(ipB) == yB
+		})
+		g.h.WaitFor(g.name+" does not run the twin of the client with the exception", func() bool { return g.blocked(ipA) == "" })
+	}
+	time.Sleep(1500 * time.Millisecond)
+	for _, g := range []*groupNode{a, b} {
+		if got := g.blocked(ipA); got != "" || listed(g, ipA) {
+			t.Errorf("%s runs %q for the client released by Freigeben (in its list of blocks: %v), want no block while the exception runs", g.name, got, listed(g, ipA))
+		}
+		if !holds(t, g, contract.ClassIncidentBlocks, yA, yB) || slices.Contains(recordIDs(t, g, contract.ClassLifts), yA) {
+			t.Errorf("%s holds the blocks %v and the lifts %v: an exception lifts nothing and drops no record", g.name, recordIDs(t, g, contract.ClassIncidentBlocks), recordIDs(t, g, contract.ClassLifts))
+		}
 		if r := g.h.Visit("GET", "/", ipA, "", ""); r.StatusCode != 200 {
-			t.Errorf("%s answers %d to the client released by Freigeben: its exception does not let it pass the block that arrived", g.name, r.StatusCode)
+			t.Errorf("%s answers %d to the client released by Freigeben", g.name, r.StatusCode)
 		}
-		if r := g.h.Visit("GET", "/", ipB, "", ""); r.StatusCode != 403 {
-			t.Errorf("%s answers %d to the client released by address: the block that arrived does not block it", g.name, r.StatusCode)
+		// The known limit.
+		if r := g.h.Visit("GET", "/", ipB, "", ""); r.StatusCode != 403 || g.blocked(ipB) != yB {
+			t.Errorf("%s answers %d to the client released by address and runs %q: the block that arrived does not block it", g.name, r.StatusCode, g.blocked(ipB))
 		}
+	}
+	// When the exception is over, the block the group still holds runs.
+	for _, g := range []*groupNode{a, b} {
+		g.h.App.Gate.Exceptions.Load(nil)
+	}
+	for _, g := range []*groupNode{a, b} {
+		g := g
+		g.h.WaitFor(g.name+" runs the twin when the exception is over", func() bool { return g.blocked(ipA) == yA })
 	}
 }

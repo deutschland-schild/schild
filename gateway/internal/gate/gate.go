@@ -1331,6 +1331,14 @@ func (e *Exceptions) Running(ip netip.Addr, now time.Time) bool {
 	return false
 }
 
+// Any reports whether the set holds an exception at all, also one that is
+// over: a caller that looks at many clients skips them all when it is empty.
+func (e *Exceptions) Any() bool {
+	e.mu.RLock()
+	defer e.mu.RUnlock()
+	return len(e.m) > 0
+}
+
 // Has reports whether source is excepted for ip at now.
 func (e *Exceptions) Has(ip netip.Addr, source string, now time.Time) bool {
 	e.mu.RLock()

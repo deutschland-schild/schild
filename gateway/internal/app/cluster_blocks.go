@@ -313,12 +313,26 @@ func (a *App) forgetReplaced(key behaviour.Key, incident string) {
 	}
 }
 
+// excepted reports whether an exception of the operator for the client
+// covers the source of a block ("Freigeben": the client passes the sources
+// that blocked it, for 24 h). A detector of a single gateway decides
+// nothing for such a client (reason released), and the gate lets it pass a
+// block that runs; so a node does not run a block of the group for it
+// either. The exceptions are shared, every node says the same. It reads
+// the memory of the gate.
+func (a *App) excepted(key behaviour.Key, scenario string, now time.Time) bool {
+	x := a.Gate.Exceptions
+	return x.Has(key.Addr(), "behaviour", now) || x.Has(key.Addr(), behaviour.BlockSource(scenario), now)
+}
+
 // startGroupBlock starts a block of the client when none runs here: of the
 // blocks held that are not over, the one with the latest end. The node
 // decides again with what it holds itself: an address on its allowlist is
-// not blocked, and the test profile blocks nothing. Nothing else keeps a
-// block the group holds from running: no status of its incident, only its
-// lift, and a lift made here that waits for the group counts as one. It
+// not blocked, the test profile blocks nothing, and a block whose source
+// an exception of the operator covers for this client does not start while
+// the exception runs. Nothing else keeps a block the group holds from
+// running: no status of its incident, only its lift, and a lift made here
+// that waits for the group counts as one. It
 // reads no database. Called with groupBlocks.mu held; it reports whether a
 // block started.
 func (a *App) startGroupBlock(key behaviour.Key) bool {
@@ -336,7 +350,7 @@ func (a *App) startGroupBlock(key behaviour.Key) bool {
 	var next *groupBlock
 	for incident := range g.clients[key] {
 		b := g.held[incident]
-		if !b.info.Until.After(now) || a.Store.LiftNoted(incident) {
+		if !b.info.Until.After(now) || a.Store.LiftNoted(incident) || a.excepted(key, b.info.Scenario, now) {
 			continue
 		}
 		if next == nil || b.info.Until.After(next.info.Until) || (b.info.Until.Equal(next.info.Until) && incident < next.info.Incident) {
@@ -708,6 +722,7 @@ func (a *App) publishGroupBlocks() {
 		}
 	}
 	waiting := a.Store.LiftsWaiting()
+	exceptions := a.Gate.Exceptions.Any()
 	name := node.Name()
 	running := a.Behaviour.RunningBlocks()
 	runs := make(map[behaviour.Key]bool, len(running))
@@ -728,6 +743,15 @@ func (a *App) publishGroupBlocks() {
 			continue
 		}
 		held := g.held[rb.Incident]
+		// A block of the group whose source an exception of the operator
+		// covers for its client since it started: ended here, so the list
+		// of blocks and the firewall say what the gate does. No lift: the
+		// record stays, and the block starts again when the exception is
+		// over. A block this node has not written yet is written first.
+		if held != nil && held.key == rb.Key && exceptions && a.excepted(rb.Key, rb.Scenario, now) {
+			a.Behaviour.DropIncident(rb.Incident)
+			continue
+		}
 		if rb.Taken {
 			// Not this node's decision: it runs by its record, and is
 			// never written to the group by this node.
