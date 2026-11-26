@@ -320,6 +320,9 @@ type Engine struct {
 	// share notes what the engine counts for the other nodes of a group
 	// (shared.go); nil on a single gateway.
 	share atomic.Pointer[sharer]
+	// draw and known: see NewIncident (groupblocks.go).
+	draw  atomic.Pointer[func() string]
+	known atomic.Pointer[func(incident string) bool]
 }
 
 // New returns an engine with cfg.
@@ -1111,7 +1114,9 @@ func (e *Engine) fire(r *Request, c *compiled, key Key, bits int, t trigger) {
 		var level int
 		var until time.Time
 		var dur time.Duration
-		var incident string
+		// Drawn before the table is locked: on a node of a group the draw
+		// looks into its stores.
+		incident := e.NewIncident()
 		nc := r.Client.Geo.NetClass
 		created := false
 		now := r.Time.UnixNano()
@@ -1125,7 +1130,6 @@ func (e *Engine) fire(r *Request, c *compiled, key Key, bits int, t trigger) {
 			}
 			dur = BlockDuration(nc, level)
 			until = r.Time.Truncate(time.Second).Add(dur)
-			incident = events.NewIncident()
 			*b = blockState{until: until.UnixNano(), lastUntil: until.UnixNano(), level: level, scenario: t.scenario, incident: incident, eventID: id, started: now,
 				netClass: nc, persisted: dur > PersistOver}
 			created = true

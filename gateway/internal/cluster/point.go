@@ -37,33 +37,39 @@ func (n *Node) VectorPoint() (string, error) {
 	return hex.EncodeToString(h.Sum(nil)[:6]), nil
 }
 
-// ClassPoint is the point of one class: a hash over the records that are
-// its state at now (each as id, origin and sequence number; tombstones
-// count, records that ended do not). Two nodes with the same point of a
-// class hold the same records of it.
-func (n *Node) ClassPoint(class string, now time.Time) (string, error) {
-	rows, err := n.db.Query(`SELECT id, origin, seq FROM records WHERE class = ? AND state = ? AND (expires_ms = 0 OR expires_ms > ?) ORDER BY id`,
-		class, stateWinner, now.UnixMilli())
-	if err != nil {
-		return "", err
-	}
-	defer rows.Close()
+// ClassPoint is the point of a class: a hash over the records that are its
+// state at now (each as id, origin and sequence number; tombstones count,
+// records that ended do not). Two nodes with the same point of a class hold
+// the same records of it. Several classes that are hashed as one state (the
+// blocks of a group are records of three) have one point, class after class
+// in the order given.
+func (n *Node) ClassPoint(now time.Time, classes ...string) (string, error) {
 	h := sha256.New()
 	var b [8]byte
-	for rows.Next() {
-		var id, origin string
-		var seq int64
-		if err := rows.Scan(&id, &origin, &seq); err != nil {
+	for _, class := range classes {
+		rows, err := n.db.Query(`SELECT id, origin, seq FROM records WHERE class = ? AND state = ? AND (expires_ms = 0 OR expires_ms > ?) ORDER BY id`,
+			class, stateWinner, now.UnixMilli())
+		if err != nil {
 			return "", err
 		}
-		h.Write([]byte(id))
-		h.Write([]byte{0})
-		h.Write([]byte(origin))
-		binary.BigEndian.PutUint64(b[:], uint64(seq))
-		h.Write(b[:])
-	}
-	if err := rows.Err(); err != nil {
-		return "", err
+		for rows.Next() {
+			var id, origin string
+			var seq int64
+			if err := rows.Scan(&id, &origin, &seq); err != nil {
+				rows.Close()
+				return "", err
+			}
+			h.Write([]byte(id))
+			h.Write([]byte{0})
+			h.Write([]byte(origin))
+			binary.BigEndian.PutUint64(b[:], uint64(seq))
+			h.Write(b[:])
+		}
+		err = rows.Err()
+		rows.Close()
+		if err != nil {
+			return "", err
+		}
 	}
 	return hex.EncodeToString(h.Sum(nil)[:6]), nil
 }

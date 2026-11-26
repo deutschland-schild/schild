@@ -28,17 +28,7 @@ func trio(t *testing.T) []*groupNode {
 // lifted: what a node applies at its start.
 func liveBlocks(t *testing.T, g *groupNode) []string {
 	t.Helper()
-	recs, err := g.h.App.Cluster.State(contract.ClassBlocks)
-	if err != nil {
-		t.Fatal(err)
-	}
-	var out []string
-	for _, r := range recs {
-		if !r.Deleted {
-			out = append(out, r.ID)
-		}
-	}
-	return out
+	return recordIDs(t, g, contract.ClassIncidentBlocks)
 }
 
 // A block set on one node and lifted on another a moment later ends for the
@@ -110,24 +100,6 @@ func TestBlockLiftedOnAnotherNodeAMomentLaterEndsForTheCluster(t *testing.T) {
 		t.Fatalf("%d calls failed, first: %s", len(failed), failed[0])
 	}
 	time.Sleep(5 * time.Second)
-	if recs, err := nodes[0].h.App.Cluster.State(contract.ClassBlocks); err == nil {
-		ids := map[string]string{}
-		for _, g := range nodes {
-			ids[g.h.App.Cluster.ID()] = g.name
-		}
-		shown := 0
-		for _, r := range recs {
-			if r.Deleted || shown >= 8 {
-				continue
-			}
-			shown++
-			for _, p := range plan {
-				if p.ip == r.ID {
-					t.Logf("left %s: set on %s, lifted on %s after %s; winning record by %s seq %d", r.ID, nodes[p.set].name, nodes[p.lift].name, p.pause, ids[r.Origin], r.Seq)
-				}
-			}
-		}
-	}
 	for _, g := range nodes {
 		if run := g.h.App.Behaviour.RunningBlocks(); len(run) != 0 {
 			t.Errorf("%s still lists %d of %d lifted blocks, first %s (incident %s)", g.name, len(run), n, run[0].Key.Addr(), run[0].Incident)
@@ -138,16 +110,16 @@ func TestBlockLiftedOnAnotherNodeAMomentLaterEndsForTheCluster(t *testing.T) {
 	}
 }
 
-// A block that stayed in the records although its incident was released (a
-// node of the build before N1 was fixed left such blocks behind) ends when
-// the node that holds the release starts: it tells the group the lift.
-func TestStartRepairsABlockWhoseIncidentIsReleased(t *testing.T) {
+// A node that holds the incident of a block as unblocked does not start the
+// block, and that is all it does: it writes no record for the decision of
+// another node (D109). The lift is the record of the node the person
+// released on; here nobody released, the word came with the incident alone.
+// (Until D109 this node wrote the tombstone itself at its start.)
+func TestBlockWhoseIncidentIsUnblockedHereDoesNotStartAndWritesNoLift(t *testing.T) {
 	a, b := pair(t)
 	const ip, incident = "203.0.113.230", "K7QM-STAY"
 	a.block(ip, incident, 7*24*time.Hour)
 	b.h.WaitFor("web-2 holds the block", func() bool { return b.blocked(ip) == incident })
-	// The release is in the store of web-2 and nothing else happened: the
-	// state a lift before the record's arrival used to leave.
 	b.h.WaitFor("web-2 holds the incident of the block", func() bool {
 		return b.h.App.Store.MarkUnblocked(context.Background(), incident, time.Now(), "") == nil
 	})
@@ -156,10 +128,20 @@ func TestStartRepairsABlockWhoseIncidentIsReleased(t *testing.T) {
 		t.Fatal(err)
 	}
 	b.start(t)
-	a.h.WaitFor("web-1 serves the address again", func() bool { return a.blocked(ip) == "" })
 	b.h.WaitFor("web-2 does not block it", func() bool { return b.blocked(ip) == "" })
+	time.Sleep(1500 * time.Millisecond)
+	if got := a.blocked(ip); got != incident {
+		t.Errorf("web-1 runs %q: web-2 ended a block it did not decide and nobody released", got)
+	}
+	if got := b.blocked(ip); got != "" {
+		t.Errorf("web-2 started the block of an incident it holds as unblocked: %q", got)
+	}
 	for _, g := range []*groupNode{a, b} {
-		g := g
-		g.h.WaitFor(g.name+" holds no live record of the block", func() bool { return len(liveBlocks(t, g)) == 0 })
+		if lifts := recordIDs(t, g, contract.ClassLifts); len(lifts) != 0 {
+			t.Errorf("%s holds lifts %v, and nobody released", g.name, lifts)
+		}
+		if live := liveBlocks(t, g); len(live) != 1 {
+			t.Errorf("%s holds the block records %v, want the one block", g.name, live)
+		}
 	}
 }

@@ -105,6 +105,11 @@ type Server struct {
 	Crawlers CrawlerFuncs
 	// Behaviour is MVP-17 (v0.4); nil disables the behaviour operations.
 	Behaviour *behaviour.Engine
+	// BlockIncidents, on a node of a group, names the incidents of the
+	// blocks the node holds for the client of ip: its own running block and
+	// the block records of the group. The release and the erasure of the
+	// address lift each of them for the group (contracts/cluster.md, lifts).
+	BlockIncidents func(ip netip.Addr) []string
 	// Erased is told an address this node erased (Art. 17), so a group of
 	// gateways erases it on every node (MVP-27); nil without a group. It
 	// answers with the nodes the erasure reached, within the deadline of ctx

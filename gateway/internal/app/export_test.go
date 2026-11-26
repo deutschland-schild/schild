@@ -193,3 +193,21 @@ func SetWarmRetry(d time.Duration) (undo func()) {
 	old := warmRetryNS.Swap(int64(d))
 	return func() { warmRetryNS.Store(old) }
 }
+
+// SetTestLiftWrite makes f run before a node writes a lift to its group; an
+// error of f is the error of the write.
+func SetTestLiftWrite(f func(a *App, incident string) error) (undo func()) {
+	testLiftWrite.Store(&f)
+	return func() { testLiftWrite.Store(nil) }
+}
+
+// SetGroupBlocksMax sets how many running blocks a node holds before it
+// hands no further block to its group.
+func SetGroupBlocksMax(n int64) (undo func()) {
+	old := groupBlocksMax.Swap(n)
+	return func() { groupBlocksMax.Store(old) }
+}
+
+// IncidentKnown reports whether the node would draw another number than
+// this one for a new block.
+func (a *App) IncidentKnown(incident string) bool { return a.incidentKnown(incident) }

@@ -14,7 +14,6 @@ import (
 	contractapi "github.com/deutschland-schild/schild/contract/agentapi"
 	contract "github.com/deutschland-schild/schild/contract/cluster"
 	"github.com/deutschland-schild/schild/gateway/internal/accesslock"
-	"github.com/deutschland-schild/schild/gateway/internal/behaviour"
 	"github.com/deutschland-schild/schild/gateway/internal/cluster"
 	"github.com/deutschland-schild/schild/gateway/internal/crawlers"
 	"github.com/deutschland-schild/schild/gateway/internal/dashboard"
@@ -833,9 +832,13 @@ func (a *App) publishErasure(ip netip.Addr, keepIncidents bool) uint64 {
 	a.erased.note(ip, time.Now())
 	rec, err := node.Publish(contract.ClassErasure, e.IP, &e, false, time.Now().Add(contract.ErasureKeepS*time.Second))
 	if err != nil {
+		a.eraseGroupBlocks(ip, time.Now(), false)
 		a.log.Error("cluster: erasure not handed to the group: erase the address on every other node by hand", "err", err)
 		return 0
 	}
+	// The block records of the client leave the store of this node; the
+	// dashboard forgot the client in the engine and noted the lifts.
+	a.eraseGroupBlocks(ip, contract.HLCTime(rec.HLC), false)
 	return rec.Seq
 }
 
@@ -861,14 +864,10 @@ func (a *App) takeErasure(ctx context.Context, rec *contract.Record) {
 	if xs, err := a.Store.ActiveExceptions(ctx, time.Now()); err == nil {
 		a.Gate.Exceptions.Load(xs)
 	}
-	// Forget it in the group's list first: the block ends because of the
-	// erasure, not because this node lifts it.
-	if key, _ := behaviour.KeyOf(ip); key.IsValid() {
-		a.groupBlocks.mu.Lock()
-		delete(a.groupBlocks.known, key)
-		a.groupBlocks.mu.Unlock()
-	}
-	a.Behaviour.Forget(ip)
+	// The blocks from before the erasure end with it, on this node and in
+	// its records; no lift is written for that, the node that erased wrote
+	// them.
+	a.eraseGroupBlocks(ip, contract.HLCTime(rec.HLC), true)
 	_ = a.ReloadAllow(ctx)
 	if a.Requests != nil {
 		if _, err := a.Requests.ForgetIP(ctx, ip); err != nil {

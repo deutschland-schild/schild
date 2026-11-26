@@ -571,11 +571,15 @@ func (s *Server) unblock(w http.ResponseWriter, r *http.Request) {
 			s.reloadAllow(ctx)
 		}
 	}
-	err := s.St.MarkUnblocked(ctx, in.Incident, now, allowID)
+	// On a node of a group the lift for the group is noted with the
+	// decision (store/outbox.go); a single gateway notes none.
+	err := s.St.MarkUnblockedLift(ctx, in.Incident, now, allowID)
 	if errors.Is(err, store.ErrNotFound) && allowID != "" {
 		// The allowlist entry of this request ended the behaviour block
 		// first, which marked the incident unblocked (Sink.Ended).
-		err = s.St.SetUnblockRefs(ctx, in.Incident, allowID)
+		if err = s.St.SetUnblockRefs(ctx, in.Incident, allowID); err == nil {
+			err = s.St.NoteLifts(ctx, now, in.Incident)
+		}
 	}
 	if err != nil {
 		if errors.Is(err, store.ErrNotFound) {
@@ -1037,7 +1041,13 @@ func (s *Server) privacyDelete(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	res, err := s.St.DeleteIP(r.Context(), ip.String(), req.KeepIncidents, TruncateBody)
+	// The blocks a group holds of this client end with the erasure: their
+	// lifts are noted in the transaction that erases.
+	var lifts []string
+	if s.BlockIncidents != nil {
+		lifts = s.BlockIncidents(ip)
+	}
+	res, err := s.St.DeleteIP(r.Context(), ip.String(), req.KeepIncidents, TruncateBody, lifts...)
 	if err != nil {
 		s.internal(w, err)
 		return

@@ -308,7 +308,7 @@ func (s *Server) createBlock(w http.ResponseWriter, r *http.Request) {
 	data := events.AgentBlockSet{Effect: *v.Effect, Client: ev.client, KeyBits: keyBits(ev.ip), DurationS: req.DurationS, TargetKind: ev.kind, EvidenceEventID: ev.eventID,
 		TokenID: tok.ID, TokenLabel: tok.Label, Reason: reason}
 	if v.Changed {
-		res.Incident = events.NewIncident()
+		res.Incident = d.Engine.NewIncident()
 		bi, created := d.Engine.SetAgentBlock(behaviour.AgentBlock{IP: ev.ip, TokenID: tok.ID, NetClass: res.NetClass, Duration: dur, Incident: res.Incident, EventID: id, Time: now})
 		if !created { // a scenario was faster
 			res.Changed, res.Persisted, res.Incident = false, false, ""
@@ -421,6 +421,14 @@ func (s *Server) liftBlock(w http.ResponseWriter, r *http.Request) {
 	if !v.Allowed {
 		refuseBlock(w, v)
 		return
+	}
+	if v.Changed {
+		// A node of a group owes the group the lift: noted with the incident
+		// before the block ends here, so it is not lost (store/outbox.go).
+		if err := s.St.NoteLifts(r.Context(), now, id); err != nil {
+			Problem(w, http.StatusInternalServerError, "internal", "The lift could not be stored.")
+			return
+		}
 	}
 	if v.Changed && d.Engine.LiftIncident(id) {
 		d.spend(tok.ID, now)

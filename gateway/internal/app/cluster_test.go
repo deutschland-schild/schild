@@ -33,6 +33,8 @@ type groupNode struct {
 	// secretFile and peers: cluster.secret_file and cluster.peers.
 	secretFile string
 	peers      []string
+	// mode: the gateway mode of this node ("" autoblock, observe).
+	mode string
 }
 
 func (g *groupNode) clusterDir() string { return app.ClusterDir(filepath.Join(g.dir, "data")) }
@@ -49,7 +51,7 @@ func (g *groupNode) clusterYAML() string {
 
 func (g *groupNode) start(t *testing.T) {
 	t.Helper()
-	g.h = apptest.New(t, apptest.Options{Dir: g.dir, Extra: g.clusterYAML()})
+	g.h = apptest.New(t, apptest.Options{Dir: g.dir, Extra: g.clusterYAML(), Mode: g.mode})
 	if g.h.App.Cluster == nil {
 		t.Fatalf("%s: no cluster node", g.name)
 	}
@@ -130,9 +132,8 @@ func TestGroupBlockActsOnTheOtherNode(t *testing.T) {
 	}
 
 	// A release on web-2 ends the block on web-1.
-	if n := b.h.App.Behaviour.Release(netip.MustParseAddr(ip)); n != 1 {
-		t.Fatalf("release on web-2 ended %d blocks", n)
-	}
+	b.h.Login()
+	b.release(t, ip)
 	a.h.WaitFor("web-1 ends the block web-2 released", func() bool { return a.blocked(ip) == "" })
 	// And it stays ended: no node tells the group the old block again.
 	time.Sleep(700 * time.Millisecond)

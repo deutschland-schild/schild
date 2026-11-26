@@ -906,6 +906,15 @@ func (s *Server) releaseClient(w http.ResponseWriter, r *http.Request) {
 	}
 	ctx := r.Context()
 	now := s.now()
+	// A release ends every block the group holds of this client, also one
+	// that does not run on this node: one lift per incident, noted before
+	// the block ends here.
+	if s.BlockIncidents != nil {
+		if err := s.St.NoteLifts(ctx, now, s.BlockIncidents(ip)...); err != nil {
+			s.internal(w, err)
+			return
+		}
+	}
 	res := ReleaseResult{IP: ip.String(), BlocksEnded: s.Behaviour.Release(ip)}
 	switch req.Allow {
 	case "exception":

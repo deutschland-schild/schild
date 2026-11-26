@@ -16,7 +16,6 @@ import (
 	contract "github.com/deutschland-schild/schild/contract/cluster"
 	"github.com/deutschland-schild/schild/contract/config"
 	"github.com/deutschland-schild/schild/contract/firewall"
-	"github.com/deutschland-schild/schild/gateway/internal/behaviour"
 	"github.com/deutschland-schild/schild/gateway/internal/buildinfo"
 	"github.com/deutschland-schild/schild/gateway/internal/dashboard"
 )
@@ -393,7 +392,7 @@ func (a *App) GroupStatus() dashboard.GroupStatus {
 	default:
 		out.State = "active"
 	}
-	out.Shared = &dashboard.GroupShared{Blocks: st.Records[contract.ClassBlocks], Settings: st.Records[contract.ClassSettings], Access: st.Records[contract.ClassAccess],
+	out.Shared = &dashboard.GroupShared{Blocks: a.groupBlockCount(), Settings: st.Records[contract.ClassSettings], Access: st.Records[contract.ClassAccess],
 		Logins: st.Records[contract.ClassLogins]}
 	out.Counters = &dashboard.GroupCounters{Taken: st.Counters["applied"], Refused: st.Counters["rejected"], Deferred: st.Counters["deferred"], Unread: st.Counters["unread"]}
 	out.Replaced = &st.Replaced
@@ -405,18 +404,6 @@ func (a *App) GroupStatus() dashboard.GroupStatus {
 		out.Config = &dashboard.GroupConfig{Version: own.Config[:12], Differing: differing}
 	}
 	return out
-}
-
-// blockNode names the node that decided the block of a client, as the
-// group's record says: its name, and whether it is this node.
-func (a *App) blockNode(key behaviour.Key, incident string) (name string, self, ok bool) {
-	a.groupBlocks.mu.Lock()
-	defer a.groupBlocks.mu.Unlock()
-	k, found := a.groupBlocks.known[key]
-	if !found || k.incident != incident || k.node == "" {
-		return "", false, false
-	}
-	return k.node, k.self, true
 }
 
 // erasedInGroup tells the group that an address was erased here, waits a

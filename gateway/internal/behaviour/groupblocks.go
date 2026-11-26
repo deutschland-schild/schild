@@ -44,3 +44,33 @@ func (e *Engine) ApplyBlock(key Key, bits int, bi BlockInfo) bool {
 	}
 	return created
 }
+
+// KnownIncidents sets what a node of a group asks before it gives a block
+// an incident number: whether it holds an incident, a block record or a
+// lift of that number already (contracts/cluster.md, incident_blocks).
+func (e *Engine) KnownIncidents(known func(incident string) bool) { e.known.Store(&known) }
+
+// DrawIncidents replaces the generator of incident numbers (tests).
+func (e *Engine) DrawIncidents(draw func() string) { e.draw.Store(&draw) }
+
+// incidentDraws bounds the draws of one number. A number is 40 random bits;
+// a second one that is known too means the generator is broken, and the
+// block is not held up for it.
+const incidentDraws = 8
+
+// NewIncident draws the incident number of a new block. On a node of a
+// group a number the node knows already is drawn again: in the group the
+// number is the identity of the block (D109).
+func (e *Engine) NewIncident() string {
+	draw := events.NewIncident
+	if f := e.draw.Load(); f != nil {
+		draw = *f
+	}
+	id := draw()
+	if known := e.known.Load(); known != nil {
+		for i := 1; i < incidentDraws && (*known)(id); i++ {
+			id = draw()
+		}
+	}
+	return id
+}

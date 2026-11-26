@@ -5,7 +5,6 @@ package app_test
 import (
 	"context"
 	"fmt"
-	"net/netip"
 	"os"
 	"path/filepath"
 	"strings"
@@ -135,9 +134,7 @@ func TestNewGroupSecretKeepsLiftsSettingsAndErasures(t *testing.T) {
 	if _, err := b.h.App.ApplyBehaviour(ctx, map[string]string{"path_probing": second}, nil, nil); err != nil {
 		t.Fatal(err)
 	}
-	if n := a.h.App.Behaviour.Release(netip.MustParseAddr(lifted)); n != 1 {
-		t.Fatalf("release on web-1 ended %d blocks", n)
-	}
+	a.release(t, lifted)
 	if code, body := a.h.API("POST", "/privacy/delete", map[string]any{"ip": erasedBetween, "confirm": true}); code != 200 {
 		t.Fatalf("erasure on web-1: %d %s", code, body)
 	}
