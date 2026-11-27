@@ -244,9 +244,15 @@ func (s *Store) SetAuditConfig(ctx context.Context, source string, digests map[s
 	})
 }
 
-// ClearAuditConfig forgets the digests of every source: a new log draws a
-// new key for them.
+// ClearAuditConfig forgets the digests of every source and their key: a new
+// log draws a new key (AuditConfigKey), and the next start records the
+// configuration as new.
 func (s *Store) ClearAuditConfig(ctx context.Context) error {
-	_, err := s.q(ctx).ExecContext(ctx, `DELETE FROM audit_config`)
-	return err
+	return s.InTx(ctx, func(ctx context.Context) error {
+		if _, err := s.q(ctx).ExecContext(ctx, `DELETE FROM audit_config`); err != nil {
+			return err
+		}
+		_, err := s.q(ctx).ExecContext(ctx, `DELETE FROM audit_state WHERE k = ?`, AuditConfigKey)
+		return err
+	})
 }
