@@ -6,6 +6,7 @@ The section of a version becomes the text of its GitHub release, so its heading 
 
 ## Unreleased
 
+- The dashboard of a gateway that runs alone shows no "Einzelner Server" in the top bar any more. The top bar names a cluster only, and "Kein Cluster" when one is switched on in `schild.yaml` and the server belongs to none.
 - Certificates by DNS challenge at Hetzner, wildcards included: the Caddy module `dns.providers.hetzner` is compiled in and does nothing without its line in the Caddyfile (MVP-37). `schild ingress validate` refuses an empty or unreadable API token; `schild run` logs it and goes on serving the certificates it holds. Tested against a stand-in of the Hetzner API and a test CA, not yet against Hetzner.
 ### Cluster of gateways
 

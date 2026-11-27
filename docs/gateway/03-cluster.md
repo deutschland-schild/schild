@@ -223,7 +223,7 @@ schild cluster status
 
 Die Ausgabe nennt jedes Mitglied mit Rolle, Adresse, Zustand und letztem Kontakt. Dazu kommen die Zahl laufender Sperren und die Zahl geteilter Einstellungen. Die Ausgabe zeigt, was der laufende Server in den letzten fünf Sekunden festgehalten hat.
 
-Dasselbe zeigt das Dashboard. Oben auf jeder Seite steht, ob der Server allein läuft („Einzelner Server“) oder Teil eines Clusters ist („Cluster · 3 Server“). Ein Klick darauf öffnet die Seite „Cluster“.
+Dasselbe zeigt das Dashboard. In einem Cluster steht oben auf jeder Seite „Cluster · 3 Server“. Ein Klick darauf öffnet die Seite „Cluster“. Bei einem Server, der allein läuft, steht dort nichts.
 
 ### Die Seite „Cluster“
 
