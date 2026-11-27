@@ -4,6 +4,20 @@ Notable changes per release. Contract changes are in [contracts/CHANGELOG.md](co
 
 The section of a version becomes the text of its GitHub release, so its heading stays `## <version>`. The date of a release is the one GitHub shows.
 
+## Unreleased
+
+### Audit log
+
+- New: the gateway keeps an audit log (MVP-36). Every change has an entry that says who made it, when, through which way (dashboard, agent API, command on the server, configuration, schild itself) and what the value was before. Sign-ins, sign-outs and refused calls are in it too. The dashboard shows it under "Einstellungen" → "Protokoll", the agent API as `listAgentAudit`, the server as `schild audit`.
+- An entry never holds a password, a token, a key or a code. A value is recorded only for the fields the action lists. Every other changed field is named without its value.
+- Changes are kept 365 days, sign-ins and refused calls 90 days. `audit.keep_days` in `schild.yaml` sets 1 to 36500 days or `unlimited`. `audit.stream` writes a copy of every entry as a JSON line to `stdout` or a file.
+- The log is a file of its own, `audit.db` in the data directory. It does not count against `retention.max_size_mb`, and its size deletes nothing. The dashboard shows a hint from 1 GiB on, and a hint when entries cannot be written to the file.
+- An entry holds IP addresses as long as it is kept. `retention.raw_ip_days` and the erasure by address do not change it. The export by address lists the entries that name the address. A short `audit.keep_days` is the way to end the addresses earlier.
+- In a cluster every server holds the entries of all servers.
+- A token of the agent API can write 600 entries an hour. After that a write answers 429 `change_budget`.
+- "Freigeben" of an incident and the release of an address are now one transaction each. Before, an own IP or an exception of the same click could stay when the release itself failed.
+- `schild.db` goes to schema version 3 at the first start, with a backup.
+
 ## 0.1.0-alpha.7
 
 ### Certificates

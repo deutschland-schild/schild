@@ -16,7 +16,7 @@ id: MVP-36
 # Maintainer 2026-11-27: cutting and anonymising of stored entries is too complex and goes. An entry is written once
 # and deleted by its age; who cares about the addresses in the log sets a short audit.keep_days (for example 14).
 title: "Audit log: every change and every sign-in with who, when, where and before/after, in one list that outlives the events"
-ships: false                        # draft, nothing built
+ships: false                        # built 2026-11-27 (contracts/audit.md, section 11 says where the build differs); ENTWURF until the measurement is decided
 status: ENTWURF
 image: schild                       # same binary
 hypotheses: [D1]
@@ -24,7 +24,7 @@ refs: [MVP-09, MVP-21, MVP-27, MVP-28, MVP-32, MVP-34, MVP-35, DECISIONS-D33, DE
 depends_on: [MVP-09, MVP-21]
 contracts:
   in: [client dashboard API, agent API, group of gateways, storage bounds]
-  out: 'contracts/audit.md (draft): audit-entry.schema.json, audit-actions.json, contract/audit, vectors audit, listAudit in the dashboard API'
+  out: 'contracts/audit.md: audit-entry.schema.json, audit-actions.json, contract/audit, vectors audit, listAudit in the dashboard API, listAgentAudit in the agent API, audit in config-schild'
 why: >-
   Several ways change the protection: dashboard, agents with tokens, the CLI and, with MVP-35, portals of hosters. When
   a website is suddenly open or a visitor is blocked, the first question is who changed what. Today the answer is
@@ -64,7 +64,7 @@ group:                              # MVP-27
   - 'an entry is written by the node that made the change; members ask for entries and hand on all they hold, so a node that joins later has the history of nodes that are gone; every dashboard shows all of them with the node'
   - 'a change that arrives from another node writes no second entry'
   - 'a release ends every block of the client (D109): one block.lift per incident, in the transaction that notes the lifts for the group (cluster_outbox)'
-  - 'to build: on a single gateway a release of an address and the lift of an agent open no transaction of schild.db today (store.NoteLifts returns at once without a group); with the audit log they need one'
+  - 'built: on a single gateway a release of an address and the lift of an agent open a transaction of schild.db for their entries, although no lift is noted for a group'
 tamper_evidence:
   - 'first version: none beyond append only; who has root on the host can change the file. The copy to another system is the answer, and the docs say so'
 surface:
@@ -88,7 +88,9 @@ measure:                            # by an independent agent, not the builder
 kill_if: "proposal for the initiator: a change is missing from the audit log OR a secret is in it OR a flood removes entries of changes OR a website session reads entries of another"
 done: "make contracts-test && make test && (cd dashboard && pnpm check)"
 open:
-  - 'an erasure by address (Art. 17 GDPR) does not remove the address from audit entries before audit.keep_days; the docs must say so and leave the judgement to the operator'
+  - 'an erasure by address (Art. 17 GDPR) does not remove the address from audit entries before audit.keep_days; the docs say so and leave the judgement to the operator (docs/gateway/02-betrieb.md)'
+  - 'not built: the cause of a rule exception (the request carries no event), the entries of the integration API (MVP-35), the audit entries in the timeline of a website'
+  - 'not measured: every line of measure; the tests of the builders are no measurement'
   - 'several dashboard users would make "dashboard" a person; not part of this spec'
 out_of_scope:
   - 'a tamper-proof log (signed chain, write-once storage)'

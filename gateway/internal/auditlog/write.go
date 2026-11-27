@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"regexp"
 	"strings"
 	"time"
 
@@ -154,10 +155,13 @@ func (l *Log) build(e Entry, id string, now time.Time) (map[string]any, []byte, 
 	if e.Website != "" {
 		m["website"] = e.Website
 	}
+	// A cause is a link. A name that is no event id or incident number of
+	// the contract (an older store, a test) is left out: it must never be
+	// the reason a change is refused.
 	switch {
-	case e.Event != "":
+	case eventRE.MatchString(e.Event):
 		m["cause"] = map[string]any{"event": e.Event}
-	case e.Incident != "":
+	case incidentRE.MatchString(e.Incident):
 		m["cause"] = map[string]any{"incident": e.Incident}
 	}
 	before, err := object(e.Before)
@@ -192,6 +196,11 @@ func (l *Log) build(e Entry, id string, now time.Time) (map[string]any, []byte, 
 	}
 	return parsed, raw, nil
 }
+
+var (
+	eventRE    = regexp.MustCompile(`^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$`)
+	incidentRE = regexp.MustCompile(`^[A-HJ-NP-Z2-9]{4}-[A-HJ-NP-Z2-9]{4}$`)
+)
 
 // errNoChange: the state before and after an entry is the same.
 var errNoChange = errors.New("audit: nothing changed")
