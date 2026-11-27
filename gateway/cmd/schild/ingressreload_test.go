@@ -53,3 +53,45 @@ func TestIngressReloadRunningGateway(t *testing.T) {
 		t.Fatalf("refused: %v", err)
 	}
 }
+
+// The host command sends a Caddyfile to the running gateway, which writes
+// and loads it; a refused one leaves the file as it was.
+func TestIngressLoadRunningGateway(t *testing.T) {
+	const site = "{\n\tauto_https off\n}\nhttp://shop.example:{port} {\n\tschild\n\treverse_proxy {backend}\n}\n"
+	h := apptest.New(t, apptest.Options{Dir: shortDir(t), Listeners: true, Caddyfile: site})
+	data := filepath.Dir(h.App.Store.Path())
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	f := filepath.Join(h.Dir, "Caddyfile")
+	text, err := os.ReadFile(f)
+	if err != nil {
+		t.Fatal(err)
+	}
+	neu := strings.ReplaceAll(string(text), "shop.example", "neu.example")
+	two := string(text) + neu[strings.Index(neu, "http://"):]
+	var out bytes.Buffer
+	if err := loadIngress(ctx, data, strings.NewReader(two), false, &out); err == nil || !strings.Contains(err.Error(), "does not answer") {
+		t.Fatalf("without a control path: %v", err)
+	}
+	srv, err := h.App.ServeControl(ctx, data)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer srv.Close()
+	if err := loadIngress(ctx, data, strings.NewReader(two), false, &out); err != nil || !strings.Contains(out.String(), "Caddyfile written and loaded: 2 websites") {
+		t.Fatalf("%v %s", err, out.String())
+	}
+	if now, _ := os.ReadFile(f); string(now) != two {
+		t.Fatalf("the file holds %q", now)
+	}
+	bad := strings.ReplaceAll(two, "\tschild\n", "")
+	if err := loadIngress(ctx, data, strings.NewReader(bad), false, &out); err == nil || !strings.Contains(err.Error(), "the running Caddyfile stays") || !strings.Contains(err.Error(), "without schild") {
+		t.Fatalf("refused: %v", err)
+	}
+	if now, _ := os.ReadFile(f); string(now) != two {
+		t.Fatalf("a refused Caddyfile changed the file: %q", now)
+	}
+	if err := loadIngress(ctx, data, strings.NewReader(strings.Repeat("#", 8<<20+1)), false, &out); err == nil || !strings.Contains(err.Error(), "more than") {
+		t.Fatalf("too large: %v", err)
+	}
+}

@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"os"
+	"path/filepath"
 	"slices"
 	"sort"
 	"strings"
@@ -54,6 +56,29 @@ type IngressReload struct {
 // another certificate storage. And a change that takes a website, or a host
 // of it, out of an access lock or a maintenance mode that is on.
 func (a *App) ReloadIngress(force bool) (IngressReload, error) {
+	return a.swapIngress(nil, force)
+}
+
+// MaxCaddyfile bounds the text LoadIngress takes.
+const MaxCaddyfile = 8 << 20
+
+// LoadIngress puts text in force as the Caddyfile of this gateway and writes
+// it to ingress.caddyfile (`schild ingress load`, D106). It is ReloadIngress
+// for a text that comes with the request: the same checks and refusals. The
+// file is written after every check passed and before Caddy takes the
+// config; when Caddy refuses it, the file is put back. Files the text
+// imports are read on this host.
+func (a *App) LoadIngress(text []byte, force bool) (IngressReload, error) {
+	switch {
+	case len(bytes.TrimSpace(text)) == 0:
+		return IngressReload{}, errors.New("the Caddyfile is empty")
+	case len(text) > MaxCaddyfile:
+		return IngressReload{}, fmt.Errorf("the Caddyfile has %d bytes, more than %d", len(text), MaxCaddyfile)
+	}
+	return a.swapIngress(text, force)
+}
+
+func (a *App) swapIngress(body []byte, force bool) (IngressReload, error) {
 	cfg := a.Config()
 	if !cfg.CaddyIngress() {
 		return IngressReload{}, errors.New("schild.yaml has no ingress.caddyfile, there is nothing to reload")
@@ -63,25 +88,27 @@ func (a *App) ReloadIngress(force bool) (IngressReload, error) {
 	if a.ingress.json == nil || a.Draining() {
 		return IngressReload{}, errors.New("this gateway is starting or stopping")
 	}
-	res, err := a.reloadIngress(force)
+	res, err := a.reloadIngress(body, force)
 	if err != nil {
-		a.log.Error("ingress: the Caddyfile was not reloaded, the running one stays", "caddyfile", cfg.Ingress.Caddyfile, "err", err)
+		a.log.Error("ingress: the Caddyfile was not reloaded, the running one stays", "caddyfile", cfg.Ingress.Caddyfile, "sent", body != nil, "err", err)
 		return res, err
 	}
 	for _, w := range res.Warnings {
 		a.log.Warn("ingress: "+w, "caddyfile", cfg.Ingress.Caddyfile)
 	}
 	if res.Unchanged {
-		a.log.Info("ingress: Caddyfile unchanged, nothing loaded", "caddyfile", cfg.Ingress.Caddyfile)
+		a.log.Info("ingress: Caddyfile unchanged, nothing loaded", "caddyfile", cfg.Ingress.Caddyfile, "sent", body != nil)
 		return res, nil
 	}
-	a.log.Info("ingress: Caddyfile reloaded", "caddyfile", cfg.Ingress.Caddyfile, "websites", res.Websites)
+	a.log.Info("ingress: Caddyfile reloaded", "caddyfile", cfg.Ingress.Caddyfile, "websites", res.Websites, "sent", body != nil)
 	return res, nil
 }
 
-func (a *App) reloadIngress(force bool) (IngressReload, error) {
+// reloadIngress checks and loads the Caddyfile: the file's text, or body when
+// it is not nil, which then becomes the file's text.
+func (a *App) reloadIngress(body []byte, force bool) (IngressReload, error) {
 	cfg := a.Config()
-	ing, err := a.PrepareIngress()
+	ing, err := ingressFor(cfg, a.dataDir, body)
 	var res IngressReload
 	if ing != nil {
 		res.Warnings = ing.Check.Warnings
@@ -101,7 +128,7 @@ func (a *App) reloadIngress(force bool) (IngressReload, error) {
 		return res, err
 	}
 	cur := a.Sites.View()
-	next := deriveWebsites(cfg, a.dataDir, cur)
+	next := deriveWebsitesOf(cfg, a.dataDir, cur, body)
 	if notDerived(next) {
 		return res, fmt.Errorf("the websites cannot be read from the Caddyfile: %w", next.Err)
 	}
@@ -110,8 +137,10 @@ func (a *App) reloadIngress(force bool) (IngressReload, error) {
 	}
 	// The websites come from a second reading of the file: both have to be
 	// the same file.
-	if again, err := a.PrepareIngress(); err != nil || !bytes.Equal(again.JSON, ing.JSON) {
-		return res, errors.New("the Caddyfile changed while it was read, run the reload again")
+	if body == nil {
+		if again, err := a.PrepareIngress(); err != nil || !bytes.Equal(again.JSON, ing.JSON) {
+			return res, errors.New("the Caddyfile changed while it was read, run the reload again")
+		}
 	}
 	// No lock is set between the check and the load.
 	a.accessMu.Lock()
@@ -123,6 +152,14 @@ func (a *App) reloadIngress(force bool) (IngressReload, error) {
 		return res, err
 	}
 	res.Websites = len(next.Websites())
+	// Every check passed: the text becomes the file, so that a start reads
+	// what runs.
+	putBack := func() {}
+	if body != nil {
+		if putBack, err = replaceCaddyfile(cfg.Ingress.Caddyfile, body); err != nil {
+			return res, fmt.Errorf("the Caddyfile passed the checks, and schild cannot write it to %s: %w. The user of schild needs write access to the file or its directory", cfg.Ingress.Caddyfile, err)
+		}
+	}
 	if !force && bytes.Equal(ing.JSON, a.ingress.json) {
 		res.Unchanged = true
 		return res, nil
@@ -130,11 +167,69 @@ func (a *App) reloadIngress(force bool) (IngressReload, error) {
 	commit, rollback := a.Sites.Swap(next)
 	if err := caddymod.Load(ing.JSON); err != nil {
 		rollback()
+		putBack()
 		return res, fmt.Errorf("load Caddyfile %s: %w", cfg.Ingress.Caddyfile, err)
 	}
 	commit()
 	a.ingress.json = ing.JSON
 	return res, nil
+}
+
+// replaceCaddyfile writes text to path and returns a function that puts the
+// old text back. A new file takes the place of the old one in one step where
+// the directory allows it. Where it does not (a directory of root, a file
+// mounted alone into a container), the file is written in place.
+func replaceCaddyfile(path string, text []byte) (putBack func(), err error) {
+	old, err := os.ReadFile(path)
+	if err != nil {
+		return nil, err
+	}
+	if bytes.Equal(old, text) {
+		return func() {}, nil
+	}
+	if err := writeFileInStep(path, text); err != nil {
+		return nil, err
+	}
+	return func() { _ = writeFileInStep(path, old) }, nil
+}
+
+func writeFileInStep(path string, text []byte) error {
+	mode := os.FileMode(0o600)
+	if st, err := os.Stat(path); err == nil {
+		mode = st.Mode().Perm()
+	}
+	if tmp, err := os.CreateTemp(filepath.Dir(path), ".schild-caddyfile-*"); err == nil {
+		_, werr := tmp.Write(text)
+		if werr == nil {
+			werr = tmp.Chmod(mode)
+		}
+		if werr == nil {
+			werr = tmp.Sync()
+		}
+		if cerr := tmp.Close(); werr == nil {
+			werr = cerr
+		}
+		if werr == nil {
+			werr = os.Rename(tmp.Name(), path)
+		}
+		if werr == nil {
+			return nil
+		}
+		_ = os.Remove(tmp.Name())
+	}
+	f, err := os.OpenFile(path, os.O_WRONLY|os.O_TRUNC, mode)
+	if err != nil {
+		return err
+	}
+	if _, err := f.Write(text); err != nil {
+		f.Close()
+		return err
+	}
+	if err := f.Sync(); err != nil {
+		f.Close()
+		return err
+	}
+	return f.Close()
 }
 
 // sameListeners refuses a config that listens elsewhere than the running one.

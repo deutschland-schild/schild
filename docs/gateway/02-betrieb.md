@@ -83,6 +83,23 @@ Das solltest du wissen:
 - Bindest du das Caddyfile als einzelne Datei in einen Container ein, sieht der Container manche Änderung nicht. Viele Editoren schreiben eine neue Datei und benennen sie um. Binde deshalb den Ordner ein, wenn du ohne Neustart ändern willst.
 - Schild führt für 32 Websites eigene Zahlen. Eine entfernte Website behält ihren Platz bis zum nächsten Start. Sind alle Plätze vergeben, zählt eine neue Website bis dahin unter „Weitere Websites“.
 
+### Caddyfile aus einem Programm senden
+
+Erzeugt ein Programm dein Caddyfile, etwa das Panel eines Hosters, kann es die ganze Datei an das laufende Schild senden:
+
+```bash
+schild ingress load /tmp/Caddyfile.neu
+panel-export | schild ingress load -
+```
+
+Schild prüft den Text wie bei `schild ingress reload` und lehnt dasselbe ab. Besteht er die Prüfung, schreibt Schild ihn in die Datei aus `ingress.caddyfile` und lädt ihn ohne Neustart. Lehnt Schild ihn ab, bleiben die Datei und das laufende Caddyfile, wie sie waren, und der Befehl endet mit Exit-Code 1 und dem Grund.
+
+- Der Befehl läuft nur auf dem Server selbst, wie `schild ingress reload`. Über das Netzwerk, das Dashboard oder die Agent-API lässt sich kein Caddyfile senden.
+- Der Benutzer, unter dem Schild läuft, braucht Schreibrecht auf die Datei oder ihren Ordner. Mit Schreibrecht auf den Ordner tauscht Schild die Datei in einem Schritt aus.
+- Dateien, die dein Caddyfile mit `import` einbindet, sendest du nicht mit. Schild liest sie auf dem Server, relativ zum Ort des Caddyfiles.
+- Schild nimmt ein Caddyfile an, keine Caddy-Konfiguration als JSON. Die Datei darf höchstens 8 MiB groß sein.
+- Im [Cluster](03-cluster.md#das-caddyfile-im-cluster-ändern) gilt der Befehl für den Server, auf dem du ihn ausführst.
+
 ### Zertifikate über Hetzner DNS
 
 Let's Encrypt prüft normalerweise über Port 80 oder 443, ob dir eine Domain gehört. Für ein Wildcard-Zertifikat wie `*.example.org` und für Namen, die von außen nicht erreichbar sind, geht das nur über einen DNS-Eintrag. Liegt die Zone bei Hetzner (Hetzner Console, Cloud-API), setzt Schild diesen Eintrag selbst und löscht ihn danach wieder. Das Modul ist eingebaut und tut nichts, solange es nicht im Caddyfile steht.
@@ -534,6 +551,7 @@ Für Alarme im Alltag sind besonders diese Metriken nützlich:
 | `schild preflight` | Konfiguration und Speicherplatz prüfen, ohne zu starten |
 | `schild ingress validate` | Prüfen, bevor Schild der Webserver wird: das Caddyfile, ob Schild in sein Datenverzeichnis schreiben kann, ob es die Kopie der Zertifikate lesen und schreiben kann und ob es in die Logdateien des Caddyfiles schreiben darf, unter systemd auch nach den Regeln der Unit. Läuft als der Benutzer, als der Schild läuft, auch im Container mit schreibgeschütztem Dateisystem. Mit `-adapt-only` nur das Caddyfile |
 | `schild ingress reload` | das geänderte Caddyfile ohne Neustart laden (siehe [Caddyfile ändern](#caddyfile-ändern)) |
+| `schild ingress load DATEI` | ein ganzes Caddyfile senden, prüfen, speichern und ohne Neustart laden; mit `-` von der Standardeingabe (siehe [Caddyfile aus einem Programm senden](#caddyfile-aus-einem-programm-senden)) |
 | `schild status` | Profil, Backend, eigene IPs, ob Dashboard und Metriken antworten |
 | `schild allow …` | eigene IPs freischalten, auflisten, entfernen |
 | `schild lock on/off/status` | Zugriffsschutz für Website oder Pfade |

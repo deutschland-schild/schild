@@ -135,6 +135,118 @@ func TestIngressReloadWarnsOfDNSToken(t *testing.T) {
 	}
 }
 
+func (b *reloadBench) text(sites string) []byte {
+	_, port, _ := net.SplitHostPort(b.IngressAddr)
+	return []byte(strings.NewReplacer("{backend}", strings.TrimPrefix(b.Backend.URL, "http://"), "{port}", port).Replace(reloadGlobal + sites))
+}
+
+func (b *reloadBench) file() string {
+	b.t.Helper()
+	text, err := os.ReadFile(filepath.Join(b.Dir, "Caddyfile"))
+	if err != nil {
+		b.t.Fatal(err)
+	}
+	return string(text)
+}
+
+// TestIngressLoad: a Caddyfile that comes with the request is checked,
+// written to the file and loaded (D106). A refused one changes neither what
+// runs nor the file.
+func TestIngressLoad(t *testing.T) {
+	b := newReloadBench(t, block("shop.example"))
+	before := b.file()
+	two := b.text(block("shop.example") + block("neu.example"))
+	res, err := b.App.LoadIngress(two, false)
+	if err != nil || res.Unchanged || res.Websites != 2 {
+		t.Fatalf("load: %+v %v", res, err)
+	}
+	if _, s := b.body("neu.example"); s != "app ok" {
+		t.Fatalf("the new website: %q", s)
+	}
+	if b.file() != string(two) {
+		t.Fatal("the file does not hold the loaded text")
+	}
+	if id := b.App.Sites.ID("neu.example"); id != "neu.example" {
+		t.Fatalf("website of the new host: %q", id)
+	}
+	// The same config with another text: nothing loaded, the file follows.
+	commented := append([]byte("# a comment\n"), two...)
+	if res, err = b.App.LoadIngress(commented, false); err != nil || !res.Unchanged {
+		t.Fatalf("the same config: %+v %v", res, err)
+	}
+	if b.file() != string(commented) {
+		t.Fatal("the file does not hold the new text")
+	}
+	if res, err = b.App.LoadIngress(commented, true); err != nil || res.Unchanged {
+		t.Fatalf("forced: %+v %v", res, err)
+	}
+	for name, bad := range map[string][]byte{
+		"empty":          []byte(" \n"),
+		"no Caddyfile":   []byte("{\n"),
+		"without schild": []byte(strings.ReplaceAll(string(two), "\tschild\n", "")),
+		"other port":     []byte(string(two) + "http://other.example:1 {\n\tschild\n\treverse_proxy 127.0.0.1:9\n}\n"),
+		"too large":      []byte(strings.Repeat("#", app.MaxCaddyfile+1)),
+	} {
+		if _, err := b.App.LoadIngress(bad, false); err == nil {
+			t.Fatalf("%s: loaded", name)
+		}
+		if b.file() != string(commented) {
+			t.Fatalf("%s: the file changed", name)
+		}
+		if _, s := b.body("neu.example"); s != "app ok" {
+			t.Fatalf("%s: the running Caddyfile is gone: %q", name, s)
+		}
+	}
+	// A start reads what the load wrote.
+	if _, err := b.App.ReloadIngress(false); err != nil {
+		t.Fatal(err)
+	}
+	if before == b.file() {
+		t.Fatal("the file is the one of the start")
+	}
+}
+
+// TestIngressLoadKeepsAccessLock: a sent Caddyfile opens no locked website.
+func TestIngressLoadKeepsAccessLock(t *testing.T) {
+	b := newReloadBench(t, block("shop.example")+block("neu.example"))
+	pw := "korrekt-pferd-batterie"
+	if _, err := b.App.SetAccess(context.Background(), "shop.example", app.AccessChange{
+		Protection: access.Protection{Website: "shop.example", Scope: access.ScopeSite, Password: true}, Password: &pw, Actor: "cli"}); err != nil {
+		t.Fatal(err)
+	}
+	before := b.file()
+	if _, err := b.App.LoadIngress(b.text(block("neu.example")), false); err == nil || !strings.Contains(err.Error(), "access lock") {
+		t.Fatalf("a locked website left: %v", err)
+	}
+	if b.file() != before {
+		t.Fatal("the file changed")
+	}
+}
+
+// TestIngressLoadFileNotWritable: the text passes and cannot become the
+// file, so nothing is loaded.
+func TestIngressLoadFileNotWritable(t *testing.T) {
+	if os.Geteuid() == 0 {
+		t.Skip("root writes everywhere")
+	}
+	b := newReloadBench(t, block("shop.example"))
+	f := filepath.Join(b.Dir, "Caddyfile")
+	if err := os.Chmod(f, 0o400); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Chmod(b.Dir, 0o500); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = os.Chmod(b.Dir, 0o700) })
+	_, err := b.App.LoadIngress(b.text(block("shop.example")+block("neu.example")), false)
+	if err == nil || !strings.Contains(err.Error(), "cannot write it") {
+		t.Fatalf("got %v", err)
+	}
+	if _, s := b.body("neu.example"); s == "app ok" {
+		t.Fatal("a Caddyfile that is not the file runs")
+	}
+}
+
 // TestIngressReloadRefused: whatever schild refuses leaves the running
 // Caddyfile in place.
 func TestIngressReloadRefused(t *testing.T) {

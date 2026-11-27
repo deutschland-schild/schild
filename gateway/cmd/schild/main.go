@@ -96,6 +96,10 @@ Usage:
   schild ingress reload [-config FILE] [-data DIR] [-force]
                                                  host only: load the Caddyfile again without a restart; what schild
                                                  refuses leaves the running Caddyfile in place, exit 1
+  schild ingress load [-config FILE] [-data DIR] [-force] FILE|-
+                                                 host only: send a whole Caddyfile (- for standard input); schild
+                                                 checks it, writes it to ingress.caddyfile and loads it without a
+                                                 restart; a refused one changes nothing, exit 1
   schild allow    IP|CIDR|HOST [-ttl 24h|7d|30d|never] [-label TEXT] [-level no_block|bypass_waf]
   schild allow    --mine [-ttl ...] [-label TEXT] allow the address of the current SSH session (SSH_CONNECTION)
   schild allow    list | rm ID                   show or remove local allowlist entries
@@ -686,8 +690,11 @@ func cmdIngress(args []string) error {
 	if len(args) > 0 && args[0] == "reload" {
 		return cmdIngressReload(args[1:])
 	}
+	if len(args) > 0 && args[0] == "load" {
+		return cmdIngressLoad(args[1:])
+	}
 	if len(args) == 0 || args[0] != "validate" {
-		return errors.New("ingress: schild ingress validate [-config FILE] [-adapt-only] | reload [-config FILE] [-data DIR] [-force]")
+		return errors.New("ingress: schild ingress validate [-config FILE] [-adapt-only] | reload [-config FILE] [-data DIR] [-force] | load [-config FILE] [-data DIR] [-force] FILE|-")
 	}
 	fs := flag.NewFlagSet("ingress validate", flag.ExitOnError)
 	cfgPath := fs.String("config", "", "schild.yaml (default $SCHILD_CONFIG or /etc/schild/schild.yaml)")

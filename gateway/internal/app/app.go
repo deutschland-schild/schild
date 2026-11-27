@@ -949,7 +949,13 @@ func (a *App) PrepareIngress() (*caddymod.Ingress, error) {
 // IngressFor adapts and checks the Caddyfile of cfg; the default storage
 // root is <dataDir>/caddy.
 func IngressFor(cfg *config.Site, dataDir string) (*caddymod.Ingress, error) {
-	return caddymod.PrepareIngress(caddymod.IngressOptions{Caddyfile: cfg.Ingress.Caddyfile, Storage: cfg.Ingress.CaddyStorage, ExposeServerHeaders: cfg.Ingress.ExposeServerHeaders,
+	return ingressFor(cfg, dataDir, nil)
+}
+
+// ingressFor is IngressFor with body in place of the file's text (nil: the
+// file).
+func ingressFor(cfg *config.Site, dataDir string, body []byte) (*caddymod.Ingress, error) {
+	return caddymod.PrepareIngress(caddymod.IngressOptions{Caddyfile: cfg.Ingress.Caddyfile, Body: body, Storage: cfg.Ingress.CaddyStorage, ExposeServerHeaders: cfg.Ingress.ExposeServerHeaders,
 		DefaultStorage: caddymod.DefaultStorage(dataDir), Unprotected: cfg.Ingress.UnprotectedSites, TrustedProxies: cfg.Ingress.TrustedProxies,
 		Cluster: cfg.Cluster.Enabled, Grace: cfg.Cluster.Drain.Grace()})
 }

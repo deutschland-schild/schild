@@ -12,7 +12,8 @@
 // agent API. Its operations are the dashboard access reset of
 // `schild dashboard reset-password`, the sync and reset of a rule repository
 // of `schild rules sync` and `schild rules reset` (D43, D46, D73) and the
-// access lock of `schild lock` (D56).
+// access lock of `schild lock` (D56). `schild ingress reload` and `schild
+// ingress load` (D106) change the Caddyfile that runs.
 package control
 
 import (
@@ -53,6 +54,11 @@ const OpRulesReset = "rules_reset"
 // OpIngressReload loads the Caddyfile again and swaps the running one
 // without a restart (`schild ingress reload`, D106).
 const OpIngressReload = "ingress_reload"
+
+// OpIngressLoad is OpIngressReload for a Caddyfile that comes with the
+// request (`schild ingress load`, D106): the gateway checks it, writes it to
+// ingress.caddyfile and swaps the running one.
+const OpIngressLoad = "ingress_load"
 
 // OpAccessSet, OpAccessRemove and OpAccessList are `schild lock on`, `off`
 // and `status` (D56): the access lock of a website, also when the
@@ -108,6 +114,8 @@ type Request struct {
 	// Force: ingress_reload loads a Caddyfile that did not change, for what
 	// it names besides itself (certificate files).
 	Force bool `json:"force,omitempty"`
+	// Caddyfile: the text of ingress_load.
+	Caddyfile string `json:"caddyfile,omitempty"`
 }
 
 // Response is the answer. SetupCode is only ever sent back over the socket
@@ -155,7 +163,9 @@ const (
 	// maxRequest bounds one request line. The largest is access_set with
 	// every list of the access lock at its contract maximum (32 paths and
 	// 16 exceptions of up to 255 bytes, 64 addresses): about 16 KiB.
-	maxRequest = 64 << 10
+	// ingress_load carries a Caddyfile of up to 8 MiB, which JSON can
+	// double.
+	maxRequest = 17 << 20
 	// maxAnswer bounds one answer line. access_list holds every protection
 	// in force, up to about 16 KiB per website.
 	maxAnswer = 8 << 20
