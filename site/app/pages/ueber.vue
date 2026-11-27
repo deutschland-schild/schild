@@ -63,7 +63,7 @@ const fmt = (d: string) => new Date(`${d}T00:00:00Z`).toLocaleDateString('de-DE'
         <p class="kicker">Verlauf</p>
         <h2 id="changelog-title" class="mt-2 text-2xl font-bold tracking-tight sm:text-3xl">Was bisher geschah</h2>
         <ol class="relative mt-10 border-l border-line">
-          <li v-for="e in CHANGELOG" :key="e.date" class="relative pb-10 pl-8 last:pb-0">
+          <li v-for="e in CHANGELOG" :key="e.title" class="relative pb-10 pl-8 last:pb-0">
             <span class="absolute top-1.5 -left-[7px] size-3.5 rounded-full border-2 border-white bg-signal ring-1 ring-signal-deep/30" aria-hidden="true" />
             <p class="text-sm font-semibold text-signal-deep"><time :datetime="e.date">{{ fmt(e.date) }}</time></p>
             <h3 class="mt-1 text-lg font-bold tracking-tight">{{ e.title }}</h3>

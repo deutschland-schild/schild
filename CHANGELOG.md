@@ -4,10 +4,16 @@ Notable changes per release. Contract changes are in [contracts/CHANGELOG.md](co
 
 The section of a version becomes the text of its GitHub release, so its heading stays `## <version>`. The date of a release is the one GitHub shows.
 
-## Unreleased
+## 0.1.0-alpha.7
+
+### Certificates
+
+- Certificates by DNS challenge at Hetzner, wildcards included: the Caddy module `dns.providers.hetzner` is compiled in and does nothing without its line in the Caddyfile (MVP-37). `schild ingress validate` refuses an empty or unreadable API token; `schild run` logs it and goes on serving the certificates it holds. Tested against a stand-in of the Hetzner API and a test CA, not yet against Hetzner.
+
+### Dashboard
 
 - The dashboard of a gateway that runs alone shows no "Einzelner Server" in the top bar any more. The top bar names a cluster only, and "Kein Cluster" when one is switched on in `schild.yaml` and the server belongs to none.
-- Certificates by DNS challenge at Hetzner, wildcards included: the Caddy module `dns.providers.hetzner` is compiled in and does nothing without its line in the Caddyfile (MVP-37). `schild ingress validate` refuses an empty or unreadable API token; `schild run` logs it and goes on serving the certificates it holds. Tested against a stand-in of the Hetzner API and a test CA, not yet against Hetzner.
+
 ### Cluster of gateways
 
 - **Breaking: blocks in a cluster are not compatible with 0.1.0-alpha.6.** Blocks and their releases have a new format (D109), and there is no migration. Update all servers of a cluster together. Blocks and releases the cluster shared before are not carried over. A single gateway is not affected. `schild.db` goes to schema version 2 at the first start, with a backup.
@@ -31,6 +37,13 @@ The section of a version becomes the text of its GitHub release, so its heading 
 ### Monitoring
 
 - In a container, a volume on the disk of the container's root is no longer counted as a second disk. The hints about a full disk came twice, once for `/` and once for the volume (for example `/data/caddy`). The disk is now shown once, as `/`, with its disk I/O. A volume on a disk of its own stays, and a list in `monitoring.mounts` is shown as written.
+
+### Upgrade
+
+- From 0.1.0-alpha.6: change the image tag, run `sudo apt update && sudo apt install schild` and `sudo systemctl restart schild`, or replace the binary and restart. `schild.yaml` needs no change. `schild.db` goes to schema version 2 at the first start; schild keeps a copy of the file from before next to it.
+- A single gateway keeps its running blocks and needs nothing else.
+- A cluster: update all servers together, not one after the other over days. Blocks and releases the cluster shared under 0.1.0-alpha.6 are not carried over, and a server that still runs 0.1.0-alpha.6 takes no block and no release from an updated one. There is no way back to 0.1.0-alpha.6 with the same `schild.db`: the older version does not start with the newer database.
+- The new form of blocks in a cluster is covered by tests and reviews. It has not been measured on several real servers yet.
 
 ## 0.1.0-alpha.6
 
