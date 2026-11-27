@@ -1,6 +1,7 @@
 package auditlog
 
 import (
+	"bytes"
 	"context"
 	"database/sql"
 	"encoding/json"
@@ -135,7 +136,9 @@ func (l *Log) copyOut(lines [][]byte) {
 	l.streamMu.Lock()
 	defer l.streamMu.Unlock()
 	for _, b := range lines {
-		line := append(append(make([]byte, 0, len(b)+1), b...), '\n')
+		// One write per line, so two writers never mix their lines. The
+		// entry is at most audit.MaxEntryBytes.
+		line := append(bytes.Clone(b), '\n')
 		if _, err := l.opts.Stream.Write(line); err != nil {
 			l.streamFailed.Add(1)
 		}

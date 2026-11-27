@@ -57,7 +57,7 @@ func Diff(a *Action, before, after map[string]any) Change {
 	b, n := map[string]any{}, map[string]any{}
 	flatten(before, "", b)
 	flatten(after, "", n)
-	ptrs := make([]string, 0, len(b)+len(n))
+	ptrs := make([]string, 0, len(b))
 	for p := range b {
 		ptrs = append(ptrs, p)
 	}
