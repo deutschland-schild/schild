@@ -76,6 +76,7 @@ Lehnt Schild das neue Caddyfile ab, läuft das alte weiter, und der Befehl nennt
 Das solltest du wissen:
 
 - Ein Reload beendet offene WebSockets. Mit `stream_close_delay` in `reverse_proxy` laufen sie noch so lange weiter, wie du dort angibst.
+- Im [Cluster](03-cluster.md#das-caddyfile-im-cluster-ändern) haben laufende Anfragen nach einem Reload noch `cluster.drain.grace_s` Zeit, in der Vorgabe 30 Sekunden. Was dann noch läuft, etwa ein großer Download, bricht ab. Ein `grace_period` im Caddyfile gilt stattdessen, auch ohne Cluster.
 - `schild ingress reload -force` lädt auch ein unverändertes Caddyfile. Das brauchst du nach dem Tausch einer Zertifikats-, Schlüssel- oder Token-Datei, die das Caddyfile nennt.
 - Schild liest bei einem Reload nur das Caddyfile neu, nicht `schild.yaml`.
 - Bindest du das Caddyfile als einzelne Datei in einen Container ein, sieht der Container manche Änderung nicht. Viele Editoren schreiben eine neue Datei und benennen sie um. Binde deshalb den Ordner ein, wenn du ohne Neustart ändern willst.

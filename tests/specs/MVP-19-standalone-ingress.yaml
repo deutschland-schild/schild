@@ -204,6 +204,8 @@ measure:                            # by an independent agent, not the builder
   - 'reload/restart: learning state, allowlist and exceptions survive; a second config load in one process keeps one gate'
   - 'egress capture: zero connections to labs or relays'
   - 'D106: reloads under load behind a balancer with PROXY protocol, HTTP/1.1, HTTP/2 and WebSockets, on every node of a group in turn: no request fails apart from WebSockets without stream_close_delay'
+  - 'D106: a reload with 1,000 and with 5,000 websites: its duration, the memory while two configs live, failed requests; from which size a reload per new website no longer works'
+  - 'D106: a download, an upload and an SSE stream that run over a reload, alone and in a group: they end by grace_period (in a group cluster.drain.grace_s) and not before'
   - 'D106: a Caddyfile that fails at any point of a reload leaves the running one serving, and no access lock opens, also while requests run'
   - 'rollback to the stock Caddy image with the empty snippet in under 60 s, sites reachable, certificates unchanged'
   - 'replay of Livewire and JSON API traffic: false positive rate in autoblock after exceptions below 0.1 % of sessions; CGNAT simulation from MVP-17 unchanged (0 blocks)'

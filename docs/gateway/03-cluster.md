@@ -333,6 +333,8 @@ schild ingress validate && schild ingress reload
 
 Der Server bleibt dabei im Traffic und meldet sich weiter als bereit. Du musst ihn vorher nicht mit `schild cluster drain` herausnehmen. Schlägt der Befehl fehl, läuft auf diesem Server das alte Caddyfile weiter. Lade die Datei dann auf den übrigen Servern nicht. Bis der letzte Server geladen hat, kennt ein Teil des Clusters eine neue Website noch nicht. Schalte ihren DNS-Eintrag deshalb erst danach um.
 
+Anfragen, die beim Reload laufen, enden mit dem alten Caddyfile. Sie haben dafür `grace_s` Zeit, in der Vorgabe 30 Sekunden (siehe [Einen Server geplant anhalten](#einen-server-geplant-anhalten)). Ein Download, ein Upload oder ein Stream, der danach noch läuft, bricht ab. Offene WebSockets enden sofort, wenn `reverse_proxy` kein `stream_close_delay` hat. Plane Reloads deshalb gebündelt, wenn deine Websites lange Verbindungen halten.
+
 In der Messung unter Linux lud ein Gateway sein Caddyfile unter Last 200-mal neu. Von rund 144.000 Anfragen über HTTP/1.1 und HTTP/2 scheiterte keine. Gemessen hat das, wer es gebaut hat, auf einem Rechner und ohne Loadbalancer.
 
 ## Einen Server geplant anhalten
