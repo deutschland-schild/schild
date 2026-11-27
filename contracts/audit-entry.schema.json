@@ -27,6 +27,13 @@
       }
     },
     "website": { "$ref": "#/$defs/website" },
+    "cause": {
+      "description": "What the call named as its reason to change: the event an exception was made from, the incident a block or a release belongs to. A link, no copy: the event may be gone by now.",
+      "oneOf": [
+        { "type": "object", "additionalProperties": false, "required": ["event"], "properties": { "event": { "$ref": "common.schema.json#/$defs/uuid" } } },
+        { "type": "object", "additionalProperties": false, "required": ["incident"], "properties": { "incident": { "type": "string", "pattern": "^[A-HJ-NP-Z2-9]{4}-[A-HJ-NP-Z2-9]{4}$" } } }
+      ]
+    },
     "change": {
       "type": "object",
       "additionalProperties": false,

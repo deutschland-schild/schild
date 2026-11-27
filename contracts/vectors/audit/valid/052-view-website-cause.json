@@ -1,0 +1,96 @@
+{
+  "contract": "audit",
+  "description": "The customer can follow the exception to its event.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"entry\":{\"action\":\"rule_exception.set\",\"actor\":{\"id\":\"pk_0123456789ab\",\"kind\":\"integration\",\"label\":\"portal\",\"on_behalf_of\":\"c-1042\",\"session\":\"0a1b2c3d\"},\"cause\":{\"event\":\"0b7e3f9a-5c2d-4e8f-9a1b-2c3d4e5f6a7b\"},\"change\":{\"fields\":[{\"after\":\"/kontakt\",\"change\":\"added\",\"field\":\"/path\"},{\"added\":[\"942100\"],\"change\":\"added\",\"field\":\"/rules\"}]},\"class\":\"change\",\"id\":\"0a1b2c3d4e5f6071-k-17\",\"node\":\"gw-1\",\"operation\":\"integration:createException\",\"reason\":\"Contact form\",\"result\":\"done\",\"schema\":\"schild.audit/0.1\",\"subject\":{\"id\":\"1900001\",\"kind\":\"rule_exception\"},\"time\":\"2026-10-26T12:00:00Z\",\"website\":\"shop.example\"},\"op\":\"view\",\"viewer\":{\"kind\":\"website\",\"website\":\"shop.example\"}}",
+  "input_decoded": {
+    "entry": {
+      "action": "rule_exception.set",
+      "actor": {
+        "id": "pk_0123456789ab",
+        "kind": "integration",
+        "label": "portal",
+        "on_behalf_of": "c-1042",
+        "session": "0a1b2c3d"
+      },
+      "cause": {
+        "event": "0b7e3f9a-5c2d-4e8f-9a1b-2c3d4e5f6a7b"
+      },
+      "change": {
+        "fields": [
+          {
+            "after": "/kontakt",
+            "change": "added",
+            "field": "/path"
+          },
+          {
+            "added": [
+              "942100"
+            ],
+            "change": "added",
+            "field": "/rules"
+          }
+        ]
+      },
+      "class": "change",
+      "id": "0a1b2c3d4e5f6071-k-17",
+      "node": "gw-1",
+      "operation": "integration:createException",
+      "reason": "Contact form",
+      "result": "done",
+      "schema": "schild.audit/0.1",
+      "subject": {
+        "id": "1900001",
+        "kind": "rule_exception"
+      },
+      "time": "2026-10-26T12:00:00Z",
+      "website": "shop.example"
+    },
+    "op": "view",
+    "viewer": {
+      "kind": "website",
+      "website": "shop.example"
+    }
+  },
+  "expect": {
+    "valid": true,
+    "result": {
+      "entry": {
+        "action": "rule_exception.set",
+        "actor": {
+          "kind": "portal",
+          "on_behalf_of": "c-1042"
+        },
+        "cause": {
+          "event": "0b7e3f9a-5c2d-4e8f-9a1b-2c3d4e5f6a7b"
+        },
+        "change": {
+          "fields": [
+            {
+              "after": "/kontakt",
+              "change": "added",
+              "field": "/path"
+            },
+            {
+              "added": [
+                "942100"
+              ],
+              "change": "added",
+              "field": "/rules"
+            }
+          ]
+        },
+        "id": "0a1b2c3d4e5f6071-k-17",
+        "reason": "Contact form",
+        "subject": {
+          "id": "1900001",
+          "kind": "rule_exception"
+        },
+        "time": "2026-10-26T12:00:00Z",
+        "website": "shop.example"
+      }
+    }
+  }
+}

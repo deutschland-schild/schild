@@ -98,6 +98,8 @@ func genAudit(g *gen) {
 	}
 	in := func(from string, e M) M { return M{"op": "entry", "from": from, "entry": e} }
 	ok("entry-agent", "A token sets an exception.", in("local", entry()))
+	ok("entry-cause", "The exception names the event it was made from.", in("local", entry("cause", M{"event": "0b7e3f9a-5c2d-4e8f-9a1b-2c3d4e5f6a7b"})))
+	bad("entry-cause-both", "One cause, an event or an incident.", in("local", entry("cause", M{"event": "0b7e3f9a-5c2d-4e8f-9a1b-2c3d4e5f6a7b", "incident": "K7QM-2XPA"})))
 	ok("entry-dashboard", "The dashboard adds an own IP for one website.", in("local", own()))
 	ok("entry-cli", "A command on the host; the account is a hint.", in("local", entry("class", "credential", "action", "token.add", "operation", "cli:token add", "actor", M{"kind": "cli", "account": "deploy"}, "subject", M{"kind": "token", "id": "tok_0123456789ab"}, "website", nil, "reason", nil,
 		"change", M{"fields": L{M{"field": "/scope", "change": "added", "after": "exceptions:write"}}})))
@@ -188,6 +190,7 @@ func genAudit(g *gen) {
 	ok("view-website-portal", "A customer sees what the portal did for the website, without the portal's key and session.", view(site("shop.example"), portal))
 	ok("view-website-operator", "What the operator did, without who, why and from where; addresses the operator set stay hidden.", view(site("shop.example"), own()))
 	ok("view-website-agent", "A token of the operator is the operator.", view(site("shop.example"), entry()))
+	ok("view-website-cause", "The customer can follow the exception to its event.", view(site("shop.example"), entry("actor", M{"kind": "integration", "id": "pk_0123456789ab", "label": "portal", "session": "0a1b2c3d", "on_behalf_of": "c-1042"}, "operation", "integration:createException", "cause", M{"event": "0b7e3f9a-5c2d-4e8f-9a1b-2c3d4e5f6a7b"})))
 	ok("view-website-other", "Nothing of another website.", view(site("other.example"), portal))
 	ok("view-website-global", "Nothing that belongs to no website.", view(site("shop.example"), own("website", nil)))
 	ok("view-website-access-lock", "Only what a portal may change.", view(site("shop.example"), entry("action", "access_lock.set", "operation", "cli:lock on", "actor", M{"kind": "cli"}, "subject", M{"kind": "website"}, "change", nil)))
