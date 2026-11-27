@@ -48,8 +48,8 @@ Lieber als Container, oder ein anderes Linux? Dasselbe mit Docker Compose:
 
 ```bash
 mkdir schild && cd schild
-curl -fsSLO https://raw.githubusercontent.com/deutschland-schild/schild/v0.1.0-alpha.6/gateway/deploy/quickstart/compose.yaml
-curl -fsSLO https://raw.githubusercontent.com/deutschland-schild/schild/v0.1.0-alpha.6/gateway/deploy/quickstart/schild.yaml
+curl -fsSLO https://raw.githubusercontent.com/deutschland-schild/schild/v0.1.0-alpha.7/gateway/deploy/quickstart/compose.yaml
+curl -fsSLO https://raw.githubusercontent.com/deutschland-schild/schild/v0.1.0-alpha.7/gateway/deploy/quickstart/schild.yaml
 # In schild.yaml unter upstream.url die Adresse deiner Anwendung eintragen, dann:
 docker compose up -d
 docker compose exec schild schild dashboard setup-code
