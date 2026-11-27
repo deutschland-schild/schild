@@ -2,6 +2,7 @@ package store
 
 import (
 	"context"
+	"errors"
 	"net/netip"
 	"time"
 
@@ -14,6 +15,9 @@ type Retention struct {
 	EventsDays    int
 	MaxSizeMB     int
 	SummariesDays int
+	// Expired is told the own IPs whose time is over, in the transaction
+	// that removes them; its error keeps them. Nil: nobody is told.
+	Expired func(ctx context.Context, gone []AllowEntry) error
 }
 
 // RetentionResult counts what one run changed.
@@ -109,7 +113,7 @@ func (s *Store) ApplyRetention(ctx context.Context, now time.Time, r Retention, 
 	} else {
 		return res, err
 	}
-	n, err := s.pruneAllow(ctx, now)
+	n, err := s.pruneAllow(ctx, now, r.Expired)
 	res.Allow = n
 	if err != nil {
 		return res, err
@@ -132,7 +136,7 @@ func (s *Store) ApplyRetention(ctx context.Context, now time.Time, r Retention, 
 // pruneAllow deletes stored allowlist entries whose expiry passed (config
 // entries are not stored). It bumps the allowlist version when it deleted
 // one.
-func (s *Store) pruneAllow(ctx context.Context, now time.Time) (int, error) {
+func (s *Store) pruneAllow(ctx context.Context, now time.Time, expired func(ctx context.Context, gone []AllowEntry) error) (int, error) {
 	rows, err := s.q(ctx).QueryContext(ctx, "SELECT id, expires FROM allowlist WHERE expires NOT IN ('', 'never')")
 	if err != nil {
 		return 0, err
@@ -155,18 +159,38 @@ func (s *Store) pruneAllow(ctx context.Context, now time.Time) (int, error) {
 	if len(gone) == 0 {
 		return 0, nil
 	}
-	tx, err := s.begin(ctx)
+	// One transaction: the entries leave, and expired is told them while
+	// it can still write with the change (the audit log).
+	err = s.InTx(ctx, func(ctx context.Context) error {
+		var rows []AllowEntry
+		if expired != nil {
+			for _, id := range gone {
+				e, err := s.GetAllow(ctx, id)
+				if errors.Is(err, ErrNotFound) {
+					continue
+				}
+				if err != nil {
+					return err
+				}
+				rows = append(rows, *e)
+			}
+		}
+		st := txOf(ctx)
+		if err := deleteIn(ctx, st.tx, "allowlist", "id", gone); err != nil {
+			return err
+		}
+		if err := bumpAllowVersion(ctx, st.tx); err != nil {
+			return err
+		}
+		if expired != nil && len(rows) > 0 {
+			return expired(ctx, rows)
+		}
+		return nil
+	})
 	if err != nil {
 		return 0, err
 	}
-	defer tx.Rollback()
-	if err := deleteIn(ctx, tx.Tx, "allowlist", "id", gone); err != nil {
-		return 0, err
-	}
-	if err := bumpAllowVersion(ctx, tx); err != nil {
-		return 0, err
-	}
-	return len(gone), tx.Commit()
+	return len(gone), nil
 }
 
 func (s *Store) truncateBatch(ctx context.Context, cut int64, trunc TruncateFunc) (int, error) {

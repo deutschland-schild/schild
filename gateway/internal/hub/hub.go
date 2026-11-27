@@ -198,10 +198,12 @@ type view struct {
 
 // Source is the CrowdSec Hub rule source.
 type Source struct {
-	o       Options
-	v       atomic.Pointer[view]
-	sem     chan struct{} // one build at a time, also an abandoned one
-	wake    chan struct{}
+	o    Options
+	v    atomic.Pointer[view]
+	sem  chan struct{} // one build at a time, also an abandoned one
+	wake chan struct{}
+	// around runs around every check of Run (AroundCheck); nil: none.
+	around  atomic.Pointer[func(ctx context.Context, check func())]
 	timeout time.Duration
 	check   func([]waf.HubRule) error
 	cost    func(ctx context.Context, reference, candidate []waf.HubRule) (crowdsec.CostSample, error)

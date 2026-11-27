@@ -581,6 +581,7 @@ func New(ctx context.Context, opts Options) (*App, error) {
 	}
 	a.Dashboard.Sites = a.Sites
 	a.logConfigChange(ctx, a.started, "", cfg)
+	a.auditConfigApplied(ctx, cfg)
 	a.setConfigHash(a.Repos.LocalText())
 	a.AgentAPI = a.newAgentAPI()
 	// D87: what `schild firewall run` said in its last call.
@@ -654,7 +655,8 @@ func (a *App) flushSummaries(ctx context.Context) {
 // bounded tables and one size-cap pass (D38).
 func (a *App) Retention(ctx context.Context) {
 	c := a.Config().Retention
-	res, err := a.Store.ApplyRetention(ctx, time.Now().UTC(), store.Retention{RawIPDays: c.RawIPDays, EventsDays: c.EventsDays, MaxSizeMB: c.MaxSizeMB, SummariesDays: c.SummariesDays}, dashboard.TruncateBody)
+	res, err := a.Store.ApplyRetention(ctx, time.Now().UTC(), store.Retention{RawIPDays: c.RawIPDays, EventsDays: c.EventsDays, MaxSizeMB: c.MaxSizeMB, SummariesDays: c.SummariesDays,
+		Expired: a.allowExpired}, dashboard.TruncateBody)
 	if err != nil {
 		a.log.Error("retention", "err", err)
 		return
@@ -665,6 +667,7 @@ func (a *App) Retention(ctx context.Context) {
 		a.noteCap(res.Cap, time.Now())
 	}
 	a.retainAudit(ctx)
+	a.auditTokensExpired(ctx)
 	if res.Truncated+res.Deleted+res.DeletedSize+calls+res.KeptBlocks+res.Allow > 0 {
 		a.log.Info("retention applied", "ip_truncated", res.Truncated, "deleted_age", res.Deleted, "deleted_size", res.DeletedSize, "agent_calls_trimmed", calls,
 			"kept_blocks_ended", res.KeptBlocks, "allowlist_expired", res.Allow)
@@ -725,6 +728,9 @@ func (a *App) Loops(ctx context.Context) {
 	// The crowdsec rules update in the background and never block request
 	// handling (D39).
 	a.goLoop(ctx, "crowdsec", a.Repos.Run)
+	a.Repos.Hub().AroundCheck(func(ctx context.Context, check func()) {
+		a.auditRulesLoaded(ctx, rules.RepoCrowdsec, "system:hub_update", check)
+	})
 	a.goLoop(ctx, "allowlist-reload", tick(2*time.Second, func() {
 		if v := a.Store.AllowVersion(ctx); v != a.allowVersion.Load() {
 			_ = a.ReloadAllow(ctx)

@@ -37,6 +37,11 @@ const crowdsecRepo = "crowdsec"
 // maxListed caps the names of one repository_updated event.
 const maxListed = 100
 
+// AroundCheck sets a function that runs around every check of Run: it calls
+// check once and sees the rules before and after (the audit log records an
+// update that was applied).
+func (s *Source) AroundCheck(f func(ctx context.Context, check func())) { s.around.Store(&f) }
+
 // Run checks the hub until ctx ends. A failure waits for the next interval.
 func (s *Source) Run(ctx context.Context) {
 	t := time.NewTimer(rand.N(firstDelay))
@@ -48,7 +53,11 @@ func (s *Source) Run(ctx context.Context) {
 		case <-t.C:
 		case <-s.wake:
 		}
-		s.Check(ctx)
+		if around := s.around.Load(); around != nil {
+			(*around)(ctx, func() { s.Check(ctx) })
+		} else {
+			s.Check(ctx)
+		}
 		if !t.Stop() {
 			select {
 			case <-t.C:

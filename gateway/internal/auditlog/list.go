@@ -96,6 +96,9 @@ func (f Filter) match(c cols) bool {
 // MaxPage is the most entries one List returns.
 const MaxPage = 500
 
+// topCursor is the cursor before the newest entry of the file.
+const topCursor = "a9223372036854775807.9223372036854775807"
+
 // ErrCursor: the cursor of a List is not one of its own.
 var ErrCursor = fmt.Errorf("audit: invalid cursor")
 
@@ -148,7 +151,17 @@ func (l *Log) List(ctx context.Context, f Filter, cursor string, limit int) ([]m
 			items = items[:limit]
 		}
 	}
+	// An entry is moved while this reads: it may be in the outbox and in
+	// the file. It is listed once.
+	seen := map[string]bool{}
+	for _, it := range items {
+		seen[str(it.e, "id")] = true
+	}
 	next := ""
+	if l.db != nil && len(items) == limit {
+		// The outbox filled the page: the file follows from its top.
+		next = topCursor
+	}
 	if l.db != nil && len(items) < limit {
 		where, args := f.where()
 		if cursor != "" {
@@ -180,8 +193,11 @@ func (l *Log) List(ctx context.Context, f Filter, cursor string, limit int) ([]m
 				continue
 			}
 			n++
-			items = append(items, item{t, e})
 			next = "a" + strconv.FormatInt(t, 10) + "." + strconv.FormatInt(seq, 10)
+			if seen[str(e, "id")] {
+				continue
+			}
+			items = append(items, item{t, e})
 		}
 		if err := rows.Err(); err != nil {
 			return nil, "", err

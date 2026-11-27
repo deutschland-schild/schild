@@ -18,7 +18,7 @@ func (a *App) ReloadOnSignal(ctx context.Context, c <-chan os.Signal) {
 		case <-c:
 			// The result is logged, counted and an event: nobody is there to
 			// read an error.
-			_, _ = a.Repos.Sync(ctx, rules.RepoLocal)
+			a.auditRulesLoaded(ctx, rules.RepoLocal, "system:sighup", func() { _, _ = a.Repos.Sync(ctx, rules.RepoLocal) })
 		}
 	}
 }
