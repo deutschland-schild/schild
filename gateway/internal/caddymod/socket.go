@@ -29,7 +29,9 @@ import (
 // has accepted and whose first request it reads at that moment, without an
 // answer. So before Caddy stops the config before it, a new config that has
 // started takes the connections alone, and waits until the old one has read
-// the first request of those it has (takeOver).
+// the first request of those it has (takeOver). The wait is a time and no
+// proof: a goroutine that pauses for longer than quietFor at that point
+// still loses its request.
 
 // keepSocket returns ln on the socket of its address that stays open, or ln
 // itself where that does not work (no TCP, not Linux, Multipath TCP, which
@@ -228,6 +230,11 @@ func (g *generation) Close() error {
 // nothing, for example those a browser opens ahead.
 const takeOverWait = 2 * time.Second
 
+// quietFor is how long the configs before the newest have to be without a
+// fresh connection before Caddy may stop them. Every reload lasts at least
+// this long.
+const quietFor = 500 * time.Millisecond
+
 // takeOver leaves the connections of every address to its newest config, and
 // waits until the configs before it have read the first request of the
 // connections they have. Called when the new config has started and before
@@ -249,15 +256,20 @@ func takeOver() {
 	if len(old) == 0 {
 		return
 	}
-	// A connection net/http has just read is marked as such a moment before
-	// the server looks whether it stops, hence the pause after the last one.
-	const settle = 20 * time.Millisecond
-	calm := 0
-	for end := time.Now().Add(takeOverWait); time.Now().Before(end) && calm < 2; time.Sleep(settle) {
+	// net/http marks a connection as read and only then looks whether its
+	// server stops; a request read in between gets no answer. Nothing tells
+	// when a goroutine is past that point, so the old configs have to be
+	// without a fresh connection for quietFor in a row. On a busy machine
+	// the goroutine waited longer than the 40 ms this was at first (found by
+	// the race detector in CI: 1 of 1495 requests). The same time covers a
+	// connection the old config has accepted and not yet counted.
+	const step = 20 * time.Millisecond
+	calm := time.Duration(0)
+	for end := time.Now().Add(takeOverWait); time.Now().Before(end) && calm < quietFor; time.Sleep(step) {
 		if slices.ContainsFunc(old, func(g *generation) bool { return g.fresh.Load() > 0 }) {
 			calm = 0
 		} else {
-			calm++
+			calm += step
 		}
 	}
 }

@@ -68,6 +68,10 @@ type ConnWrapper struct {
 	fresh *atomic.Int64
 }
 
+// afterActive, set by a test, runs where net/http has read a request and has
+// not yet looked whether its server stops.
+var afterActive func()
+
 // CaddyModule implements caddy.Module.
 func (ConnWrapper) CaddyModule() caddy.ModuleInfo {
 	return caddy.ModuleInfo{ID: "caddy.listeners." + connWrapperName, New: func() caddy.Module { return new(ConnWrapper) }}
@@ -88,6 +92,9 @@ func (w *ConnWrapper) Provision(ctx caddy.Context) error {
 				counted.Store(c, struct{}{})
 			} else if _, was := counted.LoadAndDelete(c); was {
 				w.fresh.Add(-1)
+			}
+			if s == http.StateActive && afterActive != nil {
+				afterActive()
 			}
 			connlimit.Track(c, s)
 		})
