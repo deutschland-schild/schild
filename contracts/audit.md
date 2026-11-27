@@ -133,9 +133,9 @@ The mesh carries the log ([cluster.md](cluster.md) section 7), with no record cl
 - `gateway-agent.openapi.yaml` (served to agents): `listAgentAudit` with `AgentAuditPage`. The dashboard API serves `listAudit`.
 - Hints `audit_size` (notice) and `audit_stuck` (warning), both server only. `HealthHint` has `count` for the entries of the last 30 days.
 - [cluster.md](cluster.md): kind `audit` of Ask. The tables `audit_outbox`, `audit_state` and `audit_config` are per node.
-- `privacy/export`: `audit`, the entries that name the address. An entry names an address when the address is the origin of the call, a recorded value or an item of a recorded list. A network that holds the address is no match. `privacy/delete` and `retention.raw_ip_days` do not touch the log.
+- `privacy/export`: `audit`, the entries that name the address. An entry names an address when the address is the origin of the call, a recorded value or an item of a recorded list. A network that holds the address is no match, and neither is an address inside a reason or a label. At most the newest 500, `audit_truncated` says when there are more. `privacy/delete` and `retention.raw_ip_days` do not touch the log.
 - [audit-entry.schema.json](audit-entry.schema.json): `reason`, labels, names and recorded texts carry `x-untrusted`.
-- [audit-actions.json](audit-actions.json): `session.start` is also written by `dashboard:setupPassword` and `dashboard:changePassword` (both start a session), `maintenance.set` also by `cli:lock off`; `cli:firewall run`, `cli:check` and `cli:geo-fixture` are in `not_audited`.
+- [audit-actions.json](audit-actions.json): `session.start` is also written by `dashboard:setupPassword` and `dashboard:changePassword` (both start a session), `maintenance.set` also by `cli:lock off`; `cli:firewall run`, `cli:check` and `cli:geo-fixture` are in `not_audited`; `privacy.erase` records `/allowlist`, the number of own IPs the erasure removed.
 - The existing events stay as they are.
 
 ## 11. Where the build differs
@@ -148,4 +148,6 @@ The mesh carries the log ([cluster.md](cluster.md) section 7), with no record cl
 - **`cluster.join`** is written by the node that enters, once per group, at its start.
 - **Refused calls.** Gathered are: a failed sign-in, a wrong setup code, a wrong current password, an attempt over the limit of attempts, a call of the agent API with an unknown token or without one, a read with a scope that does not allow it, a write the handler refused with 403, a call over the rate limit of its token and a write over the budget of section 6.
 - **The copy (`audit.stream`)** gets the entries this node wrote, when they are moved to `audit.db`, and a refused entry when its minute is over. Entries of other nodes are not copied.
+- **An agent reads recorded addresses.** `listAgentAudit` leaves out the address of a call and the names of people, as section 8 says. The values of a change stay: the client of a block, an own IP, the addresses of an access lock, and the labels and reasons a person typed. To decide: whether the view of an agent hides the fields an action lists under `addresses`.
+- **A user has no subject id.** `session.start`, `session.end` and the password actions name the user with the actor alone, because every viewer sees a subject.
 - **`List` when `audit.db` cannot be written.** Entries that wait in the outbox are on the first page, before the entries of the file.

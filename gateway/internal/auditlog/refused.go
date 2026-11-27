@@ -181,7 +181,11 @@ func (l *Log) flushRefused(ctx context.Context, final bool) {
 		}
 		r.mu.Lock()
 		if cur := r.open[j.k]; cur != nil {
-			cur.id = e.id
+			// An entry that was not stored keeps no id: the next flush
+			// stores it anew, with another number.
+			if err == nil || !fresh {
+				cur.id = e.id
+			}
 			if err == nil {
 				cur.written = e.count
 				// Counted again while this was written: the entry stays.

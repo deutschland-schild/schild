@@ -172,16 +172,14 @@ func (l *Log) build(e Entry, id string, now time.Time) (map[string]any, []byte, 
 	if err != nil {
 		return nil, nil, fmt.Errorf("audit: %s: after: %w", e.Action, err)
 	}
-	if before != nil || after != nil {
-		c := audit.Diff(a, before, after)
-		switch {
-		case len(c.Fields) > 0 || c.MoreFields > 0:
-			m["change"] = c
-		case e.IfChanged:
-			// The state is the same before and after: the call changed
-			// nothing, and there is no entry.
-			return nil, nil, errNoChange
-		}
+	c := audit.Diff(a, before, after)
+	switch {
+	case len(c.Fields) > 0 || c.MoreFields > 0:
+		m["change"] = c
+	case e.IfChanged:
+		// The state is the same before and after, or there was none and
+		// is none: the call changed nothing, and there is no entry.
+		return nil, nil, errNoChange
 	}
 	if r := audit.Text(strings.TrimSpace(e.Reason), 500); r != "" {
 		m["reason"] = r

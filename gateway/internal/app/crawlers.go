@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/deutschland-schild/schild/gateway/internal/auditlog"
+	"reflect"
 	"sort"
 	"time"
 
@@ -102,7 +103,8 @@ func (a *App) SetCrawlers(ctx context.Context, website string, next func(cur cc.
 		// What crawlers.set records: the policy as the API shows it, and
 		// the preset it came from.
 		before, after := asMap(old.Wire()), asMap(p.Wire())
-		if c.Preset != "" {
+		// A preset that leaves the policy as it is changes nothing.
+		if c.Preset != "" && !reflect.DeepEqual(before, after) {
 			after["preset"] = c.Preset
 		}
 		err = a.putAudited(ctx, crawlers.StoreKey, raw, func(o auditlog.Origin) []auditlog.Entry {

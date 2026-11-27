@@ -341,6 +341,8 @@ type PrivacyExport struct {
 	// Audit are the audit entries that name the address (MVP-36): they
 	// stay in the log until audit.keep_days.
 	Audit []map[string]any `json:"audit,omitempty"`
+	// AuditTruncated: more than the 500 newest entries name the address.
+	AuditTruncated bool `json:"audit_truncated,omitempty"`
 }
 
 // PrivacyDeleteRequest deletes by IP.

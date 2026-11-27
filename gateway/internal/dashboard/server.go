@@ -547,11 +547,12 @@ func (s *Server) setSessionCookie(w http.ResponseWriter, r *http.Request, token 
 }
 
 // sessionStart is the entry of a session that starts: a sign-in, the first
-// password, a changed password. The actor is the new session.
+// password, a changed password. The actor is the new session. The subject
+// is the user without a name: every viewer sees a subject, the name of a
+// person stands with the actor alone.
 func (s *Server) sessionStart(r *http.Request, operation string, se *store.Session) auditlog.Entry {
 	e := s.entry(r, "session.start", operation)
 	e.Actor = auditlog.Dashboard(se.User, auditlog.SessionID(se.TokenHash))
-	e.Subject = se.User
 	return e
 }
 
@@ -696,7 +697,7 @@ func (s *Server) setup(w http.ResponseWriter, r *http.Request) {
 			return err
 		}
 		e := s.entry(r, "password.setup", "setupPassword")
-		e.Actor, e.Subject = auditlog.Dashboard(se.User, auditlog.SessionID(se.TokenHash)), se.User
+		e.Actor = auditlog.Dashboard(se.User, auditlog.SessionID(se.TokenHash))
 		e.After = map[string]any{"password": true}
 		rec.Add(e, s.sessionStart(r, "setupPassword", se))
 		return s.St.CreateSession(ctx, *se)
@@ -880,9 +881,7 @@ func (s *Server) login(w http.ResponseWriter, r *http.Request) {
 func (s *Server) logout(w http.ResponseWriter, r *http.Request) {
 	se := sessionOf(r)
 	_ = s.Audit.Tx(r.Context(), func(ctx context.Context, rec *auditlog.Rec) error {
-		e := s.entry(r, "session.end", "logout")
-		e.Subject = se.User
-		rec.Add(e)
+		rec.Add(s.entry(r, "session.end", "logout"))
 		return s.St.DeleteSession(ctx, se.TokenHash)
 	})
 	http.SetCookie(w, &http.Cookie{Name: cookieName, Value: "", Path: "/", HttpOnly: true, Secure: secureCookie(r), SameSite: http.SameSiteStrictMode, MaxAge: -1})
@@ -920,7 +919,6 @@ func (s *Server) changePassword(w http.ResponseWriter, r *http.Request) {
 			return err
 		}
 		e := s.entry(r, "password.change", "changePassword")
-		e.Subject = se.User
 		e.Before, e.After = map[string]any{"password": true}, map[string]any{"password": false}
 		rec.Add(e, s.sessionStart(r, "changePassword", next))
 		return s.St.CreateSession(ctx, *next)

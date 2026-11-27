@@ -305,8 +305,8 @@ func (l *Log) Naming(ctx context.Context, address string, limit int) ([]map[stri
 	if l == nil || address == "" {
 		return nil, nil
 	}
-	if limit <= 0 || limit > MaxPage {
-		limit = MaxPage
+	if limit <= 0 || limit > MaxPage+1 {
+		limit = MaxPage + 1
 	}
 	_ = l.Move(ctx)
 	quoted, err := json.Marshal(address)

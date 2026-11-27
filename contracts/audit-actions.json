@@ -46,7 +46,7 @@
     { "action": "host_agent.revoke", "class": "credential", "subject": "host_agent", "website": "none", "operations": ["dashboard:revokeAgent"], "fields": ["/label", "/fingerprint"] },
 
     { "action": "privacy.export", "class": "privacy", "subject": "address", "website": "none", "operations": ["dashboard:privacyExport"], "fields": ["/events", "/incidents", "/requests"] },
-    { "action": "privacy.erase", "class": "privacy", "subject": "address", "website": "none", "operations": ["dashboard:privacyDelete"], "fields": ["/events", "/incidents", "/requests", "/blocks", "/keep_incidents"] },
+    { "action": "privacy.erase", "class": "privacy", "subject": "address", "website": "none", "operations": ["dashboard:privacyDelete"], "fields": ["/events", "/incidents", "/requests", "/blocks", "/allowlist", "/keep_incidents"] },
     { "action": "incident.export", "class": "privacy", "subject": "incident", "website": "optional", "operations": ["dashboard:exportIncident"], "fields": [] },
 
     { "action": "session.start", "class": "access", "subject": "user", "website": "none", "operations": ["dashboard:login", "dashboard:setupPassword", "dashboard:changePassword"], "fields": [] },

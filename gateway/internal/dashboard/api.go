@@ -1225,9 +1225,12 @@ func (s *Server) privacyExport(w http.ResponseWriter, r *http.Request) {
 	}
 	// The audit entries that name the address belong to what is stored
 	// about it (contracts/audit.md section 7).
-	if out.Audit, err = s.Audit.Naming(r.Context(), ip.String(), auditlog.MaxPage); err != nil {
+	if out.Audit, err = s.Audit.Naming(r.Context(), ip.String(), auditlog.MaxPage+1); err != nil {
 		s.internal(w, err)
 		return
+	}
+	if len(out.Audit) > auditlog.MaxPage {
+		out.Audit, out.AuditTruncated = out.Audit[:auditlog.MaxPage], true
 	}
 	// That it happened and how much, not the content and not the address.
 	en := s.entry(r, "privacy.export", "privacyExport")
@@ -1297,6 +1300,13 @@ func (s *Server) privacyDelete(w http.ResponseWriter, r *http.Request) {
 	if sum, err := s.St.SummarizeIP(r.Context(), ip.String()); err == nil {
 		incidents = len(sum.Incidents)
 	}
+	// A single gateway names no lifts, and still ends the block that runs.
+	running := 0
+	if s.Behaviour != nil {
+		if _, ok := s.Behaviour.ActiveBlock(ip); ok {
+			running = 1
+		}
+	}
 	var res *store.DeleteResult
 	erase := func(lifts []string) error {
 		err := s.Audit.Tx(r.Context(), func(ctx context.Context, rec *auditlog.Rec) (err error) {
@@ -1304,7 +1314,8 @@ func (s *Server) privacyDelete(w http.ResponseWriter, r *http.Request) {
 				return err
 			}
 			en := s.entry(r, "privacy.erase", "privacyDelete")
-			en.After = map[string]any{"events": res.Events, "incidents": incidents, "requests": erased, "blocks": len(lifts), "keep_incidents": req.KeepIncidents}
+			en.After = map[string]any{"events": res.Events, "incidents": incidents, "requests": erased, "blocks": max(len(lifts), running),
+				"allowlist": res.Allowlist, "keep_incidents": req.KeepIncidents}
 			rec.Add(en)
 			return nil
 		})

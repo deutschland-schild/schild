@@ -217,7 +217,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Draft (D108, MVP-36), no gateway serves it yet: the audit log, newest first, with time in [from, to). Every change with who made it, through which way, and what it was before (contracts/audit.md). In a group the entries of every node this gateway holds. `actor` is a token or portal key id. `subject` with `subject_id` and limit 1 answers who changed a thing last. An entry reads as it was written, with its addresses, until `audit.keep_days` deletes it. Index ranges, no scan of the log. */
+        /** MVP-36 (D108): the audit log, newest first, with time in [from, to). Every change with who made it, through which way, and what it was before (contracts/audit.md). In a group the entries of every node this gateway holds. `actor` is a token or portal key id. `subject` with `subject_id` and limit 1 answers who changed a thing last. An entry reads as it was written, with its addresses, until `audit.keep_days` deletes it. Index ranges, no scan of the log. */
         get: operations["listAudit"];
         put?: never;
         post?: never;
@@ -1905,6 +1905,10 @@ export interface components {
             events: components["schemas"]["events.schema"][];
             /** @description The requests of this address in the ring, pinned context included, newest first, at most 10000. */
             requests?: components["schemas"]["RequestRecord"][];
+            /** @description MVP-36: the audit entries that name this address, newest first: the address a call came from, a recorded value (an own IP, a released or blocked client) or an item of a recorded list. A network that holds the address is no match. privacy/delete does not remove them; they stay until audit.keep_days (contracts/audit.md section 7). */
+            audit?: components["schemas"]["audit-entry.schema"][];
+            /** @description true: more than 500 entries name the address, audit holds the newest 500. listAudit has all of them. */
+            audit_truncated?: boolean;
         };
         PrivacyDeleteRequest: {
             ip: string;
@@ -3955,9 +3959,12 @@ export interface components {
         action: string;
         /** @description Short id of a session, never its token. */
         session: string;
+        /** @description A name a person or a portal gave. Untrusted text. */
         name: string;
+        /** @description The label of a token or portal key. Untrusted text. */
         label: string;
         pointer: string;
+        /** @description A recorded value. A text is what somebody typed: untrusted. */
         scalar: string | number | boolean;
         items: string[];
         /** @description <name of the log, 16 hex>-<k kept, a access, r refused>-<number, counted per log and letter from 1>. */
@@ -4058,6 +4065,7 @@ export interface components {
                 entryId: string;
                 action: string;
                 website: string;
+                /** @description A name a person or a portal gave. Untrusted text. */
                 name: string;
                 actor: {
                     /** @constant */
@@ -4088,8 +4096,10 @@ export interface components {
                 };
                 /** @description Short id of a session, never its token. */
                 session: string;
+                /** @description The label of a token or portal key. Untrusted text. */
                 label: string;
                 pointer: string;
+                /** @description A recorded value. A text is what somebody typed: untrusted. */
                 scalar: string | number | boolean;
                 items: string[];
                 /** @description One changed field. Without before, after, added and removed, hidden says why. */

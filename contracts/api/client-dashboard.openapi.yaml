@@ -2673,6 +2673,7 @@ components:
         events: { type: array, items: { $ref: "../events.schema.json" } }
         requests: { type: array, description: "The requests of this address in the ring, pinned context included, newest first, at most 10000.", items: { $ref: "#/components/schemas/RequestRecord" } }
         audit: { type: array, maxItems: 500, description: "MVP-36: the audit entries that name this address, newest first: the address a call came from, a recorded value (an own IP, a released or blocked client) or an item of a recorded list. A network that holds the address is no match. privacy/delete does not remove them; they stay until audit.keep_days (contracts/audit.md section 7).", items: { $ref: "../audit-entry.schema.json" } }
+        audit_truncated: { type: boolean, description: "true: more than 500 entries name the address, audit holds the newest 500. listAudit has all of them." }
     PrivacyDeleteRequest:
       type: object
       additionalProperties: false

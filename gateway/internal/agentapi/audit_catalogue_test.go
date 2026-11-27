@@ -4,8 +4,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/deutschland-schild/schild/contract/audit"
 	contractapi "github.com/deutschland-schild/schild/contract/agentapi"
+	"github.com/deutschland-schild/schild/contract/audit"
 )
 
 // MVP-36 (contracts/audit.md section 2): every write of the agent API is
