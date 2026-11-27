@@ -5,11 +5,9 @@ import (
 	"fmt"
 	"math/rand"
 	"os"
-	"reflect"
 	"regexp"
 	"strings"
 	"testing"
-	"time"
 
 	"github.com/deutschland-schild/schild/contract/jsonx"
 )
@@ -206,20 +204,9 @@ func TestDiffAlwaysFits(t *testing.T) {
 			t.Fatal(err)
 		}
 		biggest = max(biggest, len(raw))
-		e, res, err := ParseEntry(raw, true)
+		_, res, err := ParseEntry(raw, true)
 		if err != nil || res.Stripped != 0 {
 			t.Fatalf("%s: %v %+v\n%s", a.Action, err, res, raw)
-		}
-		// Cutting twice is cutting once, and the result is still an entry.
-		in := CutInput{Entry: e, Now: time.Date(2027, 1, 1, 0, 0, 0, 0, time.UTC), RawIPDays: 14, Erased: []string{"203.0.113.9"}}
-		once := Cut(in)
-		in.Entry = once
-		if twice := Cut(in); !reflect.DeepEqual(once, twice) {
-			t.Fatalf("%s: cut twice differs\n%v\n%v", a.Action, once, twice)
-		}
-		out, _ := jsonx.Marshal(once)
-		if _, _, err := ParseEntry(out, true); err != nil {
-			t.Fatalf("%s: after the cut: %v", a.Action, err)
 		}
 	}
 	if biggest > MaxEntryBytes/2 {
@@ -228,44 +215,22 @@ func TestDiffAlwaysFits(t *testing.T) {
 	t.Logf("largest entry %d bytes", biggest)
 }
 
-// TestCutListOnce: a text that only then holds a network changes an item of
-// a list after the list was put in order. The list is still each item once,
-// in byte order, and a second cut changes nothing.
-func TestCutListOnce(t *testing.T) {
-	late := time.Date(2027, 1, 1, 0, 0, 0, 0, time.UTC)
-	soon := time.Date(2026, 10, 27, 0, 0, 0, 0, time.UTC)
-	for _, c := range []struct {
-		name    string
-		address string
-		now     time.Time
-		erased  []string
-		in, out []any
-	}{
-		{"twice", "", late, nil, []any{"203.0.113.7", "a 203.0.113.0/24", "a 203.0.113.7"}, []any{"203.0.113.0/24", "a 203.0.113.0/24"}},
-		{"order", "203.0.113.7", late, nil, []any{"203.0.113.5 a", "203.0.113.7 a"}, []any{"203.0.113.0/24 a", "203.0.113.5 a"}},
-		{"erased", "", soon, []string{"203.0.113.7"}, []any{"a erased", "a 203.0.113.7", "203.0.113.7 a"}, []any{"a erased", "erased a"}},
-		{"untouched", "", soon, []string{"203.0.113.7"}, []any{"b", "a"}, []any{"b", "a"}},
-	} {
-		a := *Lookup("rate_limit.remove")
-		e := entryOf(a, Change{Fields: []Field{}})
-		e["change"] = map[string]any{"fields": []any{map[string]any{"field": "/methods", "change": "removed", "removed": c.in}}}
-		if c.address != "" {
-			e["address"] = c.address
-		}
-		raw, _ := jsonx.Marshal(e)
-		e, _, err := ParseEntry(raw, true)
-		if err != nil {
-			t.Fatalf("%s: %v", c.name, err)
-		}
-		in := CutInput{Entry: e, Now: c.now, RawIPDays: 14, Erased: c.erased}
-		once := Cut(in)
-		if got := fields(once)[0]["removed"]; !reflect.DeepEqual(got, c.out) {
-			t.Errorf("%s: %q, want %q", c.name, got, c.out)
-		}
-		in.Entry = once
-		if twice := Cut(in); !reflect.DeepEqual(once, twice) {
-			t.Errorf("%s: cut twice differs\n%v\n%v", c.name, once, twice)
-		}
+// TestDeleteShortKeep: audit.keep_days under AccessDays ends sign-ins and
+// refused calls with the changes, so no address outlives it.
+func TestDeleteShortKeep(t *testing.T) {
+	const log = "0a1b2c3d4e5f6071"
+	now := int64(1000) * dayMS
+	rows := []Row{
+		{log + "-k-1", ClassChange, now - 14*dayMS}, {log + "-k-2", ClassChange, now - 14*dayMS + 1},
+		{log + "-a-1", ClassAccess, now - 14*dayMS}, {log + "-a-2", ClassAccess, now - 14*dayMS + 1},
+		{log + "-r-1", ClassRefused, now - 89*dayMS}, {log + "-r-2", ClassRefused, now - 13*dayMS},
+	}
+	got := strings.Join(Delete(rows, now, 14, MaxAccessRows), " ")
+	if want := log + "-r-1 " + log + "-a-1 " + log + "-k-1"; got != want {
+		t.Errorf("deleted %s, want %s", got, want)
+	}
+	if got := Delete(rows, now, 0, MaxAccessRows); len(got) != 0 {
+		t.Errorf("unlimited: deleted %v", got)
 	}
 }
 

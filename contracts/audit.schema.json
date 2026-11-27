@@ -2,13 +2,12 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://contracts.schild.invalid/v0/audit.schema.json",
   "title": "Audit log decision input (draft, MVP-36)",
-  "description": "Input of the audit vectors: one decision of the audit log (contract/audit, rules in audit.md). op diff: what an entry records of a change; op entry: is an entry valid and how long is it kept; op refused: how refused calls are gathered; op keep: which entries are deleted; op cut: what is left of an entry after address retention, an erasure and a forgotten person; op view: what a viewer sees of an entry.",
+  "description": "Input of the audit vectors: one decision of the audit log (contract/audit, rules in audit.md). op diff: what an entry records of a change; op entry: is an entry valid and how long is it kept; op refused: how refused calls are gathered; op keep: which entries are deleted; op view: what a viewer sees of an entry.",
   "oneOf": [
     { "$ref": "#/$defs/diff" },
     { "$ref": "#/$defs/entry" },
     { "$ref": "#/$defs/refused" },
     { "$ref": "#/$defs/keep" },
-    { "$ref": "#/$defs/cut" },
     { "$ref": "#/$defs/view" }
   ],
   "$defs": {
@@ -66,7 +65,7 @@
       "properties": {
         "op": { "const": "keep" },
         "now": { "$ref": "#/$defs/ms" },
-        "keep_days": { "description": "audit.keep_days (365 by default); null: unlimited, changes are not deleted.", "type": ["integer", "null"], "minimum": 90, "maximum": 36500 },
+        "keep_days": { "description": "audit.keep_days (365 by default); null: unlimited, changes are not deleted. Sign-ins and refused calls are kept 90 days, and no longer than this.", "type": ["integer", "null"], "minimum": 1, "maximum": 36500 },
         "max_rows": { "description": "Rows of access and of refused (audit.MaxAccessRows, 20000); vectors use small values.", "type": "integer", "minimum": 1, "maximum": 20000 },
         "rows": {
           "type": "array", "maxItems": 2000,
@@ -81,31 +80,6 @@
             }
           }
         }
-      }
-    },
-    "cut": {
-      "type": "object",
-      "additionalProperties": false,
-      "required": ["op", "now", "raw_ip_days", "entry"],
-      "properties": {
-        "op": { "const": "cut" },
-        "now": { "$ref": "common.schema.json#/$defs/timestamp" },
-        "raw_ip_days": { "type": "integer", "minimum": 1, "maximum": 30 },
-        "erased": { "type": "array", "maxItems": 64, "items": { "type": "string", "maxLength": 64 } },
-        "forgotten": {
-          "type": "array", "maxItems": 64,
-          "items": {
-            "type": "object",
-            "additionalProperties": false,
-            "required": ["kind", "name", "pseudonym"],
-            "properties": {
-              "kind": { "type": "string", "enum": ["dashboard", "integration", "cli"] },
-              "name": { "$ref": "audit-entry.schema.json#/$defs/name" },
-              "pseudonym": { "type": "string", "pattern": "^person-[0-9a-f]{8}$" }
-            }
-          }
-        },
-        "entry": { "$ref": "audit-entry.schema.json" }
       }
     },
     "view": {

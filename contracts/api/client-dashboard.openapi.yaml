@@ -442,7 +442,8 @@ paths:
         Draft (D108, MVP-36), no gateway serves it yet: the audit log, newest first, with time in [from, to). Every
         change with who made it, through which way, and what it was before (contracts/audit.md). In a group the
         entries of every node this gateway holds. `actor` is a token or portal key id. `subject` with `subject_id` and
-        limit 1 answers who changed a thing last. Index ranges, no scan of the log.
+        limit 1 answers who changed a thing last. An entry reads as it was written, with its addresses, until
+        `audit.keep_days` deletes it. Index ranges, no scan of the log.
       parameters:
         - { $ref: "#/components/parameters/From" }
         - { $ref: "#/components/parameters/To" }

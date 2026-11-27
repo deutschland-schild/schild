@@ -1,0 +1,45 @@
+{
+  "contract": "audit",
+  "description": "Sign-ins and refused calls are never kept longer than audit.keep_days.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"keep_days\":14,\"max_rows\":10,\"now\":1793016000000,\"op\":\"keep\",\"rows\":[{\"class\":\"access\",\"id\":\"0a1b2c3d4e5f6071-a-1\",\"t\":1791806400000},{\"class\":\"access\",\"id\":\"0a1b2c3d4e5f6071-a-2\",\"t\":1791806400001},{\"class\":\"refused\",\"id\":\"0a1b2c3d4e5f6071-r-1\",\"t\":1785326400000},{\"class\":\"refused\",\"id\":\"0a1b2c3d4e5f6071-r-2\",\"t\":1791892800000}]}",
+  "input_decoded": {
+    "keep_days": 14,
+    "max_rows": 10,
+    "now": 1793016000000,
+    "op": "keep",
+    "rows": [
+      {
+        "class": "access",
+        "id": "0a1b2c3d4e5f6071-a-1",
+        "t": 1791806400000
+      },
+      {
+        "class": "access",
+        "id": "0a1b2c3d4e5f6071-a-2",
+        "t": 1791806400001
+      },
+      {
+        "class": "refused",
+        "id": "0a1b2c3d4e5f6071-r-1",
+        "t": 1785326400000
+      },
+      {
+        "class": "refused",
+        "id": "0a1b2c3d4e5f6071-r-2",
+        "t": 1791892800000
+      }
+    ]
+  },
+  "expect": {
+    "valid": true,
+    "result": {
+      "deleted": [
+        "0a1b2c3d4e5f6071-r-1",
+        "0a1b2c3d4e5f6071-a-1"
+      ]
+    }
+  }
+}

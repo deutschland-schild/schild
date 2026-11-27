@@ -2,7 +2,6 @@ package audit
 
 import (
 	"encoding/json"
-	"time"
 
 	"github.com/deutschland-schild/schild/contract"
 	"github.com/deutschland-schild/schild/contract/jsonx"
@@ -92,22 +91,6 @@ func RunVector(raw []byte) (any, error) {
 			rows = append(rows, r)
 		}
 		return map[string]any{"deleted": Delete(rows, num(v, "now"), num(v, "keep_days"), num(v, "max_rows"))}, nil
-	case "cut":
-		now, err := time.Parse(time.RFC3339, str(v, "now"))
-		if err != nil {
-			return nil, contract.Errf(contract.CodeSchema, "now: %v", err)
-		}
-		in := CutInput{Entry: entry, Now: now, RawIPDays: int(num(v, "raw_ip_days"))}
-		if l, ok := v["erased"].([]any); ok {
-			for _, x := range l {
-				s, _ := x.(string)
-				in.Erased = append(in.Erased, s)
-			}
-		}
-		for _, m := range list("forgotten") {
-			in.Forgotten = append(in.Forgotten, Forgotten{str(m, "kind"), str(m, "name"), str(m, "pseudonym")})
-		}
-		return map[string]any{"entry": Cut(in)}, nil
 	default: // view
 		w := obj(v, "viewer")
 		var out any

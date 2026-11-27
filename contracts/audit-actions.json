@@ -48,7 +48,6 @@
     { "action": "privacy.export", "class": "privacy", "subject": "address", "website": "none", "operations": ["dashboard:privacyExport"], "fields": ["/events", "/incidents", "/requests"] },
     { "action": "privacy.erase", "class": "privacy", "subject": "address", "website": "none", "operations": ["dashboard:privacyDelete"], "fields": ["/events", "/incidents", "/requests", "/blocks", "/keep_incidents"] },
     { "action": "incident.export", "class": "privacy", "subject": "incident", "website": "optional", "operations": ["dashboard:exportIncident"], "fields": [] },
-    { "action": "audit.forget", "class": "privacy", "subject": "audit", "website": "none", "operations": ["cli:audit forget"], "fields": ["/pseudonym", "/entries"] },
 
     { "action": "session.start", "class": "access", "subject": "user", "website": "none", "operations": ["dashboard:login"], "fields": [] },
     { "action": "session.end", "class": "access", "subject": "user", "website": "none", "operations": ["dashboard:logout"], "fields": [] },

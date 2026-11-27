@@ -24,7 +24,6 @@ func View(e map[string]any, viewer, website string) map[string]any {
 			return nil
 		}
 		delete(e, "address")
-		delete(e, "address_cut")
 		actor := obj(e, "actor")
 		for _, k := range []string{"user", "session", "account", "on_behalf_of"} {
 			delete(actor, k)
@@ -63,4 +62,22 @@ func View(e map[string]any, viewer, website string) map[string]any {
 		return out
 	}
 	return nil
+}
+
+func clone(v any) any {
+	switch t := v.(type) {
+	case map[string]any:
+		m := make(map[string]any, len(t))
+		for k, x := range t {
+			m[k] = clone(x)
+		}
+		return m
+	case []any:
+		l := make([]any, len(t))
+		for i, x := range t {
+			l[i] = clone(x)
+		}
+		return l
+	}
+	return v
 }
