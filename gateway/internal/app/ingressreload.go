@@ -89,6 +89,11 @@ func (a *App) reloadIngress(force bool) (IngressReload, error) {
 	if err != nil {
 		return res, err
 	}
+	// As at a start: a lost token must not stop a change of other websites,
+	// so it is a warning of the command and not a refusal.
+	for _, p := range caddymod.DNSTokenProblems(ing.JSON) {
+		res.Warnings = append(res.Warnings, p+"; schild obtains or renews no certificate that needs this token. Fix it and run schild ingress reload -force")
+	}
 	if ing.StorageRoot != a.ingress.storage {
 		return res, fmt.Errorf("the certificate storage changes from %s to %s, that needs a restart", a.ingress.storage, ing.StorageRoot)
 	}

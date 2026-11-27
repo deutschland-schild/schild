@@ -116,6 +116,25 @@ func TestIngressReload(t *testing.T) {
 	}
 }
 
+// TestIngressReloadWarnsOfDNSToken: a DNS provider without a usable token is
+// a warning of the reload, as it is an error in the log of a start (MVP-37),
+// and the websites of the new Caddyfile are served.
+func TestIngressReloadWarnsOfDNSToken(t *testing.T) {
+	t.Setenv("LIBDNS_HETZNER_TOKEN", "")
+	b := newReloadBench(t, block("shop.example"))
+	b.write("{\n\tauto_https off\n\tacme_dns hetzner {file." + b.Dir + "/none}\n}\n" + block("shop.example") + block("neu.example"))
+	res, err := b.App.ReloadIngress(false)
+	if err != nil || res.Unchanged {
+		t.Fatalf("reload: %+v %v", res, err)
+	}
+	if got := strings.Join(res.Warnings, "; "); !strings.Contains(got, "dns hetzner: the API token") {
+		t.Fatalf("warnings: %q", got)
+	}
+	if _, s := b.body("neu.example"); s != "app ok" {
+		t.Fatalf("the new website: %q", s)
+	}
+}
+
 // TestIngressReloadRefused: whatever schild refuses leaves the running
 // Caddyfile in place.
 func TestIngressReloadRefused(t *testing.T) {

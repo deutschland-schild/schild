@@ -76,7 +76,7 @@ Lehnt Schild das neue Caddyfile ab, läuft das alte weiter, und der Befehl nennt
 Das solltest du wissen:
 
 - Ein Reload beendet offene WebSockets. Mit `stream_close_delay` in `reverse_proxy` laufen sie noch so lange weiter, wie du dort angibst.
-- `schild ingress reload -force` lädt auch ein unverändertes Caddyfile. Das brauchst du nach dem Tausch einer Zertifikats- oder Schlüsseldatei, die das Caddyfile nennt.
+- `schild ingress reload -force` lädt auch ein unverändertes Caddyfile. Das brauchst du nach dem Tausch einer Zertifikats-, Schlüssel- oder Token-Datei, die das Caddyfile nennt.
 - Schild liest bei einem Reload nur das Caddyfile neu, nicht `schild.yaml`.
 - Bindest du das Caddyfile als einzelne Datei in einen Container ein, sieht der Container manche Änderung nicht. Viele Editoren schreiben eine neue Datei und benennen sie um. Binde deshalb den Ordner ein, wenn du ohne Neustart ändern willst.
 - Schild führt für 32 Websites eigene Zahlen. Eine entfernte Website behält ihren Platz bis zum nächsten Start. Sind alle Plätze vergeben, zählt eine neue Website bis dahin unter „Weitere Websites“.
@@ -117,7 +117,7 @@ Let's Encrypt prüft normalerweise über Port 80 oder 443, ob dir eine Domain ge
 
 Liegt die Zone deiner Website selbst in dem Projekt, lässt du den CNAME und die Zeile `dns_challenge_override_domain` weg. Wer das Token hat, kann dann aber alle Einträge dieser Zone ändern. Auch mit der eigenen Zone kann jemand mit dem Token Zertifikate für die Namen holen, die dorthin verweisen.
 
-Fehlt das Token beim Start, startet Schild trotzdem, meldet den Fehler im Log und liefert die vorhandenen Zertifikate aus. Neue und erneuerte gibt es erst, wenn du das Token ergänzt und Schild neu gestartet hast. Im [Cluster](03-cluster.md) braucht jeder Server die Token-Datei.
+Fehlt das Token beim Start, startet Schild trotzdem, meldet den Fehler im Log und liefert die vorhandenen Zertifikate aus. Neue und erneuerte gibt es erst, wenn du das Token ergänzt und Schild neu gestartet oder `schild ingress reload -force` ausgeführt hast. Bei einem Reload ist ein fehlendes Token eine Warnung des Befehls, und das neue Caddyfile gilt trotzdem. Im [Cluster](03-cluster.md) braucht jeder Server die Token-Datei.
 
 Getestet ist die Ausstellung gegen einen Nachbau der Hetzner-API und eine Test-Zertifizierungsstelle, noch nicht gegen Hetzner selbst.
 
