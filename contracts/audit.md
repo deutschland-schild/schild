@@ -30,7 +30,7 @@ A failed sign-in holds no user name: what was typed there may be a password.
 
 ## 2. Actions
 
-[audit-actions.json](audit-actions.json) lists every action with its class, the kind of its subject, whether it belongs to a website, the operations that write it, and the fields whose values may be recorded. One operation may write several entries (`unblockIncident`: `block.lift` and `allowlist.add`).
+[audit-actions.json](audit-actions.json) lists every action with its class, the kind of its subject, whether it belongs to a website, the operations that write it, and the fields whose values may be recorded. One operation may write several entries (`unblockIncident`: `block.lift` and `allowlist.add`). A release in the dashboard ends every block the node holds for that client ([cluster.md](cluster.md) section 5, D109) and writes one `block.lift` for each, with its incident as the subject, all in the transaction of the release. `privacy.erase` ends blocks too; it writes no `block.lift` for them and names their number in `/blocks`, so the entry of an erasure points to no incident of the client.
 
 - Every operation with POST, PUT, PATCH or DELETE of the dashboard API and the agent API is in an action or in `not_audited` with its reason (`TestAuditActions` in `contract/apispec`).
 - The documents do not name every route. `undocumented` lists the known ones (`PUT` and `DELETE /websites/{website}/human-check`). So the gateway's own test compares the list with the routes the servers register and with the subcommands of the CLI, not with the documents alone.
@@ -118,7 +118,7 @@ The mesh carries the log ([cluster.md](cluster.md) section 7), with no record cl
 - **Asked for.** `POST /mesh/v0/ask`, kind `audit`, question `after`, answer `epoch`, `next` and at most 500 `rows`, like events. `after` counts in the order the answering node stored the entries.
 - **Handed on.** Unlike with events, a node hands on every entry it holds, also those of other nodes. Otherwise the history of a node that is gone would be missing on every node that joins later. An id a node holds is not stored again, so nothing goes round in circles; another content under the same id is counted, logged and not taken.
 - **Checked.** `audit.ParseEntry` as for a member: an action a later build knows is taken, a value this build may not record is taken out (op `entry`, `from: member`). An entry that does not pass is counted and skipped; the cursor goes on. One that is too old here is skipped too (section 6).
-- A change that arrives from another node writes no entry. A command writes on its node.
+- A change that arrives from another node writes no entry. A lift of the group is the plain case: the node a person released on writes `block.lift` with the actor, and the record of class `lifts` that carries the lift to the other nodes names no actor and writes nothing there. Who released is read from the entry, which every node holds. A command writes on its node.
 - A member is trusted like the operator: it could hand over an entry it made up. Not covered, as everywhere in the group.
 
 ## 10. What enters other contracts with the build
