@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/netip"
 	"regexp"
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -534,13 +535,30 @@ func (s *Server) unblock(w http.ResponseWriter, r *http.Request) {
 	if in == nil {
 		return
 	}
-	if in.Status != "blocked" {
+	// A block that runs, here or on the nodes of the group that hold its
+	// record, can be released whatever the status of its incident says: an
+	// allowlist entry ends a block and marks its incident unblocked without
+	// a lift, and the block runs again when the entry is gone.
+	live := (s.Behaviour != nil && s.Behaviour.IncidentRunning(in.Incident)) || (s.BlockHeld != nil && s.BlockHeld(in.Incident))
+	if in.Status != "blocked" && !live {
 		problem(w, 409, "conflict", "Dieser Vorfall ist schon freigeschaltet.", nil)
 		return
 	}
 	ctx := r.Context()
 	now := s.now()
+	// The client of the exception and of the allowlist entry: the address
+	// stored with the incident, as long as it is the whole one. Retention
+	// shortens it, and the shortened address is somebody else's; then the
+	// client is the one of the incident's block, and when no block of it is
+	// known, nobody: neither exception nor entry is made.
 	ip, ipErr := netip.ParseAddr(in.IP)
+	shortened := ipErr == nil && s.shortened(in, ip, now)
+	if shortened {
+		ipErr = errShortened
+		if client, ok := s.blockClient(in.Incident); ok {
+			ip, ipErr = client, nil
+		}
+	}
 	// Exception: this client passes the sources that blocked it, for 24 h.
 	var srcs []string
 	for _, src := range in.Sources {
@@ -559,7 +577,11 @@ func (s *Server) unblock(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	allowID := ""
-	if req.AllowIP && ipErr == nil {
+	// The client of a block is known by its key, which for IPv6 is the /64:
+	// an allowlist entry of one address would not be the client's. Then
+	// none is made, and the answer names none; the exception above is by
+	// client and holds.
+	if req.AllowIP && ipErr == nil && (!shortened || ip.Is4()) {
 		e, errs := allowlist.Validate(allowlist.Input{IP: ip.String(), Label: "Vorfall " + in.Incident, Level: allowlist.NoBlock, TTL: req.AllowTTL}, now)
 		if len(errs) == 0 {
 			e.Source = "dashboard"
@@ -571,11 +593,50 @@ func (s *Server) unblock(w http.ResponseWriter, r *http.Request) {
 			s.reloadAllow(ctx)
 		}
 	}
-	err := s.St.MarkUnblocked(ctx, in.Incident, now, allowID)
-	if errors.Is(err, store.ErrNotFound) && allowID != "" {
-		// The allowlist entry of this request ended the behaviour block
-		// first, which marked the incident unblocked (Sink.Ended).
-		err = s.St.SetUnblockRefs(ctx, in.Incident, allowID)
+	// On a node of a group the lift for the group is noted with the
+	// decision, in one transaction (store/outbox.go); a single gateway
+	// notes none. When the allowlist entry of this request ended the
+	// behaviour block first, which marked the incident unblocked
+	// (Sink.Ended), the incident takes the reference to the entry.
+	//
+	// A person who releases means the client, and two nodes often block one
+	// client at the same moment under two incidents: every block the node
+	// holds for the client is lifted with this one (contracts/cluster.md,
+	// lifts), noted in the same transaction and ended here in the same
+	// step, with no block record arriving in between. It is no release of
+	// the address: counters, ladder and release time stay.
+	//
+	// D87: the timed block ends now, not only for the requests of this
+	// client (the exception above): it leaves the list of blocks and,
+	// within a second, the host's firewall.
+	//
+	// A lift is for an incident that has a block (a block of a scenario,
+	// of an agent or set by hand). The incident of a single refused request
+	// is unblocked as on a single gateway, without a lift.
+	lift := live || slices.ContainsFunc(in.Sources, behaviour.IsBlockSource)
+	unblock := func(held []string) error {
+		if !lift {
+			held = nil
+		}
+		if err := s.St.MarkUnblockedLift(ctx, store.Unblock{Incident: in.Incident, At: now, AllowEntry: allowID, Live: live, Lift: lift, Others: held}); err != nil {
+			return err
+		}
+		for _, incident := range held {
+			if incident != in.Incident {
+				s.Behaviour.LiftIncident(incident)
+			}
+		}
+		return nil
+	}
+	var err error
+	if s.IncidentBlocks != nil && s.Behaviour != nil {
+		stored := in.IP
+		if shortened {
+			stored = ""
+		}
+		err = s.IncidentBlocks(in.Incident, stored, unblock)
+	} else {
+		err = unblock(nil)
 	}
 	if err != nil {
 		if errors.Is(err, store.ErrNotFound) {
@@ -585,10 +646,12 @@ func (s *Server) unblock(w http.ResponseWriter, r *http.Request) {
 		s.internal(w, err)
 		return
 	}
-	// D87: the timed block of this incident ends now, not only for the
-	// requests of this client (the exception above): it leaves the list of
-	// blocks and, within a second, the host's firewall.
-	if s.Behaviour != nil {
+	// The block of the clicked incident; in a group the next block of the
+	// client would start with it, and there is none left.
+	switch {
+	case s.LiftIncident != nil:
+		s.LiftIncident(in.Incident)
+	case s.Behaviour != nil:
 		s.Behaviour.LiftIncident(in.Incident)
 	}
 	reqID := in.EventID
@@ -598,6 +661,34 @@ func (s *Server) unblock(w http.ResponseWriter, r *http.Request) {
 	}
 	in, _ = s.St.GetIncident(ctx, in.Incident)
 	writeJSON(w, 200, s.incidentView(ctx, in))
+}
+
+// errShortened: the address of an incident was shortened by retention.
+var errShortened = errors.New("the address of the incident is shortened")
+
+// shortened reports whether the address stored with an incident is the
+// shortened one: retention ran over it. Retention shortens the incidents
+// older than retention.raw_ip_days (store.ApplyRetention); a younger one
+// holds the whole address, also when that ends in .0 or is the first of
+// its /48. An old one that still reads as a whole address was not
+// shortened yet.
+func (s *Server) shortened(in *store.Incident, ip netip.Addr, now time.Time) bool {
+	days := s.Config().Retention.RawIPDays
+	return in.Time.Before(now.Add(-time.Duration(days)*24*time.Hour)) && clientip.Truncate(ip) == ip.Unmap()
+}
+
+// blockClient is the client of the block of an incident, as the engine runs
+// it or, on a node of a group, as the group holds it.
+func (s *Server) blockClient(incident string) (netip.Addr, bool) {
+	if s.Behaviour != nil {
+		if key, ok := s.Behaviour.IncidentKey(incident); ok {
+			return key.Addr(), true
+		}
+	}
+	if s.BlockClient != nil {
+		return s.BlockClient(incident)
+	}
+	return netip.Addr{}, false
 }
 
 // ---------------------------------------------------------------- rules
@@ -1037,17 +1128,29 @@ func (s *Server) privacyDelete(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	res, err := s.St.DeleteIP(r.Context(), ip.String(), req.KeepIncidents, TruncateBody)
+	// Art. 17 also lifts a running block, kept ones included (D29
+	// amendment). The blocks a group holds of this client end with the
+	// erasure: their lifts are noted in the transaction that erases, and no
+	// block of the group starts between that and the end of the block here.
+	var res *store.DeleteResult
+	erase := func(lifts []string) (err error) {
+		if res, err = s.St.DeleteIP(r.Context(), ip.String(), req.KeepIncidents, TruncateBody, lifts...); err == nil && s.Behaviour != nil {
+			s.Behaviour.Forget(ip)
+		}
+		return err
+	}
+	var err error
+	if s.ClientBlocks != nil {
+		err = s.ClientBlocks(ip, erase)
+	} else {
+		err = erase(nil)
+	}
 	if err != nil {
 		s.internal(w, err)
 		return
 	}
 	if xs, err := s.St.ActiveExceptions(r.Context(), s.now()); err == nil && s.Gate != nil {
 		s.Gate.Exceptions.Load(xs)
-	}
-	// Art. 17 also lifts a running block, kept ones included (D29 amendment).
-	if s.Behaviour != nil {
-		s.Behaviour.Forget(ip)
 	}
 	s.reloadAllow(r.Context())
 	erased := 0

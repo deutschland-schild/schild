@@ -2,6 +2,8 @@ package app
 
 import (
 	"context"
+	"net/netip"
+	"sort"
 	"time"
 
 	"github.com/deutschland-schild/schild/gateway/internal/hub"
@@ -193,3 +195,41 @@ func SetWarmRetry(d time.Duration) (undo func()) {
 	old := warmRetryNS.Swap(int64(d))
 	return func() { warmRetryNS.Store(old) }
 }
+
+// SetTestLiftWrite makes f run before a node writes a lift to its group; an
+// error of f is the error of the write.
+func SetTestLiftWrite(f func(a *App, incident string) error) (undo func()) {
+	testLiftWrite.Store(&f)
+	return func() { testLiftWrite.Store(nil) }
+}
+
+// SetGroupBlocksMax sets how many running blocks this node holds before it
+// hands no further block to its group.
+func (a *App) SetGroupBlocksMax(n int64) { a.groupBlocks.max.Store(n) }
+
+// SetTestClientBlocks makes f run while a node releases or erases an
+// address, after it read the blocks of the client and before it acts.
+func SetTestClientBlocks(f func(a *App, done bool)) (undo func()) {
+	testClientBlocks.Store(&f)
+	return func() { testClientBlocks.Store(nil) }
+}
+
+// GroupBlocked is the incident of the block of ip that runs on this node,
+// read while no change of the node's blocks is under way.
+func (a *App) GroupBlocked(ip netip.Addr) string {
+	a.groupBlocks.mu.Lock()
+	defer a.groupBlocks.mu.Unlock()
+	bi, _ := a.Behaviour.ActiveBlock(ip)
+	return bi.Incident
+}
+
+// HashedBlocks are the incident numbers the hash of blocks covers now.
+func (a *App) HashedBlocks() []string {
+	out, _ := a.hashedBlocks(time.Now())
+	sort.Strings(out)
+	return out
+}
+
+// IncidentKnown reports whether the node would draw another number than
+// this one for a new block.
+func (a *App) IncidentKnown(incident string) bool { return a.incidentKnown(incident) }

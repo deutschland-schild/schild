@@ -16,13 +16,17 @@ import (
 // puts and deletes; the engine never waits for the disk.
 
 type blockOp struct {
-	put   *events.ActiveBlock
+	put *events.ActiveBlock
+	// taken: the block of put is one this node took from its group.
+	taken bool
 	del   string
 	flush chan struct{}
 	// ended: the incident of a block the operator ended early is stored
-	// as unblocked at endedAt.
+	// as unblocked at endedAt. foreign: another node wrote the incident,
+	// so the change is no news of this node (store.Foreign).
 	ended   string
 	endedAt time.Time
+	foreign bool
 }
 
 func (a *App) startBlockWriter() {
@@ -34,12 +38,17 @@ func (a *App) startBlockWriter() {
 				continue
 			}
 			ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+			if op.foreign {
+				ctx = store.Foreign(ctx)
+			}
 			var err error
 			switch {
 			case op.ended != "":
 				if err = a.Store.MarkUnblocked(ctx, op.ended, op.endedAt, ""); errors.Is(err, store.ErrNotFound) {
 					err = nil // already unblocked, deleted or never stored
 				}
+			case op.put != nil && op.taken:
+				err = a.Store.PutTakenBlock(ctx, *op.put)
 			case op.put != nil:
 				err = a.Store.PutBlock(ctx, *op.put)
 			default:
@@ -52,6 +61,7 @@ func (a *App) startBlockWriter() {
 		}
 	}()
 	a.Behaviour.Sink.Persist = func(ab events.ActiveBlock) { a.queueBlockOp(blockOp{put: &ab}) }
+	a.Behaviour.Sink.PersistTaken = func(ab events.ActiveBlock) { a.queueBlockOp(blockOp{put: &ab, taken: true}) }
 	a.Behaviour.Sink.Unpersist = func(k string) { a.queueBlockOp(blockOp{del: k}) }
 	a.Behaviour.Sink.Ended = func(incident string, at time.Time) { a.queueBlockOp(blockOp{ended: incident, endedAt: at}) }
 }
@@ -60,6 +70,10 @@ func (a *App) queueBlockOp(op blockOp) {
 	select {
 	case a.blockOps <- op:
 	default:
+		if op.ended != "" {
+			ratelog.Warn(a.log, "kept behaviour block queue full: the incident of a block that ended is not stored as unblocked (the block is ended; the incident keeps reading blocked on this node)")
+			return
+		}
 		ratelog.Warn(a.log, "kept behaviour block queue full, write skipped (the block still runs in memory)")
 	}
 }
@@ -100,6 +114,19 @@ func (a *App) restoreBlocks(ctx context.Context) {
 	}
 	n, more := a.Behaviour.RestoreBlocks(keep, func(ip netip.Addr) bool { lvl, _ := a.Allow.Match(ip, now); return lvl != "" })
 	drop = append(drop, more...)
+	// Which of them another node decided: a node of a group writes only its
+	// own decisions to its group. A row that does not say (a build before
+	// the mark kept it) is this gateway's own. When the marks cannot be
+	// read, no kept block counts as its own.
+	taken, err := a.Store.TakenBlocks(ctx)
+	if err != nil {
+		a.log.Error("kept behaviour blocks: the marks of own decisions are not read; no kept block is handed to a group as this node's own", "err", err)
+		taken = taken[:0]
+		for _, r := range keep {
+			taken = append(taken, r.ClientKey)
+		}
+	}
+	a.Behaviour.TakenBlocks(taken)
 	if d := len(rows) - len(keep); d > 0 {
 		a.log.Info("kept behaviour blocks dropped: net class does not match the geo data", "blocks", d)
 	}

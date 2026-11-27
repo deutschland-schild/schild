@@ -61,12 +61,20 @@ func (m *Member) valid() bool {
 // step of the gateway (7 days, contract/events).
 const MaxBlockS = 7 * 24 * 3600
 
-// Block is the data of a record of class blocks; its id is Client. A lift
-// is a tombstone whose data names the incident it ends.
-type Block struct {
+// ScopeGateway is the scope of a block that holds for every website of the
+// gateway, the only scope of this version.
+const ScopeGateway = "gateway"
+
+// IncidentBlock is the data of a record of class incident_blocks; its id
+// is the incident number. One block is one record, written by the node
+// that decided it; the record is never a tombstone. Two blocks of one
+// client are two records.
+type IncidentBlock struct {
 	// Client is the IPv4 address or the first address of the IPv6 /64.
 	Client string `json:"client"`
 	Bits   int    `json:"bits"`
+	// Scope is ScopeGateway.
+	Scope string `json:"scope"`
 	// Source as the gateway names it: behaviour:<scenario>, agent:<token id>
 	// or dashboard.
 	Source    string `json:"source"`
@@ -74,22 +82,37 @@ type Block struct {
 	Since     string `json:"since"`
 	Until     string `json:"until"`
 	DurationS int    `json:"duration_s"`
-	Incident  string `json:"incident"`
 	EventID   string `json:"event_id,omitempty"`
 	NetClass  string `json:"net_class"`
 	// Node is the name of the node that decided the block.
 	Node string `json:"node"`
 }
 
-// Lift is the data of a tombstone of class blocks.
-type Lift struct {
-	Incident string `json:"incident"`
-	Node     string `json:"node"`
+// IncidentLift is the data of a record of class lifts; its id is the
+// incident number of the block it ends. It carries no address.
+type IncidentLift struct {
+	// Node is the name of the node the lift was made on.
+	Node string `json:"node"`
 }
 
-func (b *Block) valid(id string) bool {
+// incidentID says whether id is written like an incident number: 1 to 64
+// characters of A to Z, 0 to 9 and the hyphen.
+func incidentID(id string) bool {
+	if id == "" || len(id) > 64 {
+		return false
+	}
+	for i := 0; i < len(id); i++ {
+		c := id[i]
+		if !(c >= 'A' && c <= 'Z' || c >= '0' && c <= '9' || c == '-') {
+			return false
+		}
+	}
+	return true
+}
+
+func (b *IncidentBlock) valid() bool {
 	a, err := netip.ParseAddr(b.Client)
-	if err != nil || b.Client != id || a.String() != b.Client {
+	if err != nil || a.String() != b.Client {
 		return false
 	}
 	if (a.Is4() && b.Bits != 32) || (!a.Is4() && b.Bits != 64) {
@@ -103,7 +126,32 @@ func (b *Block) valid(id string) bool {
 	if b.Source == "" || len(b.Source) > 96 || b.Level < 1 || b.Level > 16 || b.DurationS < 1 || b.DurationS > MaxBlockS {
 		return false
 	}
-	return len(b.Incident) <= 64 && len(b.EventID) <= 64 && len(b.NetClass) <= 32 && len(b.Node) <= 63
+	return len(b.EventID) <= 64 && len(b.NetClass) <= 32 && len(b.Node) <= 63
+}
+
+// ValidScope says whether s is a scope of a block this version has.
+func ValidScope(s string) bool { return s == ScopeGateway }
+
+// DecodeIncidentBlock returns the block of a record of class
+// incident_blocks.
+func DecodeIncidentBlock(r *Record) (*IncidentBlock, error) {
+	var b IncidentBlock
+	if err := decodeData(r, &b); err != nil || r.Deleted || !incidentID(r.ID) || !ValidScope(b.Scope) {
+		return nil, ErrSchema
+	}
+	if !b.valid() || r.Expires != b.Until {
+		return nil, ErrSchema
+	}
+	return &b, nil
+}
+
+// DecodeIncidentLift returns the lift of a record of class lifts.
+func DecodeIncidentLift(r *Record) (*IncidentLift, error) {
+	var l IncidentLift
+	if err := decodeData(r, &l); err != nil || r.Deleted || !incidentID(r.ID) || len(l.Node) > 63 || r.Expires == "" {
+		return nil, ErrSchema
+	}
+	return &l, nil
 }
 
 // DecodeMember returns the member of a record of class members.
@@ -117,32 +165,6 @@ func DecodeMember(r *Record) (*Member, error) {
 		return nil, ErrSchema
 	}
 	return &m, nil
-}
-
-// DecodeBlock returns the block of a record of class blocks that is no
-// tombstone.
-func DecodeBlock(r *Record) (*Block, error) {
-	var b Block
-	if err := decodeData(r, &b); err != nil || !b.valid(r.ID) {
-		return nil, ErrSchema
-	}
-	// A block is dropped by every node when it ends.
-	if r.Expires != b.Until {
-		return nil, ErrSchema
-	}
-	return &b, nil
-}
-
-// DecodeLift returns the lift of a tombstone of class blocks.
-func DecodeLift(r *Record) (*Lift, error) {
-	var l Lift
-	if err := decodeData(r, &l); err != nil || len(l.Incident) > 64 || len(l.Node) > 63 {
-		return nil, ErrSchema
-	}
-	if _, err := netip.ParseAddr(r.ID); err != nil || r.Expires == "" {
-		return nil, ErrSchema
-	}
-	return &l, nil
 }
 
 func decodeData(r *Record, v any) error {

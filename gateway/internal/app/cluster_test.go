@@ -17,6 +17,7 @@ import (
 	"testing"
 	"time"
 
+	contract "github.com/deutschland-schild/schild/contract/cluster"
 	"github.com/deutschland-schild/schild/gateway/internal/app"
 	"github.com/deutschland-schild/schild/gateway/internal/apptest"
 	"github.com/deutschland-schild/schild/gateway/internal/behaviour"
@@ -33,6 +34,10 @@ type groupNode struct {
 	// secretFile and peers: cluster.secret_file and cluster.peers.
 	secretFile string
 	peers      []string
+	// mode: the gateway mode of this node ("" autoblock, observe).
+	mode string
+	// extra: more YAML of this node's schild.yaml.
+	extra string
 }
 
 func (g *groupNode) clusterDir() string { return app.ClusterDir(filepath.Join(g.dir, "data")) }
@@ -49,7 +54,7 @@ func (g *groupNode) clusterYAML() string {
 
 func (g *groupNode) start(t *testing.T) {
 	t.Helper()
-	g.h = apptest.New(t, apptest.Options{Dir: g.dir, Extra: g.clusterYAML()})
+	g.h = apptest.New(t, apptest.Options{Dir: g.dir, Extra: g.clusterYAML() + g.extra, Mode: g.mode})
 	if g.h.App.Cluster == nil {
 		t.Fatalf("%s: no cluster node", g.name)
 	}
@@ -130,9 +135,8 @@ func TestGroupBlockActsOnTheOtherNode(t *testing.T) {
 	}
 
 	// A release on web-2 ends the block on web-1.
-	if n := b.h.App.Behaviour.Release(netip.MustParseAddr(ip)); n != 1 {
-		t.Fatalf("release on web-2 ended %d blocks", n)
-	}
+	b.h.Login()
+	b.release(t, ip)
 	a.h.WaitFor("web-1 ends the block web-2 released", func() bool { return a.blocked(ip) == "" })
 	// And it stays ended: no node tells the group the old block again.
 	time.Sleep(700 * time.Millisecond)
@@ -354,6 +358,12 @@ func TestGroupErasesAnAddressOnEveryNode(t *testing.T) {
 	}
 	b.h.WaitFor("web-2 erased the events of the address", func() bool { return eventsOf(t, b, ip) == 0 })
 	b.h.WaitFor("web-2 ended the block of the address", func() bool { return b.blocked(ip) == "" })
+	// The erasure lifts the block it ends, as a record of its own next to
+	// the erasure record: one lift for the incident web-1 held.
+	for _, g := range []*groupNode{a, b} {
+		g := g
+		g.h.WaitFor(g.name+" holds the lift of the erased client's block", func() bool { return holds(t, g, contract.ClassLifts, "S-ERASE") })
+	}
 	// Nothing else went with it.
 	if !allowed(b, "198.51.100.88") || !allowed(a, "198.51.100.88") {
 		t.Error("the erasure took an allowlist entry of another address")

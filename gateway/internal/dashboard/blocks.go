@@ -195,7 +195,7 @@ func (s *Server) createBlock(w http.ResponseWriter, r *http.Request) {
 	}
 	now := s.now()
 	reason := contractapi.Sanitize(req.Reason, contractapi.MaxReason)
-	incident := events.NewIncident()
+	incident := s.Behaviour.NewIncident()
 	id := msg.NewID()
 	bi, created := s.Behaviour.SetAgentBlock(behaviour.AgentBlock{IP: ip, Source: behaviour.DashboardSource, NetClass: geo.NetClass,
 		Duration: time.Duration(req.DurationS) * time.Second, Incident: incident, EventID: id, Time: now})

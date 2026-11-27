@@ -4,20 +4,20 @@
   "context": {
     "now": "2026-10-26T12:00:00Z"
   },
-  "input_raw": "{\"group\":\"g-c1e5a133bdfa0a42a97f392f3317882e\",\"members\":[],\"record\":{\"class\":\"blocks\",\"data\":\"eyJjbGllbnQiOiIyMDMuMC4xMTMuNyIsImJpdHMiOjMyLCJzb3VyY2UiOiJiZWhhdmlvdXI6cGF0aF9wcm9iaW5nIiwibGV2ZWwiOjEsInNpbmNlIjoiMjAyNi0xMC0yNlQxMTo1OTowMFoiLCJ1bnRpbCI6IjIwMjYtMTAtMjZUMTM6MDA6MDBaIiwiZHVyYXRpb25fcyI6MzY2MCwiaW5jaWRlbnQiOiJTLTRGN0syIiwibmV0X2NsYXNzIjoiaG9zdGluZyIsIm5vZGUiOiJ3ZWItMiJ9\",\"expires\":\"2026-10-26T13:00:00Z\",\"group\":\"g-c1e5a133bdfa0a42a97f392f3317882e\",\"hlc\":117507017932800000,\"id\":\"203.0.113.7\",\"origin\":\"n-21e8d937ff0a91788e6e027b7c9242f8\",\"seq\":-1,\"sig\":\"D94W7vObMkyFjneg1xb6ah/5lMLuUxyRJEh60hJzzLZcnKc0roXuWZmquv970x1jpY/OYl3n/k6+aMV5MOfoAw==\",\"v\":1}}",
+  "input_raw": "{\"group\":\"g-c1e5a133bdfa0a42a97f392f3317882e\",\"members\":[],\"record\":{\"class\":\"incident_blocks\",\"data\":\"eyJjbGllbnQiOiIyMDMuMC4xMTMuNyIsImJpdHMiOjMyLCJzY29wZSI6ImdhdGV3YXkiLCJzb3VyY2UiOiJiZWhhdmlvdXI6cGF0aF9wcm9iaW5nIiwibGV2ZWwiOjEsInNpbmNlIjoiMjAyNi0xMC0yNlQxMTo1OTowMFoiLCJ1bnRpbCI6IjIwMjYtMTAtMjZUMTM6MDA6MDBaIiwiZHVyYXRpb25fcyI6MzY2MCwibmV0X2NsYXNzIjoiaG9zdGluZyIsIm5vZGUiOiJ3ZWItMiJ9\",\"expires\":\"2026-10-26T13:00:00Z\",\"group\":\"g-c1e5a133bdfa0a42a97f392f3317882e\",\"hlc\":117507017932800000,\"id\":\"K7QF-2M9X\",\"origin\":\"n-21e8d937ff0a91788e6e027b7c9242f8\",\"seq\":-1,\"sig\":\"ZJ4f+bTv2NTbxeq9oU6s5qtK3N/aSyDDPzWH0ZCwbETGhsx3Rh9WtOv+oElm3di6tiLKcVSnhy0A0BYhauYDCQ==\",\"v\":1}}",
   "input_decoded": {
     "group": "g-c1e5a133bdfa0a42a97f392f3317882e",
     "members": [],
     "record": {
-      "class": "blocks",
-      "data": "eyJjbGllbnQiOiIyMDMuMC4xMTMuNyIsImJpdHMiOjMyLCJzb3VyY2UiOiJiZWhhdmlvdXI6cGF0aF9wcm9iaW5nIiwibGV2ZWwiOjEsInNpbmNlIjoiMjAyNi0xMC0yNlQxMTo1OTowMFoiLCJ1bnRpbCI6IjIwMjYtMTAtMjZUMTM6MDA6MDBaIiwiZHVyYXRpb25fcyI6MzY2MCwiaW5jaWRlbnQiOiJTLTRGN0syIiwibmV0X2NsYXNzIjoiaG9zdGluZyIsIm5vZGUiOiJ3ZWItMiJ9",
+      "class": "incident_blocks",
+      "data": "eyJjbGllbnQiOiIyMDMuMC4xMTMuNyIsImJpdHMiOjMyLCJzY29wZSI6ImdhdGV3YXkiLCJzb3VyY2UiOiJiZWhhdmlvdXI6cGF0aF9wcm9iaW5nIiwibGV2ZWwiOjEsInNpbmNlIjoiMjAyNi0xMC0yNlQxMTo1OTowMFoiLCJ1bnRpbCI6IjIwMjYtMTAtMjZUMTM6MDA6MDBaIiwiZHVyYXRpb25fcyI6MzY2MCwibmV0X2NsYXNzIjoiaG9zdGluZyIsIm5vZGUiOiJ3ZWItMiJ9",
       "expires": "2026-10-26T13:00:00Z",
       "group": "g-c1e5a133bdfa0a42a97f392f3317882e",
       "hlc": 117507017932800000,
-      "id": "203.0.113.7",
+      "id": "K7QF-2M9X",
       "origin": "n-21e8d937ff0a91788e6e027b7c9242f8",
       "seq": -1,
-      "sig": "D94W7vObMkyFjneg1xb6ah/5lMLuUxyRJEh60hJzzLZcnKc0roXuWZmquv970x1jpY/OYl3n/k6+aMV5MOfoAw==",
+      "sig": "ZJ4f+bTv2NTbxeq9oU6s5qtK3N/aSyDDPzWH0ZCwbETGhsx3Rh9WtOv+oElm3di6tiLKcVSnhy0A0BYhauYDCQ==",
       "v": 1
     }
   },

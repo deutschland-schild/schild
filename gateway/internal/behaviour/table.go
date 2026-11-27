@@ -73,6 +73,24 @@ func (t *table[K, V]) evict(s *shard[K, V]) {
 	}
 }
 
+// room reports whether an entry of k fits without dropping one that still
+// counts: k has an entry, the shard is not full, or it holds an entry that
+// spare reports (one a full shard drops first anyway).
+func (t *table[K, V]) room(k K, spare func(*V) bool) bool {
+	s := t.shard(k)
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if _, ok := s.m[k]; ok || len(s.m) < t.per {
+		return true
+	}
+	for _, v := range s.m {
+		if spare(v) {
+			return true
+		}
+	}
+	return false
+}
+
 // delete removes k.
 func (t *table[K, V]) delete(k K) {
 	s := t.shard(k)

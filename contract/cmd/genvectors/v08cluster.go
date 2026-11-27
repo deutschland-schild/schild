@@ -68,15 +68,15 @@ func genClusterRecord(g *gen) {
 	roster := []*cluster.Record{first, second, third, thirdGone}
 
 	until := cluster.TimeText(Now.Add(time.Hour))
-	blockData := func(client string, bits int) cluster.Block {
-		return cluster.Block{Client: client, Bits: bits, Source: "behaviour:path_probing", Level: 1, Since: cluster.TimeText(Now.Add(-time.Minute)), Until: until,
-			DurationS: 3660, Incident: "S-4F7K2", NetClass: "hosting", Node: "web-2"}
+	const incident = "K7QF-2M9X"
+	ibData := func(client string, bits int, scope string) cluster.IncidentBlock {
+		return cluster.IncidentBlock{Client: client, Bits: bits, Scope: scope, Source: "behaviour:path_probing", Level: 1, Since: cluster.TimeText(Now.Add(-time.Minute)), Until: until,
+			DurationS: 3660, NetClass: "hosting", Node: "web-2"}
 	}
+	blockData := func(client string, bits int) cluster.IncidentBlock { return ibData(client, bits, cluster.ScopeGateway) }
+	// block is the block of one incident; most vectors carry one.
 	block := func(signer ed25519.PrivateKey, seq, hlc uint64, client string) *cluster.Record {
-		return rec(signer, cluster.ClassBlocks, client, seq, hlc, false, until, blockData(client, 32))
-	}
-	lift := func(signer ed25519.PrivateKey, seq, hlc uint64, client string) *cluster.Record {
-		return rec(signer, cluster.ClassBlocks, client, seq, hlc, true, cluster.TimeText(Now.Add(169*time.Hour)), cluster.Lift{Incident: "S-4F7K2", Node: "web-2"})
+		return rec(signer, cluster.ClassIncidentBlocks, incident, seq, hlc, false, until, blockData(client, 32))
 	}
 	in := func(members []*cluster.Record, r, held *cluster.Record) m {
 		if members == nil {
@@ -102,11 +102,7 @@ func genClusterRecord(g *gen) {
 	// ---- taken
 	taken("admitted-by-secret", "A node's record of itself needs no member: it carries the admission of the group secret.", in(nil, first, nil), nil)
 	taken("member-admitted", "The next node lets itself in the same way.", in([]*cluster.Record{first}, second, nil), nil)
-	taken("block", "A block a member signed.", in(roster, block(b, 1, h(40*time.Minute), "203.0.113.7"), nil), nil)
 	taken("block-of-another-member", "A block another member signed.", in(roster, block(a, 9, h(40*time.Minute), "203.0.113.7"), nil), nil)
-	taken("block-ipv6", "The client key of IPv6 is the first address of the /64, with 64 bits.",
-		in(roster, rec(b, cluster.ClassBlocks, "2001:db8:1:2::", 1, h(40*time.Minute), false, until, blockData("2001:db8:1:2::", 64)), nil), nil)
-	taken("lift", "A lift is a tombstone that names the incident it ends.", in(roster, lift(b, 2, h(41*time.Minute), "203.0.113.7"), nil), nil)
 	taken("clock-59s-ahead", "A clock up to 60 s ahead of the receiver passes.", in(roster, block(b, 1, cluster.HLCOf(Now.Add(59*time.Second)), "203.0.113.7"), nil), nil)
 	taken("removed-member-before", "What a member signed before its removal stands: a node that joins later reads it the same.",
 		in(roster, block(cc, 1, h(20*time.Minute), "203.0.113.8"), nil), nil)
@@ -158,9 +154,11 @@ func genClusterRecord(g *gen) {
 	older, newer := block(b, 1, h(40*time.Minute), "203.0.113.7"), block(a, 9, h(41*time.Minute), "203.0.113.7")
 	taken("replaces-later-clock", "The later clock replaces the held record.", in(roster, newer, older), &yes)
 	taken("replaces-not-earlier-clock", "An earlier clock does not, whatever order the two arrive in.", in(roster, older, newer), &no)
-	sameBlock, sameLift := block(a, 9, h(41*time.Minute), "203.0.113.7"), lift(b, 2, h(41*time.Minute), "203.0.113.7")
-	taken("replaces-lift-same-clock", "At the same clock a tombstone beats a write: a lift by a person beats the block of a detector.", in(roster, sameLift, sameBlock), &yes)
-	taken("replaces-not-block-same-clock", "And the write does not beat the tombstone.", in(roster, sameBlock, sameLift), &no)
+	session := cluster.EntryID("sessions", `["abc"]`)
+	sameWrite := rec(a, cluster.ClassLogins, session, 9, h(41*time.Minute), false, "", cluster.NewValue(`["abc"]`, []byte(`["abc"]`), "web-1"))
+	sameGone := rec(b, cluster.ClassLogins, session, 2, h(41*time.Minute), true, gone, cluster.Value{K: `["abc"]`, Node: "web-2"})
+	taken("replaces-tombstone-same-clock", "At the same clock a tombstone beats a write: the entry is gone.", in(roster, sameGone, sameWrite), &yes)
+	taken("replaces-not-write-same-clock", "And the write does not beat the tombstone.", in(roster, sameWrite, sameGone), &no)
 	fromA, fromB := block(a, 9, h(41*time.Minute), "203.0.113.7"), block(b, 1, h(41*time.Minute), "203.0.113.7")
 	greater, lesser := fromA, fromB
 	if clusterID(b) > clusterID(a) {
@@ -176,8 +174,8 @@ func genClusterRecord(g *gen) {
 	og := block(b, 1, h(40*time.Minute), "203.0.113.7")
 	og.Group = "g-00000000000000000000000000000000"
 	refused("group", "another-group", "A record of another group.", in(roster, og, nil))
-	refused("schema", "unknown-class", "A class this version does not have.", in(roster, rec(b, "tokens", "x", 1, h(40*time.Minute), false, "", m{"v": ""}), nil))
-	refused("schema", "seq-zero", "Sequence numbers start at 1.", in(roster, rec(b, cluster.ClassBlocks, "203.0.113.7", 0, h(40*time.Minute), false, until, blockData("203.0.113.7", 32)), nil))
+	refused("class", "unknown-class", "A class this version does not have: kept unread, for a later build.", in(roster, rec(b, "tokens", "x", 1, h(40*time.Minute), false, "", m{"v": ""}), nil))
+	refused("schema", "seq-zero", "Sequence numbers start at 1.", in(roster, rec(b, cluster.ClassIncidentBlocks, incident, 0, h(40*time.Minute), false, until, blockData("203.0.113.7", 32)), nil))
 	refused("schema", "expires-no-time", "expires is a time in UTC with seconds.", in(roster, rec(b, cluster.ClassErasure, "203.0.113.7", 6, h(43*time.Minute), false, "tomorrow", cluster.Erasure{IP: "203.0.113.7"}), nil))
 	refused("schema", "expires-with-offset", "No offsets: UTC, written with Z.", in(roster, rec(b, cluster.ClassErasure, "203.0.113.7", 6, h(43*time.Minute), false, "2026-11-26T13:00:00+01:00", cluster.Erasure{IP: "203.0.113.7"}), nil))
 	refused("clock", "clock-61s-ahead", "A clock more than 60 s ahead of the receiver is not taken yet.", in(roster, block(b, 1, cluster.HLCOf(Now.Add(61*time.Second)), "203.0.113.7"), nil))
@@ -208,24 +206,19 @@ func genClusterRecord(g *gen) {
 	refused("signature", "signature-too-short", "A signature that is none.", in(roster, shortSig, nil))
 
 	// The rules of the classes come last: they need the signature first.
-	sb := func(name, desc string, id string, expires string, data any) {
-		refused("schema", name, desc, in(roster, rec(b, cluster.ClassBlocks, id, 1, h(40*time.Minute), false, expires, data), nil))
+	sb := func(name, desc string, expires string, data any) {
+		refused("schema", name, desc, in(roster, rec(b, cluster.ClassIncidentBlocks, incident, 1, h(40*time.Minute), false, expires, data), nil))
 	}
-	wrongID := blockData("203.0.113.7", 32)
-	sb("block-id-not-client", "The id of a block is its client.", "203.0.113.9", until, wrongID)
-	sb("block-ipv4-with-64-bits", "IPv4 is one address, 32 bits.", "203.0.113.7", until, blockData("203.0.113.7", 64))
-	sb("block-not-canonical", "The client is written the one way an address is written.", "2001:DB8:1:2::", until, blockData("2001:DB8:1:2::", 64))
-	sb("block-no-address", "A client that is no address.", "everyone", until, blockData("everyone", 32))
+	sb("block-not-canonical", "The client is written the one way an address is written.", until, blockData("2001:DB8:1:2::", 64))
+	sb("block-no-address", "A client that is no address.", until, blockData("everyone", 32))
 	long := blockData("203.0.113.7", 32)
 	long.Until = cluster.TimeText(Now.Add(8 * 24 * time.Hour))
-	sb("block-over-7-days", "No block of the group runs longer than 7 days.", "203.0.113.7", long.Until, long)
-	sb("block-expires-not-until", "A block is dropped when it ends: expires is until.", "203.0.113.7", cluster.TimeText(Now.Add(2*time.Hour)), blockData("203.0.113.7", 32))
+	sb("block-over-7-days", "No block of the group runs longer than 7 days.", long.Until, long)
 	lvl := blockData("203.0.113.7", 32)
 	lvl.Level = 0
-	sb("block-level-zero", "The ladder starts at 1.", "203.0.113.7", until, lvl)
-	sb("block-unknown-field", "Data with a field the class does not have.", "203.0.113.7", until,
-		m{"client": "203.0.113.7", "bits": 32, "source": "dashboard", "level": 1, "since": cluster.TimeText(Now.Add(-time.Minute)), "until": until, "duration_s": 3660, "incident": "", "net_class": "", "node": "", "allow": true})
-	refused("schema", "lift-without-end", "A lift names when it is dropped.", in(roster, rec(b, cluster.ClassBlocks, "203.0.113.7", 2, h(41*time.Minute), true, "", cluster.Lift{Incident: "S-4F7K2"}), nil))
+	sb("block-level-zero", "The ladder starts at 1.", until, lvl)
+	sb("block-unknown-field", "Data with a field the class does not have.", until,
+		m{"client": "203.0.113.7", "bits": 32, "scope": cluster.ScopeGateway, "source": "dashboard", "level": 1, "since": cluster.TimeText(Now.Add(-time.Minute)), "until": until, "duration_s": 3660, "net_class": "", "node": "", "allow": true})
 	refused("schema", "member-id-not-of-key", "The id of a member is the hash of its key.",
 		in(roster, rec(a, cluster.ClassMembers, "n-00000000000000000000000000000000", 6, h(40*time.Minute), false, "", member(x, "web-4", cluster.RoleGateway, "10.0.0.4:8790")), nil))
 	refused("schema", "member-unknown-role", "A role this version does not have.", in(roster, mrec(a, x, 6, h(40*time.Minute), false, member(x, "web-4", "admin", "10.0.0.4:8790")), nil))
@@ -303,4 +296,45 @@ func genClusterRecord(g *gen) {
 		many[i] = first
 	}
 	bad("too-many-members", "At most 16 member records in a vector.", m{"group": group, "members": many, "record": good})
+
+	// ---- blocks by incident (D109)
+	ib := func(signer ed25519.PrivateKey, seq, hlc uint64, incident string, data any) *cluster.Record {
+		return rec(signer, cluster.ClassIncidentBlocks, incident, seq, hlc, false, until, data)
+	}
+	liftEnd := cluster.TimeText(Now.Add(169 * time.Hour))
+	il := func(signer ed25519.PrivateKey, seq, hlc uint64, incident string) *cluster.Record {
+		return rec(signer, cluster.ClassLifts, incident, seq, hlc, false, liftEnd, cluster.IncidentLift{Node: "web-1"})
+	}
+	taken("incident-block", "A block is one record; its id is the incident number.", in(roster, ib(b, 1, h(40*time.Minute), "K7QF-2M9X", ibData("203.0.113.7", 32, cluster.ScopeGateway)), nil), nil)
+	taken("incident-block-second-of-client", "A second block of the same client is a record of its own, under its own incident.",
+		in(roster, ib(a, 9, h(40*time.Minute), "R3TV-8HNC", ibData("203.0.113.7", 32, cluster.ScopeGateway)), nil), nil)
+	taken("incident-block-ipv6", "The client of IPv6 is the first address of the /64.", in(roster, ib(b, 1, h(40*time.Minute), "K7QF-2M9X", ibData("2001:db8:1:2::", 64, cluster.ScopeGateway)), nil), nil)
+	refused("schema", "incident-block-of-website", "This version has one scope, the gateway. A block of one website comes as a later record version.", in(roster, ib(b, 1, h(40*time.Minute), "K7QF-2M9X", ibData("203.0.113.7", 32, "website:shop")), nil))
+	taken("incident-lift", "A lift is a record of its own; its id is the incident it ends, and it carries no address.", in(roster, il(a, 9, h(41*time.Minute), "K7QF-2M9X"), nil), nil)
+	taken("incident-lift-of-unknown-block", "A lift needs no block record: it may arrive first.", in(roster, il(a, 9, h(41*time.Minute), "ZZZZ-9999"), nil), nil)
+	taken("incident-lift-replaces-earlier-lift", "Two lifts of one incident are two records of one thing; the later is the state.",
+		in(roster, il(a, 9, h(42*time.Minute), "K7QF-2M9X"), il(b, 2, h(41*time.Minute), "K7QF-2M9X")), &yes)
+	si := func(name, desc string, r *cluster.Record) { refused("schema", name, desc, in(roster, r, nil)) }
+	si("incident-block-id-is-address", "The id of a block is its incident, not its client.", ib(b, 1, h(40*time.Minute), "203.0.113.7", ibData("203.0.113.7", 32, cluster.ScopeGateway)))
+	si("incident-block-id-lower-case", "An incident number has capital letters, digits and hyphens.", ib(b, 1, h(40*time.Minute), "k7qf-2m9x", ibData("203.0.113.7", 32, cluster.ScopeGateway)))
+	si("incident-block-tombstone", "A block record is never a tombstone: a lift is a record of class lifts.",
+		rec(b, cluster.ClassIncidentBlocks, "K7QF-2M9X", 2, h(41*time.Minute), true, until, ibData("203.0.113.7", 32, cluster.ScopeGateway)))
+	si("incident-block-without-scope", "A block names its scope.", ib(b, 1, h(40*time.Minute), "K7QF-2M9X", ibData("203.0.113.7", 32, "")))
+	si("incident-block-unknown-scope", "A scope this version does not have.", ib(b, 1, h(40*time.Minute), "K7QF-2M9X", ibData("203.0.113.7", 32, "everywhere")))
+	si("incident-block-with-incident-field", "The incident is the id; the data has no such field.", ib(b, 1, h(40*time.Minute), "K7QF-2M9X",
+		m{"client": "203.0.113.7", "bits": 32, "scope": cluster.ScopeGateway, "source": "dashboard", "level": 1, "since": cluster.TimeText(Now.Add(-time.Minute)), "until": until, "duration_s": 3660, "incident": "K7QF-2M9X", "net_class": "", "node": ""}))
+	si("incident-block-ipv4-with-64-bits", "IPv4 is one address, 32 bits.", ib(b, 1, h(40*time.Minute), "K7QF-2M9X", ibData("203.0.113.7", 64, cluster.ScopeGateway)))
+	si("incident-block-expires-not-until", "A block is dropped when it ends: expires is until.",
+		rec(b, cluster.ClassIncidentBlocks, "K7QF-2M9X", 1, h(40*time.Minute), false, cluster.TimeText(Now.Add(2*time.Hour)), ibData("203.0.113.7", 32, cluster.ScopeGateway)))
+	si("incident-lift-tombstone", "A lift is never a tombstone.", rec(a, cluster.ClassLifts, "K7QF-2M9X", 9, h(41*time.Minute), true, liftEnd, cluster.IncidentLift{Node: "web-1"}))
+	si("incident-lift-without-end", "A lift names when it is dropped.", rec(a, cluster.ClassLifts, "K7QF-2M9X", 9, h(41*time.Minute), false, "", cluster.IncidentLift{Node: "web-1"}))
+	si("incident-lift-with-address", "A lift carries no address.", rec(a, cluster.ClassLifts, "K7QF-2M9X", 9, h(41*time.Minute), false, liftEnd, m{"node": "web-1", "client": "203.0.113.7"}))
+	si("incident-lift-id-is-address", "The id of a lift is the incident.", il(a, 9, h(41*time.Minute), "203.0.113.7"))
+
+	// ---- class blocks of 0.1.0-alpha.6 is gone (cluster.md section 16)
+	si("blocks-of-alpha-6", "A block of class blocks, as 0.1.0-alpha.6 wrote it: this version does not have the class, and the record is refused for good, not kept unread.",
+		rec(b, cluster.RetiredClassBlocks, "203.0.113.7", 1, h(40*time.Minute), false, until,
+			m{"client": "203.0.113.7", "bits": 32, "source": "behaviour:path_probing", "level": 1, "since": cluster.TimeText(Now.Add(-time.Minute)), "until": until, "duration_s": 3660, "incident": "K7QF-2M9X", "net_class": "hosting", "node": "web-2"}))
+	si("blocks-lift-of-alpha-6", "Its lift, a tombstone of class blocks, is refused the same way.",
+		rec(b, cluster.RetiredClassBlocks, "203.0.113.7", 2, h(41*time.Minute), true, liftEnd, m{"incident": "K7QF-2M9X", "node": "web-2"}))
 }

@@ -5,56 +5,24 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"net/netip"
 	"os"
 	"path/filepath"
 	"strings"
-	"sync"
 	"sync/atomic"
 	"time"
 
-	contract "github.com/deutschland-schild/schild/contract/cluster"
 	"github.com/deutschland-schild/schild/contract/config"
 	"github.com/deutschland-schild/schild/gateway/internal/behaviour"
 	"github.com/deutschland-schild/schild/gateway/internal/cluster"
-	"github.com/deutschland-schild/schild/gateway/internal/ratelog"
-	"github.com/deutschland-schild/schild/gateway/internal/store"
 )
 
-// The group of MVP-27 (D105), first version: the address blocks of every
-// node act on every node.
-//
-// The request path does not come here. A block starts and ends in the
-// engine as on a single gateway; a loop compares the blocks that run with
-// what this node told the group and publishes the difference, and a record
-// of another node is applied to the engine in the goroutine of the sync.
+// The group of MVP-27 (D105): this file opens and starts the node of a
+// gateway and says when it is in service. The blocks of the group are in
+// cluster_blocks.go.
 
 // ClusterDir is where a node keeps its key and its copy of the group's
 // records.
 func ClusterDir(dataDir string) string { return filepath.Join(dataDir, "cluster") }
-
-const (
-	groupBlocksPerTick = 50
-	groupBlocksMax     = 20000
-)
-
-// groupBlocks is what this node knows the group knows: per client key the
-// incident and the end of the block that runs.
-type groupBlocks struct {
-	mu    sync.Mutex
-	known map[behaviour.Key]groupBlock
-	// waiting counts blocks that had to wait for a later round.
-	waiting uint64
-}
-
-type groupBlock struct {
-	incident string
-	until    time.Time
-	// node is the name of the node that decided the block, self whether
-	// that is this node.
-	node string
-	self bool
-}
 
 // openCluster opens the node of a gateway with cluster.enabled and binds
 // its mesh listener, at the end of New: a node that cannot run (its port is
@@ -97,10 +65,7 @@ func (a *App) startCluster(ctx context.Context) {
 	if node.Removed() {
 		a.log.Warn("cluster: this node was removed from its group. It serves with the state it has and shares nothing. To take it out for good: cluster.enabled false; to bring it back: delete its cluster directory and start schild again")
 	}
-	a.groupBlocks.known = map[behaviour.Key]groupBlock{}
-	node.On(contract.ClassBlocks, a.applyGroupRecord)
-	a.seedGroupBlocks()
-	a.goLoop(ctx, "cluster-blocks", tick(250*time.Millisecond, a.publishGroupBlocks))
+	a.startGroupBlocks(ctx)
 	a.goLoop(ctx, "cluster-ready", tick(time.Second, a.noteReadiness))
 	a.startSharedState(ctx)
 	a.startCounts(ctx)
@@ -125,236 +90,6 @@ func (a *App) startCluster(ctx context.Context) {
 
 // testBeforeMesh, in tests, runs right before the mesh starts.
 var testBeforeMesh func(*App)
-
-// testBlockRuns, in tests, runs right after a block of a record started here.
-var testBlockRuns atomic.Pointer[func(a *App, incident string)]
-
-// seedGroupBlocks applies the blocks of the group this node holds at its
-// start: what ran when it stopped runs again, also blocks under 24 h, which
-// a single gateway forgets with a restart.
-func (a *App) seedGroupBlocks() {
-	recs, err := a.Cluster.State(contract.ClassBlocks)
-	if err != nil {
-		a.log.Warn("cluster: blocks of the group not read", "err", err)
-		return
-	}
-	n := 0
-	for _, rec := range recs {
-		if !rec.Deleted && a.applyGroupBlock(rec) {
-			n++
-		}
-	}
-	if n > 0 {
-		a.log.Info("cluster: blocks of the group applied at start", "blocks", n)
-	}
-}
-
-func (a *App) applyGroupRecord(rec *contract.Record) {
-	if rec.Deleted {
-		a.applyGroupLift(rec)
-		return
-	}
-	a.applyGroupBlock(rec)
-}
-
-// applyGroupBlock starts the block of a record here. The node decides again
-// with what it holds itself: an address on its allowlist is not blocked,
-// and the test profile blocks nothing.
-func (a *App) applyGroupBlock(rec *contract.Record) bool {
-	b, err := contract.DecodeBlock(rec)
-	if err != nil {
-		return false
-	}
-	key, ok := behaviour.ParseClientKey(b.Client, b.Bits)
-	until, err := time.Parse(time.RFC3339, b.Until)
-	since, err2 := time.Parse(time.RFC3339, b.Since)
-	if !ok || err != nil || err2 != nil || !until.After(time.Now()) {
-		return false
-	}
-	if a.Config().Mode == config.ModeObserve {
-		return false
-	}
-	if lvl, _ := a.Allow.Match(key.Addr(), time.Now()); lvl != "" {
-		return false
-	}
-	bi := behaviour.BlockInfo{Scenario: strings.TrimPrefix(b.Source, "behaviour:"), Since: since, Until: until, Level: b.Level, Incident: b.Incident, EventID: b.EventID,
-		NetClass: b.NetClass, Duration: time.Duration(b.DurationS) * time.Second}
-	a.groupBlocks.mu.Lock()
-	defer a.groupBlocks.mu.Unlock()
-	// A lift may have been made here before the record of the block came:
-	// the incident of a block travels with the events of its node, on
-	// another way than the record, and "Freigeben" needs only the incident.
-	// The block must not start then, and nobody told the group yet (N1).
-	if a.liftedHere(b.Incident) {
-		// A block kept over a restart may run here all the same; ended
-		// first, so the loop does not hand it to the group as a new one.
-		a.Behaviour.LiftIncident(b.Incident)
-		a.liftForGroup(key, b.Incident)
-		return false
-	}
-	// The incident before the block: whoever sees the block here can release
-	// it, also in the moment it starts.
-	if _, runs := a.Behaviour.ActiveBlock(key.Addr()); !runs {
-		a.noteGroupIncident(b, key, since)
-	}
-	if !a.Behaviour.ApplyBlock(key, b.Bits, bi) {
-		// A block of this client runs here already. When it is the same
-		// one (a restart), the group knows it.
-		if cur, ok := a.Behaviour.ActiveBlock(key.Addr()); ok && cur.Incident == b.Incident {
-			a.groupBlocks.known[key] = groupBlock{incident: b.Incident, until: until, node: b.Node, self: rec.Origin == a.Cluster.ID()}
-		}
-		return false
-	}
-	if f := testBlockRuns.Load(); f != nil {
-		(*f)(a, b.Incident)
-	}
-	// Looked at again now that the block runs: a lift that came between the
-	// first look and the start found no block to end. Its mark in the store
-	// is written before it ends the block, so one of the two sees the other.
-	if a.liftedHere(b.Incident) {
-		a.Behaviour.LiftIncident(b.Incident)
-		a.liftForGroup(key, b.Incident)
-		return false
-	}
-	a.groupBlocks.known[key] = groupBlock{incident: b.Incident, until: until, node: b.Node, self: rec.Origin == a.Cluster.ID()}
-	return true
-}
-
-// liftedHere reports whether this node holds the incident as unblocked: a
-// person or an agent released it here, or the node took that word from the
-// node that wrote the incident.
-func (a *App) liftedHere(incident string) bool {
-	if a.Store == nil || incident == "" {
-		return false
-	}
-	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
-	defer cancel()
-	in, err := a.Store.GetIncident(ctx, incident)
-	return err == nil && in.Status == "unblocked"
-}
-
-// liftForGroup tells the group that the block of an incident is lifted,
-// for a block this node never ran: the lift was made before the block's
-// record came. Called with groupBlocks.mu held, and only for the record
-// that is the group's state of the client at this moment, so the tombstone
-// replaces that block and no other.
-func (a *App) liftForGroup(key behaviour.Key, incident string) {
-	node := a.Cluster
-	if node == nil || node.Removed() {
-		return
-	}
-	delete(a.groupBlocks.known, key)
-	expires := time.Now().Add(contract.MaxBlockS*time.Second + time.Hour)
-	if _, err := node.Publish(contract.ClassBlocks, key.Addr().String(), &contract.Lift{Incident: incident, Node: node.Name()}, true, expires); err != nil {
-		ratelog.Warn(a.log, "cluster: lift not handed to the group (the block was lifted on this node before its record came)", "err", err)
-		return
-	}
-	a.groupLiftsLate.Add(1)
-}
-
-// noteGroupIncident stores the incident of a block another node set, from
-// what the block's record says. The incident itself follows with the events
-// of that node, up to a second later; until then the dashboard of this node
-// lists the block, and "Freigeben" on it has to find its incident (finding
-// F2 of the lab measurement: 404 for a block the page showed). What the
-// record does not say (website, reason) is filled in when the incident
-// arrives (store.MergeIncident).
-func (a *App) noteGroupIncident(b *contract.Block, key behaviour.Key, since time.Time) {
-	if a.Store == nil || b.Incident == "" {
-		return
-	}
-	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
-	defer cancel()
-	in := &store.Incident{Incident: b.Incident, EventID: b.EventID, Time: since, IP: key.Addr().String(), Status: "blocked", Sources: []string{b.Source}}
-	// Another node's incident: no news of this node (store.OwnGen).
-	if err := a.Store.InsertIncident(store.Foreign(ctx), in); err != nil {
-		ratelog.Warn(a.log, "cluster: incident of a block of another node not stored; it follows with that node's events", "err", err)
-	}
-}
-
-// applyGroupLift ends the block another node lifted.
-func (a *App) applyGroupLift(rec *contract.Record) {
-	l, err := contract.DecodeLift(rec)
-	if err != nil {
-		return
-	}
-	ip, err := netip.ParseAddr(rec.ID)
-	if err != nil {
-		return
-	}
-	key, _ := behaviour.KeyOf(ip)
-	a.groupBlocks.mu.Lock()
-	defer a.groupBlocks.mu.Unlock()
-	cur, ok := a.Behaviour.ActiveBlock(ip)
-	if !ok || (l.Incident != "" && cur.Incident != l.Incident) {
-		return // another block than the one that was lifted
-	}
-	// Forget it first, so the loop does not take its end for a lift of
-	// this node and tell the group again.
-	delete(a.groupBlocks.known, key)
-	a.Behaviour.LiftIncident(cur.Incident)
-}
-
-// publishGroupBlocks tells the group what changed on this node: a block
-// that started here, and a block that ended before its time (a release in
-// the dashboard, a lift by an agent, an address that went onto the
-// allowlist). A block that ends at its time needs no word: it ends on every
-// node at the same second.
-func (a *App) publishGroupBlocks() {
-	node := a.Cluster
-	if node == nil || node.Removed() {
-		return
-	}
-	now := time.Now()
-	// The blocks that run are read under the lock, not before it: a block
-	// of another node that arrived in between would be known and missing
-	// from an older reading, taken for one that ended early here, and
-	// lifted for the whole group.
-	a.groupBlocks.mu.Lock()
-	defer a.groupBlocks.mu.Unlock()
-	running := a.Behaviour.RunningBlocks()
-	seen := make(map[behaviour.Key]bool, len(running))
-	name := node.Name()
-	// A flood of blocks must not become a flood of records: at most
-	// groupBlocksPerTick leave per round (200 a second), and none while the
-	// group knows groupBlocksMax. What waits runs on this node all the same
-	// and leaves with a later round.
-	sent, room := 0, groupBlocksMax-len(a.groupBlocks.known)
-	for _, rb := range running {
-		seen[rb.Key] = true
-		if k, ok := a.groupBlocks.known[rb.Key]; ok && k.incident == rb.Incident {
-			continue
-		}
-		if sent >= groupBlocksPerTick || sent >= room {
-			a.groupBlocks.waiting++
-			continue
-		}
-		sent++
-		until := rb.Until.UTC().Truncate(time.Second)
-		blk := contract.Block{Client: rb.Key.Addr().String(), Bits: rb.Key.Bits(), Source: behaviour.BlockSource(rb.Scenario), Level: rb.Level,
-			Since: contract.TimeText(rb.Since), Until: contract.TimeText(until), DurationS: max(int(rb.Duration/time.Second), 1), Incident: rb.Incident, EventID: rb.EventID,
-			NetClass: rb.NetClass, Node: name}
-		if _, err := node.Publish(contract.ClassBlocks, blk.Client, &blk, false, until); err != nil {
-			ratelog.Warn(a.log, "cluster: block not handed to the group (it runs on this node)", "err", err)
-			continue
-		}
-		a.groupBlocks.known[rb.Key] = groupBlock{incident: rb.Incident, until: until, node: name, self: true}
-	}
-	for key, k := range a.groupBlocks.known {
-		if seen[key] {
-			continue
-		}
-		delete(a.groupBlocks.known, key)
-		if !now.Before(k.until.Add(-time.Second)) {
-			continue // ended at its time
-		}
-		// The tombstone stays as long as any block of before could run.
-		expires := now.Add(contract.MaxBlockS*time.Second + time.Hour)
-		if _, err := node.Publish(contract.ClassBlocks, key.Addr().String(), &contract.Lift{Incident: k.incident, Node: name}, true, expires); err != nil {
-			ratelog.Warn(a.log, "cluster: lift not handed to the group (the block ended on this node)", "err", err)
-		}
-	}
-}
 
 // firstSyncWait is how long a node that reaches no member waits before it
 // says it is in service with the state it has.
@@ -502,6 +237,9 @@ func (a *App) prepareCluster(cfg *config.Site) error {
 	if !cfg.Cluster.Enabled {
 		return nil
 	}
+	// From the start: no release on this node goes without its lift for
+	// the group (store/outbox.go).
+	a.Store.ShareLifts()
 	dir := ClusterDir(a.dataDir)
 	if cfg.Cluster.SecretFile != "" {
 		// The same files were deployed to every node.

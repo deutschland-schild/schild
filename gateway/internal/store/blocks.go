@@ -29,8 +29,19 @@ CREATE TABLE kept_blocks (
 );
 `
 
-// PutBlock keeps (or replaces) the block of one client key.
+// PutBlock keeps (or replaces) the block of one client key, as one this
+// gateway decided.
 func (s *Store) PutBlock(ctx context.Context, b events.ActiveBlock) error {
+	return s.putBlock(ctx, b, true)
+}
+
+// PutTakenBlock keeps a block a node took from its group: another node
+// decided it, and this one never writes it to the group as its own.
+func (s *Store) PutTakenBlock(ctx context.Context, b events.ActiveBlock) error {
+	return s.putBlock(ctx, b, false)
+}
+
+func (s *Store) putBlock(ctx context.Context, b events.ActiveBlock, own bool) error {
 	since, err := time.Parse(time.RFC3339, b.Since)
 	if err != nil {
 		return err
@@ -39,9 +50,30 @@ func (s *Store) PutBlock(ctx context.Context, b events.ActiveBlock) error {
 	if err != nil {
 		return err
 	}
-	_, err = s.db.ExecContext(ctx, `INSERT OR REPLACE INTO kept_blocks(client_key, key_bits, net_class, source, level, duration_s, since_ms, until_ms, incident)
-VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?)`, b.ClientKey, b.KeyBits, b.NetClass, b.Source, b.Level, b.DurationS, ms(since), ms(until), b.Incident)
+	_, err = s.db.ExecContext(ctx, `INSERT OR REPLACE INTO kept_blocks(client_key, key_bits, net_class, source, level, duration_s, since_ms, until_ms, incident, own)
+VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, b.ClientKey, b.KeyBits, b.NetClass, b.Source, b.Level, b.DurationS, ms(since), ms(until), b.Incident, own)
 	return err
+}
+
+// TakenBlocks returns the client keys of the kept blocks another node of
+// the group decided: those this node took from its group. Every other row
+// is a decision of this gateway, also one that does not say (own = -1, a
+// row of a build before the mark).
+func (s *Store) TakenBlocks(ctx context.Context) ([]string, error) {
+	rows, err := s.db.QueryContext(ctx, `SELECT client_key FROM kept_blocks WHERE own = 0`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var out []string
+	for rows.Next() {
+		var k string
+		if err := rows.Scan(&k); err != nil {
+			return nil, err
+		}
+		out = append(out, k)
+	}
+	return out, rows.Err()
 }
 
 // DeleteBlock removes the kept block of a client key.

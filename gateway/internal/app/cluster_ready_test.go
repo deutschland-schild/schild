@@ -204,7 +204,7 @@ func TestEveryClusterHandlerIsRegisteredBeforeTheMeshRuns(t *testing.T) {
 	nodes := newGroup(t, "web-1")
 	nodes[0].start(t)
 	undo()
-	for _, want := range []string{"on:blocks", "on:settings", "on:access", "on:logins", "on:erasure", "tell:counts", "tell:config", "tell:heads", "ask:events", "ask:requests", "ask:metrics"} {
+	for _, want := range []string{"on:incident_blocks", "on:lifts", "on:settings", "on:access", "on:logins", "on:erasure", "tell:counts", "tell:config", "tell:heads", "ask:events", "ask:requests", "ask:metrics"} {
 		if !slices.Contains(before, want) {
 			t.Errorf("%s is registered only after the mesh started (registered before: %v)", want, before)
 		}

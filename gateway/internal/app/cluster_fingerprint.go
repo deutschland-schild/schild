@@ -51,7 +51,7 @@ import (
 //     changed waits to be put in. Otherwise the node says no point, and
 //     nobody compares.
 //   - blocks: the block records of the group this node holds that are not
-//     lifted and have not ended, as client key and incident. A node's own
+//     lifted and have not ended, as incident number. A node's own
 //     allowlist from schild.yaml may keep it from running a block the group
 //     holds; that is per node by design and not hashed. At the same point
 //     two nodes hold the same block records, so this hash differs only
@@ -86,7 +86,12 @@ const statePointVector = "v"
 // word describes a moment a little ago.
 const stateHistory = 64
 
-var stateClasses = []string{contract.ClassBlocks, contract.ClassSettings, contract.ClassAccess, contract.ClassLogins}
+// stateBlocks is the name of the blocks in a node's word of its state. The
+// hash under it covers the records of class incident_blocks, and its point
+// the lifts too: a lift takes a block out of the hash.
+const stateBlocks = "blocks"
+
+var stateClasses = []string{stateBlocks, contract.ClassSettings, contract.ClassAccess, contract.ClassLogins}
 
 // stateLook is the state of this node at one moment: the hash of every
 // class and the point each was computed at ("": none, the class was not
@@ -222,6 +227,28 @@ func sameLook(a, b *stateLook) bool {
 	return true
 }
 
+// hashedBlocks are the blocks the hash of blocks covers at now, as incident
+// numbers: those the node holds a record of that are not lifted and not
+// over. A lifted block has left the store. ends is when the first of them
+// is over (zero: none).
+func (a *App) hashedBlocks(now time.Time) (incidents []string, ends time.Time) {
+	recs, err := a.Cluster.State(contract.ClassIncidentBlocks)
+	if err != nil {
+		return nil, ends
+	}
+	for _, rec := range recs {
+		b, ok := a.groupBlockOf(rec)
+		if !ok || !b.info.Until.After(now) {
+			continue
+		}
+		if ends.IsZero() || b.info.Until.Before(ends) {
+			ends = b.info.Until
+		}
+		incidents = append(incidents, b.info.Incident)
+	}
+	return incidents, ends
+}
+
 // statePoints reads the point of the vector and of every class.
 func (a *App) statePoints(now time.Time) map[string]string {
 	node := a.Cluster
@@ -230,7 +257,11 @@ func (a *App) statePoints(now time.Time) map[string]string {
 		out[statePointVector] = v
 	}
 	for _, class := range stateClasses {
-		if p, err := node.ClassPoint(class, now); err == nil {
+		classes := []string{class}
+		if class == stateBlocks {
+			classes = []string{contract.ClassLifts, contract.ClassIncidentBlocks}
+		}
+		if p, err := node.ClassPoint(now, classes...); err == nil {
 			out[class] = p
 		}
 	}
@@ -251,24 +282,9 @@ func (a *App) computeStateLook(ctx context.Context, now time.Time) (look *stateL
 	taking := node.Taking()
 	before := a.statePoints(now)
 	lines := map[string][]string{}
-	if recs, err := node.State(contract.ClassBlocks); err == nil {
-		for _, rec := range recs {
-			if rec.Deleted {
-				continue
-			}
-			ends, err := time.Parse("2006-01-02T15:04:05Z", rec.Expires)
-			if err != nil || !ends.After(now) {
-				continue
-			}
-			if ends.Before(until) {
-				until = ends
-			}
-			b, err := contract.DecodeBlock(rec)
-			if err != nil {
-				continue
-			}
-			lines[contract.ClassBlocks] = append(lines[contract.ClassBlocks], rec.ID+"\x00"+b.Incident)
-		}
+	var ends time.Time
+	if lines[stateBlocks], ends = a.hashedBlocks(now); !ends.IsZero() && ends.Before(until) {
+		until = ends
 	}
 	unsettled := map[string]bool{}
 	a.sharedMu.Lock()
@@ -525,12 +541,8 @@ func (a *App) repairState(ctx context.Context, member string, classes []string) 
 	applied, err := node.Resync(rctx, member)
 	again := map[string]bool{}
 	for _, class := range classes {
-		if class == contract.ClassBlocks {
-			if recs, rerr := node.State(contract.ClassBlocks); rerr == nil {
-				for _, rec := range recs {
-					a.applyGroupRecord(rec)
-				}
-			}
+		if class == stateBlocks {
+			_, _ = a.applyGroupBlocks()
 			continue
 		}
 		again[class] = true

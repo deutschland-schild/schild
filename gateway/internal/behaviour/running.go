@@ -23,7 +23,7 @@ func (e *Engine) RunningBlocks() []RunningBlock {
 		if b.until > now {
 			st := time.Unix(0, b.started).UTC()
 			out = append(out, RunningBlock{Key: k, BlockInfo: BlockInfo{Scenario: b.scenario, Since: st, Until: time.Unix(0, b.until).UTC(), Level: b.level,
-				Incident: b.incident, EventID: b.eventID, NetClass: b.netClass, Duration: time.Unix(0, b.until).Sub(st.Truncate(time.Second)), Persisted: b.persisted}})
+				Incident: b.incident, EventID: b.eventID, NetClass: b.netClass, Duration: time.Unix(0, b.until).Sub(st.Truncate(time.Second)), Persisted: b.persisted, Taken: b.taken}})
 			seen[k] = true
 		}
 		return false
@@ -36,7 +36,7 @@ func (e *Engine) RunningBlocks() []RunningBlock {
 			}
 			st, _ := time.Parse(time.RFC3339, lb.ab.Since)
 			out = append(out, RunningBlock{Key: k, BlockInfo: BlockInfo{Scenario: strings.TrimPrefix(lb.ab.Source, "behaviour:"), Since: st, Until: time.Unix(0, lb.until).UTC(),
-				Level: lb.ab.Level, Incident: lb.ab.Incident, EventID: lb.eventID, NetClass: lb.ab.NetClass, Duration: time.Duration(lb.ab.DurationS) * time.Second, Persisted: true}})
+				Level: lb.ab.Level, Incident: lb.ab.Incident, EventID: lb.eventID, NetClass: lb.ab.NetClass, Duration: time.Duration(lb.ab.DurationS) * time.Second, Persisted: true, Taken: lb.taken}})
 		}
 		e.long.mu.Unlock()
 	}

@@ -34,6 +34,9 @@ func (a *App) newAgentAPI() *agentapi.Server {
 		Emit: func(id, typ string, t time.Time, data any, idx eventlog.Index) {
 			a.Events.EmitWithID(id, typ, t, data, idx)
 		}, Incident: a.Gate.QueueIncident, FlushIncidents: a.Gate.FlushIncidents}
+	if a.Config().Cluster.Enabled {
+		blocks.Held, blocks.Lift = a.groupHolds, a.endIncident
+	}
 	s := &agentapi.Server{St: a.Store, Monitor: a.Monitor, Blocks: blocks, IncidentBlock: a.agentIncidentBlock, Requests: a.Requests, Config: a.Config, Log: a.log, Sites: a.Sites,
 		Websites: a.Dashboard.WebsiteList, Website: a.Dashboard.WebsiteDetail, SitesAffected: a.Dashboard.SitesAffected,
 		Repos:      a.Repos,

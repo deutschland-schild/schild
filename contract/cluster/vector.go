@@ -27,7 +27,7 @@ type VectorInput struct {
 type VectorResult struct {
 	// Taken: the record passes every check of cluster.md section 4.
 	Taken bool `json:"taken"`
-	// Reason names the first failing check: version, group, schema, clock,
+	// Reason names the first failing check: version, group, class, schema, clock,
 	// origin, removed or signature; "" when taken.
 	Reason string `json:"reason"`
 	// Replaces: with a held record, whether the record becomes the state in
@@ -42,6 +42,8 @@ func Reason(err error) string {
 		return ""
 	case errors.Is(err, ErrVersion):
 		return "version"
+	case errors.Is(err, ErrClass):
+		return "class"
 	case errors.Is(err, ErrGroup):
 		return "group"
 	case errors.Is(err, ErrClock):

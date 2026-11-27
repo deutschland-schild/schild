@@ -29,7 +29,11 @@ const Version = 1
 // Record classes of this version.
 const (
 	ClassMembers = "members"
-	ClassBlocks  = "blocks"
+	// ClassIncidentBlocks is one block per record; its id is the incident.
+	ClassIncidentBlocks = "incident_blocks"
+	// ClassLifts is the end a person or an erasure put to the block of an
+	// incident; its id is the incident.
+	ClassLifts = "lifts"
 	// ClassSettings is what the dashboard and the agent API set.
 	ClassSettings = "settings"
 	// ClassAccess is who passes: allowlist, IP exceptions, rule decisions.
@@ -44,6 +48,11 @@ const (
 	// ClassJobs is when a task that runs once for the group last ran.
 	ClassJobs = "jobs"
 )
+
+// RetiredClassBlocks is the class of blocks of 0.1.0-alpha.6: one record
+// per client. This version does not have it: a record of it is refused for
+// good (ErrSchema), and a node holds none (contracts/cluster.md section 16).
+const RetiredClassBlocks = "blocks"
 
 // Things of the classes settings, access and logins. Each is a set of
 // entries (a row of a list, one setting, the policy of one website), and
@@ -138,7 +147,7 @@ const (
 )
 
 // Record is one change of one thing: the member with id n-…, the block of
-// one client key. Data is the standard base64 of the class's JSON object;
+// one incident. Data is the standard base64 of the class's JSON object;
 // the signature covers the decoded bytes, so no re-encoding of JSON on the
 // way can break or bend it.
 type Record struct {
@@ -164,9 +173,11 @@ type Record struct {
 
 // Reasons a record is not taken. ErrClock and ErrOrigin may pass with time
 // (the receiver's clock catches up, the member record of the origin
-// arrives); the others never do.
+// arrives). ErrVersion and ErrClass may pass with a later build: the record
+// is kept unread and handed on. The others never pass.
 var (
 	ErrVersion   = errors.New("cluster: unknown record version")
+	ErrClass     = errors.New("cluster: unknown record class")
 	ErrGroup     = errors.New("cluster: record of another group")
 	ErrSchema    = errors.New("cluster: record does not fit its class")
 	ErrOrigin    = errors.New("cluster: origin is no member")
@@ -264,13 +275,19 @@ func (r *Record) shape() error {
 		return ErrSchema
 	}
 	switch r.Class {
-	case ClassMembers, ClassBlocks, ClassErasure, ClassCertificates, ClassJobs:
+	case ClassMembers, ClassErasure, ClassCertificates, ClassJobs:
+	case RetiredClassBlocks:
+		return ErrSchema
+	case ClassIncidentBlocks, ClassLifts:
+		if !incidentID(r.ID) {
+			return ErrSchema
+		}
 	case ClassSettings, ClassAccess, ClassLogins:
 		if _, ok := ThingOf(r.Class, r.ID); !ok {
 			return ErrSchema
 		}
 	default:
-		return ErrSchema
+		return ErrClass
 	}
 	if r.Expires != "" {
 		if _, err := time.Parse("2006-01-02T15:04:05Z", r.Expires); err != nil {
@@ -293,8 +310,7 @@ func (r *Record) ExpiresAt() (time.Time, bool) {
 func TimeText(t time.Time) string { return t.UTC().Format("2006-01-02T15:04:05Z") }
 
 // Wins reports whether a replaces b as the state of their (class, id): the
-// later clock wins; at the same clock a tombstone beats a write (a lift by
-// a person beats the block of a detector of the same moment), then the
+// later clock wins; at the same clock a tombstone beats a write, then the
 // greater origin, then the greater sequence number.
 func Wins(a, b *Record) bool {
 	switch {

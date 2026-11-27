@@ -63,8 +63,10 @@ type Node struct {
 
 	hmu      sync.Mutex
 	handlers map[string][]func(*contract.Record)
-	tells    map[string]func(from string, body []byte)
-	asks     map[string]func(from string, body []byte) ([]byte, error)
+	// refused: per class, which records are not stored (Refuse).
+	refused map[string]func(*contract.Record) bool
+	tells   map[string]func(from string, body []byte)
+	asks    map[string]func(from string, body []byte) ([]byte, error)
 
 	// news wakes the sync calls that wait.
 	nmu  sync.Mutex
@@ -133,6 +135,15 @@ func Open(o Options) (*Node, error) {
 	if st.group == "" {
 		st.close()
 		return nil, ErrNoGroup
+	}
+	// Class blocks of 0.1.0-alpha.6 is gone (contracts/cluster.md section
+	// 16): the records a build before kept of it leave, and with them the
+	// client addresses of its blocks.
+	if res, err := st.db.Exec(`DELETE FROM records WHERE class = ?`, contract.RetiredClassBlocks); err != nil {
+		st.close()
+		return nil, err
+	} else if c, _ := res.RowsAffected(); c > 0 {
+		o.Log.Info("cluster: records of class blocks of 0.1.0-alpha.6 deleted; this version shares blocks by incident", "records", c)
 	}
 	n := &Node{state: st, opts: o, log: o.Log, handlers: map[string][]func(*contract.Record){}, news: make(chan struct{}), peers: map[string]*peer{},
 		seekNext: map[string]time.Time{}}
@@ -432,6 +443,41 @@ func (n *Node) On(class string, f func(*contract.Record)) {
 	hs[class] = append(append([]func(*contract.Record){}, n.handlers[class]...), f)
 	n.handlers = hs
 	n.hmu.Unlock()
+}
+
+// Refuse registers f for the records of a class: a record that passed every
+// check and that f reports is not stored and not applied. The vector moves
+// past it as past a record that lost against the one held, so no member is
+// asked for it again; a record of another class (a lift, an erasure) is why
+// it must not come back, and the node holds that one and hands it on. f runs
+// with the write lock of the store held: it may read the store and must not
+// write to it or wait for a lock that a writer holds.
+func (n *Node) Refuse(class string, f func(*contract.Record) bool) {
+	n.hmu.Lock()
+	rs := make(map[string]func(*contract.Record) bool, len(n.refused)+1)
+	for c, r := range n.refused {
+		rs[c] = r
+	}
+	rs[class] = f
+	n.refused = rs
+	n.hmu.Unlock()
+}
+
+// Drop removes the record that is the state of one thing from the store,
+// before its time: the block a lift ended (contracts/cluster.md, lifts).
+// The vector stays, so the record is not asked for again; that it is not
+// stored when a member hands it over later is the word of Refuse.
+func (n *Node) Drop(class, id string) error {
+	n.wmu.Lock()
+	defer n.wmu.Unlock()
+	res, err := n.db.Exec(`DELETE FROM records WHERE class = ? AND id = ? AND state = ?`, class, id, stateWinner)
+	if err != nil {
+		return err
+	}
+	if c, _ := res.RowsAffected(); c > 0 {
+		n.storeGen.Add(1)
+	}
+	return nil
 }
 
 // Publish writes a record of this node and hands it to the peers.
@@ -756,6 +802,9 @@ func (n *Node) takeRecords(raws []json.RawMessage, covered map[string]uint64, me
 	// The handlers run after the write lock is given back: a handler may
 	// hold a lock of its own that a Publish of the same owner waits with.
 	var won []*contract.Record
+	n.hmu.Lock()
+	refused := n.refused
+	n.hmu.Unlock()
 	defer func() {
 		n.hmu.Lock()
 		hs := n.handlers
@@ -790,7 +839,9 @@ func (n *Node) takeRecords(raws []json.RawMessage, covered map[string]uint64, me
 		n.rmu.RUnlock()
 		switch {
 		case cerr == nil:
-		case errors.Is(cerr, contract.ErrVersion):
+		case errors.Is(cerr, contract.ErrVersion), errors.Is(cerr, contract.ErrClass):
+			// A version or a class of a later build: kept as it came and
+			// handed on, read when this node runs that build (readUnread).
 			if rec.Group == n.group && member {
 				tx, err := n.db.Begin()
 				if err != nil {
@@ -819,6 +870,9 @@ func (n *Node) takeRecords(raws []json.RawMessage, covered map[string]uint64, me
 		default:
 			n.Rejected.Add(1)
 			n.log.Warn("cluster: record refused", "origin", rec.Origin, "seq", rec.Seq, "class", rec.Class, "reason", cerr)
+			continue
+		}
+		if f := refused[rec.Class]; f != nil && f(rec) {
 			continue
 		}
 		tx, err := n.db.Begin()
@@ -868,6 +922,69 @@ func (n *Node) takeRecords(raws []json.RawMessage, covered map[string]uint64, me
 		}
 	}
 	return applied, held, tx.Commit()
+}
+
+// readUnread looks again at the records this node keeps unread: a build
+// before this one could not read their version or class. What this build
+// reads is checked and applied like a record a member sent; what it still
+// cannot read stays as it is. Called at the start, after the handlers of
+// the classes are set.
+func (n *Node) readUnread() error {
+	rows, err := n.db.Query(`SELECT origin, seq, raw FROM records WHERE state = ? AND (expires_ms = 0 OR expires_ms > ?) ORDER BY hlc, origin, seq`, stateUnread, n.now().UnixMilli())
+	if err != nil {
+		return err
+	}
+	type key struct {
+		origin string
+		seq    uint64
+	}
+	var raws []json.RawMessage
+	var keys []key
+	now := n.now()
+	for rows.Next() {
+		var k key
+		var raw []byte
+		if err := rows.Scan(&k.origin, &k.seq, &raw); err != nil {
+			rows.Close()
+			return err
+		}
+		var rec contract.Record
+		if json.Unmarshal(raw, &rec) != nil {
+			continue
+		}
+		n.rmu.RLock()
+		cerr := n.roster.Check(&rec, now)
+		n.rmu.RUnlock()
+		if errors.Is(cerr, contract.ErrVersion) || errors.Is(cerr, contract.ErrClass) {
+			continue
+		}
+		// What may pass later (a clock ahead, an origin not known yet) stays
+		// unread for the next start.
+		if errors.Is(cerr, contract.ErrClock) || errors.Is(cerr, contract.ErrOrigin) {
+			continue
+		}
+		raws, keys = append(raws, raw), append(keys, k)
+	}
+	rows.Close()
+	if err := rows.Err(); err != nil || len(raws) == 0 {
+		return err
+	}
+	// As a resync: the vector says this node has these records.
+	n.retake.Add(1)
+	applied, _, err := n.takeRecords(raws, nil, true)
+	n.retake.Add(-1)
+	if err != nil {
+		return err
+	}
+	// A record that is now the state replaced its own row. What lost against
+	// a later record, or is refused for good, is of no use unread.
+	for _, k := range keys {
+		if _, err := n.db.Exec(`DELETE FROM records WHERE origin = ? AND seq = ? AND state = ?`, k.origin, int64(k.seq), stateUnread); err != nil {
+			return err
+		}
+	}
+	n.log.Info("cluster: records of a class or version an earlier build kept unread were read", "records", len(raws), "applied", applied)
+	return nil
 }
 
 // selfCert is the certificate the node shows in the mesh: self-signed with
@@ -956,6 +1073,10 @@ func (n *Node) Run(ctx context.Context) error {
 	a := ln.Addr().String()
 	n.addr.Store(&a)
 	n.log.Info("cluster: mesh listening", "listen", a, "group", n.group, "node", n.id)
+	// Before the mesh answers: nothing else takes a record meanwhile.
+	if err := n.readUnread(); err != nil {
+		n.log.Warn("cluster: the records kept unread were not looked at again", "err", err)
+	}
 	done := make(chan error, 1)
 	go func() { done <- srv.ServeTLS(ln, "", "") }()
 	go n.watchStore(ctx)

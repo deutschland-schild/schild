@@ -21,6 +21,8 @@ type longBlock struct {
 	ab      events.ActiveBlock
 	eventID string
 	until   int64
+	// taken: see blockState.taken.
+	taken bool
 }
 
 type longBlocks struct {
@@ -70,13 +72,16 @@ func (e *Engine) putLong(key Key, lb longBlock) {
 	}
 }
 
-func (e *Engine) keepLong(key Key, ab events.ActiveBlock, eventID string) {
+func (e *Engine) keepLong(key Key, ab events.ActiveBlock, eventID string, taken bool) {
 	until, err := time.Parse(time.RFC3339, ab.Until)
 	if err != nil {
 		return
 	}
-	e.putLong(key, longBlock{ab: ab, eventID: eventID, until: until.UnixNano()})
-	if e.Sink.Persist != nil {
+	e.putLong(key, longBlock{ab: ab, eventID: eventID, until: until.UnixNano(), taken: taken})
+	switch {
+	case taken && e.Sink.PersistTaken != nil:
+		e.Sink.PersistTaken(ab)
+	case e.Sink.Persist != nil:
 		e.Sink.Persist(ab)
 	}
 }
@@ -182,6 +187,33 @@ func (e *Engine) RestoreBlocks(rows []events.ActiveBlock, skip func(netip.Addr) 
 		restored++
 	}
 	return restored, drop
+}
+
+// TakenBlocks marks the running blocks of these client keys as blocks this
+// node did not decide (blockState.taken): called after RestoreBlocks with
+// the kept rows this node took from its group.
+func (e *Engine) TakenBlocks(clientKeys []string) {
+	for _, ck := range clientKeys {
+		a, err := netip.ParseAddr(ck)
+		if err != nil {
+			continue
+		}
+		key, _ := KeyOf(a)
+		if !key.IsValid() {
+			continue
+		}
+		e.blocks.with(key, false, func(b *blockState) {
+			if b != nil {
+				b.taken = true
+			}
+		})
+		e.long.mu.Lock()
+		if lb, ok := e.long.m[key]; ok {
+			lb.taken = true
+			e.long.m[key] = lb
+		}
+		e.long.mu.Unlock()
+	}
 }
 
 // DropBlocks ends every running block whose client key allowed reports

@@ -4206,8 +4206,10 @@ def cl_decode(rec, fields):
 
 
 CL_MEMBER = {"name": "str", "role": "str", "public_key": "str", "address": "str", "joined": "str", "version": "str", "admit_public_key": "str", "admit": "str"}
-CL_BLOCK = {"client": "str", "bits": "int", "source": "str", "level": "int", "since": "str", "until": "str", "duration_s": "int",
-            "incident": "str", "event_id": "str", "net_class": "str", "node": "str"}
+CL_INCIDENT_BLOCK = {"client": "str", "bits": "int", "scope": "str", "source": "str", "level": "int", "since": "str", "until": "str", "duration_s": "int",
+                     "event_id": "str", "net_class": "str", "node": "str"}
+CL_INCIDENT_ID = re.compile(r"[A-Z0-9-]{1,64}\Z")
+CL_SCOPE = re.compile(r"gateway\Z")
 
 
 def cl_key(m):
@@ -4260,19 +4262,22 @@ def cl_class_rules(rec):
     cls, deleted, expires = rec["class"], bool(rec.get("deleted")), rec.get("expires", "")
     if cls == "members":
         cl_member(rec)
-    elif cls == "blocks" and deleted:
-        l = cl_decode(rec, {"incident": "str", "node": "str"})
-        if cl_blen(l["incident"]) > 64 or cl_blen(l["node"]) > 63 or cl_addr(rec["id"]) is None or expires == "":
-            raise ClRefuse("schema")
-    elif cls == "blocks":
-        b = cl_decode(rec, CL_BLOCK)
+    elif cls == "incident_blocks":
+        # D109: one block per record, the id is the incident, never a tombstone.
+        b = cl_decode(rec, CL_INCIDENT_BLOCK)
         a = cl_addr(b["client"])
         since, until = cl_time(b["since"]), cl_time(b["until"])
-        ok = (a is not None and b["client"] == rec["id"] and a[0] == b["client"] and b["bits"] == (32 if a[1] else 64)
+        ok = (not deleted and CL_INCIDENT_ID.match(rec["id"]) and CL_SCOPE.match(b["scope"])
+              and a is not None and a[0] == b["client"] and b["bits"] == (32 if a[1] else 64)
               and since is not None and until is not None and until > since and until - since <= 7 * 86400 + 60
               and b["source"] != "" and cl_blen(b["source"]) <= 96 and 1 <= b["level"] <= 16 and 1 <= b["duration_s"] <= 7 * 86400
-              and cl_blen(b["incident"]) <= 64 and cl_blen(b["event_id"]) <= 64 and cl_blen(b["net_class"]) <= 32 and cl_blen(b["node"]) <= 63)
+              and cl_blen(b["event_id"]) <= 64 and cl_blen(b["net_class"]) <= 32 and cl_blen(b["node"]) <= 63)
         if not ok or expires != b["until"]:
+            raise ClRefuse("schema")
+    elif cls == "lifts":
+        # D109: the end of the block of one incident, without an address.
+        l = cl_decode(rec, {"node": "str"})
+        if deleted or not CL_INCIDENT_ID.match(rec["id"]) or cl_blen(l["node"]) > 63 or expires == "":
             raise ClRefuse("schema")
     elif cls in CL_THINGS:
         # One entry of a thing: the id is the thing and the hash of the key.
@@ -4328,8 +4333,14 @@ def cl_check(roster, group, rec, now):
     if cls in CL_THINGS:
         if cl_thing_of(cls, rec["id"]) is None:
             raise ClRefuse("schema")
-    elif cls not in ("members", "blocks", "erasure", "certificates", "jobs"):
+    elif cls in ("incident_blocks", "lifts"):
+        if not CL_INCIDENT_ID.match(rec["id"]):
+            raise ClRefuse("schema")
+    elif cls == "blocks":
+        # The class of 0.1.0-alpha.6 is gone: refused for good, not kept unread.
         raise ClRefuse("schema")
+    elif cls not in ("members", "erasure", "certificates", "jobs"):
+        raise ClRefuse("class")
     if rec.get("expires", "") != "" and cl_time(rec["expires"]) is None:
         raise ClRefuse("schema")
     if (rec["hlc"] >> 16) > (now + 60) * 1000:

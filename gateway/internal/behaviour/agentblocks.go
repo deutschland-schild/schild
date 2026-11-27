@@ -28,6 +28,14 @@ func BlockSource(scenario string) string {
 	return "behaviour:" + scenario
 }
 
+// IsBlockSource reports whether a decision source of an incident names a
+// block: one of a scenario, of an agent or set by hand. The incident of a
+// single refused request (a rule, a rate limit, a limit of the gate) has
+// no such source, and no block to lift.
+func IsBlockSource(source string) bool {
+	return strings.HasPrefix(source, "behaviour:") || strings.HasPrefix(source, AgentSource) || source == DashboardSource
+}
+
 // AgentBlock is what an agent asks for, after every check. Source set to
 // DashboardSource is a block the operator set by hand (D88), without a token.
 type AgentBlock struct {
@@ -71,7 +79,7 @@ func (e *Engine) SetAgentBlock(a AgentBlock) (info BlockInfo, created bool) {
 	if persist {
 		e.keepLong(key, events.ActiveBlock{ClientKey: key.Addr().String(), KeyBits: bits, NetClass: a.NetClass, Source: scenario, Level: 1,
 			DurationS: int(a.Duration / time.Second), Since: a.Time.UTC().Truncate(time.Second).Format(time.RFC3339), Until: until.UTC().Format("2006-01-02T15:04:05Z"),
-			Incident: a.Incident}, a.EventID)
+			Incident: a.Incident}, a.EventID, false)
 	}
 	return BlockInfo{Scenario: scenario, Since: a.Time.UTC(), Until: until.UTC(), Level: 1, Incident: a.Incident, EventID: a.EventID, NetClass: a.NetClass,
 		Duration: a.Duration, Persisted: persist}, true
@@ -140,6 +148,25 @@ func (e *Engine) LiftIncident(incident string) bool {
 		e.reportEnded(now, incident)
 	}
 	return ended
+}
+
+// IncidentKey is the client key of the running block of an incident.
+func (e *Engine) IncidentKey(incident string) (Key, bool) {
+	if incident == "" {
+		return Key{}, false
+	}
+	now := e.now().UnixNano()
+	var key Key
+	e.blocks.sweep(func(k Key, b *blockState) bool {
+		if b.incident == incident && b.until > now {
+			key = k
+		}
+		return false
+	})
+	if !key.IsValid() {
+		key = e.longKey(incident, now)
+	}
+	return key, key.IsValid()
 }
 
 // AgentBlocks counts the agent blocks that run now.

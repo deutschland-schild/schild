@@ -14,7 +14,6 @@ import (
 	contractapi "github.com/deutschland-schild/schild/contract/agentapi"
 	contract "github.com/deutschland-schild/schild/contract/cluster"
 	"github.com/deutschland-schild/schild/gateway/internal/accesslock"
-	"github.com/deutschland-schild/schild/gateway/internal/behaviour"
 	"github.com/deutschland-schild/schild/gateway/internal/cluster"
 	"github.com/deutschland-schild/schild/gateway/internal/crawlers"
 	"github.com/deutschland-schild/schild/gateway/internal/dashboard"
@@ -836,6 +835,9 @@ func (a *App) publishErasure(ip netip.Addr, keepIncidents bool) uint64 {
 		a.log.Error("cluster: erasure not handed to the group: erase the address on every other node by hand", "err", err)
 		return 0
 	}
+	// The block records of the client leave the store of this node. The
+	// dashboard noted their lifts and forgot the client in the engine.
+	a.eraseGroupBlocks(ip, rec)
 	return rec.Seq
 }
 
@@ -854,6 +856,10 @@ func (a *App) takeErasure(ctx context.Context, rec *contract.Record) {
 	// Noted first: a request of the address that a member hands over from
 	// now on is not stored (cluster_data.go).
 	a.erased.note(ip, contract.HLCTime(rec.HLC))
+	// The blocks from before the erasure end with it, on this node and in
+	// its records; no lift is written for that, the node that erased wrote
+	// them. Before the store is touched: they end also when that fails.
+	a.eraseGroupBlocks(ip, rec)
 	if _, err := a.Store.DeleteIP(ctx, e.IP, e.KeepIncidents, dashboard.TruncateBody); err != nil {
 		a.log.Error("cluster: an address erased on another node was not erased here", "from", e.Node, "err", err)
 		return
@@ -861,14 +867,6 @@ func (a *App) takeErasure(ctx context.Context, rec *contract.Record) {
 	if xs, err := a.Store.ActiveExceptions(ctx, time.Now()); err == nil {
 		a.Gate.Exceptions.Load(xs)
 	}
-	// Forget it in the group's list first: the block ends because of the
-	// erasure, not because this node lifts it.
-	if key, _ := behaviour.KeyOf(ip); key.IsValid() {
-		a.groupBlocks.mu.Lock()
-		delete(a.groupBlocks.known, key)
-		a.groupBlocks.mu.Unlock()
-	}
-	a.Behaviour.Forget(ip)
 	_ = a.ReloadAllow(ctx)
 	if a.Requests != nil {
 		if _, err := a.Requests.ForgetIP(ctx, ip); err != nil {

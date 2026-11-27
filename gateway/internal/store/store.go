@@ -37,6 +37,8 @@ type Store struct {
 	// ownGen counts the writes of events and incidents that did not come
 	// from another node of a group (OwnGen).
 	ownGen atomic.Int64
+	// outbox: the lifts that wait for the group (outbox.go).
+	outbox outbox
 }
 
 const baseSchema = `
