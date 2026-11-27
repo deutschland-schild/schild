@@ -11,6 +11,7 @@ import (
 // D60b: app servers with schild-agent are not part of the first gateway
 // version; the server check of the gateway itself stays.
 func TestCheckHostAgents(t *testing.T) {
+	Parallel(t)
 	on, off := true, false
 	env := func(v string) func(string) string { return func(string) string { return v } }
 	cases := []struct {
@@ -47,6 +48,7 @@ func TestCheckHostAgents(t *testing.T) {
 // The exported check follows the build: the switch works only without
 // -tags release.
 func TestCheckHostAgentsFollowsBuild(t *testing.T) {
+	Parallel(t)
 	on := true
 	cfg := &config.Site{HostCheck: &config.HostCheck{Agents: config.AgentConfig{Enabled: &on}}}
 	err := CheckHostAgents(cfg, func(string) string { return "1" })

@@ -14,6 +14,9 @@ import (
 // The counters and charts of a group: a gateway holds the metric buckets of
 // the other gateway, shows that node alone and adds it to the group.
 func TestGroupShowsTheCountersOfEveryNode(t *testing.T) {
+	// Not parallel: the test compares sums over the last two minutes that it
+	// reads one after the other. When other tests took the CPU, a bucket
+	// moved between two reads (1 of 3 runs with every core busy).
 	a, b := pair(t)
 	if a.h.App.Monitor == nil || b.h.App.Monitor == nil {
 		t.Skip("monitoring is off in this harness")

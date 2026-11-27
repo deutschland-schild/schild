@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/deutschland-schild/schild/gateway/internal/app"
 	"github.com/deutschland-schild/schild/gateway/internal/store"
 )
 
@@ -14,6 +15,7 @@ import (
 // hash its state again and again: both work when something changed, and
 // once per safety interval otherwise.
 func TestIdleNodeLeavesItsSharedStateAlone(t *testing.T) {
+	// Not parallel: the test counts the work of an idle node in a window of real time.
 	a, b := pair(t)
 	a.h.WaitFor("both nodes are in service", func() bool { return a.h.App.InService() && b.h.App.InService() })
 	time.Sleep(8 * time.Second) // the first sync, its writes and what follows them are through
@@ -40,6 +42,7 @@ func TestIdleNodeLeavesItsSharedStateAlone(t *testing.T) {
 // database (schild token): the look is the change counter of the file,
 // which moves with a commit of any process.
 func TestChangeAndCommandLineWriteStillLeaveQuickly(t *testing.T) {
+	// Not parallel: the test has an upper bound for how long a change takes.
 	a, b := pair(t)
 	a.h.WaitFor("both nodes are in service", func() bool { return a.h.App.InService() && b.h.App.InService() })
 	time.Sleep(3 * time.Second)
@@ -84,6 +87,7 @@ func TestChangeAndCommandLineWriteStillLeaveQuickly(t *testing.T) {
 // are computed again when it comes near its end, so two nodes never
 // disagree for longer than a look.
 func TestStateIsHashedAgainWhenABlockNearsItsEnd(t *testing.T) {
+	app.Parallel(t)
 	a, b := pair(t)
 	a.h.WaitFor("both nodes are in service", func() bool { return a.h.App.InService() && b.h.App.InService() })
 	a.block("203.0.113.77", "S-ENDS-SOON", 14*time.Second)

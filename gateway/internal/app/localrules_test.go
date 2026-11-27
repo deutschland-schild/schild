@@ -18,6 +18,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus/testutil"
 
 	"github.com/deutschland-schild/schild/contract/bodylimit"
+	"github.com/deutschland-schild/schild/gateway/internal/app"
 	"github.com/deutschland-schild/schild/gateway/internal/apptest"
 	"github.com/deutschland-schild/schild/gateway/internal/control"
 	"github.com/deutschland-schild/schild/gateway/internal/gate"
@@ -70,6 +71,7 @@ func (r *rulesDir) count(result string) float64 {
 
 // The case of the measurement: an exception for one rule on one path, no restart.
 func TestReloadTakesAnException(t *testing.T) {
+	app.Parallel(t)
 	r := newRules(t)
 	const whoami, attack = "/api/v1/users/whoami", "/?x=1%27%20OR%20%271%27%3D%271"
 	if got := r.status(whoami); got != http.StatusForbidden {
@@ -91,6 +93,7 @@ func TestReloadTakesAnException(t *testing.T) {
 }
 
 func TestReloadAddsAndRemoves(t *testing.T) {
+	app.Parallel(t)
 	r := newRules(t)
 	if got := r.status("/stop-here"); got != http.StatusOK {
 		t.Fatalf("before: %d", got)
@@ -116,6 +119,7 @@ func TestReloadAddsAndRemoves(t *testing.T) {
 // What follows the set follows the reload: the config version of the agent API
 // and the rule list.
 func TestReloadMovesWhatDependsOnTheSet(t *testing.T) {
+	app.Parallel(t)
 	r := newRules(t)
 	before := r.h.App.ConfigHash()
 	r.write("a.conf", blockRule)
@@ -132,6 +136,7 @@ func TestReloadMovesWhatDependsOnTheSet(t *testing.T) {
 
 // Outside a cgroup no brake runs, and the gauge does not pretend it is calm.
 func TestNoBrakeShowsInTheGauge(t *testing.T) {
+	app.Parallel(t)
 	if _, err := os.Stat("/sys/fs/cgroup/memory.max"); err == nil {
 		t.Skip("inside a cgroup")
 	}
@@ -147,6 +152,7 @@ func TestNoBrakeShowsInTheGauge(t *testing.T) {
 
 // A file that does not build leaves the running set in place, whatever is wrong.
 func TestReloadRefusesABadFile(t *testing.T) {
+	app.Parallel(t)
 	for name, bad := range map[string]string{
 		"syntax":         `SecRule REQUEST_URI "@nosuchoperator x" "id:1000002,deny"`,
 		"cut off":        `SecRule REQUEST_URI "@beginsWith /x" "id:1000003,ph`,
@@ -188,6 +194,7 @@ func TestReloadRefusesABadFile(t *testing.T) {
 
 // A volume that went away is not an empty directory.
 func TestReloadRefusesAMissingDirectory(t *testing.T) {
+	app.Parallel(t)
 	r := newRules(t)
 	r.write("a.conf", blockRule)
 	if resp := r.reload(); !resp.OK {
@@ -205,6 +212,7 @@ func TestReloadRefusesAMissingDirectory(t *testing.T) {
 }
 
 func TestReloadUnchangedBuildsNothing(t *testing.T) {
+	app.Parallel(t)
 	r := newRules(t)
 	r.write("a.conf", blockRule)
 	if resp := r.reload(); !resp.OK {
@@ -222,6 +230,7 @@ func TestReloadUnchangedBuildsNothing(t *testing.T) {
 // Requests in flight and requests during the build see one set or the other, and
 // never an error (B07).
 func TestReloadDropsNoRequest(t *testing.T) {
+	// Not parallel: the test failed under load in CI (issue #57).
 	r := newRules(t)
 	// Eight clients at once: a slow machine must not answer 503 for a full
 	// evaluation queue, that is not what this test is about.
@@ -272,6 +281,7 @@ func TestReloadDropsNoRequest(t *testing.T) {
 
 // Two reloads at once and a hub swap between build and commit: nothing is lost.
 func TestReloadRebuildsAfterAnotherSwap(t *testing.T) {
+	app.Parallel(t)
 	r := newRules(t)
 	r.write("a.conf", blockRule)
 	done := make(chan control.Response, 1)
@@ -294,6 +304,7 @@ func TestReloadRebuildsAfterAnotherSwap(t *testing.T) {
 }
 
 func TestReloadOnSignal(t *testing.T) {
+	app.Parallel(t)
 	r := newRules(t)
 	r.write("a.conf", blockRule)
 	ctx, cancel := context.WithCancel(context.Background())

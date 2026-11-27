@@ -6,6 +6,8 @@ import (
 	"context"
 	"encoding/json"
 	"testing"
+
+	"github.com/deutschland-schild/schild/gateway/internal/app"
 )
 
 func kvOf(g *groupNode, key string) string {
@@ -30,6 +32,7 @@ func sameJSON(a, b string) bool {
 // that stores a new setting holds on every node of a group without knowing
 // the group (initiator 2026-11-22: everything set at runtime is shared).
 func TestAKeyNobodyRegisteredIsSharedInAGroup(t *testing.T) {
+	app.Parallel(t)
 	a, b := pair(t)
 	ctx := context.Background()
 	put := func(g *groupNode, key, v string) {

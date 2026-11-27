@@ -20,6 +20,7 @@ import (
 // without anybody doing anything.
 
 func TestEveryTableIsSharedOrPerNodeOnPurpose(t *testing.T) {
+	app.Parallel(t)
 	h := apptest.New(t, apptest.Options{Extra: "host_check: {}\n"})
 	tables, err := h.App.Store.Tables(context.Background())
 	if err != nil {
@@ -46,6 +47,7 @@ func TestEveryTableIsSharedOrPerNodeOnPurpose(t *testing.T) {
 }
 
 func TestEveryKeyOfTheStoreIsSharedOrPerNodeOnPurpose(t *testing.T) {
+	app.Parallel(t)
 	h := apptest.New(t, apptest.Options{Extra: "host_check: {}\n"})
 	h.Login()
 	h.Visit("GET", "/", "203.0.113.5", "", "")
@@ -72,6 +74,7 @@ func TestEveryKeyOfTheStoreIsSharedOrPerNodeOnPurpose(t *testing.T) {
 }
 
 func TestWhatTheGatewaySharesIsWhatTheContractTakes(t *testing.T) {
+	app.Parallel(t)
 	h := apptest.New(t, apptest.Options{})
 	registered := h.App.SharedThingIDs()
 	for _, class := range []string{contract.ClassSettings, contract.ClassAccess, contract.ClassLogins} {

@@ -12,6 +12,7 @@ import (
 	"time"
 
 	contract "github.com/deutschland-schild/schild/contract/cluster"
+	"github.com/deutschland-schild/schild/gateway/internal/app"
 	"github.com/deutschland-schild/schild/gateway/internal/cluster"
 )
 
@@ -37,6 +38,7 @@ func liveBlocks(t *testing.T, g *groupNode) []string {
 // N1 of the second lab measurement: 116 of 1 600 such blocks stayed listed
 // on every node and could not be lifted again).
 func TestBlockLiftedOnAnotherNodeAMomentLaterEndsForTheCluster(t *testing.T) {
+	app.Parallel(t)
 	nodes := trio(t)
 	for _, g := range nodes {
 		g.h.Login()
@@ -119,6 +121,7 @@ func TestBlockLiftedOnAnotherNodeAMomentLaterEndsForTheCluster(t *testing.T) {
 // blocks with equal hashes. What ends a block is its lift. (Until D109 a
 // node that held such an incident wrote the tombstone itself at its start.)
 func TestBlockRunsWhateverTheStatusOfItsIncident(t *testing.T) {
+	app.Parallel(t)
 	a, b := pair(t)
 	const ip, incident = "203.0.113.230", "K7QM-STAY"
 	a.block(ip, incident, 15*time.Minute)
@@ -150,6 +153,7 @@ func TestBlockRunsWhateverTheStatusOfItsIncident(t *testing.T) {
 // dashboard. The lift ends the block on the node that decided it, and when
 // the record of the block arrives after the lift, the block runs nowhere.
 func TestReleaseBeforeTheRecordCameKeepsTheBlockFromRunning(t *testing.T) {
+	app.Parallel(t)
 	a, b := pair(t)
 	b.h.Login()
 	inService(t, a, b)

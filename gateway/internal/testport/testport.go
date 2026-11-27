@@ -30,23 +30,43 @@ const (
 var (
 	mu   sync.Mutex
 	next int
+	// held are the ports of tests that still run. Tests that run in parallel
+	// draw from one block, and a server of one test may be down for a while
+	// (a node that restarts, a node that starts late): its port must not go
+	// to another test in between.
+	held = map[string]bool{}
 )
 
 // Free returns 127.0.0.1:port for a port nothing listens on, neither on
 // TCP nor on UDP (HTTP/3 binds the UDP port of the same number). Two calls
-// in a row never return the same port. A server that was given the port has
-// to be up, or gone, before the block of this process comes round again
-// (size calls later).
+// in a row never return the same port, and a port stays with its test until
+// the test ended, as long as the block has another one. When every port of
+// the block is held, the oldest way applies: a server that was given the
+// port has to be up, or gone, before the block of this process comes round
+// again (size calls later).
 func Free(t testing.TB) string {
 	t.Helper()
 	mu.Lock()
 	defer mu.Unlock()
 	base := first + os.Getpid()%blocks*size
-	for range size {
-		port := strconv.Itoa(base + next%size)
-		next++
-		if unused(port) {
-			return net.JoinHostPort("127.0.0.1", port)
+	for _, skipHeld := range []bool{true, false} {
+		for range size {
+			port := strconv.Itoa(base + next%size)
+			next++
+			if skipHeld && held[port] {
+				continue
+			}
+			if unused(port) {
+				if !held[port] {
+					held[port] = true
+					t.Cleanup(func() {
+						mu.Lock()
+						delete(held, port)
+						mu.Unlock()
+					})
+				}
+				return net.JoinHostPort("127.0.0.1", port)
+			}
 		}
 	}
 	t.Fatalf("testport: no unused port in %d-%d", base, base+size-1)

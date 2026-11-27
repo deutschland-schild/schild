@@ -38,6 +38,7 @@ func hasReason(t *testing.T, h *apptest.Harness, code string) bool {
 // dashboard_settings_dropped), and to `schild status` and `schild
 // preflight` (app.DroppedSettings). Saving settings again ends it (D78).
 func TestDroppedSettingsAreVisible(t *testing.T) {
+	app.Parallel(t)
 	dir := t.TempDir()
 	h := apptest.New(t, apptest.Options{Mode: "observe", Dir: dir})
 	h.Login()

@@ -4,8 +4,12 @@ import (
 	"context"
 	"net/netip"
 	"sort"
+	"strings"
+	"sync"
+	"testing"
 	"time"
 
+	"github.com/deutschland-schild/schild/gateway/internal/behaviour"
 	"github.com/deutschland-schild/schild/gateway/internal/hub"
 	"github.com/deutschland-schild/schild/gateway/internal/reqring"
 )
@@ -233,3 +237,29 @@ func (a *App) HashedBlocks() []string {
 // IncidentKnown reports whether the node would draw another number than
 // this one for a new block.
 func (a *App) IncidentKnown(incident string) bool { return a.incidentKnown(incident) }
+
+var parallelHashKey sync.Once
+
+// Parallel is t.Parallel for the tests of this package; no test calls
+// t.Parallel itself. The package comment of apptest says which test may be
+// parallel.
+//
+// The keyed hashes of the behaviour engine are one per process
+// (behaviour.SetHashKey), and a node of a group sets them from its group
+// secret when it starts. Groups that run at the same time would break each
+// other's tables. So from the first parallel test on, every node hashes
+// under one key, as with OneGroupHashKey. That is safe because Go continues
+// a parallel test only when every sequential test of the package ended:
+// those still run with the key of their own group. It holds for a test
+// function only, a subtest continues earlier.
+func Parallel(t *testing.T) {
+	t.Helper()
+	if strings.Contains(t.Name(), "/") {
+		t.Fatal("app.Parallel is for a test function, not for a subtest")
+	}
+	t.Parallel()
+	parallelHashKey.Do(func() {
+		testGroupHashKey = &[16]byte{16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1}
+		behaviour.SetHashKey(*testGroupHashKey)
+	})
+}

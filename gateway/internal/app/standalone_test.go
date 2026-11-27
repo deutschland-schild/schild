@@ -26,6 +26,7 @@ import (
 // network rules): a clean request passes, an attack attempt is blocked by
 // the CRS in autoblock and never reaches the backend.
 func TestLocalDecisions(t *testing.T) {
+	app.Parallel(t)
 	h := apptest.New(t, apptest.Options{})
 	if r := h.Visit("GET", "/hello", "198.51.100.23", "", ""); r.StatusCode != 200 {
 		t.Fatalf("clean: %d", r.StatusCode)

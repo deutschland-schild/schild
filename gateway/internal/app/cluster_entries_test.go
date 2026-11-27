@@ -23,6 +23,7 @@ func sameJSON(t *testing.T, got []byte, want string) {
 // Every codec: what split cuts, join puts back, and a change of one entry
 // touches no other.
 func TestEntryCodecs(t *testing.T) {
+	Parallel(t)
 	// A table: rows keyed by their first columns.
 	tc := tableCodec{pk: 1}
 	dump := []byte(`{"columns":["id","ip"],"rows":[["al_1","203.0.113.1"],["al_2","203.0.113.2"]]}`)
@@ -93,6 +94,7 @@ func TestEntryCodecs(t *testing.T) {
 
 // Split then join of nothing is the same set of entries, for every codec.
 func TestEntryCodecsRoundTrip(t *testing.T) {
+	Parallel(t)
 	cases := []struct {
 		c    entryCodec
 		blob string
