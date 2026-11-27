@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://contracts.schild.invalid/v0/audit-entry.schema.json",
   "title": "Audit entry (draft, MVP-36)",
-  "description": "One entry of the audit log (audit.md). Stored on the gateway and, in a group, on every node; never sent to a lab or relay. Holds no password, token, key or other secret.",
+  "description": "One entry of the audit log (audit.md). Stored on the gateway and, in a group, on every node; never sent to a lab or relay. Holds no password, token, key or other secret. Written once and never changed until audit.keep_days deletes it; the addresses in it stay that long.",
   "type": "object",
   "additionalProperties": false,
   "required": ["schema", "id", "time", "node", "class", "action", "operation", "result", "actor", "subject"],
@@ -16,8 +16,7 @@
     "operation": { "description": "What was called: <way>:<operation id, command or source>.", "type": "string", "maxLength": 96, "pattern": "^(dashboard|agent|integration|cli|config|system):[A-Za-z][A-Za-z0-9_ -]*$" },
     "result": { "type": "string", "enum": ["done", "refused"] },
     "actor": { "$ref": "#/$defs/actor" },
-    "address": { "description": "Address the call came from, or its network after retention.raw_ip_days. Absent on the host and after an erasure.", "type": "string", "maxLength": 64 },
-    "address_cut": { "type": "string", "enum": ["short", "erased"] },
+    "address": { "description": "Address the call came from, kept as long as the entry. Absent on the host.", "type": "string", "maxLength": 64 },
     "subject": {
       "type": "object",
       "additionalProperties": false,
@@ -73,8 +72,8 @@
         "added": { "$ref": "#/$defs/items" },
         "removed": { "$ref": "#/$defs/items" },
         "more": { "description": "Items of the list left out.", "type": "integer", "minimum": 1, "maximum": 1000000 },
-        "cut": { "description": "A value is longer than what is recorded.", "const": true },
-        "hidden": { "type": "string", "enum": ["secret", "unlisted", "list", "order", "size", "erased", "operator"] }
+        "cut": { "description": "A value was longer than what is recorded; decided when the entry was written.", "const": true },
+        "hidden": { "type": "string", "enum": ["secret", "unlisted", "list", "order", "size", "operator"] }
       }
     }
   }

@@ -123,7 +123,7 @@ func genAudit(g *gen) {
 	bad("entry-neither-value-nor-hidden", "A field says why it has no value.", in("local", entry("change", M{"fields": L{M{"field": "/path", "change": "added"}}})))
 	bad("entry-refused-with-change", "A refused call changes nothing.", in("local", refused("change", M{"fields": L{}})))
 	bad("entry-done-with-count", "Only refused calls are gathered.", in("local", entry("count", 2, "last", ts(0))))
-	bad("entry-erased-with-address", "An erased address is gone.", in("local", own("address_cut", "erased")))
+	bad("entry-address-cut", "No field says that an address was cut: an entry is never rewritten.", in("local", own("address_cut", "short")))
 	bad("entry-impossible-date", "A date that does not exist.", in("member", entry("time", "2026-02-30T12:00:00Z")))
 	bad("entry-token-as-id", "The id of a token, never the token.", in("local", entry("actor", M{"kind": "agent", "id": "sat1_0123456789abcdef"})))
 	bad("entry-subject-address", "A subject is never named by an address.", in("local", own("subject", M{"kind": "allowlist_entry", "id": "203.0.113.7"})))
@@ -170,39 +170,13 @@ func genAudit(g *gen) {
 	}
 	ok("keep-unlimited", "audit.keep_days unlimited: changes, credentials and privacy entries of ten years stay.", keep(nil, 10, row("k", "change", 1, 3650*day), row("k", "credential", 2, 3650*day), row("k", "privacy", 3, 3650*day), row("a", "access", 1, 3650*day)))
 	ok("keep-year", "The default, 365 days: from this age on they go.", keep(audit.DefaultKeepDays, 10, row("k", "change", 1, 365*day), row("k", "change", 2, 365*day-1), row("k", "privacy", 3, 366*day)))
-	ok("keep-access-90-days", "Sign-ins and refused calls: 90 days, whatever keep_days says.", keep(3650, 10, row("a", "access", 1, 90*day), row("a", "access", 2, 90*day-1), row("r", "refused", 1, 91*day)))
+	ok("keep-access-90-days", "Sign-ins and refused calls: 90 days, also when keep_days is longer.", keep(3650, 10, row("a", "access", 1, 90*day), row("a", "access", 2, 90*day-1), row("r", "refused", 1, 91*day)))
 	ok("keep-flood", "A flood of refused calls pushes out refused calls only.", keep(nil, 2, row("k", "change", 1, 50*day), row("a", "access", 1, 40*day), row("r", "refused", 1, 30), row("r", "refused", 2, 20), row("r", "refused", 3, 10), row("r", "refused", 4, 0)))
 	ok("keep-same-time", "At the same time in the order of the ids.", keep(nil, 1, row("r", "refused", 2, 5), row("r", "refused", 1, 5), row("r", "refused", 10, 5)))
-	bad("keep-days-short", "Not under 90 days.", keep(30, 10, row("k", "change", 1, 0)))
+	bad("keep-days-long", "Not over 36500 days.", keep(36501, 10, row("k", "change", 1, 0)))
 	bad("keep-days-zero", "0 is not unlimited.", keep(0, 10, row("k", "change", 1, 0)))
 	bad("keep-letter", "The id says the class.", keep(nil, 10, row("k", "refused", 1, 0)))
 	bad("keep-twice", "Every id once.", keep(nil, 10, row("k", "change", 1, 0), row("k", "change", 1, 0)))
-
-	// What is left.
-	cut := func(e M, days int64, kv ...any) M {
-		m := M{"op": "cut", "now": ts(time.Duration(days) * 24 * time.Hour), "raw_ip_days": 14, "entry": e}
-		for i := 0; i+1 < len(kv); i += 2 {
-			m[kv[i].(string)] = kv[i+1]
-		}
-		return m
-	}
-	ok("cut-not-yet", "Before raw_ip_days the entry stays as it is.", cut(own(), 13))
-	ok("cut-after-raw-ip-days", "From raw_ip_days on an address is its network, also in the texts of the entry.", cut(own(), 14))
-	ok("cut-network", "A network that is wide already stays, a narrow one does not.", cut(own("change", M{"fields": L{M{"field": "/cidr", "change": "changed", "before": "203.0.112.0/20", "after": "203.0.113.64/26"}}}), 15))
-	ok("cut-ipv6", "IPv6: /48, in a list each network once.", cut(entry("action", "access_lock.set", "operation", "cli:lock on", "actor", M{"kind": "cli", "account": "deploy"}, "subject", M{"kind": "website"}, "reason", nil,
-		"change", M{"fields": L{M{"field": "/addresses", "change": "changed", "added": L{"2001:db8:1:2::3", "2001:db8:1:3::/64", "203.0.113.7/32"}, "removed": L{"198.51.100.9"}}}}), 20))
-	ok("cut-text-neighbours", "A longer address that begins the same stays; the end of a sentence does not hide one.", cut(own("reason", "203.0.113.7. Not 203.0.113.77 and 1203.0.113.7, but (203.0.113.7/32)"), 14))
-	ok("cut-unknown-action", "Also the addresses in an entry of a later build.", cut(entry("action", "portal.add", "operation", "cli:portal add", "actor", M{"kind": "cli"}, "subject", M{"kind": "portal"}, "change", M{"fields": L{M{"field": "/origin", "change": "added", "after": "203.0.113.9"}}}), 14))
-	ok("cut-erased", "Art. 17: the address is gone everywhere in the entry, the entry stays.", cut(own("address", "203.0.113.7"), 1, "erased", L{"203.0.113.7"}))
-	ok("cut-erased-other", "Another address stays.", cut(own(), 1, "erased", L{"203.0.113.8", "2001:db8::1"}))
-	ok("cut-erased-ipv6-client", "An IPv6 client is its /64.", cut(entry("action", "block.set", "operation", "dashboard:createBlock", "actor", M{"kind": "dashboard", "user": "admin"}, "subject", M{"kind": "block", "id": "K7Q2-9MXT"},
-		"change", M{"fields": L{M{"field": "/client", "change": "added", "after": "2001:db8:1:2::/64"}, M{"field": "/duration_s", "change": "added", "after": 3600}}}), 1, "erased", L{"2001:db8:1:2::3"}))
-	ok("cut-erased-in-reason", "Also where only the reason names it.", cut(entry("reason", "Report of 203.0.113.7"), 1, "erased", L{"203.0.113.7"}))
-	ok("cut-erased-list-order", "A list without the address stays as it is, in its order.", cut(entry("change", M{"fields": L{M{"field": "/rules", "change": "added", "added": L{"942200", "942100"}}}}), 1, "erased", L{"203.0.113.7"}))
-	ok("cut-forgotten", "A person is a pseudonym, what was done stays.", cut(own(), 1, "forgotten", L{M{"kind": "dashboard", "name": "admin", "pseudonym": "person-1a2b3c4d"}}))
-	ok("cut-forgotten-portal", "The customer a portal named; the same name elsewhere is another person.", cut(entry("operation", "integration:createException", "actor", M{"kind": "integration", "id": "pk_0123456789ab", "label": "Portal", "session": "0a1b2c3d", "on_behalf_of": "customer-17"}), 1,
-		"forgotten", L{M{"kind": "cli", "name": "customer-17", "pseudonym": "person-00000000"}, M{"kind": "integration", "name": "customer-17", "pseudonym": "person-1a2b3c4d"}}))
-	bad("cut-pseudonym", "A pseudonym has one form.", cut(own(), 1, "forgotten", L{M{"kind": "dashboard", "name": "admin", "pseudonym": "Anna"}}))
 
 	// What a viewer sees.
 	view := func(who M, e M) M { return M{"op": "view", "viewer": who, "entry": e} }
@@ -220,7 +194,9 @@ func genAudit(g *gen) {
 	ok("view-website-unknown-action", "Nothing this build does not know.", view(site("shop.example"), entry("action", "portal.add", "operation", "cli:portal add", "actor", M{"kind": "cli"}, "subject", M{"kind": "portal"}, "change", nil)))
 	bad("view-website-without-id", "A website's viewer names the website.", view(M{"kind": "website"}, portal))
 
-	// Cuts added later stand here, so no earlier vector changes its number.
-	ok("cut-list-once", "A list whose texts were cut holds each item once again, in byte order.", cut(entry("change", M{"fields": L{M{"field": "/rules", "change": "added", "added": L{"203.0.113.7", "a 203.0.113.0/24", "a 203.0.113.7", "203.0.113.5 a", "203.0.113.7 a"}}}}), 14))
-	ok("cut-erased-list-once", "Also when an address in its texts was erased.", cut(entry("change", M{"fields": L{M{"field": "/rules", "change": "added", "added": L{"a erased", "a 203.0.113.7", "203.0.113.7 a"}}}}), 1, "erased", L{"203.0.113.7"}))
+	// Short retention (2026-11-27): who needs addresses gone sets audit.keep_days.
+	ok("keep-14-days", "audit.keep_days 14: from this age on a change goes, with every address it holds.", keep(14, 10, row("k", "change", 1, 14*day), row("k", "change", 2, 14*day-1), row("k", "privacy", 3, 15*day), row("k", "credential", 4, 13*day)))
+	ok("keep-access-not-longer", "Sign-ins and refused calls are never kept longer than audit.keep_days.", keep(14, 10, row("a", "access", 1, 14*day), row("a", "access", 2, 14*day-1), row("r", "refused", 1, 89*day), row("r", "refused", 2, 13*day)))
+	ok("keep-one-day", "The lower bound is one day.", keep(1, 10, row("k", "change", 1, day), row("k", "change", 2, day-1), row("a", "access", 1, day)))
+	ok("view-dashboard-old", "An entry older than retention.raw_ip_days reads as it was written, with its addresses.", view(M{"kind": "dashboard"}, own("time", "2026-01-05T12:00:00Z")))
 }

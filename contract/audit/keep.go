@@ -6,11 +6,12 @@ import (
 )
 
 // Changes, credentials and privacy entries are kept audit.keep_days and have
-// no cap; sign-ins and refused calls have a fixed age and a cap each.
+// no cap; sign-ins and refused calls are kept AccessDays, never longer than
+// audit.keep_days, and have a cap each.
 const (
 	// DefaultKeepDays: audit.keep_days when schild.yaml does not set it.
 	DefaultKeepDays = 365
-	MinKeepDays     = 90
+	MinKeepDays     = 1
 	MaxKeepDays     = 36500
 	AccessDays      = 90
 	MaxAccessRows   = 20000
@@ -31,8 +32,12 @@ type Row struct {
 }
 
 // Delete returns the ids to delete, oldest first. keepDays 0 is
-// audit.keep_days: unlimited.
+// audit.keep_days: unlimited. Nothing else removes or changes an entry.
 func Delete(rows []Row, now, keepDays, maxRows int64) []string {
+	accessDays := int64(AccessDays)
+	if keepDays > 0 && keepDays < accessDays {
+		accessDays = keepDays
+	}
 	rs := append([]Row(nil), rows...)
 	sort.Slice(rs, func(i, j int) bool {
 		if rs[i].T != rs[j].T {
@@ -49,7 +54,7 @@ func Delete(rows []Row, now, keepDays, maxRows int64) []string {
 		gone := false
 		switch r.Class {
 		case ClassAccess, ClassRefused:
-			gone = r.T <= now-AccessDays*dayMS || n[r.Class] > maxRows
+			gone = r.T <= now-accessDays*dayMS || n[r.Class] > maxRows
 		default:
 			gone = keepDays > 0 && r.T <= now-keepDays*dayMS
 		}

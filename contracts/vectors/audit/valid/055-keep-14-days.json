@@ -1,0 +1,45 @@
+{
+  "contract": "audit",
+  "description": "audit.keep_days 14: from this age on a change goes, with every address it holds.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"keep_days\":14,\"max_rows\":10,\"now\":1793016000000,\"op\":\"keep\",\"rows\":[{\"class\":\"change\",\"id\":\"0a1b2c3d4e5f6071-k-1\",\"t\":1791806400000},{\"class\":\"change\",\"id\":\"0a1b2c3d4e5f6071-k-2\",\"t\":1791806400001},{\"class\":\"privacy\",\"id\":\"0a1b2c3d4e5f6071-k-3\",\"t\":1791720000000},{\"class\":\"credential\",\"id\":\"0a1b2c3d4e5f6071-k-4\",\"t\":1791892800000}]}",
+  "input_decoded": {
+    "keep_days": 14,
+    "max_rows": 10,
+    "now": 1793016000000,
+    "op": "keep",
+    "rows": [
+      {
+        "class": "change",
+        "id": "0a1b2c3d4e5f6071-k-1",
+        "t": 1791806400000
+      },
+      {
+        "class": "change",
+        "id": "0a1b2c3d4e5f6071-k-2",
+        "t": 1791806400001
+      },
+      {
+        "class": "privacy",
+        "id": "0a1b2c3d4e5f6071-k-3",
+        "t": 1791720000000
+      },
+      {
+        "class": "credential",
+        "id": "0a1b2c3d4e5f6071-k-4",
+        "t": 1791892800000
+      }
+    ]
+  },
+  "expect": {
+    "valid": true,
+    "result": {
+      "deleted": [
+        "0a1b2c3d4e5f6071-k-3",
+        "0a1b2c3d4e5f6071-k-1"
+      ]
+    }
+  }
+}

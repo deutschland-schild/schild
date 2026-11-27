@@ -3,7 +3,7 @@
 
 contracts-check (Go) and crosscheck.py (Python) then have to agree on them:
 addresses in every spelling, next to each other and inside texts, states of
-every action, and calls over several minutes. Part of `make contracts-fuzz`.
+every action, calls over several minutes, and rows of every age. Part of `make contracts-fuzz`.
 """
 
 import argparse
@@ -58,7 +58,6 @@ def main():
         e = json.loads(json.dumps(r.choice(entries)))
         if r.random() < .6:
             e["address"] = r.choice(ADDR)
-            e.pop("address_cut", None)
         if r.random() < .6:
             e["reason"] = text()
         if r.random() < .3:
@@ -90,8 +89,12 @@ def main():
     for i in range(a.n):
         k = r.randint(0, 5)
         if k <= 1:
-            doc = {"op": "cut", "now": "2026-11-%02dT12:00:00Z" % r.randint(1, 28), "raw_ip_days": r.randint(1, 30),
-                   "erased": [r.choice(ADDR) for _ in range(r.randint(0, 3))], "entry": entry()}
+            log, rows = "0a1b2c3d4e5f6071", []
+            for j in range(r.randint(0, 30)):
+                cls = r.choice(["change", "credential", "privacy", "access", "refused"])
+                rows.append({"id": "%s-%s-%d" % (log, {"access": "a", "refused": "r"}.get(cls, "k"), j + 1), "class": cls,
+                             "t": (400 - r.choice([0, 1, 14, 89, 90, 91, 365])) * 86400000 + r.randint(-1, 1)})
+            doc = {"op": "keep", "now": 400 * 86400000, "keep_days": r.choice([None, 1, 14, 89, 90, 91, 365, 36500]), "max_rows": r.randint(1, 8), "rows": rows}
         elif k == 2:
             act = r.choice(actions)
             doc = {"op": "diff", "action": act["action"], "before": r.choice([None, state(act)]), "after": state(act)}

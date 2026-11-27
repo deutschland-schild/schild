@@ -47,8 +47,7 @@
       "operation": "dashboard:addAllowlistEntry",
       "result": "done",
       "actor": { "kind": "dashboard", "user": "admin", "session": "0a1b2c3d" },
-      "address": "198.51.100.0/24",
-      "address_cut": "short",
+      "address": "198.51.100.20",
       "subject": { "kind": "allowlist_entry", "id": "al_7f3c" },
       "change": {
         "fields": [

@@ -4,7 +4,7 @@ Who changed what, when, through which way, and what it was before. One list for 
 
 Go: `contract/audit`. Vectors: `audit` (input [audit.schema.json](audit.schema.json)), cross-checked by `tools/crosscheck.py`. An entry: [audit-entry.schema.json](audit-entry.schema.json). The closed list of actions: [audit-actions.json](audit-actions.json).
 
-**An entry of a change is kept a year by default; `audit.keep_days` makes it shorter, longer or unlimited.** No size cap or flood removes it earlier. Personal data in it ends sooner (section 7).
+**An entry of a change is kept a year by default; `audit.keep_days` makes it shorter, longer or unlimited.** No size cap or flood removes it earlier. The addresses and names in it are kept as long (section 7).
 
 ## 1. Entry
 
@@ -17,8 +17,8 @@ Go: `contract/audit`. Vectors: `audit` (input [audit.schema.json](audit.schema.j
 | `operation` | the way and what was called there: `dashboard:addAllowlistEntry`, `agent:createAgentBlock`, `cli:token add`, `config:caddyfile`, `system:expiry` |
 | `result` | `done` or `refused`. A change that failed has no entry: nothing changed |
 | `actor` | `dashboard` (user, short session id), `agent` (token id, label), `integration` (portal key id, label, session, who the portal says it acts for), `cli` (host account as the command saw it), `config`, `system` |
-| `address` | where the call came from; absent for the CLI, the configuration and `system` |
-| `subject` | kind and id of what changed. Never an address: a block is named by its incident, a client by nothing |
+| `address` | where the call came from, kept as long as the entry; absent for the CLI, the configuration and `system` |
+| `subject` | kind and id of what changed. Never an address, because every viewer sees the subject: a block is named by its incident, a client by nothing |
 | `website` | the website the change belongs to; absent for what is global |
 | `change` | the changed fields (section 3) |
 | `reason` | text the caller gave, at most 500 bytes, untrusted |
@@ -74,11 +74,11 @@ Only what was authenticated or tried to sign in is gathered here. A request the 
 
 | Class | Kept |
 | --- | --- |
-| `change`, `credential`, `privacy` | `audit.keep_days`: 365 by default, 90 to 36 500, or `unlimited` |
-| `access` | 90 days, at most 20 000 rows |
-| `refused` | 90 days, at most 20 000 rows |
+| `change`, `credential`, `privacy` | `audit.keep_days`: 365 by default, 1 to 36 500, or `unlimited` |
+| `access` | 90 days, never longer than `audit.keep_days`, at most 20 000 rows |
+| `refused` | 90 days, never longer than `audit.keep_days`, at most 20 000 rows |
 
-The two caps are apart, so failed sign-ins push out neither changes nor the sign-ins that worked.
+The two caps are apart, so failed sign-ins push out neither changes nor the sign-ins that worked. With `audit.keep_days: 14` nothing in the log is older than 14 days.
 
 - **When.** Daily with the retention of events, in the outbox as well, and before an entry of a member is stored: what is too old here is not taken, so it does not come back from a node that keeps longer. `audit.keep_days` is a setting of the node. The age counts from `time`, at the latest from when this node stored the entry, so a clock in the future does not make an entry last.
 - **No entry about it.** A deletion by age writes no entry. A changed `audit.keep_days` is in `config.apply`.
@@ -88,12 +88,13 @@ The two caps are apart, so failed sign-ins push out neither changes nor the sign
 
 ## 7. Personal data
 
-`audit.Cut` (op `cut`), run like the retention of events, and on every entry that comes from a member.
+An entry is written once and never changed. Its age deletes it (section 6), nothing else does. No run shortens, erases or replaces anything in a stored entry (maintainer, 2026-11-27).
 
-- **Addresses** (the call's, and every value that is an address or a network) become their network after `retention.raw_ip_days`: IPv4 /24, IPv6 /48. A wider network stays. The same address in the reason, a label, a subject or another value of that entry is cut with it.
-- **Erasure (Art. 17 GDPR).** `privacy/delete` takes the address out of every entry: the call's address is gone (`address_cut: erased`), a field that held it has `hidden: erased`, in texts it reads `erased`. An IPv6 client is recorded as its /64, so an erasure of an address in it takes that too. The entry stays. `privacy/export` carries the entries that name the address.
-- **A person** (dashboard user, host account, customer named by a portal): `schild audit forget --user|--account|--on-behalf-of NAME` replaces the name in the actor field by `person-` and 8 hex characters, the same for every entry of that person. Free text is not searched for names. The command writes `audit.forget` with the pseudonym and the number of entries, without the name. The pseudonym is random. What maps a name to it is kept 31 days, as a keyed digest, so entries of a node that was away are replaced as well (kv `audit_pseudonyms_v1`); then it goes and nobody can tell any more who it was.
-- Whether a pseudonym is enough for a request depends on the case; the operator decides. The docs say so.
+- **The log holds addresses as long as it holds the entry.** Own IPs, released addresses and blocked clients as values, the address of a call, and what a reason or a label names. `retention.raw_ip_days` does not reach the audit log.
+- **Erasure (Art. 17 GDPR) does not reach it either.** `privacy/delete` leaves every entry as it is. An entry that names the address keeps it until `audit.keep_days`. `privacy.erase` writes its own entry: that it happened and how much, without the address. `privacy/export` carries the entries that name the address.
+- **Who needs addresses gone after N days sets `audit.keep_days: N`**, for example 14. Then who changed what ends at that age as well. Sign-ins and refused calls are never kept longer than that.
+- **Names of people** (dashboard user, host account, who a portal says it acts for) stay until the entry is deleted too. No command replaces them.
+- Whether this is enough for a request depends on the case; the operator decides. The docs say so.
 
 ## 8. Reading
 
@@ -107,8 +108,8 @@ The two caps are apart, so failed sign-ins push out neither changes nor the sign
 
 Reasons, labels and the name a portal gives are text from outside: `x-untrusted`, shown as text, never an instruction.
 
-- **CLI:** `schild audit [--website ID] [--token ID] [--action A] [--since 7d] [--json]`, `schild audit check`, `schild audit forget`.
-- **Copy:** `audit.stream: stdout` or a file path writes every entry as one JSON line when it is written. A copy that cannot be written is counted and shown; it never holds a change back. Retention and erasure do not reach the copy; the docs say so.
+- **CLI:** `schild audit [--website ID] [--token ID] [--action A] [--since 7d] [--json]`, `schild audit check`.
+- **Copy:** `audit.stream: stdout` or a file path writes every entry as one JSON line when it is written. A copy that cannot be written is counted and shown; it never holds a change back. Retention does not reach the copy; the docs say so.
 - **Dashboard:** Einstellungen > Protokoll; from a token to its entries, and at a setting who changed it last.
 
 ## 9. Group
@@ -125,9 +126,9 @@ The mesh carries the log ([cluster.md](cluster.md) section 7), with no record cl
 
 Not yet changed there, so no release accepts a setting or names a call that does nothing:
 
-- `config-schild`: `audit.keep_days` (integer 90 to 36 500 or `unlimited`; default 365), `audit.stream` (absent).
+- `config-schild`: `audit.keep_days` (integer 1 to 36 500 or `unlimited`; default 365), `audit.stream` (absent).
 - `gateway-agent.openapi.yaml` (served to agents): `listAgentAudit`. The dashboard API has `listAudit` already, its fixture is in `fixtures/pending/client/`.
 - Hints `audit_size` (notice) and `audit_stuck` (warning), both server only.
-- [cluster.md](cluster.md): kind `audit` of Ask, part of the head `s`. The tables `audit_outbox`, `audit_state` and `audit_config` are per node; `audit_pseudonyms_v1` is shared as a setting.
-- `privacy/export`: the entries of the address.
+- [cluster.md](cluster.md): kind `audit` of Ask, part of the head `s`. The tables `audit_outbox`, `audit_state` and `audit_config` are per node.
+- `privacy/export`: the entries that name the address. `privacy/delete` and `retention.raw_ip_days` stay as they are and do not touch the log.
 - The existing events stay as they are.

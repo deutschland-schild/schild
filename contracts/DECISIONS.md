@@ -955,7 +955,7 @@ Two findings before the release. First: the session cookie was `Secure` for ever
 
 Contract: [audit.md](audit.md). Asked for by the initiator on 2026-11-25 ("welcher Token was geändert hat"), and on the same day: a year by default, unlimited possible ("auch unbegrenzt möglich. Default = 1 Jahr"). That replaces the earlier direction that changes are never deleted ("warum überhaupt löschen?"). The points below are the contracts agent's, for the initiator to confirm.
 
-- **`audit.keep_days` in `schild.yaml`: 365 by default, 90 to 36 500 or `unlimited`** for changes, credentials and privacy entries, without a cap on rows. A word instead of 0: 0 days reads like nothing is kept. No entry about a deletion by age: with a default there would be one every day. Sign-ins and refused calls: 90 days and 20 000 rows, each with a cap of its own, because anybody can make refused calls.
+- **`audit.keep_days` in `schild.yaml`: 365 by default, 1 to 36 500 or `unlimited`** for changes, credentials and privacy entries, without a cap on rows. A word instead of 0: 0 days reads like nothing is kept. No entry about a deletion by age: with a default there would be one every day. Sign-ins and refused calls: 90 days, never longer than `audit.keep_days`, and 20 000 rows, each with a cap of its own, because anybody can make refused calls.
 - **An own file, `audit.db`.** In `schild.db` a growing log would push events out of the 100 MB cap. The entry is written into an outbox of `schild.db` in the transaction of the change and moved afterwards, because SQLite in WAL mode is not atomic over two files.
 - **Not in the disk budget.** A log without a bound in size must not keep a gateway from starting. A hint at 1 GiB instead.
 - **Values come from a closed list of fields per action.** A field nobody listed shows by its name only, and a name that ends like a secret never has a value. A block list of secrets alone would miss the next one.
@@ -965,6 +965,7 @@ Contract: [audit.md](audit.md). Asked for by the initiator on 2026-11-25 ("welch
 - **A failed sign-in names no user.** What was typed may be a password.
 - **No new setting or agent call in the published contracts before the build** (section 10): a gateway that accepts `audit.keep_days` and does nothing would be a false promise.
 - **Found on the way.** The dashboard serves `GET`, `PUT` and `DELETE /websites/{website}/human-check` without an entry in `client-dashboard.openapi.yaml`. The list names the two writing ones under `undocumented`; the document is still to be completed.
+- **No cut of stored entries (maintainer, 2026-11-27).** The first draft shortened addresses after `retention.raw_ip_days`, took an erased address out of entries and replaced a named person by a pseudonym (`schild audit forget`). The maintainer dropped cutting and anonymising of stored entries as too complex; retention is the answer for privacy. An entry is written once and then only deleted by its age. The log holds addresses as long as the entry is kept; who needs them gone after N days sets `audit.keep_days: N`, so the lower bound is 1 instead of 90.
 
 ## D107 No tenants: customers of hosters see their website in the hoster's portal (DRAFT / ENTWURF, initiator 2026-11-25; MVP-34, MVP-35, MVP-36, not built)
 
@@ -973,7 +974,7 @@ Contract: [audit.md](audit.md). Asked for by the initiator on 2026-11-25 ("welch
 - **Integration API instead** ([MVP-35](../tests/specs/MVP-35-integration-api.yaml)): a listener of its own; a portal key that only opens short sessions; a session holds one website and named capabilities, and the gateway enforces both. Own answer types, because the `site` filter of the agent API is a filter and not a boundary.
 - **No frontend** (initiator 2026-11-26: "kein frontend"). Schild offers the API, its OpenAPI document and a guide for the portal backend. The portal builds its own pages. Every field with text from outside is `x-untrusted`, because a portal that shows it as HTML runs script of an attacker.
 - **The way back stays inside one website:** rule exceptions made from an event, own IPs of the website, ending its automatic blocks. Everything with effect on another website stays with the operator. Own IPs and blocks need a website scope first ([MVP-34](../tests/specs/MVP-34-website-scope.yaml)); `behaviour.block_scope` stays `gateway` by default.
-- **Every change is in one audit log** ([MVP-36](../tests/specs/MVP-36-audit-log.yaml)) with who changed it, also which token. It comes first. Entries of changes are kept a year by default, without an end when the operator sets it (D108); personal data in them is cut.
+- **Every change is in one audit log** ([MVP-36](../tests/specs/MVP-36-audit-log.yaml)) with who changed it, also which token. It comes first. Entries of changes are kept a year by default, without an end when the operator sets it (D108); addresses in them stay as long as the entry, and a short `audit.keep_days` is the way to end them (D108, 2026-11-27).
 - **Order:** MVP-36, then MVP-34, the reading part of MVP-35 next to them, then its writes.
 - **Not included.** Users who have no portal with logins get no separate access.
 

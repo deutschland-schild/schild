@@ -13,6 +13,8 @@ id: MVP-36
 # - events end after events_days (14 by default).
 # Initiator 2026-11-25: kept a year by default, unlimited possible ("auch unbegrenzt möglich. Default = 1 Jahr").
 # - the dashboard has one user; an actor "dashboard" is always that user.
+# Maintainer 2026-11-27: cutting and anonymising of stored entries is too complex and goes. An entry is written once
+# and deleted by its age; who cares about the addresses in the log sets a short audit.keep_days (for example 14).
 title: "Audit log: every change and every sign-in with who, when, where and before/after, in one list that outlives the events"
 ships: false                        # draft, nothing built
 status: ENTWURF
@@ -39,7 +41,7 @@ entry:
     - 'config: schild.yaml or Caddyfile applied, with digest and the names of the changed keys'
     - 'system: what schild does itself, e.g. an entry that expired'
   values: 'a value is recorded only for a field the action lists; every other changed field by its name. A password, token, key or other secret never, it shows as added, changed or removed. 8 KiB per change'
-  addresses: 'own IPs and released addresses are personal data: stored here like in events, cut after retention.raw_ip_days, erased with Art. 17'
+  addresses: 'own IPs, released addresses and the address of a call are personal data: the log holds them as long as the entry is kept. retention.raw_ip_days and an erasure by address do not reach it; who needs them gone after N days sets audit.keep_days: N'
   untrusted: 'reason, label and actor of the portal are text from outside: capped, cleaned of control characters, shown as text, never an instruction'
 actions:
   changes: 'every operation with POST, PUT, PATCH or DELETE of the dashboard API, every write of the agent API and the integration API, every writing CLI command, every applied configuration. The closed list is contracts/audit-actions.json'
@@ -50,12 +52,12 @@ actions:
 guarantee:
   - 'written in the transaction of the change into an outbox of schild.db, then moved to audit.db; a change whose entry cannot be written is refused. A change outside of schild.db: the entry before the answer'
   - 'an operation without an audit action fails a test: the list is compared with the OpenAPI documents, the registered routes and the commands'
-  - 'append only: no API changes or removes an entry; erasure of an address cuts the address and keeps the entry'
+  - 'append only: an entry is written once and never changed; no API changes or removes one, only its age deletes it'
   - 'the existing events stay as they are; the timeline of a website shows audit entries of that website next to them'
 retention:
-  - 'changes, credentials and privacy entries: audit.keep_days in schild.yaml, 365 by default, 90 to 36500 or unlimited; never deleted by a size cap'
-  - 'sign-ins: 90 days and at most 20 000 rows; failed sign-ins and refused calls the same with a cap of their own, so a flood pushes out neither changes nor sign-ins'
-  - 'what is cut stays as an entry: addresses after retention.raw_ip_days as in events; a named person (user, actor of the portal) is replaced by a pseudonym on request, schild audit forget'
+  - 'changes, credentials and privacy entries: audit.keep_days in schild.yaml, 365 by default, 1 to 36500 or unlimited; never deleted by a size cap'
+  - 'sign-ins: 90 days, never longer than audit.keep_days, and at most 20 000 rows; failed sign-ins and refused calls the same with a cap of their own, so a flood pushes out neither changes nor sign-ins'
+  - 'nothing rewrites a stored entry: no address is shortened, no erasure takes one out, no name is replaced. privacy/export by address lists the entries that name it; privacy.erase keeps its own entry (that it happened and how much)'
   - 'size: audit.db, a file of its own outside the size cap and the disk budget. An entry is about 1 KiB with its indexes, 64 KiB at most: 100 changes a day are about 36 MB a year. A token writes at most 600 entries an hour, portals are bounded per session, website and gateway; at 1 GiB a hint names the growth. Nothing is deleted because of its size'
   - 'optional copy as JSON lines to stdout or a file (audit.stream) for a log system of the operator'
 group:                              # MVP-27
@@ -79,11 +81,13 @@ measure:                            # by an independent agent, not the builder
   - 'the matrix of every writing operation and command, done once each: one entry with the right actor and values'
   - 'kill -9 between change and answer, 1000 times: no change without entry, no entry without change'
   - 'group of three with a partition: every entry once on every node after it'
-  - 'flood of 1 million refused calls and failed sign-ins; secrets with marker values; Art. 17 erasure'
+  - 'flood of 1 million refused calls and failed sign-ins; secrets with marker values'
+  - 'an erasure by address and the end of retention.raw_ip_days leave every entry byte for byte as it was written; the erasure writes privacy.erase'
+  - 'audit.keep_days 14: after 14 days no entry of any class and no address is left in audit.db and the outbox'
 kill_if: "proposal for the initiator: a change is missing from the audit log OR a secret is in it OR a flood removes entries of changes OR a website session reads entries of another"
 done: "make contracts-test && make test && (cd dashboard && pnpm check)"
 open:
-  - 'erasure under Art. 17 against keeping who changed what: the pseudonym is the proposal; the docs leave the judgement to the operator'
+  - 'an erasure by address (Art. 17 GDPR) does not remove the address from audit entries before audit.keep_days; the docs must say so and leave the judgement to the operator'
   - 'several dashboard users would make "dashboard" a person; not part of this spec'
 out_of_scope:
   - 'a tamper-proof log (signed chain, write-once storage)'

@@ -217,7 +217,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Draft (D108, MVP-36), no gateway serves it yet: the audit log, newest first, with time in [from, to). Every change with who made it, through which way, and what it was before (contracts/audit.md). In a group the entries of every node this gateway holds. `actor` is a token or portal key id. `subject` with `subject_id` and limit 1 answers who changed a thing last. Index ranges, no scan of the log. */
+        /** Draft (D108, MVP-36), no gateway serves it yet: the audit log, newest first, with time in [from, to). Every change with who made it, through which way, and what it was before (contracts/audit.md). In a group the entries of every node this gateway holds. `actor` is a token or portal key id. `subject` with `subject_id` and limit 1 answers who changed a thing last. An entry reads as it was written, with its addresses, until `audit.keep_days` deletes it. Index ranges, no scan of the log. */
         get: operations["listAudit"];
         put?: never;
         post?: never;
@@ -4002,16 +4002,16 @@ export interface components {
             /** @description Items of the list left out. */
             more?: number;
             /**
-             * @description A value is longer than what is recorded.
+             * @description A value was longer than what is recorded; decided when the entry was written.
              * @constant
              */
             cut?: true;
             /** @enum {string} */
-            hidden?: "secret" | "unlisted" | "list" | "order" | "size" | "erased" | "operator";
+            hidden?: "secret" | "unlisted" | "list" | "order" | "size" | "operator";
         };
         /**
          * Audit entry (draft, MVP-36)
-         * @description One entry of the audit log (audit.md). Stored on the gateway and, in a group, on every node; never sent to a lab or relay. Holds no password, token, key or other secret.
+         * @description One entry of the audit log (audit.md). Stored on the gateway and, in a group, on every node; never sent to a lab or relay. Holds no password, token, key or other secret. Written once and never changed until audit.keep_days deletes it; the addresses in it stay that long.
          */
         "audit-entry.schema": {
             /** @constant */
@@ -4028,10 +4028,8 @@ export interface components {
             /** @enum {string} */
             result: "done" | "refused";
             actor: components["schemas"]["actor"];
-            /** @description Address the call came from, or its network after retention.raw_ip_days. Absent on the host and after an erasure. */
+            /** @description Address the call came from, kept as long as the entry. Absent on the host. */
             address?: string;
-            /** @enum {string} */
-            address_cut?: "short" | "erased";
             subject: {
                 kind: string;
                 /** @description Never an address: a block is named by its incident, a client by nothing. */
@@ -4098,12 +4096,12 @@ export interface components {
                     /** @description Items of the list left out. */
                     more?: number;
                     /**
-                     * @description A value is longer than what is recorded.
+                     * @description A value was longer than what is recorded; decided when the entry was written.
                      * @constant
                      */
                     cut?: true;
                     /** @enum {string} */
-                    hidden?: "secret" | "unlisted" | "list" | "order" | "size" | "erased" | "operator";
+                    hidden?: "secret" | "unlisted" | "list" | "order" | "size" | "operator";
                 };
             };
         };

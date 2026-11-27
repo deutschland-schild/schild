@@ -1,10 +1,10 @@
 {
   "contract": "audit",
-  "description": "A pseudonym has one form.",
+  "description": "No field says that an address was cut: an entry is never rewritten.",
   "context": {
     "now": "2026-10-26T12:00:00Z"
   },
-  "input_raw": "{\"entry\":{\"action\":\"allowlist.add\",\"actor\":{\"kind\":\"dashboard\",\"session\":\"0a1b2c3d\",\"user\":\"admin\"},\"address\":\"198.51.100.20\",\"change\":{\"fields\":[{\"after\":\"203.0.113.7\",\"change\":\"added\",\"field\":\"/ip\"},{\"after\":\"CLI 203.0.113.7\",\"change\":\"added\",\"field\":\"/label\"},{\"after\":\"no_block\",\"change\":\"added\",\"field\":\"/level\"}]},\"class\":\"change\",\"id\":\"0a1b2c3d4e5f6071-k-17\",\"node\":\"gw-1\",\"operation\":\"dashboard:addAllowlistEntry\",\"reason\":\"Office 203.0.113.7, see ticket\",\"result\":\"done\",\"schema\":\"schild.audit/0.1\",\"subject\":{\"id\":\"al_1\",\"kind\":\"allowlist_entry\"},\"time\":\"2026-10-26T12:00:00Z\",\"website\":\"shop.example\"},\"forgotten\":[{\"kind\":\"dashboard\",\"name\":\"admin\",\"pseudonym\":\"Anna\"}],\"now\":\"2026-10-27T12:00:00Z\",\"op\":\"cut\",\"raw_ip_days\":14}",
+  "input_raw": "{\"entry\":{\"action\":\"allowlist.add\",\"actor\":{\"kind\":\"dashboard\",\"session\":\"0a1b2c3d\",\"user\":\"admin\"},\"address\":\"198.51.100.20\",\"address_cut\":\"short\",\"change\":{\"fields\":[{\"after\":\"203.0.113.7\",\"change\":\"added\",\"field\":\"/ip\"},{\"after\":\"CLI 203.0.113.7\",\"change\":\"added\",\"field\":\"/label\"},{\"after\":\"no_block\",\"change\":\"added\",\"field\":\"/level\"}]},\"class\":\"change\",\"id\":\"0a1b2c3d4e5f6071-k-17\",\"node\":\"gw-1\",\"operation\":\"dashboard:addAllowlistEntry\",\"reason\":\"Office 203.0.113.7, see ticket\",\"result\":\"done\",\"schema\":\"schild.audit/0.1\",\"subject\":{\"id\":\"al_1\",\"kind\":\"allowlist_entry\"},\"time\":\"2026-10-26T12:00:00Z\",\"website\":\"shop.example\"},\"from\":\"local\",\"op\":\"entry\"}",
   "input_decoded": {
     "entry": {
       "action": "allowlist.add",
@@ -14,6 +14,7 @@
         "user": "admin"
       },
       "address": "198.51.100.20",
+      "address_cut": "short",
       "change": {
         "fields": [
           {
@@ -47,16 +48,8 @@
       "time": "2026-10-26T12:00:00Z",
       "website": "shop.example"
     },
-    "forgotten": [
-      {
-        "kind": "dashboard",
-        "name": "admin",
-        "pseudonym": "Anna"
-      }
-    ],
-    "now": "2026-10-27T12:00:00Z",
-    "op": "cut",
-    "raw_ip_days": 14
+    "from": "local",
+    "op": "entry"
   },
   "expect": {
     "valid": false,

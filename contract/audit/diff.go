@@ -27,7 +27,6 @@ const (
 	HiddenList     = "list"     // a list of something else than texts
 	HiddenOrder    = "order"    // the same items in another order or number
 	HiddenSize     = "size"     // MaxChangeBytes is used up
-	HiddenErased   = "erased"   // an erased address
 	HiddenOperator = "operator" // addresses the operator set, to a website's viewer
 )
 

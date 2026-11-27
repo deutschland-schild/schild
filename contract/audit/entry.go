@@ -1,6 +1,8 @@
 package audit
 
 import (
+	"net/netip"
+	"strconv"
 	"strings"
 	"time"
 
@@ -78,8 +80,8 @@ func CheckEntry(e map[string]any, local bool) (*EntryResult, error) {
 	if k := str(actor, "kind"); result == ResultDone && (k == "agent" || k == "integration") && str(actor, "id") == "" {
 		return bad("actor %s without id", k)
 	}
-	// A subject is never named by an address: it would stay when the address
-	// has to go. A website may be one.
+	// A subject is never named by an address: every viewer sees the subject,
+	// also a session of one website. A website may be one.
 	if id := str(subject, "id"); id != "" {
 		switch k := str(subject, "kind"); k {
 		case "address", "client":
@@ -93,11 +95,6 @@ func CheckEntry(e map[string]any, local bool) (*EntryResult, error) {
 	}
 	if hasLast && str(e, "last") < str(e, "time") {
 		return bad("last before time")
-	}
-	if str(e, "address_cut") == "erased" {
-		if _, ok := e["address"]; ok {
-			return bad("an erased address is gone")
-		}
 	}
 	a := Lookup(name)
 	if a == nil {
@@ -184,4 +181,29 @@ func fields(e map[string]any) []map[string]any {
 		}
 	}
 	return out
+}
+
+func parseAddr(s string) (netip.Addr, bool) {
+	a, err := netip.ParseAddr(s)
+	if err != nil || a.Zone() != "" {
+		return netip.Addr{}, false
+	}
+	return a.Unmap(), true
+}
+
+// parseNet parses address/bits; without bits it is the single address.
+func parseNet(s string) (netip.Addr, int, bool) {
+	addr, bits, has := strings.Cut(s, "/")
+	a, ok := parseAddr(addr)
+	if !ok {
+		return a, 0, false
+	}
+	if !has {
+		return a, a.BitLen(), true
+	}
+	n, err := strconv.Atoi(bits)
+	if err != nil || strconv.Itoa(n) != bits || n < 0 || n > a.BitLen() || strings.Contains(addr, ":") && a.Is4() {
+		return a, 0, false
+	}
+	return a, n, true
 }

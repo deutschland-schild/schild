@@ -4606,8 +4606,6 @@ def au_entry(e, local):
         need(sub_kind not in ("address", "client") and au_net(sub_id) is None, "subject")
     if "last" in e:
         need(e["last"] >= e["time"], "last")
-    if e.get("address_cut") == "erased":
-        need("address" not in e, "address")
     a = AU_ACTIONS.get(e["action"])
     if a is None:
         need(not local, "unknown action")
@@ -4671,8 +4669,9 @@ def au_keep(v):
     if len(set(ids)) != len(ids) or any(r["id"].split("-")[1] != au_letter(r["class"]) for r in v["rows"]):
         raise Reject("schema", "rows: id")
     gone = set()
+    access = 90 if v["keep_days"] is None else min(90, v["keep_days"])  # never longer than audit.keep_days
     for r in v["rows"]:
-        days = 90 if r["class"] in ("access", "refused") else v["keep_days"]
+        days = access if r["class"] in ("access", "refused") else v["keep_days"]
         if days is not None and v["now"] - r["t"] >= days * AU_DAY:
             gone.add(r["id"])
     order = sorted(v["rows"], key=lambda r: (r["t"], r["id"].encode()))
@@ -4708,116 +4707,6 @@ def au_net(s):
     return ip, int(bits)
 
 
-def au_names(s, ip):
-    n = au_net(s)
-    if n is None or n[0].version != ip.version or n[1] < (32 if ip.version == 4 else 64):
-        return False
-    return ip in ipaddress.ip_network(n, strict=False)
-
-
-def au_short(s):
-    n = au_net(s)
-    if n is None:
-        return s
-    bits = 24 if n[0].version == 4 else 48
-    if n[1] <= bits:
-        return s
-    return str(ipaddress.ip_network((n[0], bits), strict=False))
-
-
-def au_single(ip):
-    return "%s/%d" % (ip, ip.max_prefixlen)
-
-
-def au_each(f, fn):
-    for k in ("before", "after"):
-        if isinstance(f.get(k), str):
-            f[k] = fn(f[k])
-    for k in ("added", "removed"):
-        if k in f:
-            f[k] = sorted(set([fn(s) for s in f[k]]), key=lambda s: s.encode("utf-8"))
-
-
-def au_rewrite(e, repl):
-    if not repl:
-        return
-    rules = []
-    for k in sorted(repl, key=lambda s: (-au_len(s), s.encode())):
-        h = r"[0-9a-fA-F.:]"
-        # stands alone: no address character before it; after it neither a network length nor more of an address
-        rules.append((re.compile(r"(?<!%s)%s(?!/[0-9])(?![0-9a-fA-F])(?![.:][0-9a-fA-F])" % (h, re.escape(k))), repl[k]))
-
-    def fix(s, n):
-        for pat, to in rules:
-            s = pat.sub(to, s)
-        return au_clip(s, n)[0]
-
-    def put(m, k, n):
-        if isinstance(m.get(k), str):
-            m[k] = fix(m[k], n)
-    put(e, "reason", 500)
-    put(e["actor"], "label", 64)
-    put(e["actor"], "on_behalf_of", 128)
-    put(e["subject"], "id", 253)
-    for f in au_fields(e):
-        put(f, "before", 512)
-        put(f, "after", 512)
-        for k in ("added", "removed"):
-            if k in f:
-                items = [fix(s, 256) for s in f[k]]
-                if items != f[k]:  # a changed list: each item once again, in byte order
-                    items = sorted(set(items), key=lambda s: s.encode("utf-8"))
-                f[k] = items
-
-
-def au_cut(v, now_of):
-    e = json.loads(json.dumps(v["entry"]))
-    who = {"dashboard": "user", "integration": "on_behalf_of", "cli": "account"}
-    for p in v.get("forgotten", []):
-        k = who[p["kind"]]
-        if e["actor"]["kind"] == p["kind"] and e["actor"].get(k) == p["name"]:
-            e["actor"][k] = p["pseudonym"]
-    gone = [ip for ip in map(au_addr, v.get("erased", [])) if ip is not None]
-    if gone:
-        repl = {}
-        for ip in gone:
-            repl[str(ip)] = repl[au_single(ip)] = "erased"
-
-        def hit(s):
-            if any(au_names(s, ip) for ip in gone):
-                repl[s] = "erased"
-                return True
-            return False
-        if "address" in e and hit(e["address"]):
-            del e["address"]
-            e["address_cut"] = "erased"
-        for f in au_fields(e):
-            vals = [f[k] for k in ("before", "after") if isinstance(f.get(k), str)] + f.get("added", []) + f.get("removed", [])
-            if any([hit(s) for s in vals]):
-                au_hide(f, "erased")
-        au_rewrite(e, repl)
-    if now_of(v["now"]) - now_of(e["time"]) < v["raw_ip_days"] * 24 * 3600:
-        return {"entry": e}
-    repl = {}
-
-    def cut(s):
-        n = au_short(s)
-        if n != s:
-            repl[s] = n
-            ip, bits = au_net(s)
-            if bits == ip.max_prefixlen:
-                repl[str(ip)] = repl[au_single(ip)] = n
-        return n
-    if "address" in e:
-        n = cut(e["address"])
-        if n != e["address"]:
-            e["address"], e["address_cut"] = n, "short"
-    for f in au_fields(e):
-        au_each(f, cut)
-    au_rewrite(e, repl)
-    return {"entry": e}
-
-
 def au_view(v):
     e, who = json.loads(json.dumps(v["entry"])), v["viewer"]
     if who["kind"] == "dashboard":
@@ -4825,8 +4714,7 @@ def au_view(v):
     if who["kind"] == "agent":
         if e["class"] not in ("change", "credential"):
             return {"entry": None}
-        for k in ("address", "address_cut"):
-            e.pop(k, None)
+        e.pop("address", None)
         e["actor"] = {k: x for k, x in e["actor"].items() if k in ("kind", "id", "label")}
         return {"entry": e}
     a = AU_ACTIONS.get(e["action"], {})
@@ -4861,8 +4749,6 @@ def audit_log(v):
         return au_refused(v)
     if op == "keep":
         return au_keep(v)
-    if op == "cut":
-        return au_cut(v, lambda s: parse_time(s, "time"))
     return au_view(v)
 
 

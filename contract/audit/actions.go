@@ -1,7 +1,8 @@
 // Package audit holds the contract of the audit log (draft, MVP-36,
 // contracts/audit.md): the closed list of actions, what an entry records of
 // a change, whether an entry is valid, how refused calls are gathered, what
-// is deleted and cut, and what a viewer sees. The Python cross-check
+// is deleted by age, and what a viewer sees. An entry is written once and
+// never changed until it is deleted. The Python cross-check
 // (contracts/tools/crosscheck.py) computes the same results.
 package audit
 
@@ -19,8 +20,8 @@ const (
 	ClassChange     = "change"     // kept audit.keep_days
 	ClassCredential = "credential" // kept audit.keep_days
 	ClassPrivacy    = "privacy"    // kept audit.keep_days
-	ClassAccess     = "access"     // sign-ins: AccessDays, MaxAccessRows
-	ClassRefused    = "refused"    // refused calls: AccessDays, MaxAccessRows
+	ClassAccess     = "access"     // sign-ins: AccessDays or audit.keep_days if shorter, MaxAccessRows
+	ClassRefused    = "refused"    // refused calls: the same, with a cap of their own
 )
 
 // Results of an entry.
@@ -39,7 +40,8 @@ type Action struct {
 	// Fields lists the JSON pointers whose values may be recorded; * stands
 	// for one segment. Every other field is recorded by name only.
 	Fields []string `json:"fields"`
-	// Addresses are the fields that hold client addresses (cut and erased).
+	// Addresses are the fields that hold client addresses. A session of one
+	// website does not see those the operator set.
 	Addresses []string `json:"addresses,omitempty"`
 	// Portal: a session of one website sees the entries of its website.
 	Portal bool `json:"portal,omitempty"`
