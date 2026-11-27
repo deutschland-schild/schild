@@ -15,6 +15,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"log/slog"
 	"net/http"
 	"net/netip"
@@ -35,6 +36,7 @@ import (
 	"github.com/deutschland-schild/schild/gateway/internal/accesslock"
 	"github.com/deutschland-schild/schild/gateway/internal/agentapi"
 	"github.com/deutschland-schild/schild/gateway/internal/allowlist"
+	"github.com/deutschland-schild/schild/gateway/internal/auditlog"
 	"github.com/deutschland-schild/schild/gateway/internal/behaviour"
 	"github.com/deutschland-schild/schild/gateway/internal/bots"
 	"github.com/deutschland-schild/schild/gateway/internal/buildinfo"
@@ -92,6 +94,9 @@ type App struct {
 	dataDir string
 
 	Store *store.Store
+	// Audit is the audit log (MVP-36): every change with who made it.
+	Audit       *auditlog.Log
+	auditStream io.Writer
 	// Rule exceptions of agents (D54), exceptionsMu around changes.
 	exceptionsMu sync.Mutex
 	exceptions   []contractapi.RuleException
@@ -378,6 +383,10 @@ func New(ctx context.Context, opts Options) (*App, error) {
 	if err := a.prepareCluster(cfg); err != nil {
 		return nil, err
 	}
+	// After the cluster is prepared: an entry names the node as its events do.
+	if err := a.openAudit(ctx, cfg); err != nil {
+		return nil, err
+	}
 	a.Events = eventlog.New(a.Store, a.eventNode(cfg), a.Metrics, log)
 	a.Sites = sites.NewRegistry(a.websitesView(cfg))
 	a.Events.Sites = a.Sites
@@ -514,7 +523,7 @@ func New(ctx context.Context, opts Options) (*App, error) {
 		Geo: a.Geo, Events: a.Events, Config: a.Config, Apply: a.Apply, ReloadAllow: a.ReloadAllow, SetupCode: a.setupCode,
 		Version: buildinfo.String(), CRSVersion: buildinfo.CRSVersion, Started: a.started, Log: log, UI: webui.Handler(),
 		ScriptHashes: webui.InlineScriptHashes(), ProxiesTooBroad: a.proxiesTooBroad, ProxyMissing: a.Gate.Proxies.Missing,
-		Listen: cfg.Listen.Dashboard, SettingsDropped: a.SettingsDropped}
+		Listen: cfg.Listen.Dashboard, SettingsDropped: a.SettingsDropped, Audit: a.Audit}
 	if cfg.Cluster.Enabled {
 		// Without cluster.enabled the dashboard answers "single" by itself.
 		a.Dashboard.Group = a.GroupStatus
@@ -655,6 +664,7 @@ func (a *App) Retention(ctx context.Context) {
 		calls = res.Cap.Calls
 		a.noteCap(res.Cap, time.Now())
 	}
+	a.retainAudit(ctx)
 	if res.Truncated+res.Deleted+res.DeletedSize+calls+res.KeptBlocks+res.Allow > 0 {
 		a.log.Info("retention applied", "ip_truncated", res.Truncated, "deleted_age", res.Deleted, "deleted_size", res.DeletedSize, "agent_calls_trimmed", calls,
 			"kept_blocks_ended", res.KeptBlocks, "allowlist_expired", res.Allow)
@@ -731,6 +741,7 @@ func (a *App) Loops(ctx context.Context) {
 		}
 	}))
 	a.goLoop(ctx, "retention", a.retentionLoop)
+	a.goLoop(ctx, "audit", a.Audit.Run)
 	if a.Hosts != nil {
 		a.goLoop(ctx, "hosts", a.Hosts.Loop)
 	}
@@ -881,6 +892,7 @@ func (a *App) Run(ctx context.Context) error {
 	if a.botEngine != nil {
 		a.botEngine.Close()
 	}
+	a.closeAudit()
 	_ = a.Store.Close()
 	return runErr
 }

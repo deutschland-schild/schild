@@ -36,6 +36,7 @@ import (
 	"github.com/deutschland-schild/schild/contract/events"
 	"github.com/deutschland-schild/schild/contract/firewall"
 	"github.com/deutschland-schild/schild/gateway/internal/allowlist"
+	"github.com/deutschland-schild/schild/gateway/internal/auditlog"
 	"github.com/deutschland-schild/schild/gateway/internal/behaviour"
 	"github.com/deutschland-schild/schild/gateway/internal/clientip"
 	"github.com/deutschland-schild/schild/gateway/internal/eventlog"
@@ -174,6 +175,10 @@ type Server struct {
 	fp fpCache
 	// Sites are the websites of this gateway (v0.5, D36).
 	Sites *sites.Registry
+	// Audit is the audit log (MVP-36): every writing operation notes its
+	// entry in the transaction of its change. Nil in tests of a part: the
+	// change happens without an entry.
+	Audit *auditlog.Log
 
 	mu           sync.Mutex
 	once         sync.Once

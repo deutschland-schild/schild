@@ -145,6 +145,25 @@
         "summaries_days": { "type": "integer", "minimum": 1, "maximum": 730, "default": 90 }
       }
     },
+    "audit": {
+      "description": "MVP-36 (D108, contracts/audit.md): the audit log, who changed what and when. A file of its own (audit.db in the data directory), outside retention.max_size_mb and the disk budget.",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "keep_days": {
+          "description": "How long changes, credentials and privacy entries are kept: 1 to 36500 days, or the word unlimited. Sign-ins and refused calls are kept 90 days and never longer than this. An entry holds the addresses and names it was written with until it is deleted; retention.raw_ip_days and an erasure by address do not reach it. A setting of the node.",
+          "oneOf": [{ "type": "integer", "minimum": 1, "maximum": 36500 }, { "const": "unlimited" }],
+          "default": 365
+        },
+        "stream": {
+          "description": "Copy of every entry this node writes as one JSON line: stdout, or the path of a file that is appended to. Absent: no copy. Retention does not reach the copy. A line that cannot be written is counted and never holds a change back.",
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1024,
+          "pattern": "^(stdout|/[^\\x00]*)$"
+        }
+      }
+    },
     "dashboard": {
       "type": "object",
       "additionalProperties": false,
