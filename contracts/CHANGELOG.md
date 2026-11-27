@@ -4,7 +4,7 @@
 
 Not backwards compatible with v0.5 for the gateway; nothing is installed outside the test lab. The lab and relay contracts (signal, feedback, ack, submission, checkpoint, rule-bundle, withdrawal, stream, log-tree, peer-request, `config-lab`, the lab dashboard API) do not change. `make contracts-test`: 1937 vectors after D72, 2022 after D73, Go and Python agree.
 
-**D108 (2026-11-25, draft): the audit log (MVP-36).** Additive; nothing serves it yet. New [audit.md](audit.md), `audit-entry.schema.json`, `audit.schema.json`, `audit-actions.json`, Go `contract/audit`, vectors `audit` (67 valid, 29 invalid). Client dashboard API: `listAudit` with `AuditPage` (pending fixture). `make contracts-fuzz` covers the audit decisions as well (`tools/audit_fuzz.py`). `audit.keep_days`: 365 by default, up to `unlimited`. `make contracts-test`: 2248 vectors, Go and Python agree, no earlier vector changed.
+**D108 (2026-11-25, draft): the audit log (MVP-36).** Additive; nothing serves it yet. New [audit.md](audit.md), `audit-entry.schema.json`, `audit.schema.json`, `audit-actions.json`, Go `contract/audit`, vectors `audit` (69 valid, 29 invalid). Client dashboard API: `listAudit` with `AuditPage` (pending fixture). `make contracts-fuzz` covers the audit decisions as well (`tools/audit_fuzz.py`). `audit.keep_days`: 365 by default, up to `unlimited`. `make contracts-test`: 2248 vectors, Go and Python agree, no earlier vector changed.
 
 **D75 to D78 (2026-11-10): the release 0.1.0-alpha.1.** Backwards compatible within v0.6: one optional config key, one more enum value. `make contracts-test`: 2029 vectors, Go and Python agree, no earlier vector changed.
 

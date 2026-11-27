@@ -4764,7 +4764,10 @@ def au_rewrite(e, repl):
         put(f, "after", 512)
         for k in ("added", "removed"):
             if k in f:
-                f[k] = [fix(s, 256) for s in f[k]]
+                items = [fix(s, 256) for s in f[k]]
+                if items != f[k]:  # a changed list: each item once again, in byte order
+                    items = sorted(set(items), key=lambda s: s.encode("utf-8"))
+                f[k] = items
 
 
 def au_cut(v, now_of):

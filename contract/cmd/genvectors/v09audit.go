@@ -219,4 +219,8 @@ func genAudit(g *gen) {
 	ok("view-website-access-lock", "Only what a portal may change.", view(site("shop.example"), entry("action", "access_lock.set", "operation", "cli:lock on", "actor", M{"kind": "cli"}, "subject", M{"kind": "website"}, "change", nil)))
 	ok("view-website-unknown-action", "Nothing this build does not know.", view(site("shop.example"), entry("action", "portal.add", "operation", "cli:portal add", "actor", M{"kind": "cli"}, "subject", M{"kind": "portal"}, "change", nil)))
 	bad("view-website-without-id", "A website's viewer names the website.", view(M{"kind": "website"}, portal))
+
+	// Cuts added later stand here, so no earlier vector changes its number.
+	ok("cut-list-once", "A list whose texts were cut holds each item once again, in byte order.", cut(entry("change", M{"fields": L{M{"field": "/rules", "change": "added", "added": L{"203.0.113.7", "a 203.0.113.0/24", "a 203.0.113.7", "203.0.113.5 a", "203.0.113.7 a"}}}}), 14))
+	ok("cut-erased-list-once", "Also when an address in its texts was erased.", cut(entry("change", M{"fields": L{M{"field": "/rules", "change": "added", "added": L{"a erased", "a 203.0.113.7", "203.0.113.7 a"}}}}), 1, "erased", L{"203.0.113.7"}))
 }

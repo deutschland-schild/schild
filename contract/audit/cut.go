@@ -129,27 +129,33 @@ func each(f map[string]any, fn func(string) string) {
 		if !ok {
 			continue
 		}
-		var ss []string
-		seen := map[string]bool{}
-		for _, x := range l {
-			s, _ := x.(string)
-			if s = fn(s); !seen[s] {
-				seen[s] = true
-				ss = append(ss, s)
-			}
-		}
-		sort.Strings(ss)
-		out := make([]any, len(ss))
-		for i, s := range ss {
-			out[i] = s
-		}
-		f[k] = out
+		f[k] = once(l, fn)
 	}
+}
+
+// once maps the items of a list and keeps each once, in byte order.
+func once(l []any, fn func(string) string) []any {
+	var ss []string
+	seen := map[string]bool{}
+	for _, x := range l {
+		s, _ := x.(string)
+		if s = fn(s); !seen[s] {
+			seen[s] = true
+			ss = append(ss, s)
+		}
+	}
+	sort.Strings(ss)
+	out := make([]any, len(ss))
+	for i, s := range ss {
+		out[i] = s
+	}
+	return out
 }
 
 // rewrite replaces addresses in the texts of an entry: the reason, the label
 // and id of the actor's token or portal, the subject's id and every recorded
-// text value.
+// text value. A list it changed holds each item once again, in byte order;
+// any other list stays as it is.
 func rewrite(e map[string]any, repl map[string]string) {
 	if len(repl) == 0 {
 		return
@@ -183,12 +189,20 @@ func rewrite(e map[string]any, repl map[string]string) {
 		set(f, "before", MaxValueBytes)
 		set(f, "after", MaxValueBytes)
 		for _, k := range []string{"added", "removed"} {
-			if l, ok := f[k].([]any); ok {
-				for i := range l {
-					if s, ok := l[i].(string); ok {
-						l[i], _ = clip(fix(s), MaxItemBytes)
-					}
+			l, ok := f[k].([]any)
+			if !ok {
+				continue
+			}
+			changed := false
+			for i := range l {
+				if s, ok := l[i].(string); ok {
+					n, _ := clip(fix(s), MaxItemBytes)
+					changed = changed || n != s
+					l[i] = n
 				}
+			}
+			if changed {
+				f[k] = once(l, func(s string) string { return s })
 			}
 		}
 	}
