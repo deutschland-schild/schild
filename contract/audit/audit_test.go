@@ -228,6 +228,47 @@ func TestDiffAlwaysFits(t *testing.T) {
 	t.Logf("largest entry %d bytes", biggest)
 }
 
+// TestCutListOnce: a text that only then holds a network changes an item of
+// a list after the list was put in order. The list is still each item once,
+// in byte order, and a second cut changes nothing.
+func TestCutListOnce(t *testing.T) {
+	late := time.Date(2027, 1, 1, 0, 0, 0, 0, time.UTC)
+	soon := time.Date(2026, 10, 27, 0, 0, 0, 0, time.UTC)
+	for _, c := range []struct {
+		name    string
+		address string
+		now     time.Time
+		erased  []string
+		in, out []any
+	}{
+		{"twice", "", late, nil, []any{"203.0.113.7", "a 203.0.113.0/24", "a 203.0.113.7"}, []any{"203.0.113.0/24", "a 203.0.113.0/24"}},
+		{"order", "203.0.113.7", late, nil, []any{"203.0.113.5 a", "203.0.113.7 a"}, []any{"203.0.113.0/24 a", "203.0.113.5 a"}},
+		{"erased", "", soon, []string{"203.0.113.7"}, []any{"a erased", "a 203.0.113.7", "203.0.113.7 a"}, []any{"a erased", "erased a"}},
+		{"untouched", "", soon, []string{"203.0.113.7"}, []any{"b", "a"}, []any{"b", "a"}},
+	} {
+		a := *Lookup("rate_limit.remove")
+		e := entryOf(a, Change{Fields: []Field{}})
+		e["change"] = map[string]any{"fields": []any{map[string]any{"field": "/methods", "change": "removed", "removed": c.in}}}
+		if c.address != "" {
+			e["address"] = c.address
+		}
+		raw, _ := jsonx.Marshal(e)
+		e, _, err := ParseEntry(raw, true)
+		if err != nil {
+			t.Fatalf("%s: %v", c.name, err)
+		}
+		in := CutInput{Entry: e, Now: c.now, RawIPDays: 14, Erased: c.erased}
+		once := Cut(in)
+		if got := fields(once)[0]["removed"]; !reflect.DeepEqual(got, c.out) {
+			t.Errorf("%s: %q, want %q", c.name, got, c.out)
+		}
+		in.Entry = once
+		if twice := Cut(in); !reflect.DeepEqual(once, twice) {
+			t.Errorf("%s: cut twice differs\n%v\n%v", c.name, once, twice)
+		}
+	}
+}
+
 // TestTypicalSize holds the number the storage estimate of audit.md is built on.
 func TestTypicalSize(t *testing.T) {
 	a := *Lookup("rule_exception.set")
