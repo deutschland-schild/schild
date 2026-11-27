@@ -41,7 +41,7 @@ func (n *Node) VectorPoint() (string, error) {
 // state at now (each as id, origin and sequence number; tombstones count,
 // records that ended do not). Two nodes with the same point of a class hold
 // the same records of it. Several classes that are hashed as one state (the
-// blocks of a group are records of three) have one point, class after class
+// blocks of a group are records of two) have one point, class after class
 // in the order given.
 func (n *Node) ClassPoint(now time.Time, classes ...string) (string, error) {
 	h := sha256.New()

@@ -183,7 +183,7 @@ func (s *state) enter(group string, secret []byte) error {
 // of a record hold as they did when it was taken.
 func (s *state) carryFrom(old *state) (carried, skipped int, err error) {
 	nowMS := s.now().UnixMilli()
-	rows, err := old.db.Query(`SELECT class, state, expires_ms, raw FROM records WHERE class != ? ORDER BY hlc, origin, seq`, contract.ClassMembers)
+	rows, err := old.db.Query(`SELECT class, state, expires_ms, raw FROM records WHERE class != ? AND class != ? ORDER BY hlc, origin, seq`, contract.ClassMembers, contract.RetiredClassBlocks)
 	if err != nil {
 		return 0, 0, err
 	}

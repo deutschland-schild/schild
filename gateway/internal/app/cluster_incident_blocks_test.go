@@ -777,24 +777,22 @@ func TestHashOfBlocksIsTheSameOnEveryNode(t *testing.T) {
 	}
 }
 
-// o: a node draws no incident number it holds an incident, a block record
-// or a lift of.
+// o: a node draws no incident number it holds a block record or a lift of.
+// An incident of its own that has neither is no block of the group, and the
+// number is drawn from memory alone: the request path asks.
 func TestKnownIncidentNumberIsNotDrawnAgain(t *testing.T) {
 	a, b := pair(t)
 	ctx := context.Background()
 	b.h.Login()
-	const ip, block, lift, incident, fresh = "203.0.113.54", "RRRR-AAA2", "RRRR-AAA3", "RRRR-AAA4", "RRRR-AAA5"
+	const ip, block, lift, fresh = "203.0.113.54", "RRRR-AAA2", "RRRR-AAA3", "RRRR-AAA5"
 	a.block("192.0.2.10", block, 15*time.Minute) // on the allowlist of web-2: a record, no block and no incident there
 	if err := a.h.App.Store.NoteLifts(ctx, time.Now(), lift); err != nil {
-		t.Fatal(err)
-	}
-	if err := b.h.App.Store.InsertIncident(ctx, &store.Incident{Incident: incident, Time: time.Now(), IP: "203.0.113.55", Status: "blocked", Sources: []string{"dashboard"}}); err != nil {
 		t.Fatal(err)
 	}
 	b.h.WaitFor("web-2 holds the block record and the lift", func() bool {
 		return holds(t, b, contract.ClassIncidentBlocks, block) && holds(t, b, contract.ClassLifts, lift)
 	})
-	for _, id := range []string{block, lift, incident} {
+	for _, id := range []string{block, lift} {
 		if !b.h.App.IncidentKnown(id) {
 			t.Errorf("web-2 does not know the number %s", id)
 		}
@@ -802,7 +800,7 @@ func TestKnownIncidentNumberIsNotDrawnAgain(t *testing.T) {
 	if b.h.App.IncidentKnown(fresh) {
 		t.Fatalf("web-2 knows the number %s, which nobody used", fresh)
 	}
-	draws := []string{block, lift, incident, fresh}
+	draws := []string{block, lift, fresh}
 	var drawn atomic.Int32
 	b.h.App.Behaviour.DrawIncidents(func() string { return draws[min(int(drawn.Add(1))-1, len(draws)-1)] })
 	code, body := b.h.API("POST", "/blocks", map[string]any{"address": ip, "duration_s": 3600, "reason": "test"})
@@ -814,6 +812,6 @@ func TestKnownIncidentNumberIsNotDrawnAgain(t *testing.T) {
 	}
 	_ = json.Unmarshal(body, &rb)
 	if rb.Incident != fresh {
-		t.Errorf("the new block has the number %s, want %s: the three numbers before it are known", rb.Incident, fresh)
+		t.Errorf("the new block has the number %s, want %s: the two numbers before it are known", rb.Incident, fresh)
 	}
 }

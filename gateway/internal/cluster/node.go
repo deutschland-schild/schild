@@ -930,7 +930,7 @@ func (n *Node) takeRecords(raws []json.RawMessage, covered map[string]uint64, me
 // cannot read stays as it is. Called at the start, after the handlers of
 // the classes are set.
 func (n *Node) readUnread() error {
-	rows, err := n.db.Query(`SELECT origin, seq, raw FROM records WHERE state = ? ORDER BY hlc, origin, seq`, stateUnread)
+	rows, err := n.db.Query(`SELECT origin, seq, raw FROM records WHERE state = ? AND (expires_ms = 0 OR expires_ms > ?) ORDER BY hlc, origin, seq`, stateUnread, n.now().UnixMilli())
 	if err != nil {
 		return err
 	}
@@ -1073,12 +1073,13 @@ func (n *Node) Run(ctx context.Context) error {
 	a := ln.Addr().String()
 	n.addr.Store(&a)
 	n.log.Info("cluster: mesh listening", "listen", a, "group", n.group, "node", n.id)
-	done := make(chan error, 1)
-	go func() { done <- srv.ServeTLS(ln, "", "") }()
-	go n.watchStore(ctx)
+	// Before the mesh answers: nothing else takes a record meanwhile.
 	if err := n.readUnread(); err != nil {
 		n.log.Warn("cluster: the records kept unread were not looked at again", "err", err)
 	}
+	done := make(chan error, 1)
+	go func() { done <- srv.ServeTLS(ln, "", "") }()
+	go n.watchStore(ctx)
 	n.seek(ctx)
 	tick := time.NewTicker(time.Second)
 	defer tick.Stop()

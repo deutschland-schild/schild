@@ -64,6 +64,10 @@ type groupBlocks struct {
 	waiting uint64
 	// max is groupBlocksMax; tests lower it.
 	max atomic.Int64
+	// numbers: the incidents in held and in lifted once more, read without
+	// mu. The request path asks here when a new block draws its number
+	// (incidentKnown) and waits for no lock and no database.
+	numbers sync.Map
 
 	// erased is when the group erased a client, under emu and never under
 	// mu alone: the store asks while it holds its write lock
@@ -88,8 +92,15 @@ type groupBlock struct {
 	self bool
 }
 
+// lift notes the lift of an incident until a time. Called with mu held.
+func (g *groupBlocks) lift(incident string, until time.Time) {
+	g.lifted[incident] = until
+	g.numbers.Store(incident, struct{}{})
+}
+
 func (g *groupBlocks) put(b *groupBlock) {
 	g.held[b.info.Incident] = b
+	g.numbers.Store(b.info.Incident, struct{}{})
 	if g.clients[b.key] == nil {
 		g.clients[b.key] = map[string]bool{}
 	}
@@ -102,6 +113,9 @@ func (g *groupBlocks) remove(incident string) {
 		return
 	}
 	delete(g.held, incident)
+	if _, lifted := g.lifted[incident]; !lifted {
+		g.numbers.Delete(incident)
+	}
 	delete(g.clients[b.key], incident)
 	if len(g.clients[b.key]) == 0 {
 		delete(g.clients, b.key)
@@ -128,6 +142,7 @@ func (a *App) startGroupBlocks(ctx context.Context) {
 	g := &a.groupBlocks
 	g.mu.Lock()
 	g.held, g.clients, g.lifted = map[string]*groupBlock{}, map[behaviour.Key]map[string]bool{}, map[string]time.Time{}
+	g.numbers.Clear()
 	g.mu.Unlock()
 	g.emu.Lock()
 	g.erased = map[behaviour.Key]erasure{}
@@ -187,7 +202,10 @@ func (a *App) erasedBefore(key behaviour.Key, since time.Time) bool {
 	g.emu.Lock()
 	defer g.emu.Unlock()
 	e, ok := g.erased[key]
-	return ok && !since.After(e.at.Add(contract.MaxClockAhead))
+	// A record carries since in whole seconds. The node that decided the
+	// block asks with the same second, or it would keep a block that every
+	// node it hands the record to refuses.
+	return ok && !since.Truncate(time.Second).After(e.at.Add(contract.MaxClockAhead))
 }
 
 // refuseGroupBlock keeps a block record out of the store that a lift or an
@@ -388,7 +406,7 @@ func (a *App) noteLifted(incident string, rec *contract.Record) {
 	if !ok {
 		until = time.Now().Add(liftKeep)
 	}
-	a.groupBlocks.lifted[incident] = until
+	a.groupBlocks.lift(incident, until)
 }
 
 // applyGroupBlock takes the block record of another node.
@@ -616,23 +634,16 @@ func (a *App) clientBlocks(key behaviour.Key, f func(incidents []string) error) 
 	return err
 }
 
-// incidentKnown reports whether this node holds an incident, a block record
-// or a lift of the number: a new block then draws another (section 5, "Two
-// blocks with one number").
+// incidentKnown reports whether this node holds a block record or a lift
+// of the number, or owes the group a lift of it: a new block then draws
+// another (section 5, "Two blocks with one number"). The request path asks
+// here, so the answer comes from memory alone (section 1: no request waits
+// for the group).
 func (a *App) incidentKnown(incident string) bool {
-	node := a.Cluster
-	for _, class := range []string{contract.ClassIncidentBlocks, contract.ClassLifts} {
-		if r, err := node.Get(class, incident); err == nil && r != nil {
-			return true
-		}
-	}
-	if a.Store.LiftNoted(incident) {
+	if _, ok := a.groupBlocks.numbers.Load(incident); ok {
 		return true
 	}
-	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
-	defer cancel()
-	_, err := a.Store.GetIncident(ctx, incident)
-	return err == nil
+	return a.Store.LiftNoted(incident)
 }
 
 // publishGroupBlocks is the round of the blocks, four times a second. It
@@ -691,6 +702,9 @@ func (a *App) publishGroupBlocks() {
 	for incident, until := range g.lifted {
 		if !until.After(now) {
 			delete(g.lifted, incident)
+			if g.held[incident] == nil {
+				g.numbers.Delete(incident)
+			}
 		}
 	}
 	waiting := a.Store.LiftsWaiting()
@@ -831,7 +845,7 @@ func (a *App) writeGroupLift(l store.Lift) error {
 	}
 	a.groupBlocks.mu.Lock()
 	defer a.groupBlocks.mu.Unlock()
-	a.groupBlocks.lifted[l.Incident] = l.At.Add(liftKeep)
+	a.groupBlocks.lift(l.Incident, l.At.Add(liftKeep))
 	a.liftGroupBlock(l.Incident)
 	return nil
 }
