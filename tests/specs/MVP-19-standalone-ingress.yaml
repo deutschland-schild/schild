@@ -206,6 +206,7 @@ measure:                            # by an independent agent, not the builder
   - 'D106: reloads under load behind a balancer with PROXY protocol, HTTP/1.1, HTTP/2 and WebSockets, on every node of a group in turn: no request fails apart from WebSockets without stream_close_delay'
   - 'D106: a reload with 1,000 and with 5,000 websites: its duration, the memory while two configs live, failed requests; from which size a reload per new website no longer works'
   - 'D106: a download, an upload and an SSE stream that run over a reload, alone and in a group: they end by grace_period (in a group cluster.drain.grace_s) and not before'
+  - 'D106: every code of -json is reached by a Caddyfile or a state made for it, and the answer of -check equals what the load then does, apart from the provisioning of Caddy'
   - 'D106: `schild ingress load`: a Caddyfile that Caddy refuses after the checks of schild leaves the file as it was; a stop of the process at any point of a load leaves a file that a start takes; the file mounted alone into a container and in a directory of root'
   - 'D106: a Caddyfile that fails at any point of a reload leaves the running one serving, and no access lock opens, also while requests run'
   - 'rollback to the stock Caddy image with the empty snippet in under 60 s, sites reachable, certificates unchanged'

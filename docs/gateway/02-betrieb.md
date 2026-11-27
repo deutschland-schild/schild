@@ -100,6 +100,39 @@ Schild prüft den Text wie bei `schild ingress reload` und lehnt dasselbe ab. Be
 - Schild nimmt ein Caddyfile an, keine Caddy-Konfiguration als JSON. Die Datei darf höchstens 8 MiB groß sein.
 - Im [Cluster](03-cluster.md#das-caddyfile-im-cluster-ändern) gilt der Befehl für den Server, auf dem du ihn ausführst.
 
+Zwei Schalter sind für Programme gedacht. `schild ingress reload` kennt beide auch.
+
+- `-check` prüft das Caddyfile und ändert nichts. Geprüft wird, was Schild prüft. Ob Caddy die Konfiguration annimmt, zeigt erst das Laden.
+- `-json` gibt statt des Textes ein JSON-Objekt aus:
+
+```json
+{"result": "loaded", "websites": 412, "sha256": "9f2c…", "warnings": [], "error": null}
+```
+
+| Feld | Inhalt |
+| --- | --- |
+| `result` | `loaded`, `unchanged`, `accepted` (bei `-check`), `refused` oder `failed` |
+| `websites` | Zahl der Websites im geprüften Caddyfile |
+| `sha256` | SHA-256 des Caddyfiles, das nach dem Aufruf gilt. Im Cluster vergleichst du den Wert über alle Server |
+| `warnings` | Warnungen als Liste von Texten |
+| `error` | `null` oder ein Objekt mit `code` und `message` |
+
+| `code` | Bedeutung |
+| --- | --- |
+| `invalid_caddyfile` | leer, größer als 8 MiB, oder Caddy kann den Text nicht lesen |
+| `check_refused` | eine Prüfung von Schild lehnt ab, etwa eine Website ohne `schild` |
+| `needs_restart` | andere Ports, Adressen oder ein anderer Speicher für Zertifikate |
+| `website_locked` | eine Website fiele aus dem Zugriffsschutz oder dem Wartungsmodus |
+| `changed_while_read` | die Datei hat sich während eines Reloads geändert, wiederhole ihn |
+| `not_writable` | Schild kann die Datei nicht schreiben |
+| `caddy_refused` | Caddy lehnt die Konfiguration nach den Prüfungen ab, die Datei ist wieder die alte |
+| `busy` | Schild startet oder stoppt gerade, wiederhole den Aufruf |
+| `not_ingress` | in `schild.yaml` steht kein `ingress.caddyfile` |
+| `unavailable` | kein laufendes Schild antwortet, nichts wurde geändert (`result` ist `failed`) |
+| `unknown_outcome` | die Antwort ging verloren, das Log von Schild nennt das Ergebnis (`result` ist `failed`) |
+
+Der Exit-Code bleibt 0 für `loaded`, `unchanged` und `accepted` und 1 für alles andere. Das Format kann sich noch ändern, solange D106 ein Vorschlag ist.
+
 ### Zertifikate über Hetzner DNS
 
 Let's Encrypt prüft normalerweise über Port 80 oder 443, ob dir eine Domain gehört. Für ein Wildcard-Zertifikat wie `*.example.org` und für Namen, die von außen nicht erreichbar sind, geht das nur über einen DNS-Eintrag. Liegt die Zone bei Hetzner (Hetzner Console, Cloud-API), setzt Schild diesen Eintrag selbst und löscht ihn danach wieder. Das Modul ist eingebaut und tut nichts, solange es nicht im Caddyfile steht.

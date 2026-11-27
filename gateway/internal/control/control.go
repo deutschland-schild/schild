@@ -116,6 +116,9 @@ type Request struct {
 	Force bool `json:"force,omitempty"`
 	// Caddyfile: the text of ingress_load.
 	Caddyfile string `json:"caddyfile,omitempty"`
+	// Check: ingress_reload and ingress_load run their checks and change
+	// nothing.
+	Check bool `json:"check,omitempty"`
 }
 
 // Response is the answer. SetupCode is only ever sent back over the socket
@@ -134,6 +137,11 @@ type Response struct {
 	// Websites and Warnings: the Caddyfile that runs after ingress_reload.
 	Websites int      `json:"websites,omitempty"`
 	Warnings []string `json:"warnings,omitempty"`
+	// Code, Checked and SHA256: the ingress operations. Code names a refusal
+	// (app.Ingress...), SHA256 the Caddyfile text in force after the call.
+	Code    string `json:"code,omitempty"`
+	Checked bool   `json:"checked,omitempty"`
+	SHA256  string `json:"sha256,omitempty"`
 	// Access: the protections in force after an access operation (D56).
 	Access []AccessInfo `json:"access,omitempty"`
 	// Removed: access_remove ended a protection.

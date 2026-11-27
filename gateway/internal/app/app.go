@@ -914,7 +914,7 @@ func (a *App) startCaddy(cfg *config.Site) error {
 		if err := caddymod.Load(ing.JSON); err != nil {
 			return fmt.Errorf("ingress: load Caddyfile %s: %w", cfg.Ingress.Caddyfile, err)
 		}
-		a.ingress.started(ing)
+		a.ingress.started(ing, cfg.Ingress.Caddyfile)
 		var sites []string
 		for _, s := range ing.Check.Sites {
 			sites = append(sites, s.Name())

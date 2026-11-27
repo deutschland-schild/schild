@@ -6,7 +6,7 @@ The section of a version becomes the text of its GitHub release, so its heading 
 
 ## Unreleased
 
-- `schild ingress load FILE` sends a whole Caddyfile to the running gateway, for a program that builds it, such as the panel of a hoster (D106). `-` reads standard input. The gateway checks it as `schild ingress reload` does, writes it to `ingress.caddyfile` and loads it without a restart. A refused Caddyfile changes neither the file nor what runs. Host only, as the reload.
+- `schild ingress load FILE` sends a whole Caddyfile to the running gateway, for a program that builds it, such as the panel of a hoster (D106). `-` reads standard input. The gateway checks it as `schild ingress reload` does, writes it to `ingress.caddyfile` and loads it without a restart. A refused Caddyfile changes neither the file nor what runs. Host only, as the reload. `-check` runs the checks and changes nothing. `-json` prints one object with the result, a code for a refusal and the SHA-256 of the Caddyfile that runs; `schild ingress reload` takes both flags too.
 - `schild ingress reload` loads a changed Caddyfile without a restart (D106). It checks what a start checks, and a refused Caddyfile leaves the running one in place. Other listen addresses and another certificate storage still need a restart. A change that would take a website or a host out of an access lock or the maintenance mode is refused. On Linux the listening sockets stay open over a reload: in the builder's test no request of 143,900 failed over 200 reloads.
 
 ## 0.1.0-alpha.7

@@ -215,8 +215,15 @@ func TestIngressLoadKeepsAccessLock(t *testing.T) {
 		t.Fatal(err)
 	}
 	before := b.file()
-	if _, err := b.App.LoadIngress(b.text(block("neu.example")), false); err == nil || !strings.Contains(err.Error(), "access lock") {
+	if _, err := b.App.LoadIngress(b.text(block("neu.example")), false); err == nil || !strings.Contains(err.Error(), "access lock") || app.IngressCode(err) != app.IngressLocked {
 		t.Fatalf("a locked website left: %v", err)
+	}
+	if res, err := b.App.CheckIngress(b.text(block("neu.example"))); app.IngressCode(err) != app.IngressLocked || res.Checked {
+		t.Fatalf("check of the same: %+v %v", res, err)
+	}
+	// A check of what the file holds changes nothing and says so.
+	if res, err := b.App.CheckIngress(nil); err != nil || !res.Checked || !res.Unchanged || res.Websites != 2 || len(res.SHA256) != 64 {
+		t.Fatalf("check of the file: %+v %v", res, err)
 	}
 	if b.file() != before {
 		t.Fatal("the file changed")
@@ -239,7 +246,7 @@ func TestIngressLoadFileNotWritable(t *testing.T) {
 	}
 	t.Cleanup(func() { _ = os.Chmod(b.Dir, 0o700) })
 	_, err := b.App.LoadIngress(b.text(block("shop.example")+block("neu.example")), false)
-	if err == nil || !strings.Contains(err.Error(), "cannot write it") {
+	if err == nil || !strings.Contains(err.Error(), "cannot write it") || app.IngressCode(err) != app.IngressNotWritable {
 		t.Fatalf("got %v", err)
 	}
 	if _, s := b.body("neu.example"); s == "app ok" {

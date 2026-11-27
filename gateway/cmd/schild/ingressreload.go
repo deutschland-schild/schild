@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"flag"
 	"fmt"
@@ -27,6 +28,9 @@ certificate storage. schild.yaml is not read again, a list like
 ingress.unprotected_sites is the one of the start.
 
 -force loads a Caddyfile that did not change, for certificate files it names.
+-check runs the checks of schild and changes nothing. The provisioning of
+Caddy is not part of it: schild ingress validate does that for a file.
+-json prints one JSON object in place of the text (see schild ingress load -h).
 
 In a cluster the command acts on this node only: run it on every node.
 
@@ -42,6 +46,8 @@ func cmdIngressReload(args []string) error {
 	cfgPath := fs.String("config", "", "schild.yaml (default $SCHILD_CONFIG or /etc/schild/schild.yaml)")
 	data := fs.String("data", "", "data directory (default $SCHILD_DATA_DIR or storage.path)")
 	force := fs.Bool("force", false, "load the Caddyfile also when it did not change")
+	check := fs.Bool("check", false, "run the checks and change nothing")
+	asJSON := fs.Bool("json", false, "print one JSON object in place of the text")
 	_ = fs.Parse(args)
 	cfg, _, err := app.LoadConfig(*cfgPath)
 	if err != nil {
@@ -49,12 +55,12 @@ func cmdIngressReload(args []string) error {
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
 	defer cancel()
-	return reloadIngress(ctx, app.DataDir(cfg, *data), *force, os.Stdout)
+	return callIngress(ctx, app.DataDir(cfg, *data), "reload", control.Request{Op: control.OpIngressReload, Force: *force, Check: *check}, *asJSON, os.Stdout)
 }
 
 // reloadIngress asks the running gateway of the data directory dir.
 func reloadIngress(ctx context.Context, dir string, force bool, w io.Writer) error {
-	return callIngress(ctx, dir, "reload", control.Request{Op: control.OpIngressReload, Force: force}, w)
+	return callIngress(ctx, dir, "reload", control.Request{Op: control.OpIngressReload, Force: force}, false, w)
 }
 
 const ingressLoadUsage = `schild ingress load [-config FILE] [-data DIR] [-force] FILE|-
@@ -70,6 +76,22 @@ Caddyfile imports are not sent: they are read on this host, relative to
 ingress.caddyfile. The user of schild needs write access to ingress.caddyfile
 or its directory. At most 8 MiB.
 
+-check runs the checks of schild on the Caddyfile and changes nothing. The
+provisioning of Caddy is not part of it: that happens at the load.
+
+-json prints one JSON object on standard output in place of the text:
+
+  {"result": "loaded", "websites": 2, "sha256": "…", "warnings": [], "error": null}
+
+result   loaded | unchanged | accepted (-check) | refused | failed
+sha256   of the Caddyfile text in force after the call: the new one after a
+         load, the running one after a refusal or a check; "" when failed
+error    null, or {"code": "…", "message": "…"}. Codes of refused:
+         invalid_caddyfile, check_refused, needs_restart, website_locked,
+         changed_while_read, not_writable, caddy_refused, busy, not_ingress.
+         Codes of failed: unavailable (no gateway answers, nothing changed),
+         unknown_outcome (the answer was lost, the log of the gateway says).
+
 In a cluster the command acts on this node only: run it on every node.
 
 Exit codes: 0 done or unchanged, 1 error or refused, 2 usage.
@@ -84,6 +106,8 @@ func cmdIngressLoad(args []string) error {
 	cfgPath := fs.String("config", "", "schild.yaml (default $SCHILD_CONFIG or /etc/schild/schild.yaml)")
 	data := fs.String("data", "", "data directory (default $SCHILD_DATA_DIR or storage.path)")
 	force := fs.Bool("force", false, "load the Caddyfile also when it gives the config that runs")
+	check := fs.Bool("check", false, "run the checks and change nothing")
+	asJSON := fs.Bool("json", false, "print one JSON object in place of the text")
 	_ = fs.Parse(args)
 	if fs.NArg() != 1 {
 		fs.Usage()
@@ -104,44 +128,95 @@ func cmdIngressLoad(args []string) error {
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
 	defer cancel()
-	return loadIngress(ctx, app.DataDir(cfg, *data), in, *force, os.Stdout)
+	return loadIngress(ctx, app.DataDir(cfg, *data), in, control.Request{Force: *force, Check: *check}, *asJSON, os.Stdout)
 }
 
 // loadIngress sends the Caddyfile of in to the running gateway of the data
-// directory dir.
-func loadIngress(ctx context.Context, dir string, in io.Reader, force bool, w io.Writer) error {
+// directory dir. Of req, Force and Check count.
+func loadIngress(ctx context.Context, dir string, in io.Reader, req control.Request, asJSON bool, w io.Writer) error {
 	text, err := io.ReadAll(io.LimitReader(in, app.MaxCaddyfile+1))
+	if err == nil && len(text) > app.MaxCaddyfile {
+		err = fmt.Errorf("the Caddyfile has more than %d bytes; nothing was changed", app.MaxCaddyfile)
+	}
 	if err != nil {
+		if asJSON {
+			printIngressJSON(w, ingressAnswer{Result: "refused", Error: &ingressProblem{Code: app.IngressInvalid, Message: err.Error()}})
+		}
 		return fmt.Errorf("ingress load: %w", err)
 	}
-	if len(text) > app.MaxCaddyfile {
-		return fmt.Errorf("ingress load: the Caddyfile has more than %d bytes; nothing was changed", app.MaxCaddyfile)
-	}
-	return callIngress(ctx, dir, "load", control.Request{Op: control.OpIngressLoad, Force: force, Caddyfile: string(text)}, w)
+	req.Op, req.Caddyfile = control.OpIngressLoad, string(text)
+	return callIngress(ctx, dir, "load", req, asJSON, w)
 }
 
-func callIngress(ctx context.Context, dir, cmd string, req control.Request, w io.Writer) error {
+// ingressAnswer is what -json prints.
+type ingressAnswer struct {
+	Result   string          `json:"result"`
+	Websites int             `json:"websites"`
+	SHA256   string          `json:"sha256"`
+	Warnings []string        `json:"warnings"`
+	Error    *ingressProblem `json:"error"`
+}
+
+type ingressProblem struct {
+	Code    string `json:"code"`
+	Message string `json:"message"`
+}
+
+func printIngressJSON(w io.Writer, a ingressAnswer) {
+	if a.Warnings == nil {
+		a.Warnings = []string{}
+	}
+	b, _ := json.Marshal(a)
+	fmt.Fprintf(w, "%s\n", b)
+}
+
+func callIngress(ctx context.Context, dir, cmd string, req control.Request, asJSON bool, w io.Writer) error {
 	resp, err := control.Call(ctx, dir, req)
-	switch {
-	case errors.Is(err, control.ErrUnavailable) && cmd == "load":
-		return errors.New("ingress load: schild does not answer on its control path; nothing was changed. For a stopped gateway, write the file yourself")
-	case errors.Is(err, control.ErrUnavailable):
-		return errors.New("ingress reload: schild does not answer on its control path; nothing was changed, a stopped gateway reads its Caddyfile at its next start")
-	case err != nil:
-		return fmt.Errorf("ingress %s: %w (it may or may not have happened; the log of the gateway says so)", cmd, err)
+	if err != nil {
+		code, msg := "unknown_outcome", fmt.Sprintf("%v (it may or may not have happened; the log of the gateway says so)", err)
+		switch {
+		case errors.Is(err, control.ErrUnavailable) && cmd == "load":
+			code, msg = "unavailable", "schild does not answer on its control path; nothing was changed. For a stopped gateway, write the file yourself"
+		case errors.Is(err, control.ErrUnavailable):
+			code, msg = "unavailable", "schild does not answer on its control path; nothing was changed, a stopped gateway reads its Caddyfile at its next start"
+		}
+		if asJSON {
+			printIngressJSON(w, ingressAnswer{Result: "failed", Error: &ingressProblem{Code: code, Message: msg}})
+		}
+		return fmt.Errorf("ingress %s: %s", cmd, msg)
 	}
-	for _, m := range resp.Warnings {
-		fmt.Fprintf(w, "  warning   %s\n", m)
-	}
+	ans := ingressAnswer{Websites: resp.Websites, SHA256: resp.SHA256, Warnings: resp.Warnings}
 	switch {
 	case !resp.OK:
-		return fmt.Errorf("ingress %s: refused, the running Caddyfile stays: %s", cmd, resp.Error)
+		ans.Result, ans.Error = "refused", &ingressProblem{Code: resp.Code, Message: resp.Error}
+	case resp.Checked:
+		ans.Result = "accepted"
 	case resp.Unchanged:
-		fmt.Fprintf(w, "Caddyfile unchanged: %d websites\n", resp.Websites)
-	case cmd == "load":
-		fmt.Fprintf(w, "Caddyfile written and loaded: %d websites\n", resp.Websites)
+		ans.Result = "unchanged"
 	default:
-		fmt.Fprintf(w, "Caddyfile reloaded: %d websites\n", resp.Websites)
+		ans.Result = "loaded"
+	}
+	if asJSON {
+		printIngressJSON(w, ans)
+	} else {
+		for _, m := range resp.Warnings {
+			fmt.Fprintf(w, "  warning   %s\n", m)
+		}
+		switch {
+		case ans.Result == "accepted" && resp.Unchanged:
+			fmt.Fprintf(w, "Caddyfile accepted, it gives the config that runs: %d websites; nothing was changed\n", resp.Websites)
+		case ans.Result == "accepted":
+			fmt.Fprintf(w, "Caddyfile accepted: %d websites; nothing was changed\n", resp.Websites)
+		case ans.Result == "unchanged":
+			fmt.Fprintf(w, "Caddyfile unchanged: %d websites\n", resp.Websites)
+		case ans.Result == "loaded" && cmd == "load":
+			fmt.Fprintf(w, "Caddyfile written and loaded: %d websites\n", resp.Websites)
+		case ans.Result == "loaded":
+			fmt.Fprintf(w, "Caddyfile reloaded: %d websites\n", resp.Websites)
+		}
+	}
+	if !resp.OK {
+		return fmt.Errorf("ingress %s: refused, the running Caddyfile stays: %s", cmd, resp.Error)
 	}
 	return nil
 }
