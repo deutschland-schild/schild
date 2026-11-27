@@ -80,6 +80,20 @@ function daysText(v: number | null): string {
   if (d < 1) return 'in weniger als einem Tag'
   return d === 1 ? 'in etwa einem Tag' : `in etwa ${formatNumber(d)} Tagen`
 }
+/** audit_size: the actor with the most entries (a token id, a portal key id or a way), as "von …". */
+function auditActorText(actor: string): string {
+  if (actor.startsWith('tok_')) return `vom Agent-Token ${actor}`
+  if (actor.startsWith('pk_')) return `vom Portal-Schlüssel ${actor}`
+  const ways: Record<string, string> = {
+    dashboard: 'aus dem Dashboard',
+    agent: 'über die Agent-API',
+    integration: 'von einem Portal',
+    cli: 'von der Kommandozeile',
+    config: 'aus der Konfigurationsdatei',
+    system: 'von Schild selbst',
+  }
+  return ways[actor] ?? ''
+}
 const pct = (v: number | null | undefined) => v === null || v === undefined ? '–' : formatNumber(Math.round(v * 100))
 
 export function hintContext(s: ServerSnapshot | undefined, overheadP95Ms?: number | null): HintContext {
@@ -161,6 +175,19 @@ export function hintView(h: HealthHint, ctx: HintContext = {}): HintView {
     // object = mount, value = days left (Theil-Sen slope of the last 7 days).
     case 'disk_fill_projection':
       return { ...base, text: `${obj || 'Eine Festplatte'} ist ${daysText(v)} voll, wenn es so weitergeht wie in den letzten 7 Tagen.`, next: 'Unter „Server“ siehst du große Logdateien.', to: '/server/check', action: 'Server-Check ansehen' }
+    // contracts/audit.md sections 4 and 6. audit_stuck: value = entries that wait in the outbox of schild.db.
+    case 'audit_stuck': {
+      const waiting = v === null ? 'Einträge des Protokolls warten' : Math.round(v) === 1 ? 'Ein Eintrag des Protokolls wartet' : `${n} Einträge des Protokolls warten`
+      return { ...base, text: `${waiting} in schild.db, weil Schild audit.db gerade nicht schreiben kann. Änderungen zeichnet Schild weiter auf.`, next: 'Sieh im Datenverzeichnis nach, ob Platz frei ist und ob Schild dort schreiben darf.' }
+    }
+    // audit_size: value = bytes of audit.db, count = entries of the last 30 days, object = the actor with the most.
+    case 'audit_size': {
+      const actor = auditActorText(obj)
+      const growth = h.count === null || h.count === undefined
+        ? ''
+        : ` In den letzten 30 Tagen kamen ${formatNumber(h.count)} Einträge dazu${actor ? `, die meisten ${actor}` : ''}.`
+      return { ...base, text: `Das Protokoll ist ${v === null ? 'über 1 GiB' : formatBytes(v)} groß.${growth} Wegen der Größe löscht Schild nichts.`, next: 'Mit audit.keep_days in schild.yaml behält Schild die Einträge kürzer.' }
+    }
     case 'traffic_spike':
       return { ...base, text: `Gerade kommen etwa ${formatDecimal(v)}-mal so viele Anfragen wie in der letzten Stunde üblich.`, to: charts('?time=1h'), action: 'Traffic ansehen' }
     case 'monitoring_degraded':

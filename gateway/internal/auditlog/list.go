@@ -1,7 +1,9 @@
 package auditlog
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
 	"sort"
 	"strconv"
@@ -275,4 +277,54 @@ func (l *Log) Holes(ctx context.Context) ([]Hole, error) {
 		}
 	}
 	return out, nil
+}
+
+// Naming returns the entries that name an address, newest first, at most
+// limit: the address a call came from, a value that was recorded (an own
+// IP, a released or blocked client), or an item of a recorded list. It
+// reads every entry, so it is for the export of what is stored about one
+// address (privacy/export) and for nothing that runs often. A network that
+// holds the address is not a match: the entry names the network.
+func (l *Log) Naming(ctx context.Context, address string, limit int) ([]map[string]any, error) {
+	if l == nil || address == "" {
+		return nil, nil
+	}
+	if limit <= 0 || limit > MaxPage {
+		limit = MaxPage
+	}
+	_ = l.Move(ctx)
+	quoted, err := json.Marshal(address)
+	if err != nil {
+		return nil, err
+	}
+	var out []map[string]any
+	take := func(body []byte) {
+		if !bytes.Contains(body, quoted) {
+			return
+		}
+		if e, err := jsonx.ParseObject(body); err == nil {
+			out = append(out, e)
+		}
+	}
+	if waiting, err := l.st.AuditOutbox(ctx, MaxPage); err == nil {
+		for i := len(waiting) - 1; i >= 0 && len(out) < limit; i-- {
+			take(waiting[i].Body)
+		}
+	}
+	if l.db == nil {
+		return out, nil
+	}
+	rows, err := l.db.QueryContext(ctx, `SELECT body FROM entries WHERE instr(body, ?) > 0 ORDER BY time_ms DESC, seq DESC LIMIT ?`, quoted, limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	for rows.Next() && len(out) < limit {
+		var body []byte
+		if err := rows.Scan(&body); err != nil {
+			return nil, err
+		}
+		take(body)
+	}
+	return out, rows.Err()
 }

@@ -46,8 +46,10 @@ const (
 // server (ServerStatus) and never reach its websites: they are about
 // schild's own event store, which does not change how a website is
 // served. Every other server-wide hint still marks every website on the
-// server (disk_full_soon, disk_fill_projection, ...).
-var ServerOnlyHintCodes = map[string]bool{"store_near_cap": true, "store_cap_unreachable": true, "storage_budget": true}
+// server (disk_full_soon, disk_fill_projection, ...). audit_stuck and
+// audit_size (D108, contracts/audit.md) are about the audit log in the same
+// way.
+var ServerOnlyHintCodes = map[string]bool{"store_near_cap": true, "store_cap_unreachable": true, "storage_budget": true, "audit_stuck": true, "audit_size": true}
 
 // Traffic of a website in the window.
 type Traffic struct {

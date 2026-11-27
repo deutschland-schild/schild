@@ -172,6 +172,8 @@ func main() {
 	genSiteConfigD103(g)
 	// MVP-36 as built: audit.keep_days and audit.stream.
 	genSiteConfigAudit(g)
+	// D108: the hints of the audit log mark only the server.
+	genWebsiteStatusAudit(g)
 	g.summary()
 }
 

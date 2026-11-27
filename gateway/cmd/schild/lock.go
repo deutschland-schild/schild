@@ -76,7 +76,7 @@ func cmdLock(args []string) error {
 	pwStdin := fs.Bool("password-stdin", false, "read the shared password as one line from stdin")
 	message := fs.String("message", "", "text of the maintenance page")
 	pos := parseInterleaved(fs, args[1:])
-	req := control.Request{HostUser: os.Getenv("USER")}
+	req := control.Request{HostUser: hostAccount(os.Getenv, currentUser)}
 	switch sub {
 	case "on":
 		if len(pos) != 1 {

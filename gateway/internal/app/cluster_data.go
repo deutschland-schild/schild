@@ -26,6 +26,9 @@ import (
 //   - Events and incidents are asked for: a node asks every member once a
 //     second for what that member wrote itself after a cursor. A node that
 //     was away catches up from where it stopped.
+//   - The audit log is asked for like the events (cluster_audit.go), with
+//     one difference: a node hands on every entry it holds, also those of
+//     other nodes.
 //   - Single requests are asked for too: every node keeps the requests it
 //     served itself in a bounded log in memory, each with a sequence number,
 //     and the others ask once a second for what came after their cursor. A
@@ -124,6 +127,8 @@ type groupData struct {
 	a *App
 	// heads: who was told what, and what the others said (cluster_heads.go).
 	heads *headsState
+	// audit: how far the audit log of this node went (cluster_audit.go).
+	audit auditNews
 	// requestsMissed counts the numbers of requests of other nodes that
 	// may have left their request store (retention, the size cap) before
 	// this node asked for them. An upper bound: numbers have holes.
@@ -157,7 +162,7 @@ func (a *App) startGroupData(ctx context.Context) {
 		}
 		actx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
-		gen := a.Store.OwnGen()
+		gen := g.ownHeads().Store
 		rows, next, err := a.Store.EventsOfSource(actx, a.Events.Source(), q.After, dataScan, dataBatch)
 		if err != nil {
 			return nil, err
@@ -174,7 +179,7 @@ func (a *App) startGroupData(ctx context.Context) {
 		}
 		actx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
-		gen := a.Store.OwnGen()
+		gen := g.ownHeads().Store
 		rows, err := a.Store.IncidentsOfSource(actx, a.Events.Source(), q.SinceMS, dataBatch)
 		if err != nil {
 			return nil, err
@@ -226,6 +231,7 @@ func (a *App) startGroupData(ctx context.Context) {
 			return json.Marshal(ans)
 		})
 	}
+	g.startAudit()
 	node.OnTell(tellHeads, func(from string, body []byte) {
 		var hd heads
 		if len(body) <= 512 && json.Unmarshal(body, &hd) == nil {

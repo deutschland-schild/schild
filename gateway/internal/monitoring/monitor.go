@@ -110,6 +110,8 @@ type Monitor struct {
 	ticked    bool // a second was closed (flush has something to write)
 	// disk: storage_budget and disk_fill_projection inputs (D38).
 	disk diskState
+	// audit: audit_stuck and audit_size inputs (contracts/audit.md).
+	audit auditState
 
 	// botVerify: bot verification runs (MVP-22; TrafficBreakdown.bot_verification).
 	botVerify atomic.Bool

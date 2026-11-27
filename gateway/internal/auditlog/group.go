@@ -73,6 +73,36 @@ func (l *Log) After(ctx context.Context, after int64) (rows []json.RawMessage, n
 	return rows, next, rs.Err()
 }
 
+// Head is the place of the newest entry this node hands on, 0 without one.
+// It moves when an entry is stored, whoever wrote it.
+func (l *Log) Head(ctx context.Context) (int64, error) {
+	if l == nil || l.db == nil {
+		return 0, nil
+	}
+	var seq int64
+	// Backwards from the end: the entries that still count are few.
+	err := l.db.QueryRowContext(ctx, `SELECT seq FROM entries WHERE open = 0 ORDER BY seq DESC LIMIT 1`).Scan(&seq)
+	if errors.Is(err, sql.ErrNoRows) {
+		return 0, nil
+	}
+	return seq, err
+}
+
+// OwnSince reports whether this node stored an entry of its own after the
+// place `after`: news for the members. An entry a member handed over is none,
+// every member that holds it says so itself.
+func (l *Log) OwnSince(ctx context.Context, after int64) (bool, error) {
+	if l == nil || l.db == nil {
+		return false, nil
+	}
+	var one int
+	err := l.db.QueryRowContext(ctx, `SELECT 1 FROM entries WHERE seq > ? AND own = 1 AND open = 0 LIMIT 1`, after).Scan(&one)
+	if errors.Is(err, sql.ErrNoRows) {
+		return false, nil
+	}
+	return err == nil, err
+}
+
 // Import stores entries a member handed over and returns how many were new.
 // An entry is checked as the contract says for a member (audit.ParseEntry):
 // an action a later build knows is taken, a value this build may not record

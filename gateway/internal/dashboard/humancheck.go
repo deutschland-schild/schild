@@ -48,8 +48,8 @@ type HumanCheckFuncs struct {
 
 func (s *Server) humanCheckRoutes(a func(string, http.HandlerFunc)) {
 	a("GET "+apiPrefix+"/websites/{website}/human-check", s.getHumanCheck)
-	a("PUT "+apiPrefix+"/websites/{website}/human-check", s.setHumanCheck)
-	a("DELETE "+apiPrefix+"/websites/{website}/human-check", s.removeHumanCheck)
+	a("PUT "+apiPrefix+"/websites/{website}/human-check", s.op("setHumanCheck", s.setHumanCheck))
+	a("DELETE "+apiPrefix+"/websites/{website}/human-check", s.op("removeHumanCheck", s.removeHumanCheck))
 }
 
 func humanCheckState(website string, e *humancheck.Entry, counts humancheck.Counters, now time.Time) HumanCheckState {

@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/deutschland-schild/schild/gateway/internal/auditlog"
 	"net/netip"
 	"sort"
 	"time"
@@ -138,7 +139,7 @@ func (a *App) SetAccess(ctx context.Context, website string, c AccessChange) (*a
 	next := cur.Clone()
 	e := &accesslock.Entry{Protection: p, Hash: hash, Epoch: newEpoch(old), UpdatedAt: now, Actor: c.Actor, User: c.User}
 	next.Entries[website] = e
-	if err := a.storeAccess(ctx, next); err != nil {
+	if err := a.storeAccess(ctx, next, one("access_lock.set", website, website, accessState(old), accessState(e))); err != nil {
 		return nil, err
 	}
 	a.Events.Emit(events.AccessProtectionSet, now, events.AccessProtectionChange{Website: website, Scope: p.Scope, Paths: p.Paths, Except: p.Except,
@@ -163,7 +164,7 @@ func (a *App) removeAccess(ctx context.Context, website, actor, user, reason str
 	}
 	next := cur.Clone()
 	delete(next.Entries, website)
-	if err := a.storeAccess(ctx, next); err != nil {
+	if err := a.storeAccess(ctx, next, one("access_lock.remove", website, website, accessState(old), nil)); err != nil {
 		return false, err
 	}
 	a.Events.Emit(events.AccessProtectionRemoved, time.Now(), events.AccessProtectionEnded{Website: website, Scope: old.Protection.Scope, Actor: actor, User: user, Reason: reason},
@@ -193,7 +194,7 @@ func (a *App) SetMaintenance(ctx context.Context, website string, on bool, messa
 		}
 		next := cur.Clone()
 		delete(next.Maintenance, website)
-		if err := a.storeAccess(ctx, next); err != nil {
+		if err := a.storeAccess(ctx, next, one("maintenance.set", website, website, maintenanceState(old), maintenanceState(nil))); err != nil {
 			return nil, err
 		}
 		a.Events.Emit(events.AccessProtectionRemoved, now, events.AccessProtectionEnded{Website: website, Scope: access.ScopeSite, Actor: actor, User: user, Reason: "removed"},
@@ -217,7 +218,7 @@ func (a *App) SetMaintenance(ctx context.Context, website string, on bool, messa
 		next.Maintenance = map[string]*accesslock.Maintenance{}
 	}
 	next.Maintenance[website] = m
-	if err := a.storeAccess(ctx, next); err != nil {
+	if err := a.storeAccess(ctx, next, one("maintenance.set", website, website, maintenanceState(old), maintenanceState(m))); err != nil {
 		return nil, err
 	}
 	if old == nil {
@@ -228,12 +229,41 @@ func (a *App) SetMaintenance(ctx context.Context, website string, on bool, messa
 	return m, nil
 }
 
-// storeAccess writes next to schild.db, then swaps it in and rewrites the
-// file for the front. Called with accessMu held.
-func (a *App) storeAccess(ctx context.Context, next *accesslock.State) error {
+// accessState is what access_lock.set and access_lock.remove record of a
+// protection. The password stands there by its hash, which the audit log
+// never records: it shows that the password changed, not what it is.
+func accessState(e *accesslock.Entry) map[string]any {
+	if e == nil {
+		return nil
+	}
+	m := asMap(e.Protection)
+	delete(m, "website")
+	delete(m, "password")
+	if e.Hash != "" {
+		m["password"] = e.Hash
+	}
+	return m
+}
+
+// maintenanceState is what maintenance.set records.
+func maintenanceState(m *accesslock.Maintenance) map[string]any {
+	if m == nil {
+		return map[string]any{"on": false}
+	}
+	out := map[string]any{"on": true}
+	if m.Message != "" {
+		out["message"] = m.Message
+	}
+	return out
+}
+
+// storeAccess writes next to schild.db with the entries of the change,
+// then swaps it in and rewrites the file for the front. Called with
+// accessMu held.
+func (a *App) storeAccess(ctx context.Context, next *accesslock.State, entries func(o auditlog.Origin) []auditlog.Entry) error {
 	raw, err := json.Marshal(next)
 	if err == nil {
-		err = a.Store.Put(ctx, accesslock.StoreKey, raw)
+		err = a.putAudited(ctx, accesslock.StoreKey, raw, entries)
 	}
 	if err != nil {
 		return fmt.Errorf("access lock not stored: %w", err)

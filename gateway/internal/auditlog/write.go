@@ -96,6 +96,9 @@ type Entry struct {
 	// Before and After are the state of what changed as JSON objects (a
 	// struct, a map), nil for not there. Only their difference is stored.
 	Before, After any
+	// IfChanged: the entry is of a setting, and a call that leaves the
+	// state as it was writes none.
+	IfChanged bool
 	// Reason is text the caller gave, untrusted.
 	Reason string
 	// Time of the change; zero is now.
@@ -166,8 +169,14 @@ func (l *Log) build(e Entry, id string, now time.Time) (map[string]any, []byte, 
 		return nil, nil, fmt.Errorf("audit: %s: after: %w", e.Action, err)
 	}
 	if before != nil || after != nil {
-		if c := audit.Diff(a, before, after); len(c.Fields) > 0 || c.MoreFields > 0 {
+		c := audit.Diff(a, before, after)
+		switch {
+		case len(c.Fields) > 0 || c.MoreFields > 0:
 			m["change"] = c
+		case e.IfChanged:
+			// The state is the same before and after: the call changed
+			// nothing, and there is no entry.
+			return nil, nil, errNoChange
 		}
 	}
 	if r := audit.Text(strings.TrimSpace(e.Reason), 500); r != "" {
@@ -183,6 +192,9 @@ func (l *Log) build(e Entry, id string, now time.Time) (map[string]any, []byte, 
 	}
 	return parsed, raw, nil
 }
+
+// errNoChange: the state before and after an entry is the same.
+var errNoChange = errors.New("audit: nothing changed")
 
 // Rec collects the entries of one change.
 type Rec struct {
@@ -241,13 +253,22 @@ func (l *Log) Write(ctx context.Context, entries ...Entry) error {
 	return err
 }
 
-// put writes entries into the outbox, in the transaction of ctx.
+// put writes entries into the outbox, in the transaction of ctx. An entry
+// of a setting whose state is the same before and after is left out
+// (Entry.IfChanged).
 func (l *Log) put(ctx context.Context, entries []Entry) error {
 	now := l.now()
 	for _, e := range entries {
 		a := audit.Lookup(e.Action)
 		if a == nil {
 			return fmt.Errorf("audit: unknown action %q", e.Action)
+		}
+		// Built once without a number: an entry that says nothing, or does
+		// not pass, draws none.
+		if _, _, err := l.build(e, "0000000000000000-"+audit.Letter(a.Class)+"-1", now); errors.Is(err, errNoChange) {
+			continue
+		} else if err != nil {
+			return err
 		}
 		id, err := l.st.NextAuditID(ctx, audit.Letter(a.Class))
 		if err != nil {
@@ -277,4 +298,92 @@ func (l *Log) wake() {
 	case l.kick <- struct{}{}:
 	default:
 	}
+}
+
+// OnChange returns a context for a change that code between the caller and
+// the store makes (a setting the app keeps under a key, a rule decision):
+// when that code writes the value, f is told what it was and what it is
+// now, and the entries f notes are written in the transaction of that
+// write. The code in between holds its own locks as before
+// (store.OnChange). f is called for every such write under the context and
+// notes nothing for a key that is not its own.
+//
+// A nil log returns ctx as it is.
+func (l *Log) OnChange(ctx context.Context, f func(c store.Change, rec *Rec) error) context.Context {
+	if l == nil {
+		return ctx
+	}
+	return store.OnChange(ctx, func(ctx context.Context, c store.Change) error {
+		rec := &Rec{}
+		if err := f(c, rec); err != nil {
+			return err
+		}
+		if len(rec.entries) == 0 {
+			return nil
+		}
+		if err := l.put(ctx, rec.entries); err != nil {
+			return err
+		}
+		entries := rec.entries
+		store.AfterCommit(ctx, func() {
+			l.spend(entries)
+			l.wake()
+		})
+		return nil
+	})
+}
+
+// Origin is where a change comes from: the call that asked for it. A
+// handler puts it into the context (WithOrigin); the code that makes the
+// change, often several calls further down and under its own lock, takes it
+// from there and notes the entry with the state before and after, which
+// only it knows (Origin.Entry). A change without an origin in its context
+// came from no call of this node (a member of the group handed it over, the
+// start read it) and writes no entry.
+type Origin struct {
+	// Operation is <way>:<operation id, command or source>.
+	Operation string
+	Actor     Actor
+	Address   string
+	// Reason is text the caller gave, untrusted.
+	Reason string
+	// Event or Incident the call named as its cause.
+	Event, Incident string
+}
+
+type originKey struct{}
+
+// WithOrigin returns a context that carries the origin of a change.
+func WithOrigin(ctx context.Context, o Origin) context.Context {
+	return context.WithValue(ctx, originKey{}, o)
+}
+
+// OriginOf returns the origin of a change, false without one.
+func OriginOf(ctx context.Context) (Origin, bool) {
+	o, ok := ctx.Value(originKey{}).(Origin)
+	return o, ok
+}
+
+// Entry starts the entry of an action from this origin.
+func (o Origin) Entry(action string) Entry {
+	return Entry{Action: action, Operation: o.Operation, Actor: o.Actor, Address: o.Address, Reason: o.Reason, Event: o.Event, Incident: o.Incident}
+}
+
+// Changed runs a change the caller of ctx asked for and writes its entry in
+// one transaction: write makes the change with the context it gets, calling
+// the store alone, and entry builds the entry from the origin of ctx. The
+// code that calls Changed may hold its own lock; the transaction is around
+// write alone. Without an origin in ctx, or with a nil log, write runs
+// without an entry.
+func (l *Log) Changed(ctx context.Context, action string, entry func(e *Entry), write func(ctx context.Context) error) error {
+	o, ok := OriginOf(ctx)
+	if l == nil || !ok {
+		return write(ctx)
+	}
+	return l.Tx(ctx, func(ctx context.Context, rec *Rec) error {
+		e := o.Entry(action)
+		entry(&e)
+		rec.Add(e)
+		return write(ctx)
+	})
 }

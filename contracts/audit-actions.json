@@ -3,7 +3,7 @@
   "actions": [
     { "action": "access_lock.set", "class": "change", "subject": "website", "website": "required", "operations": ["dashboard:setAccessProtection", "cli:lock on"], "fields": ["/scope", "/paths", "/except", "/addresses", "/own_networks", "/message", "/password"], "addresses": ["/addresses"] },
     { "action": "access_lock.remove", "class": "change", "subject": "website", "website": "required", "operations": ["dashboard:removeAccessProtection", "cli:lock off"], "fields": ["/scope", "/paths", "/except", "/addresses", "/own_networks", "/message", "/password"], "addresses": ["/addresses"] },
-    { "action": "maintenance.set", "class": "change", "subject": "website", "website": "required", "operations": ["dashboard:setMaintenance"], "fields": ["/on", "/message"] },
+    { "action": "maintenance.set", "class": "change", "subject": "website", "website": "required", "operations": ["dashboard:setMaintenance", "cli:lock off"], "fields": ["/on", "/message"] },
     { "action": "crawlers.set", "class": "change", "subject": "website", "website": "required", "operations": ["dashboard:setCrawlerPolicy", "agent:setAgentCrawlers"], "fields": ["/categories/*", "/bots/*", "/impersonators", "/preset"] },
     { "action": "human_check.set", "class": "change", "subject": "website", "website": "required", "operations": ["dashboard:setHumanCheck"], "fields": ["/mode", "/under_attack/*", "/except", "/clearance_ttl_s", "/difficulty"] },
     { "action": "human_check.remove", "class": "change", "subject": "website", "website": "required", "operations": ["dashboard:removeHumanCheck"], "fields": ["/mode", "/under_attack/*", "/except", "/clearance_ttl_s", "/difficulty"] },
@@ -49,7 +49,7 @@
     { "action": "privacy.erase", "class": "privacy", "subject": "address", "website": "none", "operations": ["dashboard:privacyDelete"], "fields": ["/events", "/incidents", "/requests", "/blocks", "/keep_incidents"] },
     { "action": "incident.export", "class": "privacy", "subject": "incident", "website": "optional", "operations": ["dashboard:exportIncident"], "fields": [] },
 
-    { "action": "session.start", "class": "access", "subject": "user", "website": "none", "operations": ["dashboard:login"], "fields": [] },
+    { "action": "session.start", "class": "access", "subject": "user", "website": "none", "operations": ["dashboard:login", "dashboard:setupPassword", "dashboard:changePassword"], "fields": [] },
     { "action": "session.end", "class": "access", "subject": "user", "website": "none", "operations": ["dashboard:logout"], "fields": [] },
     { "action": "agent_api.call", "class": "access", "subject": "agent_api", "website": "none", "refused_only": true, "operations": ["agent:any"], "fields": [] }
   ],
@@ -60,7 +60,10 @@
     { "operation": "agent:syncAgentFirewall", "reason": "Reports what the host firewall holds, every few seconds; in the call log." },
     { "operation": "cli:init", "reason": "Writes files before there is a gateway; the first start records config.apply." },
     { "operation": "cli:cluster secret", "reason": "Prints a new secret and stores nothing." },
+    { "operation": "cli:firewall run", "reason": "Keeps the host firewall in line with the gateway's blocks, often on a machine or in a container without the store; every block has its own entry." },
     { "operation": "cli:firewall off", "reason": "Changes the host firewall, often on a machine or in a container without the store; the gateway's blocks stay." },
+    { "operation": "cli:check", "reason": "Reads the host and writes its report, nothing of the gateway." },
+    { "operation": "cli:geo-fixture", "reason": "Writes a test database of documentation ranges into a file, nothing of the gateway." },
     { "operation": "cli:check install", "reason": "Sets up systemd units of the host, not the gateway." },
     { "operation": "cli:check uninstall", "reason": "Removes systemd units of the host, not the gateway." }
   ],

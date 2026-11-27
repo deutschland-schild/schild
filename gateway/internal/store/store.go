@@ -250,10 +250,17 @@ func (s *Store) Get(ctx context.Context, k string) ([]byte, error) {
 	return v, err
 }
 
-// Put stores a kv value.
+// Put stores a kv value. With a hook in ctx (OnChange) the write and the
+// hook are one transaction.
 func (s *Store) Put(ctx context.Context, k string, v []byte) error {
-	_, err := s.q(ctx).ExecContext(ctx, "INSERT INTO kv(k, v) VALUES(?, ?) ON CONFLICT(k) DO UPDATE SET v = excluded.v", k, v)
-	return err
+	put := func(ctx context.Context) error {
+		_, err := s.q(ctx).ExecContext(ctx, "INSERT INTO kv(k, v) VALUES(?, ?) ON CONFLICT(k) DO UPDATE SET v = excluded.v", k, v)
+		return err
+	}
+	if hookOf(ctx) == nil {
+		return put(ctx)
+	}
+	return s.changed(ctx, k, v, put)
 }
 
 // Keys returns the keys of the kv values, sorted.
@@ -305,8 +312,14 @@ func SharedTables() []string {
 
 // Delete removes a kv value; a value that is not there is no error.
 func (s *Store) Delete(ctx context.Context, k string) error {
-	_, err := s.q(ctx).ExecContext(ctx, "DELETE FROM kv WHERE k = ?", k)
-	return err
+	del := func(ctx context.Context) error {
+		_, err := s.q(ctx).ExecContext(ctx, "DELETE FROM kv WHERE k = ?", k)
+		return err
+	}
+	if hookOf(ctx) == nil {
+		return del(ctx)
+	}
+	return s.changed(ctx, k, nil, del)
 }
 
 // ---------------------------------------------------------------- helpers

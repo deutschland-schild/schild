@@ -3,6 +3,7 @@ package store
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"strconv"
 )
 
@@ -177,4 +178,48 @@ func (t *txn) Rollback() error {
 	}
 	_, err := t.Tx.Exec("RELEASE " + t.sp)
 	return err
+}
+
+// Change is one write of a value the store keeps under a key: a kv value
+// (Key is its key) or a rule decision (Key is RuleDecisionKey).
+type Change struct {
+	Key string
+	// Old and New are the value before and after; nil: not there.
+	Old, New []byte
+}
+
+type hookKey struct{}
+
+// ChangeHook is told a change in the transaction that makes it. Its error
+// rolls the change back.
+type ChangeHook func(ctx context.Context, c Change) error
+
+// OnChange returns a context whose writes of kv values and rule decisions
+// tell hook, each in the transaction of the write: what the hook writes with
+// the context it gets (an audit entry) is committed with the change or not
+// at all. The code between the caller and the store needs no change and
+// holds its own locks as before: the transaction is around the one write.
+func OnChange(ctx context.Context, hook ChangeHook) context.Context {
+	return context.WithValue(ctx, hookKey{}, hook)
+}
+
+func hookOf(ctx context.Context) ChangeHook {
+	h, _ := ctx.Value(hookKey{}).(ChangeHook)
+	return h
+}
+
+// changed runs a write of a kv value and the hook of ctx in one
+// transaction.
+func (s *Store) changed(ctx context.Context, k string, v []byte, write func(context.Context) error) error {
+	hook := hookOf(ctx)
+	return s.InTx(ctx, func(ctx context.Context) error {
+		old, err := s.Get(ctx, k)
+		if err != nil && !errors.Is(err, ErrNotFound) {
+			return err
+		}
+		if err := write(ctx); err != nil {
+			return err
+		}
+		return hook(ctx, Change{Key: k, Old: old, New: v})
+	})
 }

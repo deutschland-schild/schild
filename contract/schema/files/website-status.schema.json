@@ -62,12 +62,12 @@
       }
     },
     "serverHint": {
-      "description": "Server-wide hint codes: the host and schild's own shared resources. store_near_cap, store_cap_unreachable and storage_budget (schild's own event store) mark only the server and are no reason of a website (D36 open items, D38).",
+      "description": "Server-wide hint codes: the host and schild's own shared resources. store_near_cap, store_cap_unreachable and storage_budget (schild's own event store), audit_stuck and audit_size (its audit log, D108) mark only the server and are no reason of a website (D36 open items, D38).",
       "type": "object",
       "additionalProperties": false,
       "required": ["code", "level"],
       "properties": {
-        "code": { "type": "string", "enum": ["cpu_high", "cpu_throttled", "load_high", "memory_low", "swap_active", "oom_kill", "disk_full_soon", "disk_io_busy", "net_errors", "conntrack_high", "fd_high", "listen_drops", "waf_saturated", "events_dropped", "store_near_cap", "monitoring_degraded", "store_cap_unreachable", "storage_budget", "disk_fill_projection"] },
+        "code": { "type": "string", "enum": ["cpu_high", "cpu_throttled", "load_high", "memory_low", "swap_active", "oom_kill", "disk_full_soon", "disk_io_busy", "net_errors", "conntrack_high", "fd_high", "listen_drops", "waf_saturated", "events_dropped", "store_near_cap", "monitoring_degraded", "store_cap_unreachable", "storage_budget", "disk_fill_projection", "audit_stuck", "audit_size"] },
         "level": { "$ref": "#/$defs/level" },
         "object": { "$ref": "#/$defs/object" }
       }

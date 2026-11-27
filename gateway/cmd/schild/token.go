@@ -12,6 +12,7 @@ import (
 	"time"
 
 	contractapi "github.com/deutschland-schild/schild/contract/agentapi"
+	"github.com/deutschland-schild/schild/gateway/internal/auditlog"
 	"github.com/deutschland-schild/schild/gateway/internal/store"
 )
 
@@ -59,7 +60,7 @@ func runToken(args []string, out io.Writer, now func() time.Time) error {
 			rest = rest[1:]
 		}
 	}
-	st, _, err := openStore(*cfgPath, *data)
+	st, al, err := openAudited(*cfgPath, *data)
 	if err != nil {
 		return err
 	}
@@ -88,7 +89,15 @@ func runToken(args []string, out io.Writer, now func() time.Time) error {
 		}
 		tok := contractapi.NewToken()
 		t := store.AgentToken{ID: contractapi.TokenID(tok), Hash: contractapi.HashToken(tok), Scope: *scope, Label: lb, Created: now().UTC(), Expires: now().UTC().Add(ttl)}
-		if err := st.AddAgentToken(ctx, t); err != nil {
+		// The token and its audit entry are one transaction. The entry names
+		// the id, never the token or its hash.
+		if err := al.Tx(ctx, func(ctx context.Context, rec *auditlog.Rec) error {
+			if err := st.AddAgentToken(ctx, t); err != nil {
+				return err
+			}
+			rec.Add(auditlog.Entry{Action: "token.add", Operation: "cli:token add", Actor: cliActor(), Subject: t.ID, After: tokenState(t)})
+			return nil
+		}); err != nil {
 			return err
 		}
 		fmt.Fprintf(out, "%s\n\nid %s, scope %s, valid until %s.\nThe token is shown only now; schild stores its SHA-256 only. Revoke it with: schild token revoke %s\n",
@@ -116,7 +125,22 @@ func runToken(args []string, out io.Writer, now func() time.Time) error {
 		if len(pos) != 1 {
 			return errors.New("token revoke tok_<12 hex>")
 		}
-		if err := st.RevokeAgentToken(ctx, pos[0], now().UTC()); err != nil {
+		err := al.Tx(ctx, func(ctx context.Context, rec *auditlog.Rec) error {
+			ts, err := st.ListAgentTokens(ctx)
+			if err != nil {
+				return err
+			}
+			if err := st.RevokeAgentToken(ctx, pos[0], now().UTC()); err != nil {
+				return err
+			}
+			for _, t := range ts {
+				if t.ID == pos[0] {
+					rec.Add(auditlog.Entry{Action: "token.revoke", Operation: "cli:token revoke", Actor: cliActor(), Subject: t.ID, Before: tokenState(t)})
+				}
+			}
+			return nil
+		})
+		if err != nil {
 			if errors.Is(err, store.ErrNotFound) {
 				return fmt.Errorf("token revoke: no active token %s", pos[0])
 			}
@@ -141,4 +165,13 @@ func runToken(args []string, out io.Writer, now func() time.Time) error {
 		return tw.Flush()
 	}
 	return errors.New("token: add, list, revoke or log\n" + tokenUsage)
+}
+
+// tokenState is what an audit entry records of a token: never its hash.
+func tokenState(t store.AgentToken) map[string]any {
+	m := map[string]any{"scope": t.Scope, "expires": t.Expires.UTC().Format(time.RFC3339)}
+	if t.Label != "" {
+		m["label"] = t.Label
+	}
+	return m
 }

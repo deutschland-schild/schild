@@ -125,7 +125,7 @@ test('no horizontal scrolling on the server overview, Zugriffe of a website and 
   }
 })
 
-const PAGES = ['', 'w/verein.example', 'w/verein.example?view=requests', 'w/verein.example/events', 'w/verein.example/exceptions', 'w/verein.example/access', 'w/verein.example/ai-crawlers', 'status', 'server/load', 'server/check', 'events', 'incidents/K7QM-4XWD', 'behaviour', 'behaviour?view=scenarios', 'behaviour?view=limits', 'behaviour?view=waves', 'settings/rules', 'settings/rules/crs', 'settings/rules/crowdsec', 'settings/rules/local', 'own-ips', 'privacy?ip=203.0.113.42', 'settings']
+const PAGES = ['', 'w/verein.example', 'w/verein.example?view=requests', 'w/verein.example/events', 'w/verein.example/exceptions', 'w/verein.example/access', 'w/verein.example/ai-crawlers', 'status', 'server/load', 'server/check', 'events', 'incidents/K7QM-4XWD', 'behaviour', 'behaviour?view=scenarios', 'behaviour?view=limits', 'behaviour?view=waves', 'settings/rules', 'settings/rules/crs', 'settings/rules/crowdsec', 'settings/rules/local', 'own-ips', 'privacy?ip=203.0.113.42', 'settings', 'settings/audit']
 for (const scheme of ['light', 'dark'] as const) {
   test(`no axe WCAG 2.2 AA violations on all sections (${scheme})`, async ({ page }) => {
     test.setTimeout(90_000)

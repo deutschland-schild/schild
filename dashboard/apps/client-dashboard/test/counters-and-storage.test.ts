@@ -158,27 +158,46 @@ describe('storage hints (D38) and server-only hints', () => {
     for (const v of [cap, budget, proj]) expect(`${v.text} ${v.next}`).not.toMatch(/geschützt|sicher|anonym|Ein Hinweis zur Auslastung/)
   })
 
+  it('renders the two hints of the audit log (contracts/audit.md) with their values', () => {
+    const stuck = hintView({ code: 'audit_stuck', level: 'warning', since, value: 7, threshold: 1 })
+    expect(stuck.text).toBe('7 Einträge des Protokolls warten in schild.db, weil Schild audit.db gerade nicht schreiben kann. Änderungen zeichnet Schild weiter auf.')
+    expect(stuck.next).toBe('Sieh im Datenverzeichnis nach, ob Platz frei ist und ob Schild dort schreiben darf.')
+    expect(stuck.tone).toBe('warning')
+    expect(hintView({ code: 'audit_stuck', level: 'warning', since, value: 1 }).text).toMatch(/^Ein Eintrag des Protokolls wartet in schild\.db/)
+    const size = hintView({ code: 'audit_size', level: 'notice', since, value: 1_610_612_736, threshold: 1_073_741_824, count: 412_000, object: 'tok_0123456789ab' })
+    expect(size.text).toBe('Das Protokoll ist 1,6 GB groß. In den letzten 30 Tagen kamen 412.000 Einträge dazu, die meisten vom Agent-Token tok_0123456789ab. Wegen der Größe löscht Schild nichts.')
+    expect(size.next).toBe('Mit audit.keep_days in schild.yaml behält Schild die Einträge kürzer.')
+    expect(hintView({ code: 'audit_size', level: 'notice', since, value: 1_610_612_736, count: 9000, object: 'dashboard' }).text).toContain('kamen 9.000 Einträge dazu, die meisten aus dem Dashboard.')
+    // Without the count the hint still names the size and that nothing is deleted.
+    expect(hintView({ code: 'audit_size', level: 'notice', since, value: 1_610_612_736 }).text).toBe('Das Protokoll ist 1,6 GB groß. Wegen der Größe löscht Schild nichts.')
+    for (const v of [stuck, size]) expect(`${v.text} ${v.next}`).not.toMatch(/geschützt|sicher|anonym|Ein Hinweis zur Auslastung/)
+  })
+
   it('degraded mock: store hints on the server page, not on website cards', async () => {
     mock.reset({ scenario: 'degraded' })
     const list = await get<WebsiteList>('/websites')
-    expect(list.server!.hints.map(h => h.code)).toEqual(expect.arrayContaining(['store_cap_unreachable', 'storage_budget', 'disk_fill_projection']))
+    expect(list.server!.hints.map(h => h.code)).toEqual(expect.arrayContaining(['store_cap_unreachable', 'storage_budget', 'disk_fill_projection', 'audit_stuck', 'audit_size']))
     for (const w of list.websites) {
       const hints = w.reasons.map(r => r.hint)
       expect(hints).toContain('disk_fill_projection')
       expect(hints).not.toContain('store_cap_unreachable')
       expect(hints).not.toContain('storage_budget')
+      expect(hints).not.toContain('audit_stuck')
+      expect(hints).not.toContain('audit_size')
     }
     await mountApp('/')
     await waitFor(() => document.querySelectorAll('[data-testid="card-reasons"]').length > 0, 4000)
     const cards = [...document.querySelectorAll('[data-testid="website-card"]')].map(c => c.textContent ?? '')
     expect(cards.some(t => t.includes('Platte bald voll') || t.includes('weitere'))).toBe(true)
-    expect(cards.every(t => !t.includes('Ereignisspeicher'))).toBe(true)
+    expect(cards.every(t => !t.includes('Ereignisspeicher') && !t.includes('Protokoll'))).toBe(true)
     // The hints sit in "Gerade jetzt" on the server page.
     cleanup()
     await mountApp('/server')
     await waitFor(() => !!document.querySelector('[data-hint="store_cap_unreachable"]'), 4000)
     expect(document.querySelector('[data-hint="store_cap_unreachable"]')!.textContent).toContain('1.000 MB')
     expect(document.querySelector('[data-hint="disk_fill_projection"]')!.textContent).toContain('in etwa 9 Tagen')
+    expect(document.querySelector('[data-hint="audit_stuck"]')!.textContent).toContain('7 Einträge des Protokolls warten')
+    expect(document.querySelector('[data-hint="audit_size"]')!.textContent).toContain('412.000 Einträge')
   })
 })
 

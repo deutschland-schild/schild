@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/deutschland-schild/schild/gateway/internal/auditlog"
 	"net/http"
 	"slices"
 	"strconv"
@@ -84,7 +85,7 @@ func (a *App) listRuleExceptions(context.Context) []contractapi.RuleException {
 
 // applyRuleExceptions swaps the WAF, then stores. It runs under exceptionsMu. A
 // build that fails leaves the running rules, a store that fails takes the swap back.
-func (a *App) applyRuleExceptions(ctx context.Context, next []contractapi.RuleException) error {
+func (a *App) applyRuleExceptions(ctx context.Context, next []contractapi.RuleException, entries func(o auditlog.Origin) []auditlog.Entry) error {
 	text, err := renderRuleExceptions(next)
 	if err != nil {
 		return &agentapi.ErrExceptionRefused{Code: contractapi.CodeExceptionRefused, Status: http.StatusConflict, Detail: err.Error()}
@@ -95,7 +96,7 @@ func (a *App) applyRuleExceptions(ctx context.Context, next []contractapi.RuleEx
 	}
 	raw, err := json.Marshal(next)
 	if err == nil {
-		err = a.Store.Put(ctx, ruleExceptionsKey, raw)
+		err = a.putAudited(ctx, ruleExceptionsKey, raw, entries)
 	}
 	if err != nil {
 		if old, rerr := renderRuleExceptions(a.exceptions); rerr == nil {
@@ -105,6 +106,23 @@ func (a *App) applyRuleExceptions(ctx context.Context, next []contractapi.RuleEx
 	}
 	a.exceptions = next
 	return nil
+}
+
+// exceptionState is what rule_exception.set and rule_exception.remove record
+// of an exception.
+func exceptionState(x contractapi.RuleException) map[string]any {
+	return map[string]any{"path": x.Path, "target": x.Target, "repository": x.Repository, "rules": x.Rules}
+}
+
+// exceptionEntry is the entry of an exception that is set or removed. The
+// reason is the one the caller gave with the change.
+func exceptionEntry(action string, x contractapi.RuleException, reason string, before, after any) func(o auditlog.Origin) []auditlog.Entry {
+	return func(o auditlog.Origin) []auditlog.Entry {
+		if o.Reason == "" {
+			o.Reason = reason
+		}
+		return one(action, strconv.Itoa(x.ID), x.Website, before, after)(o)
+	}
 }
 
 func freeExceptionID(xs []contractapi.RuleException) int {
@@ -153,7 +171,7 @@ func (a *App) createRuleException(ctx context.Context, req contractapi.Exception
 	x := contractapi.RuleException{ID: freeExceptionID(a.exceptions), Website: w.ID, Hosts: w.Hosts, Path: req.Path, Target: req.Target, Repository: req.Repository,
 		Rules: req.Rules, Reason: req.Reason, SetBy: exceptionActor(tokenID),
 		TokenID: tokenID, TokenLabel: label, Created: now.Format(time.RFC3339)}
-	if err := a.applyRuleExceptions(ctx, append(slices.Clone(a.exceptions), x)); err != nil {
+	if err := a.applyRuleExceptions(ctx, append(slices.Clone(a.exceptions), x), exceptionEntry("rule_exception.set", x, req.Reason, nil, exceptionState(x))); err != nil {
 		return contractapi.RuleException{}, err
 	}
 	a.emitRuleException(events.RuleExceptionSet, now, x, req.Reason, tokenID, label, "rule exception set")
@@ -179,13 +197,15 @@ func (a *App) removeRuleException(ctx context.Context, id int, rules []string, r
 	}
 	next := slices.Clone(a.exceptions)
 	gone := x
+	var after any
 	if left := slices.DeleteFunc(slices.Clone(x.Rules), func(r string) bool { return slices.Contains(rules, r) }); len(rules) > 0 && len(left) > 0 {
 		next[i].Rules = left
 		gone.Rules = slices.Sorted(slices.Values(rules))
+		after = exceptionState(next[i])
 	} else {
 		next = slices.Delete(next, i, i+1)
 	}
-	if err := a.applyRuleExceptions(ctx, next); err != nil {
+	if err := a.applyRuleExceptions(ctx, next, exceptionEntry("rule_exception.remove", x, reason, exceptionState(x), after)); err != nil {
 		return false, err
 	}
 	a.emitRuleException(events.RuleExceptionRemoved, time.Now().UTC(), gone, reason, tokenID, label, "rule exception removed")

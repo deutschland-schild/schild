@@ -263,6 +263,22 @@ func (s *Store) ListAllow(ctx context.Context) ([]AllowEntry, error) {
 	return out, rows.Err()
 }
 
+// GetAllow returns one entry, ErrNotFound without it.
+func (s *Store) GetAllow(ctx context.Context, id string) (*AllowEntry, error) {
+	var e AllowEntry
+	var created int64
+	err := s.q(ctx).QueryRowContext(ctx, "SELECT id, ip, cidr, host, label, level, expires, created_ms, source FROM allowlist WHERE id = ?", id).
+		Scan(&e.ID, &e.IP, &e.CIDR, &e.Host, &e.Label, &e.Level, &e.Expires, &created, &e.Source)
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil, ErrNotFound
+	}
+	if err != nil {
+		return nil, err
+	}
+	e.CreatedAt = fromMS(created)
+	return &e, nil
+}
+
 // AddAllow stores an entry.
 func (s *Store) AddAllow(ctx context.Context, e *AllowEntry) error {
 	if e.ID == "" {

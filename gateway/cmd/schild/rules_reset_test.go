@@ -37,7 +37,7 @@ func TestCrowdsecResetRunningGateway(t *testing.T) {
 	}
 	defer srv.Close()
 	var out bytes.Buffer
-	if err := resetCrowdsec(context.Background(), data, &out); err != nil {
+	if err := resetCrowdsec(context.Background(), "test-node", data, "deploy", &out); err != nil {
 		t.Fatal(err)
 	}
 	if !strings.Contains(out.String(), "through the running schild") || !strings.Contains(out.String(), "set image") {
@@ -59,7 +59,7 @@ func TestCrowdsecResetStopped(t *testing.T) {
 		t.Fatal(err)
 	}
 	var out bytes.Buffer
-	if err := resetCrowdsec(context.Background(), data, &out); err != nil {
+	if err := resetCrowdsec(context.Background(), "test-node", data, "deploy", &out); err != nil {
 		t.Fatal(err)
 	}
 	if !strings.Contains(out.String(), "schild is stopped") {
@@ -87,7 +87,7 @@ func TestCrowdsecResetRefused(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer release()
-	if err := resetCrowdsec(context.Background(), data, &bytes.Buffer{}); err == nil || !strings.Contains(err.Error(), "refused") {
+	if err := resetCrowdsec(context.Background(), "test-node", data, "deploy", &bytes.Buffer{}); err == nil || !strings.Contains(err.Error(), "refused") {
 		t.Fatalf("err %v, want refused", err)
 	}
 	if _, err := h.App.Store.Get(context.Background(), crowdsec.StoreKey); err != nil {

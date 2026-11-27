@@ -2330,8 +2330,9 @@ def website_status(v):
         if s["state"] == "ok" and s["baseline_protection"] == "degraded":
             soft.append(ws_reason("baseline_degraded", s["node"]))
         for h in s["hints"]:
-            # D36 open items / D38: schild's own store marks only the server.
-            if h["code"] in ("store_near_cap", "store_cap_unreachable", "storage_budget"):
+            # D36 open items / D38: schild's own store marks only the server;
+            # D108: its audit log likewise.
+            if h["code"] in ("store_near_cap", "store_cap_unreachable", "storage_budget", "audit_stuck", "audit_size"):
                 continue
             soft.append(ws_reason("server_hint", s["node"], h["code"], h.get("object")))
     if hard:

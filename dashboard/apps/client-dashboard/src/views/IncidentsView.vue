@@ -24,6 +24,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { api, csrf, errorMessage, statusOf } from '@/api/client'
 import { useEvents, useIncident } from '@/api/queries'
 import { useRequestRing } from '@/api/websites'
+import AuditTrail from '@/components/audit/AuditTrail.vue'
 import IpActions from '@/components/blocks/IpActions.vue'
 import CountryAsn from '@/components/CountryAsn.vue'
 import HubRuleLine from '@/components/HubRuleLine.vue'
@@ -296,6 +297,9 @@ async function exportIncident() {
               </dd>
             </template>
           </dl>
+
+          <!-- MVP-36: the block of this incident, its release, the own IP set from it -->
+          <AuditTrail :filters="{ incident: inc.incident }" title="Wegen dieses Vorfalls geändert" />
 
           <div class="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
             <Button v-if="state === 'blocked' || state === 'stopped'" data-testid="incident-unblock" @click="unblockOpen = true">

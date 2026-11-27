@@ -1039,10 +1039,11 @@ func (a *App) Apply(ctx context.Context, p dashboard.SettingsPatch) (*config.Sit
 		return nil, err
 	}
 	b, _ := json.Marshal(ov)
-	if err := a.Store.Put(ctx, overlayKey, b); err != nil {
+	prev := a.Config()
+	if err := a.putAudited(ctx, overlayKey, b, one("settings.set", "retention", "",
+		map[string]any{"retention": prev.Retention}, map[string]any{"retention": next.Retention})); err != nil {
 		return nil, err
 	}
-	prev := a.Config()
 	a.overlay = ov
 	a.droppedOverlay.Store(false)
 	a.cfg.Store(next)

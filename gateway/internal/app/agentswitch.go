@@ -245,13 +245,19 @@ func (a *App) setAgentAPI(ctx context.Context, enabled *bool, user string) (dash
 			return a.agentAPIStateLocked(ctx), fmt.Errorf("%w: %s", dashboard.ErrAgentAPIListen, a.Config().AgentAPI.Listen)
 		}
 	}
+	// What agent_api.set records: whether the API is on and who says so.
+	source := "config"
+	if overlay != nil {
+		source = "dashboard"
+	}
+	entries := one("agent_api.set", "agent_api", "", map[string]any{"enabled": before, "source": a.agentSourceLocked()}, map[string]any{"enabled": next, "source": source})
 	var err error
 	if overlay == nil {
-		err = a.Store.Delete(ctx, agentAPIStoreKey)
+		err = a.writeAudited(ctx, entries, func(ctx context.Context) error { return a.Store.Delete(ctx, agentAPIStoreKey) })
 	} else {
 		var raw []byte
 		if raw, err = json.Marshal(overlay); err == nil {
-			err = a.Store.Put(ctx, agentAPIStoreKey, raw)
+			err = a.putAudited(ctx, agentAPIStoreKey, raw, entries)
 		}
 	}
 	if err != nil {

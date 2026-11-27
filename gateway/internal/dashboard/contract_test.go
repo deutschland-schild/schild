@@ -164,6 +164,8 @@ func TestFixturesRoundTrip(t *testing.T) {
 		"setMaintenance": {"AccessProtectionState", dashboard.AccessProtectionState{}},
 		// D57 (MVP-29)
 		"getCrawlerPolicy": {"CrawlerPolicyState", crawlers.State{}}, "setCrawlerPolicy": {"CrawlerPolicyState", crawlers.State{}},
+		// MVP-36: the audit log.
+		"listAudit": {"AuditPage", dashboard.AuditPage{}},
 	}
 	files, _ := filepath.Glob("../../../contracts/api/fixtures/client/*.json")
 	if len(files) == 0 {

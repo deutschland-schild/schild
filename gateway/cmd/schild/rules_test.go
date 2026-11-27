@@ -43,36 +43,36 @@ func TestRulesSyncRunningGateway(t *testing.T) {
 	}
 	var out bytes.Buffer
 	write(`SecRule REQUEST_URI "@beginsWith /x" "id:1000001,phase:1,deny"` + "\n")
-	if err := syncRules(ctx, data, "local", &out); err != nil {
+	if err := syncRules(ctx, data, "local", "deploy", &out); err != nil {
 		t.Fatal(err)
 	}
 	if !strings.Contains(out.String(), "local rules synced: 1 rules") {
 		t.Fatalf("%s", out.String())
 	}
 	out.Reset()
-	if err := syncRules(ctx, data, "local", &out); err != nil {
+	if err := syncRules(ctx, data, "local", "deploy", &out); err != nil {
 		t.Fatal(err)
 	}
 	if !strings.Contains(out.String(), "unchanged") {
 		t.Fatalf("%s", out.String())
 	}
 	write(`SecRule REQUEST_URI "@nosuchoperator x" "id:1000002,deny"` + "\n")
-	err = syncRules(ctx, data, "local", &out)
+	err = syncRules(ctx, data, "local", "deploy", &out)
 	if err == nil || !strings.Contains(err.Error(), "the running rules stay") {
 		t.Fatalf("%v", err)
 	}
 	write(`SecRule REQUEST_URI "@beginsWith /x" "id:942100,phase:1,deny"` + "\n")
-	err = syncRules(ctx, data, "local", &out)
+	err = syncRules(ctx, data, "local", "deploy", &out)
 	if err == nil || !strings.Contains(err.Error(), "range of crs") {
 		t.Fatalf("a local rule in the range of crs: %v", err)
 	}
-	if err := syncRules(ctx, data, "crs", &out); err == nil || !strings.Contains(err.Error(), "not supported") {
+	if err := syncRules(ctx, data, "crs", "deploy", &out); err == nil || !strings.Contains(err.Error(), "not supported") {
 		t.Fatalf("crs has no sync: %v", err)
 	}
 }
 
 func TestRulesSyncNoGateway(t *testing.T) {
-	err := syncRules(context.Background(), shortDir(t), "local", &bytes.Buffer{})
+	err := syncRules(context.Background(), shortDir(t), "local", "deploy", &bytes.Buffer{})
 	if err == nil || !strings.Contains(err.Error(), "next start") {
 		t.Fatalf("%v", err)
 	}

@@ -5,9 +5,11 @@ import type { ExceptionGroup } from '@/lib/rules'
 import { Plus, Trash2, X } from '@lucide/vue'
 import { Button, Card, CardContent, CardDescription, CardHeader, CardTitle, formatDateTime, formatNumber, MetaLine, Skeleton, toast } from '@schild/ui'
 import { computed, ref } from 'vue'
+import { useAuditLast } from '@/api/audit'
 import { problemOf } from '@/api/client'
 import { exceptionError, useRemoveRuleException, useRemoveRuleExceptionRule, useRuleExceptions } from '@/api/rules'
 import { useWebsites } from '@/api/websites'
+import LastChange from '@/components/audit/LastChange.vue'
 import ConfirmDialog from '@/components/ConfirmDialog.vue'
 import { explainRule } from '@/lib/explain'
 import { websitePath } from '@/lib/nav'
@@ -32,6 +34,19 @@ const OPEN_RULES = 16
 /** Who set the parts: one text when all agree. */
 const setByAll = (g: ExceptionGroup) => [...new Set(g.parts.map(setBy))]
 const setBy = (x: RuleException) => x.set_by === 'dashboard' ? 'im Dashboard gesetzt' : x.token_label ? `gesetzt von Agent „${x.token_label}“` : 'von einem Agenten gesetzt'
+
+/**
+ * Who changed an exception last (MVP-36): one call for the newest audit entries of all exceptions, newest
+ * first. Without an entry the exception is older than the log keeps, which is only known when the call
+ * returned everything.
+ */
+const audit = useAuditLast({ subject: 'rule_exception' }, 200)
+function lastChange(g: ExceptionGroup) {
+  const page = audit.data.value
+  if (!page) return undefined
+  const ids = new Set(g.parts.map(p => String(p.id)))
+  return page.items.find(e => !!e.subject.id && ids.has(e.subject.id)) ?? (page.next_cursor ? undefined : null)
+}
 
 const createOpen = ref(false)
 const preset = ref<Partial<RuleExceptionInput>>({})
@@ -134,6 +149,7 @@ async function doTakeOut() {
               ...setByAll(g),
             ]"
           />
+          <LastChange :entry="lastChange(g)" :filters="{ subject: 'rule_exception', subject_id: String(lastChange(g)?.subject.id ?? g.first.id) }" />
           <p v-if="g.reasons.length" class="text-sm text-pretty" data-testid="rule-exception-reason">
             <span class="text-muted-foreground">Begründung:</span> {{ g.reasons[0] }}
           </p>

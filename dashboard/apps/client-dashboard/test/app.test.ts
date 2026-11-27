@@ -22,7 +22,7 @@ describe('client dashboard shell', () => {
     expect(nav.map(g => g.label)).toEqual([undefined, 'Schutz · alle Websites', 'Einstellungen'])
     expect(nav[0]!.items.map(i => [i.label, i.to])).toEqual([['Ereignisse', '/events']])
     expect(nav[1]!.items.map(i => i.label)).toEqual(['Regeln', 'Sperren', 'Eigene IPs'])
-    expect(nav[2]!.items.map(i => i.label)).toEqual(['Allgemein', 'Datenschutz'])
+    expect(nav[2]!.items.map(i => i.label)).toEqual(['Allgemein', 'Datenschutz', 'Protokoll'])
     expect(nav.flatMap(g => g.items.map(i => i.to))).not.toContain('/server')
   })
 

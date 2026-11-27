@@ -19,7 +19,7 @@ type CrawlerFuncs struct {
 
 func (s *Server) crawlerRoutes(a func(string, http.HandlerFunc)) {
 	a("GET "+apiPrefix+"/websites/{website}/crawlers", s.getCrawlerPolicy)
-	a("PUT "+apiPrefix+"/websites/{website}/crawlers", s.setCrawlerPolicy)
+	a("PUT "+apiPrefix+"/websites/{website}/crawlers", s.op("setCrawlerPolicy", s.setCrawlerPolicy))
 }
 
 func (s *Server) crawlersOff(w http.ResponseWriter) bool {

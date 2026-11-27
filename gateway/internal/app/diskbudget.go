@@ -45,8 +45,18 @@ func (a *App) checkStorageBudget() {
 	}
 }
 
-// storageBudgetLoop checks the budget at start and once an hour.
+// storageBudgetLoop checks the budget at start and once an hour, and reads
+// the state of the audit log for its two hints at start and every
+// auditStatusEvery.
 func (a *App) storageBudgetLoop(ctx context.Context) {
 	a.checkStorageBudget()
-	every(ctx, time.Hour, a.checkStorageBudget)
+	a.checkAuditStatus(ctx)
+	n := 0
+	every(ctx, auditStatusEvery, func() {
+		a.checkAuditStatus(ctx)
+		if n++; time.Duration(n)*auditStatusEvery >= time.Hour {
+			n = 0
+			a.checkStorageBudget()
+		}
+	})
 }

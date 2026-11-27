@@ -24,9 +24,11 @@ import { Plus, Trash2, UserCheck } from '@lucide/vue'
 import { useQueryClient } from '@tanstack/vue-query'
 import { computed, h, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { useAuditLast } from '@/api/audit'
 import { errorMessage } from '@/api/client'
 import { deleteAllowlistEntry, hideAllowlistEntry, keys, useAllowlist, useAllowMyIp, useMyIp } from '@/api/queries'
 import AllowIpDialog from '@/components/AllowIpDialog.vue'
+import LastChange from '@/components/audit/LastChange.vue'
 import { useShortcuts } from '@/composables/useShortcuts'
 import { ALLOW_LEVELS, ATTRIBUTION, TTLS } from '@/lib/labels'
 
@@ -36,6 +38,18 @@ const qc = useQueryClient()
 const my = useMyIp()
 const list = useAllowlist()
 const items = computed(() => list.data.value?.pages.flatMap(p => p.items) ?? [])
+
+/**
+ * Who changed an entry last (MVP-36): one call for the newest audit entries of all own IPs, newest first,
+ * so the first one per id is the last change. An entry without one is older than the log keeps; that is
+ * only known when the call returned everything.
+ */
+const audit = useAuditLast({ subject: 'allowlist_entry' }, 200)
+function lastChange(id: string) {
+  const page = audit.data.value
+  if (!page) return undefined
+  return page.items.find(e => e.subject.id === id) ?? (page.next_cursor ? undefined : null)
+}
 
 // "Meine IP freischalten"
 const ttl = ref<Ttl>('7d')
@@ -152,10 +166,14 @@ const columns: ColumnDef<AllowlistEntry, unknown>[] = [
     header: 'Angelegt',
     accessorKey: 'source',
     meta: { label: 'Angelegt', hideOnMobile: true },
-    cell: ({ row }) => h('span', { class: 'text-muted-foreground' }, [
-      row.original.source === 'config' ? 'schild.yaml' : row.original.source === 'cli' ? 'Kommandozeile' : 'Dashboard',
-      ', ',
-      h(RelativeTime, { value: row.original.created_at }),
+    cell: ({ row }) => h('div', { class: 'text-muted-foreground' }, [
+      h('span', {}, [
+        row.original.source === 'config' ? 'schild.yaml' : row.original.source === 'cli' ? 'Kommandozeile' : 'Dashboard',
+        ', ',
+        h(RelativeTime, { value: row.original.created_at }),
+      ]),
+      // An entry of schild.yaml is changed in that file: the log has config.apply for it, no entry of its own.
+      row.original.source === 'config' ? null : h(LastChange, { entry: lastChange(row.original.id), filters: { subject: 'allowlist_entry', subject_id: row.original.id } }),
     ]),
   },
   {

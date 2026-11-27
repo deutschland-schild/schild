@@ -338,6 +338,9 @@ type PrivacyExport struct {
 	ExportedAt string            `json:"exported_at"`
 	Events     []json.RawMessage `json:"events"`
 	Requests   []cr.Record       `json:"requests,omitempty"`
+	// Audit are the audit entries that name the address (MVP-36): they
+	// stay in the log until audit.keep_days.
+	Audit []map[string]any `json:"audit,omitempty"`
 }
 
 // PrivacyDeleteRequest deletes by IP.

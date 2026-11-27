@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/deutschland-schild/schild/gateway/internal/auditlog"
 	"time"
 
 	hc "github.com/deutschland-schild/schild/contract/humancheck"
@@ -56,7 +57,7 @@ func (a *App) newHumanCheck(ctx context.Context) error {
 		}
 	}
 	if dirty {
-		if err := a.storeHumanCheck(ctx, st); err != nil {
+		if err := a.storeHumanCheck(ctx, st, nil); err != nil {
 			return fmt.Errorf("human check: %w", err)
 		}
 	}
@@ -65,12 +66,23 @@ func (a *App) newHumanCheck(ctx context.Context) error {
 	return nil
 }
 
-func (a *App) storeHumanCheck(ctx context.Context, st *humancheck.State) error {
+func (a *App) storeHumanCheck(ctx context.Context, st *humancheck.State, entries func(o auditlog.Origin) []auditlog.Entry) error {
 	b, err := json.Marshal(st)
 	if err != nil {
 		return err
 	}
-	return a.Store.Put(ctx, humancheck.StoreKey, b)
+	return a.putAudited(ctx, humancheck.StoreKey, b, entries)
+}
+
+// humanCheckState is what human_check.set and human_check.remove record of
+// a policy.
+func humanCheckState(e *humancheck.Entry) map[string]any {
+	if e == nil {
+		return nil
+	}
+	m := asMap(e.Policy)
+	delete(m, "website")
+	return m
 }
 
 // HumanCheckEntry returns the browser verification entry for website, or nil.
@@ -100,8 +112,9 @@ func (a *App) SetHumanCheck(ctx context.Context, website string, p hc.Policy, ac
 		Actor:     actor,
 		User:      user,
 	}
+	old := next.Entries[website]
 	next.Entries[website] = e
-	if err := a.storeHumanCheck(ctx, next); err != nil {
+	if err := a.storeHumanCheck(ctx, next, one("human_check.set", website, website, humanCheckState(old), humanCheckState(e))); err != nil {
 		return nil, err
 	}
 	a.HumanCheck.Store(next)
@@ -113,8 +126,9 @@ func (a *App) RemoveHumanCheck(ctx context.Context, website string) error {
 	a.humanCheckMu.Lock()
 	defer a.humanCheckMu.Unlock()
 	next := a.HumanCheck.State().Clone()
+	old := next.Entries[website]
 	delete(next.Entries, website)
-	if err := a.storeHumanCheck(ctx, next); err != nil {
+	if err := a.storeHumanCheck(ctx, next, one("human_check.remove", website, website, humanCheckState(old), nil)); err != nil {
 		return err
 	}
 	a.HumanCheck.Store(next)
@@ -160,7 +174,7 @@ func (a *App) rotateHumanCheckKeys(ctx context.Context) error {
 	}
 	next := cur.Clone()
 	next.RotateKeys(now)
-	if err := a.storeHumanCheck(ctx, next); err != nil {
+	if err := a.storeHumanCheck(ctx, next, nil); err != nil {
 		return err
 	}
 	a.HumanCheck.Store(next)

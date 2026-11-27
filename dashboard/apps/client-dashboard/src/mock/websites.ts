@@ -17,10 +17,10 @@ import { buildDetail, gatewayMode, iso } from './data'
 import { countersAt, filtersShare, hints, latency, needsRequestRing, REQUEST_RING_MS, tickCounters } from './monitoring'
 
 /**
- * Hints about schild's own event store mark only the server, never its websites (D36 amendment and D38,
- * contract/websites.ServerOnlyHintCodes): shown on the server page, left out at every website.
+ * Hints about schild's own event store and its audit log mark only the server, never its websites (D36 amendment,
+ * D38 and D108, contract/websites.ServerOnlyHintCodes): shown on the server page, left out at every website.
  */
-const SERVER_ONLY_HINTS: ReadonlySet<HealthHint['code']> = new Set<HealthHint['code']>(['store_near_cap', 'store_cap_unreachable', 'storage_budget'])
+const SERVER_ONLY_HINTS: ReadonlySet<HealthHint['code']> = new Set<HealthHint['code']>(['store_near_cap', 'store_cap_unreachable', 'storage_budget', 'audit_stuck', 'audit_size'])
 
 export const NODE = 'web-1'
 /** Incident of the 7-day block after the wave (block_long annotation, ref). */

@@ -308,16 +308,19 @@ func TestHostUser(t *testing.T) {
 	env := func(m map[string]string) func(string) string { return func(k string) string { return m[k] } }
 	cur := func() string { return "root" }
 	for _, c := range []struct {
-		env  map[string]string
-		want string
+		env map[string]string
+		// account is what the audit entry names, event what the event
+		// takes of it: names outside the contract pattern are left out there.
+		account, event string
 	}{
-		{map[string]string{"SUDO_USER": "deploy", "USER": "root"}, "deploy"},
-		{map[string]string{"USER": "martin"}, "martin"},
-		{map[string]string{"USER": "Not Valid"}, ""},
-		{map[string]string{}, "root"},
+		{map[string]string{"SUDO_USER": "deploy", "USER": "root"}, "deploy", "deploy"},
+		{map[string]string{"USER": "martin"}, "martin", "martin"},
+		{map[string]string{"USER": "Not Valid"}, "Not Valid", ""},
+		{map[string]string{}, "root", "root"},
 	} {
-		if got := hostUser(env(c.env), cur); got != c.want {
-			t.Errorf("%v: %q, want %q", c.env, got, c.want)
+		got := hostAccount(env(c.env), cur)
+		if got != c.account || dashboard.HostUser(got) != c.event {
+			t.Errorf("%v: account %q (event %q), want %q (%q)", c.env, got, dashboard.HostUser(got), c.account, c.event)
 		}
 	}
 }
@@ -329,7 +332,7 @@ func TestSetupCodeCommand(t *testing.T) {
 	h := apptest.New(t, apptest.Options{Dir: shortDir(t)})
 	data := filepath.Dir(h.App.Store.Path())
 	// Not running (no control path): a clear error, nothing created.
-	if _, err := setupCode(context.Background(), data); err == nil || !strings.Contains(err.Error(), "start schild") {
+	if _, err := setupCode(context.Background(), data, "deploy"); err == nil || !strings.Contains(err.Error(), "start schild") {
 		t.Fatalf("without a control path: %v", err)
 	}
 	release, err := control.Lock(data)
@@ -346,7 +349,7 @@ func TestSetupCodeCommand(t *testing.T) {
 	defer srv.Close()
 
 	for range 2 { // asking does not use the code up
-		code, err := setupCode(context.Background(), data)
+		code, err := setupCode(context.Background(), data, "deploy")
 		if err != nil || code == "" || code != h.App.SetupCode() {
 			t.Fatalf("setup code %q, %v; want the code of the start log", code, err)
 		}
@@ -357,7 +360,7 @@ func TestSetupCodeCommand(t *testing.T) {
 		t.Fatalf("output:\n%s", out.String())
 	}
 	h.Login()
-	if _, err := setupCode(context.Background(), data); err == nil || !strings.Contains(err.Error(), "already set") {
+	if _, err := setupCode(context.Background(), data, "deploy"); err == nil || !strings.Contains(err.Error(), "already set") {
 		t.Fatalf("with a password set: %v", err)
 	}
 	r, err := resetPassword(context.Background(), "test-node", data, "deploy")
@@ -365,7 +368,7 @@ func TestSetupCodeCommand(t *testing.T) {
 		t.Fatal(err)
 	}
 	// The reset code is shown once and kept as a hash only.
-	if code, err := setupCode(context.Background(), data); err == nil || code != "" || strings.Contains(err.Error(), r.Code) {
+	if code, err := setupCode(context.Background(), data, "deploy"); err == nil || code != "" || strings.Contains(err.Error(), r.Code) {
 		t.Fatalf("after a reset: %q, %v", code, err)
 	}
 }

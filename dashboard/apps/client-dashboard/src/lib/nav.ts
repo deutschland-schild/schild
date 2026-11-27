@@ -1,7 +1,7 @@
 import type { NavGroup, NavItem, StatusTone } from '@schild/ui'
 import type { HostSummary } from '@/api/hosts'
 import type { ServerHealth } from '@/api/websites'
-import { Activity, Ban, Bot, Boxes, ChartArea, ClipboardCheck, KeyRound, LayoutDashboard, Lock, Network, ScrollText, Settings, ShieldAlert } from '@lucide/vue'
+import { Activity, Ban, Bot, Boxes, ChartArea, ClipboardCheck, History, KeyRound, LayoutDashboard, Lock, Network, ScrollText, Settings, ShieldAlert } from '@lucide/vue'
 import { FEATURES, hostStatusText, hostTone } from './hosts'
 import { REPOSITORIES, REPOSITORY_IDS, RULES_PATH, rulesPath } from './rules'
 import { STATUS, WEBSITE_COPY } from './websites'
@@ -16,7 +16,7 @@ import { STATUS, WEBSITE_COPY } from './websites'
  *     none:       Ereignisse of all websites ("Alle Websites"), and below them what holds for all websites:
  *       Schutz         Regeln (with OWASP CRS, CrowdSec Hub, Eigene & Ausnahmen, Szenarien und Limits below it,
  *                      D62/D73/D84), Sperren (blocked addresses and stopped requests, D87), Eigene IPs
- *       Einstellungen  Allgemein (with what was Schutzstatus, 2026-11-18), Datenschutz
+ *       Einstellungen  Allgemein (with what was Schutzstatus, 2026-11-18), Datenschutz, Protokoll (MVP-36)
  *   A website or a server lists only its own pages (initiator 2026-11-15): the settings of the whole gateway
  *   beside a website's pages read as if they were that website's.
  *
@@ -160,6 +160,7 @@ export function buildNav(i: NavInput): NavGroup[] {
   const settings: NavItem[] = [
     { to: '/settings', label: 'Allgemein', icon: Settings, exact: true, keywords: ['settings', 'schutzstatus', 'grundschutz', 'version', 'aufbewahrung', 'passwort', 'agent', 'agent-api', 'ki-agent', 'token'] },
     { to: '/privacy', label: 'Datenschutz', icon: Lock, keywords: ['privacy', 'dsgvo', 'löschen', 'export'] },
+    { to: '/settings/audit', label: 'Protokoll', icon: History, keywords: ['audit', 'audit-log', 'änderungen', 'wer hat', 'verlauf', 'anmeldungen', 'nachvollziehen'] },
   ]
   if (i.server)
     return [{ items: serverPages(i.server, i.group) }]

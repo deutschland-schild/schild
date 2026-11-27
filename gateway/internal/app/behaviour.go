@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/deutschland-schild/schild/gateway/internal/auditlog"
 	"time"
 
 	"github.com/deutschland-schild/schild/contract/config"
@@ -77,7 +78,9 @@ func (a *App) ApplyDistributed(ctx context.Context, detectors map[string]string,
 		_ = json.Unmarshal(b, &m)
 		sub(dets, id)["thresholds"] = m
 	}
-	return a.commit(ctx, ov, a.dashLimits, false)
+	return a.commit(ctx, ov, a.dashLimits, false, func(o auditlog.Origin, prev, next *config.Site) []auditlog.Entry {
+		return one("distributed.set", "distributed", "", distributedState(prev), distributedState(next))(o)
+	})
 }
 
 // DashboardLimits returns the rate limits created in the dashboard.
@@ -129,7 +132,9 @@ func (a *App) ApplyBehaviour(ctx context.Context, scenarios map[string]string, t
 	for id, mode := range presetLimitModes {
 		sub(beh, "preset_limit_modes")[id] = mode
 	}
-	return a.commit(ctx, ov, a.dashLimits, false)
+	return a.commit(ctx, ov, a.dashLimits, false, func(o auditlog.Origin, prev, next *config.Site) []auditlog.Entry {
+		return one("behaviour.set", "behaviour", "", behaviourState(prev), behaviourState(next))(o)
+	})
 }
 
 // SetDashboardLimits replaces the rate limits created in the dashboard after
@@ -137,26 +142,32 @@ func (a *App) ApplyBehaviour(ctx context.Context, scenarios map[string]string, t
 func (a *App) SetDashboardLimits(ctx context.Context, limits []config.RateLimit) (*config.Site, error) {
 	a.mu.Lock()
 	defer a.mu.Unlock()
-	return a.commit(ctx, a.overlay, limits, true)
+	old := append([]config.RateLimit(nil), a.dashLimits...)
+	return a.commit(ctx, a.overlay, limits, true, func(o auditlog.Origin, _, _ *config.Site) []auditlog.Entry {
+		return limitEntries(o, old, limits)
+	})
 }
 
 // commit validates overlay and dashboard limits, persists and applies them.
-// Caller holds a.mu.
-func (a *App) commit(ctx context.Context, ov map[string]any, dash []config.RateLimit, limitsChanged bool) (*config.Site, error) {
+// Caller holds a.mu. audit builds the entries of the change from the
+// configuration before and after; they are written with the value.
+func (a *App) commit(ctx context.Context, ov map[string]any, dash []config.RateLimit, limitsChanged bool, audit func(o auditlog.Origin, prev, next *config.Site) []auditlog.Entry) (*config.Site, error) {
 	next, err := a.mergedWith(ov, dash)
 	if err != nil {
 		return nil, err
 	}
+	was := a.Config()
+	entries := func(o auditlog.Origin) []auditlog.Entry { return audit(o, was, next) }
 	if limitsChanged {
 		b, _ := json.Marshal(dash)
-		if err := a.Store.Put(ctx, dashLimitsKey, b); err != nil {
+		if err := a.putAudited(ctx, dashLimitsKey, b, entries); err != nil {
 			return nil, err
 		}
 		a.dashLimits = append([]config.RateLimit(nil), dash...)
 		a.droppedLimits.Store(false)
 	} else {
 		b, _ := json.Marshal(ov)
-		if err := a.Store.Put(ctx, overlayKey, b); err != nil {
+		if err := a.putAudited(ctx, overlayKey, b, entries); err != nil {
 			return nil, err
 		}
 		a.overlay = ov

@@ -17,6 +17,7 @@ Local dashboard of `schild`, built against `contracts/api/client-dashboard.opena
 | `#/own-ips` | "Meine IP freischalten", IPs, ranges, DynDNS names, expiry, delete with undo |
 | `#/privacy` | Search, export (JSON download) and delete by IP, retention explained |
 | `#/settings` | Mode (password again), retention, password |
+| `#/settings/audit` | Protokoll (MVP-36): the audit log of `GET /audit`, newest first, with the filters of `listAudit` in the URL (`website`, `class`, `action`, `way`, `actor`, `subject` + `subject_id`, `session`, `event`, `incident`, `from`, `to` as days) and the open entry (`entry=<id>`): who, when, way, address, object, cause, reason, before and after. Own IPs, rule exceptions, the retention and the Agent-API card link here with "Zuletzt geändert von …"; an event and an incident list what was changed because of them |
 | `#/setup`, `#/login` | First-run wizard (password, mode, own IP) and login |
 
 Global: Cmd/Ctrl+K palette (pages and actions such as "Meine IP freischalten", "Vorfall suchen"), `?` shortcut help, `g` + letter navigation, mode indicator on every screen, observe banner, dark mode, reduced motion.
