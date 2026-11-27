@@ -50,6 +50,10 @@ const OpRulesSync = "rules_sync"
 // OpRulesReset goes back to the rules of the image (crowdsec only).
 const OpRulesReset = "rules_reset"
 
+// OpIngressReload loads the Caddyfile again and swaps the running one
+// without a restart (`schild ingress reload`, D106).
+const OpIngressReload = "ingress_reload"
+
 // OpAccessSet, OpAccessRemove and OpAccessList are `schild lock on`, `off`
 // and `status` (D56): the access lock of a website, also when the
 // dashboard is not reachable.
@@ -101,6 +105,9 @@ type Request struct {
 	Access  *AccessSet `json:"access,omitempty"`
 	// Repository: the rule operations (D73).
 	Repository string `json:"repository,omitempty"`
+	// Force: ingress_reload loads a Caddyfile that did not change, for what
+	// it names besides itself (certificate files).
+	Force bool `json:"force,omitempty"`
 }
 
 // Response is the answer. SetupCode is only ever sent back over the socket
@@ -116,6 +123,9 @@ type Response struct {
 	RulesLoaded   int    `json:"rules_loaded,omitempty"`
 	// Unchanged: the source holds what runs, nothing was built.
 	Unchanged bool `json:"unchanged,omitempty"`
+	// Websites and Warnings: the Caddyfile that runs after ingress_reload.
+	Websites int      `json:"websites,omitempty"`
+	Warnings []string `json:"warnings,omitempty"`
 	// Access: the protections in force after an access operation (D56).
 	Access []AccessInfo `json:"access,omitempty"`
 	// Removed: access_remove ended a protection.

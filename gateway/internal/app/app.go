@@ -82,6 +82,8 @@ type Options struct {
 
 // App is one running schild.
 type App struct {
+	// ingress is the Caddyfile that runs (ReloadIngress).
+	ingress runningIngress
 	mem     memlimit.Result
 	opts    Options
 	log     *slog.Logger
@@ -849,6 +851,7 @@ func (a *App) Run(ctx context.Context) error {
 		a.log.Info("schild stopping")
 	}
 	if !a.opts.NoListeners {
+		a.ingress.stop()
 		_ = caddymod.Stop()
 	}
 	sctx, scancel := context.WithTimeout(context.Background(), 10*time.Second)
@@ -911,6 +914,7 @@ func (a *App) startCaddy(cfg *config.Site) error {
 		if err := caddymod.Load(ing.JSON); err != nil {
 			return fmt.Errorf("ingress: load Caddyfile %s: %w", cfg.Ingress.Caddyfile, err)
 		}
+		a.ingress.started(ing)
 		var sites []string
 		for _, s := range ing.Check.Sites {
 			sites = append(sites, s.Name())

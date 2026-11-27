@@ -55,7 +55,33 @@ Läuft Schild als Caddy-Distribution hinter Cloudflare oder einem Load Balancer,
 
 ### Konfiguration ändern
 
-Schild liest `schild.yaml` beim Start. Nach einer Änderung an der Datei startest du Schild neu (`sudo systemctl restart schild` oder `docker compose restart`). `schild preflight -config /etc/schild/schild.yaml` prüft die Datei vorher, ohne etwas zu starten. Was du im Dashboard einstellst, gilt sofort und braucht keinen Neustart. Eigene Regeln lädt `schild rules sync local` ohne Neustart neu.
+Schild liest `schild.yaml` beim Start. Nach einer Änderung an der Datei startest du Schild neu (`sudo systemctl restart schild` oder `docker compose restart`). `schild preflight -config /etc/schild/schild.yaml` prüft die Datei vorher, ohne etwas zu starten. Was du im Dashboard einstellst, gilt sofort und braucht keinen Neustart. Eigene Regeln lädt `schild rules sync local` ohne Neustart neu, ein geändertes Caddyfile lädt `schild ingress reload`.
+
+### Caddyfile ändern
+
+Als Caddy-Distribution lädt Schild ein geändertes Caddyfile ohne Neustart:
+
+```bash
+schild ingress validate
+schild ingress reload
+```
+
+Mit Docker Compose stellst du `docker compose exec schild` davor. Neue Websites, Backends, Header und TLS-Einstellungen gelten sofort. Laufende Anfragen enden mit dem Caddyfile, mit dem sie begonnen haben. Sperren, Zähler und der Lernstand bleiben.
+
+Lehnt Schild das neue Caddyfile ab, läuft das alte weiter, und der Befehl nennt den Grund. Er prüft dasselbe wie ein Start. Drei Änderungen lehnt er außerdem ab:
+
+- **Andere Ports oder Adressen** und ein anderer Speicher für Zertifikate. Dafür startest du Schild neu.
+- **Eine Website mit Zugriffsschutz oder Wartungsmodus**, die danach ohne den Schutz erreichbar wäre. Das passiert, wenn der Block fehlt, ein anderer Host vorne steht oder ein Host in einen anderen Block wandert. Beende vorher den Schutz oder lass den Block, wie er ist.
+
+Das solltest du wissen:
+
+- Ein Reload dauert mindestens eine halbe Sekunde. So lange wartet Schild, bis das alte Caddyfile die Verbindungen gelesen hat, die es schon angenommen hatte.
+- Ein Reload beendet offene WebSockets. Mit `stream_close_delay` in `reverse_proxy` laufen sie noch so lange weiter, wie du dort angibst.
+- Im [Cluster](03-cluster.md#das-caddyfile-im-cluster-ändern) haben laufende Anfragen nach einem Reload noch `cluster.drain.grace_s` Zeit, in der Vorgabe 30 Sekunden. Was dann noch läuft, etwa ein großer Download, bricht ab. Ein `grace_period` im Caddyfile gilt stattdessen, auch ohne Cluster.
+- `schild ingress reload -force` lädt auch ein unverändertes Caddyfile. Das brauchst du nach dem Tausch einer Zertifikats-, Schlüssel- oder Token-Datei, die das Caddyfile nennt.
+- Schild liest bei einem Reload nur das Caddyfile neu, nicht `schild.yaml`.
+- Bindest du das Caddyfile als einzelne Datei in einen Container ein, sieht der Container manche Änderung nicht. Viele Editoren schreiben eine neue Datei und benennen sie um. Binde deshalb den Ordner ein, wenn du ohne Neustart ändern willst.
+- Schild führt für 32 Websites eigene Zahlen. Eine entfernte Website behält ihren Platz bis zum nächsten Start. Sind alle Plätze vergeben, zählt eine neue Website bis dahin unter „Weitere Websites“.
 
 ### Zertifikate über Hetzner DNS
 
@@ -93,7 +119,7 @@ Let's Encrypt prüft normalerweise über Port 80 oder 443, ob dir eine Domain ge
 
 Liegt die Zone deiner Website selbst in dem Projekt, lässt du den CNAME und die Zeile `dns_challenge_override_domain` weg. Wer das Token hat, kann dann aber alle Einträge dieser Zone ändern. Auch mit der eigenen Zone kann jemand mit dem Token Zertifikate für die Namen holen, die dorthin verweisen.
 
-Fehlt das Token beim Start, startet Schild trotzdem, meldet den Fehler im Log und liefert die vorhandenen Zertifikate aus. Neue und erneuerte gibt es erst, wenn du das Token ergänzt und Schild neu gestartet hast. Im [Cluster](03-cluster.md) braucht jeder Server die Token-Datei.
+Fehlt das Token beim Start, startet Schild trotzdem, meldet den Fehler im Log und liefert die vorhandenen Zertifikate aus. Neue und erneuerte gibt es erst, wenn du das Token ergänzt und Schild neu gestartet oder `schild ingress reload -force` ausgeführt hast. Bei einem Reload ist ein fehlendes Token eine Warnung des Befehls, und das neue Caddyfile gilt trotzdem. Im [Cluster](03-cluster.md) braucht jeder Server die Token-Datei.
 
 Getestet ist die Ausstellung gegen einen Nachbau der Hetzner-API und eine Test-Zertifizierungsstelle, noch nicht gegen Hetzner selbst.
 
@@ -507,6 +533,7 @@ Für Alarme im Alltag sind besonders diese Metriken nützlich:
 | `schild run` | starten (prüft vorher die Konfiguration) |
 | `schild preflight` | Konfiguration und Speicherplatz prüfen, ohne zu starten |
 | `schild ingress validate` | Prüfen, bevor Schild der Webserver wird: das Caddyfile, ob Schild in sein Datenverzeichnis schreiben kann, ob es die Kopie der Zertifikate lesen und schreiben kann und ob es in die Logdateien des Caddyfiles schreiben darf, unter systemd auch nach den Regeln der Unit. Läuft als der Benutzer, als der Schild läuft, auch im Container mit schreibgeschütztem Dateisystem. Mit `-adapt-only` nur das Caddyfile |
+| `schild ingress reload` | das geänderte Caddyfile ohne Neustart laden (siehe [Caddyfile ändern](#caddyfile-ändern)) |
 | `schild status` | Profil, Backend, eigene IPs, ob Dashboard und Metriken antworten |
 | `schild allow …` | eigene IPs freischalten, auflisten, entfernen |
 | `schild lock on/off/status` | Zugriffsschutz für Website oder Pfade |

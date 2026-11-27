@@ -47,6 +47,12 @@ func (a *App) Control(ctx context.Context, req control.Request) control.Response
 			resp.SetSource = v.Crowdsec.SetSource
 		}
 		return resp
+	case control.OpIngressReload:
+		res, err := a.ReloadIngress(req.Force)
+		if err != nil {
+			return control.Response{Error: err.Error(), Warnings: res.Warnings}
+		}
+		return control.Response{OK: true, Unchanged: res.Unchanged, Websites: res.Websites, Warnings: res.Warnings}
 	case control.OpDrain:
 		if a.Cluster == nil {
 			return control.Response{Error: "this gateway is no node of a group; stop it with systemctl stop schild"}

@@ -323,6 +323,20 @@ Ereignisse und Vorfälle der anderen folgen in den Sekunden nach dem Start. Die 
 - Sperren, Einstellungen, Logins und Zertifikate liegen auf jedem Server. Es geht nichts verloren.
 - Die anderen Server zeigen weiter an, was der ausgefallene Server an Ereignissen und Vorfällen geschrieben hat, bis auf die letzte Sekunde vor dem Ausfall.
 
+## Das Caddyfile im Cluster ändern
+
+Der Cluster verteilt das Caddyfile nicht. Verteil die neue Datei mit deinem Deployment und lade sie auf einem Server nach dem anderen:
+
+```bash
+schild ingress validate && schild ingress reload
+```
+
+Der Server bleibt dabei im Traffic und meldet sich weiter als bereit. Du musst ihn vorher nicht mit `schild cluster drain` herausnehmen. Schlägt der Befehl fehl, läuft auf diesem Server das alte Caddyfile weiter. Lade die Datei dann auf den übrigen Servern nicht. Bis der letzte Server geladen hat, kennt ein Teil des Clusters eine neue Website noch nicht. Schalte ihren DNS-Eintrag deshalb erst danach um.
+
+Anfragen, die beim Reload laufen, enden mit dem alten Caddyfile. Sie haben dafür `grace_s` Zeit, in der Vorgabe 30 Sekunden (siehe [Einen Server geplant anhalten](#einen-server-geplant-anhalten)). Ein Download, ein Upload oder ein Stream, der danach noch läuft, bricht ab. Offene WebSockets enden sofort, wenn `reverse_proxy` kein `stream_close_delay` hat. Plane Reloads deshalb gebündelt, wenn deine Websites lange Verbindungen halten.
+
+In der Messung unter Linux lud ein Gateway sein Caddyfile unter Last 200-mal neu. Von rund 144.000 Anfragen über HTTP/1.1 und HTTP/2 scheiterte keine. Gemessen hat das, wer es gebaut hat, auf einem Rechner und ohne Loadbalancer.
+
 ## Einen Server geplant anhalten
 
 Für ein Update oder eine Wartung hältst du einen Server so an:
@@ -458,4 +472,5 @@ Jeder Server speichert damit, was der ganze Cluster aufzeichnet. Das lässt sich
 | `schild cluster secret` | Gibt ein neues Cluster-Secret aus. |
 | `schild cluster status` | Zeigt Mitglieder, letzten Kontakt und den geteilten Stand. |
 | `schild cluster drain` | Nimmt diesen Server aus dem Traffic und hält ihn an. |
+| `schild ingress reload` | Lädt das Caddyfile dieses Servers neu. |
 | `schild cluster remove NODE` | Beendet die Mitgliedschaft eines Servers, genannt mit Name oder Kennung. |

@@ -8,8 +8,11 @@ import (
 	"sort"
 	"strings"
 	"sync"
+	"sync/atomic"
+	"time"
 
 	"github.com/caddyserver/caddy/v2"
+	"github.com/caddyserver/caddy/v2/modules/caddyevents"
 	"github.com/caddyserver/caddy/v2/modules/caddyhttp"
 
 	"github.com/deutschland-schild/schild/contract/bodylimit"
@@ -60,7 +63,14 @@ type ConnWrapper struct {
 	// Proxied: the server reads the proxy protocol, so the address of a connection
 	// at this point is the proxy's, never the client's.
 	Proxied bool `json:"proxied,omitempty"`
+
+	ka    net.KeepAliveConfig
+	fresh *atomic.Int64
 }
+
+// afterActive, set by a test, runs where net/http has read a request and has
+// not yet looked whether its server stops.
+var afterActive func()
 
 // CaddyModule implements caddy.Module.
 func (ConnWrapper) CaddyModule() caddy.ModuleInfo {
@@ -70,10 +80,32 @@ func (ConnWrapper) CaddyModule() caddy.ModuleInfo {
 // Provision hooks the state of connections into the server: only the server knows
 // which of them run a request.
 func (w *ConnWrapper) Provision(ctx caddy.Context) error {
+	w.fresh = new(atomic.Int64)
 	if srv, ok := ctx.Value(caddyhttp.ServerCtxKey).(*caddyhttp.Server); ok {
-		srv.RegisterConnState(func(c net.Conn, s http.ConnState) { connlimit.Track(c, s) })
+		// As Caddy sets it on the sockets it opens.
+		w.ka = net.KeepAliveConfig{Enable: srv.KeepAliveInterval >= 0, Interval: time.Duration(srv.KeepAliveInterval),
+			Idle: time.Duration(srv.KeepAliveIdle), Count: srv.KeepAliveCount}
+		var counted sync.Map // connections in fresh
+		srv.RegisterConnState(func(c net.Conn, s http.ConnState) {
+			if s == http.StateNew {
+				w.fresh.Add(1)
+				counted.Store(c, struct{}{})
+			} else if _, was := counted.LoadAndDelete(c); was {
+				w.fresh.Add(-1)
+			}
+			if s == http.StateActive && afterActive != nil {
+				afterActive()
+			}
+			connlimit.Track(c, s)
+		})
 		srv.RegisterConnContext(connlimit.WithConn)
 		srv.RegisterConnContext(limitStreams())
+		ev, err := ctx.App("events")
+		if err != nil {
+			return err
+		}
+		// Every wrapper of a config does it, the first call does the work.
+		return ev.(*caddyevents.App).On("started", onStarted{})
 	}
 	return nil
 }
@@ -103,6 +135,7 @@ func limitStreams() func(context.Context, net.Conn) context.Context {
 
 // WrapListener implements caddy.ListenerWrapper.
 func (w *ConnWrapper) WrapListener(ln net.Listener) net.Listener {
+	ln = keepSocket(ln, w.ka, w.fresh)
 	if l := boundConns(); l != nil {
 		return l.Listen(ln, w.Proxied)
 	}

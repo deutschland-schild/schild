@@ -93,6 +93,9 @@ Usage:
                                                  that reaches a backend; then, as the current user: data directory,
                                                  certificate storage, Caddy provisioning, log files and sockets of
                                                  the Caddyfile (-adapt-only: the Caddyfile only); exit 1 on REFUSE
+  schild ingress reload [-config FILE] [-data DIR] [-force]
+                                                 host only: load the Caddyfile again without a restart; what schild
+                                                 refuses leaves the running Caddyfile in place, exit 1
   schild allow    IP|CIDR|HOST [-ttl 24h|7d|30d|never] [-label TEXT] [-level no_block|bypass_waf]
   schild allow    --mine [-ttl ...] [-label TEXT] allow the address of the current SSH session (SSH_CONNECTION)
   schild allow    list | rm ID                   show or remove local allowlist entries
@@ -149,7 +152,7 @@ Usage:
                                                  cluster.peers in schild.yaml (schild cluster -h)
 
 Changes to schild.yaml take effect after a restart of schild (systemctl restart schild, docker compose
-restart). SIGHUP and "schild rules sync local" only load rules.d again. Settings changed in the dashboard
+restart), changes to the Caddyfile after "schild ingress reload". SIGHUP and "schild rules sync local" only load rules.d again. Settings changed in the dashboard
 apply at once, are stored in the data directory and win over schild.yaml.
 
 Environment: SCHILD_CONFIG, SCHILD_DATA_DIR, SCHILD_LOG_LEVEL, SCHILD_LOG_FORMAT (json|text),
@@ -680,8 +683,11 @@ func fprintLogrotate(w io.Writer, paths []string) {
 }
 
 func cmdIngress(args []string) error {
+	if len(args) > 0 && args[0] == "reload" {
+		return cmdIngressReload(args[1:])
+	}
 	if len(args) == 0 || args[0] != "validate" {
-		return errors.New("ingress: schild ingress validate [-config FILE] [-adapt-only]")
+		return errors.New("ingress: schild ingress validate [-config FILE] [-adapt-only] | reload [-config FILE] [-data DIR] [-force]")
 	}
 	fs := flag.NewFlagSet("ingress validate", flag.ExitOnError)
 	cfgPath := fs.String("config", "", "schild.yaml (default $SCHILD_CONFIG or /etc/schild/schild.yaml)")
