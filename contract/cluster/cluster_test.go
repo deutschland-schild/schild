@@ -47,8 +47,8 @@ func memberRecordOf(t *testing.T, group string, signer ed25519.PrivateKey, seq u
 func blockRecord(t *testing.T, group string, signer ed25519.PrivateKey, seq, hlc uint64, client string) *Record {
 	t.Helper()
 	until := TimeText(t0.Add(time.Hour))
-	r := &Record{V: Version, Group: group, Class: ClassBlocks, ID: client, Origin: NodeID(signer.Public().(ed25519.PublicKey)), Seq: seq, HLC: hlc, Expires: until}
-	b := Block{Client: client, Bits: 32, Source: "behaviour:path_probing", Level: 1, Since: TimeText(t0), Until: until, DurationS: 3600, Incident: "S-1", NetClass: "hosting", Node: "web-1"}
+	r := &Record{V: Version, Group: group, Class: ClassIncidentBlocks, ID: "K7QF-2M9X", Origin: NodeID(signer.Public().(ed25519.PublicKey)), Seq: seq, HLC: hlc, Expires: until}
+	b := IncidentBlock{Client: client, Bits: 32, Scope: ScopeGateway, Source: "behaviour:path_probing", Level: 1, Since: TimeText(t0), Until: until, DurationS: 3600, NetClass: "hosting", Node: "web-1"}
 	if err := r.Sign(signer, b); err != nil {
 		t.Fatal(err)
 	}
@@ -110,17 +110,24 @@ func TestRosterRefuses(t *testing.T) {
 		}, ErrSignature},
 		{"moved to another class", func() *Record { r := good(); r.Class = ClassMembers; return r }, ErrSignature},
 		{"clock a day ahead", func() *Record { return blockRecord(t, ro.Group, kb, 1, HLCOf(t0.Add(24*time.Hour)), "203.0.113.7") }, ErrClock},
-		{"id is not the client", func() *Record {
+		{"id is not an incident number", func() *Record {
 			r := good()
-			r.ID = "203.0.113.9"
-			_ = r.Sign(kb, Block{Client: "203.0.113.7", Bits: 32, Source: "dashboard", Level: 1, Since: TimeText(t0), Until: r.Expires, DurationS: 3600})
+			r.ID = "203.0.113.7"
+			_ = r.Sign(kb, IncidentBlock{Client: "203.0.113.7", Bits: 32, Scope: ScopeGateway, Source: "dashboard", Level: 1, Since: TimeText(t0), Until: r.Expires, DurationS: 3600})
+			return r
+		}, ErrSchema},
+		{"class blocks of 0.1.0-alpha.6", func() *Record {
+			r := good()
+			r.Class, r.ID = RetiredClassBlocks, "203.0.113.7"
+			_ = r.Sign(kb, map[string]any{"client": "203.0.113.7", "bits": 32, "source": "dashboard", "level": 1, "since": TimeText(t0), "until": r.Expires, "duration_s": 3600,
+				"incident": "K7QF-2M9X", "net_class": "", "node": "web-1"})
 			return r
 		}, ErrSchema},
 		{"block outlives the cap", func() *Record {
 			r := good()
 			until := TimeText(t0.Add(30 * 24 * time.Hour))
 			r.Expires = until
-			_ = r.Sign(kb, Block{Client: "203.0.113.7", Bits: 32, Source: "dashboard", Level: 1, Since: TimeText(t0), Until: until, DurationS: 3600})
+			_ = r.Sign(kb, IncidentBlock{Client: "203.0.113.7", Bits: 32, Scope: ScopeGateway, Source: "dashboard", Level: 1, Since: TimeText(t0), Until: until, DurationS: 3600})
 			return r
 		}, ErrSchema},
 		{"unknown field", func() *Record {

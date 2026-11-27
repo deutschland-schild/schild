@@ -152,14 +152,6 @@ func (ro *Roster) Check(r *Record, now time.Time) error {
 		if _, err := DecodeMember(r); err != nil {
 			return err
 		}
-	case ClassBlocks:
-		if r.Deleted {
-			if _, err := DecodeLift(r); err != nil {
-				return err
-			}
-		} else if _, err := DecodeBlock(r); err != nil {
-			return err
-		}
 	case ClassIncidentBlocks:
 		if _, err := DecodeIncidentBlock(r); err != nil {
 			return err
