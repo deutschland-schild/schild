@@ -3951,9 +3951,9 @@ export interface components {
         /** @enum {string} */
         class: "change" | "credential" | "privacy" | "access" | "refused";
         action: string;
-        name: string;
         /** @description Short id of a session, never its token. */
         session: string;
+        name: string;
         label: string;
         pointer: string;
         scalar: string | number | boolean;
@@ -4036,6 +4036,12 @@ export interface components {
                 id?: string;
             };
             website?: components["schemas"]["website"];
+            /** @description What the call named as its reason to change: the event an exception was made from, the incident a block or a release belongs to. A link, no copy: the event may be gone by now. */
+            cause?: {
+                event: components["schemas"]["uuid"];
+            } | {
+                incident: string;
+            };
             change?: {
                 fields: components["schemas"]["field"][];
                 more_fields?: number;
@@ -5831,6 +5837,12 @@ export interface operations {
                 actor?: string;
                 subject?: string;
                 subject_id?: string;
+                /** @description Short id of a dashboard or portal session: what it did, from its sign-in on. */
+                session?: components["schemas"]["session"];
+                /** @description Entries whose cause is this event, e.g. the exception made from it. */
+                event?: components["schemas"]["uuid"];
+                /** @description Entries whose cause or subject is this incident: its block, its release, the own IP set from it. */
+                incident?: string;
                 cursor?: components["parameters"]["Cursor"];
                 limit?: components["parameters"]["Limit"];
             };

@@ -32,7 +32,7 @@ why: >-
 
 entry:
   # contracts/audit.md sections 1 and 3
-  fields: 'id, time, node, class, action (closed list, e.g. allowlist.add), operation, actor, address, subject (kind and id), website or none, change, reason, result (done, refused)'
+  fields: 'id, time, node, class, action (closed list, e.g. allowlist.add), operation, actor, address, subject (kind and id), website or none, cause (event or incident), change, reason, result (done, refused)'
   actor:
     - 'dashboard: user and session (short id)'
     - 'agent: token id and label'
@@ -68,7 +68,7 @@ group:                              # MVP-27
 tamper_evidence:
   - 'first version: none beyond append only; who has root on the host can change the file. The copy to another system is the answer, and the docs say so'
 surface:
-  dashboard: 'Einstellungen > Protokoll: list with filters website, actor, token, action and time; an entry shows before and after. From a token to its entries, from a setting to its last change ("Zuletzt geändert von …")'
+  dashboard: 'Einstellungen > Protokoll: list with filters website, way, actor, token, action, object, session, event, incident and time; an entry shows before and after. Every name leads on, both ways: entry to its object and the history of that object, to its event or incident and back, a sign-in to what its session did, a token to its entries and its calls, an object or setting to its last change ("Zuletzt geändert von …")'
   api: 'GET /audit (dashboard API); agent API for agent:read: changes and credentials, without people and addresses of calls; integration API: changes of the own website a portal may make, the operator without name, reason and the addresses they set'
   cli: 'schild audit [--website ID] [--token ID] [--since 7d] [--json]'
 must:
@@ -77,6 +77,7 @@ must:
   - 'no flood and no size cap removes an entry of a change, and no age under audit.keep_days'
   - 'an entry survives restart, update and the size cap of events'
   - 'a session of one website sees no entry of another'
+  - 'from every entry the dashboard leads to its object, its cause and its session, and back; a link to something gone says so'
 measure:                            # by an independent agent, not the builder
   - 'the matrix of every writing operation and command, done once each: one entry with the right actor and values'
   - 'kill -9 between change and answer, 1000 times: no change without entry, no entry without change'

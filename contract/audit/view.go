@@ -13,7 +13,8 @@ const (
 //   - agent: what was changed and by whom, without sign-ins, refused calls,
 //     privacy entries, names of people, sessions and the address of the call.
 //   - website: changes of its own website that a portal may make, without
-//     who of the operator made them.
+//     who of the operator made them; the cause is an event or incident of
+//     that website.
 func View(e map[string]any, viewer, website string) map[string]any {
 	e = clone(e).(map[string]any)
 	switch viewer {
@@ -35,6 +36,9 @@ func View(e map[string]any, viewer, website string) map[string]any {
 			return nil
 		}
 		out := map[string]any{"id": e["id"], "time": e["time"], "action": e["action"], "subject": e["subject"], "website": e["website"]}
+		if c, ok := e["cause"]; ok {
+			out["cause"] = c
+		}
 		actor := obj(e, "actor")
 		portal := str(actor, "kind") == "integration"
 		if portal {

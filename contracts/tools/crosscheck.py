@@ -4720,7 +4720,7 @@ def au_view(v):
     a = AU_ACTIONS.get(e["action"], {})
     if not a.get("portal") or e["class"] != "change" or e.get("website") != who["website"]:
         return {"entry": None}
-    out = {k: e[k] for k in ("id", "time", "action", "subject", "website")}
+    out = {k: e[k] for k in ("id", "time", "action", "subject", "website", "cause") if k in e}
     if e["actor"]["kind"] == "integration":
         out["actor"] = {"kind": "portal"}
         if "on_behalf_of" in e["actor"]:

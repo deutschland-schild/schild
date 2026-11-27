@@ -454,6 +454,9 @@ paths:
         - { name: actor, in: query, schema: { type: string, pattern: "^(tok|pk)_[0-9a-f]{12}$" } }
         - { name: subject, in: query, schema: { type: string, pattern: "^[a-z][a-z_]{0,31}$" } }
         - { name: subject_id, in: query, schema: { type: string, minLength: 1, maxLength: 253 } }
+        - { name: session, in: query, description: "Short id of a dashboard or portal session: what it did, from its sign-in on.", schema: { $ref: "../audit-entry.schema.json#/$defs/session" } }
+        - { name: event, in: query, description: "Entries whose cause is this event, e.g. the exception made from it.", schema: { $ref: "../common.schema.json#/$defs/uuid" } }
+        - { name: incident, in: query, description: "Entries whose cause or subject is this incident: its block, its release, the own IP set from it.", schema: { type: string, pattern: "^[A-HJ-NP-Z2-9]{4}-[A-HJ-NP-Z2-9]{4}$" } }
         - { $ref: "#/components/parameters/Cursor" }
         - { $ref: "#/components/parameters/Limit" }
       responses:

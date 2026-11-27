@@ -20,6 +20,7 @@ Go: `contract/audit`. Vectors: `audit` (input [audit.schema.json](audit.schema.j
 | `address` | where the call came from, kept as long as the entry; absent for the CLI, the configuration and `system` |
 | `subject` | kind and id of what changed. Never an address, because every viewer sees the subject: a block is named by its incident, a client by nothing |
 | `website` | the website the change belongs to; absent for what is global |
+| `cause` | the event an exception was made from, or the incident of a block, a release or an own IP set from it. A link, no copy: the event may be gone |
 | `change` | the changed fields (section 3) |
 | `reason` | text the caller gave, at most 500 bytes, untrusted |
 | `count`, `last` | refused calls gathered in one entry (section 5) |
@@ -110,7 +111,11 @@ Reasons, labels and the name a portal gives are text from outside: `x-untrusted`
 
 - **CLI:** `schild audit [--website ID] [--token ID] [--action A] [--since 7d] [--json]`, `schild audit check`.
 - **Copy:** `audit.stream: stdout` or a file path writes every entry as one JSON line when it is written. A copy that cannot be written is counted and shown; it never holds a change back. Retention does not reach the copy; the docs say so.
-- **Dashboard:** Einstellungen > Protokoll; from a token to its entries, and at a setting who changed it last.
+- **Dashboard:** Einstellungen > Protokoll, one list with the filters of `listAudit`. Every name in an entry leads on, both ways:
+  - entry to its object (the exception, the own IP, the token, the setting) while it exists, and to every entry of that object (`subject`, `subject_id`). An object that is gone says so and keeps its history.
+  - entry to its cause: the event or incident (`cause`); an event past `retention.events_days` reads as gone. From an event or incident to what was done because of it (`event`, `incident`).
+  - a sign-in to everything its session did (`session`); a token to its entries and to its calls in the call log of the agent API (`listAgentCalls`, token and time); a portal key to its entries.
+  - at an object and a setting: who changed it last, with a link to that entry ("Zuletzt geändert von …"). Older than `audit.keep_days`: "Älter als die Aufbewahrung des Protokolls".
 
 ## 9. Group
 
