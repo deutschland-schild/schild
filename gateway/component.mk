@@ -45,12 +45,13 @@ GATEWAY_BUILDER ?= $(BUILDX_BUILDER)
 APP_TEST_PROCS ?= 4
 # go test of the module, to run inside gateway/. $(1): the flags of go test. internal/app runs at the same
 # time as the other packages, as it does with go test ./...; its output is kept and printed after theirs, in
-# one piece. Both parts run to their end, also when one fails. GO_TEST_TIMEOUT is the limit of one package,
-# for internal/app of its processes together.
+# one piece. Both parts run to their end, also when one fails: the shell of make stops at the first command
+# that fails (-e), so the status of a command that may fail is taken with && and ||, never with $$? on the
+# next line. GO_TEST_TIMEOUT is the limit of one package, for internal/app of its processes together.
 GATEWAY_GO_TEST = { applog=$$(mktemp); \
 	$(GO) run ./internal/tools/splittest -procs $(APP_TEST_PROCS) -timeout $(GO_TEST_TIMEOUT) $(1) > $$applog 2>&1 & apppid=$$!; \
-	$(GO) test -timeout $(GO_TEST_TIMEOUT) $(1) $$($(GO) list ./... | grep -v '/internal/app$$'); others=$$?; \
-	wait $$apppid; app=$$?; cat $$applog; rm -f $$applog; \
+	$(GO) test -timeout $(GO_TEST_TIMEOUT) $(1) $$($(GO) list ./... | grep -v '/internal/app$$') && others=0 || others=$$?; \
+	wait $$apppid && app=0 || app=$$?; cat $$applog; rm -f $$applog; \
 	[ $$others = 0 ] && [ $$app = 0 ]; }
 
 gateway-test:
