@@ -802,14 +802,12 @@ func TestKnownIncidentNumberIsNotDrawnAgain(t *testing.T) {
 	if err := a.h.App.Store.NoteLifts(ctx, time.Now(), lift); err != nil {
 		t.Fatal(err)
 	}
-	b.h.WaitFor("web-2 holds the block record and the lift", func() bool {
-		return holds(t, b, contract.ClassIncidentBlocks, block) && holds(t, b, contract.ClassLifts, lift)
+	// The node notes a number when the handler of the record ran, a moment
+	// after the record is in its store: wait for the note, not for the row.
+	b.h.WaitFor("web-2 holds the block record and the lift and knows both numbers", func() bool {
+		return holds(t, b, contract.ClassIncidentBlocks, block) && holds(t, b, contract.ClassLifts, lift) &&
+			b.h.App.IncidentKnown(block) && b.h.App.IncidentKnown(lift)
 	})
-	for _, id := range []string{block, lift} {
-		if !b.h.App.IncidentKnown(id) {
-			t.Errorf("web-2 does not know the number %s", id)
-		}
-	}
 	if b.h.App.IncidentKnown(fresh) {
 		t.Fatalf("web-2 knows the number %s, which nobody used", fresh)
 	}
