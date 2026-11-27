@@ -16,10 +16,8 @@ import (
 //
 // Migration 2 also marks who decided a kept block (kept_blocks.own): 1 this
 // gateway, 0 another node of its group (the block was taken from the
-// group), -1 not known, which is every row a build before the mark kept. A
-// node writes only its own decisions to its group; of a row that does not
-// say, the node decides once it read the records of its group
-// (contracts/cluster.md section 16) and notes it here.
+// group). A node writes only its own decisions to its group. A row a build
+// before the mark kept does not say (-1) and counts as this gateway's own.
 
 const outboxMigration = `
 CREATE TABLE cluster_outbox (

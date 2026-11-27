@@ -51,7 +51,7 @@ func TestNewSecretMovesANodeWithWhatItHeld(t *testing.T) {
 	}
 	oldGroup, id := b.node.Group(), b.node.ID()
 	var before *contract.Record
-	recs, _ := b.node.State(contract.ClassBlocks)
+	recs, _ := b.node.State(testClass)
 	for _, r := range recs {
 		if r.ID == "203.0.113.7" {
 			before = r
@@ -78,7 +78,7 @@ func TestNewSecretMovesANodeWithWhatItHeld(t *testing.T) {
 	if b.node.ID() != id || b.node.Group() != group {
 		t.Fatalf("web-2 is %s in %s, want %s in %s", b.node.ID(), b.node.Group(), id, group)
 	}
-	recs, _ = b.node.State(contract.ClassBlocks)
+	recs, _ = b.node.State(testClass)
 	var after *contract.Record
 	for _, r := range recs {
 		if r.ID == "203.0.113.7" {
@@ -94,10 +94,10 @@ func TestNewSecretMovesANodeWithWhatItHeld(t *testing.T) {
 
 	// Meanwhile: web-1, still in the old group, lifts one block; web-2, in the
 	// new group, lifts another. Nothing crosses.
-	if _, err := a.node.Publish(contract.ClassBlocks, "203.0.113.8", &contract.Lift{Incident: "S-203.0.113.8", Node: "web-1"}, true, time.Now().Add(time.Hour)); err != nil {
+	if _, err := a.node.Publish(testClass, "203.0.113.8", lift("web-1"), true, time.Now().Add(time.Hour)); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := b.node.Publish(contract.ClassBlocks, "203.0.113.9", &contract.Lift{Incident: "S-203.0.113.9", Node: "web-2"}, true, time.Now().Add(time.Hour)); err != nil {
+	if _, err := b.node.Publish(testClass, "203.0.113.9", lift("web-2"), true, time.Now().Add(time.Hour)); err != nil {
 		t.Fatal(err)
 	}
 	time.Sleep(1500 * time.Millisecond)

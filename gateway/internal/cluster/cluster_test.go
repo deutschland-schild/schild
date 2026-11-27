@@ -3,6 +3,7 @@ package cluster
 import (
 	"context"
 	"crypto/ed25519"
+	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -50,7 +51,7 @@ func (tn *testNode) start() {
 	if err != nil {
 		tn.t.Fatalf("%s: open: %v", tn.name, err)
 	}
-	n.On(contract.ClassBlocks, func(r *contract.Record) {
+	n.On(testClass, func(r *contract.Record) {
 		tn.mu.Lock()
 		tn.seen = append(tn.seen, r)
 		tn.mu.Unlock()
@@ -134,22 +135,29 @@ func threeNodes(t *testing.T) (a, b, c *testNode) {
 	return a, b, c
 }
 
-func block(client string, until time.Time) *contract.Block {
-	return &contract.Block{Client: client, Bits: 32, Source: "dashboard", Level: 1, Since: contract.TimeText(until.Add(-time.Hour)), Until: contract.TimeText(until),
-		DurationS: 3600, Incident: "S-" + client, NetClass: "hosting", Node: "web-1"}
+// testClass is the class the tests of the node write: a thing under one id
+// that is written and removed again (a file of the Caddy storage, named
+// like a client). The node treats every class alike. The helpers call the
+// write a block and the tombstone a lift.
+const testClass = contract.ClassCertificates
+
+func block(client string, _ time.Time) *contract.Files {
+	return &contract.Files{Files: map[string]string{"": base64.StdEncoding.EncodeToString([]byte(client))}, Node: "web-1"}
 }
+
+func lift(node string) *contract.Files { return &contract.Files{Node: node} }
 
 func (tn *testNode) publishBlock(client string) {
 	tn.t.Helper()
 	until := time.Now().Add(time.Hour).UTC().Truncate(time.Second)
-	if _, err := tn.node.Publish(contract.ClassBlocks, client, block(client, until), false, until); err != nil {
+	if _, err := tn.node.Publish(testClass, client, block(client, until), false, until); err != nil {
 		tn.t.Fatal(err)
 	}
 }
 
 // holds reports the state of a client on a node: "block", "lift" or "".
 func (tn *testNode) holds(client string) string {
-	recs, err := tn.node.State(contract.ClassBlocks)
+	recs, err := tn.node.State(testClass)
 	if err != nil {
 		tn.t.Fatal(err)
 	}
@@ -171,7 +179,7 @@ func TestGroupSharesBlocksAndLifts(t *testing.T) {
 		waitFor(t, n.name+" holds the block of web-1", func() bool { return n.holds("203.0.113.7") == "block" })
 	}
 	// c lifts it: a tombstone, which every node takes.
-	if _, err := c.node.Publish(contract.ClassBlocks, "203.0.113.7", &contract.Lift{Incident: "S-203.0.113.7", Node: "web-3"}, true, time.Now().Add(time.Hour)); err != nil {
+	if _, err := c.node.Publish(testClass, "203.0.113.7", lift("web-3"), true, time.Now().Add(time.Hour)); err != nil {
 		t.Fatal(err)
 	}
 	for _, n := range []*testNode{a, b} {
@@ -204,7 +212,7 @@ func TestTwoWritesOfOneClientSettleTheSame(t *testing.T) {
 	a.publishBlock("203.0.113.7")
 	b.publishBlock("203.0.113.7")
 	winner := func(n *testNode) string {
-		recs, _ := n.node.State(contract.ClassBlocks)
+		recs, _ := n.node.State(testClass)
 		if len(recs) != 1 {
 			return ""
 		}
@@ -235,7 +243,7 @@ func TestRemovedMemberIsCutOff(t *testing.T) {
 		}
 	}
 	// And handed over directly it is refused.
-	recs, raws, _ := c.node.winners(contract.ClassBlocks)
+	recs, raws, _ := c.node.winners(testClass)
 	for i, r := range recs {
 		if r.ID == "203.0.113.9" {
 			// Counted now, or refused and counted when web-1 asked web-3
@@ -259,7 +267,7 @@ func TestTamperedAndForeignRecordsAreRefused(t *testing.T) {
 	inGroup(t, []byte("another-file-another-file-another-file"), x)
 	x.start()
 	x.publishBlock("203.0.113.7")
-	recs, raws, _ := x.node.winners(contract.ClassBlocks)
+	recs, raws, _ := x.node.winners(testClass)
 	foreign := raws[0]
 	// The same record, relabelled to the group of web-1.
 	relabelled := *recs[0]
@@ -267,7 +275,7 @@ func TestTamperedAndForeignRecordsAreRefused(t *testing.T) {
 	rl, _ := json.Marshal(relabelled)
 	// A record of web-1 itself with other data under the old signature.
 	a.publishBlock("203.0.113.8")
-	own, _, _ := a.node.winners(contract.ClassBlocks)
+	own, _, _ := a.node.winners(testClass)
 	bent := *own[0]
 	bent.Seq, bent.HLC = bent.Seq+1, bent.HLC+1
 	bt, _ := json.Marshal(bent)
@@ -296,7 +304,7 @@ func TestStatus(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		if len(st.Members) != 3 || st.Records[contract.ClassBlocks] != 1 || st.Seen.IsZero() {
+		if len(st.Members) != 3 || st.Records[testClass] != 1 || st.Seen.IsZero() {
 			return false
 		}
 		for _, m := range st.Members {
@@ -359,7 +367,7 @@ func TestNodeWithoutGroup(t *testing.T) {
 func TestHandlerAndPublishDoNotLockEachOther(t *testing.T) {
 	a, b, _ := threeNodes(t)
 	var owner sync.Mutex
-	b.node.On(contract.ClassBlocks, func(*contract.Record) {
+	b.node.On(testClass, func(*contract.Record) {
 		owner.Lock()
 		time.Sleep(time.Millisecond)
 		owner.Unlock()
@@ -377,7 +385,7 @@ func TestHandlerAndPublishDoNotLockEachOther(t *testing.T) {
 			owner.Lock()
 			until := time.Now().Add(time.Hour).UTC().Truncate(time.Second)
 			client := fmt.Sprintf("198.51.100.%d", i%250+1)
-			_, _ = b.node.Publish(contract.ClassBlocks, client, block(client, until), false, until)
+			_, _ = b.node.Publish(testClass, client, block(client, until), false, until)
 			owner.Unlock()
 		}
 	}()
@@ -618,7 +626,7 @@ func TestInStepOnlyAfterWhatWasTakenIsApplied(t *testing.T) {
 		t.Fatal(err)
 	}
 	var applied atomic.Bool
-	n.On(contract.ClassBlocks, func(*contract.Record) {
+	n.On(testClass, func(*contract.Record) {
 		time.Sleep(400 * time.Millisecond)
 		applied.Store(true)
 	})

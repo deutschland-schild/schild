@@ -233,10 +233,3 @@ func (a *App) HashedBlocks() []string {
 // IncidentKnown reports whether the node would draw another number than
 // this one for a new block.
 func (a *App) IncidentKnown(incident string) bool { return a.incidentKnown(incident) }
-
-// SetTestUnmarkedBlocks makes f run when a node reads the kept blocks that
-// do not say who decided them; an error of f is the error of the read.
-func SetTestUnmarkedBlocks(f func(a *App) error) (undo func()) {
-	testUnmarkedBlocks.Store(&f)
-	return func() { testUnmarkedBlocks.Store(nil) }
-}

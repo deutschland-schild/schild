@@ -169,9 +169,7 @@ func TestReleaseBeforeTheRecordCameKeepsTheBlockFromRunning(t *testing.T) {
 	}
 	a.writeStopped(t, nil, func(n *cluster.Node) {
 		until := blockUntil()
-		old := blockBefore(ip, incident, "web-1", until)
-		if _, err := n.Publish(contract.ClassIncidentBlocks, incident, &contract.IncidentBlock{Client: ip, Bits: 32, Scope: contract.ScopeGateway, Source: old.Source, Level: 1,
-			Since: old.Since, Until: old.Until, DurationS: old.DurationS, NetClass: old.NetClass, Node: old.Node}, false, until); err != nil {
+		if _, err := n.Publish(contract.ClassIncidentBlocks, incident, writtenBlock(ip, "web-1", until), false, until); err != nil {
 			t.Fatal(err)
 		}
 	})

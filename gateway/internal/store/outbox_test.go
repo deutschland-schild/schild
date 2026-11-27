@@ -2,9 +2,9 @@ package store
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"path/filepath"
-	"sort"
 	"testing"
 	"time"
 
@@ -195,9 +195,9 @@ func TestUnblockAfterTheAllowlistEndedTheBlockNotesItsLift(t *testing.T) {
 	}
 }
 
-// A kept block carries who decided it: this gateway, another node of its
-// group, or nobody says (a row of a build before the mark). A gateway in no
-// group owns the rows that do not say, and never one it took from a group.
+// A kept block carries who decided it: this gateway or another node of its
+// group. A row that does not say (a row of a build before the mark) counts
+// as this gateway's own.
 func TestKeptBlockCarriesWhoDecidedIt(t *testing.T) {
 	ctx := context.Background()
 	s := open(t)
@@ -217,44 +217,45 @@ func TestKeptBlockCarriesWhoDecidedIt(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	state := func() (taken []string, unmarked map[string]string) {
-		t.Helper()
-		taken, err := s.TakenBlocks(ctx)
-		if err != nil {
-			t.Fatal(err)
-		}
-		if unmarked, err = s.UnmarkedBlocks(ctx); err != nil {
-			t.Fatal(err)
-		}
-		sort.Strings(taken)
-		return taken, unmarked
-	}
-	taken, unmarked := state()
-	if len(taken) != 1 || taken[0] != "203.0.113.2" || len(unmarked) != 2 || unmarked["203.0.113.3"] != "K7QM-3" {
-		t.Fatalf("taken %v, not marked %v: want the taken block, and the two rows of the build before as not marked", taken, unmarked)
-	}
-	// A node of a group decides on one of them, each way, and once.
-	if err := s.MarkKeptBlock(ctx, "203.0.113.3", false); err != nil {
-		t.Fatal(err)
-	}
-	if err := s.MarkKeptBlock(ctx, "203.0.113.3", true); err != nil {
-		t.Fatal(err)
-	}
-	if err := s.MarkKeptBlock(ctx, "203.0.113.1", false); err != nil {
-		t.Fatal(err)
-	}
-	if taken, unmarked = state(); len(taken) != 2 || taken[1] != "203.0.113.3" || len(unmarked) != 1 {
-		t.Fatalf("after the node decided: taken %v, not marked %v", taken, unmarked)
-	}
-	// A gateway in no group owns what does not say, and nothing it took.
-	if err := s.OwnKeptBlocks(ctx); err != nil {
-		t.Fatal(err)
-	}
-	if taken, unmarked = state(); len(taken) != 2 || len(unmarked) != 0 {
-		t.Fatalf("after a start in no group: taken %v, not marked %v, want the taken blocks as they were", taken, unmarked)
+	taken, err := s.TakenBlocks(ctx)
+	if err != nil || len(taken) != 1 || taken[0] != "203.0.113.2" {
+		t.Fatalf("taken %v (%v): want the one block taken from the group, and no row of the build before", taken, err)
 	}
 	if all, _ := s.ListBlocks(ctx); len(all) != 4 {
 		t.Fatalf("%d kept blocks, want 4", len(all))
+	}
+}
+
+// A gateway that updates from 0.1.0-alpha.6 keeps its kept blocks: migration
+// 2 leaves the rows as they are, and a row that does not say who decided it
+// is this gateway's own.
+func TestKeptBlocksOfTheBuildBeforeStayAfterTheUpdate(t *testing.T) {
+	ctx := context.Background()
+	path := baselineDB(t, false)
+	db, err := sql.Open("sqlite", "file:"+path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	since, until := time.Now().Add(-time.Hour).UTC().Truncate(time.Second), time.Now().Add(47*time.Hour).UTC().Truncate(time.Second)
+	_, err = db.Exec(`INSERT INTO kept_blocks(client_key, key_bits, net_class, source, level, duration_s, since_ms, until_ms, incident)
+		VALUES('203.0.113.5', 32, 'hosting', 'behaviour:path_probing', 3, 172800, ?, ?, 'K7QM-AAA5')`, since.UnixMilli(), until.UnixMilli())
+	if err != nil {
+		t.Fatal(err)
+	}
+	db.Close()
+	s, err := OpenMigrate(path, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer s.Close()
+	rows, err := s.ListBlocks(ctx)
+	want := events.ActiveBlock{ClientKey: "203.0.113.5", KeyBits: 32, NetClass: "hosting", Source: "behaviour:path_probing", Level: 3, DurationS: 172800,
+		Since: since.Format(time.RFC3339), Until: until.Format(time.RFC3339), Incident: "K7QM-AAA5"}
+	if err != nil || len(rows) != 1 || rows[0] != want {
+		t.Fatalf("kept blocks after the update: %+v (%v), want %+v", rows, err, want)
+	}
+	if taken, err := s.TakenBlocks(ctx); err != nil || len(taken) != 0 {
+		t.Fatalf("the kept block of the build before counts as taken from a group: %v (%v)", taken, err)
 	}
 }
 

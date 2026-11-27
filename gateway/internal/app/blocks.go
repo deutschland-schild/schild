@@ -92,16 +92,6 @@ func (a *App) FlushBlocks() {
 // restoreBlocks reloads the kept blocks at start; ended and allowlisted
 // ones are deleted.
 func (a *App) restoreBlocks(ctx context.Context) {
-	// A gateway that is in no group decided every block it keeps that does
-	// not say who did (a row of a build before the mark); what it took from
-	// a group it was in stays taken. A node of a group decides on the rows
-	// that do not say once it read the records of its group
-	// (resolveKeptBlocks).
-	if !a.Config().Cluster.Enabled {
-		if err := a.Store.OwnKeptBlocks(ctx); err != nil {
-			a.log.Warn("kept behaviour blocks not marked as this gateway's own; should it join a group, it does not hand them over", "err", err)
-		}
-	}
 	rows, err := a.Store.ListBlocks(ctx)
 	if err != nil {
 		a.log.Error("kept behaviour blocks not loaded", "err", err)
@@ -125,8 +115,9 @@ func (a *App) restoreBlocks(ctx context.Context) {
 	n, more := a.Behaviour.RestoreBlocks(keep, func(ip netip.Addr) bool { lvl, _ := a.Allow.Match(ip, now); return lvl != "" })
 	drop = append(drop, more...)
 	// Which of them another node decided: a node of a group writes only its
-	// own decisions to its group. When the marks cannot be read, no kept
-	// block counts as its own.
+	// own decisions to its group. A row that does not say (a build before
+	// the mark kept it) is this gateway's own. When the marks cannot be
+	// read, no kept block counts as its own.
 	taken, err := a.Store.TakenBlocks(ctx)
 	if err != nil {
 		a.log.Error("kept behaviour blocks: the marks of own decisions are not read; no kept block is handed to a group as this node's own", "err", err)

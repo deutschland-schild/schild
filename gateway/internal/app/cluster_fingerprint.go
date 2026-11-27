@@ -51,9 +51,7 @@ import (
 //     changed waits to be put in. Otherwise the node says no point, and
 //     nobody compares.
 //   - blocks: the block records of the group this node holds that are not
-//     lifted and have not ended, as incident number: those of class
-//     incident_blocks and, until they are over, those of class blocks that
-//     name an incident (contracts/cluster.md section 16). A node's own
+//     lifted and have not ended, as incident number. A node's own
 //     allowlist from schild.yaml may keep it from running a block the group
 //     holds; that is per node by design and not hashed. At the same point
 //     two nodes hold the same block records, so this hash differs only
@@ -89,16 +87,11 @@ const statePointVector = "v"
 const stateHistory = 64
 
 // stateBlocks is the name of the blocks in a node's word of its state. The
-// hash under it covers the blocks of both classes (blockClasses), and its
-// point the lifts too: a lift takes a block out of the hash.
+// hash under it covers the records of class incident_blocks, and its point
+// the lifts too: a lift takes a block out of the hash.
 const stateBlocks = "blocks"
 
 var stateClasses = []string{stateBlocks, contract.ClassSettings, contract.ClassAccess, contract.ClassLogins}
-
-// blockClasses hold the blocks of a group: the records by incident, and
-// those of the build before D109 until they are over (contracts/cluster.md
-// section 16).
-var blockClasses = []string{contract.ClassIncidentBlocks, contract.ClassBlocks}
 
 // stateLook is the state of this node at one moment: the hash of every
 // class and the point each was computed at ("": none, the class was not
@@ -235,28 +228,23 @@ func sameLook(a, b *stateLook) bool {
 }
 
 // hashedBlocks are the blocks the hash of blocks covers at now, as incident
-// numbers: those the node holds a record of, of either class, that are not
-// lifted and not over. A lifted block has left the store. A block the node
-// wrote anew holds a record in both classes and counts once. ends is when
-// the first of them is over (zero: none).
+// numbers: those the node holds a record of that are not lifted and not
+// over. A lifted block has left the store. ends is when the first of them
+// is over (zero: none).
 func (a *App) hashedBlocks(now time.Time) (incidents []string, ends time.Time) {
-	seen := map[string]bool{}
-	for _, class := range blockClasses {
-		recs, err := a.Cluster.State(class)
-		if err != nil {
+	recs, err := a.Cluster.State(contract.ClassIncidentBlocks)
+	if err != nil {
+		return nil, ends
+	}
+	for _, rec := range recs {
+		b, ok := a.groupBlockOf(rec)
+		if !ok || !b.info.Until.After(now) {
 			continue
 		}
-		for _, rec := range recs {
-			b, ok := a.groupBlockOf(rec)
-			if !ok || !b.info.Until.After(now) || seen[b.info.Incident] {
-				continue
-			}
-			if ends.IsZero() || b.info.Until.Before(ends) {
-				ends = b.info.Until
-			}
-			seen[b.info.Incident] = true
-			incidents = append(incidents, b.info.Incident)
+		if ends.IsZero() || b.info.Until.Before(ends) {
+			ends = b.info.Until
 		}
+		incidents = append(incidents, b.info.Incident)
 	}
 	return incidents, ends
 }
@@ -271,7 +259,7 @@ func (a *App) statePoints(now time.Time) map[string]string {
 	for _, class := range stateClasses {
 		classes := []string{class}
 		if class == stateBlocks {
-			classes = append([]string{contract.ClassLifts}, blockClasses...)
+			classes = []string{contract.ClassLifts, contract.ClassIncidentBlocks}
 		}
 		if p, err := node.ClassPoint(now, classes...); err == nil {
 			out[class] = p

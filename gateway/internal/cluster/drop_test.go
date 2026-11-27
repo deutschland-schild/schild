@@ -19,7 +19,7 @@ func TestDroppedRecordIsRefusedAndNotAskedForAgain(t *testing.T) {
 	knowEachOther(t, a, b)
 	const kept, gone = "203.0.113.7", "203.0.113.8"
 	refuse := func(r *contract.Record) bool { return r.ID == gone }
-	b.node.Refuse(contract.ClassBlocks, refuse)
+	b.node.Refuse(testClass, refuse)
 	a.publishBlock(gone)
 	a.publishBlock(kept)
 	waitFor(t, "web-2 holds the record it does not refuse", func() bool { return b.holds(kept) == "block" })
@@ -43,9 +43,9 @@ func TestDroppedRecordIsRefusedAndNotAskedForAgain(t *testing.T) {
 		t.Errorf("the refused record counts as one that failed a check: %d", rejected)
 	}
 	// Dropped where it was held, and refused from then on.
-	a.node.Refuse(contract.ClassBlocks, refuse)
+	a.node.Refuse(testClass, refuse)
 	gen := a.node.StoreGen()
-	if err := a.node.Drop(contract.ClassBlocks, gone); err != nil {
+	if err := a.node.Drop(testClass, gone); err != nil {
 		t.Fatal(err)
 	}
 	if got := a.holds(gone); got != "" || a.node.StoreGen() == gen {

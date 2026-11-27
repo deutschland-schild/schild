@@ -106,3 +106,70 @@ func TestUnreadRecordsAreReadAtTheStartOfALaterBuild(t *testing.T) {
 		t.Fatalf("%d records stay unread (%v)", n, err)
 	}
 }
+
+// Class blocks of 0.1.0-alpha.6 is gone (cluster.md section 16): a record
+// of it is refused for good, not kept unread, and what a build before left
+// in the store is deleted when the node starts.
+func TestRecordsOfClassBlocksAreRefusedAndDeletedAtTheStart(t *testing.T) {
+	a, b := newTestNode(t, "web-1"), newTestNode(t, "web-2")
+	inGroup(t, testSecret, a, b)
+	a.start()
+	b.start()
+	knowEachOther(t, a, b)
+	// A block and a lift as a member of 0.1.0-alpha.6 signs them.
+	until := time.Now().Add(time.Hour).UTC().Truncate(time.Second)
+	old := func(seq uint64, id string, deleted bool, data any) (*contract.Record, json.RawMessage) {
+		rec := &contract.Record{V: contract.Version, Group: b.node.Group(), Class: contract.RetiredClassBlocks, ID: id, Origin: b.node.ID(), Seq: seq,
+			HLC: contract.HLCOf(time.Now()) + seq, Deleted: deleted, Expires: contract.TimeText(until)}
+		if err := rec.Sign(b.node.key, data); err != nil {
+			t.Fatal(err)
+		}
+		raw, _ := json.Marshal(rec)
+		return rec, raw
+	}
+	block, rawBlock := old(1000, "203.0.113.7", false, map[string]any{"client": "203.0.113.7", "bits": 32, "source": "dashboard", "level": 1,
+		"since": contract.TimeText(until.Add(-time.Hour)), "until": contract.TimeText(until), "duration_s": 3600, "incident": "K7QF-2M9X", "net_class": "", "node": "web-2"})
+	lift, rawLift := old(1001, "203.0.113.8", true, map[string]any{"incident": "R3TV-8HNC", "node": "web-2"})
+	refused := a.node.Rejected.Load()
+	if n, _, err := a.node.takeRecords([]json.RawMessage{rawBlock, rawLift}, map[string]uint64{b.node.ID(): 1001}, true); err != nil || n != 0 {
+		t.Fatalf("records of class blocks: %d applied, %v", n, err)
+	}
+	if got := a.node.Rejected.Load() - refused; got != 2 {
+		t.Fatalf("%d records counted as refused, want 2", got)
+	}
+	count := func() (n int) {
+		if err := a.node.db.QueryRow(`SELECT count(*) FROM records WHERE class = ?`, contract.RetiredClassBlocks).Scan(&n); err != nil {
+			t.Fatal(err)
+		}
+		return n
+	}
+	if count() != 0 {
+		t.Fatal("a refused record of class blocks was stored")
+	}
+	if v, _ := a.node.vector(); v[b.node.ID()] != 1001 {
+		t.Fatalf("the vector did not move past the refused records: %d", v[b.node.ID()])
+	}
+	// As the build before left them: held as the state of their client.
+	a.stop()
+	s, err := openState(a.dir, false, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	tx, err := s.db.Begin()
+	if err != nil {
+		t.Fatal(err)
+	}
+	for i, rec := range []*contract.Record{block, lift} {
+		if _, err := put(tx, rec, []json.RawMessage{rawBlock, rawLift}[i]); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if err := tx.Commit(); err != nil {
+		t.Fatal(err)
+	}
+	s.close()
+	a.start()
+	if count() != 0 {
+		t.Fatal("records of class blocks stay in the store after the start")
+	}
+}

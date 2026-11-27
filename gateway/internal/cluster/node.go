@@ -136,6 +136,15 @@ func Open(o Options) (*Node, error) {
 		st.close()
 		return nil, ErrNoGroup
 	}
+	// Class blocks of 0.1.0-alpha.6 is gone (contracts/cluster.md section
+	// 16): the records a build before kept of it leave, and with them the
+	// client addresses of its blocks.
+	if res, err := st.db.Exec(`DELETE FROM records WHERE class = ?`, contract.RetiredClassBlocks); err != nil {
+		st.close()
+		return nil, err
+	} else if c, _ := res.RowsAffected(); c > 0 {
+		o.Log.Info("cluster: records of class blocks of 0.1.0-alpha.6 deleted; this version shares blocks by incident", "records", c)
+	}
 	n := &Node{state: st, opts: o, log: o.Log, handlers: map[string][]func(*contract.Record){}, news: make(chan struct{}), peers: map[string]*peer{},
 		seekNext: map[string]time.Time{}}
 	if n.cert, err = selfCert(st.key); err != nil {

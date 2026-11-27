@@ -392,53 +392,6 @@ func TestOneFailingLiftDoesNotHoldTheOthersBack(t *testing.T) {
 	}
 }
 
-// The first start with this build asks every member the node reaches for
-// its records, not one alone: the first one that answers may hold none (it
-// may still run the build before).
-func TestFirstStartAsksEveryMemberItReaches(t *testing.T) {
-	nodes := trio(t)
-	inService(t, nodes...)
-	const mark = "blocks_by_incident"
-	for _, g := range nodes {
-		g := g
-		g.h.WaitFor(g.name+" made the cut", func() bool { return g.h.App.Cluster.Mark(mark) == "asked" })
-	}
-	first, holder, c := nodes[0], nodes[1], nodes[2]
-	// A block record web-3 lacks although its vector says it has it: what a
-	// node refused while it ran the build before. Of the two others only
-	// web-2 holds it.
-	const ip, x = "203.0.113.65", "UUUU-AAA4"
-	holder.block(ip, x, 15*time.Minute)
-	for _, g := range nodes {
-		g := g
-		g.h.WaitFor(g.name+" runs the block", func() bool { return g.blocked(ip) == x })
-	}
-	for _, g := range nodes {
-		if err := g.h.Stop(); err != nil {
-			t.Fatal(err)
-		}
-	}
-	for _, g := range []*groupNode{c, first} {
-		execCluster(t, g.clusterDir(), `DELETE FROM records WHERE class = ? AND id = ?`, contract.ClassIncidentBlocks, x)
-	}
-	execCluster(t, c.clusterDir(), `DELETE FROM meta WHERE k = ?`, "mark:"+mark)
-	// web-3 starts while only web-1 runs, asks it and gets nothing.
-	first.start(t)
-	c.start(t)
-	c.h.WaitFor("web-3 reaches web-1", func() bool { return len(c.h.App.Cluster.Reachable()) == 1 })
-	time.Sleep(3 * time.Second)
-	if got := c.h.App.Cluster.Mark(mark); got == "asked" {
-		t.Error("web-3 noted its first start as done after it asked one member of two")
-	}
-	if got := c.blocked(ip); got != "" {
-		t.Fatalf("web-3 runs %q before the member that holds the record is back", got)
-	}
-	// web-2 returns, and web-3 asks it too.
-	holder.start(t)
-	c.h.WaitFor("web-3 holds the block again: it asked the member that holds it too", func() bool { return c.blocked(ip) == x })
-	c.h.WaitFor("web-3 made the cut", func() bool { return c.h.App.Cluster.Mark(mark) == "asked" })
-}
-
 // A block that runs again after an allowlist entry ended it for a while can
 // be released, in the dashboard and by an agent, although its incident
 // reads unblocked: the entry ended the block without a lift, which is
@@ -669,10 +622,11 @@ func TestRoundStartsNoBlockTheTableHasNoRoomFor(t *testing.T) {
 	}
 }
 
-// A gateway that is in no group decided every block it keeps that does not
-// say who did (a row of a build before the mark), and none it took from a
-// group it was in. When it joins a group later, it hands its own long
-// blocks over.
+// A kept block that does not say who decided it (a row of a build before
+// the mark, as a gateway updated from 0.1.0-alpha.6 holds it) is this
+// gateway's own: it runs after the update, and when the gateway joins a
+// group it hands it over. A block it took from a group it was in is none
+// of its own.
 func TestSingleGatewayOwnsItsKeptBlocksWhenItJoinsAGroup(t *testing.T) {
 	g := newGroup(t, "web-1")[0]
 	const ip, incident, ipTaken, taken = "203.0.113.57", "YYYY-AAA2", "203.0.113.58", "YYYY-AAA3"
@@ -710,118 +664,6 @@ func TestSingleGatewayOwnsItsKeptBlocksWhenItJoinsAGroup(t *testing.T) {
 	if got := g.blocked(ipTaken); got != "" {
 		t.Errorf("the node runs %q: a block of another node it holds no record of", got)
 	}
-}
-
-// A node that comes from the build before keeps blocks that do not say who
-// decided them. Once it read the records of its group it decides (section
-// 16): a block whose record another node signed is that node's and runs by
-// its record; a block the node holds no record of at all is its own and is
-// written to the group, not dropped. So a single gateway that is updated
-// and put into a group in one step keeps its long blocks.
-func TestKeptBlocksOfTheBuildBeforeAreResolvedByTheRecords(t *testing.T) {
-	a, b := pair(t)
-	ctx := context.Background()
-	inService(t, a, b)
-	const ipTheirs, theirs, ipOwn, own = "203.0.113.57", "YYYY-AAA4", "203.0.113.58", "YYYY-AAA5"
-	b.h.App.SetGroupBlocksMax(0) // the long block of web-2 has no record
-	a.block(ipTheirs, theirs, 48*time.Hour)
-	b.block(ipOwn, own, 48*time.Hour)
-	b.h.WaitFor("web-2 runs both blocks", func() bool { return b.blocked(ipTheirs) == theirs && b.blocked(ipOwn) == own })
-	if err := b.h.App.Store.InsertIncident(ctx, &store.Incident{Incident: own, Time: time.Now(), IP: ipOwn, Status: "blocked", Sources: []string{"dashboard"}}); err != nil {
-		t.Fatal(err)
-	}
-	rowTheirs, rowOwn := keptRow(t, b, ipTheirs), keptRow(t, b, ipOwn)
-	if err := b.h.Stop(); err != nil {
-		t.Fatal(err)
-	}
-	// As the build before kept them.
-	b.putKept(t, keptUnmarked, rowTheirs, rowOwn)
-	// The first reads of those rows fail: until one succeeded web-2 neither
-	// writes the block without a record to the group nor ends it.
-	var reads atomic.Int32
-	defer app.SetTestUnmarkedBlocks(func(x *app.App) error {
-		if x.Cluster.Name() == "web-2" && reads.Add(1) <= 4 {
-			return errors.New("test: the kept blocks are not read")
-		}
-		return nil
-	})()
-	b.start(t)
-	// The first round of web-2 ran before its mesh.
-	if b.blocked(ipOwn) != own || b.blocked(ipTheirs) != theirs {
-		t.Fatalf("after its start web-2 runs %q and %q, want both kept blocks", b.blocked(ipOwn), b.blocked(ipTheirs))
-	}
-	if reads.Load() <= 4 && slices.Contains(recordIDs(t, b, contract.ClassIncidentBlocks), own) {
-		t.Fatal("web-2 wrote a kept block to the group before it read whose it is")
-	}
-	a.h.WaitFor("web-1 holds the block of web-2, which had no record", func() bool { return slices.Contains(recordIDs(t, a, contract.ClassIncidentBlocks), own) })
-	b.h.App.FlushBlocks()
-	taken, err1 := b.h.App.Store.TakenBlocks(ctx)
-	unmarked, err2 := b.h.App.Store.UnmarkedBlocks(ctx)
-	if err1 != nil || err2 != nil || !slices.Equal(taken, []string{ipTheirs}) || len(unmarked) != 0 {
-		t.Errorf("web-2 keeps as taken %v, as not marked %v (%v, %v): want the block of web-1 as taken and none open", taken, unmarked, err1, err2)
-	}
-	if in, err := b.h.App.Store.GetIncident(ctx, own); err != nil || in.Status != "blocked" {
-		t.Errorf("the incident of the block of web-2 is %+v (%v), want blocked", in, err)
-	}
-	for _, rec := range func() []*contract.Record { r, _ := a.h.App.Cluster.State(contract.ClassIncidentBlocks); return r }() {
-		want := map[string]string{own: b.h.App.Cluster.ID(), theirs: a.h.App.Cluster.ID()}[rec.ID]
-		if rec.Origin != want {
-			t.Errorf("the record of %s is written by %s", rec.ID, a.h.App.Cluster.PeerName(rec.Origin))
-		}
-	}
-}
-
-// Class blocks has one record per client. A record of that class that
-// replaces the one before of its client, under another incident (written by
-// a node of the build before), takes its place on every node: the block of
-// the record before is no longer held.
-func TestRecordOfClassBlocksThatWasReplacedIsNoLongerHeld(t *testing.T) {
-	a, b := pair(t)
-	inService(t, a, b)
-	const mark = "blocks_by_incident"
-	for _, g := range []*groupNode{a, b} {
-		g := g
-		g.h.WaitFor(g.name+" made the cut", func() bool { return g.h.App.Cluster.Mark(mark) == "asked" })
-	}
-	const ip, x, y = "203.0.113.68", "ZZZZ-AAA2", "ZZZZ-AAA3"
-	write := func(incident string) {
-		if err := a.h.Stop(); err != nil {
-			t.Fatal(err)
-		}
-		until := blockUntil()
-		a.writeStopped(t, nil, func(n *cluster.Node) {
-			if _, err := n.Publish(contract.ClassBlocks, ip, blockBefore(ip, incident, "web-1", until), false, until); err != nil {
-				t.Fatal(err)
-			}
-		})
-		a.start(t)
-	}
-	write(x)
-	b.h.WaitFor("web-2 runs the first block", func() bool { return b.blocked(ip) == x })
-	write(y)
-	b.h.WaitFor("web-2 runs the block that replaced the first", func() bool { return b.blocked(ip) == y })
-	for _, g := range []*groupNode{a, b} {
-		if got := g.h.App.HashedBlocks(); !slices.Equal(got, []string{y}) {
-			t.Errorf("%s hashes the blocks %v, want %v", g.name, got, []string{y})
-		}
-		if n := g.h.App.GroupStatus().Shared.Blocks; n != 1 {
-			t.Errorf("%s holds %d blocks, want the one whose record its store holds", g.name, n)
-		}
-	}
-	// A tombstone of that class takes the place of the record too, whatever
-	// incident it names: here one that no node holds a block of.
-	if err := a.h.Stop(); err != nil {
-		t.Fatal(err)
-	}
-	a.writeStopped(t, nil, func(n *cluster.Node) {
-		if _, err := n.Publish(contract.ClassBlocks, ip, &contract.Lift{Incident: "ZZZZ-AAA9", Node: "web-1"}, true, time.Now().Add(contract.MaxBlockS*time.Second+time.Hour)); err != nil {
-			t.Fatal(err)
-		}
-	})
-	a.start(t)
-	b.h.WaitFor("web-2 holds no block of the client after the tombstone", func() bool {
-		return b.blocked(ip) == "" && len(b.h.App.HashedBlocks()) == 0 && b.h.App.GroupStatus().Shared.Blocks == 0
-	})
 }
 
 // The blocks from before an erasure end on a node that takes the erasure

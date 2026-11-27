@@ -46,13 +46,13 @@ func TestWriteAfterARestartBeatsARecordOfAClockAhead(t *testing.T) {
 	a.start()
 	bn := runNode(t, b, ahead(30*time.Second), nil)
 	until := time.Now().Add(time.Hour).UTC().Truncate(time.Second)
-	if _, err := bn.Publish(contract.ClassBlocks, "203.0.113.30", block("203.0.113.30", until), false, until); err != nil {
+	if _, err := bn.Publish(testClass, "203.0.113.30", block("203.0.113.30", until), false, until); err != nil {
 		t.Fatal(err)
 	}
 	waitFor(t, "web-1 holds the block of web-2", func() bool { return a.holds("203.0.113.30") == "block" })
 	a.stop()
 	a.start()
-	rec, err := a.node.Publish(contract.ClassBlocks, "203.0.113.30", &contract.Lift{Incident: "S-203.0.113.30", Node: "web-1"}, true, time.Now().Add(time.Hour))
+	rec, err := a.node.Publish(testClass, "203.0.113.30", lift("web-1"), true, time.Now().Add(time.Hour))
 	if err != nil {
 		t.Fatalf("the lift after the restart: %v", err)
 	}
@@ -114,7 +114,7 @@ func TestPublishIsLaterThanEveryRecordHeld(t *testing.T) {
 	}
 	defer s.close()
 	// A lift of another node whose clock was 50 s ahead.
-	held := &contract.Record{V: contract.Version, Group: s.group, Class: contract.ClassBlocks, ID: "203.0.113.31", Origin: "n-0000000000000000000000000000ffff", Seq: 1,
+	held := &contract.Record{V: contract.Version, Group: s.group, Class: testClass, ID: "203.0.113.31", Origin: "n-0000000000000000000000000000ffff", Seq: 1,
 		HLC: contract.HLCOf(time.Now().Add(50 * time.Second)), Deleted: true}
 	raw, _ := json.Marshal(held)
 	tx, err := s.db.Begin()
@@ -128,13 +128,13 @@ func TestPublishIsLaterThanEveryRecordHeld(t *testing.T) {
 		t.Fatal(err)
 	}
 	until := time.Now().Add(time.Hour)
-	rec, err := s.publish(contract.ClassBlocks, "203.0.113.31", block("203.0.113.31", until), false, until)
+	rec, err := s.publish(testClass, "203.0.113.31", block("203.0.113.31", until), false, until)
 	if err != nil {
 		t.Fatalf("a write after the record held: %v", err)
 	}
 	var origin string
 	var deleted bool
-	if err := s.db.QueryRow(`SELECT origin, deleted FROM records WHERE class = ? AND id = ? AND state = ?`, contract.ClassBlocks, "203.0.113.31", stateWinner).Scan(&origin, &deleted); err != nil {
+	if err := s.db.QueryRow(`SELECT origin, deleted FROM records WHERE class = ? AND id = ? AND state = ?`, testClass, "203.0.113.31", stateWinner).Scan(&origin, &deleted); err != nil {
 		t.Fatal(err)
 	}
 	if origin != s.id || deleted || rec.HLC <= held.HLC {
@@ -200,7 +200,7 @@ func TestRecordsPutOffByOneMemberAreNotClearedByAnother(t *testing.T) {
 	t.Cleanup(func() { gate.open.Store(true) })
 	waitFor(t, "web-2 and web-3 are in step", func() bool { return bn.Synced() && cn.Synced() })
 	until := time.Now().Add(time.Hour).UTC().Truncate(time.Second)
-	if _, err := bn.Publish(contract.ClassBlocks, "203.0.113.33", block("203.0.113.33", until), false, until); err != nil {
+	if _, err := bn.Publish(testClass, "203.0.113.33", block("203.0.113.33", until), false, until); err != nil {
 		t.Fatal(err)
 	}
 	// web-1 starts; web-3 answers only once web-2's record was put off.

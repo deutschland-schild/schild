@@ -7,7 +7,6 @@ import (
 	"database/sql"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"net/netip"
 	"path/filepath"
 	"slices"
@@ -25,8 +24,7 @@ import (
 	"github.com/deutschland-schild/schild/gateway/internal/store"
 )
 
-// The blocks of a group by incident (contracts/cluster.md section 5 and 16,
-// D109): one record per block, a lift as a record of its own.
+// The blocks of a group by incident (contracts/cluster.md section 5, D109): one record per block, a lift as a record of its own.
 
 // recordIDs are the ids of the records of a class a node holds, sorted.
 func recordIDs(t *testing.T, g *groupNode, class string) []string {
@@ -224,10 +222,10 @@ func notReleased(t *testing.T, ip string, since time.Time, nodes ...*groupNode) 
 
 func blockUntil() time.Time { return time.Now().Add(15 * time.Minute).UTC().Truncate(time.Second) }
 
-// blockBefore is the data of a block as the build before D109 wrote it.
-func blockBefore(ip, incident, node string, until time.Time) *contract.Block {
-	return &contract.Block{Client: ip, Bits: 32, Source: "dashboard", Level: 1, Since: contract.TimeText(until.Add(-15 * time.Minute)), Until: contract.TimeText(until),
-		DurationS: 900, Incident: incident, NetClass: "hosting", Node: node}
+// writtenBlock is the data of a block record a test writes by hand.
+func writtenBlock(ip, node string, until time.Time) *contract.IncidentBlock {
+	return &contract.IncidentBlock{Client: ip, Bits: 32, Scope: contract.ScopeGateway, Source: "dashboard", Level: 1, Since: contract.TimeText(until.Add(-15 * time.Minute)),
+		Until: contract.TimeText(until), DurationS: 900, NetClass: "hosting", Node: node}
 }
 
 func inService(t *testing.T, nodes ...*groupNode) {
@@ -631,9 +629,7 @@ func TestBlockRecordWithALaterClockDoesNotBeatItsLift(t *testing.T) {
 	ahead := func() time.Time { return time.Now().Add(50 * time.Second) }
 	b.writeStopped(t, ahead, func(n *cluster.Node) {
 		until := blockUntil()
-		old := blockBefore(ip, x, "web-2", until)
-		rec, err := n.Publish(contract.ClassIncidentBlocks, x, &contract.IncidentBlock{Client: ip, Bits: 32, Scope: contract.ScopeGateway, Source: old.Source, Level: 1,
-			Since: old.Since, Until: old.Until, DurationS: old.DurationS, NetClass: old.NetClass, Node: old.Node}, false, until)
+		rec, err := n.Publish(contract.ClassIncidentBlocks, x, writtenBlock(ip, "web-2", until), false, until)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -650,140 +646,6 @@ func TestBlockRecordWithALaterClockDoesNotBeatItsLift(t *testing.T) {
 		}
 		if ids := recordIDs(t, g, contract.ClassIncidentBlocks); len(ids) != 0 {
 			t.Errorf("%s stored the block records %v although it holds the lift", g.name, ids)
-		}
-	}
-}
-
-// k: section 16. A node reads the records of class blocks it holds or is
-// handed: a block that names an incident is a block of that incident, a
-// tombstone that names one is its lift, and a record of class lifts ends a
-// block that came as class blocks. At its first start with this build it
-// writes its own running blocks and its own tombstones anew, once, and it
-// writes no record of class blocks.
-func TestRecordsOfClassBlocksAreReadAndWrittenAnewOnce(t *testing.T) {
-	a, b := pair(t)
-	ctx := context.Background()
-	a.h.Login()
-	const mark = "blocks_by_incident"
-	for _, g := range []*groupNode{a, b} {
-		g := g
-		g.h.WaitFor(g.name+" made the cut of a node that held nothing", func() bool { return g.h.App.Cluster.Mark(mark) == "asked" })
-	}
-	for _, g := range []*groupNode{a, b} {
-		if err := g.h.Stop(); err != nil {
-			t.Fatal(err)
-		}
-	}
-	const (
-		ipRuns, runs     = "203.0.113.43", "MMMM-AAA2" // runs on web-1: written anew
-		ipLater, later   = "203.0.113.44", "MMMM-AAA3" // released later, by a record of class lifts
-		ipLifted, lifted = "203.0.113.45", "MMMM-AAA4" // web-2's block, web-1's tombstone
-		ipOwn, own       = "192.0.2.10", "MMMM-AAA5"   // on the allowlist: runs nowhere, stays of class blocks alone
-	)
-	until := blockUntil()
-	publish := func(n *cluster.Node, id string, data any, deleted bool, expires time.Time) {
-		if _, err := n.Publish(contract.ClassBlocks, id, data, deleted, expires); err != nil {
-			t.Fatal(err)
-		}
-	}
-	a.writeStopped(t, nil, func(n *cluster.Node) {
-		for ip, incident := range map[string]string{ipRuns: runs, ipLater: later, ipOwn: own} {
-			publish(n, ip, blockBefore(ip, incident, "web-1", until), false, until)
-		}
-	})
-	b.writeStopped(t, nil, func(n *cluster.Node) {
-		publish(n, ipLifted, blockBefore(ipLifted, lifted, "web-2", until), false, until)
-	})
-	time.Sleep(5 * time.Millisecond) // the tombstone is later than the block it ends
-	a.writeStopped(t, nil, func(n *cluster.Node) {
-		publish(n, ipLifted, &contract.Lift{Incident: lifted, Node: "web-1"}, true, time.Now().Add(contract.MaxBlockS*time.Second+time.Hour))
-	})
-	// The first start with this build.
-	started := time.Now()
-	for _, g := range []*groupNode{a, b} {
-		execCluster(t, g.clusterDir(), `DELETE FROM meta WHERE k = ?`, "mark:"+mark)
-	}
-	a.start(t)
-	b.start(t)
-
-	// Read: the blocks run under their incident, on the node that holds
-	// them from before and on the node that is handed them.
-	for _, g := range []*groupNode{a, b} {
-		g := g
-		g.h.WaitFor(g.name+" runs the blocks of class blocks", func() bool { return g.blocked(ipRuns) == runs && g.blocked(ipLater) == later })
-		g.h.WaitFor(g.name+" took the tombstone for the lift of its incident", func() bool { return g.blocked(ipLifted) == "" })
-		g.h.WaitFor(g.name+" made the cut", func() bool { return g.h.App.Cluster.Mark(mark) == "asked" })
-		if got := g.blocked(ipOwn); got != "" {
-			t.Errorf("%s blocks an address of its own allowlist: %q", g.name, got)
-		}
-	}
-	// Written anew: web-1's running blocks by incident, its tombstone as a
-	// lift; not the block that does not run, and nothing of web-2's block,
-	// which was lifted.
-	for _, g := range []*groupNode{a, b} {
-		g := g
-		g.h.WaitFor(g.name+" holds what web-1 wrote anew", func() bool {
-			return holds(t, g, contract.ClassIncidentBlocks, runs, later) && holds(t, g, contract.ClassLifts, lifted)
-		})
-	}
-	signed := func(g *groupNode, class, id string) string {
-		recs, err := g.h.App.Cluster.State(class)
-		if err != nil {
-			t.Fatal(err)
-		}
-		for _, r := range recs {
-			if r.ID == id {
-				return fmt.Sprintf("%s %d %d", r.Origin, r.Seq, r.HLC)
-			}
-		}
-		return ""
-	}
-	wrote := map[string]string{runs: signed(a, contract.ClassIncidentBlocks, runs), later: signed(a, contract.ClassIncidentBlocks, later), lifted: signed(a, contract.ClassLifts, lifted)}
-	for id, s := range wrote {
-		if !strings.HasPrefix(s, a.h.App.Cluster.ID()+" ") {
-			t.Fatalf("the record of %s is signed %q, want by web-1", id, s)
-		}
-	}
-	// Once: a second start writes nothing again.
-	if err := a.h.Stop(); err != nil {
-		t.Fatal(err)
-	}
-	a.start(t)
-	a.h.Login()
-	inService(t, a)
-	time.Sleep(1500 * time.Millisecond)
-	again := map[string]string{runs: signed(a, contract.ClassIncidentBlocks, runs), later: signed(a, contract.ClassIncidentBlocks, later), lifted: signed(a, contract.ClassLifts, lifted)}
-	for id := range wrote {
-		if wrote[id] != again[id] {
-			t.Errorf("the record of %s was written again at the second start: %q, then %q", id, wrote[id], again[id])
-		}
-	}
-
-	// A record of class lifts ends a block that came as class blocks: one
-	// that was written anew, and one that is held as class blocks alone.
-	if err := b.h.App.Store.NoteLifts(ctx, time.Now(), later, own); err != nil {
-		t.Fatal(err)
-	}
-	for _, g := range []*groupNode{a, b} {
-		g := g
-		g.h.WaitFor(g.name+" ended the blocks by the lifts", func() bool {
-			return g.blocked(ipLater) == "" && holds(t, g, contract.ClassIncidentBlocks, runs) && holds(t, g, contract.ClassBlocks, ipRuns)
-		})
-		if got := g.blocked(ipRuns); got != runs {
-			t.Errorf("%s runs %q for the block nobody released", g.name, got)
-		}
-	}
-	// No record of class blocks was written: the release of the last block
-	// is a lift too, and the one tombstone is the one from before.
-	a.release(t, ipRuns)
-	for _, g := range []*groupNode{a, b} {
-		g := g
-		g.h.WaitFor(g.name+" ended the last block", func() bool { return g.blocked(ipRuns) == "" && holds(t, g, contract.ClassBlocks) })
-		if n := tombstones(t, g.clusterDir(), contract.ClassBlocks); n != 1 {
-			t.Errorf("%s holds %d tombstones of class blocks, want the one from before", g.name, n)
-		}
-		if n := len(rawRecords(t, g, "class = ? AND hlc > ?", contract.ClassBlocks, started.UnixMilli()<<16)); n != 0 {
-			t.Errorf("%s holds %d records of class blocks written after the first start", g.name, n)
 		}
 	}
 }
@@ -862,44 +724,13 @@ func TestBoundOfBlocksDoesNotHoldALiftBack(t *testing.T) {
 }
 
 // n: the hash of the blocks is the same on every node after blocks and
-// lifts settled, and it covers what the contract says: the blocks of both
-// classes that are not lifted, a block with a record in both classes once.
-func TestHashOfBlocksIsTheSameWithBothClasses(t *testing.T) {
+// lifts settled, and it covers what the contract says: the blocks the node
+// holds a record of that are not lifted.
+func TestHashOfBlocksIsTheSameOnEveryNode(t *testing.T) {
 	defer app.SetStateDiffTimes(2*time.Second, 5*time.Second, 5*time.Second)()
 	nodes := trio(t)
 	a, b, c := nodes[0], nodes[1], nodes[2]
 	b.h.Login()
-	c.h.Login()
-	const mark = "blocks_by_incident"
-	for _, g := range nodes {
-		g := g
-		g.h.WaitFor(g.name+" made the cut", func() bool { return g.h.App.Cluster.Mark(mark) == "asked" })
-	}
-	// Records of class blocks; the cut is made, so they stay what they are:
-	// one block of that class alone, one that is lifted later, and one that
-	// has a record under its incident too, as a node writes it anew.
-	const (
-		ipBefore, before = "203.0.113.51", "QQQQ-AAA2"
-		ipBoth, both     = "203.0.113.56", "QQQQ-AAA6"
-		ipGone, gone     = "203.0.113.58", "QQQQ-AAA7"
-	)
-	if err := a.h.Stop(); err != nil {
-		t.Fatal(err)
-	}
-	until := blockUntil()
-	a.writeStopped(t, nil, func(n *cluster.Node) {
-		for ip, incident := range map[string]string{ipBefore: before, ipBoth: both, ipGone: gone} {
-			if _, err := n.Publish(contract.ClassBlocks, ip, blockBefore(ip, incident, "web-1", until), false, until); err != nil {
-				t.Fatal(err)
-			}
-		}
-		old := blockBefore(ipBoth, both, "web-1", until)
-		if _, err := n.Publish(contract.ClassIncidentBlocks, both, &contract.IncidentBlock{Client: ipBoth, Bits: 32, Scope: contract.ScopeGateway, Source: old.Source, Level: 1,
-			Since: old.Since, Until: old.Until, DurationS: old.DurationS, NetClass: old.NetClass, Node: old.Node}, false, until); err != nil {
-			t.Fatal(err)
-		}
-	})
-	a.start(t)
 	inService(t, nodes...)
 	const ip, x, y, ip2, z = "203.0.113.52", "QQQQ-AAA3", "QQQQ-AAA4", "203.0.113.53", "QQQQ-AAA5"
 	a.block(ip, x, 15*time.Minute)
@@ -907,12 +738,9 @@ func TestHashOfBlocksIsTheSameWithBothClasses(t *testing.T) {
 	c.block(ip2, z, 15*time.Minute)
 	for _, g := range nodes {
 		g := g
-		g.h.WaitFor(g.name+" holds every block", func() bool {
-			return holds(t, g, contract.ClassIncidentBlocks, both, x, y, z) && holds(t, g, contract.ClassBlocks, ipBefore, ipBoth, ipGone) &&
-				g.blocked(ipBefore) == before && g.blocked(ipBoth) == both && g.blocked(ipGone) == gone
-		})
-		if got, want := g.h.App.HashedBlocks(), []string{before, x, y, z, both, gone}; !slices.Equal(got, want) {
-			t.Errorf("%s hashes the blocks %v, want %v: every block held, of both classes, the one with two records once", g.name, got, want)
+		g.h.WaitFor(g.name+" holds every block", func() bool { return holds(t, g, contract.ClassIncidentBlocks, x, y, z) })
+		if got, want := g.h.App.HashedBlocks(), []string{x, y, z}; !slices.Equal(got, want) {
+			t.Errorf("%s hashes the blocks %v, want %v: every block held", g.name, got, want)
 		}
 	}
 	b.release(t, ip2)
@@ -920,14 +748,13 @@ func TestHashOfBlocksIsTheSameWithBothClasses(t *testing.T) {
 	if err := c.h.App.Store.NoteLifts(context.Background(), time.Now(), x); err != nil {
 		t.Fatal(err)
 	}
-	b.release(t, ipGone)
 	for _, g := range nodes {
 		g := g
-		g.h.WaitFor(g.name+" holds the blocks that are left", func() bool {
-			return holds(t, g, contract.ClassIncidentBlocks, both, y) && holds(t, g, contract.ClassBlocks, ipBefore, ipBoth) && holds(t, g, contract.ClassLifts, gone, x, z)
+		g.h.WaitFor(g.name+" holds the block that is left", func() bool {
+			return holds(t, g, contract.ClassIncidentBlocks, y) && holds(t, g, contract.ClassLifts, x, z)
 		})
-		if got, want := g.h.App.HashedBlocks(), []string{before, y, both}; !slices.Equal(got, want) {
-			t.Errorf("%s hashes the blocks %v after the lifts, want %v: no lifted block, of either class", g.name, got, want)
+		if got, want := g.h.App.HashedBlocks(), []string{y}; !slices.Equal(got, want) {
+			t.Errorf("%s hashes the blocks %v after the lifts, want %v: no lifted block", g.name, got, want)
 		}
 	}
 	for _, g := range nodes {
@@ -938,8 +765,8 @@ func TestHashOfBlocksIsTheSameWithBothClasses(t *testing.T) {
 			g, other := g, other
 			g.h.WaitFor(g.name+" sees the same blocks on "+other.name, func() bool { return sharedStateOf(g, other.name)["blocks"] == "same" })
 		}
-		if n := g.h.App.GroupStatus().Shared.Blocks; n != 3 {
-			t.Errorf("%s shows %d shared blocks, want the three that are not lifted, of both classes", g.name, n)
+		if n := g.h.App.GroupStatus().Shared.Blocks; n != 1 {
+			t.Errorf("%s shows %d shared blocks, want the one that is not lifted", g.name, n)
 		}
 	}
 	time.Sleep(8 * time.Second)

@@ -191,7 +191,7 @@ func (e *Engine) RestoreBlocks(rows []events.ActiveBlock, skip func(netip.Addr) 
 
 // TakenBlocks marks the running blocks of these client keys as blocks this
 // node did not decide (blockState.taken): called after RestoreBlocks with
-// the kept rows that carry no mark of an own decision.
+// the kept rows this node took from its group.
 func (e *Engine) TakenBlocks(clientKeys []string) {
 	for _, ck := range clientKeys {
 		a, err := netip.ParseAddr(ck)
