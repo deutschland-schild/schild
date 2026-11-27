@@ -10,6 +10,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"sort"
 	"strconv"
 	"strings"
 	"text/tabwriter"
@@ -176,12 +177,22 @@ func auditList(ctx context.Context, l *auditlog.Log, f auditlog.Filter, asJSON b
 	if !asJSON {
 		fmt.Fprintln(tw, "TIME\tWAY\tWHO\tACTION\tOBJECT\tWEBSITE\tCHANGE")
 	}
+	// A running schild moves entries from schild.db to audit.db while this
+	// command reads the two one after the other, so an entry of the first
+	// page may be met in both. It is printed once.
+	first := map[string]bool{}
 	for cursor := ""; ; {
 		items, next, err := l.List(ctx, f, cursor, auditlog.MaxPage)
 		if err != nil {
 			return fmt.Errorf("audit: %w", err)
 		}
+		newestFirst(items)
 		for _, e := range items {
+			if id := auditStr(e, "id"); first[id] {
+				continue
+			} else if cursor == "" {
+				first[id] = true
+			}
 			if asJSON {
 				line, err := jsonLine(e)
 				if err != nil {
@@ -203,6 +214,32 @@ func auditList(ctx context.Context, l *auditlog.Log, f auditlog.Filter, asJSON b
 		return nil
 	}
 	return tw.Flush()
+}
+
+// newestFirst orders a page: by time as List does, and the entries of one
+// second, which List leaves as it met them (what waits in schild.db comes
+// oldest first), by their log and number. An entry has no finer time; of two
+// entries of one log the higher number is the newer.
+func newestFirst(items []map[string]any) {
+	key := func(e map[string]any) (t, log string, n int64) {
+		id := auditStr(e, "id")
+		if k := strings.LastIndex(id, "-"); k >= 0 {
+			log = id[:k]
+			n, _ = strconv.ParseInt(id[k+1:], 10, 64)
+		}
+		return auditStr(e, "time"), log, n
+	}
+	sort.SliceStable(items, func(i, j int) bool {
+		ta, la, na := key(items[i])
+		tb, lb, nb := key(items[j])
+		if ta != tb {
+			return ta > tb
+		}
+		if la != lb {
+			return la < lb
+		}
+		return na > nb
+	})
 }
 
 // auditCheck names the holes of the logs this node wrote.

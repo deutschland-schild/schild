@@ -127,11 +127,24 @@ func (b *bundler) resolve(ref, file string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	node, err := lookup(src, ptr)
-	if err != nil {
-		return "", fmt.Errorf("%s: %w", key, err)
+	// A reference to a whole schema file (no pointer): the schema itself,
+	// named after its file, without the keywords that only mean something
+	// at the root of a file. Its $defs are copied one by one as they are
+	// referenced.
+	whole := ptr == ""
+	var node any = src
+	if !whole {
+		if node, err = lookup(src, ptr); err != nil {
+			return "", fmt.Errorf("%s: %w", key, err)
+		}
 	}
 	kind, name := "schemas", path.Base(ptr)
+	if whole {
+		name = ""
+		for _, p := range strings.Split(strings.TrimSuffix(path.Base(target), ".schema.json"), "-") {
+			name += strings.ToUpper(p[:1]) + p[1:]
+		}
+	}
 	if parts := strings.Split(strings.TrimPrefix(ptr, "/"), "/"); len(parts) == 3 && parts[0] == "components" {
 		kind = parts[1]
 	}
@@ -142,6 +155,11 @@ func (b *bundler) resolve(ref, file string) (string, error) {
 		b.comps[kind] = section
 	}
 	copied := clone(node)
+	if m, ok := copied.(map[string]any); ok && whole {
+		for _, k := range []string{"$id", "$schema", "$defs"} {
+			delete(m, k)
+		}
+	}
 	if old, taken := section[name]; taken && !reflect.DeepEqual(old, copied) {
 		stem := strings.TrimSuffix(strings.TrimSuffix(path.Base(target), ".openapi.yaml"), ".schema.json")
 		prefix := ""

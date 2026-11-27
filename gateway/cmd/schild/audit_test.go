@@ -91,7 +91,10 @@ func cliEntries(t *testing.T, data string) []auditEntry {
 	if err != nil || next != "" {
 		t.Fatalf("list: %v, next %q", err, next)
 	}
+	// The running gateway may move an entry between the two reads of List
+	// (outbox, then audit.db): then it is there twice and counts once.
 	out := make([]auditEntry, 0, len(items))
+	seen := map[string]bool{}
 	for i := len(items) - 1; i >= 0; i-- {
 		raw, err := json.Marshal(items[i])
 		if err != nil {
@@ -101,7 +104,10 @@ func cliEntries(t *testing.T, data string) []auditEntry {
 		if err := json.Unmarshal(raw, &e); err != nil {
 			t.Fatal(err)
 		}
-		out = append(out, e)
+		if !seen[e.ID] {
+			seen[e.ID] = true
+			out = append(out, e)
+		}
 	}
 	// Entries of one second keep the order of their numbers.
 	for i := 1; i < len(out); i++ {
