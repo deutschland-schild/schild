@@ -11,7 +11,7 @@ export const gateways = (s: GroupStatus): GroupMember[] => (s.members ?? []).fil
 export const removedMembers = (s: GroupStatus): GroupMember[] => (s.members ?? []).filter(m => m.state === 'removed')
 
 export interface ModeView {
-  /** "Einzelner Server" or "Cluster · 3 Server". */
+  /** "Cluster · 3 Server", or "Kein Cluster" when one is switched on and this server belongs to none. */
   label: string
   /** The same for narrow screens. */
   short: string
@@ -29,12 +29,15 @@ const STATE: Record<GroupState, { tone: StatusTone, label: string }> = {
   removed: { tone: 'danger', label: 'Aus dem Cluster entfernt' },
 }
 
-/** The indicator that is on every page: alone or a node of a group, and how the group is doing. */
-export function modeView(s: GroupStatus): ModeView {
+/**
+ * The indicator in the top bar: the group and how it is doing. A gateway that runs alone shows none, that is
+ * the usual case and needs no word. Alone with a cluster switched on is a fault and shows "Kein Cluster".
+ */
+export function modeView(s: GroupStatus): ModeView | null {
   if (s.mode === 'single') {
     return s.state === 'no_group'
-      ? { label: 'Einzelner Server', short: 'Einzeln', tone: 'warning', title: 'Dieser Server läuft allein. In schild.yaml ist ein Cluster eingeschaltet, er gehört aber zu keinem.' }
-      : { label: 'Einzelner Server', short: 'Einzeln', tone: 'neutral', title: 'Dieser Server läuft allein, ohne Cluster.' }
+      ? { label: 'Kein Cluster', short: 'Kein Cluster', tone: 'warning', title: 'Dieser Server läuft allein. In schild.yaml ist ein Cluster eingeschaltet, er gehört aber zu keinem.' }
+      : null
   }
   const n = gateways(s).length
   const st = STATE[s.state ?? 'active']

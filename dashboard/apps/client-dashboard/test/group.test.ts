@@ -54,13 +54,13 @@ describe('the servers of a group on the page Cluster (MVP-27)', () => {
 })
 
 describe('words for the mode and the group (MVP-27)', () => {
-  it('names the mode: alone, or a group with its number of gateways', () => {
-    expect(modeView({ mode: 'single' })).toMatchObject({ label: 'Einzelner Server', short: 'Einzeln', tone: 'neutral' })
+  it('names the group with its number of gateways, and nothing for a gateway that runs alone', () => {
+    expect(modeView({ mode: 'single' })).toBeNull()
     // Removed members are no servers of the group.
     expect(modeView(group)).toMatchObject({ label: 'Cluster · 3 Server', short: 'Cluster · 3', tone: 'warning' })
     expect(modeView(withState('active'))).toMatchObject({ label: 'Cluster · 3 Server', tone: 'success' })
     // cluster.enabled without a group: it runs alone, and the indicator says that something is off.
-    expect(modeView(noGroupFixture as GroupStatus)).toMatchObject({ label: 'Einzelner Server', tone: 'warning' })
+    expect(modeView(noGroupFixture as GroupStatus)).toMatchObject({ label: 'Kein Cluster', tone: 'warning' })
   })
 
   it('says the state of the sync in calm words', () => {
@@ -99,14 +99,10 @@ describe('words for the mode and the group (MVP-27)', () => {
 })
 
 describe('a single gateway', () => {
-  it('shows "Einzelner Server" on every page and on the server page', async () => {
-    await mountApp('/')
-    await waitFor(() => !!byTestId('group-mode'))
-    expect(byTestId('group-mode')!.dataset.mode).toBe('single')
-    expect(byTestId('group-mode')!.textContent).toContain('Einzelner Server')
-    cleanup()
+  it('shows no mode in the top bar and says on the server page that it runs alone', async () => {
     await mountApp('/server')
     await waitFor(() => !!byTestId('group-single'))
+    expect(byTestId('group-mode')).toBeNull()
     expect(byTestId('group-card')!.dataset.mode).toBe('single')
     expect(byTestId('group-single')!.textContent).toContain('Dieses Gateway läuft allein')
     expect(byTestId('group-members')).toBeNull()
@@ -117,7 +113,7 @@ describe('a single gateway', () => {
     mock.state.group = noGroupFixture as GroupStatus
     await mountApp('/server')
     await waitFor(() => !!byTestId('group-state'))
-    expect(byTestId('group-mode')!.textContent).toContain('Einzelner Server')
+    expect(byTestId('group-mode')!.textContent).toContain('Kein Cluster')
     expect(byTestId('group-state')!.textContent).toContain('gehört zu keinem Cluster')
     expect(byTestId('group-members')).toBeNull()
   })

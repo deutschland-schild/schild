@@ -15,18 +15,13 @@ async function noOverflow(page: Page) {
   expect(overflow).toBeLessThanOrEqual(0)
 }
 
-// MVP-27: someone looking at the dashboard sees at once whether this gateway runs alone or in a group.
-test('a single gateway says so on every page and on the server page', async ({ page, isMobile }) => {
-  await page.goto('./#/')
-  const mode = page.getByTestId('group-mode')
-  await expect(mode).toHaveAttribute('data-mode', 'single')
-  await expect(mode).toContainText(isMobile ? 'Einzeln' : 'Einzelner Server')
-  await noOverflow(page)
-  await mode.click()
-  await expect(page).toHaveURL(/#\/server$/)
+// MVP-27: a gateway that runs alone shows no mode in the top bar; the server page says that it runs alone.
+test('a single gateway shows no mode in the top bar and says on the server page that it runs alone', async ({ page }) => {
+  await page.goto('./#/server')
   await expect(page.getByTestId('group-card')).toHaveAttribute('data-mode', 'single')
   await expect(page.getByTestId('group-single')).toContainText('Dieses Gateway läuft allein')
   await expect(page.getByTestId('group-members')).toHaveCount(0)
+  await expect(page.getByTestId('group-mode')).toHaveCount(0)
   expect(await axe(page)).toEqual([])
   await noOverflow(page)
 })
