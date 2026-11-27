@@ -4,6 +4,7 @@
 #
 #   make gateway-test        vet + tests (dev and release tags)
 #   make gateway-race        tests with the race detector (needs cgo; short mode like make test)
+#                           internal/app runs as APP_TEST_PROCS processes (default 4) here and in gateway-test
 #   make gateway-bench       B01-style overhead benchmarks (gate, WAF, full Caddy path)
 #   make gateway-coraza      Coraza conformance of all valid SecLang vectors
 #   make gateway-run         run schild locally (proxy :8080 -> 127.0.0.1:8081, dashboard 127.0.0.1:8788), test profile
@@ -37,14 +38,28 @@ GATEWAY_BUILDER ?= $(BUILDX_BUILDER)
 .PHONY: gateway-smoke gateway-tarball gateway-deb gateway-pkgtest gateway-geo-pin
 .PHONY: gateway-test gateway-race gateway-bench gateway-coraza gateway-run gateway-image gateway-agent gateway-agent-deps gateway-bot-snapshot bot-snapshot gateway-crowdsec-snapshot crowdsec-snapshot
 
+# The tests of internal/app wait for real time and most of them cannot run in parallel inside one process
+# (issue #57). So they run as APP_TEST_PROCS processes side by side, from one test binary
+# (internal/tools/splittest), next to the other packages. The default fits the four cores of a hosted runner.
+# `go test ./internal/app/...` works as before and runs them in one process.
+APP_TEST_PROCS ?= 4
+# go test of the module, to run inside gateway/. $(1): the flags of go test. internal/app runs at the same
+# time as the other packages, as it does with go test ./...; its output is kept and printed after theirs, in
+# one piece. Both parts run to their end, also when one fails. GO_TEST_TIMEOUT is the limit of one package,
+# for internal/app of its processes together.
+GATEWAY_GO_TEST = { applog=$$(mktemp); \
+	$(GO) run ./internal/tools/splittest -procs $(APP_TEST_PROCS) -timeout $(GO_TEST_TIMEOUT) $(1) > $$applog 2>&1 & apppid=$$!; \
+	$(GO) test -timeout $(GO_TEST_TIMEOUT) $(1) $$($(GO) list ./... | grep -v '/internal/app$$'); others=$$?; \
+	wait $$apppid; app=$$?; cat $$applog; rm -f $$applog; \
+	[ $$others = 0 ] && [ $$app = 0 ]; }
+
 gateway-test:
-	cd gateway && $(GO) vet ./... && $(GO) vet -tags release ./... && $(GO) test -timeout $(GO_TEST_TIMEOUT) $(GO_TEST_FLAGS) ./... && $(GO) test -timeout $(GO_TEST_TIMEOUT) $(GO_TEST_FLAGS) -tags release ./internal/app
+	cd gateway && $(GO) vet ./... && $(GO) vet -tags release ./... && $(call GATEWAY_GO_TEST,$(GO_TEST_FLAGS)) && $(GO) test -timeout $(GO_TEST_TIMEOUT) $(GO_TEST_FLAGS) -tags release ./internal/app
 
 gateway-race:
-	# The tests of a group of gateways start several gateways each; under the race detector on a hosted
-	# runner the package internal/app needs about ten minutes, which is go test's limit. 25 minutes stay
-	# below the limit of the CI job (go-race, 30 minutes).
-	cd gateway && CGO_ENABLED=1 $(GO) test -race -timeout 25m $(GO_TEST_FLAGS) ./...
+	# The tests of a group of gateways start several gateways each. 25 minutes for a package
+	# (GO_TEST_TIMEOUT) stay below the limit of the CI job (go-race, 30 minutes).
+	cd gateway && export CGO_ENABLED=1 && $(call GATEWAY_GO_TEST,-race $(GO_TEST_FLAGS))
 
 gateway-bench:
 	cd gateway && $(GO) test -run '^$$' -bench . -benchtime 3s ./internal/gate ./internal/waf ./internal/caddymod

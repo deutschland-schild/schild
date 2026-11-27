@@ -10,7 +10,8 @@
 //
 // The ports here lie below the ranges kernels take such ports from (Linux
 // from 32768, macOS from 49152), and each process hands out its own block
-// of them, so test binaries that run at the same time do not meet.
+// of them, so test binaries that run at the same time do not meet: the block
+// follows from the process id, or from BlockEnv when a runner sets it.
 package testport
 
 import (
@@ -23,7 +24,7 @@ import (
 
 const (
 	first  = 10000 // first port handed out
-	blocks = 200   // blocks of ports, one per process (by process id)
+	blocks = 200   // blocks of ports, one per process (block)
 	size   = 100   // ports of a block
 )
 
@@ -48,7 +49,7 @@ func Free(t testing.TB) string {
 	t.Helper()
 	mu.Lock()
 	defer mu.Unlock()
-	base := first + os.Getpid()%blocks*size
+	base := first + block(t)*size
 	for _, skipHeld := range []bool{true, false} {
 		for range size {
 			port := strconv.Itoa(base + next%size)
@@ -71,6 +72,28 @@ func Free(t testing.TB) string {
 	}
 	t.Fatalf("testport: no unused port in %d-%d", base, base+size-1)
 	return ""
+}
+
+// BlockEnv gives this process one of the blocks no process id leads to: a
+// number, the same for no two processes that run at the same time. A runner
+// that starts several test binaries side by side sets it
+// (internal/tools/splittest); process ids alone may fall into one block.
+const BlockEnv = "SCHILD_TESTPORT_BLOCK"
+
+// given is how many blocks are kept for BlockEnv, the last ones.
+const given = 16
+
+// block is the block of this process: by BlockEnv, else by the process id.
+func block(t testing.TB) int {
+	s := os.Getenv(BlockEnv)
+	if s == "" {
+		return os.Getpid() % (blocks - given)
+	}
+	n, err := strconv.Atoi(s)
+	if err != nil || n < 0 || n >= given {
+		t.Fatalf("testport: %s=%q, want a number from 0 to %d", BlockEnv, s, given-1)
+	}
+	return blocks - given + n
 }
 
 // unused binds the port the ways a server may: on every address (Caddy

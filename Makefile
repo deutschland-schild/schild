@@ -124,10 +124,12 @@ eval-MVP-01: contracts-test
 # ------------------------------------------------------------------ Go
 
 .PHONY: go-test
-go-test: ## go test in every module (dev and release tags for contract)
+go-test: ## go test in every module (dev and release tags for contract); gateway splits one package, see gateway/component.mk
 	@for m in $(GO_MODULES); do \
 	  if [ -z "$$(find $$m -name '*.go' -not -path '*/node_modules/*' -print -quit)" ]; then echo "== $$m: no Go files yet, skipped"; continue; fi; \
-	  echo "== go test $$m"; (cd $$m && $(GO) vet ./... && $(GO) test -timeout $(GO_TEST_TIMEOUT) $(GO_TEST_FLAGS) ./...) || exit 1; \
+	  echo "== go test $$m"; \
+	  if [ $$m = gateway ]; then (cd $$m && $(GO) vet ./... && $(call GATEWAY_GO_TEST,$(GO_TEST_FLAGS))) || exit 1; continue; fi; \
+	  (cd $$m && $(GO) vet ./... && $(GO) test -timeout $(GO_TEST_TIMEOUT) $(GO_TEST_FLAGS) ./...) || exit 1; \
 	done
 	cd contract && $(GO) test $(GO_TEST_FLAGS) -tags release ./...
 
