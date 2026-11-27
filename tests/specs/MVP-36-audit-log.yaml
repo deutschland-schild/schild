@@ -18,7 +18,7 @@ ships: false                        # draft, nothing built
 status: ENTWURF
 image: schild                       # same binary
 hypotheses: [D1]
-refs: [MVP-09, MVP-21, MVP-27, MVP-28, MVP-32, MVP-34, MVP-35, DECISIONS-D33, DECISIONS-D38, DECISIONS-D54, DECISIONS-D84, DECISIONS-D107, DECISIONS-D108]
+refs: [MVP-09, MVP-21, MVP-27, MVP-28, MVP-32, MVP-34, MVP-35, DECISIONS-D33, DECISIONS-D38, DECISIONS-D54, DECISIONS-D84, DECISIONS-D107, DECISIONS-D108, DECISIONS-D109]
 depends_on: [MVP-09, MVP-21]
 contracts:
   in: [client dashboard API, agent API, group of gateways, storage bounds]
@@ -61,6 +61,8 @@ retention:
 group:                              # MVP-27
   - 'an entry is written by the node that made the change; members ask for entries and hand on all they hold, so a node that joins later has the history of nodes that are gone; every dashboard shows all of them with the node'
   - 'a change that arrives from another node writes no second entry'
+  - 'a release ends every block of the client (D109): one block.lift per incident, in the transaction that notes the lifts for the group (cluster_outbox)'
+  - 'to build: on a single gateway a release of an address and the lift of an agent open no transaction of schild.db today (store.NoteLifts returns at once without a group); with the audit log they need one'
 tamper_evidence:
   - 'first version: none beyond append only; who has root on the host can change the file. The copy to another system is the answer, and the docs say so'
 surface:
