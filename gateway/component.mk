@@ -40,26 +40,41 @@ GATEWAY_BUILDER ?= $(BUILDX_BUILDER)
 
 # The tests of internal/app wait for real time and most of them cannot run in parallel inside one process
 # (issue #57). So they run as APP_TEST_PROCS processes side by side, from one test binary
-# (internal/tools/splittest), next to the other packages. The default fits the four cores of a hosted runner.
+# (internal/tools/splittest). The default fits the four cores of a hosted runner.
 # `go test ./internal/app/...` works as before and runs them in one process.
 APP_TEST_PROCS ?= 4
-# go test of the module, to run inside gateway/. $(1): the flags of go test. internal/app runs at the same
-# time as the other packages, as it does with go test ./...; its output is kept and printed after theirs, in
-# one piece. Both parts run to their end, also when one fails: the shell of make stops at the first command
-# that fails (-e), so the status of a command that may fail is taken with && and ||, never with $$? on the
-# next line. GO_TEST_TIMEOUT is the limit of one package, for internal/app of its processes together.
-GATEWAY_GO_TEST = { applog=$$(mktemp); \
-	$(GO) run ./internal/tools/splittest -procs $(APP_TEST_PROCS) -timeout $(GO_TEST_TIMEOUT) $(1) > $$applog 2>&1 & apppid=$$!; \
+# The parallel tests of internal/app run in processes of at most this many tests, one process after the
+# other: a test process keeps memory of every test it ran (11 GiB for all 112 under the race detector).
+APP_TEST_BATCH ?= 32
+# The limit of each of the two runs of internal/app (parallel tests, sequential tests), from its first test
+# (the build does not count). A run needs two to three minutes on four cores; the limit is well below the
+# one of the CI jobs, so a test that hangs ends with its stacks in the log and not with a cancelled job.
+APP_TEST_TIMEOUT ?= 15m
+# go test of the module, to run inside gateway/. $(1): the flags of go test.
+#   1. The parallel tests of internal/app run at the same time as the other packages.
+#   2. The sequential tests of internal/app run when both ended. Among them are the tests that measure (a
+#      count in a window of real time, an upper bound): they fail when other packages take the CPU.
+# splittest writes a line for every test that starts and ends, at once, so the log shows what ran when a job
+# is cancelled, and the output of a test that failed in one piece. Every part runs to its end, also when one
+# fails: the shell of make stops at the first command that fails (-e), so the status of a command that may
+# fail is taken with && and ||, never with $$? on the next line. GO_TEST_TIMEOUT is the limit of every other
+# package, APP_TEST_TIMEOUT the one of each of the two runs of splittest.
+APP_SPLITTEST = $(GO) run ./internal/tools/splittest -procs $(APP_TEST_PROCS) -batch $(APP_TEST_BATCH) $(1) -timeout $(APP_TEST_TIMEOUT)
+GATEWAY_GO_TEST = { $(call APP_SPLITTEST,$(1)) -only parallel & apppid=$$!; \
 	$(GO) test -timeout $(GO_TEST_TIMEOUT) $(1) $$($(GO) list ./... | grep -v '/internal/app$$') && others=0 || others=$$?; \
-	wait $$apppid && app=0 || app=$$?; cat $$applog; rm -f $$applog; \
-	[ $$others = 0 ] && [ $$app = 0 ]; }
+	wait $$apppid && par=0 || par=$$?; \
+	$(call APP_SPLITTEST,$(1)) -only sequential && seq=0 || seq=$$?; \
+	[ $$others = 0 ] || echo "gateway: a package other than internal/app FAILED (status $$others), see go test above"; \
+	[ $$par = 0 ] || echo "gateway: parallel tests of internal/app FAILED (status $$par), see the lines of splittest above"; \
+	[ $$seq = 0 ] || echo "gateway: sequential tests of internal/app FAILED (status $$seq), see the lines of splittest above"; \
+	[ $$others = 0 ] && [ $$par = 0 ] && [ $$seq = 0 ]; }
 
 gateway-test:
 	cd gateway && $(GO) vet ./... && $(GO) vet -tags release ./... && $(call GATEWAY_GO_TEST,$(GO_TEST_FLAGS)) && $(GO) test -timeout $(GO_TEST_TIMEOUT) $(GO_TEST_FLAGS) -tags release ./internal/app
 
 gateway-race:
-	# The tests of a group of gateways start several gateways each. 25 minutes for a package
-	# (GO_TEST_TIMEOUT) stay below the limit of the CI job (go-race, 30 minutes).
+	# 25 minutes for a package (GO_TEST_TIMEOUT) and 15 for internal/app (APP_TEST_TIMEOUT) stay below
+	# the limit of the CI job (go-race, 30 minutes).
 	cd gateway && export CGO_ENABLED=1 && $(call GATEWAY_GO_TEST,-race $(GO_TEST_FLAGS))
 
 gateway-bench:
