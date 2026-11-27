@@ -3,7 +3,7 @@ id: MVP-37
 # schild, but by an allowlist ("wir brauchen vermutlich eine whitelist"), first use the DNS challenge with Hetzner.
 # The first draft of the same day (an operator builds a schild of their own) is dropped: it needed a build, a list of
 # kinds and refusals at run time for what an allowlist decides once. No DECISIONS entry yet; `open` is the initiator's.
-# MVP-32 to MVP-36 are taken by other drafts. D106 and its DNS modules are a proposal in PR 41.
+# MVP-32 to MVP-36 are taken by other drafts. D106 (PR 41) first proposed three DNS modules and now holds the reload only.
 # Checked against the code of 2026-11-25:
 # - schild stays the program and Caddy stays inside it (D31, approach A). The xcaddy plugin (approach B) stays possible.
 # - caddy-dns/hetzner v2.0.1 and libdns/hetzner v2.0.1 (MIT, about 380 lines without tests) use hcloud-go v2.37.0 of
@@ -63,7 +63,7 @@ stop_if:
   - 'an entry needs a change in contracts/ or a module of a kind under never'
 done: "cd gateway && go test -count=1 -run 'Hetzner|DNS' ./internal/caddymod ./cmd/schild"
 open:                               # the initiator decides
-  - 'rfc2136 and ionos of PR 41: rfc2136 was tested with a nameserver, ionos only loaded. By the criteria ionos waits for an operator and a test'
+  - 'rfc2136 and ionos, which left PR 41 for this list: rfc2136 was tested with a nameserver, ionos only loaded. By the criteria ionos waits for an operator and a test'
   - 'a certificate storage (issue 43): which one, and whether a group may use it against "no store" of D105. Not before an operator says what schild_cluster lacks'
   - 'the real order at Hetzner: needs a token of a test project and a test zone'
 out_of_scope:

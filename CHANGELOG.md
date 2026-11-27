@@ -4,6 +4,10 @@ Notable changes per release. Contract changes are in [contracts/CHANGELOG.md](co
 
 The section of a version becomes the text of its GitHub release, so its heading stays `## <version>`. The date of a release is the one GitHub shows.
 
+## Unreleased
+
+- `schild ingress reload` loads a changed Caddyfile without a restart (D106). It checks what a start checks, and a refused Caddyfile leaves the running one in place. Other listen addresses and another certificate storage still need a restart. A change that would take a website or a host out of an access lock or the maintenance mode is refused. On Linux the listening sockets stay open over a reload: in the builder's test no request of 143,900 failed over 200 reloads.
+
 ## 0.1.0-alpha.7
 
 ### Certificates
