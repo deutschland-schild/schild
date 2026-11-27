@@ -419,7 +419,10 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Unblock the visitor of an incident; optionally allowlist the IP. */
+        /**
+         * Unblock the visitor of an incident; optionally allowlist the IP.
+         * @description Ends the block of the incident and every other block that runs for that client, on this gateway and, in a group, on every node (contracts/cluster.md, class lifts: one lift per incident). The exception for the client and the status are those of this incident.
+         */
         post: operations["unblockIncident"];
         delete?: never;
         options?: never;
@@ -2214,7 +2217,7 @@ export interface components {
             incident: string;
             /** @description Kept in schild.db (blocks over 24 h), survives a restart. */
             kept: boolean;
-            /** @description In a group: name of the node that decided the block (contracts/cluster.md, class blocks). Absent on a single gateway and while the group does not know the block yet. */
+            /** @description In a group: name of the node that decided the block (contracts/cluster.md, class incident_blocks). Absent on a single gateway and while the group does not know the block yet. */
             node?: string;
             /** @description With node: true when this node decided the block. Nodes of one deployment may carry the same name. */
             node_self?: boolean;

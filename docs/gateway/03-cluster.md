@@ -348,15 +348,7 @@ Stellst du `delay_s` oder `grace_s` höher, gib systemd und Docker entsprechend 
 
 ## Von 0.1.0-alpha.6 aktualisieren
 
-Ab dieser Version teilen die Server Sperren in einem neuen Format: ein Eintrag pro Sperre unter ihrer Vorfallnummer, und eine Freigabe als eigener Eintrag. Ein Server mit 0.1.0-alpha.6 liest dieses Format nicht. Solange alte und neue Server zusammen laufen, gilt deshalb:
-
-- Eine Sperre oder Freigabe von einem neuen Server erreicht die alten Server nicht. Die alten sperren weiter, wenn ihre eigene Erkennung anschlägt.
-- Sperren und Freigaben der alten Server gelten auf den neuen weiter.
-- Die Seite „Cluster“ zeigt bei den Sperren „Stand weicht ab“, bis alle Server aktualisiert sind.
-
-Aktualisiere deshalb alle Server nacheinander ohne Pause, und gib in dieser Zeit nichts frei. Jeder Server schreibt beim ersten Start seine laufenden Sperren im neuen Format und holt von den anderen nach, was er vorher nicht lesen konnte. Die alten Einträge laufen von selbst ab, spätestens nach 7 Tagen und einer Stunde.
-
-Ein Weg zurück auf 0.1.0-alpha.6 führt dazu, dass der Server die Sperren und Freigaben seit dem Update nicht sieht.
+Ab dieser Version teilen die Server Sperren in einem neuen Format. Ein Server mit 0.1.0-alpha.6 liest es nicht, und die neue Version liest das alte Format nicht. Aktualisiere deshalb alle Server eines Clusters zusammen. Sperren und Freigaben, die der Cluster vorher geteilt hat, übernimmt die neue Version nicht. Ein einzelnes Gateway ohne Cluster betrifft das nicht.
 
 ## Einen Server aus dem Cluster nehmen
 
