@@ -60,7 +60,7 @@ func (t *AgentToken) Active(now time.Time) bool {
 
 // AddAgentToken stores a new token.
 func (s *Store) AddAgentToken(ctx context.Context, t AgentToken) error {
-	_, err := s.db.ExecContext(ctx, `INSERT INTO agent_tokens(id, hash, scope, label, created_ms, expires_ms) VALUES(?, ?, ?, ?, ?, ?)`,
+	_, err := s.q(ctx).ExecContext(ctx, `INSERT INTO agent_tokens(id, hash, scope, label, created_ms, expires_ms) VALUES(?, ?, ?, ?, ?, ?)`,
 		t.ID, t.Hash, t.Scope, t.Label, ms(t.Created), ms(t.Expires))
 	return err
 }
@@ -82,7 +82,7 @@ const tokenCols = "id, hash, scope, label, created_ms, expires_ms, revoked_ms"
 
 // AgentTokenByHash finds a token by the SHA-256 of its secret.
 func (s *Store) AgentTokenByHash(ctx context.Context, hash string) (*AgentToken, error) {
-	t, err := scanToken(s.db.QueryRowContext(ctx, `SELECT `+tokenCols+` FROM agent_tokens WHERE hash = ?`, hash))
+	t, err := scanToken(s.q(ctx).QueryRowContext(ctx, `SELECT `+tokenCols+` FROM agent_tokens WHERE hash = ?`, hash))
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, ErrNotFound
 	}
@@ -91,7 +91,7 @@ func (s *Store) AgentTokenByHash(ctx context.Context, hash string) (*AgentToken,
 
 // ListAgentTokens returns every token, newest first.
 func (s *Store) ListAgentTokens(ctx context.Context) ([]AgentToken, error) {
-	rows, err := s.db.QueryContext(ctx, `SELECT `+tokenCols+` FROM agent_tokens ORDER BY created_ms DESC`)
+	rows, err := s.q(ctx).QueryContext(ctx, `SELECT `+tokenCols+` FROM agent_tokens ORDER BY created_ms DESC`)
 	if err != nil {
 		return nil, err
 	}
@@ -109,7 +109,7 @@ func (s *Store) ListAgentTokens(ctx context.Context) ([]AgentToken, error) {
 
 // RevokeAgentToken revokes a token by id (ErrNotFound if unknown or already revoked).
 func (s *Store) RevokeAgentToken(ctx context.Context, id string, at time.Time) error {
-	res, err := s.db.ExecContext(ctx, `UPDATE agent_tokens SET revoked_ms = ? WHERE id = ? AND revoked_ms = 0`, ms(at), id)
+	res, err := s.q(ctx).ExecContext(ctx, `UPDATE agent_tokens SET revoked_ms = ? WHERE id = ? AND revoked_ms = 0`, ms(at), id)
 	if err != nil {
 		return err
 	}
@@ -134,7 +134,7 @@ type AgentCall struct {
 // LogAgentCalls appends calls to the call log and keeps only the newest
 // AgentCallsMax rows.
 func (s *Store) LogAgentCalls(ctx context.Context, calls []AgentCall) error {
-	tx, err := s.db.BeginTx(ctx, nil)
+	tx, err := s.begin(ctx)
 	if err != nil {
 		return err
 	}
@@ -161,7 +161,7 @@ func (s *Store) ListAgentCalls(ctx context.Context, tokenID string, limit int) (
 	}
 	q += ` ORDER BY seq DESC LIMIT ?`
 	args = append(args, limit)
-	rows, err := s.db.QueryContext(ctx, q, args...)
+	rows, err := s.q(ctx).QueryContext(ctx, q, args...)
 	if err != nil {
 		return nil, err
 	}
@@ -181,7 +181,7 @@ func (s *Store) ListAgentCalls(ctx context.Context, tokenID string, limit int) (
 
 // PruneAgentCalls deletes call log entries older than before.
 func (s *Store) PruneAgentCalls(ctx context.Context, before time.Time) error {
-	_, err := s.db.ExecContext(ctx, `DELETE FROM agent_calls WHERE time_ms < ?`, ms(before))
+	_, err := s.q(ctx).ExecContext(ctx, `DELETE FROM agent_calls WHERE time_ms < ?`, ms(before))
 	return err
 }
 
@@ -197,7 +197,7 @@ func (s *Store) PseudonymKey(ctx context.Context) ([]byte, error) {
 	if _, err := rand.Read(k); err != nil {
 		return nil, err
 	}
-	if _, err := s.db.ExecContext(ctx, `INSERT OR IGNORE INTO kv(k, v) VALUES(?, ?)`, pseudonymKey, k); err != nil {
+	if _, err := s.q(ctx).ExecContext(ctx, `INSERT OR IGNORE INTO kv(k, v) VALUES(?, ?)`, pseudonymKey, k); err != nil {
 		return nil, err
 	}
 	return s.Get(ctx, pseudonymKey)
@@ -219,7 +219,7 @@ func (s *Store) EventsInRange(ctx context.Context, from, to time.Time, site stri
 	}
 	q += ` ORDER BY time_ms DESC, seq DESC LIMIT ?`
 	args = append(args, max)
-	rows, err := s.db.QueryContext(ctx, q, args...)
+	rows, err := s.q(ctx).QueryContext(ctx, q, args...)
 	if err != nil {
 		return nil, err
 	}
@@ -254,7 +254,7 @@ func (s *Store) IncidentsInRange(ctx context.Context, from, to time.Time, f Inci
 	}
 	q += ` ORDER BY time_ms DESC, incident DESC LIMIT ?`
 	args = append(args, max)
-	rows, err := s.db.QueryContext(ctx, q, args...)
+	rows, err := s.q(ctx).QueryContext(ctx, q, args...)
 	if err != nil {
 		return nil, err
 	}

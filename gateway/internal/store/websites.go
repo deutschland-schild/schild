@@ -41,7 +41,7 @@ func (s *Store) CountIncidents(ctx context.Context, from, to time.Time, site str
 		args = append(args, site)
 	}
 	var n int64
-	err := s.db.QueryRowContext(ctx, q, args...).Scan(&n)
+	err := s.q(ctx).QueryRowContext(ctx, q, args...).Scan(&n)
 	return n, err
 }
 
@@ -56,7 +56,7 @@ func (s *Store) SitesOfIP(ctx context.Context, ip string, from, to time.Time, ma
 	// events_ip_site), then one seek per website for an event in the range
 	// (D36 fix round 2, re-measurement B 3.3 c: DISTINCT over every event
 	// of a busy address made listIncidents take 300-400 ms at 1M events).
-	rows, err := s.db.QueryContext(ctx, `WITH RECURSIVE s(site) AS (
+	rows, err := s.q(ctx).QueryContext(ctx, `WITH RECURSIVE s(site) AS (
   SELECT (SELECT site FROM events INDEXED BY events_ip_site WHERE ip_key = ?1 AND site > '' ORDER BY site LIMIT 1)
   UNION ALL
   SELECT (SELECT site FROM events INDEXED BY events_ip_site WHERE ip_key = ?1 AND site > s.site ORDER BY site LIMIT 1) FROM s WHERE s.site IS NOT NULL
@@ -92,10 +92,10 @@ type ConfigChange struct {
 
 // AddConfigChange appends to the change log (kept at most 1000 entries).
 func (s *Store) AddConfigChange(ctx context.Context, c ConfigChange) error {
-	if _, err := s.db.ExecContext(ctx, `INSERT INTO config_changes(time_ms, mode_from, mode_to, sha256) VALUES(?, ?, ?, ?)`, ms(c.Time), c.ModeFrom, c.ModeTo, c.SHA256); err != nil {
+	if _, err := s.q(ctx).ExecContext(ctx, `INSERT INTO config_changes(time_ms, mode_from, mode_to, sha256) VALUES(?, ?, ?, ?)`, ms(c.Time), c.ModeFrom, c.ModeTo, c.SHA256); err != nil {
 		return err
 	}
-	_, err := s.db.ExecContext(ctx, `DELETE FROM config_changes WHERE rowid NOT IN (SELECT rowid FROM config_changes ORDER BY time_ms DESC LIMIT 1000)`)
+	_, err := s.q(ctx).ExecContext(ctx, `DELETE FROM config_changes WHERE rowid NOT IN (SELECT rowid FROM config_changes ORDER BY time_ms DESC LIMIT 1000)`)
 	return err
 }
 
@@ -103,7 +103,7 @@ func (s *Store) AddConfigChange(ctx context.Context, c ConfigChange) error {
 func (s *Store) LastConfigChange(ctx context.Context) (*ConfigChange, error) {
 	var c ConfigChange
 	var t int64
-	err := s.db.QueryRowContext(ctx, `SELECT time_ms, mode_from, mode_to, sha256 FROM config_changes ORDER BY time_ms DESC LIMIT 1`).Scan(&t, &c.ModeFrom, &c.ModeTo, &c.SHA256)
+	err := s.q(ctx).QueryRowContext(ctx, `SELECT time_ms, mode_from, mode_to, sha256 FROM config_changes ORDER BY time_ms DESC LIMIT 1`).Scan(&t, &c.ModeFrom, &c.ModeTo, &c.SHA256)
 	if err == sql.ErrNoRows {
 		return nil, ErrNotFound
 	}
@@ -116,7 +116,7 @@ func (s *Store) LastConfigChange(ctx context.Context) (*ConfigChange, error) {
 
 // ConfigChanges lists the entries with time in [from, to), oldest first.
 func (s *Store) ConfigChanges(ctx context.Context, from, to time.Time, max int) ([]ConfigChange, error) {
-	rows, err := s.db.QueryContext(ctx, `SELECT time_ms, mode_from, mode_to, sha256 FROM config_changes WHERE time_ms >= ? AND time_ms < ? ORDER BY time_ms LIMIT ?`, ms(from), ms(to), max)
+	rows, err := s.q(ctx).QueryContext(ctx, `SELECT time_ms, mode_from, mode_to, sha256 FROM config_changes WHERE time_ms >= ? AND time_ms < ? ORDER BY time_ms LIMIT ?`, ms(from), ms(to), max)
 	if err != nil {
 		return nil, err
 	}
@@ -145,7 +145,7 @@ func (s *Store) IncidentsBetween(ctx context.Context, from, to time.Time, site s
 	}
 	q += ` ORDER BY time_ms LIMIT ?`
 	args = append(args, max)
-	rows, err := s.db.QueryContext(ctx, q, args...)
+	rows, err := s.q(ctx).QueryContext(ctx, q, args...)
 	if err != nil {
 		return nil, err
 	}
@@ -177,7 +177,7 @@ func (s *Store) IncidentBins(ctx context.Context, site string, from, to time.Tim
 	b := max(bin.Milliseconds(), 1)
 	// One max() aggregate: SQLite takes the bare column incident from the
 	// row holding the maximum, so Incident is the newest of the bin.
-	rows, err := s.db.QueryContext(ctx, `SELECT (time_ms - ?) / ? AS b, COUNT(*), MAX(time_ms), incident FROM incidents
+	rows, err := s.q(ctx).QueryContext(ctx, `SELECT (time_ms - ?) / ? AS b, COUNT(*), MAX(time_ms), incident FROM incidents
 WHERE site = ? AND time_ms >= ? AND time_ms < ? GROUP BY b ORDER BY b`, ms(from), b, site, ms(from), ms(to))
 	if err != nil {
 		return nil, err
@@ -214,7 +214,7 @@ func (s *Store) AgentCallsInRange(ctx context.Context, from, to time.Time, token
 	}
 	q += ` ORDER BY seq DESC LIMIT ?`
 	args = append(args, max)
-	rows, err := s.db.QueryContext(ctx, q, args...)
+	rows, err := s.q(ctx).QueryContext(ctx, q, args...)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -236,7 +236,7 @@ func (s *Store) AgentCallsInRange(ctx context.Context, from, to time.Time, token
 
 // LastAgentUse returns the newest call time per token.
 func (s *Store) LastAgentUse(ctx context.Context) (map[string]time.Time, error) {
-	rows, err := s.db.QueryContext(ctx, `SELECT token_id, MAX(time_ms) FROM agent_calls GROUP BY token_id`)
+	rows, err := s.q(ctx).QueryContext(ctx, `SELECT token_id, MAX(time_ms) FROM agent_calls GROUP BY token_id`)
 	if err != nil {
 		return nil, err
 	}

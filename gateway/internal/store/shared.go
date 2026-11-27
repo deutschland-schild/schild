@@ -46,7 +46,7 @@ func (s *Store) DumpShared(ctx context.Context, name string) ([]byte, error) {
 	if !ok {
 		return nil, fmt.Errorf("store: %q is no shared table", name)
 	}
-	rows, err := s.db.QueryContext(ctx, "SELECT "+quoted(t.cols)+" FROM "+t.table+" ORDER BY "+t.order)
+	rows, err := s.q(ctx).QueryContext(ctx, "SELECT "+quoted(t.cols)+" FROM "+t.table+" ORDER BY "+t.order)
 	if err != nil {
 		return nil, err
 	}
@@ -91,7 +91,7 @@ func (s *Store) RestoreShared(ctx context.Context, name string, dump []byte) err
 	if strings.Join(d.Columns, ",") != strings.Join(t.cols, ",") {
 		return fmt.Errorf("store: dump of %s has other columns (another version of schild)", name)
 	}
-	tx, err := s.db.BeginTx(ctx, nil)
+	tx, err := s.begin(ctx)
 	if err != nil {
 		return err
 	}

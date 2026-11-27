@@ -243,7 +243,7 @@ func NewID(prefix string) string {
 // Get returns a kv value.
 func (s *Store) Get(ctx context.Context, k string) ([]byte, error) {
 	var v []byte
-	err := s.db.QueryRowContext(ctx, "SELECT v FROM kv WHERE k = ?", k).Scan(&v)
+	err := s.q(ctx).QueryRowContext(ctx, "SELECT v FROM kv WHERE k = ?", k).Scan(&v)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, ErrNotFound
 	}
@@ -252,13 +252,13 @@ func (s *Store) Get(ctx context.Context, k string) ([]byte, error) {
 
 // Put stores a kv value.
 func (s *Store) Put(ctx context.Context, k string, v []byte) error {
-	_, err := s.db.ExecContext(ctx, "INSERT INTO kv(k, v) VALUES(?, ?) ON CONFLICT(k) DO UPDATE SET v = excluded.v", k, v)
+	_, err := s.q(ctx).ExecContext(ctx, "INSERT INTO kv(k, v) VALUES(?, ?) ON CONFLICT(k) DO UPDATE SET v = excluded.v", k, v)
 	return err
 }
 
 // Keys returns the keys of the kv values, sorted.
 func (s *Store) Keys(ctx context.Context) ([]string, error) {
-	rows, err := s.db.QueryContext(ctx, "SELECT k FROM kv ORDER BY k")
+	rows, err := s.q(ctx).QueryContext(ctx, "SELECT k FROM kv ORDER BY k")
 	if err != nil {
 		return nil, err
 	}
@@ -277,7 +277,7 @@ func (s *Store) Keys(ctx context.Context) ([]string, error) {
 // Tables returns the names of the tables of schild.db, sorted (tests: every
 // table is shared in a group or listed as per node).
 func (s *Store) Tables(ctx context.Context) ([]string, error) {
-	rows, err := s.db.QueryContext(ctx, "SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%' ORDER BY name")
+	rows, err := s.q(ctx).QueryContext(ctx, "SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%' ORDER BY name")
 	if err != nil {
 		return nil, err
 	}
@@ -305,7 +305,7 @@ func SharedTables() []string {
 
 // Delete removes a kv value; a value that is not there is no error.
 func (s *Store) Delete(ctx context.Context, k string) error {
-	_, err := s.db.ExecContext(ctx, "DELETE FROM kv WHERE k = ?", k)
+	_, err := s.q(ctx).ExecContext(ctx, "DELETE FROM kv WHERE k = ?", k)
 	return err
 }
 

@@ -63,7 +63,7 @@ func (s *Store) InsertIncident(ctx context.Context, in *Incident) error {
 	if last.IsZero() {
 		last = in.Time
 	}
-	_, err := s.db.ExecContext(ctx, `INSERT OR IGNORE INTO incidents(incident, event_id, time_ms, ip, status, reason, sources, site, count, first_ms, last_ms)
+	_, err := s.q(ctx).ExecContext(ctx, `INSERT OR IGNORE INTO incidents(incident, event_id, time_ms, ip, status, reason, sources, site, count, first_ms, last_ms)
 		VALUES(?,?,?,?,?,?,?,?,?,?,?)`, in.Incident, in.EventID, ms(in.Time), in.IP, in.Status, in.Reason, joinList(in.Sources), in.Site,
 		n, ms(first), ms(last))
 	if err == nil {
@@ -94,7 +94,7 @@ func (s *Store) AddIncidentHits(ctx context.Context, hits []IncidentHits) (missi
 	if len(hits) == 0 {
 		return nil, nil
 	}
-	tx, err := s.db.BeginTx(ctx, nil)
+	tx, err := s.begin(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -132,7 +132,7 @@ func (s *Store) AddIncidentHits(ctx context.Context, hits []IncidentHits) (missi
 
 // GetIncident loads an incident.
 func (s *Store) GetIncident(ctx context.Context, id string) (*Incident, error) {
-	in, err := scanIncident(s.db.QueryRowContext(ctx, `SELECT `+incidentCols+` FROM incidents WHERE incident = ?`, id))
+	in, err := scanIncident(s.q(ctx).QueryRowContext(ctx, `SELECT `+incidentCols+` FROM incidents WHERE incident = ?`, id))
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, ErrNotFound
 	}
@@ -144,7 +144,7 @@ func (s *Store) GetIncident(ctx context.Context, id string) (*Incident, error) {
 
 // MarkUnblocked records the unblock decision.
 func (s *Store) MarkUnblocked(ctx context.Context, id string, at time.Time, allowEntry string) error {
-	r, err := s.db.ExecContext(ctx, `UPDATE incidents SET status = 'unblocked', unblocked_ms = ?, allowlist_entry = ? WHERE incident = ? AND status = 'blocked'`,
+	r, err := s.q(ctx).ExecContext(ctx, `UPDATE incidents SET status = 'unblocked', unblocked_ms = ?, allowlist_entry = ? WHERE incident = ? AND status = 'blocked'`,
 		ms(at), allowEntry, id)
 	if err != nil {
 		return err
@@ -161,7 +161,7 @@ func (s *Store) MarkUnblocked(ctx context.Context, id string, at time.Time, allo
 // of the behaviour engine, D36 fix round 2). Only an empty reference is
 // filled; ErrNotFound when it was not empty.
 func (s *Store) SetUnblockRefs(ctx context.Context, id, allowEntry string) error {
-	r, err := s.db.ExecContext(ctx, `UPDATE incidents SET allowlist_entry = ? WHERE incident = ? AND status = 'unblocked' AND allowlist_entry = ''`,
+	r, err := s.q(ctx).ExecContext(ctx, `UPDATE incidents SET allowlist_entry = ? WHERE incident = ? AND status = 'unblocked' AND allowlist_entry = ''`,
 		allowEntry, id)
 	if err != nil {
 		return err
@@ -182,13 +182,13 @@ type Exception struct {
 
 // AddException stores an exception.
 func (s *Store) AddException(ctx context.Context, e Exception) error {
-	_, err := s.db.ExecContext(ctx, "INSERT INTO exceptions(ip, sources, expires_ms, incident) VALUES(?,?,?,?)", e.IP, joinList(e.Sources), ms(e.Expires), e.Incident)
+	_, err := s.q(ctx).ExecContext(ctx, "INSERT INTO exceptions(ip, sources, expires_ms, incident) VALUES(?,?,?,?)", e.IP, joinList(e.Sources), ms(e.Expires), e.Incident)
 	return err
 }
 
 // ActiveExceptions returns all unexpired exceptions.
 func (s *Store) ActiveExceptions(ctx context.Context, now time.Time) ([]Exception, error) {
-	rows, err := s.db.QueryContext(ctx, "SELECT ip, sources, expires_ms, incident FROM exceptions WHERE expires_ms > ?", ms(now))
+	rows, err := s.q(ctx).QueryContext(ctx, "SELECT ip, sources, expires_ms, incident FROM exceptions WHERE expires_ms > ?", ms(now))
 	if err != nil {
 		return nil, err
 	}
@@ -236,7 +236,7 @@ func bumpAllowVersion(ctx context.Context, x execer) error {
 // another process), so the proxy can reload it cheaply.
 func (s *Store) AllowVersion(ctx context.Context) int64 {
 	var v string
-	if err := s.db.QueryRowContext(ctx, "SELECT CAST(v AS TEXT) FROM kv WHERE k = 'allow_version'").Scan(&v); err != nil {
+	if err := s.q(ctx).QueryRowContext(ctx, "SELECT CAST(v AS TEXT) FROM kv WHERE k = 'allow_version'").Scan(&v); err != nil {
 		return 0
 	}
 	n, _ := strconv.ParseInt(v, 10, 64)
@@ -245,7 +245,7 @@ func (s *Store) AllowVersion(ctx context.Context) int64 {
 
 // ListAllow returns all stored entries, oldest first.
 func (s *Store) ListAllow(ctx context.Context) ([]AllowEntry, error) {
-	rows, err := s.db.QueryContext(ctx, "SELECT id, ip, cidr, host, label, level, expires, created_ms, source FROM allowlist ORDER BY created_ms, id")
+	rows, err := s.q(ctx).QueryContext(ctx, "SELECT id, ip, cidr, host, label, level, expires, created_ms, source FROM allowlist ORDER BY created_ms, id")
 	if err != nil {
 		return nil, err
 	}
@@ -268,7 +268,7 @@ func (s *Store) AddAllow(ctx context.Context, e *AllowEntry) error {
 	if e.ID == "" {
 		e.ID = NewID("al_")
 	}
-	tx, err := s.db.BeginTx(ctx, nil)
+	tx, err := s.begin(ctx)
 	if err != nil {
 		return err
 	}
@@ -285,7 +285,7 @@ func (s *Store) AddAllow(ctx context.Context, e *AllowEntry) error {
 
 // DeleteAllow removes an entry (not config entries).
 func (s *Store) DeleteAllow(ctx context.Context, id string) error {
-	tx, err := s.db.BeginTx(ctx, nil)
+	tx, err := s.begin(ctx)
 	if err != nil {
 		return err
 	}
@@ -315,7 +315,7 @@ type User struct {
 // GetUser loads a user.
 func (s *Store) GetUser(ctx context.Context, name string) (*User, error) {
 	var u User
-	err := s.db.QueryRowContext(ctx, "SELECT name, hash, role FROM users WHERE name = ?", name).Scan(&u.Name, &u.Hash, &u.Role)
+	err := s.q(ctx).QueryRowContext(ctx, "SELECT name, hash, role FROM users WHERE name = ?", name).Scan(&u.Name, &u.Hash, &u.Role)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, ErrNotFound
 	}
@@ -325,13 +325,13 @@ func (s *Store) GetUser(ctx context.Context, name string) (*User, error) {
 // HasUsers reports whether any password is set.
 func (s *Store) HasUsers(ctx context.Context) bool {
 	var n int
-	_ = s.db.QueryRowContext(ctx, "SELECT COUNT(*) FROM users").Scan(&n)
+	_ = s.q(ctx).QueryRowContext(ctx, "SELECT COUNT(*) FROM users").Scan(&n)
 	return n > 0
 }
 
 // CreateFirstUser inserts the first admin only if no user exists yet.
 func (s *Store) CreateFirstUser(ctx context.Context, u User) error {
-	r, err := s.db.ExecContext(ctx, "INSERT INTO users(name, hash, role, created_ms) SELECT ?, ?, ?, ? WHERE NOT EXISTS (SELECT 1 FROM users)",
+	r, err := s.q(ctx).ExecContext(ctx, "INSERT INTO users(name, hash, role, created_ms) SELECT ?, ?, ?, ? WHERE NOT EXISTS (SELECT 1 FROM users)",
 		u.Name, u.Hash, u.Role, ms(time.Now()))
 	if err != nil {
 		return err
@@ -344,7 +344,7 @@ func (s *Store) CreateFirstUser(ctx context.Context, u User) error {
 
 // SetPassword replaces a user's hash and ends all of their sessions.
 func (s *Store) SetPassword(ctx context.Context, name, hash string) error {
-	tx, err := s.db.BeginTx(ctx, nil)
+	tx, err := s.begin(ctx)
 	if err != nil {
 		return err
 	}
@@ -369,7 +369,7 @@ type Session struct {
 
 // CreateSession stores a session.
 func (s *Store) CreateSession(ctx context.Context, se Session) error {
-	_, err := s.db.ExecContext(ctx, "INSERT INTO sessions(token_hash, user, csrf, created_ms, expires_ms) VALUES(?,?,?,?,?)",
+	_, err := s.q(ctx).ExecContext(ctx, "INSERT INTO sessions(token_hash, user, csrf, created_ms, expires_ms) VALUES(?,?,?,?,?)",
 		se.TokenHash, se.User, se.CSRF, ms(se.Created), ms(se.Expires))
 	return err
 }
@@ -378,7 +378,7 @@ func (s *Store) CreateSession(ctx context.Context, se Session) error {
 func (s *Store) GetSession(ctx context.Context, tokenHash string, now time.Time) (*Session, error) {
 	var se Session
 	var c, e int64
-	err := s.db.QueryRowContext(ctx, "SELECT token_hash, user, csrf, created_ms, expires_ms FROM sessions WHERE token_hash = ? AND expires_ms > ?",
+	err := s.q(ctx).QueryRowContext(ctx, "SELECT token_hash, user, csrf, created_ms, expires_ms FROM sessions WHERE token_hash = ? AND expires_ms > ?",
 		tokenHash, ms(now)).Scan(&se.TokenHash, &se.User, &se.CSRF, &c, &e)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, ErrNotFound
@@ -392,7 +392,7 @@ func (s *Store) GetSession(ctx context.Context, tokenHash string, now time.Time)
 
 // DeleteSession ends a session.
 func (s *Store) DeleteSession(ctx context.Context, tokenHash string) error {
-	_, err := s.db.ExecContext(ctx, "DELETE FROM sessions WHERE token_hash = ?", tokenHash)
+	_, err := s.q(ctx).ExecContext(ctx, "DELETE FROM sessions WHERE token_hash = ?", tokenHash)
 	return err
 }
 
@@ -410,7 +410,7 @@ func (s *Store) AddSummaries(ctx context.Context, counts map[SummaryKey]int) err
 	if len(counts) == 0 {
 		return nil
 	}
-	tx, err := s.db.BeginTx(ctx, nil)
+	tx, err := s.begin(ctx)
 	if err != nil {
 		return err
 	}
@@ -426,7 +426,7 @@ func (s *Store) AddSummaries(ctx context.Context, counts map[SummaryKey]int) err
 
 // SummaryTotals sums counts per outcome since a time.
 func (s *Store) SummaryTotals(ctx context.Context, since time.Time) (map[string]int, error) {
-	rows, err := s.db.QueryContext(ctx, "SELECT outcome, SUM(count) FROM summaries WHERE hour >= ? GROUP BY outcome", since.Unix()/3600)
+	rows, err := s.q(ctx).QueryContext(ctx, "SELECT outcome, SUM(count) FROM summaries WHERE hour >= ? GROUP BY outcome", since.Unix()/3600)
 	if err != nil {
 		return nil, err
 	}

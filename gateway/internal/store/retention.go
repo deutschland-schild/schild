@@ -50,7 +50,7 @@ func (s *Store) ApplyRetention(ctx context.Context, now time.Time, r Retention, 
 		}
 	}
 	// Incidents keep only the truncated address after the raw-IP period too.
-	rows, err := s.db.QueryContext(ctx, "SELECT incident, ip FROM incidents WHERE time_ms < ?", ipCut)
+	rows, err := s.q(ctx).QueryContext(ctx, "SELECT incident, ip FROM incidents WHERE time_ms < ?", ipCut)
 	if err != nil {
 		return res, err
 	}
@@ -71,7 +71,7 @@ func (s *Store) ApplyRetention(ctx context.Context, now time.Time, r Retention, 
 	for _, p := range ps {
 		if a, err := netip.ParseAddr(p.ip); err == nil {
 			if short := clientip.Truncate(a).String(); short != p.ip {
-				if _, err := s.db.ExecContext(ctx, "UPDATE incidents SET ip = ? WHERE incident = ?", short, p.id); err != nil {
+				if _, err := s.q(ctx).ExecContext(ctx, "UPDATE incidents SET ip = ? WHERE incident = ?", short, p.id); err != nil {
 					return res, err
 				}
 			}
@@ -79,23 +79,23 @@ func (s *Store) ApplyRetention(ctx context.Context, now time.Time, r Retention, 
 	}
 
 	evCut := ms(now.Add(-time.Duration(r.EventsDays) * 24 * time.Hour))
-	if x, err := s.db.ExecContext(ctx, "DELETE FROM events WHERE time_ms < ?", evCut); err == nil {
+	if x, err := s.q(ctx).ExecContext(ctx, "DELETE FROM events WHERE time_ms < ?", evCut); err == nil {
 		n, _ := x.RowsAffected()
 		res.Deleted = int(n)
 	} else {
 		return res, err
 	}
-	if _, err := s.db.ExecContext(ctx, "DELETE FROM incidents WHERE time_ms < ?", evCut); err != nil {
+	if _, err := s.q(ctx).ExecContext(ctx, "DELETE FROM incidents WHERE time_ms < ?", evCut); err != nil {
 		return res, err
 	}
-	if _, err := s.db.ExecContext(ctx, "DELETE FROM exceptions WHERE expires_ms < ?", ms(now)); err != nil {
+	if _, err := s.q(ctx).ExecContext(ctx, "DELETE FROM exceptions WHERE expires_ms < ?", ms(now)); err != nil {
 		return res, err
 	}
-	if _, err := s.db.ExecContext(ctx, "DELETE FROM sessions WHERE expires_ms < ?", ms(now)); err != nil {
+	if _, err := s.q(ctx).ExecContext(ctx, "DELETE FROM sessions WHERE expires_ms < ?", ms(now)); err != nil {
 		return res, err
 	}
 	sumCut := now.Add(-time.Duration(r.SummariesDays)*24*time.Hour).Unix() / 3600
-	if x, err := s.db.ExecContext(ctx, "DELETE FROM summaries WHERE hour < ?", sumCut); err == nil {
+	if x, err := s.q(ctx).ExecContext(ctx, "DELETE FROM summaries WHERE hour < ?", sumCut); err == nil {
 		n, _ := x.RowsAffected()
 		res.SummariesOld = int(n)
 	} else {
@@ -103,7 +103,7 @@ func (s *Store) ApplyRetention(ctx context.Context, now time.Time, r Retention, 
 	}
 	// D38: kept behaviour blocks that ended and allowlist entries past their
 	// expiry.
-	if x, err := s.db.ExecContext(ctx, "DELETE FROM kept_blocks WHERE until_ms < ?", ms(now)); err == nil {
+	if x, err := s.q(ctx).ExecContext(ctx, "DELETE FROM kept_blocks WHERE until_ms < ?", ms(now)); err == nil {
 		n, _ := x.RowsAffected()
 		res.KeptBlocks = int(n)
 	} else {
@@ -125,7 +125,7 @@ func (s *Store) ApplyRetention(ctx context.Context, now time.Time, r Retention, 
 			return res, err
 		}
 	}
-	_, _ = s.db.ExecContext(ctx, "PRAGMA incremental_vacuum")
+	_, _ = s.q(ctx).ExecContext(ctx, "PRAGMA incremental_vacuum")
 	return res, nil
 }
 
@@ -133,7 +133,7 @@ func (s *Store) ApplyRetention(ctx context.Context, now time.Time, r Retention, 
 // entries are not stored). It bumps the allowlist version when it deleted
 // one.
 func (s *Store) pruneAllow(ctx context.Context, now time.Time) (int, error) {
-	rows, err := s.db.QueryContext(ctx, "SELECT id, expires FROM allowlist WHERE expires NOT IN ('', 'never')")
+	rows, err := s.q(ctx).QueryContext(ctx, "SELECT id, expires FROM allowlist WHERE expires NOT IN ('', 'never')")
 	if err != nil {
 		return 0, err
 	}
@@ -155,12 +155,12 @@ func (s *Store) pruneAllow(ctx context.Context, now time.Time) (int, error) {
 	if len(gone) == 0 {
 		return 0, nil
 	}
-	tx, err := s.db.BeginTx(ctx, nil)
+	tx, err := s.begin(ctx)
 	if err != nil {
 		return 0, err
 	}
 	defer tx.Rollback()
-	if err := deleteIn(ctx, tx, "allowlist", "id", gone); err != nil {
+	if err := deleteIn(ctx, tx.Tx, "allowlist", "id", gone); err != nil {
 		return 0, err
 	}
 	if err := bumpAllowVersion(ctx, tx); err != nil {
@@ -170,7 +170,7 @@ func (s *Store) pruneAllow(ctx context.Context, now time.Time) (int, error) {
 }
 
 func (s *Store) truncateBatch(ctx context.Context, cut int64, trunc TruncateFunc) (int, error) {
-	rows, err := s.db.QueryContext(ctx, "SELECT seq, ip, body FROM events WHERE ip_truncated = 0 AND time_ms < ? LIMIT 2000", cut)
+	rows, err := s.q(ctx).QueryContext(ctx, "SELECT seq, ip, body FROM events WHERE ip_truncated = 0 AND time_ms < ? LIMIT 2000", cut)
 	if err != nil {
 		return 0, err
 	}
@@ -204,7 +204,7 @@ func (s *Store) truncateBatch(ctx context.Context, cut int64, trunc TruncateFunc
 	if len(ups) == 0 {
 		return 0, nil
 	}
-	tx, err := s.db.BeginTx(ctx, nil)
+	tx, err := s.begin(ctx)
 	if err != nil {
 		return 0, err
 	}

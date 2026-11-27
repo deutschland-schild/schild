@@ -2,7 +2,6 @@ package store
 
 import (
 	"context"
-	"database/sql"
 	"net/netip"
 	"time"
 
@@ -50,7 +49,7 @@ func (s *Store) putBlock(ctx context.Context, b events.ActiveBlock, own bool) er
 	if err != nil {
 		return err
 	}
-	_, err = s.db.ExecContext(ctx, `INSERT OR REPLACE INTO kept_blocks(client_key, key_bits, net_class, source, level, duration_s, since_ms, until_ms, incident, own)
+	_, err = s.q(ctx).ExecContext(ctx, `INSERT OR REPLACE INTO kept_blocks(client_key, key_bits, net_class, source, level, duration_s, since_ms, until_ms, incident, own)
 VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, b.ClientKey, b.KeyBits, b.NetClass, b.Source, b.Level, b.DurationS, ms(since), ms(until), b.Incident, own)
 	return err
 }
@@ -60,7 +59,7 @@ VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, b.ClientKey, b.KeyBits, b.NetClass, b.Sou
 // is a decision of this gateway, also one that does not say (own = -1, a
 // row of a build before the mark).
 func (s *Store) TakenBlocks(ctx context.Context) ([]string, error) {
-	rows, err := s.db.QueryContext(ctx, `SELECT client_key FROM kept_blocks WHERE own = 0`)
+	rows, err := s.q(ctx).QueryContext(ctx, `SELECT client_key FROM kept_blocks WHERE own = 0`)
 	if err != nil {
 		return nil, err
 	}
@@ -78,14 +77,14 @@ func (s *Store) TakenBlocks(ctx context.Context) ([]string, error) {
 
 // DeleteBlock removes the kept block of a client key.
 func (s *Store) DeleteBlock(ctx context.Context, clientKey string) error {
-	_, err := s.db.ExecContext(ctx, `DELETE FROM kept_blocks WHERE client_key = ?`, clientKey)
+	_, err := s.q(ctx).ExecContext(ctx, `DELETE FROM kept_blocks WHERE client_key = ?`, clientKey)
 	return err
 }
 
 // ListBlocks returns every kept block (also ended ones; the caller drops
 // those).
 func (s *Store) ListBlocks(ctx context.Context) ([]events.ActiveBlock, error) {
-	rows, err := s.db.QueryContext(ctx, `SELECT client_key, key_bits, net_class, source, level, duration_s, since_ms, until_ms, incident FROM kept_blocks ORDER BY until_ms`)
+	rows, err := s.q(ctx).QueryContext(ctx, `SELECT client_key, key_bits, net_class, source, level, duration_s, since_ms, until_ms, incident FROM kept_blocks ORDER BY until_ms`)
 	if err != nil {
 		return nil, err
 	}
@@ -119,7 +118,7 @@ func blockKeyOf(ip string) string {
 	return p.Addr().String()
 }
 
-func deleteBlockTx(ctx context.Context, tx *sql.Tx, ip string) error {
+func deleteBlockTx(ctx context.Context, tx *txn, ip string) error {
 	k := blockKeyOf(ip)
 	if k == "" {
 		return nil

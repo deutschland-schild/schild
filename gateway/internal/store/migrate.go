@@ -37,6 +37,7 @@ type migration struct {
 // the first has version baselineVersion+1. Tests replace the list.
 var migrations = []migration{
 	{version: 2, name: "cluster_outbox", sql: outboxMigration},
+	{version: 3, name: "audit_log", sql: auditMigration},
 }
 
 const migrationsSchema = `

@@ -28,7 +28,7 @@ func (s *Store) ResetDashboardAccess(ctx context.Context, setupHash []byte, now 
 	if len(setupHash) == 0 {
 		return res, errors.New("store: reset without a setup code hash")
 	}
-	tx, err := s.db.BeginTx(ctx, nil)
+	tx, err := s.begin(ctx)
 	if err != nil {
 		return res, err
 	}
@@ -78,13 +78,13 @@ func (s *Store) PendingSetupHash(ctx context.Context) []byte {
 
 // ClearPendingSetup removes the pending setup code hash (it works once).
 func (s *Store) ClearPendingSetup(ctx context.Context) error {
-	_, err := s.db.ExecContext(ctx, "DELETE FROM kv WHERE k = ?", DashboardSetupKey)
+	_, err := s.q(ctx).ExecContext(ctx, "DELETE FROM kv WHERE k = ?", DashboardSetupKey)
 	return err
 }
 
 // ClearPendingSetupWithUsers removes the hash only while there are users: one
 // statement, so it never takes the hash of a reset that just removed them.
 func (s *Store) ClearPendingSetupWithUsers(ctx context.Context) error {
-	_, err := s.db.ExecContext(ctx, "DELETE FROM kv WHERE k = ? AND EXISTS (SELECT 1 FROM users)", DashboardSetupKey)
+	_, err := s.q(ctx).ExecContext(ctx, "DELETE FROM kv WHERE k = ? AND EXISTS (SELECT 1 FROM users)", DashboardSetupKey)
 	return err
 }
