@@ -85,11 +85,12 @@ measure:                            # by an independent agent, not the builder
   - 'flood of 1 million refused calls and failed sign-ins; secrets with marker values'
   - 'an erasure by address and the end of retention.raw_ip_days leave every entry byte for byte as it was written; the erasure writes privacy.erase'
   - 'audit.keep_days 14: after 14 days no entry of any class and no address is left in audit.db and the outbox'
-kill_if: "proposal for the initiator: a change is missing from the audit log OR a secret is in it OR a flood removes entries of changes OR a website session reads entries of another"
+kill_if: "a change is missing from the audit log OR a secret is in it OR a flood removes entries of changes OR a website session reads entries of another"
 done: "make contracts-test && make test && (cd dashboard && pnpm check)"
 open:
   - 'decided by the maintainer 2026-11-28: an erasure by address (Art. 17 GDPR) does not remove the address from audit entries before audit.keep_days; the docs say so and leave the judgement to the operator (docs/gateway/02-betrieb.md)'
   - 'decided by the maintainer 2026-11-28: the export by address lists an entry that holds the exact address, as the origin of a call, a recorded value or an item of a recorded list; a network that holds the address and an address inside a reason do not match'
+  - 'decided by the maintainer 2026-11-28: kill_if stands as written'
   - 'decided by the maintainer 2026-11-28: an agent reads recorded addresses in listAgentAudit (contracts/audit.md section 11)'
   - 'not built: the cause of a rule exception (the request carries no event), the entries of the integration API (MVP-35), the audit entries in the timeline of a website'
   - 'not measured: every line of measure; the tests of the builders are no measurement'
