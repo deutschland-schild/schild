@@ -4,6 +4,12 @@ Notable changes per release. Contract changes are in [contracts/CHANGELOG.md](co
 
 The section of a version becomes the text of its GitHub release, so its heading stays `## <version>`. The date of a release is the one GitHub shows.
 
+## Unreleased
+
+### Cluster of gateways
+
+- Fixed: a change made on a server in the moment that server stored a change from another server could be lost on every server. This applied to settings, the allowlist, exceptions and logins, from the dashboard and from a command on the host. The server now stores the change of the other server only when its own value is still the one it read, and tries again otherwise.
+
 ## 0.1.0-alpha.7
 
 ### Certificates

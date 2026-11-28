@@ -186,8 +186,8 @@ func (a *App) OnSharedKey(key string, reload func(ctx context.Context, v []byte)
 }
 
 func (a *App) genericThing(id string) sharedThing {
-	return a.kvThing(id, autoCodec{}, func(ctx context.Context, v []byte) error {
-		if err := a.putKV(ctx, id, v); err != nil {
+	return a.kvThing(id, autoCodec{}, func(ctx context.Context, old, v []byte) error {
+		if err := a.Store.Swap(ctx, id, old, v); err != nil {
 			return err
 		}
 		a.sharedHooksMu.Lock()
