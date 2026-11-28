@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/deutschland-schild/schild/contract/events"
+	"github.com/deutschland-schild/schild/gateway/internal/app"
 	"github.com/deutschland-schild/schild/gateway/internal/apptest"
 	"github.com/deutschland-schild/schild/gateway/internal/store"
 )
@@ -18,6 +19,7 @@ import (
 // address survives a restart (D29 amendment); an Art. 17 deletion and the
 // allowlist always win over it.
 func TestKeptBlocksRestartDeleteAllowlist(t *testing.T) {
+	app.Parallel(t)
 	dir := t.TempDir()
 	h := apptest.New(t, apptest.Options{Dir: dir})
 	if err := h.Stop(); err != nil {
@@ -109,6 +111,7 @@ func TestKeptBlocksRestartDeleteAllowlist(t *testing.T) {
 // and a kept block the operator ends (allowlist) marks its incident
 // unblocked, so the UI no longer says "Gesperrt".
 func TestBlockEndAfterRestartAndRelease(t *testing.T) {
+	app.Parallel(t)
 	dir := t.TempDir()
 	h := apptest.New(t, apptest.Options{Dir: dir})
 	if err := h.Stop(); err != nil {

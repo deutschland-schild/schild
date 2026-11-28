@@ -10,6 +10,7 @@ import (
 )
 
 func TestLoopback(t *testing.T) {
+	Parallel(t)
 	for addr, want := range map[string]bool{
 		"127.0.0.1:8788": true, "127.5.0.1:8788": true, "[::1]:8788": true, "localhost:8788": true,
 		"0.0.0.0:8788": false, ":8788": false, "[::]:8788": false, "192.0.2.1:8788": false, "dash.example:8788": false, "nonsense": false,
@@ -21,6 +22,7 @@ func TestLoopback(t *testing.T) {
 }
 
 func TestWarnDashboardExposed(t *testing.T) {
+	Parallel(t)
 	on, off := true, false
 	for _, c := range []struct {
 		listen  string

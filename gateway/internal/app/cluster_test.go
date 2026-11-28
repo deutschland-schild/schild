@@ -117,6 +117,7 @@ func pair(t *testing.T) (a, b *groupNode) {
 }
 
 func TestGroupBlockActsOnTheOtherNode(t *testing.T) {
+	app.Parallel(t)
 	a, b := pair(t)
 	const ip = "203.0.113.50"
 	if resp := b.h.Visit("GET", "/", ip, "", ""); resp.StatusCode != 200 {
@@ -146,6 +147,7 @@ func TestGroupBlockActsOnTheOtherNode(t *testing.T) {
 }
 
 func TestGroupBlockNeverBeatsTheOwnAllowlist(t *testing.T) {
+	app.Parallel(t)
 	a, b := pair(t)
 	// 192.0.2.10 is on the allowlist of the harness. The engine of web-1
 	// holds a block of it all the same (set below it); web-2 must not take
@@ -159,6 +161,7 @@ func TestGroupBlockNeverBeatsTheOwnAllowlist(t *testing.T) {
 }
 
 func TestGroupNodeCatchesUpAndKeepsBlocksOverARestart(t *testing.T) {
+	app.Parallel(t)
 	a, b := pair(t)
 	a.block("203.0.113.70", "S-BEFORE", 15*time.Minute)
 	b.h.WaitFor("web-2 took the block", func() bool { return b.blocked("203.0.113.70") == "S-BEFORE" })
@@ -177,6 +180,7 @@ func TestGroupNodeCatchesUpAndKeepsBlocksOverARestart(t *testing.T) {
 }
 
 func TestSingleGatewayHasNoCluster(t *testing.T) {
+	app.Parallel(t)
 	h := apptest.New(t, apptest.Options{})
 	if h.App.Cluster != nil {
 		t.Error("a gateway without cluster.enabled runs a node")
@@ -189,6 +193,7 @@ func TestSingleGatewayHasNoCluster(t *testing.T) {
 // cluster.enabled without cluster.secret_file is no group: the
 // configuration is refused, the gateway does not run alone.
 func TestClusterEnabledWithoutSecretFileIsRefused(t *testing.T) {
+	app.Parallel(t)
 	h := apptest.New(t, apptest.Options{NewFails: true, Extra: fmt.Sprintf("cluster: {enabled: true, listen: %q}\n", apptest.FreeAddr(t))})
 	if !strings.Contains(h.NewErr.Error(), "cluster.secret_file") {
 		t.Errorf("the error does not name the cause: %v", h.NewErr)
@@ -198,6 +203,7 @@ func TestClusterEnabledWithoutSecretFileIsRefused(t *testing.T) {
 // The whole group from files a deployment writes: the same secret and the
 // same peers on both nodes, no command on either.
 func TestGroupFromConfigurationOnly(t *testing.T) {
+	app.Parallel(t)
 	secretFile := filepath.Join(t.TempDir(), "cluster.secret")
 	secret, err := cluster.NewSecret()
 	if err != nil {
@@ -226,6 +232,7 @@ func TestGroupFromConfigurationOnly(t *testing.T) {
 // it never serves alone while its readiness answer says 200. The error
 // names the cause and the fix.
 func TestClusterThatCannotRunDoesNotStart(t *testing.T) {
+	app.Parallel(t)
 	refused := func(t *testing.T, extra string, want ...string) {
 		t.Helper()
 		h := apptest.New(t, apptest.Options{NewFails: true, Extra: extra})
@@ -287,6 +294,7 @@ func allowed(g *groupNode, ip string) bool {
 }
 
 func TestGroupSharesSettingsAllowlistAndLogins(t *testing.T) {
+	app.Parallel(t)
 	a, b := pair(t)
 	ctx := context.Background()
 
@@ -336,6 +344,7 @@ func TestGroupSharesSettingsAllowlistAndLogins(t *testing.T) {
 }
 
 func TestGroupErasesAnAddressOnEveryNode(t *testing.T) {
+	app.Parallel(t)
 	a, b := pair(t)
 	ctx := context.Background()
 	const ip = "203.0.113.120"
@@ -388,6 +397,7 @@ func TestGroupErasesAnAddressOnEveryNode(t *testing.T) {
 // A gateway that ran alone brings what it holds into the group it joins:
 // its entries are added, the group's stay, nothing is lost on either side.
 func TestJoiningNodeAddsWhatItHoldsToTheGroup(t *testing.T) {
+	app.Parallel(t)
 	nodes := newGroup(t, "web-1", "web-2")
 	a, b := nodes[0], nodes[1]
 	ctx := context.Background()
@@ -561,6 +571,7 @@ func TestSingleGatewayStopsWithoutDrainDelay(t *testing.T) {
 // A limit counts for the group: a client that takes turns between the
 // nodes gets the limit once, not once per node.
 func TestGroupLimitCountsAcrossNodes(t *testing.T) {
+	app.Parallel(t)
 	limit := "behaviour:\n  rate_limits:\n    - {id: api, route: \"/api/**\", limit: 20, per: 1m, burst: 20, mode: block}\n"
 	nodes := newGroup(t, "web-1", "web-2")
 	a, b := nodes[0], nodes[1]
@@ -618,6 +629,7 @@ func requestsOf(t *testing.T, g *groupNode, ip string) int {
 // What happens on one node is in the store of the other: events, the
 // incident of a stopped request, and the single requests.
 func TestGroupSharesEventsIncidentsAndRequests(t *testing.T) {
+	app.Parallel(t)
 	a, b := pair(t)
 	ctx := context.Background()
 	const ip = "203.0.113.160"
@@ -688,6 +700,7 @@ func TestGroupSharesEventsIncidentsAndRequests(t *testing.T) {
 // A flood of blocks leaves in rounds: every one reaches the other node, and
 // none is lost on the way.
 func TestGroupBlockFloodArrivesInRounds(t *testing.T) {
+	app.Parallel(t)
 	a, b := pair(t)
 	const n = 180
 	for i := 0; i < n; i++ {
@@ -706,6 +719,7 @@ func TestGroupBlockFloodArrivesInRounds(t *testing.T) {
 // Two entries added to the same list on two nodes at the same moment: both
 // stay, on both nodes (the measurement of 2026-11-21 lost the first).
 func TestGroupKeepsBothOfTwoChangesToOneList(t *testing.T) {
+	app.Parallel(t)
 	a, b := pair(t)
 	ctx := context.Background()
 	for i := 0; i < 10; i++ {
@@ -735,6 +749,7 @@ func TestGroupKeepsBothOfTwoChangesToOneList(t *testing.T) {
 // cut is a stop: web-1 changes while web-2 is down, then web-2 changes
 // alone while web-1 is down, then both run again.
 func TestGroupMergesBothSidesOfACut(t *testing.T) {
+	app.Parallel(t)
 	a, b := pair(t)
 	ctx := context.Background()
 	a.h.Login()
@@ -800,6 +815,7 @@ func TestGroupMergesBothSidesOfACut(t *testing.T) {
 // password, set on one of them right away, stays (the measurement saw it
 // thrown away a second later).
 func TestFreshGroupKeepsAWriteMadeRightAfterStart(t *testing.T) {
+	app.Parallel(t)
 	secretFile := filepath.Join(t.TempDir(), "cluster.secret")
 	secret, _ := cluster.NewSecret()
 	if err := os.WriteFile(secretFile, []byte(secret), 0o600); err != nil {
@@ -834,6 +850,7 @@ func TestFreshGroupKeepsAWriteMadeRightAfterStart(t *testing.T) {
 // yet (it does so once a second), and would take the empty ones as the
 // later change.
 func TestJoiningNodeWithNothingDoesNotEmptyTheGroup(t *testing.T) {
+	app.Parallel(t)
 	nodes := newGroup(t, "web-1", "web-2")
 	a, b := nodes[0], nodes[1]
 	a.start(t)
@@ -856,6 +873,7 @@ func TestJoiningNodeWithNothingDoesNotEmptyTheGroup(t *testing.T) {
 // meanwhile, once each, and none of an address that was erased while it was
 // away.
 func TestGroupNodeCatchesUpOnRequestsAfterAnOutage(t *testing.T) {
+	app.Parallel(t)
 	a, b := pair(t)
 	const before, missed, erased = "203.0.113.170", "203.0.113.171", "203.0.113.172"
 	a.h.Visit("GET", "/a", before, "", "")
@@ -975,6 +993,7 @@ func TestGroupNodeCatchesUpFromDiskAfterALongOutage(t *testing.T) {
 // such a block for the whole group (finding of the measurement: an unblock
 // on the other node answered "already unblocked").
 func TestGroupNeverLiftsABlockThatJustArrived(t *testing.T) {
+	app.Parallel(t)
 	a, b := pair(t)
 	const n = 300
 	for i := 0; i < n; i++ {
@@ -1128,6 +1147,7 @@ func TestNewGroupSecretServerByServerKeepsTheState(t *testing.T) {
 // block: it does not wait for the incident, which follows with the events of
 // the node that blocked (finding F2 of the lab measurement).
 func TestUnblockOnAnotherNodeAsSoonAsItHoldsTheBlock(t *testing.T) {
+	app.Parallel(t)
 	a, b := pair(t)
 	b.h.Login()
 	for i, incident := range []string{"K7QM-4XWA", "K7QM-4XWB", "K7QM-4XWC", "K7QM-4XWD", "K7QM-4XWE"} {

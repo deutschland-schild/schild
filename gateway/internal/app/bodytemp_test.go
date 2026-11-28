@@ -91,6 +91,7 @@ func TestBodiesSpoolToBodyTemp(t *testing.T) {
 }
 
 func TestBodyMemory(t *testing.T) {
+	Parallel(t)
 	if got := bodyMemory(memlimit.Result{Source: memlimit.SourceEnv, Limit: 1 << 30}); got != 1<<30 {
 		t.Fatalf("GOMEMLIMIT: %d", got)
 	}
@@ -105,6 +106,7 @@ func TestBodyMemory(t *testing.T) {
 // Every metric of body-limits.md section 6 is on the metrics port, also
 // too_slow before the first abort.
 func TestBodyMetricNames(t *testing.T) {
+	Parallel(t)
 	m := metrics.New()
 	m.BodyRate.Observe(1)
 	m.BodyReadSeconds.Observe(1)

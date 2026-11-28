@@ -21,6 +21,7 @@ import (
 // node is back and in step with the group, it must not refuse the address
 // any more (finding of the measurement, 08t).
 func TestReturningNodeDropsTheBlockOfAnErasedAddressBeforeItIsInStep(t *testing.T) {
+	app.Parallel(t)
 	a, b := pair(t)
 	const ip = "203.0.113.200"
 	a.block(ip, "S-ERASED-AWAY", 7*24*time.Hour)
@@ -145,6 +146,7 @@ func TestNodeThatRestartsAloneListensDuringTheWait(t *testing.T) {
 }
 
 func TestOnlyLocksOfAnOrderWaitForTheGroup(t *testing.T) {
+	app.Parallel(t)
 	for name, want := range map[string]bool{
 		"issue_cert_shop.example":                  true,
 		"register_acme_account":                    true,

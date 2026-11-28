@@ -10,6 +10,7 @@ import (
 // The events of a node of a group carry its name in the group, with the
 // start of its node id; a single gateway carries node_name.
 func TestEventSourceNamesTheMember(t *testing.T) {
+	Parallel(t)
 	cfg := &config.Site{NodeName: "schild"}
 	cfg.Cluster.Name = "web-3"
 	a := &App{}

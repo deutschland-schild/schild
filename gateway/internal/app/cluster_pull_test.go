@@ -15,6 +15,7 @@ import (
 // some, and otherwise about twice a minute. Before, each asked each three
 // times a second.
 func TestIdleGroupAsksAlmostNothing(t *testing.T) {
+	// Not parallel: the test counts the questions of an idle group in a window of real time.
 	a, b := pair(t)
 	a.h.WaitFor("the nodes reach each other", func() bool { return a.h.App.Cluster.Synced() && b.h.App.Cluster.Synced() })
 	// The first words and the pulls they set off are through.

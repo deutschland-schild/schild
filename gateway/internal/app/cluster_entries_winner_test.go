@@ -27,6 +27,7 @@ import (
 // its marks said "in step", and only the repair half a minute later ended
 // it.)
 func TestNoteOfARecordThatLostIsNotApplied(t *testing.T) {
+	app.Parallel(t)
 	a, b := pair(t)
 	ctx := context.Background()
 	const key = "future_winner_v1"
@@ -58,6 +59,7 @@ func TestNoteOfARecordThatLostIsNotApplied(t *testing.T) {
 // above (a field of the other node is noted, the node's own record of it
 // follows and wins, and the note used to be applied all the same).
 func TestTwoNodesWritingOneEntryAtOnceEndWithTheWinner(t *testing.T) {
+	app.Parallel(t)
 	a, b := pair(t)
 	ctx := context.Background()
 	for _, g := range []*groupNode{a, b} {
@@ -132,6 +134,7 @@ func TestTwoNodesWritingOneEntryAtOnceEndWithTheWinner(t *testing.T) {
 // that landed between the two stayed on this node only, and the repair put
 // the value of the group back over it.
 func TestChangeWhileAValueOfTheGroupIsWrittenLeaves(t *testing.T) {
+	app.Parallel(t)
 	a, b := pair(t)
 	ctx := context.Background()
 	for _, g := range []*groupNode{a, b} {

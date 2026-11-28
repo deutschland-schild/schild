@@ -10,6 +10,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/deutschland-schild/schild/gateway/internal/app"
 	"github.com/deutschland-schild/schild/gateway/internal/apptest"
 	"github.com/deutschland-schild/schild/gateway/internal/dashboard"
 )
@@ -164,6 +165,7 @@ func TestAgentAPIAnyInterfaceNeedsContainer(t *testing.T) {
 // dashboard of one node of a group, it holds on the other, and given back
 // there it is given back here.
 func TestAgentAPISwitchHoldsOnEveryNodeOfAGroup(t *testing.T) {
+	app.Parallel(t)
 	a, b := pair(t)
 	a.h.Login()
 	b.h.Login()

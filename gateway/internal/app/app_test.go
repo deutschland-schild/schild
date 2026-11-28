@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/deutschland-schild/schild/gateway/internal/allowlist"
+	"github.com/deutschland-schild/schild/gateway/internal/app"
 	"github.com/deutschland-schild/schild/gateway/internal/apptest"
 	"github.com/deutschland-schild/schild/gateway/internal/store"
 )
@@ -98,6 +99,7 @@ func TestRunWithListeners(t *testing.T) {
 // overlay in the data dir; an allowlist entry written by the CLI (another
 // process) is picked up by the running proxy.
 func TestSettingsSurviveRestartAndCLIAllow(t *testing.T) {
+	app.Parallel(t)
 	dir := t.TempDir()
 	h := apptest.New(t, apptest.Options{Dir: dir})
 	h.Login()
