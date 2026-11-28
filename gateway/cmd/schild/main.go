@@ -93,9 +93,14 @@ Usage:
                                                  that reaches a backend; then, as the current user: data directory,
                                                  certificate storage, Caddy provisioning, log files and sockets of
                                                  the Caddyfile (-adapt-only: the Caddyfile only); exit 1 on REFUSE
-  schild ingress reload [-config FILE] [-data DIR] [-force]
+  schild ingress reload [-config FILE] [-data DIR] [-force] [-check] [-json]
                                                  host only: load the Caddyfile again without a restart; what schild
                                                  refuses leaves the running Caddyfile in place, exit 1
+  schild ingress load [-config FILE] [-data DIR] [-force] [-check] [-json] FILE|-
+                                                 host only: send a whole Caddyfile (- for standard input); schild
+                                                 checks it, writes it to ingress.caddyfile and loads it without a
+                                                 restart; a refused one changes nothing, exit 1; -check: the
+                                                 checks only; -json: one JSON object with a code for programs
   schild allow    IP|CIDR|HOST [-ttl 24h|7d|30d|never] [-label TEXT] [-level no_block|bypass_waf]
   schild allow    --mine [-ttl ...] [-label TEXT] allow the address of the current SSH session (SSH_CONNECTION)
   schild allow    list | rm ID                   show or remove local allowlist entries
@@ -686,8 +691,11 @@ func cmdIngress(args []string) error {
 	if len(args) > 0 && args[0] == "reload" {
 		return cmdIngressReload(args[1:])
 	}
+	if len(args) > 0 && args[0] == "load" {
+		return cmdIngressLoad(args[1:])
+	}
 	if len(args) == 0 || args[0] != "validate" {
-		return errors.New("ingress: schild ingress validate [-config FILE] [-adapt-only] | reload [-config FILE] [-data DIR] [-force]")
+		return errors.New("ingress: schild ingress validate [-config FILE] [-adapt-only] | reload [-config FILE] [-data DIR] [-force] [-check] [-json] | load [-config FILE] [-data DIR] [-force] [-check] [-json] FILE|-")
 	}
 	fs := flag.NewFlagSet("ingress validate", flag.ExitOnError)
 	cfgPath := fs.String("config", "", "schild.yaml (default $SCHILD_CONFIG or /etc/schild/schild.yaml)")

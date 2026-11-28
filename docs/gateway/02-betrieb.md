@@ -83,6 +83,56 @@ Das solltest du wissen:
 - Bindest du das Caddyfile als einzelne Datei in einen Container ein, sieht der Container manche Änderung nicht. Viele Editoren schreiben eine neue Datei und benennen sie um. Binde deshalb den Ordner ein, wenn du ohne Neustart ändern willst.
 - Schild führt für 32 Websites eigene Zahlen. Eine entfernte Website behält ihren Platz bis zum nächsten Start. Sind alle Plätze vergeben, zählt eine neue Website bis dahin unter „Weitere Websites“.
 
+### Caddyfile aus einem Programm senden
+
+Erzeugt ein Programm dein Caddyfile, etwa das Panel eines Hosters, kann es die ganze Datei an das laufende Schild senden:
+
+```bash
+schild ingress load /tmp/Caddyfile.neu
+panel-export | schild ingress load -
+```
+
+Schild prüft den Text wie bei `schild ingress reload` und lehnt dasselbe ab. Besteht er die Prüfung, schreibt Schild ihn in die Datei aus `ingress.caddyfile` und lädt ihn ohne Neustart. Lehnt Schild ihn ab, bleiben die Datei und das laufende Caddyfile, wie sie waren, und der Befehl endet mit Exit-Code 1 und dem Grund.
+
+- Der Befehl läuft nur auf dem Server selbst, wie `schild ingress reload`. Über das Netzwerk, das Dashboard oder die Agent-API lässt sich kein Caddyfile senden.
+- Der Benutzer, unter dem Schild läuft, braucht Schreibrecht auf die Datei oder ihren Ordner. Mit Schreibrecht auf den Ordner tauscht Schild die Datei in einem Schritt aus.
+- Dateien, die dein Caddyfile mit `import` einbindet, sendest du nicht mit. Schild liest sie auf dem Server, relativ zum Ort des Caddyfiles.
+- Schild nimmt ein Caddyfile an, keine Caddy-Konfiguration als JSON. Die Datei darf höchstens 8 MiB groß sein.
+- Im [Cluster](03-cluster.md#das-caddyfile-im-cluster-ändern) gilt der Befehl für den Server, auf dem du ihn ausführst.
+
+Zwei Schalter sind für Programme gedacht. `schild ingress reload` kennt beide auch.
+
+- `-check` prüft das Caddyfile und ändert nichts. Geprüft wird, was Schild prüft. Ob Caddy die Konfiguration annimmt, zeigt erst das Laden.
+- `-json` gibt statt des Textes ein JSON-Objekt aus:
+
+```json
+{"result": "loaded", "websites": 412, "sha256": "9f2c…", "warnings": [], "error": null}
+```
+
+| Feld | Inhalt |
+| --- | --- |
+| `result` | `loaded`, `unchanged`, `accepted` (bei `-check`), `refused` oder `failed` |
+| `websites` | Zahl der Websites im geprüften Caddyfile |
+| `sha256` | SHA-256 des Caddyfiles, das nach dem Aufruf gilt. Im Cluster vergleichst du den Wert über alle Server |
+| `warnings` | Warnungen als Liste von Texten |
+| `error` | `null` oder ein Objekt mit `code` und `message` |
+
+| `code` | Bedeutung |
+| --- | --- |
+| `invalid_caddyfile` | leer, größer als 8 MiB, oder Caddy kann den Text nicht lesen |
+| `check_refused` | eine Prüfung von Schild lehnt ab, etwa eine Website ohne `schild` |
+| `needs_restart` | andere Ports, Adressen oder ein anderer Speicher für Zertifikate |
+| `website_locked` | eine Website fiele aus dem Zugriffsschutz oder dem Wartungsmodus |
+| `changed_while_read` | die Datei hat sich während eines Reloads geändert, wiederhole ihn |
+| `not_writable` | Schild kann die Datei nicht schreiben |
+| `caddy_refused` | Caddy lehnt die Konfiguration nach den Prüfungen ab, die Datei ist wieder die alte |
+| `busy` | Schild startet oder stoppt gerade, wiederhole den Aufruf |
+| `not_ingress` | in `schild.yaml` steht kein `ingress.caddyfile` |
+| `unavailable` | kein laufendes Schild antwortet, nichts wurde geändert (`result` ist `failed`) |
+| `unknown_outcome` | die Antwort ging verloren, das Log von Schild nennt das Ergebnis (`result` ist `failed`) |
+
+Der Exit-Code bleibt 0 für `loaded`, `unchanged` und `accepted` und 1 für alles andere. Das Format kann sich noch ändern, solange D106 ein Vorschlag ist.
+
 ### Zertifikate über Hetzner DNS
 
 Let's Encrypt prüft normalerweise über Port 80 oder 443, ob dir eine Domain gehört. Für ein Wildcard-Zertifikat wie `*.example.org` und für Namen, die von außen nicht erreichbar sind, geht das nur über einen DNS-Eintrag. Liegt die Zone bei Hetzner (Hetzner Console, Cloud-API), setzt Schild diesen Eintrag selbst und löscht ihn danach wieder. Das Modul ist eingebaut und tut nichts, solange es nicht im Caddyfile steht.
@@ -534,6 +584,7 @@ Für Alarme im Alltag sind besonders diese Metriken nützlich:
 | `schild preflight` | Konfiguration und Speicherplatz prüfen, ohne zu starten |
 | `schild ingress validate` | Prüfen, bevor Schild der Webserver wird: das Caddyfile, ob Schild in sein Datenverzeichnis schreiben kann, ob es die Kopie der Zertifikate lesen und schreiben kann und ob es in die Logdateien des Caddyfiles schreiben darf, unter systemd auch nach den Regeln der Unit. Läuft als der Benutzer, als der Schild läuft, auch im Container mit schreibgeschütztem Dateisystem. Mit `-adapt-only` nur das Caddyfile |
 | `schild ingress reload` | das geänderte Caddyfile ohne Neustart laden (siehe [Caddyfile ändern](#caddyfile-ändern)) |
+| `schild ingress load DATEI` | ein ganzes Caddyfile senden, prüfen, speichern und ohne Neustart laden; mit `-` von der Standardeingabe (siehe [Caddyfile aus einem Programm senden](#caddyfile-aus-einem-programm-senden)) |
 | `schild status` | Profil, Backend, eigene IPs, ob Dashboard und Metriken antworten |
 | `schild allow …` | eigene IPs freischalten, auflisten, entfernen |
 | `schild lock on/off/status` | Zugriffsschutz für Website oder Pfade |

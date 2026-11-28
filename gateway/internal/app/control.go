@@ -47,12 +47,24 @@ func (a *App) Control(ctx context.Context, req control.Request) control.Response
 			resp.SetSource = v.Crowdsec.SetSource
 		}
 		return resp
-	case control.OpIngressReload:
-		res, err := a.ReloadIngress(req.Force)
-		if err != nil {
-			return control.Response{Error: err.Error(), Warnings: res.Warnings}
+	case control.OpIngressReload, control.OpIngressLoad:
+		var res IngressReload
+		var err error
+		switch {
+		case req.Check && req.Op == control.OpIngressLoad:
+			res, err = a.CheckIngress([]byte(req.Caddyfile))
+		case req.Check:
+			res, err = a.CheckIngress(nil)
+		case req.Op == control.OpIngressLoad:
+			res, err = a.LoadIngress([]byte(req.Caddyfile), req.Force)
+		default:
+			res, err = a.ReloadIngress(req.Force)
 		}
-		return control.Response{OK: true, Unchanged: res.Unchanged, Websites: res.Websites, Warnings: res.Warnings}
+		resp := control.Response{OK: err == nil, Unchanged: res.Unchanged, Checked: res.Checked, Websites: res.Websites, Warnings: res.Warnings, SHA256: res.SHA256}
+		if err != nil {
+			resp.Error, resp.Code = err.Error(), IngressCode(err)
+		}
+		return resp
 	case control.OpDrain:
 		if a.Cluster == nil {
 			return control.Response{Error: "this gateway is no node of a group; stop it with systemctl stop schild"}

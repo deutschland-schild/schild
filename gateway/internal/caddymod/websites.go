@@ -26,9 +26,17 @@ import (
 // that cannot be adapted alone falls back to the routes of chk that serve
 // one of its hosts on the same listener kind.
 func SiteBlocks(path string, chk Check) ([]websites.Block, error) {
-	body, err := os.ReadFile(path)
-	if err != nil {
-		return nil, fmt.Errorf("caddyfile: %w", err)
+	return SiteBlocksOf(path, nil, chk)
+}
+
+// SiteBlocksOf is SiteBlocks for body as the Caddyfile at path; a nil body
+// is read from path.
+func SiteBlocksOf(path string, body []byte, chk Check) ([]websites.Block, error) {
+	if body == nil {
+		var err error
+		if body, err = os.ReadFile(path); err != nil {
+			return nil, fmt.Errorf("caddyfile: %w", err)
+		}
 	}
 	sbs, err := caddyfile.Parse(path, body)
 	if err != nil {

@@ -25,6 +25,9 @@ import (
 type IngressOptions struct {
 	// Caddyfile is the absolute path of the operator's Caddyfile.
 	Caddyfile string
+	// Body, when not nil, is the text to use in place of the file's
+	// (`schild ingress load`). Imports stay relative to Caddyfile.
+	Body []byte
 	// Storage is ingress.storage: the Caddy storage root for certificates
 	// and ACME state. It wins over a storage option in the Caddyfile.
 	Storage string
@@ -114,9 +117,17 @@ func (s SiteCheck) Name() string {
 // adapter (imports relative to the file, environment placeholders, global
 // options), exactly as `caddy adapt` of the same Caddy version does.
 func ReadCaddyfile(path string) ([]byte, []string, error) {
-	body, err := os.ReadFile(path)
-	if err != nil {
-		return nil, nil, fmt.Errorf("caddyfile: %w", err)
+	return adaptCaddyfile(path, nil)
+}
+
+// adaptCaddyfile adapts body as the Caddyfile at path; a nil body is read
+// from path.
+func adaptCaddyfile(path string, body []byte) ([]byte, []string, error) {
+	if body == nil {
+		var err error
+		if body, err = os.ReadFile(path); err != nil {
+			return nil, nil, fmt.Errorf("caddyfile: %w", err)
+		}
 	}
 	ad := caddyconfig.GetAdapter("caddyfile")
 	if ad == nil {
@@ -142,7 +153,7 @@ func PrepareIngress(o IngressOptions) (*Ingress, error) {
 	if o.Caddyfile == "" {
 		return nil, errors.New("caddyfile: ingress.caddyfile is not set")
 	}
-	raw, warns, err := ReadCaddyfile(o.Caddyfile)
+	raw, warns, err := adaptCaddyfile(o.Caddyfile, o.Body)
 	if err != nil {
 		return nil, err
 	}

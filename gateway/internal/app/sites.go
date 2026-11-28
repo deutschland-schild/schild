@@ -43,13 +43,19 @@ func notDerived(v *sites.View) bool {
 // deriveWebsites is websitesView without the log lines; prev is the view a
 // running gateway has (sites.NewViewAfter), nil at a start.
 func deriveWebsites(cfg *config.Site, dataDir string, prev *sites.View) *sites.View {
+	return deriveWebsitesOf(cfg, dataDir, prev, nil)
+}
+
+// deriveWebsitesOf is deriveWebsites with body in place of the Caddyfile's
+// text (nil: the file).
+func deriveWebsitesOf(cfg *config.Site, dataDir string, prev *sites.View, body []byte) *sites.View {
 	if !cfg.CaddyIngress() {
 		return sites.NewView(websites.Input{Mode: websites.ModeProxy, SiteHosts: cfg.Upstream.SiteHosts})
 	}
 	in := websites.Input{Mode: websites.ModeIngress, UnprotectedSites: cfg.Ingress.UnprotectedSites}
-	ing, err := IngressFor(cfg, dataDir)
+	ing, err := ingressFor(cfg, dataDir, body)
 	if ing != nil {
-		in.Blocks, err = caddymod.SiteBlocks(cfg.Ingress.Caddyfile, ing.Check)
+		in.Blocks, err = caddymod.SiteBlocksOf(cfg.Ingress.Caddyfile, body, ing.Check)
 	}
 	v := sites.NewViewAfter(prev, in)
 	if err != nil && v.Err == nil {

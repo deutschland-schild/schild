@@ -331,6 +331,8 @@ Der Cluster verteilt das Caddyfile nicht. Verteil die neue Datei mit deinem Depl
 schild ingress validate && schild ingress reload
 ```
 
+Erzeugt ein Programm das Caddyfile, sendet es die Datei auf jedem Server mit `schild ingress load` (siehe [Caddyfile aus einem Programm senden](02-betrieb.md#caddyfile-aus-einem-programm-senden)). Schild prüft, speichert und lädt sie dann in einem Schritt.
+
 Der Server bleibt dabei im Traffic und meldet sich weiter als bereit. Du musst ihn vorher nicht mit `schild cluster drain` herausnehmen. Schlägt der Befehl fehl, läuft auf diesem Server das alte Caddyfile weiter. Lade die Datei dann auf den übrigen Servern nicht. Bis der letzte Server geladen hat, kennt ein Teil des Clusters eine neue Website noch nicht. Schalte ihren DNS-Eintrag deshalb erst danach um.
 
 Anfragen, die beim Reload laufen, enden mit dem alten Caddyfile. Sie haben dafür `grace_s` Zeit, in der Vorgabe 30 Sekunden (siehe [Einen Server geplant anhalten](#einen-server-geplant-anhalten)). Ein Download, ein Upload oder ein Stream, der danach noch läuft, bricht ab. Offene WebSockets enden sofort, wenn `reverse_proxy` kein `stream_close_delay` hat. Plane Reloads deshalb gebündelt, wenn deine Websites lange Verbindungen halten.
@@ -473,4 +475,5 @@ Jeder Server speichert damit, was der ganze Cluster aufzeichnet. Das lässt sich
 | `schild cluster status` | Zeigt Mitglieder, letzten Kontakt und den geteilten Stand. |
 | `schild cluster drain` | Nimmt diesen Server aus dem Traffic und hält ihn an. |
 | `schild ingress reload` | Lädt das Caddyfile dieses Servers neu. |
+| `schild ingress load DATEI` | Sendet ein ganzes Caddyfile an diesen Server, der es prüft, speichert und lädt. |
 | `schild cluster remove NODE` | Beendet die Mitgliedschaft eines Servers, genannt mit Name oder Kennung. |

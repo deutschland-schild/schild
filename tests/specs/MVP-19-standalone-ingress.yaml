@@ -148,7 +148,7 @@ ingress:
     - 'schild run adapts the Caddyfile with the stock Caddyfile adapter and loads it into the embedded Caddy; TLS, automatic HTTPS, ACME issuers, the log directive, file_server, encode, handle_errors, reverse_proxy and the other standard directives work as in stock Caddy of the same version'
     - 'Caddy directive `schild` (UnmarshalCaddyfile on http.handlers.schild); ordered so that it runs before every directive that serves content (handle, route, redir, reverse_proxy, php_fastcgi, file_server); inside an explicit route block the operator decides the position'
     - 'the validator refuses a Caddyfile in which a site block proxies to a backend (reverse_proxy, php_fastcgi) without `schild`, unless the site is listed in ingress.unprotected_sites; file_server-only sites give a warning'
-    - 'Caddy admin API stays disabled; changes take effect with `schild ingress reload` (D106) or a restart; `schild ingress validate -config <schild.yaml>` checks schild.yaml and Caddyfile without starting (for CI before a deploy)'
+    - 'Caddy admin API stays disabled; changes take effect with `schild ingress reload`, `schild ingress load FILE|-` (a whole Caddyfile sent over the control path and written to the file, D106) or a restart; `schild ingress validate -config <schild.yaml>` checks schild.yaml and Caddyfile without starting (for CI before a deploy)'
     - 'rollback pattern documented in the runbook: sites use `import schild` and the snippet `(schild) { schild }`; the stock-Caddy rollback Caddyfile defines the snippet empty, so going back is the image tag plus one line'
   gate:
     - 'all site blocks of one Caddyfile share one gate (one learning state, one dashboard, one event store); a Caddy config load must never create a second gate or reset counters; no reliance on a process-wide singleton that a reload could replace'
@@ -206,6 +206,8 @@ measure:                            # by an independent agent, not the builder
   - 'D106: reloads under load behind a balancer with PROXY protocol, HTTP/1.1, HTTP/2 and WebSockets, on every node of a group in turn: no request fails apart from WebSockets without stream_close_delay'
   - 'D106: a reload with 1,000 and with 5,000 websites: its duration, the memory while two configs live, failed requests; from which size a reload per new website no longer works'
   - 'D106: a download, an upload and an SSE stream that run over a reload, alone and in a group: they end by grace_period (in a group cluster.drain.grace_s) and not before'
+  - 'D106: every code of -json is reached by a Caddyfile or a state made for it, and the answer of -check equals what the load then does, apart from the provisioning of Caddy'
+  - 'D106: `schild ingress load`: a Caddyfile that Caddy refuses after the checks of schild leaves the file as it was; a stop of the process at any point of a load leaves a file that a start takes; the file mounted alone into a container and in a directory of root'
   - 'D106: a Caddyfile that fails at any point of a reload leaves the running one serving, and no access lock opens, also while requests run'
   - 'rollback to the stock Caddy image with the empty snippet in under 60 s, sites reachable, certificates unchanged'
   - 'replay of Livewire and JSON API traffic: false positive rate in autoblock after exceptions below 0.1 % of sessions; CGNAT simulation from MVP-17 unchanged (0 blocks)'
