@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	contract "github.com/deutschland-schild/schild/contract/cluster"
+	"github.com/deutschland-schild/schild/gateway/internal/app"
 	"github.com/deutschland-schild/schild/gateway/internal/apptest"
 )
 
@@ -44,6 +45,7 @@ func replacedKeys(t *testing.T, g *groupNode) map[string][]byte {
 // group holding a different value takes the group's value and keeps its own in
 // cluster.db (table replaced).
 func TestJoinKeepsReplacedOwnValue(t *testing.T) {
+	app.Parallel(t)
 	a, b := pair(t)
 	ctx := context.Background()
 
@@ -94,6 +96,7 @@ func TestJoinKeepsReplacedOwnValue(t *testing.T) {
 // browser-check keys from the keeper and keeps its own replaced keys in
 // cluster.db (table replaced).
 func TestFirstBrowserCheckKeysKeepReplacedValues(t *testing.T) {
+	app.Parallel(t)
 	a, b := pair(t)
 	b.h.WaitFor("both nodes share browser-check keys", func() bool {
 		x, y := a.h.App.HumanCheck.State(), b.h.App.HumanCheck.State()

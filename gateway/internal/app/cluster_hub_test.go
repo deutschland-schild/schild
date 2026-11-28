@@ -8,6 +8,7 @@ import (
 	"sync"
 	"testing"
 
+	"github.com/deutschland-schild/schild/gateway/internal/app"
 	"github.com/deutschland-schild/schild/gateway/internal/hub"
 )
 
@@ -54,6 +55,7 @@ func (f *fakeHub) runs() string {
 // The node that downloaded a new hub index says so; the other fetches it
 // from that node and takes it, once. An older one never comes back.
 func TestGroupHandsOnTheHubIndex(t *testing.T) {
+	app.Parallel(t)
 	a, b := pair(t)
 	fa, fb := &fakeHub{}, &fakeHub{}
 	a.h.App.SetHubShare(fa)
@@ -89,6 +91,7 @@ func TestGroupHandsOnTheHubIndex(t *testing.T) {
 
 // A node whose own checks refuse the index of another keeps what it runs.
 func TestGroupNodeKeepsItsHubRulesWhenItRefusesAnothers(t *testing.T) {
+	app.Parallel(t)
 	a, b := pair(t)
 	fa, fb := &fakeHub{}, &fakeHub{refuse: true}
 	a.h.App.SetHubShare(fa)

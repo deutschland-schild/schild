@@ -10,7 +10,10 @@
 //
 // The ports here lie below the ranges kernels take such ports from (Linux
 // from 32768, macOS from 49152), and each process hands out its own block
-// of them, so test binaries that run at the same time do not meet.
+// of them, so test binaries that run at the same time do not meet. A process
+// takes the block its process id leads to, or the next one no other process
+// holds (claim); a runner that starts several test binaries names the block
+// itself (BlockEnv).
 package testport
 
 import (
@@ -23,34 +26,106 @@ import (
 
 const (
 	first  = 10000 // first port handed out
-	blocks = 200   // blocks of ports, one per process (by process id)
+	blocks = 200   // blocks of ports, one per process (block)
 	size   = 100   // ports of a block
+	// locks is the first of the ports that say "this block is taken", one
+	// per block, right above the blocks (30000-30199).
+	locks = first + blocks*size
 )
 
 var (
 	mu   sync.Mutex
 	next int
+	// held are the ports of tests that still run. Tests that run in parallel
+	// draw from one block, and a server of one test may be down for a while
+	// (a node that restarts, a node that starts late): its port must not go
+	// to another test in between.
+	held = map[string]bool{}
 )
 
 // Free returns 127.0.0.1:port for a port nothing listens on, neither on
 // TCP nor on UDP (HTTP/3 binds the UDP port of the same number). Two calls
-// in a row never return the same port. A server that was given the port has
-// to be up, or gone, before the block of this process comes round again
-// (size calls later).
+// in a row never return the same port, and a port stays with its test until
+// the test ended, as long as the block has another one. When every port of
+// the block is held, the oldest way applies: a server that was given the
+// port has to be up, or gone, before the block of this process comes round
+// again (size calls later).
 func Free(t testing.TB) string {
 	t.Helper()
 	mu.Lock()
 	defer mu.Unlock()
-	base := first + os.Getpid()%blocks*size
-	for range size {
-		port := strconv.Itoa(base + next%size)
-		next++
-		if unused(port) {
-			return net.JoinHostPort("127.0.0.1", port)
+	base := first + block(t)*size
+	for _, skipHeld := range []bool{true, false} {
+		for range size {
+			port := strconv.Itoa(base + next%size)
+			next++
+			if skipHeld && held[port] {
+				continue
+			}
+			if unused(port) {
+				if !held[port] {
+					held[port] = true
+					t.Cleanup(func() {
+						mu.Lock()
+						delete(held, port)
+						mu.Unlock()
+					})
+				}
+				return net.JoinHostPort("127.0.0.1", port)
+			}
 		}
 	}
 	t.Fatalf("testport: no unused port in %d-%d", base, base+size-1)
 	return ""
+}
+
+// BlockEnv gives this process one of the blocks no process id leads to: a
+// number, the same for no two processes that run at the same time. A runner
+// that starts several test binaries side by side sets it
+// (internal/tools/splittest); process ids alone may fall into one block.
+const BlockEnv = "SCHILD_TESTPORT_BLOCK"
+
+// given is how many blocks are kept for BlockEnv, the last ones.
+const given = 16
+
+var (
+	own     = -1 // the block of this process, once it is known
+	ownLock net.Listener
+)
+
+// block is the block of this process: by BlockEnv, else the one it claimed.
+// mu is held.
+func block(t testing.TB) int {
+	if own >= 0 {
+		return own
+	}
+	s := os.Getenv(BlockEnv)
+	if s == "" {
+		own, ownLock = claim(os.Getpid() % (blocks - given))
+		return own
+	}
+	n, err := strconv.Atoi(s)
+	if err != nil || n < 0 || n >= given {
+		t.Fatalf("testport: %s=%q, want a number from 0 to %d", BlockEnv, s, given-1)
+	}
+	own = blocks - given + n
+	return own
+}
+
+// claim takes the block start, or the next one no other process holds, and
+// returns it with what holds it: a listener on the lock port of the block,
+// open until the process ends. Two test binaries whose process ids lead to
+// the same block drew the same ports at the same time before; now the
+// second one moves on. When no lock port can be bound, the block is start,
+// as it was.
+func claim(start int) (int, net.Listener) {
+	for i := range blocks - given {
+		b := (start + i) % (blocks - given)
+		if l, err := net.Listen("tcp", net.JoinHostPort("127.0.0.1", strconv.Itoa(locks+b))); err == nil {
+			return b, l
+		}
+	}
+	return start, nil
 }
 
 // unused binds the port the ways a server may: on every address (Caddy

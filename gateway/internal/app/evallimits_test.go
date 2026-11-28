@@ -9,6 +9,7 @@ import (
 )
 
 func TestEvalLimitsFromEnv(t *testing.T) {
+	Parallel(t)
 	env := func(m map[string]string) func(string) string { return func(k string) string { return m[k] } }
 	l, err := evalLimitsFromEnv(env(nil))
 	if err != nil || l.MaxConcurrent != 0 || l.QueueWait != 0 {
@@ -28,6 +29,7 @@ func TestEvalLimitsFromEnv(t *testing.T) {
 // waf.max_concurrent_evals and waf.queue_wait_ms (v0.4 addendum) set the
 // slots; the test lab's environment variables win over them.
 func TestEvalLimitsFromConfig(t *testing.T) {
+	Parallel(t)
 	env := func(m map[string]string) func(string) string { return func(k string) string { return m[k] } }
 	cfg := &config.Site{}
 	cfg.WAF.MaxConcurrentEvals = 8
@@ -69,6 +71,7 @@ func TestEvalLimitsFromConfig(t *testing.T) {
 // D77: release builds do not read the test lab's variables, also not a
 // broken value.
 func TestEvalLimitsReleaseIgnoresEnv(t *testing.T) {
+	Parallel(t)
 	env := func(m map[string]string) func(string) string { return func(k string) string { return m[k] } }
 	cfg := &config.Site{}
 	cfg.WAF.MaxConcurrentEvals = 8

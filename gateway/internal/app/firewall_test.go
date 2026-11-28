@@ -18,6 +18,7 @@ import (
 )
 
 func TestFirewallBlocksLeaveOutOwnAndCutAsD87(t *testing.T) {
+	Parallel(t)
 	now := time.Date(2026, 11, 20, 12, 0, 0, 0, time.UTC)
 	eng := behaviour.New(behaviour.Config{Behaviour: config.Behaviour{}})
 	eng.Now = func() time.Time { return now }

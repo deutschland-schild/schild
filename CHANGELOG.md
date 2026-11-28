@@ -18,6 +18,10 @@ The section of a version becomes the text of its GitHub release, so its heading 
 - "Freigeben" of an incident and the release of an address are now one transaction each. Before, an own IP or an exception of the same click could stay when the release itself failed.
 - `schild.db` goes to schema version 3 at the first start, with a backup.
 
+### Cluster of gateways
+
+- Fixed: a change made on a server in the moment that server stored a change from another server could be lost on every server. This applied to settings, the allowlist, exceptions and logins, from the dashboard and from a command on the host. The server now stores the change of the other server only when its own value is still the one it read, and tries again otherwise.
+
 ## 0.1.0-alpha.7
 
 ### Certificates

@@ -34,6 +34,7 @@ import (
 // A block the node holds and does not run starts when the block that ran
 // ends at its time, also when it is the only one left of its client.
 func TestHeldBlockStartsWhenTheOneThatRanEndsAtItsTime(t *testing.T) {
+	app.Parallel(t)
 	a, b := pair(t)
 	inService(t, a, b)
 	const ip, x, y = "203.0.113.60", "SSSS-AAA2", "SSSS-AAA3"
@@ -54,6 +55,7 @@ func TestHeldBlockStartsWhenTheOneThatRanEndsAtItsTime(t *testing.T) {
 // A lift ends a block the node held no record of (its own, not written
 // yet): the block the group holds of that client starts at once.
 func TestHeldBlockStartsWhenALiftEndsABlockWithoutARecord(t *testing.T) {
+	app.Parallel(t)
 	a, b := pair(t)
 	ctx := context.Background()
 	inService(t, a, b)
@@ -73,6 +75,7 @@ func TestHeldBlockStartsWhenALiftEndsABlockWithoutARecord(t *testing.T) {
 // An erasure ends the blocks from before it; a block the group holds that
 // was set later starts at once on a node that ran one from before.
 func TestHeldBlockStartsWhenAnErasureEndsTheOneThatRan(t *testing.T) {
+	app.Parallel(t)
 	a, b := pair(t)
 	inService(t, a, b)
 	const ip, x, y = "203.0.113.62", "SSSS-AAA6", "SSSS-AAA7"
@@ -104,6 +107,7 @@ func TestHeldBlockStartsWhenAnErasureEndsTheOneThatRan(t *testing.T) {
 // address starts when the entry is gone, on the node that decided it and
 // on the node that took it.
 func TestHeldBlockStartsWhenTheAllowlistEntryEnds(t *testing.T) {
+	app.Parallel(t)
 	a, b := pair(t)
 	ctx := context.Background()
 	inService(t, a, b)
@@ -138,6 +142,7 @@ func TestHeldBlockStartsWhenTheAllowlistEntryEnds(t *testing.T) {
 // cluster directory and holds no record of it: the record of the node that
 // decided stays. A block the node decided itself is written again.
 func TestNodeWritesOnlyTheBlocksItDecided(t *testing.T) {
+	app.Parallel(t)
 	a, b := pair(t)
 	ctx := context.Background()
 	inService(t, a, b)
@@ -285,6 +290,7 @@ const agentYAML = "agent_api:\n  enabled: true\n  requests_per_minute: 600\n"
 // I3: an agent lifts a block on a node that does not run it. The group
 // holds the block, so the lift is noted and ends it where it runs.
 func TestAgentLiftsABlockTheNodeDoesNotRun(t *testing.T) {
+	app.Parallel(t)
 	nodes := newGroup(t, "web-1", "web-2")
 	a, b := nodes[0], nodes[1]
 	b.extra = agentYAML
@@ -327,6 +333,7 @@ func TestAgentLiftsABlockTheNodeDoesNotRun(t *testing.T) {
 // o, the agent path: the block an agent sets draws its number through the
 // node, which gives none it knows.
 func TestAgentBlockDrawsNoKnownIncidentNumber(t *testing.T) {
+	app.Parallel(t)
 	nodes := newGroup(t, "web-1", "web-2")
 	a, b := nodes[0], nodes[1]
 	b.extra = agentYAML
@@ -397,6 +404,7 @@ func TestOneFailingLiftDoesNotHoldTheOthersBack(t *testing.T) {
 // reads unblocked: the entry ended the block without a lift, which is
 // right, and marked the incident.
 func TestBlockThatRunsAgainAfterAnAllowlistEntryCanBeReleased(t *testing.T) {
+	app.Parallel(t)
 	nodes := newGroup(t, "web-1", "web-2")
 	a, b := nodes[0], nodes[1]
 	b.extra = agentYAML
@@ -628,6 +636,7 @@ func TestRoundStartsNoBlockTheTableHasNoRoomFor(t *testing.T) {
 // group it hands it over. A block it took from a group it was in is none
 // of its own.
 func TestSingleGatewayOwnsItsKeptBlocksWhenItJoinsAGroup(t *testing.T) {
+	app.Parallel(t)
 	g := newGroup(t, "web-1")[0]
 	const ip, incident, ipTaken, taken = "203.0.113.57", "YYYY-AAA2", "203.0.113.58", "YYYY-AAA3"
 	single := func() *apptest.Harness { return apptest.New(t, apptest.Options{Dir: g.dir}) }
@@ -669,6 +678,7 @@ func TestSingleGatewayOwnsItsKeptBlocksWhenItJoinsAGroup(t *testing.T) {
 // The blocks from before an erasure end on a node that takes the erasure
 // also when it cannot erase what its store holds of the address.
 func TestErasureEndsTheBlocksAlsoWhenTheStoreFails(t *testing.T) {
+	app.Parallel(t)
 	a, b := pair(t)
 	inService(t, a, b)
 	const ip, x = "203.0.113.69", "ZZZZ-AAA4"
@@ -704,6 +714,7 @@ func TestErasureEndsTheBlocksAlsoWhenTheStoreFails(t *testing.T) {
 // cannot say that, answers 409, and the agent tries again; the incident of
 // a single refused request has no block and is never lifted.
 func TestAgentLiftsOnlyAnIncidentThatHasABlock(t *testing.T) {
+	app.Parallel(t)
 	nodes := newGroup(t, "web-1", "web-2")
 	a, b := nodes[0], nodes[1]
 	b.extra = agentYAML
@@ -755,6 +766,7 @@ func TestAgentLiftsOnlyAnIncidentThatHasABlock(t *testing.T) {
 // node, the block and its incident reach the other node, and a release in
 // the dashboard there ends the block on both.
 func TestBlockOfADetectorIsReleasedOnAnotherNode(t *testing.T) {
+	app.Parallel(t)
 	nodes := newGroup(t, "web-1", "web-2")
 	a, b := nodes[0], nodes[1]
 	ctx := context.Background()
@@ -932,6 +944,7 @@ func TestFreigebenLiftsEveryBlockOfTheClient(t *testing.T) {
 // although it was decided before the person released; a single gateway
 // would need the client to trip a detector anew.
 func TestBlockThatArrivesAfterARelease(t *testing.T) {
+	app.Parallel(t)
 	a, b := pair(t)
 	a.h.Login()
 	inService(t, a, b)
@@ -1029,6 +1042,7 @@ func (g *groupNode) endExceptions(t *testing.T, ip string) {
 // address stored with the incident: retention shortens that one to its /24,
 // and the shortened address is the client key of somebody else.
 func TestFreigebenFindsTheClientByItsBlockNotByTheStoredAddress(t *testing.T) {
+	app.Parallel(t)
 	a, b := pair(t)
 	a.h.Login()
 	inService(t, a, b)
@@ -1066,6 +1080,7 @@ func TestFreigebenFindsTheClientByItsBlockNotByTheStoredAddress(t *testing.T) {
 // "Freigeben" of the incident of a single refused request, which has no
 // block: unblocked as on a single gateway, and no lift for the group.
 func TestFreigebenOfAnIncidentWithoutABlockWritesNoLift(t *testing.T) {
+	app.Parallel(t)
 	a, b := pair(t)
 	ctx := context.Background()
 	b.h.Login()
@@ -1162,6 +1177,7 @@ func TestLiftMarksTheIncidentWhereTheBlockEndedBefore(t *testing.T) {
 // client pass it while the exception runs, as on a single gateway. The
 // other nodes hold its record and do not run it.
 func TestBlockSetByHandUnderAnExceptionRunsOnItsNode(t *testing.T) {
+	app.Parallel(t)
 	a, b := pair(t)
 	ctx := context.Background()
 	a.h.Login()
@@ -1199,6 +1215,7 @@ func TestBlockSetByHandUnderAnExceptionRunsOnItsNode(t *testing.T) {
 // "Freigeben" works for a block the node holds and does not run, although
 // its incident reads unblocked: the group holds the block, that is enough.
 func TestFreigebenOfABlockTheNodeHoldsAndDoesNotRun(t *testing.T) {
+	app.Parallel(t)
 	nodes := newGroup(t, "web-1", "web-2", "web-3")
 	a, c := nodes[0], nodes[2]
 	c.mode = "observe"
@@ -1246,6 +1263,7 @@ func (g *groupNode) agedIncident(t *testing.T, incident, short, source string) {
 // of it. In both cases the twin of the client is lifted with it, and the
 // client at the shortened address is left alone.
 func TestFreigebenOfAShortenedIncidentFindsTheHeldAndTheRunningBlock(t *testing.T) {
+	app.Parallel(t)
 	nodes := newGroup(t, "web-1", "web-2", "web-3")
 	a, b, c := nodes[0], nodes[1], nodes[2]
 	c.mode = "observe"
@@ -1300,6 +1318,7 @@ func TestFreigebenOfAShortenedIncidentFindsTheHeldAndTheRunningBlock(t *testing.
 // for it, unless a block of the incident names the client; and for a
 // client known by an IPv6 /64 no allowlist entry of one address is made.
 func TestFreigebenOfAnAddressThatOnlyLooksShortened(t *testing.T) {
+	app.Parallel(t)
 	h := apptest.New(t, apptest.Options{})
 	h.Login()
 	ctx := context.Background()

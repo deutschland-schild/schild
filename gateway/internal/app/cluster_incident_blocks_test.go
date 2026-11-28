@@ -242,6 +242,7 @@ func inService(t *testing.T, nodes ...*groupNode) {
 // lift of the second unblocks it everywhere. ("Freigeben" in the dashboard
 // means the client and lifts both: TestFreigebenLiftsEveryBlockOfTheClient.)
 func TestTwoBlocksOfOneClientStandSideBySide(t *testing.T) {
+	app.Parallel(t)
 	nodes := agentGroup(t, "web-1", "web-2", "web-3")
 	for _, g := range nodes {
 		g.h.Login()
@@ -284,6 +285,7 @@ func TestTwoBlocksOfOneClientStandSideBySide(t *testing.T) {
 // b: a block a full table drops on one node is no lift. Nothing is written,
 // and the block stays on the others.
 func TestBlockAFullTableDropsIsNoLift(t *testing.T) {
+	app.Parallel(t)
 	a, b := pair(t)
 	const ip, x = "203.0.113.32", "CCCC-AAA2"
 	a.block(ip, x, 15*time.Minute)
@@ -308,6 +310,7 @@ func TestBlockAFullTableDropsIsNoLift(t *testing.T) {
 // c: dropped by a full table and blocked anew under another incident on
 // that node: releasing the new incident ends the new block alone.
 func TestBlockAfterADroppedOneIsABlockOfItsOwn(t *testing.T) {
+	app.Parallel(t)
 	nodes := agentGroup(t, "web-1", "web-2")
 	a, b := nodes[0], nodes[1]
 	inService(t, a, b)
@@ -339,6 +342,7 @@ func TestBlockAfterADroppedOneIsABlockOfItsOwn(t *testing.T) {
 // block record handed to a node that holds the lift does not start the
 // block and is not stored, also on a third node that never saw the block.
 func TestLiftBeforeTheBlockRecordKeepsTheBlockFromStarting(t *testing.T) {
+	app.Parallel(t)
 	nodes := trio(t)
 	a, b, c := nodes[0], nodes[1], nodes[2]
 	for _, g := range nodes {
@@ -405,6 +409,7 @@ func TestLiftBeforeTheBlockRecordKeepsTheBlockFromStarting(t *testing.T) {
 // e: a release on a node that does not run the block ends it on the others:
 // a node in mode observe, and a node whose own allowlist names the address.
 func TestReleaseOnANodeThatDoesNotRunTheBlock(t *testing.T) {
+	app.Parallel(t)
 	nodes := newGroup(t, "web-1", "web-2", "web-3")
 	a, b, c := nodes[0], nodes[1], nodes[2]
 	c.mode = "observe"
@@ -527,6 +532,7 @@ func TestLateLiftLeavesANewerBlockOfTheClientAlone(t *testing.T) {
 // ends on the node that returns. A block set later than the bound of
 // clocks after the erasure is a new decision and stands.
 func TestErasureEndsTheBlockANodeBringsBack(t *testing.T) {
+	app.Parallel(t)
 	a, b := pair(t)
 	ctx := context.Background()
 	a.h.Login()
@@ -582,6 +588,7 @@ func TestErasureEndsTheBlockANodeBringsBack(t *testing.T) {
 // i: after a lift no record in the cluster.db of any node carries the
 // address of the client, and the lift names none.
 func TestLiftedBlockLeavesNoAddressInTheStore(t *testing.T) {
+	app.Parallel(t)
 	nodes := trio(t)
 	nodes[1].h.Login()
 	const ip, x = "203.0.113.41", "KKKK-AAA2"
@@ -611,6 +618,7 @@ func TestLiftedBlockLeavesNoAddressInTheStore(t *testing.T) {
 // j: a block record whose clock is later than the lift of its incident (a
 // node up to 60 s ahead) does not bring the block back.
 func TestBlockRecordWithALaterClockDoesNotBeatItsLift(t *testing.T) {
+	app.Parallel(t)
 	a, b := pair(t)
 	ctx := context.Background()
 	const ip, x = "203.0.113.42", "LLLL-AAA2"
@@ -654,6 +662,7 @@ func TestBlockRecordWithALaterClockDoesNotBeatItsLift(t *testing.T) {
 // lifts, written by the node the person released on; a block that ends at
 // its time leaves none.
 func TestOneReleaseIsOneLiftOfOneNode(t *testing.T) {
+	app.Parallel(t)
 	nodes := trio(t)
 	nodes[1].h.Login()
 	inService(t, nodes...)
@@ -700,6 +709,7 @@ func TestOneReleaseIsOneLiftOfOneNode(t *testing.T) {
 
 // m: lifts leave while the bound of running blocks holds new blocks back.
 func TestBoundOfBlocksDoesNotHoldALiftBack(t *testing.T) {
+	app.Parallel(t)
 	a, b := pair(t)
 	ctx := context.Background()
 	inService(t, a, b)
@@ -781,6 +791,9 @@ func TestHashOfBlocksIsTheSameOnEveryNode(t *testing.T) {
 // An incident of its own that has neither is no block of the group, and the
 // number is drawn from memory alone: the request path asks.
 func TestKnownIncidentNumberIsNotDrawnAgain(t *testing.T) {
+	// Not parallel: the test asks what web-2 knows right after the records
+	// arrived, and web-2 had not noted them yet when other tests took the CPU
+	// (2 of 7 runs under the race detector).
 	a, b := pair(t)
 	ctx := context.Background()
 	b.h.Login()
@@ -789,14 +802,12 @@ func TestKnownIncidentNumberIsNotDrawnAgain(t *testing.T) {
 	if err := a.h.App.Store.NoteLifts(ctx, time.Now(), lift); err != nil {
 		t.Fatal(err)
 	}
-	b.h.WaitFor("web-2 holds the block record and the lift", func() bool {
-		return holds(t, b, contract.ClassIncidentBlocks, block) && holds(t, b, contract.ClassLifts, lift)
+	// The node notes a number when the handler of the record ran, a moment
+	// after the record is in its store: wait for the note, not for the row.
+	b.h.WaitFor("web-2 holds the block record and the lift and knows both numbers", func() bool {
+		return holds(t, b, contract.ClassIncidentBlocks, block) && holds(t, b, contract.ClassLifts, lift) &&
+			b.h.App.IncidentKnown(block) && b.h.App.IncidentKnown(lift)
 	})
-	for _, id := range []string{block, lift} {
-		if !b.h.App.IncidentKnown(id) {
-			t.Errorf("web-2 does not know the number %s", id)
-		}
-	}
 	if b.h.App.IncidentKnown(fresh) {
 		t.Fatalf("web-2 knows the number %s, which nobody used", fresh)
 	}

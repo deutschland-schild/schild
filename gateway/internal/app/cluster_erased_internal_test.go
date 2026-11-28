@@ -13,6 +13,7 @@ import (
 // the same answer on whether an erasure ended it, also in the second in
 // which the bound of the clocks ends (contracts/cluster.md section 5).
 func TestErasureAnswersTheSameForTheNodeThatDecidedAndTheOthers(t *testing.T) {
+	Parallel(t)
 	key, _ := behaviour.KeyOf(netip.MustParseAddr("203.0.113.77"))
 	at := time.Date(2026, 11, 27, 10, 0, 0, 500e6, time.UTC)
 	a := &App{}

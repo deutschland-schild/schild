@@ -6,6 +6,7 @@
 package store
 
 import (
+	"bytes"
 	"context"
 	"crypto/rand"
 	"database/sql"
@@ -261,6 +262,39 @@ func (s *Store) Put(ctx context.Context, k string, v []byte) error {
 		return put(ctx)
 	}
 	return s.changed(ctx, k, v, put)
+}
+
+// ErrChanged says that a value is not the one the caller read: somebody
+// wrote it in between. Nothing was stored.
+var ErrChanged = errors.New("store: the value changed since it was read")
+
+// Swap stores a kv value when the stored one still is old, in one
+// transaction, and returns ErrChanged otherwise. A value that is not there
+// and an empty one are the same, for old and for v: an empty v removes the
+// key. It is for a writer that read the value, built the next from it and
+// must not write over a change made meanwhile (the group's sync).
+func (s *Store) Swap(ctx context.Context, k string, old, v []byte) error {
+	tx, err := s.begin(ctx)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+	var cur []byte
+	if err := tx.QueryRowContext(ctx, "SELECT v FROM kv WHERE k = ?", k).Scan(&cur); err != nil && !errors.Is(err, sql.ErrNoRows) {
+		return err
+	}
+	if !bytes.Equal(cur, old) {
+		return ErrChanged
+	}
+	if len(v) == 0 {
+		_, err = tx.ExecContext(ctx, "DELETE FROM kv WHERE k = ?", k)
+	} else {
+		_, err = tx.ExecContext(ctx, "INSERT INTO kv(k, v) VALUES(?, ?) ON CONFLICT(k) DO UPDATE SET v = excluded.v", k, v)
+	}
+	if err != nil {
+		return err
+	}
+	return tx.Commit()
 }
 
 // Keys returns the keys of the kv values, sorted.

@@ -13,6 +13,7 @@ import (
 // D38: an unreachable cap sets the hint flag and logs at most one warning
 // per hour; a pass that reaches the cap clears the flag.
 func TestNoteCapWarnsOncePerHour(t *testing.T) {
+	Parallel(t)
 	var buf bytes.Buffer
 	a := &App{log: slog.New(slog.NewTextHandler(&buf, nil))}
 	now := time.Now()

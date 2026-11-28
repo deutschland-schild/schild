@@ -239,8 +239,11 @@ type App struct {
 	// the loop; sharedMarks: what this node last brought in step, per thing
 	// and entry; sharedCaught: things whose group entries were taken once.
 	sharedPending map[string]map[string]pendingEntry
-	sharedMarks   map[string]map[string]string
-	sharedCaught  map[string]bool
+	// sharedBeforeWrite, when set, runs before the sync writes a thing it
+	// put together (tests: a change made on this node at that moment).
+	sharedBeforeWrite func(thing string)
+	sharedMarks       map[string]map[string]string
+	sharedCaught      map[string]bool
 	// hubShare is the hub source as the group shares its index
 	// (cluster_hub.go); tests put another one in.
 	hubShare atomic.Pointer[hubIndex]

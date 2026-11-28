@@ -34,6 +34,7 @@ func loginsOf(g *groupNode, client string) float64 {
 // give the client a fresh allowance. The counts that follow are not added a
 // second time by the second pass.
 func TestRestartedNodeHoldsTheCountsOfTheGroupWhenItIsReady(t *testing.T) {
+	app.Parallel(t)
 	a, b := pair(t)
 	b.h.WaitFor("web-2 is in service", func() bool { return b.h.App.InService() })
 	const client = "198.51.100.90/32"
@@ -63,6 +64,7 @@ func TestRestartedNodeHoldsTheCountsOfTheGroupWhenItIsReady(t *testing.T) {
 
 // The first node of a group has nobody to ask and is ready without a wait.
 func TestOnlyNodeOfAGroupNeedsNoHandover(t *testing.T) {
+	app.Parallel(t)
 	a, _ := pair(t)
 	a.h.WaitFor("web-1 is in service", func() bool { return a.h.App.InService() })
 	if !a.h.App.WarmDone() {
@@ -71,6 +73,7 @@ func TestOnlyNodeOfAGroupNeedsNoHandover(t *testing.T) {
 }
 
 func TestClockOddRule(t *testing.T) {
+	app.Parallel(t)
 	s := time.Second
 	for _, c := range []struct {
 		name  string
@@ -104,6 +107,7 @@ func TestClockOddRule(t *testing.T) {
 // The rule across a whole group: every node judges by the clocks of all the
 // others, and never every node leaves.
 func TestClockOddRuleAcrossTheGroup(t *testing.T) {
+	app.Parallel(t)
 	s := time.Second
 	nodes := func(n int, clock time.Duration) []time.Duration { return slices.Repeat([]time.Duration{clock}, n) }
 	for _, c := range []struct {
@@ -148,6 +152,7 @@ func TestClockOddRuleAcrossTheGroup(t *testing.T) {
 // A node that sees the other gateways agree and itself a minute off leaves
 // traffic, says why on the overview, and returns when its clock is right.
 func TestNodeWithTheOddClockLeavesTrafficAndReturns(t *testing.T) {
+	app.Parallel(t)
 	a, b := pair(t)
 	b.h.WaitFor("web-2 is in service", func() bool { return b.h.App.InService() })
 	b.h.App.SetClocks(func() []time.Duration { return []time.Duration{-90 * time.Second, -91 * time.Second} })
@@ -168,6 +173,7 @@ func TestNodeWithTheOddClockLeavesTrafficAndReturns(t *testing.T) {
 // If a multi-page warm handover fails on a later page, retrying from cursor 0
 // must not add the earlier pages' counters a second time.
 func TestWarmStartAbortedPageDoesNotDoubleCount(t *testing.T) {
+	app.Parallel(t)
 	a, b := pair(t)
 	b.h.WaitFor("web-2 is in service", func() bool { return b.h.App.InService() })
 	if err := b.h.Stop(); err != nil {

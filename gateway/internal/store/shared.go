@@ -11,11 +11,13 @@ import (
 // Tables a group of gateways shares as a whole (MVP-27, D105): the rows of
 // one node replace the rows of the others. They are small and changed by a
 // person or an agent, not by traffic.
-var sharedTables = map[string]struct {
+type sharedTable struct {
 	table string
 	cols  []string
 	order string
-}{
+}
+
+var sharedTables = map[string]sharedTable{
 	"allowlist": {"allowlist", []string{"id", "ip", "cidr", "host", "label", "level", "expires", "created_ms", "source"}, "id"},
 	// Without the id: two nodes number their rows alone, and a row is the
 	// same exception on every node by what it says.
@@ -46,7 +48,11 @@ func (s *Store) DumpShared(ctx context.Context, name string) ([]byte, error) {
 	if !ok {
 		return nil, fmt.Errorf("store: %q is no shared table", name)
 	}
-	rows, err := s.q(ctx).QueryContext(ctx, "SELECT "+quoted(t.cols)+" FROM "+t.table+" ORDER BY "+t.order)
+	return dumpShared(ctx, s.q(ctx), t)
+}
+
+func dumpShared(ctx context.Context, q querier, t sharedTable) ([]byte, error) {
+	rows, err := q.QueryContext(ctx, "SELECT "+quoted(t.cols)+" FROM "+t.table+" ORDER BY "+t.order)
 	if err != nil {
 		return nil, err
 	}
@@ -74,10 +80,12 @@ func (s *Store) DumpShared(ctx context.Context, name string) ([]byte, error) {
 	return json.Marshal(d)
 }
 
-// RestoreShared replaces the rows of a shared table with a dump of another
-// node, in one transaction. A dump with other columns (another version of
-// schild) is refused and nothing changes.
-func (s *Store) RestoreShared(ctx context.Context, name string, dump []byte) error {
+// SwapShared replaces the rows of a shared table with a dump of another
+// node, in one transaction, when the table still dumps as old (what
+// DumpShared gave the caller); otherwise it returns ErrChanged and nothing
+// changes: a row written meanwhile is not lost. A dump with other columns
+// (another version of schild) is refused and nothing changes.
+func (s *Store) SwapShared(ctx context.Context, name string, old, dump []byte) error {
 	t, ok := sharedTables[name]
 	if !ok {
 		return fmt.Errorf("store: %q is no shared table", name)
@@ -96,6 +104,13 @@ func (s *Store) RestoreShared(ctx context.Context, name string, dump []byte) err
 		return err
 	}
 	defer tx.Rollback()
+	cur, err := dumpShared(ctx, tx, t)
+	if err != nil {
+		return err
+	}
+	if !bytes.Equal(cur, old) {
+		return ErrChanged
+	}
 	if _, err := tx.ExecContext(ctx, "DELETE FROM "+t.table); err != nil {
 		return err
 	}

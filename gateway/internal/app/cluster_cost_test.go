@@ -15,6 +15,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/deutschland-schild/schild/gateway/internal/app"
 	"github.com/deutschland-schild/schild/gateway/internal/apptest"
 	"github.com/deutschland-schild/schild/gateway/internal/cluster"
 	"github.com/deutschland-schild/schild/gateway/internal/reqring"
@@ -29,6 +30,7 @@ import (
 //
 //	SCHILD_TRANSFER_RATE=20000 go test ./internal/app -run TestTransferRateOfRequests -v -timeout 600s
 func TestTransferRateOfRequests(t *testing.T) {
+	app.Parallel(t)
 	rate, _ := strconv.Atoi(os.Getenv("SCHILD_TRANSFER_RATE"))
 	if rate <= 0 {
 		t.Skip("set SCHILD_TRANSFER_RATE to measure")

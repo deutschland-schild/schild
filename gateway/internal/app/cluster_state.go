@@ -46,8 +46,12 @@ type sharedThing struct {
 	codec entryCodec
 	// read returns the value as schild.db holds it; empty: none.
 	read func(ctx context.Context) ([]byte, error)
-	// write stores a value of another node and makes it effective.
-	write func(ctx context.Context, v []byte) error
+	// write stores a value put together from old (what read returned) and
+	// the entries of other nodes, and makes it effective. It stores only
+	// when the stored value still is old and returns store.ErrChanged
+	// otherwise: a change made on this node between the read and the write
+	// (the dashboard, a command on the host) is not written over.
+	write func(ctx context.Context, old, v []byte) error
 	// hold, when set, is asked before a node hands over a thing it never
 	// brought in step with the group: true keeps its entries back for now
 	// (holdFirstKeys).
@@ -64,7 +68,7 @@ func sum(b []byte) string {
 	return hex.EncodeToString(h[:])
 }
 
-func (a *App) kvThing(id string, codec entryCodec, apply func(ctx context.Context, v []byte) error) sharedThing {
+func (a *App) kvThing(id string, codec entryCodec, apply func(ctx context.Context, old, v []byte) error) sharedThing {
 	return sharedThing{class: contract.ClassSettings, id: id, codec: codec,
 		read: func(ctx context.Context) ([]byte, error) {
 			v, err := a.Store.Get(ctx, id)
@@ -73,26 +77,19 @@ func (a *App) kvThing(id string, codec entryCodec, apply func(ctx context.Contex
 			}
 			return v, err
 		},
-		write: func(ctx context.Context, v []byte) error {
+		write: func(ctx context.Context, old, v []byte) error {
 			if apply != nil {
-				return apply(ctx, v)
+				return apply(ctx, old, v)
 			}
-			return a.putKV(ctx, id, v)
+			return a.Store.Swap(ctx, id, old, v)
 		}}
-}
-
-func (a *App) putKV(ctx context.Context, id string, v []byte) error {
-	if len(v) == 0 {
-		return a.Store.Delete(ctx, id)
-	}
-	return a.Store.Put(ctx, id, v)
 }
 
 func (a *App) tableThing(class, id string, pk int, after func(ctx context.Context)) sharedThing {
 	return sharedThing{class: class, id: id, codec: tableCodec{pk: pk},
 		read: func(ctx context.Context) ([]byte, error) { return a.Store.DumpShared(ctx, id) },
-		write: func(ctx context.Context, v []byte) error {
-			if err := a.Store.RestoreShared(ctx, id, v); err != nil {
+		write: func(ctx context.Context, old, v []byte) error {
+			if err := a.Store.SwapShared(ctx, id, old, v); err != nil {
 				return err
 			}
 			if after != nil {
@@ -196,8 +193,8 @@ func (a *App) holdFirstKeys() bool {
 // limits of another node and applies both, validated with this node's
 // schild.yaml as at the start. A value that does not fit this node's file
 // is not stored: the node keeps its settings and says so.
-func (a *App) takeStoredSettings(id string) func(ctx context.Context, v []byte) error {
-	return func(ctx context.Context, v []byte) error {
+func (a *App) takeStoredSettings(id string) func(ctx context.Context, old, v []byte) error {
+	return func(ctx context.Context, old, v []byte) error {
 		a.mu.Lock()
 		ov, dash := a.overlay, a.dashLimits
 		switch id {
@@ -223,7 +220,7 @@ func (a *App) takeStoredSettings(id string) func(ctx context.Context, v []byte) 
 			a.mu.Unlock()
 			return fmt.Errorf("settings of the group do not fit the schild.yaml of this node (config drift): %w", err)
 		}
-		if err := a.putKV(ctx, id, v); err != nil {
+		if err := a.Store.Swap(ctx, id, old, v); err != nil {
 			a.mu.Unlock()
 			return err
 		}
@@ -244,7 +241,7 @@ func (a *App) takeStoredSettings(id string) func(ctx context.Context, v []byte) 
 	}
 }
 
-func (a *App) takeCrawlers(ctx context.Context, v []byte) error {
+func (a *App) takeCrawlers(ctx context.Context, old, v []byte) error {
 	st := crawlers.NewState()
 	if len(v) > 0 {
 		if err := json.Unmarshal(v, st); err != nil {
@@ -256,14 +253,14 @@ func (a *App) takeCrawlers(ctx context.Context, v []byte) error {
 	}
 	a.crawlersMu.Lock()
 	defer a.crawlersMu.Unlock()
-	if err := a.putKV(ctx, crawlers.StoreKey, v); err != nil {
+	if err := a.Store.Swap(ctx, crawlers.StoreKey, old, v); err != nil {
 		return err
 	}
 	a.Crawlers.Set(st)
 	return nil
 }
 
-func (a *App) takeAccess(ctx context.Context, v []byte) error {
+func (a *App) takeAccess(ctx context.Context, old, v []byte) error {
 	st := accesslock.NewState()
 	if len(v) > 0 {
 		if err := json.Unmarshal(v, st); err != nil {
@@ -275,7 +272,7 @@ func (a *App) takeAccess(ctx context.Context, v []byte) error {
 	}
 	a.accessMu.Lock()
 	defer a.accessMu.Unlock()
-	if err := a.putKV(ctx, accesslock.StoreKey, v); err != nil {
+	if err := a.Store.Swap(ctx, accesslock.StoreKey, old, v); err != nil {
 		return err
 	}
 	a.Access.Store(st)
@@ -286,7 +283,7 @@ func (a *App) takeAccess(ctx context.Context, v []byte) error {
 // takeHumanCheck takes the browser check of the group: its policies and the
 // keys behind the cookies, so a visitor who passed on one node passes on
 // the next.
-func (a *App) takeHumanCheck(ctx context.Context, v []byte) error {
+func (a *App) takeHumanCheck(ctx context.Context, old, v []byte) error {
 	if len(v) == 0 {
 		return nil // a node always has its own keys
 	}
@@ -302,7 +299,7 @@ func (a *App) takeHumanCheck(ctx context.Context, v []byte) error {
 	}
 	a.humanCheckMu.Lock()
 	defer a.humanCheckMu.Unlock()
-	if err := a.Store.Put(ctx, humancheck.StoreKey, v); err != nil {
+	if err := a.Store.Swap(ctx, humancheck.StoreKey, old, v); err != nil {
 		return err
 	}
 	a.HumanCheck.Store(st)
@@ -312,7 +309,7 @@ func (a *App) takeHumanCheck(ctx context.Context, v []byte) error {
 // takeRuleExceptions builds the rules with the exceptions of the group,
 // then stores them. A build that fails leaves the running rules and the
 // stored exceptions.
-func (a *App) takeRuleExceptions(ctx context.Context, v []byte) error {
+func (a *App) takeRuleExceptions(ctx context.Context, old, v []byte) error {
 	var next []contractapi.RuleException
 	if len(v) > 0 {
 		if err := json.Unmarshal(v, &next); err != nil {
@@ -333,7 +330,7 @@ func (a *App) takeRuleExceptions(ctx context.Context, v []byte) error {
 	if _, err := a.Composer.SetExceptions(text); err != nil {
 		return fmt.Errorf("the rules did not build with the exceptions of the group: %w", err)
 	}
-	if err := a.putKV(ctx, ruleExceptionsKey, v); err != nil {
+	if err := a.Store.Swap(ctx, ruleExceptionsKey, old, v); err != nil {
 		if old, rerr := renderRuleExceptions(a.exceptions); rerr == nil {
 			_, _ = a.Composer.SetExceptions(old)
 		}
@@ -622,7 +619,25 @@ func (a *App) syncThing(ctx context.Context, t sharedThing, synced bool) {
 			stored, err = t.codec.split(next)
 		}
 		if err == nil {
-			err = t.write(ctx, next)
+			if a.sharedBeforeWrite != nil {
+				a.sharedBeforeWrite(t.key())
+			}
+			err = t.write(ctx, blob, next)
+		}
+		if errors.Is(err, store.ErrChanged) {
+			// The value changed on this node while this round put it
+			// together. Nothing is written and nothing is noted: the entries
+			// wait, and the next round reads the value anew.
+			if a.sharedPending[t.key()] == nil {
+				a.sharedPending[t.key()] = map[string]pendingEntry{}
+			}
+			for k, p := range pending {
+				if _, newer := a.sharedPending[t.key()][k]; !newer {
+					a.sharedPending[t.key()][k] = p
+				}
+			}
+			a.sharedDue.Store(true)
+			return
 		}
 		if err != nil {
 			// The node keeps its own. It notes the entries as in step all
@@ -778,29 +793,43 @@ func (a *App) takeGroupThing(ctx context.Context, t sharedThing, blob []byte, lo
 		group[v.K] = val
 	}
 	set, del := map[string][]byte{}, []string{}
+	gone := map[string][]byte{} // what this node gives up
 	for k, v := range group {
 		if cur, here := local[k]; !here || sum(cur) != sum(v) {
 			set[k] = v
 			if here {
-				_ = node.Keep(t.key()+" "+k, cur)
+				gone[k] = cur
 			}
 		}
 	}
 	for k, cur := range local {
 		if _, ok := group[k]; !ok {
 			del = append(del, k)
-			_ = node.Keep(t.key()+" "+k, cur)
+			gone[k] = cur
 		}
 	}
-	delete(a.sharedPending, t.key())
 	if len(set)+len(del) > 0 {
 		next, err := t.codec.join(blob, set, del)
 		if err == nil {
-			err = t.write(ctx, next)
+			if a.sharedBeforeWrite != nil {
+				a.sharedBeforeWrite(t.key())
+			}
+			err = t.write(ctx, blob, next)
+		}
+		if errors.Is(err, store.ErrChanged) {
+			// The value changed on this node meanwhile: once more with the
+			// next round, from what it holds then.
+			a.sharedCaught[t.key()] = false
+			a.sharedDue.Store(true)
+			return
 		}
 		if err != nil {
 			ratelog.Error(a.log, "cluster: this node was away too long and the group's value was not applied; it keeps its own and hands none of it over", "thing", t.key(), "err", err)
 		} else {
+			// Kept after the write, as syncThing does: only what was given up.
+			for k, cur := range gone {
+				_ = node.Keep(t.key()+" "+k, cur)
+			}
 			a.log.Warn("cluster: this node was away too long and took the group's value; what it held is kept in cluster.db (table replaced)", "thing", t.key(), "taken", len(set), "dropped", len(del))
 		}
 		if blob, err = t.read(ctx); err == nil {

@@ -16,6 +16,7 @@ import (
 // The config version a node tells its group leaves out what differs from
 // node to node by design, and nothing else.
 func TestGroupConfigVersionLeavesOutWhatDiffersByDesign(t *testing.T) {
+	app.Parallel(t)
 	one := "node_name: web-1\nmode: autoblock\ncluster:\n  enabled: true\n  listen: \"10.0.0.1:8790\"\n  peers: [\"10.0.0.1:8790\", \"10.0.0.2:8790\"]\n"
 	two := "cluster:\n  peers: [\"10.0.0.2:8790\", \"10.0.0.1:8790\"]\n  advertise: \"10.0.0.2:8790\"\n  enabled: true\n  listen: \"0.0.0.0:8790\"\nmode: autoblock\nnode_name: web-2\nlisten: {dashboard: \"10.0.0.2:8443\", metrics: \"10.0.0.2:9090\"}\n"
 	v := app.GroupConfigVersion([]byte(one), "rules")
@@ -45,6 +46,7 @@ func TestGroupConfigVersionLeavesOutWhatDiffersByDesign(t *testing.T) {
 }
 
 func TestVitalsOfAnotherNodeAreBounded(t *testing.T) {
+	app.Parallel(t)
 	now := time.Date(2026, 11, 22, 10, 0, 0, 0, time.UTC)
 	f := func(v float64) *float64 { return &v }
 	if app.CleanVitals(nil, now) != nil || app.CleanVitals(&dashboard.GroupVitals{Service: "fine"}, now) != nil {
@@ -65,6 +67,7 @@ func TestVitalsOfAnotherNodeAreBounded(t *testing.T) {
 }
 
 func TestGroupStatusShowsHowEveryGatewayIsDoing(t *testing.T) {
+	app.Parallel(t)
 	a, b := pair(t)
 	// web-1 names itself at once and web-2 within the next word of web-2.
 	a.h.WaitFor("web-1 shows the vitals of both gateways", func() bool {
@@ -109,6 +112,7 @@ func TestGroupStatusShowsHowEveryGatewayIsDoing(t *testing.T) {
 // node_name, lies on all of them; cluster.name wins, and without either
 // node_name stays, also when a deployment gives every node its own.
 func TestMemberNameOfANode(t *testing.T) {
+	app.Parallel(t)
 	site := func(name string, fromHost bool) *config.Site {
 		s := &config.Site{NodeName: "schild-1"}
 		s.Cluster.Name, s.Cluster.NameFromHost = name, fromHost

@@ -22,6 +22,11 @@ func TestNotingAndRemovingLiftsDoNotStandInEachOthersWay(t *testing.T) {
 	s := open(t)
 	s.ShareLifts()
 	const writers, rounds = 4, 40
+	// A path that stands behind another waits for the busy timeout of the
+	// database, 10 s. The bound lies below that and well above what the
+	// work takes on a loaded machine with the race detector (about 2 s on
+	// a hosted runner that runs other packages beside this one).
+	const stall = 8 * time.Second
 	start := time.Now()
 	stop := make(chan struct{})
 	var wg, loops sync.WaitGroup
@@ -91,8 +96,8 @@ func TestNotingAndRemovingLiftsDoNotStandInEachOthersWay(t *testing.T) {
 	go func() { wg.Wait(); close(done) }()
 	select {
 	case <-done:
-	case <-time.After(5 * time.Second):
-		t.Fatalf("the paths that note lifts stand after 5 s (first error: %v)", failed.Load())
+	case <-time.After(stall):
+		t.Fatalf("the paths that note lifts stand after %s (first error: %v)", stall, failed.Load())
 	}
 	// What is left is removed, and nothing stays in memory.
 	deadline := time.Now().Add(2 * time.Second)
@@ -104,8 +109,8 @@ func TestNotingAndRemovingLiftsDoNotStandInEachOthersWay(t *testing.T) {
 	if err := failed.Load(); err != nil {
 		t.Fatalf("a path failed: %v", err)
 	}
-	if took := time.Since(start); took > 2*time.Second {
-		t.Errorf("%d notes and their removal took %s, want well under 2 s: a path stood behind another", 3*writers*rounds, took.Round(time.Millisecond))
+	if took := time.Since(start); took > stall {
+		t.Errorf("%d notes and their removal took %s, want under %s: a path stood behind another", 3*writers*rounds, took.Round(time.Millisecond), stall)
 	}
 	if d := time.Duration(slowest.Load()); d > 100*time.Millisecond {
 		t.Errorf("the question whether a lift is noted waited %s: it stood behind a transaction", d.Round(time.Millisecond))

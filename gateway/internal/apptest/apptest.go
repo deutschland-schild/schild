@@ -2,6 +2,36 @@
 
 // Package apptest assembles a complete schild (app.New) with a test backend
 // for integration and API contract tests. TEST ONLY.
+//
+// # Which test may run in parallel
+//
+// The tests of internal/app wait for real time most of the time, so they
+// run in parallel where nothing of the process is theirs alone. A test
+// function calls app.Parallel(t) as its first statement (never t.Parallel
+// itself, see there for the reason) unless one of these holds, for the test
+// itself or for a helper it calls:
+//
+//   - It starts the embedded Caddy (Options.Listeners) or reads a Caddyfile
+//     (Options.Caddyfile). A process binds one gate to Caddy (caddymod.Bind),
+//     and the check of a Caddyfile binds one for a moment. New refuses both
+//     in a parallel test.
+//   - It changes something of the package: a hook or a time of package app
+//     (the functions app.Set..., app.OneGroupHashKey, app.StartAsBuildBefore
+//     and variables such as loopRestart). These are for every gateway of the
+//     process.
+//   - It changes the process: t.Setenv, os.Chdir, TMPDIR.
+//   - It measures: it counts what happens in a window of real time, has an
+//     upper bound for a duration, or reads the memory or CPU of the process.
+//     Other tests that run next to it take the CPU it counts on.
+//
+// Go runs the sequential tests first, one after the other, and the
+// parallel ones after them, so a test that stays sequential never meets a
+// parallel one. A test that stays sequential for a reason its code does not
+// show says so in a comment ("Not parallel: ...").
+//
+// What a parallel test may rely on: a directory of its own (t.TempDir), a
+// port of its own until it ends (FreeAddr), and state on its own *app.App
+// (methods such as App.SetClocks are fine).
 package apptest
 
 import (
@@ -104,6 +134,12 @@ func New(t testing.TB, o Options) *Harness {
 	t.Helper()
 	if o.Mode == "observe" {
 		o.Profile = "test"
+	}
+	if o.Listeners || o.Caddyfile != "" {
+		// One gate per process is bound to Caddy. Setenv panics in a
+		// parallel test, which is the check wanted here (see the package
+		// comment).
+		t.Setenv("SCHILD_TEST_USES_CADDY", "1")
 	}
 	h := &Harness{T: t, Dir: o.Dir, Password: password}
 	if h.Dir == "" {

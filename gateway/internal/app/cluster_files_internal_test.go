@@ -18,6 +18,7 @@ import (
 // certmagic's temporary file (a random name without an extension) and this
 // node's own `.tmp`.
 func TestTakingADirectoryLeavesFilesBeingWritten(t *testing.T) {
+	Parallel(t)
 	root := t.TempDir()
 	const id = "acme/ca.example-directory/users/admin@shop.example"
 	dir := filepath.Join(root, filepath.FromSlash(id))

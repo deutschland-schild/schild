@@ -6,6 +6,7 @@ import (
 	"context"
 	"testing"
 
+	"github.com/deutschland-schild/schild/gateway/internal/app"
 	"github.com/deutschland-schild/schild/gateway/internal/control"
 )
 
@@ -14,6 +15,7 @@ import (
 // reset-password on another node cannot re-enable it. A local reset on the
 // node itself must still work.
 func TestClusterLoginsClearStartupSetupCode(t *testing.T) {
+	app.Parallel(t)
 	a, b := pair(t)
 	ctx := context.Background()
 

@@ -18,6 +18,7 @@ func headsOnly() *groupData {
 // earlier build never does), when the member said that something moved,
 // when it restarted, and after the safety time whatever was said.
 func TestWhenANodeAsksAMember(t *testing.T) {
+	Parallel(t)
 	g := headsOnly()
 	const peer = "n-00000000000000000000000000000001"
 	now := time.Unix(1795000100, 0)
@@ -80,6 +81,7 @@ func TestWhenANodeAsksAMember(t *testing.T) {
 // The answer with requests reads in both forms and says the same, and a
 // broken compact answer is refused as a whole.
 func TestAnswerWithRequestsInBothForms(t *testing.T) {
+	Parallel(t)
 	rows := []reqring.Entry{
 		{T: 1795000000123, Seq: 11, Client: netip.MustParseAddr("203.0.113.7"), Site: "shop.example", Host: "shop.example", RawPath: "/a", Template: "/a", UA: "curl/8", Status: 200, Country: [2]byte{'D', 'E'}},
 		{T: 1795000000456, Seq: 12, Client: netip.MustParseAddr("2001:db8::9"), Site: "shop.example", Host: "shop.example", RawPath: "/b/7", Template: "/b/{n}", UA: "curl/8", Status: 403, Outcome: reqring.OutBlockedWAF,

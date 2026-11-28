@@ -7,12 +7,14 @@ import (
 	"time"
 
 	"github.com/deutschland-schild/schild/contract/storage"
+	"github.com/deutschland-schild/schild/gateway/internal/app"
 	"github.com/deutschland-schild/schild/gateway/internal/apptest"
 )
 
 // TestStorageBudgetChecked: the running gateway checks the disk budget at
 // start (D38) with the metrics.db bound of its websites.
 func TestStorageBudgetChecked(t *testing.T) {
+	app.Parallel(t)
 	h := apptest.New(t, apptest.Options{})
 	deadline := time.Now().Add(5 * time.Second)
 	for h.App.StorageBudget() == nil && time.Now().Before(deadline) {
