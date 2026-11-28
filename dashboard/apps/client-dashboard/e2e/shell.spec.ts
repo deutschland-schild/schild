@@ -54,7 +54,7 @@ test('mobile navigation opens as a sheet', async ({ page, isMobile }) => {
 
 // Messung 2026-10-29 abend 4.5: the header overflowed by 82-98 px at 360-430 px.
 for (const width of [360, 390, 430]) {
-  test(`header fits at ${width} px: mode, search and theme toggle on screen`, async ({ page, isMobile }) => {
+  test(`header fits at ${width} px: search and theme toggle on screen`, async ({ page, isMobile }) => {
     test.skip(!isMobile, 'mobile only')
     await page.setViewportSize({ width, height: 800 })
     for (const path of ['./', './#/w/shop.example/events', './#/behaviour']) {
@@ -65,7 +65,8 @@ for (const width of [360, 390, 430]) {
         return { overflow: h.scrollWidth - h.clientWidth, doc: document.documentElement.scrollWidth - document.documentElement.clientWidth }
       })
       expect(header).toEqual({ overflow: 0, doc: 0 })
-      for (const control of [page.getByTestId('mode-indicator'), page.getByRole('button', { name: 'Suchen' }), page.getByRole('button', { name: 'Darstellung wählen' })]) {
+      // D89 took the mode indicator out of the header.
+      for (const control of [page.getByRole('button', { name: 'Suchen' }), page.getByRole('button', { name: 'Darstellung wählen' })]) {
         const box = (await control.boundingBox())!
         expect(box.x + box.width).toBeLessThanOrEqual(width)
       }

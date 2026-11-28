@@ -57,7 +57,7 @@ const activeTone: Record<NonNullable<SegmentOption['tone']>, string> = { ink: ca
           activeTone[o.tone ?? 'signal'],
         )"
       >
-        {{ o.label }} <span v-if="o.mark" class="font-normal opacity-70" data-slot="segment-mark">{{ o.mark }}</span>
+        {{ o.label }} <span v-if="o.mark" class="font-normal" data-slot="segment-mark">{{ o.mark }}</span>
       </RadioGroupItem>
     </RadioGroupRoot>
     <p v-if="showReasons && reasons.length" class="text-xs text-muted-foreground">

@@ -149,7 +149,7 @@ async function doTakeOut() {
             <span class="text-muted-foreground">Regeln:</span>
             <span v-for="id in g.rules" :key="id" class="inline-flex items-center" data-testid="rule-exception-rule" :data-rule="id">
               <RouterLink :to="rulesPath(g.first.repository, id)" class="font-mono underline-offset-4 hover:underline">{{ id }}</RouterLink>
-              <button type="button" class="rounded-sm p-0.5 text-muted-foreground hover:text-foreground focus-visible:outline-2" :aria-label="`Regel ${id} aus der Ausnahme nehmen`" title="Aus der Ausnahme nehmen" data-testid="rule-exception-rule-remove" @click="askTakeOut(g, id)">
+              <button type="button" class="inline-flex size-6 items-center justify-center rounded-sm text-muted-foreground hover:text-foreground focus-visible:outline-2" :aria-label="`Regel ${id} aus der Ausnahme nehmen`" title="Aus der Ausnahme nehmen" data-testid="rule-exception-rule-remove" @click="askTakeOut(g, id)">
                 <X class="size-3" aria-hidden="true" />
               </button>
             </span>
@@ -166,7 +166,7 @@ async function doTakeOut() {
               <p class="flex flex-wrap gap-x-2 gap-y-1">
                 <span v-for="id in f.rules" :key="id" class="inline-flex items-center" data-testid="rule-exception-rule" :data-rule="id">
                   <RouterLink :to="rulesPath(g.first.repository, id)" class="font-mono underline-offset-4 hover:underline">{{ id }}</RouterLink>
-                  <button type="button" class="rounded-sm p-0.5 text-muted-foreground hover:text-foreground focus-visible:outline-2" :aria-label="`Regel ${id} aus der Ausnahme nehmen`" title="Aus der Ausnahme nehmen" data-testid="rule-exception-rule-remove" @click="askTakeOut(g, id)">
+                  <button type="button" class="inline-flex size-6 items-center justify-center rounded-sm text-muted-foreground hover:text-foreground focus-visible:outline-2" :aria-label="`Regel ${id} aus der Ausnahme nehmen`" title="Aus der Ausnahme nehmen" data-testid="rule-exception-rule-remove" @click="askTakeOut(g, id)">
                     <X class="size-3" aria-hidden="true" />
                   </button>
                 </span>
