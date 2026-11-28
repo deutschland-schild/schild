@@ -12,30 +12,39 @@ test('U1: Allgemein shows what blocks and the test profile at once', async ({ pa
 })
 
 test('U2: unblock an incident and allow the IP for 7 days', async ({ page }) => {
+  // The search for an incident is on the tab "Gestoppte Anfragen" of Sperren; /incidents leads there.
   await page.goto('./#/incidents')
-  await page.getByTestId('incident-input').fill('k7qm4xwd')
-  await expect(page.getByTestId('incident-input')).toHaveValue('K7QM-4XWD')
-  await page.getByTestId('incident-search').click()
+  await expect(page).toHaveURL(/#\/blocks\?view=requests/)
+  await page.getByTestId('blocks-incident-input').fill('k7qm4xwd')
+  await expect(page.getByTestId('blocks-incident-input')).toHaveValue('K7QM-4XWD')
+  await page.getByTestId('blocks-incident-search').click()
   await expect(page.getByTestId('incident-card')).toContainText('2001:db8::17')
   await page.getByTestId('incident-unblock').click()
-  const dialog = page.getByRole('dialog', { name: /Vorfall K7QM-4XWD freischalten/ })
+  const dialog = page.getByRole('dialog', { name: /Vorfall K7QM-4XWD/ })
+  await dialog.getByTestId('unblock-fp-no').click()
+  // The own IP is a choice of its own; its time is 7 days unless changed.
+  await dialog.getByTestId('unblock-allow-ip').click()
   await expect(dialog.getByTestId('unblock-ttl')).toHaveValue('7d')
-  await dialog.getByText('Nein oder unklar, nur diesmal freischalten').click()
   await dialog.getByTestId('unblock-submit').click()
-  await expect(page.getByTestId('incident-status')).toHaveText('Freigeschaltet')
-  await expect(page.getByText('Vorfall K7QM-4XWD freigeschaltet')).toBeVisible()
+  await expect(page.getByTestId('incident-status')).toHaveText('Aufgehoben')
+  await expect(page.getByText(/Vorfall K7QM-4XWD (aufgehoben|: wird durchgelassen)/)).toBeVisible()
   await page.goto('./#/own-ips')
   await expect(page.getByRole('table')).toContainText('Vorfall K7QM-4XWD')
 })
 
-test('U4: switch to review, the mode explains rule updates', async ({ page, isMobile }) => {
+// D89: there is no protection mode above the rule sources. Each source has its own switch.
+test('U4: switch a rule source to detect only, the card explains it', async ({ page, isMobile }) => {
   test.skip(isMobile, 'desktop flow')
-  await page.goto('./#/settings#mode')
-  await page.getByTestId('mode-review').click()
-  await expect(page.getByTestId('mode-explain')).toContainText('erkennen nur, bis du sie unter Regeln freigibst')
-  await page.getByTestId('mode-save').click()
-  await page.getByTestId('confirm-submit').click()
-  await expect(page.getByTestId('mode-indicator')).toContainText('Freigeben')
+  await page.goto('./#/settings/rules/crs')
+  const sw = page.getByTestId('repository-switch')
+  await expect(sw.getByRole('radio', { name: 'Sperren' })).toBeChecked()
+  const before = await page.getByTestId('repository-explain').textContent()
+  await sw.getByRole('radio', { name: 'Erkennen' }).click()
+  await expect(sw.getByRole('radio', { name: 'Erkennen' })).toBeChecked()
+  await expect(page.getByTestId('repository-explain')).not.toHaveText(before!)
+  // The overview of the rule sources shows the new state.
+  await page.goto('./#/settings/rules')
+  await expect(page.getByTestId('rules-crs')).toContainText('Erkennt nur')
 })
 
 test('U5: export and delete everything about one IP', async ({ page }) => {
@@ -75,8 +84,8 @@ test('first run: setup wizard to the overview', async ({ page }) => {
   await page.getByTestId('setup-password').fill('ein langes passwort 42')
   await page.getByTestId('setup-repeat').fill('ein langes passwort 42')
   await page.getByRole('button', { name: 'Weiter' }).click()
-  await expect(page.getByRole('heading', { name: 'Wie soll Schild arbeiten?' })).toBeVisible()
-  await page.getByRole('button', { name: 'Weiter' }).click()
+  // Two steps: the password, then the own IP (D89: no step for a protection mode).
+  await expect(page.getByRole('heading', { name: 'Nicht selbst aussperren' })).toBeVisible()
   await page.getByTestId('setup-finish').click()
   await expect(page.getByRole('heading', { level: 1, name: 'Alle Websites' })).toBeVisible()
 })

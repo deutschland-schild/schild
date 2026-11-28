@@ -117,6 +117,9 @@ jobs:
           cache-dependency-path: dashboard/pnpm-lock.yaml
       - run: pnpm install --frozen-lockfile
       - run: pnpm check
+      # The e2e tests of the gateway dashboard, against its mock mode. Without this step they went stale unseen.
+      - run: pnpm --filter @schild/client-dashboard exec playwright install --with-deps chromium
+      - run: pnpm --filter @schild/client-dashboard test:e2e
 
   website:
     name: website
