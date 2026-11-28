@@ -112,6 +112,16 @@ func (l *Log) move(ctx context.Context) error {
 			}
 			if fresh {
 				lines = append(lines, r.Body)
+				continue
+			}
+			// The id is there: moved before (a crash between copy and
+			// delete), or another entry under the same id, which is lost.
+			var have []byte
+			if err := tx.QueryRowContext(ctx, `SELECT body FROM entries WHERE id = ?`, r.ID).Scan(&have); err == nil && !bytes.Equal(have, r.Body) {
+				l.differing.Add(1)
+				if l.opts.Log != nil {
+					l.opts.Log.Error("audit log: the file holds another entry under the id of a new one; the new one is lost", "id", r.ID)
+				}
 			}
 		}
 		if err := tx.Commit(); err != nil {

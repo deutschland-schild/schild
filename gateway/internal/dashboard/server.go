@@ -880,10 +880,16 @@ func (s *Server) login(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) logout(w http.ResponseWriter, r *http.Request) {
 	se := sessionOf(r)
-	_ = s.Audit.Tx(r.Context(), func(ctx context.Context, rec *auditlog.Rec) error {
+	err := s.Audit.Tx(r.Context(), func(ctx context.Context, rec *auditlog.Rec) error {
 		rec.Add(s.entry(r, "session.end", "logout"))
 		return s.St.DeleteSession(ctx, se.TokenHash)
 	})
+	if err != nil {
+		// The session still stands: say so, and keep the cookie, so the
+		// user can try again.
+		s.internal(w, err)
+		return
+	}
 	http.SetCookie(w, &http.Cookie{Name: cookieName, Value: "", Path: "/", HttpOnly: true, Secure: secureCookie(r), SameSite: http.SameSiteStrictMode, MaxAge: -1})
 	w.WriteHeader(http.StatusNoContent)
 }

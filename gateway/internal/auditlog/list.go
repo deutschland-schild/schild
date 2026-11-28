@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"math"
 	"sort"
 	"strconv"
 	"strings"
@@ -102,6 +103,24 @@ const topCursor = "a9223372036854775807.9223372036854775807"
 // ErrCursor: the cursor of a List is not one of its own.
 var ErrCursor = fmt.Errorf("audit: invalid cursor")
 
+// outboxBatch entries of the outbox are read at once.
+const outboxBatch = 200
+
+// outboxCursor reads the cursor of a page that starts in the outbox: none,
+// or o<seq>. waiting is false for a cursor of the file.
+func outboxCursor(c string) (before int64, waiting bool, err error) {
+	switch {
+	case c == "":
+		return math.MaxInt64, true, nil
+	case strings.HasPrefix(c, "o"):
+		if before, err = strconv.ParseInt(c[1:], 10, 64); err != nil {
+			return 0, false, ErrCursor
+		}
+		return before, true, nil
+	}
+	return 0, false, nil
+}
+
 func parseCursor(c string) (timeMS, seq int64, err error) {
 	t, s, ok := strings.Cut(strings.TrimPrefix(c, "a"), ".")
 	if !ok || !strings.HasPrefix(c, "a") {
@@ -132,23 +151,39 @@ func (l *Log) List(ctx context.Context, f Filter, cursor string, limit int) ([]m
 		e      map[string]any
 	}
 	var items []item
-	if cursor == "" {
-		rows, err := l.st.AuditOutbox(ctx, MaxPage)
-		if err != nil {
-			return nil, "", err
-		}
-		for _, r := range rows {
-			e, err := jsonx.ParseObject(r.Body)
+	// The entries that wait in the outbox come first, newest first, over as
+	// many pages as they need (cursor o<seq>); the file follows from its top.
+	next := ""
+	if before, waiting, err := outboxCursor(cursor); err != nil {
+		return nil, "", err
+	} else if waiting {
+		cursor = ""
+	scan:
+		for {
+			rows, err := l.st.AuditOutboxBefore(ctx, before, outboxBatch)
 			if err != nil {
-				continue
+				return nil, "", err
 			}
-			if c := columns(e); f.match(c) {
-				items = append(items, item{c.timeMS, e})
+			for _, r := range rows {
+				if len(items) == limit {
+					next = "o" + strconv.FormatInt(before, 10)
+					break scan
+				}
+				before = r.Seq
+				e, err := jsonx.ParseObject(r.Body)
+				if err != nil {
+					continue
+				}
+				if c := columns(e); f.match(c) {
+					items = append(items, item{c.timeMS, e})
+				}
+			}
+			if len(rows) < outboxBatch {
+				break
 			}
 		}
-		sort.SliceStable(items, func(i, j int) bool { return items[i].timeMS > items[j].timeMS })
-		if len(items) > limit {
-			items = items[:limit]
+		if next == "" && l.db != nil && len(items) == limit {
+			next = topCursor
 		}
 	}
 	// An entry is moved while this reads: it may be in the outbox and in
@@ -156,11 +191,6 @@ func (l *Log) List(ctx context.Context, f Filter, cursor string, limit int) ([]m
 	seen := map[string]bool{}
 	for _, it := range items {
 		seen[str(it.e, "id")] = true
-	}
-	next := ""
-	if l.db != nil && len(items) == limit {
-		// The outbox filled the page: the file follows from its top.
-		next = topCursor
 	}
 	if l.db != nil && len(items) < limit {
 		where, args := f.where()
@@ -322,9 +352,19 @@ func (l *Log) Naming(ctx context.Context, address string, limit int) ([]map[stri
 			out = append(out, e)
 		}
 	}
-	if waiting, err := l.st.AuditOutbox(ctx, MaxPage); err == nil {
-		for i := len(waiting) - 1; i >= 0 && len(out) < limit; i-- {
-			take(waiting[i].Body)
+	for before := int64(math.MaxInt64); len(out) < limit; {
+		waiting, err := l.st.AuditOutboxBefore(ctx, before, outboxBatch)
+		if err != nil {
+			return nil, err
+		}
+		for _, r := range waiting {
+			before = r.Seq
+			if len(out) < limit {
+				take(r.Body)
+			}
+		}
+		if len(waiting) < outboxBatch {
+			break
 		}
 	}
 	if l.db == nil {

@@ -233,6 +233,17 @@ func Open(ctx context.Context, st *store.Store, path string, opts Options) (*Log
 				db.Close()
 				return nil, fmt.Errorf("audit log: %w", err)
 			}
+		} else {
+			// The same log, but schild.db may be older than the file (a
+			// backup put back): never draw a number the file holds.
+			nums, err := l.highest(ctx, name)
+			if err == nil {
+				err = st.RaiseAuditNumbers(ctx, nums)
+			}
+			if err != nil {
+				db.Close()
+				return nil, fmt.Errorf("audit log: %w", err)
+			}
 		}
 	}
 	if _, err := db.ExecContext(ctx, `INSERT INTO meta(k, v) VALUES('log', ?) ON CONFLICT(k) DO UPDATE SET v = excluded.v`, name); err != nil {

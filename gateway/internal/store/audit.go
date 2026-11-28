@@ -129,6 +129,27 @@ func (s *Store) AdoptAuditLog(ctx context.Context, name string, numbers map[stri
 	})
 }
 
+// RaiseAuditNumbers moves the numbers of the log up to the ones given where
+// they are lower: a schild.db from a backup next to a newer audit.db would
+// draw ids the file already holds.
+func (s *Store) RaiseAuditNumbers(ctx context.Context, numbers map[string]int64) error {
+	return s.InTx(ctx, func(ctx context.Context) error {
+		for letter, n := range numbers {
+			v, err := s.AuditState(ctx, "n_"+letter)
+			if err != nil {
+				return err
+			}
+			if have, _ := strconv.ParseInt(v, 10, 64); have >= n {
+				continue
+			}
+			if err := s.SetAuditState(ctx, "n_"+letter, strconv.FormatInt(n, 10)); err != nil {
+				return err
+			}
+		}
+		return nil
+	})
+}
+
 // NextAuditID draws the id of the next entry of a letter (k, a, r):
 // <log>-<letter>-<number>, the number counted from 1 per log and letter.
 // Called in the transaction that writes the entry, so a change that is
@@ -164,6 +185,25 @@ func (s *Store) PutAudit(ctx context.Context, r AuditRow) error {
 // AuditOutbox returns the entries that wait for audit.db, oldest first.
 func (s *Store) AuditOutbox(ctx context.Context, limit int) ([]AuditRow, error) {
 	rows, err := s.q(ctx).QueryContext(ctx, `SELECT seq, id, time_ms, class, body FROM audit_outbox ORDER BY seq LIMIT ?`, limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var out []AuditRow
+	for rows.Next() {
+		var r AuditRow
+		if err := rows.Scan(&r.Seq, &r.ID, &r.TimeMS, &r.Class, &r.Body); err != nil {
+			return nil, err
+		}
+		out = append(out, r)
+	}
+	return out, rows.Err()
+}
+
+// AuditOutboxBefore returns the entries that wait with a seq below before,
+// newest first.
+func (s *Store) AuditOutboxBefore(ctx context.Context, before int64, limit int) ([]AuditRow, error) {
+	rows, err := s.q(ctx).QueryContext(ctx, `SELECT seq, id, time_ms, class, body FROM audit_outbox WHERE seq < ? ORDER BY seq DESC LIMIT ?`, before, limit)
 	if err != nil {
 		return nil, err
 	}

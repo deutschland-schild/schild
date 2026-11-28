@@ -235,8 +235,9 @@ func (l *Log) Tx(ctx context.Context, f func(ctx context.Context, rec *Rec) erro
 		if err := f(ctx, rec); err != nil {
 			return err
 		}
-		entries = rec.entries
-		return l.put(ctx, entries)
+		var err error
+		entries, err = l.put(ctx, rec.entries)
+		return err
 	})
 	if err == nil {
 		l.spend(entries)
@@ -252,9 +253,13 @@ func (l *Log) Write(ctx context.Context, entries ...Entry) error {
 	if l == nil || len(entries) == 0 {
 		return nil
 	}
-	err := l.st.InTx(ctx, func(ctx context.Context) error { return l.put(ctx, entries) })
+	var written []Entry
+	err := l.st.InTx(ctx, func(ctx context.Context) (err error) {
+		written, err = l.put(ctx, entries)
+		return err
+	})
 	if err == nil {
-		l.spend(entries)
+		l.spend(written)
 		l.wake()
 	}
 	return err
@@ -262,38 +267,45 @@ func (l *Log) Write(ctx context.Context, entries ...Entry) error {
 
 // put writes entries into the outbox, in the transaction of ctx. An entry
 // of a setting whose state is the same before and after is left out
-// (Entry.IfChanged).
-func (l *Log) put(ctx context.Context, entries []Entry) error {
+// (Entry.IfChanged), and so is one whose time is past what this node keeps:
+// it would draw a number and be dropped at the move, which reads as a hole.
+// put returns the entries it wrote.
+func (l *Log) put(ctx context.Context, entries []Entry) ([]Entry, error) {
 	now := l.now()
+	var written []Entry
 	for _, e := range entries {
 		a := audit.Lookup(e.Action)
 		if a == nil {
-			return fmt.Errorf("audit: unknown action %q", e.Action)
+			return nil, fmt.Errorf("audit: unknown action %q", e.Action)
 		}
 		// Built once without a number: an entry that says nothing, or does
 		// not pass, draws none.
 		if _, _, err := l.build(e, "0000000000000000-"+audit.Letter(a.Class)+"-1", now); errors.Is(err, errNoChange) {
 			continue
 		} else if err != nil {
-			return err
-		}
-		id, err := l.st.NextAuditID(ctx, audit.Letter(a.Class))
-		if err != nil {
-			return err
-		}
-		_, raw, err := l.build(e, id, now)
-		if err != nil {
-			return err
+			return nil, err
 		}
 		t := e.Time
 		if t.IsZero() {
 			t = now
 		}
-		if err := l.st.PutAudit(ctx, store.AuditRow{ID: id, TimeMS: t.UnixMilli(), Class: a.Class, Body: raw}); err != nil {
-			return err
+		if l.tooOld(a.Class, t.UnixMilli(), now) {
+			continue
 		}
+		id, err := l.st.NextAuditID(ctx, audit.Letter(a.Class))
+		if err != nil {
+			return nil, err
+		}
+		_, raw, err := l.build(e, id, now)
+		if err != nil {
+			return nil, err
+		}
+		if err := l.st.PutAudit(ctx, store.AuditRow{ID: id, TimeMS: t.UnixMilli(), Class: a.Class, Body: raw}); err != nil {
+			return nil, err
+		}
+		written = append(written, e)
 	}
-	return nil
+	return written, nil
 }
 
 // wake asks the running gateway to move the outbox.
@@ -328,10 +340,10 @@ func (l *Log) OnChange(ctx context.Context, f func(c store.Change, rec *Rec) err
 		if len(rec.entries) == 0 {
 			return nil
 		}
-		if err := l.put(ctx, rec.entries); err != nil {
+		entries, err := l.put(ctx, rec.entries)
+		if err != nil {
 			return err
 		}
-		entries := rec.entries
 		store.AfterCommit(ctx, func() {
 			l.spend(entries)
 			l.wake()

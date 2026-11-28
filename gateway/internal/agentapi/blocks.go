@@ -338,11 +338,13 @@ func (s *Server) createBlock(w http.ResponseWriter, r *http.Request) {
 			e.Incident = req.Target.Incident
 		}
 		e.After = map[string]any{"client": ev.ip.String(), "duration_s": req.DurationS, "until": until, "effect": *v.Effect}
+		// The block runs: its incident is stored whether the entry can be
+		// written or not, or the block could not be found and released.
+		d.Incident(&store.Incident{Incident: res.Incident, EventID: id, Time: now, IP: ev.ip.String(), Status: "blocked", Reason: "agent " + tok.Label + ": " + reason,
+			Sources: []string{behaviour.AgentSource + tok.ID}})
 		if !s.written(w, s.Audit.Write(r.Context(), e)) {
 			return
 		}
-		d.Incident(&store.Incident{Incident: res.Incident, EventID: id, Time: now, IP: ev.ip.String(), Status: "blocked", Reason: "agent " + tok.Label + ": " + reason,
-			Sources: []string{behaviour.AgentSource + tok.ID}})
 	}
 	d.spend(tok.ID, now)
 	res.EventID = id

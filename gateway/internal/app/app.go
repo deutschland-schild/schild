@@ -727,10 +727,10 @@ func (a *App) Loops(ctx context.Context) {
 	a.goLoop(ctx, "ratelog", ratelog.Default.Run)
 	// The crowdsec rules update in the background and never block request
 	// handling (D39).
-	a.goLoop(ctx, "crowdsec", a.Repos.Run)
 	a.Repos.Hub().AroundCheck(func(ctx context.Context, check func()) {
 		a.auditRulesLoaded(ctx, rules.RepoCrowdsec, "system:hub_update", check)
 	})
+	a.goLoop(ctx, "crowdsec", a.Repos.Run)
 	a.goLoop(ctx, "allowlist-reload", tick(2*time.Second, func() {
 		if v := a.Store.AllowVersion(ctx); v != a.allowVersion.Load() {
 			_ = a.ReloadAllow(ctx)
