@@ -216,6 +216,9 @@ func TestAuditMatrixAgent(t *testing.T) {
 		m.entries(t, "liftAgentBlock", guardTok, guard, want{Action: "block.lift", Subject: blocked, Incident: blocked, Reason: reason, Fields: map[string]field{
 			"/client": {Change: "removed", Before: attacker},
 		}})
+		// The stored row of the incident follows the lift in the background:
+		// a second lift before it is there is answered 409.
+		a.h.Flush()
 		m.call(t, "POST", path, guardTok, `{"reason":"again"}`, 200)
 		m.log.None(t, "liftAgentBlock of a block that is lifted")
 	})
