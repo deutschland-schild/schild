@@ -16,6 +16,7 @@ import (
 	"github.com/deutschland-schild/schild/contract/config"
 	"github.com/deutschland-schild/schild/contract/events"
 	"github.com/deutschland-schild/schild/gateway/internal/allowlist"
+	"github.com/deutschland-schild/schild/gateway/internal/auditlog"
 	"github.com/deutschland-schild/schild/gateway/internal/behaviour"
 	"github.com/deutschland-schild/schild/gateway/internal/store"
 )
@@ -326,15 +327,15 @@ func (s *Server) behaviourRoutes(a func(string, http.HandlerFunc)) {
 	a("GET "+apiPrefix+"/behaviour/hits", s.listBehaviourHits)
 	a("GET "+apiPrefix+"/behaviour/hits/{id}", s.getBehaviourHit)
 	a("GET "+apiPrefix+"/behaviour/settings", s.getBehaviourSettings)
-	a("PATCH "+apiPrefix+"/behaviour/settings", s.updateBehaviourSettings)
+	a("PATCH "+apiPrefix+"/behaviour/settings", s.op("updateBehaviourSettings", s.updateBehaviourSettings))
 	a("GET "+apiPrefix+"/behaviour/rate-limits", s.listRateLimits)
-	a("POST "+apiPrefix+"/behaviour/rate-limits", s.createRateLimit)
-	a("POST "+apiPrefix+"/behaviour/rate-limits/dry-run", s.dryRunRateLimit)
-	a("PATCH "+apiPrefix+"/behaviour/rate-limits/{limit_id}", s.updateRateLimit)
-	a("DELETE "+apiPrefix+"/behaviour/rate-limits/{limit_id}", s.deleteRateLimit)
-	a("POST "+apiPrefix+"/behaviour/release", s.releaseClient)
+	a("POST "+apiPrefix+"/behaviour/rate-limits", s.op("createRateLimit", s.createRateLimit))
+	a("POST "+apiPrefix+"/behaviour/rate-limits/dry-run", s.op("dryRunRateLimit", s.dryRunRateLimit))
+	a("PATCH "+apiPrefix+"/behaviour/rate-limits/{limit_id}", s.op("updateRateLimit", s.updateRateLimit))
+	a("DELETE "+apiPrefix+"/behaviour/rate-limits/{limit_id}", s.op("deleteRateLimit", s.deleteRateLimit))
+	a("POST "+apiPrefix+"/behaviour/release", s.op("releaseClient", s.releaseClient))
 	a("GET "+apiPrefix+"/blocks", s.listBlocks)
-	a("POST "+apiPrefix+"/blocks", s.createBlock)
+	a("POST "+apiPrefix+"/blocks", s.op("createBlock", s.createBlock))
 }
 
 func (s *Server) behaviourAvailable(w http.ResponseWriter) bool {
@@ -906,27 +907,11 @@ func (s *Server) releaseClient(w http.ResponseWriter, r *http.Request) {
 	}
 	ctx := r.Context()
 	now := s.now()
-	// On a node of a group a release ends every block the group holds of
-	// this client, also one that does not run on this node: the incidents
-	// the group holds and the incidents of the blocks that ended here are
-	// the lifts, one step with the end of the blocks. A single gateway
-	// notes none.
 	res := ReleaseResult{IP: ip.String()}
-	release := func(held []string) error {
-		ended, incidents := s.Behaviour.ReleaseIncidents(ip)
-		res.BlocksEnded = ended
-		return s.St.NoteLifts(ctx, now, append(held, incidents...)...)
-	}
-	var err error
-	if s.ClientBlocks != nil {
-		err = s.ClientBlocks(ip, release)
-	} else {
-		err = release(nil)
-	}
-	if err != nil {
-		s.internal(w, err)
-		return
-	}
+	// What the release sets next to the end of the blocks: an exception for
+	// a while, or an own IP for good. Checked before anything ends.
+	var exception *store.Exception
+	var allow *store.AllowEntry
 	switch req.Allow {
 	case "exception":
 		srcs := []string{"behaviour", "ratelimit"}
@@ -937,15 +922,7 @@ func (s *Server) releaseClient(w http.ResponseWriter, r *http.Request) {
 			srcs = []string{"ratelimit:" + req.LimitID}
 		}
 		days := map[string]time.Duration{"24h": 24 * time.Hour, "7d": 7 * 24 * time.Hour, "30d": 30 * 24 * time.Hour}[req.TTL]
-		until := now.Add(days)
-		if err := s.St.AddException(ctx, store.Exception{IP: ip.String(), Sources: srcs, Expires: until}); err != nil {
-			s.internal(w, err)
-			return
-		}
-		if s.Gate != nil {
-			s.Gate.Exceptions.Add(ip, srcs, until)
-		}
-		res.ExceptionUntil, res.ExceptionSources = tsp(until), srcs
+		exception = &store.Exception{IP: ip.String(), Sources: srcs, Expires: now.Add(days)}
 	case "permanent":
 		label := req.Label
 		if label == "" {
@@ -957,12 +934,82 @@ func (s *Server) releaseClient(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		e.Source = "dashboard"
-		if err := s.St.AddAllow(ctx, e); err != nil {
-			s.internal(w, err)
-			return
+		e.ID = store.NewID("al_")
+		allow = e
+	}
+	// On a node of a group a release ends every block the group holds of
+	// this client, also one that does not run on this node: the incidents
+	// the group holds and the incidents of the blocks that ended here are
+	// the lifts, one step with the end of the blocks. A single gateway
+	// notes no lift for a group, and still opens the transaction: the
+	// release, what it sets and their audit entries are one change
+	// (contracts/audit.md section 2: one block.lift per incident,
+	// client.release, allowlist.add).
+	release := func(held []string) error {
+		ended, incidents := s.Behaviour.ReleaseIncidents(ip)
+		res.BlocksEnded = ended
+		lifted := append(held, incidents...)
+		return s.Audit.Tx(ctx, func(ctx context.Context, rec *auditlog.Rec) error {
+			if err := s.St.NoteLifts(ctx, now, lifted...); err != nil {
+				return err
+			}
+			seen := map[string]bool{}
+			for _, incident := range lifted {
+				if seen[incident] {
+					continue
+				}
+				seen[incident] = true
+				e := s.entry(r, "block.lift", "releaseClient")
+				e.Subject, e.Incident, e.Before = incident, incident, map[string]any{"client": ip.String()}
+				rec.Add(e)
+			}
+			e := s.entry(r, "client.release", "releaseClient")
+			state := map[string]any{"client": ip.String(), "allow": req.Allow}
+			if req.Scenario != "" {
+				state["scenario"] = req.Scenario
+			}
+			if req.LimitID != "" {
+				state["limit_id"] = req.LimitID
+			}
+			if exception != nil {
+				state["until"] = ts(exception.Expires)
+				if err := s.St.AddException(ctx, *exception); err != nil {
+					return err
+				}
+			}
+			e.After = state
+			rec.Add(e)
+			if allow != nil {
+				if err := s.St.AddAllow(ctx, allow); err != nil {
+					return err
+				}
+				e := s.entry(r, "allowlist.add", "releaseClient")
+				e.Subject, e.After = allow.ID, allowState(allow)
+				rec.Add(e)
+			}
+			return nil
+		})
+	}
+	var err error
+	if s.ClientBlocks != nil {
+		err = s.ClientBlocks(ip, release)
+	} else {
+		err = release(nil)
+	}
+	if err != nil {
+		s.internal(w, err)
+		return
+	}
+	// After the transaction: what the change means in memory.
+	if exception != nil {
+		if s.Gate != nil {
+			s.Gate.Exceptions.Add(ip, exception.Sources, exception.Expires)
 		}
+		res.ExceptionUntil, res.ExceptionSources = tsp(exception.Expires), exception.Sources
+	}
+	if allow != nil {
 		s.reloadAllow(ctx)
-		res.AllowlistEntry = &e.ID
+		res.AllowlistEntry = &allow.ID
 	}
 	if s.Log != nil {
 		s.Log.Info("client released in the dashboard", "ip", ip.String(), "blocks_ended", res.BlocksEnded, "allow", req.Allow)

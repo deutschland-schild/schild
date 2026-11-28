@@ -72,7 +72,7 @@ type AlertFilter struct {
 // time order (no scan of other events, no LIKE over the rows).
 func (s *Store) AlertEvents(ctx context.Context, f AlertFilter, max int) ([]*EventRow, error) {
 	q, args := alertQuery(f, max)
-	rows, err := s.db.QueryContext(ctx, q, args...)
+	rows, err := s.q(ctx).QueryContext(ctx, q, args...)
 	if err != nil {
 		return nil, err
 	}
@@ -142,7 +142,7 @@ func alertQuery(f AlertFilter, max int) (string, []any) {
 // one website in [from, to] (ms), oldest first, at most max (partial
 // index events_wave).
 func (s *Store) WaveEvents(ctx context.Context, site string, from, to int64, max int) ([]*EventRow, error) {
-	rows, err := s.db.QueryContext(ctx, `SELECT `+eventCols+` FROM events WHERE site = ? AND time_ms >= ? AND time_ms <= ? AND `+waveCond+
+	rows, err := s.q(ctx).QueryContext(ctx, `SELECT `+eventCols+` FROM events WHERE site = ? AND time_ms >= ? AND time_ms <= ? AND `+waveCond+
 		` ORDER BY time_ms, seq LIMIT ?`, site, from, to, max)
 	if err != nil {
 		return nil, err

@@ -16,6 +16,7 @@
 //	schild dashboard setup-code | reset-password [-config ...] [-data DIR]   (host only, MVP-09 addendum)
 //	schild rules    sync local|crowdsec | reset crowdsec [-config ...] [-data DIR]   (host only)
 //	schild lock     on|off|status WEBSITE ...   (host only, D56)
+//	schild audit    [--website ID] [--token ID] [--action A] [--since 7d] [--json] | check   (audit log, MVP-36)
 //	schild version
 //	schild front    -listen :80 -schild http://127.0.0.1:8080 -app http://127.0.0.1:8081
 //	schild geo-fixture -out geo.mmdb   (TEST ONLY database of documentation ranges)
@@ -53,6 +54,7 @@ import (
 	"github.com/deutschland-schild/schild/contract/storage"
 	"github.com/deutschland-schild/schild/gateway/internal/allowlist"
 	"github.com/deutschland-schild/schild/gateway/internal/app"
+	"github.com/deutschland-schild/schild/gateway/internal/auditlog"
 	"github.com/deutschland-schild/schild/gateway/internal/buildinfo"
 	"github.com/deutschland-schild/schild/gateway/internal/caddymod"
 	"github.com/deutschland-schild/schild/gateway/internal/control"
@@ -147,6 +149,12 @@ Usage:
                                                  a group of gateways that share their address blocks from node to
                                                  node, no store beside them; set up by cluster.secret_file and
                                                  cluster.peers in schild.yaml (schild cluster -h)
+  schild audit    [--website ID] [--token ID] [--action A] [--since 7d] [--json]
+                                                 host only: the audit log, newest first: who changed what, when,
+                                                 through which way, and what it was before; reads only, also next
+                                                 to a running schild (schild audit -h)
+  schild audit check                             name the numbers missing between kept entries (an entry removed
+                                                 by hand); exit 1 when there is a hole
 
 Changes to schild.yaml take effect after a restart of schild (systemctl restart schild, docker compose
 restart). SIGHUP and "schild rules sync local" only load rules.d again. Settings changed in the dashboard
@@ -214,6 +222,8 @@ func main() {
 		err = cmdFirewall(os.Args[2:])
 	case "cluster":
 		err = cmdCluster(os.Args[2:])
+	case "audit":
+		err = cmdAudit(os.Args[2:])
 	case "help", "-h", "--help":
 		usage()
 	default:
@@ -392,7 +402,7 @@ func cmdAllow(args []string) error {
 	if target == "" {
 		return errors.New("allow: IP, CIDR, host, --mine, list or rm ID")
 	}
-	st, _, err := openStore(*cfgPath, *data)
+	st, al, err := openAudited(*cfgPath, *data)
 	if err != nil {
 		return err
 	}
@@ -414,7 +424,22 @@ func cmdAllow(args []string) error {
 		if len(pos) < 1 {
 			return errors.New("allow rm ID")
 		}
-		return st.DeleteAllow(ctx, pos[0])
+		// The entry that goes and its audit entry are one transaction.
+		return al.Tx(ctx, func(ctx context.Context, rec *auditlog.Rec) error {
+			es, err := st.ListAllow(ctx)
+			if err != nil {
+				return err
+			}
+			if err := st.DeleteAllow(ctx, pos[0]); err != nil {
+				return err
+			}
+			for i := range es {
+				if es[i].ID == pos[0] {
+					rec.Add(auditlog.Entry{Action: "allowlist.remove", Operation: "cli:allow rm", Actor: cliActor(), Subject: es[i].ID, Before: allowState(&es[i])})
+				}
+			}
+			return nil
+		})
 	}
 	in := allowlist.Input{Label: *label, Level: *level, TTL: *ttl}
 	switch {
@@ -439,11 +464,28 @@ func cmdAllow(args []string) error {
 		return errors.New("allow: invalid input")
 	}
 	e.Source = "cli"
-	if err := st.AddAllow(ctx, e); err != nil {
+	if err := al.Tx(ctx, func(ctx context.Context, rec *auditlog.Rec) error {
+		if err := st.AddAllow(ctx, e); err != nil {
+			return err
+		}
+		rec.Add(auditlog.Entry{Action: "allowlist.add", Operation: "cli:allow", Actor: cliActor(), Subject: e.ID, After: allowState(e)})
+		return nil
+	}); err != nil {
 		return err
 	}
 	fmt.Printf("allowed %s (%s) until %s, id %s - a running schild picks it up within a few seconds\n", target, e.Level, e.Expires, e.ID)
 	return nil
+}
+
+// allowState is what an audit entry records of an allowlist entry.
+func allowState(e *store.AllowEntry) map[string]any {
+	m := map[string]any{}
+	for k, v := range map[string]string{"ip": e.IP, "cidr": e.CIDR, "host": e.Host, "label": e.Label, "level": e.Level, "expires": e.Expires} {
+		if v != "" {
+			m[k] = v
+		}
+	}
+	return m
 }
 
 func cmdStatus(args []string) error {

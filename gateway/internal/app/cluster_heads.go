@@ -24,8 +24,9 @@ import (
 // moved:
 //
 //   - heads: what a node says about itself. `boot` names this run of the
-//     process, `s` is a number that grows with every event or incident the
-//     node writes itself (store.OwnGen), `r` the number its next served
+//     process, `s` is a number that grows with every event, incident or
+//     audit entry the node writes itself (store.OwnGen and auditNews), `r`
+//     the number its next served
 //     request gets (Ring.ServedNext). They say that something is new, not
 //     what; the cursors of the pulls stay what they were.
 //   - A node tells its heads (Tell kind `heads`) to every member that has
@@ -92,6 +93,13 @@ type peerPull struct {
 	// hot: the last answer brought requests, so more are likely.
 	hot                 bool
 	lastE, lastI, lastR time.Time
+	// The audit log (cluster_audit.go): audit is the `s` of the member this
+	// node last asked up to. noAudit: the member answered that it does not
+	// know the kind, it runs a build without an audit log.
+	audit   int64
+	aOK     bool
+	noAudit bool
+	lastA   time.Time
 }
 
 type headsState struct {
@@ -130,7 +138,7 @@ func (h *headsState) pullOf(peer string) *peerPull {
 
 // ownHeads is what this node says of itself right now.
 func (g *groupData) ownHeads() heads {
-	h := heads{Boot: g.heads.boot, Store: g.a.Store.OwnGen()}
+	h := heads{Boot: g.heads.boot, Store: g.a.Store.OwnGen() + g.auditNewsCount()}
 	if g.a.Requests != nil {
 		h.Requests = g.a.Requests.ServedNext()
 	}
@@ -223,7 +231,7 @@ func (g *groupData) wants(peer string, now time.Time) (events, incidents, reques
 	}
 	if p.boot != p.told.Boot {
 		// Another run of the member: its numbers started anew.
-		p.boot, p.eOK, p.iOK, p.rOK = p.told.Boot, false, false, false
+		p.boot, p.eOK, p.iOK, p.rOK, p.aOK = p.told.Boot, false, false, false, false
 	}
 	safety := safetyOf(peer)
 	events = !p.eOK || p.events != p.told.Store || now.Sub(p.lastE) > safety
@@ -293,6 +301,17 @@ func (g *groupData) pullPeer(ctx context.Context, peer string) {
 		p.lastI = now
 		if ok && before.Boot == p.boot {
 			p.incidents, p.iOK = before.Store, true
+		}
+		h.mu.Unlock()
+	}
+	if g.wantsAudit(peer, now) {
+		before := g.toldOf(peer)
+		more, ok, unknown := g.pullAudit(ctx, peer)
+		h.mu.Lock()
+		p := h.pullOf(peer)
+		p.lastA, p.noAudit = now, unknown
+		if ok && !more && before.Boot == p.boot {
+			p.audit, p.aOK = before.Store, true
 		}
 		h.mu.Unlock()
 	}

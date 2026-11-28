@@ -149,9 +149,9 @@ func detectorThresholds(in map[string]DetectorThresholdsPatch) (map[string]confi
 func (s *Server) distributedRoutes(a func(string, http.HandlerFunc)) {
 	a("GET "+apiPrefix+"/distributed/waves", s.listWaves)
 	a("GET "+apiPrefix+"/distributed/waves/{wave_id}", s.getWave)
-	a("POST "+apiPrefix+"/distributed/waves/{wave_id}/end", s.endWave)
+	a("POST "+apiPrefix+"/distributed/waves/{wave_id}/end", s.op("endWave", s.endWave))
 	a("GET "+apiPrefix+"/distributed/settings", s.getDistributedSettings)
-	a("PATCH "+apiPrefix+"/distributed/settings", s.updateDistributedSettings)
+	a("PATCH "+apiPrefix+"/distributed/settings", s.op("updateDistributedSettings", s.updateDistributedSettings))
 }
 
 var loginPaths = map[string]bool{"/wp-login.php": true, "/administrator/index.php": true, "/index.php": true, "/user/login": true, "/index.php/login": true,
@@ -287,6 +287,14 @@ func (s *Server) endWave(w http.ResponseWriter, r *http.Request) {
 	wv, known, active := s.Behaviour.EndWave(e.ID)
 	if !known || !active {
 		problem(w, http.StatusConflict, "not_active", "Diese Reaktion läuft nicht mehr.", nil)
+		return
+	}
+	// The response ran in the engine, not in schild.db: the entry is written
+	// before the answer.
+	en := s.entry(r, "wave.end", "endWave")
+	en.Subject, en.Website = e.ID, auditWebsite(e.Site)
+	en.Before, en.After = map[string]any{"state": "active"}, map[string]any{"state": "ended"}
+	if !s.written(w, s.Audit.Write(r.Context(), en)) {
 		return
 	}
 	if s.Log != nil {

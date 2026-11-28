@@ -1,0 +1,22 @@
+{
+  "contract": "config/schild",
+  "description": "D108: the word unlimited, not 0: 0 days reads like nothing is kept.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"audit\":{\"keep_days\":\"unlimited\"},\"config_version\":0,\"mode\":\"observe\",\"node_name\":\"web-1\",\"upstream\":{\"url\":\"http://app:80\"}}",
+  "input_decoded": {
+    "audit": {
+      "keep_days": "unlimited"
+    },
+    "config_version": 0,
+    "mode": "observe",
+    "node_name": "web-1",
+    "upstream": {
+      "url": "http://app:80"
+    }
+  },
+  "expect": {
+    "valid": true
+  }
+}

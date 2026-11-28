@@ -1,6 +1,6 @@
-# Audit log (draft, D108, MVP-36)
+# Audit log (D108, MVP-36)
 
-Who changed what, when, through which way, and what it was before. One list for the dashboard, the agent API, the CLI, the configuration and later the integration API (MVP-35). Draft: nothing of it is built. The whole plan is [MVP-36](../tests/specs/MVP-36-audit-log.yaml).
+Who changed what, when, through which way, and what it was before. One list for the dashboard, the agent API, the CLI, the configuration and later the integration API (MVP-35). Built in the gateway (`gateway/internal/auditlog`), not yet measured; section 11 says where the build differs from this text. The whole plan is [MVP-36](../tests/specs/MVP-36-audit-log.yaml).
 
 Go: `contract/audit`. Vectors: `audit` (input [audit.schema.json](audit.schema.json)), cross-checked by `tools/crosscheck.py`. An entry: [audit-entry.schema.json](audit-entry.schema.json). The closed list of actions: [audit-actions.json](audit-actions.json).
 
@@ -127,13 +127,31 @@ The mesh carries the log ([cluster.md](cluster.md) section 7), with no record cl
 - A change that arrives from another node writes no entry. A lift of the group is the plain case: the node a person released on writes `block.lift` with the actor, and the record of class `lifts` that carries the lift to the other nodes names no actor and writes nothing there. Who released is read from the entry, which every node holds. A command writes on its node.
 - A member is trusted like the operator: it could hand over an entry it made up. Not covered, as everywhere in the group.
 
-## 10. What enters other contracts with the build
+## 10. What entered other contracts with the build
 
-Not yet changed there, so no release accepts a setting or names a call that does nothing:
-
-- `config-schild`: `audit.keep_days` (integer 1 to 36 500 or `unlimited`; default 365), `audit.stream` (absent).
-- `gateway-agent.openapi.yaml` (served to agents): `listAgentAudit`. The dashboard API has `listAudit` already, its fixture is in `fixtures/pending/client/`.
-- Hints `audit_size` (notice) and `audit_stuck` (warning), both server only.
-- [cluster.md](cluster.md): kind `audit` of Ask, part of the head `s`. The tables `audit_outbox`, `audit_state` and `audit_config` are per node.
-- `privacy/export`: the entries that name the address. `privacy/delete` and `retention.raw_ip_days` stay as they are and do not touch the log.
+- `config-schild`: `audit.keep_days` (integer 1 to 36 500 or `unlimited`; default 365), `audit.stream` (`stdout` or an absolute path; absent: no copy).
+- `gateway-agent.openapi.yaml` (served to agents): `listAgentAudit` with `AgentAuditPage`. The dashboard API serves `listAudit`.
+- Hints `audit_size` (notice) and `audit_stuck` (warning), both server only. `HealthHint` has `count` for the entries of the last 30 days.
+- [cluster.md](cluster.md): kind `audit` of Ask. The tables `audit_outbox`, `audit_state` and `audit_config` are per node.
+- `privacy/export`: `audit`, the entries that name the address. An entry names an address when the address is the origin of the call, a recorded value or an item of a recorded list. A network that holds the address is no match, and neither is an address inside a reason or a label. At most the newest 500, `audit_truncated` says when there are more. `privacy/delete` and `retention.raw_ip_days` do not touch the log.
+- [audit-entry.schema.json](audit-entry.schema.json): `reason`, labels, names and recorded texts carry `x-untrusted`.
+- [audit-actions.json](audit-actions.json): `session.start` is also written by `dashboard:setupPassword` and `dashboard:changePassword` (both start a session), `maintenance.set` also by `cli:lock off`; `cli:firewall run`, `cli:check` and `cli:geo-fixture` are in `not_audited`; `privacy.erase` records `/allowlist`, the number of own IPs the erasure removed.
 - The existing events stay as they are.
+
+## 11. Where the build differs
+
+- **Entry after the change, before the answer, for more than section 4 names.** The entry is in the transaction of the change for everything the dashboard, the agent API and the commands store in `schild.db` themselves: own IPs, settings, limits, the state and the CRS settings of a rule repository, single rules, exceptions, access lock, maintenance, browser check, crawler policy, the switch of the agent API, releases, lifts, erasure, passwords, sessions, tokens. Written after the change and before the answer, with an error that says the change stands when the entry cannot be written: the sync and the reset of a rule repository, a node removed from the group (as section 4 says), and also a block set by hand or by an agent, a distributed response that is ended, and the five operations of the server check. A block runs in the engine and is kept by its own writer. The tables of the server check belong to a package with its own lock.
+- **A release ends the blocks in memory before its transaction.** `releaseClient` ends the blocks of the client in the engine, then writes the lifts, the exception or own IP and the entries in one transaction. When that transaction fails the call answers an error and the blocks stay ended.
+- **No `cause` for a rule exception.** `createRuleException` and `createAgentException` do not carry the event an exception was made from, so their entries name none. It needs an `event` field in both requests.
+- **`config.apply` at the start only.** `schild.yaml` and the Caddyfile are read at the start. There is no reload that could apply another one.
+- **`token.expire` and `allowlist.remove` by `system:expiry` in a group.** Tokens and own IPs are shared, and every node sees the end. The node that sees it first writes the entry. Two nodes that see it at the same moment can write one each.
+- **`cluster.join`** is written by the node that enters, once per group, at its start.
+- **Refused calls.** Gathered are: a failed sign-in, a wrong setup code, a wrong current password, an attempt over the limit of attempts, a call of the agent API with an unknown token or without one, a read with a scope that does not allow it, a write the handler refused with 403, a call over the rate limit of its token and a write over the budget of section 6.
+- **The copy (`audit.stream`)** gets the entries this node wrote, when they are moved to `audit.db`, and a refused entry when its minute is over. Entries of other nodes are not copied.
+- **An agent reads recorded addresses.** `listAgentAudit` leaves out the address of a call and the names of people, as section 8 says. The values of a change stay: the client of a block, an own IP, the addresses of an access lock, and the labels and reasons a person typed. Decided by the maintainer: they stay. An agent reads the address of a client in events and requests too, there until `retention.raw_ip_days` has passed. In the audit log an agent with a read scope reads a recorded address as long as the entry is kept (`audit.keep_days`).
+- **A user has no subject id.** `session.start`, `session.end` and the password actions name the user with the actor alone, because every viewer sees a subject.
+- **`List` when `audit.db` cannot be written.** Entries that wait in the outbox come first, newest first, over as many pages as they need. The entries of the file follow.
+- **An erasure empties the request ring before its transaction.** The ring is a store of its own. `privacyDelete` erases the address there first, then erases in `schild.db` and writes `privacy.erase` in one transaction. When that transaction fails the call answers an error, the requests of the address are gone and there is no entry. The call can be repeated.
+- **An entry older than the node keeps is not written.** `token.expire` carries the time the token ended. When that time is past `audit.keep_days` (a gateway that was off for long), the end is not recorded, and no number is drawn for it.
+- **The budget of section 6 is counted in memory, per node.** A restart starts it again, and in a group every node counts for itself.
+- **A `schild.db` from a backup next to a newer `audit.db`.** At the start the numbers go on after the highest ones the file holds, so no id is drawn twice.

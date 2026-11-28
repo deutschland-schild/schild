@@ -15,6 +15,7 @@ import (
 	"crypto/subtle"
 	"encoding/json"
 	"errors"
+	"github.com/deutschland-schild/schild/gateway/internal/auditlog"
 	"log/slog"
 	"net"
 	"net/http"
@@ -71,6 +72,9 @@ type Server struct {
 	Rules *RuleDeps
 	// Crawlers: crawler control (D57); nil: it answers 404.
 	Crawlers *CrawlerDeps
+	// Audit is the audit log (MVP-36); nil in tests of a part: a change
+	// happens without an entry.
+	Audit *auditlog.Log
 	// IncidentBlock is the timed block behind an incident (nil: none).
 	IncidentBlock func(ctx context.Context, in *store.Incident) *contractapi.IncidentBlock
 
@@ -133,9 +137,17 @@ func (s *Server) init() {
 		s.key = k
 		mux := http.NewServeMux()
 		h := func(pattern, op string, f http.HandlerFunc) {
+			if _, write := contractapi.WriteOperations[op]; write {
+				registerWrite(pattern, op)
+			}
 			mux.HandleFunc(pattern, func(w http.ResponseWriter, r *http.Request) {
 				if c, ok := r.Context().Value(ctxKey{}).(*callInfo); ok {
 					c.op = op
+					// A write carries the origin of its change: the code
+					// that stores it notes the audit entry there.
+					if _, write := contractapi.WriteOperations[op]; write && auditedWrite(op) {
+						r = r.WithContext(auditlog.WithOrigin(r.Context(), origin(r, c.token, op)))
+					}
 				}
 				f(w, r)
 			})
@@ -180,6 +192,7 @@ func (s *Server) init() {
 		h("GET "+prefix+"/crawlers", "getAgentCrawlers", s.getCrawlers)
 		h("POST "+prefix+"/crawlers", contractapi.OpSetCrawlers, s.setCrawlers)
 		h("POST "+prefix+"/firewall/sync", contractapi.OpSyncFirewall, s.syncFirewall)
+		h("GET "+prefix+"/audit", OpListAudit, s.listAudit)
 		mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 			Problem(w, http.StatusForbidden, "forbidden", "Not part of the agent API.")
 		})
@@ -238,23 +251,41 @@ func (s *Server) serve(w http.ResponseWriter, r *http.Request, addr string) {
 	}
 	tok, ok := s.authenticate(r)
 	if !ok {
+		s.refusedCall(r, nil, "")
 		w.Header().Set("WWW-Authenticate", `Bearer realm="schild-agent"`)
 		Problem(w, http.StatusUnauthorized, "unauthenticated", "Missing, unknown, expired or revoked token.")
 		return
 	}
 	// A write answers scope_required itself, so a refusal is in the call log.
 	if !isWrite && !contractapi.CanRead(tok.Scope) && !(tok.Scope == contractapi.ScopeExportRead && r.URL.Path == prefix+"/monitoring/buckets") {
+		s.refusedCall(r, tok, "")
 		Problem(w, http.StatusForbidden, "forbidden", "This token's scope does not allow this operation.")
 		return
 	}
+	writeOp := ""
+	if isWrite {
+		writeOp = opOfWrite(r)
+	}
 	release, retry := s.admit(tok)
 	if release == nil {
+		s.refusedCall(r, tok, writeOp)
 		w.Header().Set("Retry-After", strconv.Itoa(retry))
 		Problem(w, http.StatusTooManyRequests, "rate_limited", "Too many requests for this token.")
 		s.countRefused(tok.ID)
 		return
 	}
 	defer release()
+	// What one token may write into the audit log in an hour
+	// (audit.TokenEntriesPerHour; blocks have their own bound).
+	if isWrite && auditedWrite(writeOp) {
+		if ok, retry := s.Audit.BudgetLeft(tok.ID); !ok {
+			s.refusedCall(r, tok, writeOp)
+			w.Header().Set("Retry-After", strconv.Itoa(retry))
+			Problem(w, http.StatusTooManyRequests, "change_budget", "This token wrote as many changes into the audit log as one token may in an hour.")
+			s.logCall(store.AgentCall{TokenID: tok.ID, Time: s.now(), Op: writeOp, Status: http.StatusTooManyRequests})
+			return
+		}
+	}
 	ci := &callInfo{token: tok}
 	r = r.WithContext(context.WithValue(r.Context(), ctxKey{}, ci))
 	if strings.HasSuffix(r.URL.Path, "/monitoring/stream") {
@@ -271,6 +302,10 @@ func (s *Server) serve(w http.ResponseWriter, r *http.Request, addr string) {
 	// Everything else is buffered so the 1 MiB cap holds.
 	bw := &bufWriter{h: http.Header{}, status: 200}
 	s.mux.ServeHTTP(bw, r)
+	// A write the handler refused for the scope of its token.
+	if isWrite && bw.status == http.StatusForbidden {
+		s.refusedCall(r, tok, ci.op)
+	}
 	if bw.buf.Len() > contractapi.MaxBytes {
 		bw = &bufWriter{h: http.Header{}}
 		Problem(bw, http.StatusInternalServerError, "internal", "The answer would exceed 1 MiB; narrow the request.")

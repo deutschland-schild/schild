@@ -951,7 +951,7 @@ Two findings before the release. First: the session cookie was `Secure` for ever
 - **Rejected: a class of lifts next to blocks by client.** It ends the guessing for the lift and keeps one record per client, which MVP-34 cannot use.
 - Contract: [cluster.md](cluster.md) sections 2, 4, 5, 13, 14 and 16; Go `cluster.IncidentBlock`, `cluster.IncidentLift`; vectors `cluster-record` rebuilt on the new classes; `unknown-class` now answers `class`.
 
-## D108 Audit log: changes are kept a year by default, values only from a list (DRAFT / ENTWURF, 2026-11-25; MVP-36, not built)
+## D108 Audit log: changes are kept a year by default, values only from a list (DRAFT / ENTWURF, 2026-11-25; MVP-36, built 2026-11-27, not measured)
 
 Contract: [audit.md](audit.md). Asked for by the initiator on 2026-11-25 ("welcher Token was geändert hat"), and on the same day: a year by default, unlimited possible ("auch unbegrenzt möglich. Default = 1 Jahr"). That replaces the earlier direction that changes are never deleted ("warum überhaupt löschen?"). The points below are the contracts agent's, for the initiator to confirm.
 

@@ -43,7 +43,7 @@
         "more_fields": { "type": "integer", "minimum": 1, "maximum": 1000000 }
       }
     },
-    "reason": { "description": "Untrusted text of the operator, an agent or a portal.", "type": "string", "minLength": 1, "maxLength": 500 },
+    "reason": { "description": "Untrusted text of the operator, an agent or a portal.", "type": "string", "minLength": 1, "maxLength": 500, "x-untrusted": true },
     "count": { "description": "Refused calls gathered in this entry (one minute).", "type": "integer", "minimum": 1, "maximum": 9007199254740991 },
     "last": { "$ref": "common.schema.json#/$defs/timestamp" }
   },
@@ -51,7 +51,7 @@
     "entryId": { "description": "<name of the log, 16 hex>-<k kept, a access, r refused>-<number, counted per log and letter from 1>.", "type": "string", "pattern": "^[0-9a-f]{16}-[kar]-[1-9][0-9]{0,15}$" },
     "action": { "type": "string", "maxLength": 64, "pattern": "^[a-z][a-z_]*\\.[a-z][a-z_]*$" },
     "website": { "type": "string", "minLength": 1, "maxLength": 253, "pattern": "^[a-z0-9_][a-z0-9_.-]*$" },
-    "name": { "type": "string", "minLength": 1, "maxLength": 128 },
+    "name": { "description": "A name a person or a portal gave. Untrusted text.", "type": "string", "minLength": 1, "maxLength": 128, "x-untrusted": true },
     "actor": {
       "oneOf": [
         { "type": "object", "additionalProperties": false, "required": ["kind"], "properties": { "kind": { "const": "dashboard" }, "user": { "$ref": "#/$defs/name" }, "session": { "$ref": "#/$defs/session" } } },
@@ -62,10 +62,10 @@
       ]
     },
     "session": { "description": "Short id of a session, never its token.", "type": "string", "pattern": "^[0-9a-f]{8}$" },
-    "label": { "type": "string", "minLength": 1, "maxLength": 64 },
+    "label": { "description": "The label of a token or portal key. Untrusted text.", "type": "string", "minLength": 1, "maxLength": 64, "x-untrusted": true },
     "pointer": { "type": "string", "maxLength": 512, "pattern": "^/" },
-    "scalar": { "oneOf": [{ "type": "string", "maxLength": 512 }, { "type": "number" }, { "type": "boolean" }] },
-    "items": { "type": "array", "maxItems": 32, "items": { "type": "string", "maxLength": 256 } },
+    "scalar": { "description": "A recorded value. A text is what somebody typed: untrusted.", "oneOf": [{ "type": "string", "maxLength": 512, "x-untrusted": true }, { "type": "number" }, { "type": "boolean" }] },
+    "items": { "type": "array", "maxItems": 32, "items": { "type": "string", "maxLength": 256, "x-untrusted": true } },
     "field": {
       "description": "One changed field. Without before, after, added and removed, hidden says why.",
       "type": "object",

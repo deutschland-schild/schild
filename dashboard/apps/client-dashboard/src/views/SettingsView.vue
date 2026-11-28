@@ -31,6 +31,7 @@ import { useServerSnapshot } from '@/api/monitoring'
 import { useOverview, useSettings, useUpdateSettings } from '@/api/queries'
 import { useRuleRepositories, useRules } from '@/api/rules'
 import AgentApiCard from '@/components/AgentApiCard.vue'
+import LastChange from '@/components/audit/LastChange.vue'
 import ServersCard from '@/components/ServersCard.vue'
 import { versionText } from '@/lib/labels'
 import { BEHAVIOUR_RULES_PATH } from '@/lib/nav'
@@ -341,6 +342,7 @@ async function changePassword() {
           <CardHeader>
             <CardTitle>Aufbewahrung</CardTitle>
             <CardDescription>Wie lange Schild Daten auf deinem Server behält. Kürzer ist datensparsamer, länger hilft beim Nachvollziehen.</CardDescription>
+            <LastChange :query="{ action: 'settings.set' }" setting />
           </CardHeader>
           <CardContent>
             <form class="grid items-start gap-4 sm:grid-cols-3" novalidate @submit.prevent="saveRetention">

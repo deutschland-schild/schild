@@ -37,7 +37,7 @@ func (a *App) newAgentAPI() *agentapi.Server {
 	if a.Config().Cluster.Enabled {
 		blocks.Held, blocks.Lift = a.groupHolds, a.endIncident
 	}
-	s := &agentapi.Server{St: a.Store, Monitor: a.Monitor, Blocks: blocks, IncidentBlock: a.agentIncidentBlock, Requests: a.Requests, Config: a.Config, Log: a.log, Sites: a.Sites,
+	s := &agentapi.Server{Audit: a.Audit, St: a.Store, Monitor: a.Monitor, Blocks: blocks, IncidentBlock: a.agentIncidentBlock, Requests: a.Requests, Config: a.Config, Log: a.log, Sites: a.Sites,
 		Websites: a.Dashboard.WebsiteList, Website: a.Dashboard.WebsiteDetail, SitesAffected: a.Dashboard.SitesAffected,
 		Repos:      a.Repos,
 		Exceptions: &agentapi.ExceptionDeps{List: a.listRuleExceptions, Create: a.createRuleException, Remove: a.removeRuleException},

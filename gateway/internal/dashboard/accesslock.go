@@ -69,9 +69,9 @@ type AccessFuncs struct {
 
 func (s *Server) accessRoutes(a func(string, http.HandlerFunc)) {
 	a("GET "+apiPrefix+"/websites/{website}/access", s.getAccessProtection)
-	a("PUT "+apiPrefix+"/websites/{website}/access", s.setAccessProtection)
-	a("DELETE "+apiPrefix+"/websites/{website}/access", s.removeAccessProtection)
-	a("PUT "+apiPrefix+"/websites/{website}/maintenance", s.setMaintenance)
+	a("PUT "+apiPrefix+"/websites/{website}/access", s.op("setAccessProtection", s.setAccessProtection))
+	a("DELETE "+apiPrefix+"/websites/{website}/access", s.op("removeAccessProtection", s.removeAccessProtection))
+	a("PUT "+apiPrefix+"/websites/{website}/maintenance", s.op("setMaintenance", s.setMaintenance))
 }
 
 func (s *Server) accessState(website string, e *accesslock.Entry) AccessProtectionState {

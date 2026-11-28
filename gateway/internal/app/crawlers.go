@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/deutschland-schild/schild/gateway/internal/auditlog"
+	"reflect"
 	"sort"
 	"time"
 
@@ -98,7 +100,19 @@ func (a *App) SetCrawlers(ctx context.Context, website string, next func(cur cc.
 	st.Entries[website] = e
 	raw, err := json.Marshal(st)
 	if err == nil {
-		err = a.Store.Put(ctx, crawlers.StoreKey, raw)
+		// What crawlers.set records: the policy as the API shows it, and
+		// the preset it came from.
+		before, after := asMap(old.Wire()), asMap(p.Wire())
+		// A preset that leaves the policy as it is changes nothing.
+		if c.Preset != "" && !reflect.DeepEqual(before, after) {
+			after["preset"] = c.Preset
+		}
+		err = a.putAudited(ctx, crawlers.StoreKey, raw, func(o auditlog.Origin) []auditlog.Entry {
+			if o.Reason == "" {
+				o.Reason = c.Reason
+			}
+			return one("crawlers.set", website, website, before, after)(o)
+		})
 	}
 	if err != nil {
 		return nil, fmt.Errorf("crawler policy not stored: %w", err)

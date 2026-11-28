@@ -2,8 +2,11 @@ package agentapi
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"errors"
+	"github.com/deutschland-schild/schild/gateway/internal/auditlog"
+	"github.com/deutschland-schild/schild/gateway/internal/store"
 	"io"
 	"mime"
 	"net/http"
@@ -158,23 +161,20 @@ func (s *Server) syncRepository(w http.ResponseWriter, r *http.Request) {
 	if _, ok := s.ruleWriter(w, r, contractapi.OpSyncRuleRepository); !ok {
 		return
 	}
-	id := r.PathValue("repository")
-	if _, err := s.Repos.Sync(r.Context(), id); err != nil {
-		RuleProblem(w, err)
-		return
-	}
-	s.getRepository(w, r)
+	s.ruleFiles(w, r, "rule_repository.sync", func(ctx context.Context, id string) (bool, error) {
+		res, err := s.Repos.Sync(ctx, id)
+		// The source holds what runs: nothing changed, no entry.
+		return !res.Unchanged, err
+	})
 }
 
 func (s *Server) resetRepository(w http.ResponseWriter, r *http.Request) {
 	if _, ok := s.ruleWriter(w, r, contractapi.OpResetRuleRepository); !ok {
 		return
 	}
-	if err := s.Repos.Reset(r.Context(), r.PathValue("repository")); err != nil {
-		RuleProblem(w, err)
-		return
-	}
-	s.getRepository(w, r)
+	s.ruleFiles(w, r, "rule_repository.reset", func(ctx context.Context, id string) (bool, error) {
+		return true, s.Repos.Reset(ctx, id)
+	})
 }
 
 func (s *Server) listRules(w http.ResponseWriter, r *http.Request) {
@@ -243,8 +243,20 @@ func (s *Server) updateRule(w http.ResponseWriter, r *http.Request) {
 		Problem(w, http.StatusBadRequest, "invalid", `The body is {"disabled": true|false, "note": "..."} with a note of at most 500 characters.`)
 		return
 	}
-	d, err := s.Repos.SetDisabled(r.Context(), r.PathValue("repository"), r.PathValue("rule"), *p.Disabled,
-		contractapi.Sanitize(p.Note, ruleset.MaxNote), a)
+	// The registry stores the decision; its entry is written in the
+	// transaction of that write.
+	repo, rule, note := r.PathValue("repository"), r.PathValue("rule"), contractapi.Sanitize(p.Note, ruleset.MaxNote)
+	ctx := s.Audit.OnChange(r.Context(), func(c store.Change, rec *auditlog.Rec) error {
+		if c.Key != store.RuleDecisionKey(repo, rule, store.DecisionDisabled) {
+			return nil
+		}
+		e := entryOf(r, "rule.set")
+		e.Subject, e.Reason, e.IfChanged = repo+"/"+rule, note, true
+		e.Before, e.After = map[string]any{"disabled": c.Old != nil}, map[string]any{"disabled": c.New != nil}
+		rec.Add(e)
+		return nil
+	})
+	d, err := s.Repos.SetDisabled(ctx, repo, rule, *p.Disabled, note, a)
 	if err != nil {
 		RuleProblem(w, err)
 		return

@@ -209,6 +209,15 @@ func (s *Server) createBlock(w http.ResponseWriter, r *http.Request) {
 	}
 	key, bits := behaviour.KeyOf(ip)
 	until := ts(bi.Until)
+	// The block runs in the engine and is kept by its writer, not by this
+	// call: the entry is written before the answer (contracts/audit.md
+	// section 4).
+	en := s.entry(r, "block.set", "createBlock")
+	en.Subject, en.Reason = incident, reason
+	en.After = map[string]any{"client": ip.String(), "duration_s": req.DurationS, "until": until, "effect": "block"}
+	if !s.written(w, s.Audit.Write(r.Context(), en)) {
+		return
+	}
 	if s.Events != nil {
 		// The block applies to the TCP peer with this address: attribution tcp_peer.
 		s.Events.EmitWithID(id, events.BlockSet, now, events.AgentBlockSet{Actor: "dashboard", Effect: "block", Client: events.Client{IP: ip.String(), Attribution: "tcp_peer", Geo: geo},

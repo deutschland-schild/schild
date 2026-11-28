@@ -1,0 +1,65 @@
+{
+  "items": [
+    {
+      "schema": "schild.audit/0.1",
+      "id": "0a1b2c3d4e5f6071-k-18",
+      "time": "2026-11-24T14:12:03Z",
+      "node": "gw-1",
+      "class": "change",
+      "action": "rule_exception.set",
+      "operation": "agent:createAgentException",
+      "result": "done",
+      "actor": { "kind": "agent", "id": "tok_0123456789ab", "label": "coding-agent" },
+      "subject": { "kind": "rule_exception", "id": "1900001" },
+      "website": "shop.example",
+      "change": {
+        "fields": [
+          { "field": "/path", "change": "added", "after": "/kontakt" },
+          { "field": "/repository", "change": "added", "after": "crs" },
+          { "field": "/rules", "change": "added", "added": ["942100"] },
+          { "field": "/target", "change": "added", "after": "ARGS:message" }
+        ]
+      },
+      "reason": "Contact form: visitors write SQL words"
+    },
+    {
+      "schema": "schild.audit/0.1",
+      "id": "0a1b2c3d4e5f6071-k-17",
+      "time": "2026-11-03T09:30:00Z",
+      "node": "gw-1",
+      "class": "change",
+      "action": "allowlist.add",
+      "operation": "dashboard:addAllowlistEntry",
+      "result": "done",
+      "actor": { "kind": "dashboard" },
+      "subject": { "kind": "allowlist_entry", "id": "al_7f3c" },
+      "change": {
+        "fields": [
+          { "field": "/cidr", "change": "added", "after": "203.0.113.0/24" },
+          { "field": "/label", "change": "added", "after": "Büro" },
+          { "field": "/level", "change": "added", "after": "no_block" }
+        ]
+      }
+    },
+    {
+      "schema": "schild.audit/0.1",
+      "id": "0a1b2c3d4e5f6071-k-16",
+      "time": "2026-11-02T08:00:00Z",
+      "node": "gw-1",
+      "class": "credential",
+      "action": "token.add",
+      "operation": "cli:token add",
+      "result": "done",
+      "actor": { "kind": "cli" },
+      "subject": { "kind": "token", "id": "tok_0123456789ab" },
+      "change": {
+        "fields": [
+          { "field": "/expires", "change": "added", "after": "2027-02-01T08:00:00Z" },
+          { "field": "/label", "change": "added", "after": "coding-agent" },
+          { "field": "/scope", "change": "added", "after": "exceptions:write" }
+        ]
+      }
+    }
+  ],
+  "next_cursor": null
+}

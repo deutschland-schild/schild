@@ -78,10 +78,14 @@ func (a *App) SetRuleState(ctx context.Context, repository, state string, reset 
 	if err != nil {
 		return err
 	}
-	if err := a.Store.Put(ctx, overlayKey, b); err != nil {
-		return err
-	}
-	if err := a.Store.Put(ctx, ownersKey, ob); err != nil {
+	prev := a.Config()
+	if err := a.writeAudited(ctx, one("rule_repository.set", repository, "", repoConfigState(prev, repository), repoConfigState(next, repository)),
+		func(ctx context.Context) error {
+			if err := a.Store.Put(ctx, overlayKey, b); err != nil {
+				return err
+			}
+			return a.Store.Put(ctx, ownersKey, ob)
+		}); err != nil {
 		return err
 	}
 	a.overlay = ov
@@ -155,7 +159,8 @@ func (a *App) SetCRSSettings(ctx context.Context, s ruleset.CRSSettings) error {
 	if err != nil {
 		return err
 	}
-	if err := a.Store.Put(ctx, overlayKey, b); err != nil {
+	if err := a.putAudited(ctx, overlayKey, b, one("rule_repository.set", rules.RepoCRS, "",
+		repoConfigState(a.Config(), rules.RepoCRS), repoConfigState(next, rules.RepoCRS))); err != nil {
 		return err
 	}
 	a.overlay = ov

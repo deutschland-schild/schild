@@ -1,0 +1,42 @@
+{
+  "contract": "website-status",
+  "description": "D108: audit_size (audit.db is 1 GiB or larger; object = the actor with the most entries) marks only the server.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"monitoring\":true,\"protection\":\"protected\",\"servers\":[{\"baseline_protection\":\"active\",\"hints\":[{\"code\":\"audit_size\",\"level\":\"notice\",\"object\":\"tok_0123456789ab\"}],\"node\":\"web-1\",\"state\":\"ok\"}],\"tracked\":true,\"traffic\":{\"fail_closed\":0,\"forwarded\":11900,\"requests\":12000,\"status_5xx\":4,\"upstream_errors\":3,\"upstream_timeouts\":0}}",
+  "input_decoded": {
+    "monitoring": true,
+    "protection": "protected",
+    "servers": [
+      {
+        "baseline_protection": "active",
+        "hints": [
+          {
+            "code": "audit_size",
+            "level": "notice",
+            "object": "tok_0123456789ab"
+          }
+        ],
+        "node": "web-1",
+        "state": "ok"
+      }
+    ],
+    "tracked": true,
+    "traffic": {
+      "fail_closed": 0,
+      "forwarded": 11900,
+      "requests": 12000,
+      "status_5xx": 4,
+      "upstream_errors": 3,
+      "upstream_timeouts": 0
+    }
+  },
+  "expect": {
+    "valid": true,
+    "result": {
+      "reasons": [],
+      "status": "ok"
+    }
+  }
+}

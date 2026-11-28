@@ -244,17 +244,24 @@ func NewID(prefix string) string {
 // Get returns a kv value.
 func (s *Store) Get(ctx context.Context, k string) ([]byte, error) {
 	var v []byte
-	err := s.db.QueryRowContext(ctx, "SELECT v FROM kv WHERE k = ?", k).Scan(&v)
+	err := s.q(ctx).QueryRowContext(ctx, "SELECT v FROM kv WHERE k = ?", k).Scan(&v)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, ErrNotFound
 	}
 	return v, err
 }
 
-// Put stores a kv value.
+// Put stores a kv value. With a hook in ctx (OnChange) the write and the
+// hook are one transaction.
 func (s *Store) Put(ctx context.Context, k string, v []byte) error {
-	_, err := s.db.ExecContext(ctx, "INSERT INTO kv(k, v) VALUES(?, ?) ON CONFLICT(k) DO UPDATE SET v = excluded.v", k, v)
-	return err
+	put := func(ctx context.Context) error {
+		_, err := s.q(ctx).ExecContext(ctx, "INSERT INTO kv(k, v) VALUES(?, ?) ON CONFLICT(k) DO UPDATE SET v = excluded.v", k, v)
+		return err
+	}
+	if hookOf(ctx) == nil {
+		return put(ctx)
+	}
+	return s.changed(ctx, k, v, put)
 }
 
 // ErrChanged says that a value is not the one the caller read: somebody
@@ -267,7 +274,7 @@ var ErrChanged = errors.New("store: the value changed since it was read")
 // key. It is for a writer that read the value, built the next from it and
 // must not write over a change made meanwhile (the group's sync).
 func (s *Store) Swap(ctx context.Context, k string, old, v []byte) error {
-	tx, err := s.db.BeginTx(ctx, nil)
+	tx, err := s.begin(ctx)
 	if err != nil {
 		return err
 	}
@@ -292,7 +299,7 @@ func (s *Store) Swap(ctx context.Context, k string, old, v []byte) error {
 
 // Keys returns the keys of the kv values, sorted.
 func (s *Store) Keys(ctx context.Context) ([]string, error) {
-	rows, err := s.db.QueryContext(ctx, "SELECT k FROM kv ORDER BY k")
+	rows, err := s.q(ctx).QueryContext(ctx, "SELECT k FROM kv ORDER BY k")
 	if err != nil {
 		return nil, err
 	}
@@ -311,7 +318,7 @@ func (s *Store) Keys(ctx context.Context) ([]string, error) {
 // Tables returns the names of the tables of schild.db, sorted (tests: every
 // table is shared in a group or listed as per node).
 func (s *Store) Tables(ctx context.Context) ([]string, error) {
-	rows, err := s.db.QueryContext(ctx, "SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%' ORDER BY name")
+	rows, err := s.q(ctx).QueryContext(ctx, "SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%' ORDER BY name")
 	if err != nil {
 		return nil, err
 	}
@@ -339,8 +346,14 @@ func SharedTables() []string {
 
 // Delete removes a kv value; a value that is not there is no error.
 func (s *Store) Delete(ctx context.Context, k string) error {
-	_, err := s.db.ExecContext(ctx, "DELETE FROM kv WHERE k = ?", k)
-	return err
+	del := func(ctx context.Context) error {
+		_, err := s.q(ctx).ExecContext(ctx, "DELETE FROM kv WHERE k = ?", k)
+		return err
+	}
+	if hookOf(ctx) == nil {
+		return del(ctx)
+	}
+	return s.changed(ctx, k, nil, del)
 }
 
 // ---------------------------------------------------------------- helpers

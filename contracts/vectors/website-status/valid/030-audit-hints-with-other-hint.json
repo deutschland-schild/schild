@@ -1,0 +1,58 @@
+{
+  "contract": "website-status",
+  "description": "D108: next to the hints of the audit log another server hint still marks the website, alone.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"monitoring\":true,\"protection\":\"protected\",\"servers\":[{\"baseline_protection\":\"active\",\"hints\":[{\"code\":\"audit_stuck\",\"level\":\"warning\"},{\"code\":\"audit_size\",\"level\":\"notice\",\"object\":\"dashboard\"},{\"code\":\"disk_full_soon\",\"level\":\"notice\",\"object\":\"/\"}],\"node\":\"web-1\",\"state\":\"ok\"}],\"tracked\":true,\"traffic\":{\"fail_closed\":0,\"forwarded\":11900,\"requests\":12000,\"status_5xx\":4,\"upstream_errors\":3,\"upstream_timeouts\":0}}",
+  "input_decoded": {
+    "monitoring": true,
+    "protection": "protected",
+    "servers": [
+      {
+        "baseline_protection": "active",
+        "hints": [
+          {
+            "code": "audit_stuck",
+            "level": "warning"
+          },
+          {
+            "code": "audit_size",
+            "level": "notice",
+            "object": "dashboard"
+          },
+          {
+            "code": "disk_full_soon",
+            "level": "notice",
+            "object": "/"
+          }
+        ],
+        "node": "web-1",
+        "state": "ok"
+      }
+    ],
+    "tracked": true,
+    "traffic": {
+      "fail_closed": 0,
+      "forwarded": 11900,
+      "requests": 12000,
+      "status_5xx": 4,
+      "upstream_errors": 3,
+      "upstream_timeouts": 0
+    }
+  },
+  "expect": {
+    "valid": true,
+    "result": {
+      "reasons": [
+        {
+          "code": "server_hint",
+          "hint": "disk_full_soon",
+          "node": "web-1",
+          "object": "/"
+        }
+      ],
+      "status": "attention"
+    }
+  }
+}

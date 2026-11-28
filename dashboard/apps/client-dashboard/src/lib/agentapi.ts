@@ -32,6 +32,7 @@ export const AGENT_API_COPY = {
   tokensManaged: 'Tokens legst du nur auf dem Server an und widerrufst sie auch nur dort:',
   tokensFailed: 'Die Tokens lassen sich gerade nicht laden.',
   neverUsed: 'noch nie benutzt',
+  tokenAudit: 'was es geändert hat',
   reset: 'Wert aus schild.yaml einsetzen',
   docs: 'Einrichtung in der Doku',
   docsNewTab: '(öffnet in neuem Tab)',

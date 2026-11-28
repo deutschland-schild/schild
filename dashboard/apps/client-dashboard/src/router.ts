@@ -98,6 +98,8 @@ export const routes: RouteRecordRaw[] = [
     },
   },
   { path: '/own-ips', name: 'own-ips', component: () => import('./views/OwnIpsView.vue'), meta: { title: 'Eigene IPs' } },
+  // MVP-36: the audit log, Einstellungen > Protokoll. Filters and the open entry live in the URL.
+  { path: '/settings/audit', name: 'audit', component: () => import('./views/AuditView.vue'), meta: { title: 'Protokoll' } },
   { path: '/privacy', name: 'privacy', component: () => import('./views/PrivacyView.vue'), meta: { title: 'Datenschutz' } },
   // D62, D73: Regeln lists its sources, each one is a page of its own with the repository id as segment.
   { path: '/settings/rules', name: 'rules', component: () => import('./views/RulesView.vue'), meta: { title: 'Regeln' } },

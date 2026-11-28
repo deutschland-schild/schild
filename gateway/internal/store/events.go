@@ -71,7 +71,7 @@ func (s *Store) InsertEvents(ctx context.Context, rows []*EventRow) error {
 	if len(rows) == 0 {
 		return nil
 	}
-	tx, err := s.db.BeginTx(ctx, nil)
+	tx, err := s.begin(ctx)
 	if err != nil {
 		return err
 	}
@@ -91,7 +91,7 @@ func (s *Store) InsertEvents(ctx context.Context, rows []*EventRow) error {
 
 // insertEventsTx writes rows inside tx, sets their sequence numbers and
 // returns the bytes written (payload and index keys) for the size cap.
-func insertEventsTx(ctx context.Context, tx *sql.Tx, rows []*EventRow) (int64, error) {
+func insertEventsTx(ctx context.Context, tx *txn, rows []*EventRow) (int64, error) {
 	st, err := tx.PrepareContext(ctx, `INSERT OR IGNORE INTO events(id, time_ms, type, ip, ip_key, country, asn, method, host, path, status, score, outcome, rules, incident, session, ua, summary, body, site, cls)
 		VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`)
 	if err != nil {
@@ -285,7 +285,7 @@ func (s *Store) ListEvents(ctx context.Context, f EventFilter, cursor int64, lim
 	}
 	q += " ORDER BY seq DESC LIMIT ?"
 	args = append(args, limit+1)
-	rows, err := s.db.QueryContext(ctx, q, args...)
+	rows, err := s.q(ctx).QueryContext(ctx, q, args...)
 	if err != nil {
 		return nil, 0, err
 	}
@@ -354,7 +354,7 @@ func (s *Store) EventsAfter(ctx context.Context, f EventFilter, after int64, lim
 	}
 	where += "seq > ?"
 	args = append(args, after, limit)
-	rows, err := s.db.QueryContext(ctx, "SELECT "+eventCols+" FROM events WHERE "+where+" ORDER BY seq ASC LIMIT ?", args...)
+	rows, err := s.q(ctx).QueryContext(ctx, "SELECT "+eventCols+" FROM events WHERE "+where+" ORDER BY seq ASC LIMIT ?", args...)
 	if err != nil {
 		return nil, err
 	}
@@ -372,7 +372,7 @@ func (s *Store) EventsAfter(ctx context.Context, f EventFilter, after int64, lim
 
 // GetEvent returns one event by id.
 func (s *Store) GetEvent(ctx context.Context, id string) (*EventRow, error) {
-	e, err := scanEvent(s.db.QueryRowContext(ctx, "SELECT "+eventCols+" FROM events WHERE id = ?", id))
+	e, err := scanEvent(s.q(ctx).QueryRowContext(ctx, "SELECT "+eventCols+" FROM events WHERE id = ?", id))
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, ErrNotFound
 	}
@@ -389,7 +389,7 @@ type EventAddress struct {
 // hold one in full, newest first (D42: a pseudonym names an address only by
 // comparison, it cannot be reversed).
 func (s *Store) RecentAddresses(ctx context.Context, limit int) ([]EventAddress, error) {
-	rows, err := s.db.QueryContext(ctx, "SELECT id, ip FROM events WHERE ip != '' AND ip_truncated = 0 ORDER BY seq DESC LIMIT ?", limit)
+	rows, err := s.q(ctx).QueryContext(ctx, "SELECT id, ip FROM events WHERE ip != '' AND ip_truncated = 0 ORDER BY seq DESC LIMIT ?", limit)
 	if err != nil {
 		return nil, err
 	}
@@ -408,7 +408,7 @@ func (s *Store) RecentAddresses(ctx context.Context, limit int) ([]EventAddress,
 // MaxSeq returns the newest event sequence number.
 func (s *Store) MaxSeq(ctx context.Context) int64 {
 	var n sql.NullInt64
-	_ = s.db.QueryRowContext(ctx, "SELECT MAX(seq) FROM events").Scan(&n)
+	_ = s.q(ctx).QueryRowContext(ctx, "SELECT MAX(seq) FROM events").Scan(&n)
 	return n.Int64
 }
 
@@ -425,7 +425,7 @@ func (s *Store) Related(ctx context.Context, e *EventRow, window time.Duration, 
 	}
 	q += ") ORDER BY seq DESC LIMIT ?"
 	args = append(args, limit)
-	rows, err := s.db.QueryContext(ctx, q, args...)
+	rows, err := s.q(ctx).QueryContext(ctx, q, args...)
 	if err != nil {
 		return nil, err
 	}
@@ -452,13 +452,13 @@ func (s *Store) CountEvents(ctx context.Context, f EventFilter) (int, error) {
 		q += " WHERE " + where
 	}
 	var n int
-	err = s.db.QueryRowContext(ctx, q, args...).Scan(&n)
+	err = s.q(ctx).QueryRowContext(ctx, q, args...).Scan(&n)
 	return n, err
 }
 
 // EventsByIP returns all events of one address, oldest first (privacy export).
 func (s *Store) EventsByIP(ctx context.Context, ip string, limit int) ([]*EventRow, error) {
-	rows, err := s.db.QueryContext(ctx, "SELECT "+eventCols+" FROM events WHERE ip_key = ? ORDER BY seq ASC LIMIT ?", ipKey(ip), limit)
+	rows, err := s.q(ctx).QueryContext(ctx, "SELECT "+eventCols+" FROM events WHERE ip_key = ? ORDER BY seq ASC LIMIT ?", ipKey(ip), limit)
 	if err != nil {
 		return nil, err
 	}
@@ -476,7 +476,7 @@ func (s *Store) EventsByIP(ctx context.Context, ip string, limit int) ([]*EventR
 
 // EventsByIncident returns the events of one incident, oldest first (D51).
 func (s *Store) EventsByIncident(ctx context.Context, incident string, limit int) ([]*EventRow, error) {
-	rows, err := s.db.QueryContext(ctx, "SELECT "+eventCols+" FROM events WHERE incident = ? ORDER BY seq ASC LIMIT ?", incident, limit)
+	rows, err := s.q(ctx).QueryContext(ctx, "SELECT "+eventCols+" FROM events WHERE incident = ? ORDER BY seq ASC LIMIT ?", incident, limit)
 	if err != nil {
 		return nil, err
 	}
@@ -510,13 +510,13 @@ func (s *Store) SummarizeIP(ctx context.Context, ip string) (*IPSummary, error) 
 	}
 	var sum IPSummary
 	var first, last, oldest sql.NullInt64
-	err := s.db.QueryRowContext(ctx, `SELECT COUNT(*), COUNT(DISTINCT NULLIF(session, '')), MIN(time_ms), MAX(time_ms),
+	err := s.q(ctx).QueryRowContext(ctx, `SELECT COUNT(*), COUNT(DISTINCT NULLIF(session, '')), MIN(time_ms), MAX(time_ms),
 		MIN(CASE WHEN ip_truncated = 0 THEN time_ms END) FROM events WHERE ip_key = ?`, k).Scan(&sum.Events, &sum.Sessions, &first, &last, &oldest)
 	if err != nil {
 		return nil, err
 	}
 	sum.FirstSeen, sum.LastSeen, sum.Untruncated = fromMS(first.Int64), fromMS(last.Int64), fromMS(oldest.Int64)
-	rows, err := s.db.QueryContext(ctx, "SELECT incident FROM incidents WHERE ip = ? ORDER BY time_ms", ip)
+	rows, err := s.q(ctx).QueryContext(ctx, "SELECT incident FROM incidents WHERE ip = ? ORDER BY time_ms", ip)
 	if err != nil {
 		return nil, err
 	}
@@ -551,12 +551,11 @@ func (s *Store) DeleteIP(ctx context.Context, ip string, keepIncidents bool, tru
 	short := clientip.Truncate(a).String()
 	// Before the transaction, as every path that notes a lift (outbox.go).
 	if len(lifts) > 0 && s.outbox.on.Load() {
-		s.outbox.wmu.Lock()
-		defer s.outbox.wmu.Unlock()
+		defer s.lockLifts(ctx)()
 	} else {
 		lifts = nil
 	}
-	tx, err := s.db.BeginTx(ctx, nil)
+	tx, err := s.begin(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -660,7 +659,7 @@ func (s *Store) RequestsSince(ctx context.Context, from time.Time, pathPrefix st
 	}
 	q += ` ORDER BY seq ASC LIMIT ?`
 	args = append(args, limit)
-	rows, err := s.db.QueryContext(ctx, q, args...)
+	rows, err := s.q(ctx).QueryContext(ctx, q, args...)
 	if err != nil {
 		return nil, err
 	}

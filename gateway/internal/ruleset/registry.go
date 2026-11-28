@@ -2,6 +2,7 @@ package ruleset
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 	"math"
@@ -620,6 +621,32 @@ func (r *Registry) SetDisabled(ctx context.Context, repository, id string, disab
 		return RuleDetail{}, ErrConfigLimit
 	}
 	d := store.RuleDecision{Repository: repository, Rule: id, Kind: store.DecisionDisabled, By: a.Kind, TokenID: a.TokenID, TokenLabel: a.Label, Note: note, At: now}
+	old, had := r.decision(repository, id, store.DecisionDisabled)
+	// The decision is stored once the WAF is built with it: a change that
+	// fails is stored nowhere, so whoever listens to the store (the audit
+	// log) hears of a change that stands and of no other.
+	inMemory := func(on bool, d store.RuleDecision) {
+		r.mu.Lock()
+		if on {
+			r.setDecision(d)
+		} else {
+			r.dropDecision(repository, id, store.DecisionDisabled)
+		}
+		r.mu.Unlock()
+	}
+	apply := func() error {
+		if repository == rules.RepoCrowdsec {
+			r.crowdsec.src.Refresh()
+			return nil
+		}
+		return r.rebuild(repository)
+	}
+	inMemory(disabled, d)
+	if err := apply(); err != nil {
+		// The WAF did not build: take the decision back.
+		inMemory(had, old)
+		return RuleDetail{}, err
+	}
 	var err error
 	if disabled {
 		err = r.o.Store.PutRuleDecision(ctx, d)
@@ -627,31 +654,9 @@ func (r *Registry) SetDisabled(ctx context.Context, repository, id string, disab
 		err = r.o.Store.DeleteRuleDecision(ctx, repository, id, store.DecisionDisabled)
 	}
 	if err != nil {
-		return RuleDetail{}, err
-	}
-	old, had := r.decision(repository, id, store.DecisionDisabled)
-	r.mu.Lock()
-	if disabled {
-		r.setDecision(d)
-	} else {
-		r.dropDecision(repository, id, store.DecisionDisabled)
-	}
-	r.mu.Unlock()
-	if repository == rules.RepoCrowdsec {
-		r.crowdsec.src.Refresh()
-	} else if err := r.rebuild(repository); err != nil {
-		// The WAF did not build: take the decision back.
-		r.mu.Lock()
-		if had {
-			r.setDecision(old)
-		} else {
-			r.dropDecision(repository, id, store.DecisionDisabled)
-		}
-		r.mu.Unlock()
-		if had {
-			_ = r.o.Store.PutRuleDecision(ctx, old)
-		} else {
-			_ = r.o.Store.DeleteRuleDecision(ctx, repository, id, store.DecisionDisabled)
+		inMemory(had, old)
+		if berr := apply(); berr != nil {
+			return RuleDetail{}, errors.Join(err, berr)
 		}
 		return RuleDetail{}, err
 	}

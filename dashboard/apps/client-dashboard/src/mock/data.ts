@@ -32,11 +32,13 @@ import overviewNormal from '../../../../../contracts/api/fixtures/client/getOver
 import overviewStandalone from '../../../../../contracts/api/fixtures/client/getOverview.standalone.json'
 import settingsFixture from '../../../../../contracts/api/fixtures/client/getSettings.json'
 import type { AgentApiMock } from './agentapi'
+import type { AuditEntry } from '@/api/audit'
 import type { BehaviourMock } from './behaviour'
 import type { HostMock } from './hosts'
 import type { MonitoringMock } from './monitoring'
 import type { RulesMock } from './rules'
 import { createAgentApiState } from './agentapi'
+import { createAuditState } from './audit'
 import { createBehaviourState } from './behaviour'
 import { createHostState, serversSummary } from './hosts'
 import { seedWebsites } from './websites'
@@ -232,6 +234,8 @@ export interface MockState {
   group: GroupStatus
   /** D103: the switch of the agent API and its tokens (mock/agentapi.ts). */
   agentApi: AgentApiMock
+  /** MVP-36: the audit log, newest first (mock/audit.ts). */
+  audit: AuditEntry[]
 }
 
 const CSRF = 'mock-csrf-token-7f3a9c22b1e04d55'
@@ -516,6 +520,7 @@ export function createState(opts: CreateStateOptions = {}): MockState {
       ? shiftTimes(scenario === 'group' ? currentBuild(groupFixture as GroupStatus) : scenario === 'group-ok' ? healthyGroup(currentBuild(groupFixture as GroupStatus)) : largeGroup(currentBuild(groupFixture as GroupStatus)), t0 - Date.parse(groupFixture.generated_at))
       : { mode: 'single' },
     agentApi: createAgentApiState(scenario, t0),
+    audit: [],
   }
   // MVP-22 (D35): which geo database is in use. The degraded gateway downloads IPinfo with the operator's
   // own key and its last download failed, so it keeps the previous database.
@@ -570,6 +575,8 @@ export function createState(opts: CreateStateOptions = {}): MockState {
   seedWebsites(st)
   markWouldBlockReasons(st.events, mode)
   aggregateIncidents(st, blockedFixture?.summary.incident)
+  // MVP-36: the audit log names an event, an incident and an own IP of this state.
+  st.audit = createAuditState(st, t0)
 
   return finalize(st)
 }

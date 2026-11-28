@@ -16,6 +16,9 @@ type dataHooks struct {
 	// asks counts the questions this node asked the members for events,
 	// incidents and requests.
 	asks atomic.Int64
+	// auditAsks counts the questions this node asked the members for the
+	// audit log.
+	auditAsks atomic.Int64
 	// before: this node speaks as the build before this one did: it says
 	// no heads, asks for requests as JSON and answers them so, to run two
 	// builds side by side in one test.
@@ -25,3 +28,4 @@ type dataHooks struct {
 func (h *dataHooks) initHooks()          { h.before.Store(startAsBuildBefore) }
 func (h *dataHooks) asBuildBefore() bool { return h.before.Load() }
 func (h *dataHooks) countAsk()           { h.asks.Add(1) }
+func (h *dataHooks) countAuditAsk()      { h.auditAsks.Add(1) }

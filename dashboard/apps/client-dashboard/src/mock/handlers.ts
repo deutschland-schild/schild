@@ -21,6 +21,7 @@ import type {
 import { delay, http, HttpResponse } from 'msw'
 import { finalize, generateRequest, iso } from './data'
 import { agentApiHandlers } from './agentapi'
+import { auditHandlers } from './audit'
 import { behaviourHandlers } from './behaviour'
 import { crawlerHandlers } from './crawlers'
 import { hostHandlers } from './hosts'
@@ -555,6 +556,9 @@ export function createHandlers(st: MockState, opts: HandlerOptions = {}): HttpHa
 
     // ---------------------------------------------------------------- D103: the switch of the agent API (mock/agentapi.ts)
     ...agentApiHandlers({ base, state: () => st, now, guard, problem }),
+
+    // ---------------------------------------------------------------- MVP-36: the audit log (mock/audit.ts)
+    ...auditHandlers({ base, state: () => st, now, guard, problem, page }),
 
     // Anything else under the API prefix.
     http.all(`${base}/*`, () => problem(404, 'not_found', 'Unbekannter Pfad')),

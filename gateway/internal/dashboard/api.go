@@ -18,6 +18,7 @@ import (
 	cm "github.com/deutschland-schild/schild/contract/monitoring"
 	"github.com/deutschland-schild/schild/contract/rules"
 	"github.com/deutschland-schild/schild/gateway/internal/allowlist"
+	"github.com/deutschland-schild/schild/gateway/internal/auditlog"
 	"github.com/deutschland-schild/schild/gateway/internal/behaviour"
 	"github.com/deutschland-schild/schild/gateway/internal/clientip"
 	"github.com/deutschland-schild/schild/gateway/internal/decide"
@@ -507,6 +508,14 @@ func (s *Server) exportIncident(w http.ResponseWriter, r *http.Request) {
 			ratelog.Warn(s.Log, "incident export without context", "err", err)
 		}
 	}
+	// The file leaves the gateway: its entry is written before the answer,
+	// and without the entry there is no file.
+	en := s.entry(r, "incident.export", "exportIncident")
+	en.Subject, en.Website = in.Incident, auditWebsite(in.Site)
+	if err := s.Audit.Write(ctx, en); err != nil {
+		s.internal(w, err)
+		return
+	}
 	if s.Events != nil {
 		data := events.IncidentExportedData{Incident: in.Incident, By: sessionOf(r).User, Events: len(out.Events)}
 		s.Events.Emit(events.IncidentExported, s.now(), data, eventlog.Index{Incident: in.Incident, Summary: "incident exported " + in.Incident})
@@ -566,38 +575,33 @@ func (s *Server) unblock(w http.ResponseWriter, r *http.Request) {
 			srcs = append(srcs, src)
 		}
 	}
+	var exception *store.Exception
 	if ipErr == nil && len(srcs) > 0 {
-		until := now.Add(24 * time.Hour)
-		if err := s.St.AddException(ctx, store.Exception{IP: ip.String(), Sources: srcs, Expires: until, Incident: in.Incident}); err != nil {
-			s.internal(w, err)
-			return
-		}
-		if s.Gate != nil {
-			s.Gate.Exceptions.Add(ip, srcs, until)
-		}
+		exception = &store.Exception{IP: ip.String(), Sources: srcs, Expires: now.Add(24 * time.Hour), Incident: in.Incident}
 	}
-	allowID := ""
 	// The client of a block is known by its key, which for IPv6 is the /64:
 	// an allowlist entry of one address would not be the client's. Then
 	// none is made, and the answer names none; the exception above is by
 	// client and holds.
+	var allow *store.AllowEntry
 	if req.AllowIP && ipErr == nil && (!shortened || ip.Is4()) {
 		e, errs := allowlist.Validate(allowlist.Input{IP: ip.String(), Label: "Vorfall " + in.Incident, Level: allowlist.NoBlock, TTL: req.AllowTTL}, now)
 		if len(errs) == 0 {
 			e.Source = "dashboard"
-			if err := s.St.AddAllow(ctx, e); err != nil {
-				s.internal(w, err)
-				return
-			}
-			allowID = e.ID
-			s.reloadAllow(ctx)
+			e.ID = store.NewID("al_")
+			allow = e
 		}
 	}
-	// On a node of a group the lift for the group is noted with the
-	// decision, in one transaction (store/outbox.go); a single gateway
-	// notes none. When the allowlist entry of this request ended the
-	// behaviour block first, which marked the incident unblocked
-	// (Sink.Ended), the incident takes the reference to the entry.
+	allowID := ""
+	if allow != nil {
+		allowID = allow.ID
+	}
+	// The exception, the allowlist entry, the unblock and the lifts for the
+	// group are one transaction with their audit entries (contracts/audit.md
+	// section 2): one block.lift per incident, client.release for the
+	// exception, allowlist.add for the entry. On a node of a group the lift
+	// for the group is noted with the decision (store/outbox.go); a single
+	// gateway notes none.
 	//
 	// A person who releases means the client, and two nodes often block one
 	// client at the same moment under two incidents: every block the node
@@ -607,18 +611,65 @@ func (s *Server) unblock(w http.ResponseWriter, r *http.Request) {
 	// the address: counters, ladder and release time stay.
 	//
 	// D87: the timed block ends now, not only for the requests of this
-	// client (the exception above): it leaves the list of blocks and,
-	// within a second, the host's firewall.
+	// client (the exception): it leaves the list of blocks and, within a
+	// second, the host's firewall.
 	//
 	// A lift is for an incident that has a block (a block of a scenario,
 	// of an agent or set by hand). The incident of a single refused request
 	// is unblocked as on a single gateway, without a lift.
 	lift := live || slices.ContainsFunc(in.Sources, behaviour.IsBlockSource)
+	website := auditWebsite(in.Site)
+	client := ""
+	if ipErr == nil {
+		client = ip.String()
+	}
 	unblock := func(held []string) error {
 		if !lift {
 			held = nil
 		}
-		if err := s.St.MarkUnblockedLift(ctx, store.Unblock{Incident: in.Incident, At: now, AllowEntry: allowID, Live: live, Lift: lift, Others: held}); err != nil {
+		err := s.Audit.Tx(ctx, func(ctx context.Context, rec *auditlog.Rec) error {
+			if exception != nil {
+				if err := s.St.AddException(ctx, *exception); err != nil {
+					return err
+				}
+				e := s.entry(r, "client.release", "unblockIncident")
+				e.Website, e.Incident, e.Reason = website, in.Incident, req.Note
+				e.After = map[string]any{"client": exception.IP, "until": ts(exception.Expires)}
+				rec.Add(e)
+			}
+			if allow != nil {
+				if err := s.St.AddAllow(ctx, allow); err != nil {
+					return err
+				}
+				e := s.entry(r, "allowlist.add", "unblockIncident")
+				e.Subject, e.Incident, e.After = allow.ID, in.Incident, allowState(allow)
+				rec.Add(e)
+			}
+			if err := s.St.MarkUnblockedLift(ctx, store.Unblock{Incident: in.Incident, At: now, AllowEntry: allowID, Live: live, Lift: lift, Others: held}); err != nil {
+				return err
+			}
+			// One block.lift per incident: the clicked one and every other
+			// block the node holds for the client.
+			lifted := []string{in.Incident}
+			for _, incident := range held {
+				if incident != in.Incident {
+					lifted = append(lifted, incident)
+				}
+			}
+			for _, incident := range lifted {
+				e := s.entry(r, "block.lift", "unblockIncident")
+				e.Subject, e.Website, e.Incident, e.Reason = incident, website, incident, req.Note
+				if client != "" {
+					e.Before = map[string]any{"client": client}
+				}
+				if req.FalsePositive {
+					e.After = map[string]any{"false_positive": true}
+				}
+				rec.Add(e)
+			}
+			return nil
+		})
+		if err != nil {
 			return err
 		}
 		for _, incident := range held {
@@ -645,6 +696,13 @@ func (s *Server) unblock(w http.ResponseWriter, r *http.Request) {
 		}
 		s.internal(w, err)
 		return
+	}
+	// After the transaction: what the change means in memory.
+	if exception != nil && s.Gate != nil {
+		s.Gate.Exceptions.Add(ip, exception.Sources, exception.Expires)
+	}
+	if allow != nil {
+		s.reloadAllow(ctx)
 	}
 	// The block of the clicked incident; in a group the next block of the
 	// client would start with it, and there is none left.
@@ -794,22 +852,58 @@ func (s *Server) syncRuleRepository(w http.ResponseWriter, r *http.Request) {
 	if s.reposOff(w) {
 		return
 	}
-	if _, err := s.Repos.Sync(r.Context(), r.PathValue("repository")); err != nil {
-		ruleProblem(w, err)
-		return
-	}
-	s.getRuleRepository(w, r)
+	s.ruleFiles(w, r, "rule_repository.sync", "syncRuleRepository", func(ctx context.Context, id string) (bool, error) {
+		res, err := s.Repos.Sync(ctx, id)
+		// The source holds what runs: nothing changed, no entry.
+		return !res.Unchanged, err
+	})
 }
 
 func (s *Server) resetRuleRepository(w http.ResponseWriter, r *http.Request) {
 	if s.reposOff(w) {
 		return
 	}
-	if err := s.Repos.Reset(r.Context(), r.PathValue("repository")); err != nil {
+	s.ruleFiles(w, r, "rule_repository.reset", "resetRuleRepository", func(ctx context.Context, id string) (bool, error) {
+		return true, s.Repos.Reset(ctx, id)
+	})
+}
+
+// ruleFiles runs a change of the rules a repository loads (sync, reset).
+// The rules are files, not rows of schild.db: the entry is written after
+// the change and before the answer (contracts/audit.md section 4).
+func (s *Server) ruleFiles(w http.ResponseWriter, r *http.Request, action, operation string, change func(ctx context.Context, id string) (changed bool, err error)) {
+	id := r.PathValue("repository")
+	before, _ := s.Repos.Repository(id)
+	changed, err := change(r.Context(), id)
+	if err != nil {
 		ruleProblem(w, err)
 		return
 	}
-	s.getRuleRepository(w, r)
+	after, err := s.Repos.Repository(id)
+	if err != nil {
+		ruleProblem(w, err)
+		return
+	}
+	if changed {
+		// A new set is a change also when it has the same name and as many
+		// rules as before: the entry then stands without a difference.
+		en := s.entry(r, action, operation)
+		en.Subject, en.Before, en.After = id, RuleSetState(before), RuleSetState(after)
+		if !s.written(w, s.Audit.Write(r.Context(), en)) {
+			return
+		}
+	}
+	writeJSON(w, 200, after)
+}
+
+// RuleSetState is what rule_repository.sync and rule_repository.reset record
+// of a repository: the set it runs and how many rules that set loaded.
+func RuleSetState(v ruleset.RepositoryView) map[string]any {
+	m := map[string]any{"rules_loaded": v.Counts.Rules}
+	if v.Crowdsec != nil {
+		m["set"] = v.Crowdsec.SetSource
+	}
+	return m
 }
 
 func (s *Server) listRules(w http.ResponseWriter, r *http.Request) {
@@ -853,7 +947,20 @@ func (s *Server) updateRule(w http.ResponseWriter, r *http.Request) {
 		invalid(w, "Die Notiz ist zu lang.", FieldError{Pointer: "/note", Detail: "höchstens 500 Zeichen"})
 		return
 	}
-	d, err := s.Repos.SetDisabled(r.Context(), r.PathValue("repository"), r.PathValue("rule"), *p.Disabled, p.Note, s.actor())
+	// The registry stores the decision; its entry is written in the
+	// transaction of that write.
+	repo, rule := r.PathValue("repository"), r.PathValue("rule")
+	ctx := s.Audit.OnChange(r.Context(), func(c store.Change, rec *auditlog.Rec) error {
+		if c.Key != store.RuleDecisionKey(repo, rule, store.DecisionDisabled) {
+			return nil
+		}
+		en := s.entry(r, "rule.set", "updateRule")
+		en.Subject, en.Reason, en.IfChanged = repo+"/"+rule, p.Note, true
+		en.Before, en.After = map[string]any{"disabled": c.Old != nil}, map[string]any{"disabled": c.New != nil}
+		rec.Add(en)
+		return nil
+	})
+	d, err := s.Repos.SetDisabled(ctx, repo, rule, *p.Disabled, p.Note, s.actor())
 	if err != nil {
 		ruleProblem(w, err)
 		return
@@ -939,12 +1046,25 @@ func (s *Server) addAllow(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	e.Source = "dashboard"
-	if err := s.St.AddAllow(r.Context(), e); err != nil {
+	if err := s.addAllowEntry(r, "addAllowlistEntry", e); err != nil {
 		s.internal(w, err)
 		return
 	}
 	s.reloadAllow(r.Context())
 	writeJSON(w, http.StatusCreated, s.allowView(&allowlist.Entry{AllowEntry: *e}, s.now()))
+}
+
+// addAllowEntry stores an own IP and its audit entry in one transaction.
+func (s *Server) addAllowEntry(r *http.Request, operation string, e *store.AllowEntry) error {
+	return s.Audit.Tx(r.Context(), func(ctx context.Context, rec *auditlog.Rec) error {
+		if err := s.St.AddAllow(ctx, e); err != nil {
+			return err
+		}
+		en := s.entry(r, "allowlist.add", operation)
+		en.Subject, en.After = e.ID, allowState(e)
+		rec.Add(en)
+		return nil
+	})
 }
 
 func (s *Server) caller(r *http.Request) (netip.Addr, string) {
@@ -984,7 +1104,7 @@ func (s *Server) allowMine(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	e.Source = "dashboard"
-	if err := s.St.AddAllow(r.Context(), e); err != nil {
+	if err := s.addAllowEntry(r, "allowMyIP", e); err != nil {
 		s.internal(w, err)
 		return
 	}
@@ -998,7 +1118,20 @@ func (s *Server) deleteAllow(w http.ResponseWriter, r *http.Request) {
 		problem(w, 409, "conflict", "Dieser Eintrag steht in schild.yaml. Ändere ihn dort.", nil)
 		return
 	}
-	if err := s.St.DeleteAllow(r.Context(), id); err != nil {
+	err := s.Audit.Tx(r.Context(), func(ctx context.Context, rec *auditlog.Rec) error {
+		old, err := s.St.GetAllow(ctx, id)
+		if err != nil {
+			return err
+		}
+		if err := s.St.DeleteAllow(ctx, id); err != nil {
+			return err
+		}
+		en := s.entry(r, "allowlist.remove", "deleteAllowlistEntry")
+		en.Subject, en.Before = id, allowState(old)
+		rec.Add(en)
+		return nil
+	})
+	if err != nil {
 		if errors.Is(err, store.ErrNotFound) {
 			problem(w, 404, "not_found", "Diesen Eintrag gibt es nicht.", nil)
 			return
@@ -1027,7 +1160,8 @@ func (s *Server) patchSettings(w http.ResponseWriter, r *http.Request) {
 	if !decode(w, r, &p) {
 		return
 	}
-	if _, err := s.Apply(r.Context(), p); err != nil {
+	ctx := s.origin(r, "updateSettings")
+	if _, err := s.Apply(ctx, p); err != nil {
 		invalid(w, "Diese Einstellung ist nicht möglich: "+err.Error())
 		return
 	}
@@ -1089,6 +1223,22 @@ func (s *Server) privacyExport(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
+	// The audit entries that name the address belong to what is stored
+	// about it (contracts/audit.md section 7).
+	if out.Audit, err = s.Audit.Naming(r.Context(), ip.String(), auditlog.MaxPage+1); err != nil {
+		s.internal(w, err)
+		return
+	}
+	if len(out.Audit) > auditlog.MaxPage {
+		out.Audit, out.AuditTruncated = out.Audit[:auditlog.MaxPage], true
+	}
+	// That it happened and how much, not the content and not the address.
+	en := s.entry(r, "privacy.export", "privacyExport")
+	en.After = map[string]any{"events": len(out.Events), "requests": len(out.Requests)}
+	if err := s.Audit.Write(r.Context(), en); err != nil {
+		s.internal(w, err)
+		return
+	}
 	w.Header().Set("Content-Disposition", `attachment; filename="schild-export-`+strings.NewReplacer(":", "-", ".", "-").Replace(ip.String())+`.json"`)
 	writeJSON(w, 200, out)
 }
@@ -1132,14 +1282,48 @@ func (s *Server) privacyDelete(w http.ResponseWriter, r *http.Request) {
 	// amendment). The blocks a group holds of this client end with the
 	// erasure: their lifts are noted in the transaction that erases, and no
 	// block of the group starts between that and the end of the block here.
+	//
+	// The request ring is erased first: it is a store of its own, and the
+	// entry of the erasure, written with the erasure of schild.db, names
+	// how much went there too. The entry holds numbers and no address
+	// (privacy.erase); the audit entries that name the address stay as
+	// they are until audit.keep_days (contracts/audit.md section 7).
+	var err error
+	erased := 0
+	if s.Requests != nil {
+		if erased, err = s.Requests.ForgetIP(r.Context(), ip); err != nil {
+			s.internal(w, err)
+			return
+		}
+	}
+	incidents := 0
+	if sum, err := s.St.SummarizeIP(r.Context(), ip.String()); err == nil {
+		incidents = len(sum.Incidents)
+	}
+	// A single gateway names no lifts, and still ends the block that runs.
+	running := 0
+	if s.Behaviour != nil {
+		if _, ok := s.Behaviour.ActiveBlock(ip); ok {
+			running = 1
+		}
+	}
 	var res *store.DeleteResult
-	erase := func(lifts []string) (err error) {
-		if res, err = s.St.DeleteIP(r.Context(), ip.String(), req.KeepIncidents, TruncateBody, lifts...); err == nil && s.Behaviour != nil {
+	erase := func(lifts []string) error {
+		err := s.Audit.Tx(r.Context(), func(ctx context.Context, rec *auditlog.Rec) (err error) {
+			if res, err = s.St.DeleteIP(ctx, ip.String(), req.KeepIncidents, TruncateBody, lifts...); err != nil {
+				return err
+			}
+			en := s.entry(r, "privacy.erase", "privacyDelete")
+			en.After = map[string]any{"events": res.Events, "incidents": incidents, "requests": erased, "blocks": max(len(lifts), running),
+				"allowlist": res.Allowlist, "keep_incidents": req.KeepIncidents}
+			rec.Add(en)
+			return nil
+		})
+		if err == nil && s.Behaviour != nil {
 			s.Behaviour.Forget(ip)
 		}
 		return err
 	}
-	var err error
 	if s.ClientBlocks != nil {
 		err = s.ClientBlocks(ip, erase)
 	} else {
@@ -1153,13 +1337,6 @@ func (s *Server) privacyDelete(w http.ResponseWriter, r *http.Request) {
 		s.Gate.Exceptions.Load(xs)
 	}
 	s.reloadAllow(r.Context())
-	erased := 0
-	if s.Requests != nil {
-		if erased, err = s.Requests.ForgetIP(r.Context(), ip); err != nil {
-			s.internal(w, err)
-			return
-		}
-	}
 	out := PrivacyDeleteResult{IP: ip.String(), DeletedEvents: res.Events, DeletedSessions: res.Sessions, DeletedAllowlistEntries: res.Allowlist, ErasedRequests: erased}
 	if s.Erased != nil {
 		out.Nodes = s.Erased(r.Context(), ip, req.KeepIncidents).bounded()

@@ -440,6 +440,65 @@ Caddy startet mit seinen eigenen Zertifikaten. Schild hat mit einer Kopie gearbe
 
 Deine Anwendung hängt von nichts ab, was Schild speichert. Wer auch die Daten loswerden will, löscht `/var/lib/schild` und `/etc/schild` oder nimmt `docker compose down -v`.
 
+## Protokoll: wer was geändert hat
+
+Schild schreibt jede Änderung in ein Protokoll (Audit-Log). Ein Eintrag sagt, wer etwas geändert hat, wann, auf welchem Weg und was vorher galt. Du findest es im Dashboard unter „Einstellungen“ → „Protokoll“.
+
+![Schild Dashboard, Seite Protokoll: Filter für Website, Art, Weg und Aktion, darunter die Liste der Einträge mit den Spalten Wann, Was, Wer und Website. Zu sehen sind ein abgelehnter Aufruf der Agent-API mit 48 Versuchen, eine geänderte Aufbewahrung, Anmeldungen, eine Änderung durch einen Agenten und eine geänderte Konfigurationsdatei. Testdaten.](../../site/public/img/dashboards/doku-protokoll.webp)
+
+Die Liste zeigt die neuesten Einträge zuerst. Mit den Filtern grenzt du sie ein: auf eine Website, auf eine Art von Eintrag, auf den Weg (Dashboard, Agent-API, Befehl auf dem Server) oder auf eine Aktion. Ein Klick auf eine Zeile öffnet den Eintrag:
+
+![Schild Dashboard, ein Eintrag im Protokoll als Seitenleiste: Aufbewahrung geändert, von admin im Dashboard mit Sitzung, Weg updateSettings, darunter „Vorher und nachher“ mit /retention/events_days, vorher 30, nachher 14, am Ende Server web-1 und die Nummer des Eintrags. IP-Adresse unkenntlich gemacht. Testdaten.](../../site/public/img/dashboards/doku-protokoll-eintrag.webp)
+
+Im Eintrag steht unter „Vorher und nachher“ jeder geänderte Wert. „Alles aus dieser Sitzung“ zeigt, was derselbe Benutzer in dieser Anmeldung noch geändert hat.
+
+**Was drinsteht:**
+
+- Änderungen aus dem Dashboard, mit Benutzer und Sitzung
+- Änderungen von Agenten über die Agent-API, mit Token-ID und Bezeichnung
+- Befehle auf dem Server (`schild allow`, `schild token add`, `schild lock` und die anderen schreibenden Befehle), mit dem Konto, das den Befehl ausgeführt hat
+- eine geänderte `schild.yaml` oder ein geändertes Caddyfile beim Start: die Namen der geänderten Schlüssel, keine Werte
+- was Schild selbst tut, zum Beispiel wenn eine eigene IP oder ein Token abläuft
+- Anmeldungen und Abmeldungen im Dashboard
+- abgelehnte Aufrufe wie eine falsche Anmeldung oder ein unbekanntes Token: ein Eintrag pro Absender und Minute, mit Anzahl
+
+Lesende Aufrufe stehen nicht im Protokoll. Für die Agent-API gibt es dafür weiter `schild token log`.
+
+**Was nie drinsteht:** Passwörter, Tokens, Schlüssel und Codes. Bei so einem Feld steht nur, dass es gesetzt, geändert oder entfernt wurde. Einen Wert zeigt das Protokoll nur für Felder, die für die jeweilige Aktion freigegeben sind. Bei allen anderen steht nur der Name des Feldes.
+
+**Wie lange es bleibt:** Änderungen bleiben 365 Tage. Anmeldungen und abgelehnte Aufrufe bleiben 90 Tage, höchstens 20.000 Einträge je Art. Du stellst das in `schild.yaml` ein:
+
+```yaml
+audit:
+  keep_days: 365        # 1 bis 36500, oder unlimited
+```
+
+Das Protokoll liegt in einer eigenen Datei, `audit.db` im Datenverzeichnis. Sie zählt nicht zu `retention.max_size_mb`, und Schild löscht wegen ihrer Größe nichts. 100 Änderungen am Tag ergeben etwa 36 MB im Jahr. Ab 1 GB zeigt das Dashboard einen Hinweis.
+
+**IP-Adressen im Protokoll:** Ein Eintrag bleibt so, wie er geschrieben wurde. Er enthält die Adresse, von der ein Aufruf kam, und Adressen, die jemand eingetragen hat, zum Beispiel eine eigene IP. `retention.raw_ip_days` kürzt diese Adressen nicht. Auch das Löschen zu einer IP-Adresse unter „Datenschutz“ entfernt sie nicht aus dem Protokoll. Der Export zu einer IP-Adresse enthält die Einträge, die diese Adresse nennen. Wenn die Adressen früher weg sein müssen, setz `audit.keep_days` kürzer, zum Beispiel auf 14. Dann endet nach dieser Zeit auch die Auskunft, wer was geändert hat. Ob das für eine Löschanfrage reicht, hängt vom Fall ab und ist deine Entscheidung.
+
+**Kopie in ein Log-System:** Mit `audit.stream` schreibt Schild jeden Eintrag zusätzlich als eine JSON-Zeile, nach `stdout` oder in eine Datei:
+
+```yaml
+audit:
+  stream: stdout        # oder ein absoluter Pfad, z. B. /var/log/schild/audit.jsonl
+```
+
+Die Kopie löscht Schild nie, auch nicht nach `audit.keep_days`. Wer `root` auf dem Server hat, kann `audit.db` ändern. Davor schützt nur die Kopie auf einem anderen System.
+
+**Auf dem Server:**
+
+```bash
+schild audit                          # alle Einträge, neueste zuerst
+schild audit --since 7d --json        # die letzten 7 Tage als JSON-Zeilen
+schild audit --token tok_0123456789ab # was ein Token geändert hat
+schild audit check                    # fehlende Nummern im Protokoll nennen
+```
+
+`schild audit check` findet Einträge, die jemand von Hand aus der Datei entfernt hat. Was `audit.keep_days` löscht, ist immer der älteste Teil und hinterlässt keine Lücke.
+
+**Im Cluster:** Jeder Server schreibt seine eigenen Einträge und holt die der anderen. Jedes Dashboard zeigt alle, mit dem Server, der die Änderung gemacht hat. `audit.keep_days` gilt je Server.
+
 ## Welche Daten wo bleiben
 
 **Was den Server verlässt:** nichts aus deinem Traffic. Schild ruft nur öffentliche Daten ab, und jede dieser Verbindungen lässt sich abschalten:
@@ -470,6 +529,7 @@ Die mitgelieferten Regeln und der Bot-Katalog aus dem Binary bleiben dann aktiv,
 - Einzelne Anfragen für die Ansicht „Zugriffe“, mit IP-Adresse und Browserkennung, ohne Query-String und Cookies. Sie bleiben so lange wie die vollen IP-Adressen der Ereignisse, ab Werk 14 Tage (`retention.raw_ip_days`), und zusammen höchstens 512 MB; darüber gehen die ältesten zuerst. Einstellen kannst du das mit `monitoring.requests.keep_hours` und `monitoring.requests.max_size_mb`, ganz aus mit `monitoring.requests.enabled: false`.
 - Zahlen ohne IP-Adressen für Diagramme, Zusammenfassungen 90 Tage.
 - Inhalte von Anfragen speichert Schild nie, Passwörter und Tokens werden geschwärzt.
+- Das [Protokoll](#protokoll-wer-was-geändert-hat) der Änderungen und Anmeldungen, mit den IP-Adressen der Aufrufe. Es bleibt 365 Tage (`audit.keep_days`).
 
 Im Dashboard unter „Datenschutz“ suchst, exportierst und löschst du alles zu einer IP-Adresse. Mehr im [Datenschutzkonzept](../concept/24-datenschutz.md).
 
@@ -481,7 +541,7 @@ Für einen schnellen Wiederaufbau reichen diese Dateien:
 - `/var/lib/schild/schild.db` (Dashboard-Passwort, Einstellungen, Ausnahmen, eigene IPs, API-Tokens sowie gespeicherte Ereignisse mit IP-Adressen – beachte das bei der Aufbewahrungsdauer deiner Backups)
 - `/var/lib/schild/caddy/` (Zertifikate und ACME-Konto, wenn Schild als Caddy-Distribution läuft)
 
-`metrics.db` enthält nur historische Diagrammdaten und muss nicht gesichert werden. Kopiere `schild.db` im laufenden Betrieb nicht einfach mit `cp` (SQLite nutzt WAL-Dateien): Nutze entweder `sqlite3 /var/lib/schild/schild.db ".backup /pfad/zum/backup/schild.db"` oder stoppe Schild kurz für die Kopie. Beim Zurückspielen gehören die Dateien wieder dem Benutzer `schild` (bzw. UID/GID `65532:65532` im Container).
+`metrics.db` enthält nur historische Diagrammdaten und muss nicht gesichert werden. `audit.db` enthält das [Protokoll](#protokoll-wer-was-geändert-hat). Sichere sie mit, wenn du nach einem Wiederaufbau noch wissen willst, wer was geändert hat. Fehlt die Datei beim Start, beginnt Schild ein neues Protokoll und vermerkt das als ersten Eintrag. Kopiere `schild.db` im laufenden Betrieb nicht einfach mit `cp` (SQLite nutzt WAL-Dateien): Nutze entweder `sqlite3 /var/lib/schild/schild.db ".backup /pfad/zum/backup/schild.db"` oder stoppe Schild kurz für die Kopie. Beim Zurückspielen gehören die Dateien wieder dem Benutzer `schild` (bzw. UID/GID `65532:65532` im Container).
 
 ## Monitoring und Alarme
 
@@ -517,6 +577,7 @@ Für Alarme im Alltag sind besonders diese Metriken nützlich:
 | `schild check install`, `uninstall` | den täglichen Server-Check als systemd-Units einrichten oder wieder entfernen (siehe [Server-Check einrichten](#server-check-einrichten)) |
 | `schild firewall run`, `status`, `off` | Sperren von Schild in der Firewall halten, ansehen oder alle wieder herausnehmen (siehe [Sperren in der Firewall](#sperren-in-der-firewall)) |
 | `schild token add`, `list`, `revoke`, `log` | Tokens der [Agent-API](#agent-api-einrichten) anlegen, auflisten, widerrufen, Protokoll ansehen |
+| `schild audit`, `schild audit check` | das [Protokoll](#protokoll-wer-was-geändert-hat) der Änderungen ansehen und auf Lücken prüfen |
 | `schild dashboard setup-code` | den Einmal-Code für die erste Anmeldung noch einmal anzeigen, solange kein Passwort gesetzt ist |
 | `schild dashboard reset-password` | Dashboard-Zugang zurücksetzen, neuer Einmal-Code |
 | `schild front` | kleiner Front-Proxy vor Schild, falls du keinen Webserver davor hast: reicht nur bei abgelehnter Verbindung direkt an die Anwendung durch, nie bei aktivem Zugriffsschutz |

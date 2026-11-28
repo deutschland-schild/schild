@@ -36,6 +36,7 @@ import (
 	"github.com/deutschland-schild/schild/contract/events"
 	"github.com/deutschland-schild/schild/contract/firewall"
 	"github.com/deutschland-schild/schild/gateway/internal/allowlist"
+	"github.com/deutschland-schild/schild/gateway/internal/auditlog"
 	"github.com/deutschland-schild/schild/gateway/internal/behaviour"
 	"github.com/deutschland-schild/schild/gateway/internal/clientip"
 	"github.com/deutschland-schild/schild/gateway/internal/eventlog"
@@ -174,6 +175,10 @@ type Server struct {
 	fp fpCache
 	// Sites are the websites of this gateway (v0.5, D36).
 	Sites *sites.Registry
+	// Audit is the audit log (MVP-36): every writing operation notes its
+	// entry in the transaction of its change. Nil in tests of a part: the
+	// change happens without an entry.
+	Audit *auditlog.Log
 
 	mu           sync.Mutex
 	once         sync.Once
@@ -214,41 +219,42 @@ func (s *Server) Handler() http.Handler {
 	mux := http.NewServeMux()
 	a := func(pattern string, h http.HandlerFunc) { mux.Handle(pattern, s.auth(h)) }
 	mux.HandleFunc("GET "+apiPrefix+"/auth/session", s.getSession)
-	mux.HandleFunc("POST "+apiPrefix+"/auth/setup", s.setup)
-	mux.HandleFunc("POST "+apiPrefix+"/auth/login", s.login)
-	a("POST "+apiPrefix+"/auth/logout", s.logout)
-	a("POST "+apiPrefix+"/auth/password", s.changePassword)
+	mux.HandleFunc("POST "+apiPrefix+"/auth/setup", s.op("setupPassword", s.setup))
+	mux.HandleFunc("POST "+apiPrefix+"/auth/login", s.op("login", s.login))
+	a("POST "+apiPrefix+"/auth/logout", s.op("logout", s.logout))
+	a("POST "+apiPrefix+"/auth/password", s.op("changePassword", s.changePassword))
 	a("GET "+apiPrefix+"/overview", s.getOverview)
 	a("GET "+apiPrefix+"/group", s.getGroupStatus)
 	a("GET "+apiPrefix+"/events", s.listEvents)
 	a("GET "+apiPrefix+"/events/stream", s.streamEvents)
 	a("GET "+apiPrefix+"/events/{id}", s.getEvent)
 	a("GET "+apiPrefix+"/incidents/{incident}", s.getIncident)
-	a("POST "+apiPrefix+"/incidents/{incident}/export", s.exportIncident)
-	a("POST "+apiPrefix+"/incidents/{incident}/unblock", s.unblock)
+	a("POST "+apiPrefix+"/incidents/{incident}/export", s.op("exportIncident", s.exportIncident))
+	a("POST "+apiPrefix+"/incidents/{incident}/unblock", s.op("unblockIncident", s.unblock))
 	a("GET "+apiPrefix+"/rule-repositories", s.listRuleRepositories)
 	a("GET "+apiPrefix+"/rule-repositories/{repository}", s.getRuleRepository)
-	a("PATCH "+apiPrefix+"/rule-repositories/{repository}", s.updateRuleRepository)
-	a("PATCH "+apiPrefix+"/rule-repositories/{repository}/settings", s.updateRuleRepositorySettings)
-	a("POST "+apiPrefix+"/rule-repositories/{repository}/sync", s.syncRuleRepository)
-	a("POST "+apiPrefix+"/rule-repositories/{repository}/reset", s.resetRuleRepository)
+	a("PATCH "+apiPrefix+"/rule-repositories/{repository}", s.op("updateRuleRepository", s.updateRuleRepository))
+	a("PATCH "+apiPrefix+"/rule-repositories/{repository}/settings", s.op("updateRuleRepositorySettings", s.updateRuleRepositorySettings))
+	a("POST "+apiPrefix+"/rule-repositories/{repository}/sync", s.op("syncRuleRepository", s.syncRuleRepository))
+	a("POST "+apiPrefix+"/rule-repositories/{repository}/reset", s.op("resetRuleRepository", s.resetRuleRepository))
 	a("GET "+apiPrefix+"/rule-exceptions", s.listRuleExceptions)
-	a("POST "+apiPrefix+"/rule-exceptions", s.createRuleException)
-	a("DELETE "+apiPrefix+"/rule-exceptions/{id}", s.removeRuleException)
-	a("DELETE "+apiPrefix+"/rule-exceptions/{id}/rules/{rule}", s.removeRuleExceptionRule)
+	a("POST "+apiPrefix+"/rule-exceptions", s.op("createRuleException", s.createRuleException))
+	a("DELETE "+apiPrefix+"/rule-exceptions/{id}", s.op("removeRuleException", s.removeRuleException))
+	a("DELETE "+apiPrefix+"/rule-exceptions/{id}/rules/{rule}", s.op("removeRuleExceptionRule", s.removeRuleExceptionRule))
 	a("GET "+apiPrefix+"/rules", s.listRules)
 	a("GET "+apiPrefix+"/rules/{repository}/{rule}", s.getRule)
-	a("PATCH "+apiPrefix+"/rules/{repository}/{rule}", s.updateRule)
+	a("PATCH "+apiPrefix+"/rules/{repository}/{rule}", s.op("updateRule", s.updateRule))
 	a("GET "+apiPrefix+"/allowlist", s.listAllow)
-	a("POST "+apiPrefix+"/allowlist", s.addAllow)
+	a("POST "+apiPrefix+"/allowlist", s.op("addAllowlistEntry", s.addAllow))
 	a("GET "+apiPrefix+"/allowlist/mine", s.getMine)
-	a("POST "+apiPrefix+"/allowlist/mine", s.allowMine)
-	a("DELETE "+apiPrefix+"/allowlist/{id}", s.deleteAllow)
+	a("POST "+apiPrefix+"/allowlist/mine", s.op("allowMyIP", s.allowMine))
+	a("DELETE "+apiPrefix+"/allowlist/{id}", s.op("deleteAllowlistEntry", s.deleteAllow))
 	a("GET "+apiPrefix+"/settings", s.getSettings)
-	a("PATCH "+apiPrefix+"/settings", s.patchSettings)
+	a("PATCH "+apiPrefix+"/settings", s.op("updateSettings", s.patchSettings))
 	a("GET "+apiPrefix+"/privacy/search", s.privacySearch)
-	a("POST "+apiPrefix+"/privacy/export", s.privacyExport)
-	a("POST "+apiPrefix+"/privacy/delete", s.privacyDelete)
+	a("POST "+apiPrefix+"/privacy/export", s.op("privacyExport", s.privacyExport))
+	a("POST "+apiPrefix+"/privacy/delete", s.op("privacyDelete", s.privacyDelete))
+	a("GET "+apiPrefix+"/audit", s.listAudit)
 	s.hostRoutes(a)
 	s.behaviourRoutes(a)
 	s.distributedRoutes(a)
@@ -525,18 +531,29 @@ func (s *Server) checkHost(next http.Handler) http.Handler {
 	})
 }
 
-func (s *Server) startSession(ctx context.Context, w http.ResponseWriter, r *http.Request, user string) (*store.Session, error) {
+// newSession draws a session of user and its token. The caller stores it
+// (in the transaction of its change) and sets the cookie afterwards.
+func (s *Server) newSession(user string) (*store.Session, string) {
 	tok := make([]byte, 32)
 	_, _ = rand.Read(tok)
 	t := base64.RawURLEncoding.EncodeToString(tok)
 	now := s.now()
-	se := store.Session{TokenHash: hashToken(t), User: user, CSRF: randHex(16), Created: now, Expires: now.Add(s.sessionTTL())}
-	if err := s.St.CreateSession(ctx, se); err != nil {
-		return nil, err
-	}
-	http.SetCookie(w, &http.Cookie{Name: cookieName, Value: t, Path: "/", HttpOnly: true, Secure: secureCookie(r),
+	return &store.Session{TokenHash: hashToken(t), User: user, CSRF: randHex(16), Created: now, Expires: now.Add(s.sessionTTL())}, t
+}
+
+func (s *Server) setSessionCookie(w http.ResponseWriter, r *http.Request, token string) {
+	http.SetCookie(w, &http.Cookie{Name: cookieName, Value: token, Path: "/", HttpOnly: true, Secure: secureCookie(r),
 		SameSite: http.SameSiteStrictMode, MaxAge: int(s.sessionTTL() / time.Second)})
-	return &se, nil
+}
+
+// sessionStart is the entry of a session that starts: a sign-in, the first
+// password, a changed password. The actor is the new session. The subject
+// is the user without a name: every viewer sees a subject, the name of a
+// person stands with the actor alone.
+func (s *Server) sessionStart(r *http.Request, operation string, se *store.Session) auditlog.Entry {
+	e := s.entry(r, "session.start", operation)
+	e.Actor = auditlog.Dashboard(se.User, auditlog.SessionID(se.TokenHash))
+	return e
 }
 
 func (s *Server) currentSession(r *http.Request) *store.Session {
@@ -656,9 +673,11 @@ func (s *Server) setup(w http.ResponseWriter, r *http.Request) {
 	// operator. Nobody with host access is locked out: the code is in the log.
 	succeeded, ok := s.attempt(w, loginKey(r))
 	if !ok {
+		s.refused(r, "password.setup", "setupPassword")
 		return
 	}
 	if !s.setupCodeOK(req.SetupCode) {
+		s.refused(r, "password.setup", "setupPassword")
 		problem(w, http.StatusForbidden, "forbidden", "Der Einrichtungscode stimmt nicht. Du findest ihn im Server-Log von schild.",
 			[]FieldError{{Pointer: "/setup_code", Detail: "Code aus dem Server-Log eingeben"}})
 		return
@@ -668,18 +687,33 @@ func (s *Server) setup(w http.ResponseWriter, r *http.Request) {
 		invalid(w, "Das Passwort braucht mindestens 12 Zeichen.", FieldError{Pointer: "/password", Detail: "mindestens 12 Zeichen"})
 		return
 	}
-	if err := s.St.CreateFirstUser(ctx, store.User{Name: "admin", Hash: HashPassword(req.Password), Role: "admin"}); err != nil {
+	// The first user, its session and their entries are one transaction.
+	hash := HashPassword(req.Password)
+	se, token := s.newSession("admin")
+	var exists bool
+	err := s.Audit.Tx(ctx, func(ctx context.Context, rec *auditlog.Rec) error {
+		if err := s.St.CreateFirstUser(ctx, store.User{Name: "admin", Hash: hash, Role: "admin"}); err != nil {
+			exists = true
+			return err
+		}
+		e := s.entry(r, "password.setup", "setupPassword")
+		e.Actor = auditlog.Dashboard(se.User, auditlog.SessionID(se.TokenHash))
+		e.After = map[string]any{"password": true}
+		rec.Add(e, s.sessionStart(r, "setupPassword", se))
+		return s.St.CreateSession(ctx, *se)
+	})
+	if exists {
 		problem(w, http.StatusConflict, "conflict", "Das Passwort ist schon gesetzt. Melde dich an.", nil)
+		return
+	}
+	if err != nil {
+		s.internal(w, err)
 		return
 	}
 	if err := s.setupDone(ctx); err != nil && s.Log != nil {
 		s.Log.Warn("dashboard: pending setup code not cleared", "err", err)
 	}
-	se, err := s.startSession(ctx, w, r, "admin")
-	if err != nil {
-		s.internal(w, err)
-		return
-	}
+	s.setSessionCookie(w, r, token)
 	if s.Log != nil {
 		s.Log.Info("dashboard password set")
 	}
@@ -814,6 +848,7 @@ func (s *Server) login(w http.ResponseWriter, r *http.Request) {
 	}
 	succeeded, ok := s.attempt(w, loginKey(r))
 	if !ok {
+		s.refused(r, "session.start", "login")
 		return
 	}
 	user := req.User
@@ -825,20 +860,36 @@ func (s *Server) login(w http.ResponseWriter, r *http.Request) {
 		s.checkPassword(r.Context(), dummyHash(), req.Password) // same work as for a known user
 	}
 	if err != nil || !s.checkPassword(r.Context(), u.Hash, req.Password) {
+		s.refused(r, "session.start", "login")
 		problem(w, http.StatusUnauthorized, "unauthenticated", "Benutzername oder Passwort stimmen nicht.", []FieldError{{Pointer: "/password", Detail: "stimmt nicht"}})
 		return
 	}
 	succeeded()
-	se, err := s.startSession(r.Context(), w, r, u.Name)
+	se, token := s.newSession(u.Name)
+	err = s.Audit.Tx(r.Context(), func(ctx context.Context, rec *auditlog.Rec) error {
+		rec.Add(s.sessionStart(r, "login", se))
+		return s.St.CreateSession(ctx, *se)
+	})
 	if err != nil {
 		s.internal(w, err)
 		return
 	}
+	s.setSessionCookie(w, r, token)
 	writeJSON(w, 200, s.sessionView(se))
 }
 
 func (s *Server) logout(w http.ResponseWriter, r *http.Request) {
-	_ = s.St.DeleteSession(r.Context(), sessionOf(r).TokenHash)
+	se := sessionOf(r)
+	err := s.Audit.Tx(r.Context(), func(ctx context.Context, rec *auditlog.Rec) error {
+		rec.Add(s.entry(r, "session.end", "logout"))
+		return s.St.DeleteSession(ctx, se.TokenHash)
+	})
+	if err != nil {
+		// The session still stands: say so, and keep the cookie, so the
+		// user can try again.
+		s.internal(w, err)
+		return
+	}
 	http.SetCookie(w, &http.Cookie{Name: cookieName, Value: "", Path: "/", HttpOnly: true, Secure: secureCookie(r), SameSite: http.SameSiteStrictMode, MaxAge: -1})
 	w.WriteHeader(http.StatusNoContent)
 }
@@ -851,10 +902,12 @@ func (s *Server) changePassword(w http.ResponseWriter, r *http.Request) {
 	se := sessionOf(r)
 	succeeded, ok := s.attempt(w, sessionKey(se))
 	if !ok {
+		s.refused(r, "password.change", "changePassword")
 		return
 	}
 	u, err := s.St.GetUser(r.Context(), se.User)
 	if err != nil || !s.checkPassword(r.Context(), u.Hash, req.CurrentPassword) {
+		s.refused(r, "password.change", "changePassword")
 		problem(w, http.StatusUnauthorized, "unauthenticated", "Das aktuelle Passwort stimmt nicht.", []FieldError{{Pointer: "/current_password", Detail: "stimmt nicht"}})
 		return
 	}
@@ -863,14 +916,24 @@ func (s *Server) changePassword(w http.ResponseWriter, r *http.Request) {
 		invalid(w, "Das neue Passwort braucht mindestens 12 Zeichen.", FieldError{Pointer: "/new_password", Detail: "mindestens 12 Zeichen"})
 		return
 	}
-	if err := s.St.SetPassword(r.Context(), se.User, HashPassword(req.NewPassword)); err != nil {
+	// The new password ends every session of the user; the one that goes
+	// on is a new session, stored with the change.
+	hash := HashPassword(req.NewPassword)
+	next, token := s.newSession(se.User)
+	err = s.Audit.Tx(r.Context(), func(ctx context.Context, rec *auditlog.Rec) error {
+		if err := s.St.SetPassword(ctx, se.User, hash); err != nil {
+			return err
+		}
+		e := s.entry(r, "password.change", "changePassword")
+		e.Before, e.After = map[string]any{"password": true}, map[string]any{"password": false}
+		rec.Add(e, s.sessionStart(r, "changePassword", next))
+		return s.St.CreateSession(ctx, *next)
+	})
+	if err != nil {
 		s.internal(w, err)
 		return
 	}
-	if _, err := s.startSession(r.Context(), w, r, se.User); err != nil {
-		s.internal(w, err)
-		return
-	}
+	s.setSessionCookie(w, r, token)
 	w.WriteHeader(http.StatusNoContent)
 }
 

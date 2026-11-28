@@ -792,6 +792,11 @@ export function hints(m: MonitoringMock, now: number, site?: string): HealthHint
       { code: 'storage_budget', level: 'notice', since: ago(5 * 3600_000), value: null, threshold: 1_073_741_824, object: '/var/lib/schild' },
       { code: 'disk_fill_projection', level: 'notice', since: ago(26 * 3600_000), value: 9, threshold: 14, object: '/' },
     )
+    // The audit log (contracts/audit.md, server only): entries wait in the outbox, and audit.db is over 1 GiB.
+    out.push(
+      { code: 'audit_stuck', level: 'warning', since: ago(12 * 60_000), value: 7, threshold: 1 },
+      { code: 'audit_size', level: 'notice', since: ago(3 * 86400_000), value: 1_610_612_736, threshold: 1_073_741_824, count: 412_000, object: 'tok_0123456789ab' },
+    )
   }
   // Website-scoped hints (D36): computed from that website's own counters, marked with site.
   for (const s of m.sites) {

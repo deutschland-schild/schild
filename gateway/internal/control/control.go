@@ -94,7 +94,11 @@ var ErrUnavailable = errors.New("control: no gateway answers on the control path
 
 // Request is one control request.
 type Request struct {
-	Op       string `json:"op"`
+	Op string `json:"op"`
+	// HostUser is the host account that ran the command, as the command saw
+	// it ($SUDO_USER, else $USER): the actor of the audit entry the gateway
+	// writes for the operation (contracts/audit.md section 4). A hint, not a
+	// proof: whoever reaches the socket may name any account.
 	HostUser string `json:"host_user,omitempty"`
 	// Website and Access: the access lock operations (D56).
 	Website string     `json:"website,omitempty"`
@@ -120,6 +124,10 @@ type Response struct {
 	Access []AccessInfo `json:"access,omitempty"`
 	// Removed: access_remove ended a protection.
 	Removed bool `json:"removed,omitempty"`
+	// Stands: the change was made although OK is false; only its audit
+	// entry could not be written (a change outside of schild.db, where the
+	// two cannot be one transaction). Error says why.
+	Stands bool `json:"stands,omitempty"`
 }
 
 // Handler answers one request.

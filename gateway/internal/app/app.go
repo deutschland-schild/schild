@@ -15,6 +15,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"log/slog"
 	"net/http"
 	"net/netip"
@@ -35,6 +36,7 @@ import (
 	"github.com/deutschland-schild/schild/gateway/internal/accesslock"
 	"github.com/deutschland-schild/schild/gateway/internal/agentapi"
 	"github.com/deutschland-schild/schild/gateway/internal/allowlist"
+	"github.com/deutschland-schild/schild/gateway/internal/auditlog"
 	"github.com/deutschland-schild/schild/gateway/internal/behaviour"
 	"github.com/deutschland-schild/schild/gateway/internal/bots"
 	"github.com/deutschland-schild/schild/gateway/internal/buildinfo"
@@ -92,6 +94,9 @@ type App struct {
 	dataDir string
 
 	Store *store.Store
+	// Audit is the audit log (MVP-36): every change with who made it.
+	Audit       *auditlog.Log
+	auditStream io.Writer
 	// Rule exceptions of agents (D54), exceptionsMu around changes.
 	exceptionsMu sync.Mutex
 	exceptions   []contractapi.RuleException
@@ -381,6 +386,10 @@ func New(ctx context.Context, opts Options) (*App, error) {
 	if err := a.prepareCluster(cfg); err != nil {
 		return nil, err
 	}
+	// After the cluster is prepared: an entry names the node as its events do.
+	if err := a.openAudit(ctx, cfg); err != nil {
+		return nil, err
+	}
 	a.Events = eventlog.New(a.Store, a.eventNode(cfg), a.Metrics, log)
 	a.Sites = sites.NewRegistry(a.websitesView(cfg))
 	a.Events.Sites = a.Sites
@@ -517,7 +526,7 @@ func New(ctx context.Context, opts Options) (*App, error) {
 		Geo: a.Geo, Events: a.Events, Config: a.Config, Apply: a.Apply, ReloadAllow: a.ReloadAllow, SetupCode: a.setupCode,
 		Version: buildinfo.String(), CRSVersion: buildinfo.CRSVersion, Started: a.started, Log: log, UI: webui.Handler(),
 		ScriptHashes: webui.InlineScriptHashes(), ProxiesTooBroad: a.proxiesTooBroad, ProxyMissing: a.Gate.Proxies.Missing,
-		Listen: cfg.Listen.Dashboard, SettingsDropped: a.SettingsDropped}
+		Listen: cfg.Listen.Dashboard, SettingsDropped: a.SettingsDropped, Audit: a.Audit}
 	if cfg.Cluster.Enabled {
 		// Without cluster.enabled the dashboard answers "single" by itself.
 		a.Dashboard.Group = a.GroupStatus
@@ -575,6 +584,7 @@ func New(ctx context.Context, opts Options) (*App, error) {
 	}
 	a.Dashboard.Sites = a.Sites
 	a.logConfigChange(ctx, a.started, "", cfg)
+	a.auditConfigApplied(ctx, cfg)
 	a.setConfigHash(a.Repos.LocalText())
 	a.AgentAPI = a.newAgentAPI()
 	// D87: what `schild firewall run` said in its last call.
@@ -648,7 +658,8 @@ func (a *App) flushSummaries(ctx context.Context) {
 // bounded tables and one size-cap pass (D38).
 func (a *App) Retention(ctx context.Context) {
 	c := a.Config().Retention
-	res, err := a.Store.ApplyRetention(ctx, time.Now().UTC(), store.Retention{RawIPDays: c.RawIPDays, EventsDays: c.EventsDays, MaxSizeMB: c.MaxSizeMB, SummariesDays: c.SummariesDays}, dashboard.TruncateBody)
+	res, err := a.Store.ApplyRetention(ctx, time.Now().UTC(), store.Retention{RawIPDays: c.RawIPDays, EventsDays: c.EventsDays, MaxSizeMB: c.MaxSizeMB, SummariesDays: c.SummariesDays,
+		Expired: a.allowExpired}, dashboard.TruncateBody)
 	if err != nil {
 		a.log.Error("retention", "err", err)
 		return
@@ -658,6 +669,8 @@ func (a *App) Retention(ctx context.Context) {
 		calls = res.Cap.Calls
 		a.noteCap(res.Cap, time.Now())
 	}
+	a.retainAudit(ctx)
+	a.auditTokensExpired(ctx)
 	if res.Truncated+res.Deleted+res.DeletedSize+calls+res.KeptBlocks+res.Allow > 0 {
 		a.log.Info("retention applied", "ip_truncated", res.Truncated, "deleted_age", res.Deleted, "deleted_size", res.DeletedSize, "agent_calls_trimmed", calls,
 			"kept_blocks_ended", res.KeptBlocks, "allowlist_expired", res.Allow)
@@ -717,6 +730,9 @@ func (a *App) Loops(ctx context.Context) {
 	a.goLoop(ctx, "ratelog", ratelog.Default.Run)
 	// The crowdsec rules update in the background and never block request
 	// handling (D39).
+	a.Repos.Hub().AroundCheck(func(ctx context.Context, check func()) {
+		a.auditRulesLoaded(ctx, rules.RepoCrowdsec, "system:hub_update", check)
+	})
 	a.goLoop(ctx, "crowdsec", a.Repos.Run)
 	a.goLoop(ctx, "allowlist-reload", tick(2*time.Second, func() {
 		if v := a.Store.AllowVersion(ctx); v != a.allowVersion.Load() {
@@ -734,6 +750,7 @@ func (a *App) Loops(ctx context.Context) {
 		}
 	}))
 	a.goLoop(ctx, "retention", a.retentionLoop)
+	a.goLoop(ctx, "audit", a.Audit.Run)
 	if a.Hosts != nil {
 		a.goLoop(ctx, "hosts", a.Hosts.Loop)
 	}
@@ -884,6 +901,7 @@ func (a *App) Run(ctx context.Context) error {
 	if a.botEngine != nil {
 		a.botEngine.Close()
 	}
+	a.closeAudit()
 	_ = a.Store.Close()
 	return runErr
 }
@@ -1030,10 +1048,11 @@ func (a *App) Apply(ctx context.Context, p dashboard.SettingsPatch) (*config.Sit
 		return nil, err
 	}
 	b, _ := json.Marshal(ov)
-	if err := a.Store.Put(ctx, overlayKey, b); err != nil {
+	prev := a.Config()
+	if err := a.putAudited(ctx, overlayKey, b, one("settings.set", "retention", "",
+		map[string]any{"retention": prev.Retention}, map[string]any{"retention": next.Retention})); err != nil {
 		return nil, err
 	}
-	prev := a.Config()
 	a.overlay = ov
 	a.droppedOverlay.Store(false)
 	a.cfg.Store(next)

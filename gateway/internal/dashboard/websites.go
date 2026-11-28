@@ -39,7 +39,7 @@ func (s *Server) websiteRoutes(a func(string, http.HandlerFunc)) {
 	a("GET "+apiPrefix+"/websites/{website}/alerts", s.listAlerts)
 	a("GET "+apiPrefix+"/incidents", s.listIncidents)
 	a("GET "+apiPrefix+"/agent-api", s.getAgentAPI)
-	a("PUT "+apiPrefix+"/agent-api", s.setAgentAPI)
+	a("PUT "+apiPrefix+"/agent-api", s.op("setAgentAPI", s.setAgentAPI))
 	a("GET "+apiPrefix+"/agent-api/calls", s.listAgentCalls)
 	s.accessRoutes(a)
 	s.humanCheckRoutes(a)

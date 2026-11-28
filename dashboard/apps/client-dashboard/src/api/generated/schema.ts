@@ -217,7 +217,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Draft (D108, MVP-36), no gateway serves it yet: the audit log, newest first, with time in [from, to). Every change with who made it, through which way, and what it was before (contracts/audit.md). In a group the entries of every node this gateway holds. `actor` is a token or portal key id. `subject` with `subject_id` and limit 1 answers who changed a thing last. An entry reads as it was written, with its addresses, until `audit.keep_days` deletes it. Index ranges, no scan of the log. */
+        /** MVP-36 (D108): the audit log, newest first, with time in [from, to). Every change with who made it, through which way, and what it was before (contracts/audit.md). In a group the entries of every node this gateway holds. `actor` is a token or portal key id. `subject` with `subject_id` and limit 1 answers who changed a thing last. An entry reads as it was written, with its addresses, until `audit.keep_days` deletes it. Index ranges, no scan of the log. */
         get: operations["listAudit"];
         put?: never;
         post?: never;
@@ -1905,6 +1905,10 @@ export interface components {
             events: components["schemas"]["events.schema"][];
             /** @description The requests of this address in the ring, pinned context included, newest first, at most 10000. */
             requests?: components["schemas"]["RequestRecord"][];
+            /** @description MVP-36: the audit entries that name this address, newest first: the address a call came from, a recorded value (an own IP, a released or blocked client) or an item of a recorded list. A network that holds the address is no match. privacy/delete does not remove them; they stay until audit.keep_days (contracts/audit.md section 7). */
+            audit?: components["schemas"]["audit-entry.schema"][];
+            /** @description true: more than 500 entries name the address, audit holds the newest 500. listAudit has all of them. */
+            audit_truncated?: boolean;
         };
         PrivacyDeleteRequest: {
             ip: string;
@@ -2903,10 +2907,10 @@ export interface components {
             other: components["schemas"]["BreakdownCounts"];
         };
         /**
-         * @description Plain-language hints on the first screen; the UI renders German text by code. Thresholds: cpu_high usage >= 0.9 for 5 min; cpu_throttled container throttled in >= 10 % of periods over 5 min; load_high load5 > 2 x cores; memory_low available < 10 %; swap_active swap-in over 1 MiB/s for 5 min; oom_kill an OOM kill in 24 h; disk_full_soon a mount >= 90 % (blocks or inodes); disk_io_busy a device busy >= 90 % for 5 min; net_errors errors or drops >= 0.1 % of packets over 5 min; conntrack_high >= 80 %; fd_high process or system open files >= 80 % of the limit; listen_drops listen queue drops in 5 min; upstream_errors >= 1 % of forwarded requests (and >= 10) over 5 min; upstream_slow upstream p95 >= 2 s over 5 min; fail_closed a fail-closed 503 in 5 min; waf_saturated a waf_busy 503 in 5 min; events_dropped events dropped in 1 h; store_near_cap store >= 90 % of retention.max_size_mb; traffic_spike requests over the last 5 min >= 5 x the mean of the previous hour (and >= 10/s); monitoring_degraded the sampler skipped a sample or exceeded its budget in 10 min. Storage (contracts/storage-bounds.md): store_cap_unreachable (warning) the size cap of schild.db could not get below retention.max_size_mb without deleting the newest rows every class keeps (value = used bytes, threshold = the cap); storage_budget (notice; object = storage.path) the configured bounds (cap + 10 %, two WAL limits, metrics.db bound, request ring) would leave less than the reserve max(1 GiB, min(5 % of the file system, 20 GiB)) free when they fill up (threshold = the reserve in bytes); disk_fill_projection (notice under 14 days, warning under 3; object = mount, value = days left) the mount fills up at the steady growth of the last 7 days (Theil-Sen slope of the daily minima of server.disk_used). store_near_cap, store_cap_unreachable and storage_budget are about schild's own event store: they mark only the server, never its websites.
+         * @description Plain-language hints on the first screen; the UI renders German text by code. Thresholds: cpu_high usage >= 0.9 for 5 min; cpu_throttled container throttled in >= 10 % of periods over 5 min; load_high load5 > 2 x cores; memory_low available < 10 %; swap_active swap-in over 1 MiB/s for 5 min; oom_kill an OOM kill in 24 h; disk_full_soon a mount >= 90 % (blocks or inodes); disk_io_busy a device busy >= 90 % for 5 min; net_errors errors or drops >= 0.1 % of packets over 5 min; conntrack_high >= 80 %; fd_high process or system open files >= 80 % of the limit; listen_drops listen queue drops in 5 min; upstream_errors >= 1 % of forwarded requests (and >= 10) over 5 min; upstream_slow upstream p95 >= 2 s over 5 min; fail_closed a fail-closed 503 in 5 min; waf_saturated a waf_busy 503 in 5 min; events_dropped events dropped in 1 h; store_near_cap store >= 90 % of retention.max_size_mb; traffic_spike requests over the last 5 min >= 5 x the mean of the previous hour (and >= 10/s); monitoring_degraded the sampler skipped a sample or exceeded its budget in 10 min. Storage (contracts/storage-bounds.md): store_cap_unreachable (warning) the size cap of schild.db could not get below retention.max_size_mb without deleting the newest rows every class keeps (value = used bytes, threshold = the cap); storage_budget (notice; object = storage.path) the configured bounds (cap + 10 %, two WAL limits, metrics.db bound, request ring) would leave less than the reserve max(1 GiB, min(5 % of the file system, 20 GiB)) free when they fill up (threshold = the reserve in bytes); disk_fill_projection (notice under 14 days, warning under 3; object = mount, value = days left) the mount fills up at the steady growth of the last 7 days (Theil-Sen slope of the daily minima of server.disk_used). Audit log (contracts/audit.md sections 4 and 6): audit_stuck (warning; value = entries that wait) entries wait in the outbox of schild.db for more than a minute because audit.db cannot be written; audit_size (notice; value = bytes of audit.db, threshold = 1 GiB, count = entries of the last 30 days, object = the actor with the most of them: a token id, a portal key id or a way) audit.db is 1 GiB or larger; nothing is deleted because of its size. store_near_cap, store_cap_unreachable, storage_budget, audit_stuck and audit_size are about schild's own stores: they mark only the server, never its websites.
          * @enum {string}
          */
-        HealthHintCode: "cpu_high" | "cpu_throttled" | "load_high" | "memory_low" | "swap_active" | "oom_kill" | "disk_full_soon" | "disk_io_busy" | "net_errors" | "conntrack_high" | "fd_high" | "listen_drops" | "upstream_errors" | "upstream_slow" | "fail_closed" | "waf_saturated" | "events_dropped" | "store_near_cap" | "traffic_spike" | "monitoring_degraded" | "store_cap_unreachable" | "storage_budget" | "disk_fill_projection";
+        HealthHintCode: "cpu_high" | "cpu_throttled" | "load_high" | "memory_low" | "swap_active" | "oom_kill" | "disk_full_soon" | "disk_io_busy" | "net_errors" | "conntrack_high" | "fd_high" | "listen_drops" | "upstream_errors" | "upstream_slow" | "fail_closed" | "waf_saturated" | "events_dropped" | "store_near_cap" | "traffic_spike" | "monitoring_degraded" | "store_cap_unreachable" | "storage_budget" | "disk_fill_projection" | "audit_stuck" | "audit_size";
         HealthHint: {
             code: components["schemas"]["HealthHintCode"];
             /**
@@ -2917,6 +2921,8 @@ export interface components {
             since: components["schemas"]["Timestamp"];
             value?: number | null;
             threshold?: number | null;
+            /** @description A number of things next to value, only where HealthHintCode says so (audit_size: the entries of the last 30 days). */
+            count?: number | null;
             object?: components["schemas"]["MetricObject"];
             /** @description The website of a website-scoped hint (codes upstream_errors, upstream_slow, fail_closed, traffic_spike, computed from that website's own counters). Absent: a server-wide hint (host codes and schild's shared resources), shown at every website on this server as a short hint ("web-1: Platte fast voll"). getMonitoringNow with site returns that website's hints and the server-wide ones. */
             site?: components["schemas"]["WebsiteId"];
@@ -3658,7 +3664,7 @@ export interface components {
          * @enum {string}
          */
         WebsiteStatus: "ok" | "attention" | "disrupted" | "unknown";
-        /** @description Why a website has its status, deciding reasons first. code: not_ready, baseline_off, unreachable (a gateway it runs on is down; all down: disrupted, some: attention), fail_closed (>= 5 % answered 503 by schild), upstream_unreachable (>= 20 % of forwarded requests without an answer or timed out), errors_5xx (>= 20 % 5xx), each over 5 minutes with at least 10 requests (disrupted); site_hint, baseline_degraded, server_hint (attention); unprotected, no_server, monitoring_off, untracked, no_data (unknown). node names the gateway, hint the HealthHintCode, object its mount, device or interface. server_hint is never store_near_cap, store_cap_unreachable or storage_budget: those mark only the server (ServerHealth.status attention), not its websites. */
+        /** @description Why a website has its status, deciding reasons first. code: not_ready, baseline_off, unreachable (a gateway it runs on is down; all down: disrupted, some: attention), fail_closed (>= 5 % answered 503 by schild), upstream_unreachable (>= 20 % of forwarded requests without an answer or timed out), errors_5xx (>= 20 % 5xx), each over 5 minutes with at least 10 requests (disrupted); site_hint, baseline_degraded, server_hint (attention); unprotected, no_server, monitoring_off, untracked, no_data (unknown). node names the gateway, hint the HealthHintCode, object its mount, device or interface. server_hint is never store_near_cap, store_cap_unreachable, storage_budget, audit_stuck or audit_size: those mark only the server (ServerHealth.status attention), not its websites. */
         WebsiteStatusReason: {
             /** @enum {string} */
             code: "unprotected" | "no_server" | "not_ready" | "baseline_off" | "unreachable" | "fail_closed" | "upstream_unreachable" | "errors_5xx" | "site_hint" | "baseline_degraded" | "server_hint" | "monitoring_off" | "untracked" | "no_data";
@@ -3953,9 +3959,12 @@ export interface components {
         action: string;
         /** @description Short id of a session, never its token. */
         session: string;
+        /** @description A name a person or a portal gave. Untrusted text. */
         name: string;
+        /** @description The label of a token or portal key. Untrusted text. */
         label: string;
         pointer: string;
+        /** @description A recorded value. A text is what somebody typed: untrusted. */
         scalar: string | number | boolean;
         items: string[];
         /** @description <name of the log, 16 hex>-<k kept, a access, r refused>-<number, counted per log and letter from 1>. */
@@ -4056,6 +4065,7 @@ export interface components {
                 entryId: string;
                 action: string;
                 website: string;
+                /** @description A name a person or a portal gave. Untrusted text. */
                 name: string;
                 actor: {
                     /** @constant */
@@ -4086,8 +4096,10 @@ export interface components {
                 };
                 /** @description Short id of a session, never its token. */
                 session: string;
+                /** @description The label of a token or portal key. Untrusted text. */
                 label: string;
                 pointer: string;
+                /** @description A recorded value. A text is what somebody typed: untrusted. */
                 scalar: string | number | boolean;
                 items: string[];
                 /** @description One changed field. Without before, after, added and removed, hidden says why. */

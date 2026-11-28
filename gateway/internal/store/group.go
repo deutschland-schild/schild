@@ -27,7 +27,7 @@ func sourceOf(body []byte) string {
 // of the next call. It looks at scan rows at most and returns limit rows at
 // most, so a call next to traffic is short.
 func (s *Store) EventsOfSource(ctx context.Context, source string, after int64, scan, limit int) (rows []*EventRow, next int64, err error) {
-	rs, err := s.db.QueryContext(ctx, "SELECT "+eventCols+", cls FROM events WHERE seq > ? ORDER BY seq LIMIT ?", after, scan)
+	rs, err := s.q(ctx).QueryContext(ctx, "SELECT "+eventCols+", cls FROM events WHERE seq > ? ORDER BY seq LIMIT ?", after, scan)
 	if err != nil {
 		return nil, after, err
 	}
@@ -68,7 +68,7 @@ func (s *Store) IncidentsOfSource(ctx context.Context, source string, sinceMS in
 	if source == "" || limit <= 0 {
 		return nil, nil
 	}
-	rs, err := s.db.QueryContext(ctx, `SELECT i.incident, i.event_id, i.time_ms, i.ip, i.status, i.reason, i.sources, i.unblocked_ms, i.site, i.count, i.first_ms, i.last_ms
+	rs, err := s.q(ctx).QueryContext(ctx, `SELECT i.incident, i.event_id, i.time_ms, i.ip, i.status, i.reason, i.sources, i.unblocked_ms, i.site, i.count, i.first_ms, i.last_ms
 		FROM incidents i JOIN events e ON e.id = i.event_id
 		WHERE max(i.last_ms, i.unblocked_ms, i.time_ms) >= ?
 		  AND CASE WHEN json_valid(CAST(e.body AS TEXT)) THEN json_extract(CAST(e.body AS TEXT), '$.source') END = ?
@@ -105,7 +105,7 @@ func (s *Store) MergeIncident(ctx context.Context, in *Incident) error {
 	}
 	// A row a node made from a block's record (it knew no more than the
 	// address and the source) takes what the incident says.
-	if _, err := s.db.ExecContext(ctx, `UPDATE incidents SET reason = ?, site = ?,
+	if _, err := s.q(ctx).ExecContext(ctx, `UPDATE incidents SET reason = ?, site = ?,
 		event_id = CASE WHEN event_id = '' THEN ? ELSE event_id END,
 		sources = CASE WHEN ? != '' THEN ? ELSE sources END,
 		time_ms = ?, first_ms = min(first_ms, ?)
@@ -113,7 +113,7 @@ func (s *Store) MergeIncident(ctx context.Context, in *Incident) error {
 		in.Reason, in.Site, in.EventID, joinList(in.Sources), joinList(in.Sources), ms(in.Time), ms(in.Time), in.Incident, in.Reason+in.Site); err != nil {
 		return err
 	}
-	_, err := s.db.ExecContext(ctx, `UPDATE incidents SET count = max(count, ?), last_ms = max(last_ms, ?),
+	_, err := s.q(ctx).ExecContext(ctx, `UPDATE incidents SET count = max(count, ?), last_ms = max(last_ms, ?),
 		status = CASE WHEN ? != 0 AND unblocked_ms = 0 THEN ? ELSE status END,
 		unblocked_ms = CASE WHEN unblocked_ms = 0 THEN ? ELSE unblocked_ms END
 		WHERE incident = ?`, max(in.Count, 1), ms(in.LastSeen), unblocked, in.Status, unblocked, in.Incident)

@@ -129,6 +129,8 @@ export const HINT_SHORT: Record<HealthHintCode, string> = {
   store_near_cap: 'Ereignisspeicher fast voll',
   store_cap_unreachable: 'Ereignisspeicher über der Grenze',
   storage_budget: 'Speichergrenzen größer als der freie Platz',
+  audit_stuck: 'Protokoll wartet auf audit.db',
+  audit_size: 'Protokoll ist groß',
   // website-scoped hints
   upstream_errors: 'deine App beantwortet Anfragen mit Fehlern',
   upstream_slow: 'deine App antwortet langsam',

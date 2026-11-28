@@ -5,6 +5,7 @@
 package config
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"os"
@@ -55,6 +56,45 @@ type Site struct {
 	WaitingPage WaitingPage `json:"waiting_page"`         // v0.5 (D37, MVP-23 step 1)
 	Rules       Rules       `json:"rules"`                // v0.6 (D73)
 	Cluster     Cluster     `json:"cluster"`              // MVP-27, D105
+	Audit       Audit       `json:"audit"`                // MVP-36, D108
+}
+
+// Audit is the audit log (contracts/audit.md).
+type Audit struct {
+	// KeepDays is audit.keep_days as schild.yaml says it: a number of days
+	// or "unlimited"; nil is the default. Read it with Days.
+	KeepDays any `json:"keep_days,omitempty"`
+	// Stream is "stdout" or the path of a file; "" is no copy.
+	Stream string `json:"stream,omitempty"`
+}
+
+// AuditKeepDefault is audit.keep_days when schild.yaml does not set it.
+const AuditKeepDefault = 365
+
+// Days returns audit.keep_days: the days an entry of a change is kept, 0
+// for unlimited.
+func (a Audit) Days() int64 {
+	switch v := a.KeepDays.(type) {
+	case string:
+		return 0 // the schema allows the word unlimited alone
+	case json.Number:
+		if n, err := v.Int64(); err == nil && n > 0 {
+			return n
+		}
+	case float64:
+		if v > 0 {
+			return int64(v)
+		}
+	case int:
+		if v > 0 {
+			return int64(v)
+		}
+	case int64:
+		if v > 0 {
+			return v
+		}
+	}
+	return AuditKeepDefault
 }
 
 // Rules are the rule repositories (D73, contract/rules).

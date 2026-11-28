@@ -13,6 +13,7 @@ import (
 	"github.com/deutschland-schild/schild/contract/crowdsec"
 	"github.com/deutschland-schild/schild/contract/rules"
 	"github.com/deutschland-schild/schild/gateway/internal/app"
+	"github.com/deutschland-schild/schild/gateway/internal/auditlog"
 	"github.com/deutschland-schild/schild/gateway/internal/control"
 	"github.com/deutschland-schild/schild/gateway/internal/store"
 )
@@ -66,21 +67,24 @@ func cmdRules(args []string) error {
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
 	defer cancel()
+	account := hostAccount(os.Getenv, currentUser)
 	if op == "reset" {
-		return resetCrowdsec(ctx, app.DataDir(cfg, *data), os.Stdout)
+		return resetCrowdsec(ctx, cfg.NodeName, app.DataDir(cfg, *data), account, os.Stdout)
 	}
-	return syncRules(ctx, app.DataDir(cfg, *data), repo, os.Stdout)
+	return syncRules(ctx, app.DataDir(cfg, *data), repo, account, os.Stdout)
 }
 
 // syncRules asks the running gateway of the data directory dir to sync a
-// repository.
-func syncRules(ctx context.Context, dir, repo string, w io.Writer) error {
-	resp, err := control.Call(ctx, dir, control.Request{Op: control.OpRulesSync, Repository: repo})
+// repository. The gateway writes the audit entry with account as the actor.
+func syncRules(ctx context.Context, dir, repo, account string, w io.Writer) error {
+	resp, err := control.Call(ctx, dir, control.Request{Op: control.OpRulesSync, Repository: repo, HostUser: account})
 	switch {
 	case errors.Is(err, control.ErrUnavailable):
 		return errors.New("rules sync: schild does not answer on its control path; nothing was changed, a stopped gateway loads its rules at its next start")
 	case err != nil:
 		return fmt.Errorf("rules sync: %w", err)
+	case resp.Stands:
+		return fmt.Errorf("rules sync: the %s rules are synced and run (%d rules), but the change is not in the audit log: %s", repo, resp.RulesLoaded, resp.Error)
 	case !resp.OK:
 		return fmt.Errorf("rules sync: refused, the running rules stay: %s", resp.Error)
 	case resp.Unchanged:
@@ -94,13 +98,15 @@ func syncRules(ctx context.Context, dir, repo string, w io.Writer) error {
 // resetCrowdsec resets the crowdsec rules of the data directory dir: through
 // the running gateway's control path when one answers, else directly in the
 // store while holding the gateway lock. With a running gateway that does not
-// answer it changes nothing.
-func resetCrowdsec(ctx context.Context, dir string, w io.Writer) error {
-	resp, err := control.Call(ctx, dir, control.Request{Op: control.OpRulesReset, Repository: rules.RepoCrowdsec})
+// answer it changes nothing. The audit entry names account as the actor.
+func resetCrowdsec(ctx context.Context, node, dir, account string, w io.Writer) error {
+	resp, err := control.Call(ctx, dir, control.Request{Op: control.OpRulesReset, Repository: rules.RepoCrowdsec, HostUser: account})
 	switch {
 	case err == nil && resp.OK:
 		fmt.Fprintf(w, "crowdsec rules reset through the running schild: %d rules of set %s\n", resp.RulesLoaded, resp.SetSource)
 		return nil
+	case err == nil && resp.Stands:
+		return fmt.Errorf("rules reset: the crowdsec rules are reset (%d rules of set %s), but the change is not in the audit log: %s", resp.RulesLoaded, resp.SetSource, resp.Error)
 	case err == nil:
 		return fmt.Errorf("rules reset: the running schild refused: %s", resp.Error)
 	case !errors.Is(err, control.ErrUnavailable):
@@ -124,7 +130,24 @@ func resetCrowdsec(ctx context.Context, dir string, w io.Writer) error {
 		return err
 	}
 	defer st.Close()
-	if err := st.Delete(ctx, crowdsec.StoreKey); err != nil {
+	// The stored set and its audit entry go in one transaction. Without a
+	// stored set the image's rules run already: nothing changes, no entry.
+	err = auditlog.ForStore(ctx, st, node).Tx(ctx, func(ctx context.Context, rec *auditlog.Rec) error {
+		_, err := st.Get(ctx, crowdsec.StoreKey)
+		if errors.Is(err, store.ErrNotFound) {
+			return nil
+		}
+		if err != nil {
+			return err
+		}
+		if err := st.Delete(ctx, crowdsec.StoreKey); err != nil {
+			return err
+		}
+		rec.Add(auditlog.Entry{Action: "rule_repository.reset", Operation: "cli:rules reset", Actor: auditlog.CLI(account), Subject: rules.RepoCrowdsec,
+			Before: map[string]any{"set": crowdsec.SetStored}, After: map[string]any{"set": crowdsec.SetImage}})
+		return nil
+	})
+	if err != nil {
 		return err
 	}
 	fmt.Fprintln(w, "crowdsec rules reset directly in the store (schild is stopped): the next start runs the image's rules")

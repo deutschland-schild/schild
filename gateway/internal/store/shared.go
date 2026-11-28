@@ -3,7 +3,6 @@ package store
 import (
 	"bytes"
 	"context"
-	"database/sql"
 	"encoding/json"
 	"fmt"
 	"strings"
@@ -49,11 +48,7 @@ func (s *Store) DumpShared(ctx context.Context, name string) ([]byte, error) {
 	if !ok {
 		return nil, fmt.Errorf("store: %q is no shared table", name)
 	}
-	return dumpShared(ctx, s.db, t)
-}
-
-type querier interface {
-	QueryContext(ctx context.Context, query string, args ...any) (*sql.Rows, error)
+	return dumpShared(ctx, s.q(ctx), t)
 }
 
 func dumpShared(ctx context.Context, q querier, t sharedTable) ([]byte, error) {
@@ -104,7 +99,7 @@ func (s *Store) SwapShared(ctx context.Context, name string, old, dump []byte) e
 	if strings.Join(d.Columns, ",") != strings.Join(t.cols, ",") {
 		return fmt.Errorf("store: dump of %s has other columns (another version of schild)", name)
 	}
-	tx, err := s.db.BeginTx(ctx, nil)
+	tx, err := s.begin(ctx)
 	if err != nil {
 		return err
 	}

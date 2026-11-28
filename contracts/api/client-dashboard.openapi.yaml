@@ -439,7 +439,7 @@ paths:
       tags: [audit]
       operationId: listAudit
       summary: >-
-        Draft (D108, MVP-36), no gateway serves it yet: the audit log, newest first, with time in [from, to). Every
+        MVP-36 (D108): the audit log, newest first, with time in [from, to). Every
         change with who made it, through which way, and what it was before (contracts/audit.md). In a group the
         entries of every node this gateway holds. `actor` is a token or portal key id. `subject` with `subject_id` and
         limit 1 answers who changed a thing last. An entry reads as it was written, with its addresses, until
@@ -2672,6 +2672,8 @@ components:
         exported_at: { $ref: "#/components/schemas/Timestamp" }
         events: { type: array, items: { $ref: "../events.schema.json" } }
         requests: { type: array, description: "The requests of this address in the ring, pinned context included, newest first, at most 10000.", items: { $ref: "#/components/schemas/RequestRecord" } }
+        audit: { type: array, maxItems: 500, description: "MVP-36: the audit entries that name this address, newest first: the address a call came from, a recorded value (an own IP, a released or blocked client) or an item of a recorded list. A network that holds the address is no match. privacy/delete does not remove them; they stay until audit.keep_days (contracts/audit.md section 7).", items: { $ref: "../audit-entry.schema.json" } }
+        audit_truncated: { type: boolean, description: "true: more than 500 entries name the address, audit holds the newest 500. listAudit has all of them." }
     PrivacyDeleteRequest:
       type: object
       additionalProperties: false
@@ -3923,10 +3925,14 @@ components:
         configured bounds (cap + 10 %, two WAL limits, metrics.db bound, request ring) would leave less than the reserve max(1 GiB,
         min(5 % of the file system, 20 GiB)) free when they fill up (threshold = the reserve in bytes); disk_fill_projection (notice under 14 days, warning under 3; object =
         mount, value = days left) the mount fills up at the steady growth of the last 7 days (Theil-Sen slope of the daily
-        minima of server.disk_used). store_near_cap, store_cap_unreachable and storage_budget are about schild's own
-        event store: they mark only the server, never its websites.
+        minima of server.disk_used). Audit log (contracts/audit.md sections 4 and 6): audit_stuck (warning; value =
+        entries that wait) entries wait in the outbox of schild.db for more than a minute because audit.db cannot be
+        written; audit_size (notice; value = bytes of audit.db, threshold = 1 GiB, count = entries of the last 30 days,
+        object = the actor with the most of them: a token id, a portal key id or a way) audit.db is 1 GiB or larger;
+        nothing is deleted because of its size. store_near_cap, store_cap_unreachable, storage_budget, audit_stuck and
+        audit_size are about schild's own stores: they mark only the server, never its websites.
       type: string
-      enum: [cpu_high, cpu_throttled, load_high, memory_low, swap_active, oom_kill, disk_full_soon, disk_io_busy, net_errors, conntrack_high, fd_high, listen_drops, upstream_errors, upstream_slow, fail_closed, waf_saturated, events_dropped, store_near_cap, traffic_spike, monitoring_degraded, store_cap_unreachable, storage_budget, disk_fill_projection]
+      enum: [cpu_high, cpu_throttled, load_high, memory_low, swap_active, oom_kill, disk_full_soon, disk_io_busy, net_errors, conntrack_high, fd_high, listen_drops, upstream_errors, upstream_slow, fail_closed, waf_saturated, events_dropped, store_near_cap, traffic_spike, monitoring_degraded, store_cap_unreachable, storage_budget, disk_fill_projection, audit_stuck, audit_size]
     HealthHint:
       type: object
       additionalProperties: false
@@ -3937,6 +3943,7 @@ components:
         since: { $ref: "#/components/schemas/Timestamp" }
         value: { type: [number, "null"] }
         threshold: { type: [number, "null"] }
+        count: { type: [integer, "null"], minimum: 0, description: "A number of things next to value, only where HealthHintCode says so (audit_size: the entries of the last 30 days)." }
         object: { $ref: "#/components/schemas/MetricObject" }
         site:
           $ref: "#/components/schemas/WebsiteId"
@@ -4884,7 +4891,7 @@ components:
         each over 5 minutes with at least 10 requests (disrupted); site_hint, baseline_degraded, server_hint
         (attention); unprotected, no_server, monitoring_off, untracked, no_data (unknown). node names the gateway, hint
         the HealthHintCode, object its mount, device or interface. server_hint is never store_near_cap,
-        store_cap_unreachable or storage_budget: those mark only the server (ServerHealth.status attention), not its
+        store_cap_unreachable, storage_budget, audit_stuck or audit_size: those mark only the server (ServerHealth.status attention), not its
         websites.
       type: object
       additionalProperties: false

@@ -19,6 +19,8 @@ import { ExternalLink } from '@lucide/vue'
 import { computed, ref } from 'vue'
 import { agentApiError, useAgentAPI, useAgentTokens, useSetAgentAPI } from '@/api/agentapi'
 import { errorMessage } from '@/api/client'
+import LastChange from '@/components/audit/LastChange.vue'
+import { auditLink } from '@/lib/audit'
 import {
   AGENT_API_COPY as COPY,
   AGENT_API_DOCS,
@@ -80,6 +82,7 @@ async function send(input: AgentAPIInput) {
     <CardHeader>
       <CardTitle>{{ COPY.title }}</CardTitle>
       <CardDescription>{{ COPY.lead }}</CardDescription>
+      <LastChange :query="{ action: 'agent_api.set' }" setting />
     </CardHeader>
     <CardContent class="space-y-4 text-sm">
       <ErrorState
@@ -189,6 +192,8 @@ async function send(input: AgentAPIInput) {
                 <template v-else>
                   {{ COPY.neverUsed }}
                 </template>
+                ·
+                <RouterLink :to="auditLink({ actor: t.id })" class="underline underline-offset-4 hover:text-foreground hover:no-underline" data-testid="agent-api-token-audit">{{ COPY.tokenAudit }}</RouterLink>
               </p>
             </li>
           </ul>

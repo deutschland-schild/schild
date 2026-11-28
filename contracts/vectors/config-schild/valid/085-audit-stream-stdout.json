@@ -1,0 +1,22 @@
+{
+  "contract": "config/schild",
+  "description": "D108: a copy of every entry as JSON lines on stdout.",
+  "context": {
+    "now": "2026-10-26T12:00:00Z"
+  },
+  "input_raw": "{\"audit\":{\"stream\":\"stdout\"},\"config_version\":0,\"mode\":\"observe\",\"node_name\":\"web-1\",\"upstream\":{\"url\":\"http://app:80\"}}",
+  "input_decoded": {
+    "audit": {
+      "stream": "stdout"
+    },
+    "config_version": 0,
+    "mode": "observe",
+    "node_name": "web-1",
+    "upstream": {
+      "url": "http://app:80"
+    }
+  },
+  "expect": {
+    "valid": true
+  }
+}

@@ -65,6 +65,7 @@ func (a *App) startCluster(ctx context.Context) {
 	if node.Removed() {
 		a.log.Warn("cluster: this node was removed from its group. It serves with the state it has and shares nothing. To take it out for good: cluster.enabled false; to bring it back: delete its cluster directory and start schild again")
 	}
+	a.auditClusterJoined(ctx)
 	a.startGroupBlocks(ctx)
 	a.goLoop(ctx, "cluster-ready", tick(time.Second, a.noteReadiness))
 	a.startSharedState(ctx)

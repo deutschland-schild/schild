@@ -102,6 +102,7 @@ health_hints:                       # thresholds in HealthHintCode; levels info,
   - 'cpu_high, cpu_throttled, load_high, memory_low, swap_active, oom_kill, disk_full_soon, disk_io_busy, net_errors, conntrack_high, fd_high, listen_drops'
   - 'upstream_errors, upstream_slow, fail_closed, waf_saturated, events_dropped, store_near_cap, traffic_spike, monitoring_degraded'
   - 'v0.5 (D38, 2026-10-29): store_cap_unreachable, storage_budget, disk_fill_projection (contracts/storage-bounds.md); store_near_cap, store_cap_unreachable and storage_budget mark only the server, never its websites (D36 open items)'
+  - 'D108 (MVP-36): audit_stuck (warning) and audit_size (notice; count = entries of the last 30 days, object = the actor with the most) for the audit log (contracts/audit.md sections 4, 6 and 10); both mark only the server, never its websites'
   - 'a hint has since, value, threshold and the object (mount, interface); it clears when the condition is gone for 5 min; hints never change request handling or the Grundschutz state'
 
 dashboard:                          # German UI copy, du-form, calm; checked against skills/humanizer/SCHILD.md
@@ -155,6 +156,8 @@ dashboard:                          # German UI copy, du-form, calm; checked aga
       storage_budget: 'Wenn alle Speichergrenzen von Schild ausgeschöpft sind, bleiben auf {pfad} weniger als {reserve} frei. Senke retention.max_size_mb oder schaffe Platz.'
       disk_fill_projection: '{mount} ist in etwa {tage} Tagen voll, wenn es so weitergeht wie in den letzten 7 Tagen (+{rate} pro Tag). Unter „Server“ siehst du große Logdateien.'
       monitoring_degraded: 'Die Messung braucht gerade länger als geplant und lässt einzelne Werte aus.'
+      audit_stuck: '{n} Einträge des Protokolls warten in schild.db, weil Schild audit.db gerade nicht schreiben kann. Änderungen zeichnet Schild weiter auf. Sieh im Datenverzeichnis nach, ob Platz frei ist und ob Schild dort schreiben darf.'
+      audit_size: 'Das Protokoll ist {größe} groß. In den letzten 30 Tagen kamen {n} Einträge dazu, die meisten {von wem}. Wegen der Größe löscht Schild nichts. Mit audit.keep_days in schild.yaml behält Schild die Einträge kürzer.'
 
 must:
   - 'request path: counting adds at most 2 µs CPU per request at p50 (pathtpl included) and allocates nothing for a request without top-K eviction; nothing blocks, nothing waits for metrics.db'

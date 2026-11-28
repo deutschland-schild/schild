@@ -411,6 +411,10 @@ const (
 	HintStoreCapUnreachable = "store_cap_unreachable"
 	HintStorageBudget       = "storage_budget"
 	HintDiskFillProjection  = "disk_fill_projection"
+	// D108 (contracts/audit.md sections 4 and 6): the audit log. Both mark
+	// only the server (websites.ServerOnlyHintCodes).
+	HintAuditStuck = "audit_stuck"
+	HintAuditSize  = "audit_size"
 )
 
 // HealthHint is one plain-language hint.
@@ -420,7 +424,10 @@ type HealthHint struct {
 	Since     string   `json:"since"`
 	Value     *float64 `json:"value,omitempty"`
 	Threshold *float64 `json:"threshold,omitempty"`
-	Object    string   `json:"object,omitempty"`
+	// Count is a number of things next to Value, only where the code says
+	// so (audit_size: the entries of the last 30 days).
+	Count  *int64 `json:"count,omitempty"`
+	Object string `json:"object,omitempty"`
 	// Site (v0.5, D36): the website of a website-scoped hint (SiteHintCodes);
 	// absent for server-wide hints.
 	Site string `json:"site,omitempty"`

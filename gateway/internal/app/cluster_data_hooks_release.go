@@ -9,3 +9,4 @@ type dataHooks struct{}
 func (dataHooks) initHooks()          {}
 func (dataHooks) asBuildBefore() bool { return false }
 func (dataHooks) countAsk()           {}
+func (dataHooks) countAuditAsk()      {}

@@ -181,6 +181,7 @@ func (st *hintState) evaluate(m *Monitor, now time.Time) {
 		st.set(now, c5[cFCBusy] > 0, 0, cm.HintWAFSaturated, "warning", "", float64(c5[cFCBusy]), 1)
 	}
 	st.diskHints(m, now)
+	st.auditHints(m, now)
 	m.siteHints(now)
 	d := m.degraded.Load()
 	st.set(now, d > 0 && sec-d <= 600, 0, cm.HintMonitoringDegraded, "info", "", 1, 0)

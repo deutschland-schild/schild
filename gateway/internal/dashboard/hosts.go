@@ -21,14 +21,14 @@ import (
 
 func (s *Server) hostRoutes(a func(string, http.HandlerFunc)) {
 	a("GET "+apiPrefix+"/hosts", s.listHosts)
-	a("POST "+apiPrefix+"/hosts/local/check", s.runLocalCheck)
+	a("POST "+apiPrefix+"/hosts/local/check", s.op("runLocalCheck", s.runLocalCheck))
 	a("GET "+apiPrefix+"/hosts/{host_id}", s.getHost)
-	a("POST "+apiPrefix+"/hosts/{host_id}/findings/accept", s.acceptHostFinding)
-	a("POST "+apiPrefix+"/hosts/{host_id}/findings/reopen", s.reopenHostFinding)
+	a("POST "+apiPrefix+"/hosts/{host_id}/findings/accept", s.op("acceptHostFinding", s.acceptHostFinding))
+	a("POST "+apiPrefix+"/hosts/{host_id}/findings/reopen", s.op("reopenHostFinding", s.reopenHostFinding))
 	a("GET "+apiPrefix+"/agents", s.listAgents)
-	a("POST "+apiPrefix+"/agents/enrolments", s.createEnrolment)
-	a("POST "+apiPrefix+"/agents/{agent_id}/confirm", s.confirmAgent)
-	a("POST "+apiPrefix+"/agents/{agent_id}/revoke", s.revokeAgent)
+	a("POST "+apiPrefix+"/agents/enrolments", s.op("createEnrolment", s.createEnrolment))
+	a("POST "+apiPrefix+"/agents/{agent_id}/confirm", s.op("confirmAgent", s.confirmAgent))
+	a("POST "+apiPrefix+"/agents/{agent_id}/revoke", s.op("revokeAgent", s.revokeAgent))
 }
 
 // EnrolmentInput is the request of createEnrolment.
@@ -216,8 +216,30 @@ func (s *Server) acceptHostFinding(w http.ResponseWriter, r *http.Request) {
 	case err != nil:
 		s.internal(w, err)
 	default:
-		writeJSON(w, 200, d)
+		if s.hostEntry(w, r, "host_finding.accept", "acceptHostFinding", id, note, nil, findingState(hostID, id, subject)) {
+			writeJSON(w, 200, d)
+		}
 	}
+}
+
+// findingState is what the host_finding actions record: the server, the
+// check and what the finding is about.
+func findingState(host, finding, object string) map[string]any {
+	m := map[string]any{"host": host, "finding": finding}
+	if object != "" {
+		m["object"] = object
+	}
+	return m
+}
+
+// hostEntry writes the entry of a change of the server check. Its tables
+// are kept by their own package under its own lock, so the entry is written
+// after the change and before the answer; false when it could not be
+// written (the answer is made).
+func (s *Server) hostEntry(w http.ResponseWriter, r *http.Request, action, operation, subject, reason string, before, after any) bool {
+	en := s.entry(r, action, operation)
+	en.Subject, en.Reason, en.Before, en.After = subject, reason, before, after
+	return s.written(w, s.Audit.Write(r.Context(), en))
 }
 
 func (s *Server) reopenHostFinding(w http.ResponseWriter, r *http.Request) {
@@ -232,7 +254,9 @@ func (s *Server) reopenHostFinding(w http.ResponseWriter, r *http.Request) {
 	case err != nil:
 		s.internal(w, err)
 	default:
-		writeJSON(w, 200, d)
+		if s.hostEntry(w, r, "host_finding.reopen", "reopenHostFinding", id, "", findingState(hostID, id, subject), nil) {
+			writeJSON(w, 200, d)
+		}
 	}
 }
 
@@ -306,6 +330,15 @@ func (s *Server) createEnrolment(w http.ResponseWriter, r *http.Request) {
 		s.internal(w, err)
 		return
 	}
+	// The enrolment holds a one-time code: the entry names the label and
+	// the time it is valid, nothing of the code.
+	after := map[string]any{"ttl_minutes": in.TTLMinutes}
+	if in.Label != "" {
+		after["label"] = in.Label
+	}
+	if !s.hostEntry(w, r, "host_agent.enrol", "createEnrolment", "", "", nil, after) {
+		return
+	}
 	writeJSON(w, http.StatusCreated, e)
 }
 
@@ -344,6 +377,13 @@ func (s *Server) confirmAgent(w http.ResponseWriter, r *http.Request) {
 		s.agentError(w, err)
 		return
 	}
+	after := map[string]any{"fingerprint": in.Fingerprint}
+	if in.Label != "" {
+		after["label"] = in.Label
+	}
+	if !s.hostEntry(w, r, "host_agent.confirm", "confirmAgent", r.PathValue("agent_id"), "", nil, after) {
+		return
+	}
 	writeJSON(w, 200, a)
 }
 
@@ -362,6 +402,9 @@ func (s *Server) revokeAgent(w http.ResponseWriter, r *http.Request) {
 	a, err := s.Hosts.Revoke(r.Context(), r.PathValue("agent_id"), in.Note)
 	if err != nil {
 		s.agentError(w, err)
+		return
+	}
+	if !s.hostEntry(w, r, "host_agent.revoke", "revokeAgent", r.PathValue("agent_id"), in.Note, nil, nil) {
 		return
 	}
 	writeJSON(w, 200, a)

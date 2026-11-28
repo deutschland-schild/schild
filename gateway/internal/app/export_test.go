@@ -57,7 +57,7 @@ func (a *App) AgeHumanCheckKeys(ctx context.Context, at time.Time) error {
 	defer a.humanCheckMu.Unlock()
 	next := a.HumanCheck.State().Clone()
 	next.KeysRotatedAt = at
-	if err := a.storeHumanCheck(ctx, next); err != nil {
+	if err := a.storeHumanCheck(ctx, next, nil); err != nil {
 		return err
 	}
 	a.HumanCheck.Store(next)

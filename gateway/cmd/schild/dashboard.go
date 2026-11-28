@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/deutschland-schild/schild/gateway/internal/app"
+	"github.com/deutschland-schild/schild/gateway/internal/auditlog"
 	"github.com/deutschland-schild/schild/gateway/internal/control"
 	"github.com/deutschland-schild/schild/gateway/internal/dashboard"
 	"github.com/deutschland-schild/schild/gateway/internal/store"
@@ -31,6 +32,9 @@ Removes every dashboard user and session and requires the first-run setup
 again with a new one-time setup code. The code is printed here once; schild
 keeps only its hash. Events, settings and blocks stay as they are. The
 reset is recorded as the local event schild.dashboard.access_reset.v1.
+
+Both commands leave an entry in the audit log (schild audit) with the host
+account that ran them; the entry never holds the code.
 
 While schild runs, the command goes through the gateway's local control path
 (<data>/control/schild.sock), so open sessions end at once. While schild is
@@ -63,14 +67,14 @@ func cmdDashboard(args []string) error {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
 	defer cancel()
 	if args[0] == "setup-code" {
-		code, err := setupCode(ctx, app.DataDir(cfg, *data))
+		code, err := setupCode(ctx, app.DataDir(cfg, *data), hostAccount(os.Getenv, currentUser))
 		if err != nil {
 			return err
 		}
 		printSetupCode(os.Stdout, code, cfg.Listen.Dashboard)
 		return nil
 	}
-	r, err := resetPassword(ctx, cfg.NodeName, app.DataDir(cfg, *data), hostUser(os.Getenv, currentUser))
+	r, err := resetPassword(ctx, cfg.NodeName, app.DataDir(cfg, *data), hostAccount(os.Getenv, currentUser))
 	if err != nil {
 		return err
 	}
@@ -79,9 +83,10 @@ func cmdDashboard(args []string) error {
 }
 
 // setupCode asks the running gateway of the data directory dir for the
-// setup code of its first start. It never writes.
-func setupCode(ctx context.Context, dir string) (string, error) {
-	resp, err := control.Call(ctx, dir, control.Request{Op: control.OpSetupCode})
+// setup code of its first start. The gateway changes nothing; it notes in
+// its audit log that the code was shown to account.
+func setupCode(ctx context.Context, dir, account string) (string, error) {
+	resp, err := control.Call(ctx, dir, control.Request{Op: control.OpSetupCode, HostUser: account})
 	switch {
 	case err == nil && resp.OK:
 		return resp.SetupCode, nil
@@ -115,7 +120,9 @@ var errGatewayUnreachable = errors.New("dashboard reset-password: refused")
 // resetPassword resets the dashboard access of the data directory dir:
 // through the running gateway's control path when one answers, else
 // directly in the store while holding the gateway lock. With a running
-// gateway that does not answer it changes nothing.
+// gateway that does not answer it changes nothing. hostUser is the host
+// account as the command saw it: the event takes it when it is a plain
+// account name (dashboard.HostUser), the audit entry as it is.
 func resetPassword(ctx context.Context, node, dir, hostUser string) (resetResult, error) {
 	resp, err := control.Call(ctx, dir, control.Request{Op: control.OpResetDashboard, HostUser: hostUser})
 	switch {
@@ -145,7 +152,19 @@ func resetPassword(ctx context.Context, node, dir, hostUser string) (resetResult
 		return resetResult{}, err
 	}
 	defer st.Close()
-	code, _, res, err := dashboard.ResetAccess(ctx, st, node, dashboard.ViaHostCLI, hostUser, time.Now().UTC())
+	// schild is stopped: the reset, its event and its audit entry are one
+	// transaction of the store; the gateway moves the entry at its next start.
+	var code string
+	var res store.AccessReset
+	err = auditlog.ForStore(ctx, st, node).Tx(ctx, func(ctx context.Context, rec *auditlog.Rec) error {
+		var err error
+		code, _, res, err = dashboard.ResetAccess(ctx, st, node, dashboard.ViaHostCLI, hostUser, time.Now().UTC())
+		if err != nil {
+			return err
+		}
+		rec.Add(app.ResetAuditEntry(hostUser, res))
+		return nil
+	})
 	if err != nil {
 		return resetResult{}, err
 	}
@@ -168,16 +187,4 @@ func currentUser() string {
 		return u.Username
 	}
 	return ""
-}
-
-// hostUser is the host account that runs the command, for the audit event:
-// the account behind sudo first. Names outside the contract pattern are
-// left out.
-func hostUser(getenv func(string) string, current func() string) string {
-	for _, k := range []string{"SUDO_USER", "USER", "LOGNAME"} {
-		if v := getenv(k); v != "" {
-			return dashboard.HostUser(v)
-		}
-	}
-	return dashboard.HostUser(current())
 }

@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/deutschland-schild/schild/gateway/internal/auditlog"
 	"io"
 	"mime"
 	"net/http"
@@ -326,8 +327,24 @@ func (s *Server) createBlock(w http.ResponseWriter, r *http.Request) {
 		}
 		until := ts(bi.Until)
 		res.Until, data.Until, data.Persisted, data.Incident = &until, until, v.Persisted, res.Incident
+		// The block runs in the engine and is kept by its writer, not by
+		// this call: the entry is written before the answer.
+		e := entryOf(r, "block.set")
+		e.Subject, e.Reason = res.Incident, reason
+		switch {
+		case auditUUIDRE.MatchString(req.Target.EventID):
+			e.Event = req.Target.EventID
+		case auditIncidentRE.MatchString(req.Target.Incident):
+			e.Incident = req.Target.Incident
+		}
+		e.After = map[string]any{"client": ev.ip.String(), "duration_s": req.DurationS, "until": until, "effect": *v.Effect}
+		// The block runs: its incident is stored whether the entry can be
+		// written or not, or the block could not be found and released.
 		d.Incident(&store.Incident{Incident: res.Incident, EventID: id, Time: now, IP: ev.ip.String(), Status: "blocked", Reason: "agent " + tok.Label + ": " + reason,
 			Sources: []string{behaviour.AgentSource + tok.ID}})
+		if !s.written(w, s.Audit.Write(r.Context(), e)) {
+			return
+		}
 	}
 	d.spend(tok.ID, now)
 	res.EventID = id
@@ -448,7 +465,18 @@ func (s *Server) liftBlock(w http.ResponseWriter, r *http.Request) {
 	if v.Changed {
 		// A node of a group owes the group the lift: noted with the incident
 		// before the block ends here, so it is not lost (store/outbox.go).
-		if err := s.St.NoteLifts(r.Context(), now, id); err != nil {
+		// A single gateway notes no lift, and still opens the transaction:
+		// the lift and its audit entry are one change.
+		err := s.Audit.Tx(r.Context(), func(ctx context.Context, rec *auditlog.Rec) error {
+			e := entryOf(r, "block.lift")
+			e.Subject, e.Incident, e.Reason = id, id, contractapi.Sanitize(req.Reason, contractapi.MaxReason)
+			if _, err := netip.ParseAddr(in.IP); err == nil {
+				e.Before = map[string]any{"client": in.IP}
+			}
+			rec.Add(e)
+			return s.St.NoteLifts(ctx, now, id)
+		})
+		if err != nil {
 			Problem(w, http.StatusInternalServerError, "internal", "The lift could not be stored.")
 			return
 		}

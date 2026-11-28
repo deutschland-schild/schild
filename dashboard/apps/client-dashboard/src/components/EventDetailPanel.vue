@@ -16,6 +16,7 @@ import { websitePath } from '@/lib/nav'
 import { contextLink } from '@/lib/requests'
 import { ATTRIBUTION, eventTypeLabel, letThroughText, NET_CLASS, OUTCOMES, SEVERITY, WOULD_BLOCK_REASON } from '@/lib/labels'
 import { exceptionTargetOf, REPOSITORIES, rulesPath } from '@/lib/rules'
+import AuditTrail from '@/components/audit/AuditTrail.vue'
 import IpActions from './blocks/IpActions.vue'
 import CountryAsn from './CountryAsn.vue'
 import OutcomePill from './OutcomePill.vue'
@@ -188,6 +189,9 @@ function openUnblock() {
           </StatusPill>
         </p>
       </section>
+
+      <!-- MVP-36: what was changed because of this event (an exception made from it) -->
+      <AuditTrail :filters="{ event: ev.id }" title="Wegen dieses Ereignisses geändert" />
 
       <!-- Actions -->
       <section v-if="isRequest" class="flex flex-wrap gap-2" aria-label="Aktionen">

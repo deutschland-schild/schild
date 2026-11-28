@@ -7,13 +7,16 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path/filepath"
 	"text/tabwriter"
 	"time"
 
 	"github.com/deutschland-schild/schild/contract/config"
 	"github.com/deutschland-schild/schild/gateway/internal/app"
+	"github.com/deutschland-schild/schild/gateway/internal/auditlog"
 	"github.com/deutschland-schild/schild/gateway/internal/cluster"
 	"github.com/deutschland-schild/schild/gateway/internal/control"
+	"github.com/deutschland-schild/schild/gateway/internal/store"
 )
 
 const clusterUsage = `schild cluster secret                  print a new group secret for cluster.secret_file
@@ -68,15 +71,29 @@ func runCluster(args []string, out io.Writer, now func() time.Time) error {
 		if len(pos) != 1 {
 			return errors.New("cluster remove: NODE (name or id)\n" + clusterUsage)
 		}
+		// The roster is no part of schild.db, so the audit entry cannot share
+		// a transaction with the change (contracts/audit.md section 4). The
+		// store is opened first: when it cannot be, nothing is changed.
+		st, err := store.Open(filepath.Join(app.DataDir(cfg, *data), "schild.db"))
+		if err != nil {
+			return fmt.Errorf("cluster remove: nothing was changed, the store for the audit entry does not open: %w", err)
+		}
+		defer st.Close()
+		ctx := context.Background()
+		al := auditlog.ForStore(ctx, st, cfg.NodeName)
 		e, err := cluster.Remove(dir, pos[0], now)
 		if err != nil {
 			return err
+		}
+		if err := al.Write(ctx, auditlog.Entry{Action: "cluster.remove", Operation: "cli:cluster remove", Actor: cliActor(), Subject: e.ID,
+			Before: map[string]any{"name": e.Member.Name}}); err != nil {
+			return fmt.Errorf("cluster remove: %s (%s) is no member any more; the change stands, but it is not in the audit log: %w", e.Member.Name, e.ID, err)
 		}
 		fmt.Fprintf(out, "%s (%s) is no member any more. On that node: cluster.enabled false, and delete its cluster directory before it is set up in a group again.\n", e.Member.Name, e.ID)
 	case "drain":
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		defer cancel()
-		resp, err := control.Call(ctx, app.DataDir(cfg, *data), control.Request{Op: control.OpDrain})
+		resp, err := control.Call(ctx, app.DataDir(cfg, *data), control.Request{Op: control.OpDrain, HostUser: hostAccount(os.Getenv, currentUser)})
 		if err != nil {
 			return fmt.Errorf("cluster drain: %w (does schild run here?)", err)
 		}
