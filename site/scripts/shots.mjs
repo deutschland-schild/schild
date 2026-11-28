@@ -134,6 +134,14 @@ const SHOTS = [
     await page.waitForTimeout(1500)
   }, ...DOCS },
   { name: 'doku-wartungsseite', page: 'maintenance.html', ...DOCS },
+
+  // The audit log (docs/gateway/02-betrieb.md): the list, and one change with the value before and after.
+  { name: 'doku-protokoll', route: '/settings/audit', ...DOCS },
+  { name: 'doku-protokoll-eintrag', route: '/settings/audit', run: async (page) => {
+    await page.getByTestId('audit-row-title').filter({ hasText: 'Aufbewahrung geändert' }).first().click()
+    await page.getByTestId('audit-sheet').waitFor()
+    await page.waitForTimeout(600)
+  }, ...DOCS },
 ]
 
 async function fillAccessDialog(page) {

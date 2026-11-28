@@ -444,6 +444,14 @@ Deine Anwendung hängt von nichts ab, was Schild speichert. Wer auch die Daten l
 
 Schild schreibt jede Änderung in ein Protokoll (Audit-Log). Ein Eintrag sagt, wer etwas geändert hat, wann, auf welchem Weg und was vorher galt. Du findest es im Dashboard unter „Einstellungen“ → „Protokoll“.
 
+![Schild Dashboard, Seite Protokoll: Filter für Website, Art, Weg und Aktion, darunter die Liste der Einträge mit den Spalten Wann, Was, Wer und Website. Zu sehen sind ein abgelehnter Aufruf der Agent-API mit 48 Versuchen, eine geänderte Aufbewahrung, Anmeldungen, eine Änderung durch einen Agenten und eine geänderte Konfigurationsdatei. Testdaten.](../../site/public/img/dashboards/doku-protokoll.webp)
+
+Die Liste zeigt die neuesten Einträge zuerst. Mit den Filtern grenzt du sie ein: auf eine Website, auf eine Art von Eintrag, auf den Weg (Dashboard, Agent-API, Befehl auf dem Server) oder auf eine Aktion. Ein Klick auf eine Zeile öffnet den Eintrag:
+
+![Schild Dashboard, ein Eintrag im Protokoll als Seitenleiste: Aufbewahrung geändert, von admin im Dashboard mit Sitzung, Weg updateSettings, darunter „Vorher und nachher“ mit /retention/events_days, vorher 30, nachher 14, am Ende Server web-1 und die Nummer des Eintrags. IP-Adresse unkenntlich gemacht. Testdaten.](../../site/public/img/dashboards/doku-protokoll-eintrag.webp)
+
+Im Eintrag steht unter „Vorher und nachher“ jeder geänderte Wert. „Alles aus dieser Sitzung“ zeigt, was derselbe Benutzer in dieser Anmeldung noch geändert hat.
+
 **Was drinsteht:**
 
 - Änderungen aus dem Dashboard, mit Benutzer und Sitzung
