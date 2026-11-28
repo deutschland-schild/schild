@@ -263,3 +263,13 @@ func Parallel(t *testing.T) {
 		behaviour.SetHashKey(*testGroupHashKey)
 	})
 }
+
+// BeforeSharedWrite sets what runs before the sync of this gateway writes a
+// thing it put together from the value it read and the entries of other
+// nodes; thing is "class/id". A field of the gateway, so a test that sets
+// it may run in parallel.
+func (a *App) BeforeSharedWrite(f func(thing string)) {
+	a.sharedMu.Lock()
+	defer a.sharedMu.Unlock()
+	a.sharedBeforeWrite = f
+}
